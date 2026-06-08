@@ -91,6 +91,15 @@ def _ext_from_url(url):
     return ext if ext in _IMG_EXTS else ".jpg"
 
 
+# ラスタ画像のみ採用（FileネームスペースにはPDF/SVG/動画も含まれ、無関係ファイルを拾う事故を防ぐ）。
+_RASTER_EXTS = (".jpg", ".jpeg", ".png", ".gif", ".webp")
+
+
+def _is_raster_url(url):
+    ext = os.path.splitext(urllib.parse.urlparse(url).path)[1].lower()
+    return ext in _RASTER_EXTS
+
+
 def _get_json(url, timeout=30):
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -135,6 +144,10 @@ def fetch_one(query, out_dir, base_name, timeout=30, max_candidates=10):
         try:
             ii = imageinfo(title, timeout)
             if not ii or not ii.get("url"):
+                continue
+            if not _is_raster_url(ii["url"]):
+                # PDF/SVG/動画など非ラスタは表示できない/無関係ファイルの事故源なので除外。
+                logger.info(f"非ラスタ除外 '{title}': {ii['url'].rsplit('.', 1)[-1]}")
                 continue
             ok, short = pick_license(ii.get("extmetadata", {}))
             if not ok:

@@ -88,6 +88,22 @@ def test_fetch_one_skips_bad_license():
     print("  fetch_one: 不適合ライセンスを飛ばし次候補を採用 OK")
 
 
+def test_fetch_one_skips_non_raster():
+    tmp = tempfile.mkdtemp()
+    w.search = lambda q, n, t: ["File:Book.pdf", "File:Logo.svg", "File:Photo.jpg"]
+
+    def fake_ii(title, t):
+        url = {"Book": "https://x/Book.pdf", "Logo": "https://x/Logo.svg",
+               "Photo": "https://x/Photo.jpg"}[title.split(":")[1].split(".")[0]]
+        return {"url": url, "extmetadata": {"LicenseShortName": {"value": "Public domain"}}}
+
+    w.imageinfo = fake_ii
+    w._download = lambda url, path, t: open(path, "wb").write(b"x")
+    fn, attr = w.fetch_one("q", tmp, "ch_00_00")
+    assert fn == "ch_00_00.jpg", "PDF/SVGを飛ばしてラスタ(jpg)を採用"
+    print("  fetch_one: 非ラスタ(PDF/SVG)を除外しラスタ採用 OK")
+
+
 def test_fetch_one_none_when_all_denied():
     tmp = tempfile.mkdtemp()
     w.search = lambda q, n, t: ["File:A.jpg"]
@@ -249,6 +265,7 @@ if __name__ == "__main__":
     test_build_attribution()
     test_build_urls_and_ext()
     test_fetch_one_success()
+    test_fetch_one_skips_non_raster()
     test_fetch_one_skips_bad_license()
     test_fetch_one_none_when_all_denied()
     test_fetch_one_search_error()
