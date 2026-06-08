@@ -14,6 +14,15 @@ RUN apt-get update && apt-get install -y \
 
 RUN npm install -g @anthropic-ai/claude-code
 
+# Python依存（台本生成: google-genai / config読込: pyyaml / 画像: pillow）。
+# Debian bookworm は PEP668 で保護されるため、使い捨てコンテナ内は --break-system-packages で導入。
+COPY requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
+
 WORKDIR /workspace
+
+# VOICEVOXはホスト(Mac)でアプリ/エンジンを起動し、コンテナからは host.docker.internal で叩く（既定）。
+# CPU/ローカル完結＝課金ゼロ。docker run -e VOICEVOX_URL=... で上書き可。
+ENV VOICEVOX_URL=http://host.docker.internal:50021
 
 ENTRYPOINT ["claude"]
