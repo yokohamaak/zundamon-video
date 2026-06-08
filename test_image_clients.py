@@ -42,6 +42,15 @@ def test_build_attribution():
     print("  build_attribution: HTML除去/空フォールバック/license付与 OK")
 
 
+def test_title_matches():
+    assert w._title_matches("Linus Torvalds", "File:Linus Torvalds talking.jpg"), "固有名含む→関連"
+    assert not w._title_matches("BitKeeper", "File:The Keeper of the Bees.jpg"), "別物→非関連"
+    assert w._title_matches("first Macintosh", "File:Macintosh 128k.jpg"), "最長語macintosh含む→関連"
+    assert not w._title_matches("GitHub logo", "File:SecurityLab portrait.jpg"), "github含まず→非関連"
+    assert w._title_matches("q", "File:anything.jpg"), "短すぎる語は判定せず通す"
+    print("  _title_matches: 固有名でのタイトル関連判定 OK")
+
+
 def test_build_urls_and_ext():
     su = w.build_search_url("git logo", 5)
     assert "list=search" in su and "srnamespace=6" in su and "srlimit=5" in su
@@ -263,6 +272,7 @@ if __name__ == "__main__":
     print("test_image_clients:")
     test_pick_license()
     test_build_attribution()
+    test_title_matches()
     test_build_urls_and_ext()
     test_fetch_one_success()
     test_fetch_one_skips_non_raster()

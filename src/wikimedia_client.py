@@ -100,6 +100,19 @@ def _is_raster_url(url):
     return ext in _RASTER_EXTS
 
 
+def _title_matches(query, title):
+    """検索結果タイトルがクエリに関連するか（純関数）。
+
+    Wikimedia全文検索は関連度が低く1位が被写体と限らない（"BitKeeper"→"The Keeper of
+    the Bees"等）。クエリの固有名の核（最長の4字以上の語）がFile名に含まれるものだけ採用し、
+    無関係画像の誤採用を防ぐ。該当語が無い短いクエリは判定せず通す。
+    """
+    words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) >= 4]
+    if not words:
+        return True
+    return max(words, key=len) in title.lower()
+
+
 def _get_json(url, timeout=30):
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -141,6 +154,8 @@ def fetch_one(query, out_dir, base_name, timeout=30, max_candidates=10):
         logger.warning(f"Wikimedia検索失敗 '{query}': {e}")
         return None, None
     for title in titles:
+        if not _title_matches(query, title):
+            continue  # クエリの固有名を含まない＝無関係画像。誤採用を防ぐ。
         try:
             ii = imageinfo(title, timeout)
             if not ii or not ii.get("url"):
