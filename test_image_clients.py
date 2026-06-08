@@ -162,6 +162,65 @@ def test_pixabay_fetch_one():
     print("  pixabay: fetch_one 成功/キー無し OK")
 
 
+# ---- image_fetch（振り分け・各clientのfetch_oneをモンキーパッチ） ----
+
+def test_fetch_images_routing():
+    import os
+    from src import image_fetch as fch
+    calls = []
+    w.fetch_one = lambda q, d, b, t=30: (calls.append(("wiki", q)), (b + ".jpg", "WikiAttr"))[1]
+    px.fetch_one = lambda q, d, b, k, t=30: (calls.append(("px", q)), (b + ".jpg", "PxAttr"))[1]
+    pb.fetch_one = lambda q, d, b, k, t=30: (calls.append(("pb", q)), (b + ".jpg", "PbAttr"))[1]
+    os.environ["PEXELS_API_KEY"] = "K"
+    os.environ["PIXABAY_API_KEY"] = "K2"
+    config = {"images": {"wikimedia": {"enable": True},
+                         "pexels": {"enable": True, "api_key_env": "PEXELS_API_KEY"},
+                         "pixabay": {"enable": True, "api_key_env": "PIXABAY_API_KEY"}}}
+    chapters = [{"image_cuts": [
+        {"image_query": "Linus", "image_kind": "subject"},   # → wiki
+        {"image_query": "code", "image_kind": "ambient"},    # → px
+    ]}]
+    files, attrs = fch.fetch_images(chapters, "/tmp", config)
+    assert files[(0, 0)] == "ch_00_00.jpg" and attrs[(0, 0)] == "WikiAttr", "subjectはWikimedia優先"
+    assert files[(0, 1)] == "ch_00_01.jpg" and attrs[(0, 1)] == "PxAttr", "ambientはPexels優先"
+    assert ("wiki", "Linus") in calls and ("px", "code") in calls
+    print("  fetch_images: subject→wiki / ambient→px 振り分け OK")
+
+
+def test_fetch_images_ambient_fallback_to_pixabay():
+    import os
+    from src import image_fetch as fch
+    px.fetch_one = lambda q, d, b, k, t=30: (None, None)   # Pexelsは失敗
+    pb.fetch_one = lambda q, d, b, k, t=30: (b + ".png", "PbAttr")
+    os.environ["PEXELS_API_KEY"] = "K"
+    os.environ["PIXABAY_API_KEY"] = "K2"
+    config = {"images": {"wikimedia": {"enable": True},
+                         "pexels": {"enable": True, "api_key_env": "PEXELS_API_KEY"},
+                         "pixabay": {"enable": True, "api_key_env": "PIXABAY_API_KEY"}}}
+    chapters = [{"image_cuts": [{"image_query": "server", "image_kind": "ambient"}]}]
+    files, attrs = fch.fetch_images(chapters, "/tmp", config)
+    assert files[(0, 0)] == "ch_00_00.png" and attrs[(0, 0)] == "PbAttr", "Pexels失敗→Pixabayフォールバック"
+    print("  fetch_images: ambient Pexels失敗→Pixabay OK")
+
+
+def test_fetch_images_all_fail_is_placeholder():
+    import os
+    from src import image_fetch as fch
+    w.fetch_one = lambda q, d, b, t=30: (None, None)
+    px.fetch_one = lambda q, d, b, k, t=30: (None, None)
+    pb.fetch_one = lambda q, d, b, k, t=30: (None, None)
+    os.environ["PEXELS_API_KEY"] = "K"
+    os.environ["PIXABAY_API_KEY"] = "K2"
+    config = {"images": {"wikimedia": {"enable": True},
+                         "pexels": {"enable": True, "api_key_env": "PEXELS_API_KEY"},
+                         "pixabay": {"enable": True, "api_key_env": "PIXABAY_API_KEY"}}}
+    chapters = [{"image_cuts": [{"image_query": "x", "image_kind": "subject"},
+                                {"image_query": "", "image_kind": "ambient"}]}]  # 空queryはskip
+    files, attrs = fch.fetch_images(chapters, "/tmp", config)
+    assert files == {} and attrs == {}, "全失敗・空queryはimage_filesに入らない(プレースホルダ)"
+    print("  fetch_images: 全失敗/空query→プレースホルダ OK")
+
+
 if __name__ == "__main__":
     print("test_image_clients:")
     test_pick_license()
@@ -175,4 +234,7 @@ if __name__ == "__main__":
     test_pexels_fetch_one()
     test_pixabay_url_and_pick()
     test_pixabay_fetch_one()
+    test_fetch_images_routing()
+    test_fetch_images_ambient_fallback_to_pixabay()
+    test_fetch_images_all_fail_is_placeholder()
     print("ALL PASS")

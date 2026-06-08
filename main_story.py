@@ -71,23 +71,23 @@ def chapter_image_name(chapter: int, cut: int = 0) -> str:
     return f"ch_{chapter:02d}_{cut:02d}.png"
 
 
-def build_chapter_topics(segments, turns, chapters, image_status=None, attributions=None):
+def build_chapter_topics(segments, turns, chapters, image_files=None, attributions=None):
     """章区間 → meta.topics（純関数）。
 
     各章区間を image_cuts の数で複数カットに分割し、[0, total] を隙間なく被覆する
-    start/end を割り当てる（切替はターン境界・章内も均等割り）。画像が ready なら image を、
-    未取得（Phase1/失敗）なら placeholder 枠を置く。章バッジ情報(chapter/title/section)は全カットに付与。
+    start/end を割り当てる（切替はターン境界・章内も均等割り）。画像が取得済なら image を、
+    未取得（失敗/--no-images）なら placeholder 枠を置く。章バッジ情報(chapter/title/section)は全カットに付与。
 
     Args:
         segments: assign_sections_to_turns の出力 [{chapter, section, turns:[idx]}]（出現順）
         turns: TTS後のターン時刻 [{start, end, ...}]（script順）
         chapters: 章メタ [{title, section, image_cuts:[{image_query,image_kind}]}]
-        image_status: {(chapter, cut): "ready"} 取得済みカット（無ければ全プレースホルダ）
-        attributions: {(chapter, cut): "出典文字列"} Wikimedia帰属（任意）
+        image_files: {(chapter, cut): "ch_NN_MM.jpg"} 取得済画像の実ファイル名（無ければ全プレースホルダ）
+        attributions: {(chapter, cut): "出典文字列"} 帰属（任意）
     Returns:
         meta.topics のリスト（時刻順・[0,total]被覆）
     """
-    image_status = image_status or {}
+    image_files = image_files or {}
     attributions = attributions or {}
     total = turns[-1]["end"] if turns else 0.0
     nseg = len(segments)
@@ -120,8 +120,9 @@ def build_chapter_topics(segments, turns, chapters, image_status=None, attributi
                 "chapterTotal": len(chapters),
             }
             key = (ch, ci)
-            if image_status.get(key) == "ready":
-                topic["image"] = chapter_image_name(ch, ci)
+            fname = image_files.get(key)
+            if fname:
+                topic["image"] = fname
                 if attributions.get(key):
                     topic["credit"] = attributions[key]
             else:
@@ -149,7 +150,7 @@ def build_credits(config, attributions=None):
     return creds
 
 
-def build_meta(script_result, turns, config, now_iso, image_status=None, attributions=None):
+def build_meta(script_result, turns, config, now_iso, image_files=None, attributions=None):
     """動画(video/)が読む meta.json 構造を組み立てる（純関数・テスト可能）。
 
     - script に VOICEVOX のターン情報(start/end/sentences=字幕単位)を合流
@@ -184,7 +185,7 @@ def build_meta(script_result, turns, config, now_iso, image_status=None, attribu
         "generated_at": now_iso,
         "title": script_result.get("theme"),
         "speakers": speakers,
-        "topics": build_chapter_topics(segments, turns, chapters, image_status, attributions),
+        "topics": build_chapter_topics(segments, turns, chapters, image_files, attributions),
         "credits": build_credits(config, attributions),
         "script": script,
     }
@@ -231,10 +232,14 @@ def main():
         )
         return
 
-    # 2. 画像取得（Phase2）。現状は未実装なので image_status は空＝全プレースホルダ。
-    image_status, attributions = {}, {}
-    if not args.no_images:
-        logger.info("画像取得（Phase2）は未実装のため全章プレースホルダで続行します（--no-images相当）。")
+    # 2. 画像取得（image_kindで Wikimedia / Pexels / Pixabay に振り分け）。失敗カットはプレースホルダ。
+    image_files, attributions = {}, {}
+    if args.no_images:
+        logger.info("--no-images: 画像取得をskipし全章プレースホルダで続行します。")
+    else:
+        from src import image_fetch
+        image_files, attributions = image_fetch.fetch_images(
+            script_result["chapters"], str(out_dir), config)
 
     # 3. VOICEVOXで音声＋厳密タイムスタンプ（文単位字幕付き）
     mp3_path = out_dir / "digest.mp3"
@@ -242,7 +247,7 @@ def main():
 
     # 4. meta.json
     now_iso = datetime.now(JST).isoformat()
-    meta = build_meta(script_result, turns, config, now_iso, image_status, attributions)
+    meta = build_meta(script_result, turns, config, now_iso, image_files, attributions)
     with open(out_dir / "meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 

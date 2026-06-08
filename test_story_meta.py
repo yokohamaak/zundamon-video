@@ -72,14 +72,14 @@ def test_build_chapter_topics_ready_image_and_credit():
     segs = story_script.assign_sections_to_turns(script)
     topics = m.build_chapter_topics(
         segs, turns, CHAPTERS,
-        image_status={(0, 0): "ready", (1, 0): "ready"},   # 章0cut0と章1cut0だけready
+        image_files={(0, 0): "ch_00_00.png", (1, 0): "ch_01_00.jpg"},   # 章0cut0と章1cut0だけ取得済
         attributions={(0, 0): "Linus / CC-BY-3.0"},
     )
-    assert topics[0]["image"] == "ch_00_00.png", "ready章cutはimage"
+    assert topics[0]["image"] == "ch_00_00.png", "取得済cutはimage(実ファイル名)"
     assert topics[0]["credit"] == "Linus / CC-BY-3.0", "帰属が付く"
     assert "image" not in topics[1] and topics[1]["placeholder"] == "ch_00_01.png", "同章の未取得cutはプレースホルダ"
-    assert topics[2]["image"] == "ch_01_00.png", "章1cut0はready"
-    print("  build_chapter_topics: ready画像+credit / 混在 OK")
+    assert topics[2]["image"] == "ch_01_00.jpg", "章1cut0は取得済(実ファイル名jpg)"
+    print("  build_chapter_topics: 取得済画像+credit / 混在 OK")
 
 
 def test_build_credits():
