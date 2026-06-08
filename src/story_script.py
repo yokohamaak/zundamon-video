@@ -267,7 +267,7 @@ def assign_sections_to_turns(script: list) -> list:
     return segs
 
 
-def _generate_with_retry(client, model_name, prompt, max_attempts=3):
+def _generate_with_retry(client, model_name, prompt, max_attempts=5):
     import re
     import time
 
@@ -277,8 +277,14 @@ def _generate_with_retry(client, model_name, prompt, max_attempts=3):
         except Exception as e:  # noqa: BLE001
             if attempt == max_attempts:
                 raise
-            match = re.search(r"retry[^\d]*(\d+(?:\.\d+)?)\s*s", str(e), re.IGNORECASE)
-            wait = max(int(float(match.group(1))) + 10, 65) if match else 65
+            msg = str(e)
+            match = re.search(r"retry[^\d]*(\d+(?:\.\d+)?)\s*s", msg, re.IGNORECASE)
+            if match:
+                wait = max(int(float(match.group(1))) + 10, 65)  # 429(レート制限): 指示秒+余裕
+            elif re.search(r"503|UNAVAILABLE|overloaded|high demand", msg, re.IGNORECASE):
+                wait = 20  # 一時的な高負荷は短間隔で再試行
+            else:
+                wait = 65
             logger.warning(f"生成失敗（試行{attempt}/{max_attempts}）、{wait}秒後にリトライ: {e}")
             time.sleep(wait)
 
