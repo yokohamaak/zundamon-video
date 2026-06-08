@@ -1,18 +1,21 @@
 """
-Gemini if台本生成モジュール
+Gemini IT技術史台本生成モジュール
 
-NASA APOD（title + explanation）を素材に、「もしも〜だったら？」の掛け合い台本を生成する。
-役割: ずんだもん=質問役 / 四国めたん=解説役（configで変更可）。
-出力は tts_voicevox・動画が使う script 形式 [{"speaker","text"}, ...]。
+1テーマ（例「なぜGitは世界を変えたのか」）を題材に、章立て時系列の掛け合い台本を生成する。
+役割: ずんだもん=聞き手/初心者 / 四国めたん=解説役（configで変更可）。
+出力は tts_voicevox・動画が使う script 形式 [{"speaker","text",...}] ＋ 章メタ chapters。
 
-設計: build_prompt / parse_script_json は純関数でテスト可能。
-google.genai（新SDK）は generate_if_script 内で遅延importする（テストに依存を持ち込まない）。
+設計: build_prompt / parse_script_json / normalize_turns / assign_sections_to_turns は
+純関数でテスト可能。google.genai（新SDK）は generate_story_script 内で遅延importする
+（テストに依存を持ち込まない）。
 
 config（例）:
-    if_dialogue:
-      questioner: ずんだもん    # 質問役
-      explainer: 四国めたん     # 解説役
-      target_turns: 12         # 会話ターン数の目安
+    story:
+      theme: "なぜGitは世界を変えたのか"   # 空ならGeminiにテーマ選定させる
+      chapters: 5                          # 章数の目安
+      questioner: ずんだもん               # 聞き手
+      explainer: 四国めたん                # 解説役
+      target_minutes: 7
     models:
       text: gemini-2.5-flash
 """
@@ -24,122 +27,118 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_QUESTIONER = "ずんだもん"
 DEFAULT_EXPLAINER = "四国めたん"
-DEFAULT_TURNS = 12
+DEFAULT_CHAPTERS = 5
 DEFAULT_MINUTES = 7
 
 # 読み上げ速度の実測換算（VOICEVOX・現行の話者speed設定下で約335字/分）。
-# 以前は450字/分で見積もっており、目標文字数が過大→実尺が想定の1.3倍以上に伸びていた。
 CHARS_PER_MINUTE = 335
 
 # 動画(video/src/types.ts)が解釈する感情enum。これ以外の値は normal に倒す。
 VALID_EMOTIONS = {"normal", "surprise", "happy", "sad", "angry"}
 DEFAULT_EMOTION = "normal"
 
-# 台本上の進行フェーズ。Remotionが演出の強弱に使う。不正値は fact に倒す。
-VALID_PHASES = {"intro", "fact", "if", "outro"}
-DEFAULT_PHASE = "fact"
+# 章の種別（時系列）。chapters[].section と script[].section に使う。不正値は background に倒す。
+VALID_SECTIONS = {"intro", "background", "turning_point", "impact", "outro"}
+DEFAULT_SECTION = "background"
 
 # 演出effect enum（video/src/types.ts と一致）。不正値は kenburns に倒す。
-# kenburns=標準のゆっくりズーム/パン / zoom_punch=if突入で寄る / shake=揺れ
-# / flash=白フラッシュ転換 / glow_pulse=発光脈動。
+# kenburns=標準のゆっくりズーム/パン / zoom_punch=寄る / shake=揺れ
+# / flash=白フラッシュ転換（章境界向き）/ glow_pulse=発光脈動。
 VALID_EFFECTS = {"kenburns", "zoom_punch", "shake", "flash", "glow_pulse"}
 DEFAULT_EFFECT = "kenburns"
 
+# 画像の取得先振り分け（image_fetch がPhase2で参照）。
+# subject=実在の人物/製品/歴史的瞬間（Wikimedia向き）/ ambient=抽象・雰囲気（Pexels/Pixabay向き）。
+VALID_IMAGE_KINDS = {"subject", "ambient"}
+DEFAULT_IMAGE_KIND = "ambient"
 
-def build_prompt(apod: dict, config: dict) -> str:
-    """APOD情報から日本語のif掛け合い台本生成プロンプトを作る（純関数）。"""
-    d = config.get("if_dialogue", {})
-    questioner = d.get("questioner", DEFAULT_QUESTIONER)
-    explainer = d.get("explainer", DEFAULT_EXPLAINER)
-    turns = int(d.get("target_turns", DEFAULT_TURNS))
-    minutes = float(d.get("target_minutes", DEFAULT_MINUTES))
+
+def build_prompt(config: dict) -> str:
+    """configから日本語のIT技術史・章立て掛け合い台本生成プロンプトを作る（純関数）。"""
+    s = config.get("story", {})
+    questioner = s.get("questioner", DEFAULT_QUESTIONER)
+    explainer = s.get("explainer", DEFAULT_EXPLAINER)
+    chapters = int(s.get("chapters", DEFAULT_CHAPTERS))
+    minutes = float(s.get("target_minutes", DEFAULT_MINUTES))
     total_chars = int(minutes * CHARS_PER_MINUTE)  # 実測約335字/分換算の総量目安
-    exp_chars = int(total_chars / turns * 1.5)  # 解説役1発言の目安（質問役は短いので解説を厚めに）
+    theme = (s.get("theme") or "").strip()
 
-    title = apod.get("title") or "(無題)"
-    explanation = apod.get("explanation") or ""
+    if theme:
+        theme_line = f'今回のテーマは「{theme}」。このテーマで台本を作ってください。'
+    else:
+        theme_line = (
+            "今回のテーマはあなたが選んでください。IT・コンピュータ技術史の中で、"
+            "「誕生の物語」や「なぜ歴史を塗り替えたのか」が語れる題材を1つ選ぶ"
+            "（例: Unix / TCP-IP / Git / WWW / リレーショナルデータベース / トランジスタ）。"
+        )
 
     return f"""
-あなたは宇宙系YouTubeの掛け合い台本ライターです。
-本日のNASA APOD（天文写真）を題材に、日本語の「もしも〜だったら？」掛け合い台本を作ってください。
+あなたはIT技術史を扱う教養系YouTubeの掛け合い台本ライターです。
+1つの技術・出来事を題材に、その「誕生の物語」「なぜ歴史を塗り替えたのか」を、
+時系列の章立てで掘り下げる日本語の掛け合い台本を作ってください。
 
-## 題材（NASA APOD・英語）
-タイトル: {title}
-解説: {explanation}
+## テーマ
+{theme_line}
 
-## 企画の骨子
-- 上の天体・現象を入口に、「もしも〜だったら？」という想像（if）を1つ立てて掘り下げる。
-  例:「もしもこの天体に立てたら空はどう見える？」→「ではその星の一日は？」と展開。
-- **事実パートとifパートの分量は約1対1（半々）にする。** まず天体の事実をしっかり語ってから、その事実を土台にifを想像する。
-- **ifを広げすぎてAPODの題材から離れないこと。** ifは今日の天体に直接ひもづく範囲にとどめ、文明論・人類論・哲学など題材と無関係な方向へ膨らませない。
-- 事実パートは上の解説の範囲に忠実に。解説に無い事実を断定で創作しない。
-- ifパート（想像）は科学的に無理のない範囲で。断定せず「もし〜なら」「〜かもしれない」と想像と分かる言い方にする。
+## 企画の骨子（章立て時系列）
+- 全体を時系列の「章」で構成し、章ごとに語る対象（＝映す画像）が必ず変わるようにする。
+- 章の流れは原則この順:
+  - intro: つかみ。今日の主役を一言で紹介し、なぜ重要かを予告する。
+  - background: その技術が生まれる前の課題・時代背景（なぜ必要だったか）。
+  - turning_point: 誕生・ブレイクスルーの瞬間（誰が・いつ・どう作ったか）。
+  - impact: それが何を変えたか（歴史を塗り替えた点・その後の広がり）。
+  - outro: まとめ。一言で締める。
+- background〜impact は内容に応じて複数章に分けてよい。**全体で約{chapters}章**にする。
+- **史実に忠実に。** 年・人物・経緯は事実の範囲で語り、不確かな逸話を断定で創作しない。
+  確実でない所は「諸説あるけれど」「とされている」と限定する。
 
 ## 登場人物と口調（語尾を混同しないこと・最重要）
-- {questioner}（質問役）: 好奇心旺盛。素朴な疑問を次々ぶつける。一人称「ぼく」、語尾は「〜なのだ」「〜のだ？」。
-- {explainer}（解説役）: 落ち着いた大人の女性。一人称「わたし」、語尾は「〜よ」「〜わ」「〜なのよ」「〜ね」「〜だわ」など。**各発言は3〜5文・{exp_chars}字程度としっかり語る**（短い相槌だけで終えない）。
-- **【厳守】「〜のだ」「〜なのだ」「〜のだよ」は {questioner} 専用。{explainer} には絶対に使わせない。** 逆に {explainer} の女性的語尾を {questioner} に使わせない。各発言が誰の口調か、書く前に必ず確認すること。
+- {questioner}（聞き手・初心者役）: 好奇心旺盛。素朴な疑問を投げ、視聴者の代弁をする。
+  一人称「ぼく」、語尾は「〜なのだ」「〜のだ？」。
+- {explainer}（解説役）: 落ち着いた大人の女性。技術と歴史を噛み砕いて語る。
+  一人称「わたし」、語尾は「〜よ」「〜わ」「〜なのよ」「〜ね」「〜だわ」など。
+  **各発言は3〜5文としっかり語る**（短い相槌だけで終えない）。
+- **【厳守】「〜のだ」「〜なのだ」「〜のだよ」は {questioner} 専用。{explainer} には絶対に使わせない。**
+  逆に {explainer} の女性的語尾を {questioner} に使わせない。書く前に必ず誰の口調か確認すること。
 
-## 感情（必須・各発言に1つ付与）
-- 各発言に、その発言の感情を表す "emotion" を **必ず** 付ける。値は次のいずれか1つ:
-  - normal: 通常の説明・相槌（基本はこれ）
-  - surprise: 驚き・意外（「ええっ」「まさか」など強い反応）
-  - happy: 楽しい・嬉しい・わくわく
-  - sad: 残念・しんみり
-  - angry: 怒り（この企画ではほぼ使わない）
-- 迷ったら normal。{questioner} は驚き役なので surprise/happy が出やすい。
+## 各発言に必ず付けるフィールド
+1. "chapter": その発言が属する章の番号（0始まりの整数）。0=最初の章。発言は章順に並べ、章番号は飛ばさない。
+2. "section": その章の種別。{sorted(VALID_SECTIONS)} のいずれか1つ。同じ章の発言は同じsectionにする。
+3. "emotion": 感情。次のいずれか1つ:
+   - normal（基本）/ surprise（驚き・意外）/ happy（嬉しい・わくわく）/ sad（残念・しんみり）/ angry（ほぼ使わない）
+   - {questioner} は驚き役なので surprise/happy が出やすい。迷ったら normal。
+4. "effect": 画面演出。次のいずれか1つ:
+   - kenburns（標準・基本はこれ）/ zoom_punch（強調したい所）/ shake（衝撃）
+   - flash（章の切り替わり＝場面転換）/ glow_pulse（神秘的な強調）
+   - **基本は kenburns。章が切り替わる最初の発言に flash を使うと転換が締まる。** 強い演出は多用しない。
 
-## 進行フェーズ（必須・各発言に "phase" を1つ付与）
-- 各発言が台本のどの段階かを示す "phase" を **必ず** 付ける。値は次のいずれか1つ:
-  - intro: 冒頭の写真紹介・導入
-  - fact: 天体の事実解説
-  - if: 「もしも〜だったら？」の想像パート（山場）
-  - outro: まとめ・締め
-- 前半=fact中心、後半=if中心になるよう、おおむね intro→fact→if→outro の順で付ける。
-
-## 演出（必須・各発言に "effect" を1つ付与）
-- 各発言に画面演出 "effect" を **必ず** 付ける。値は次のいずれか1つ:
-  - kenburns: 標準（ゆっくりズーム/パン）。基本はこれ。
-  - zoom_punch: ifに突入する瞬間など、グッと寄せたい所
-  - shake: 激しい現象・衝撃の描写
-  - flash: 場面転換・「もしも」の世界に切り替わる瞬間
-  - glow_pulse: 幻想的・神秘的な強調
-- **fact/intro/outro は原則 kenburns。** 強い演出（zoom_punch/shake/flash/glow_pulse）は **if パートの見せ場に限って**使い、多用しない。迷ったら kenburns。
+## 章メタ（chapters・各章に1つ）
+各章について次を出すこと（chapter番号の昇順）:
+- "section": 上のenumのいずれか（その章の種別）。
+- "title": 画面に出す短い日本語の章見出し（10〜18文字程度）。
+- "image_query": その章で映す画像の**英語の検索語**（フリー素材庫を検索する）。
+- "image_kind": 画像の種類。
+  - "subject": 実在の人物・製品・歴史的な物/瞬間（例: "Linus Torvalds", "first Macintosh computer"）。
+  - "ambient": 抽象・雰囲気・概念の画像（例: "source code on screen", "server room"）。
+  - 実在の特定物を見せたい章は subject、つなぎ・概念の章は ambient にする。
 
 ## 構成・分量（重要：尺を満たすこと）
-- {explainer}が今日の一枚を紹介して始め、{questioner}が食いついて質問していく流れ。
-- **全体で約{turns}ターン（発言）。台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）になるよう、各発言を十分な長さで書くこと。短くまとめて早く終わらせない。**
-- 導入（写真の紹介）→事実の解説→ifの想像→まとめ、と展開する。**事実の解説とifの想像はおおむね同じ分量（前半=事実／後半=if）**にして、どちらかに偏らせない。
+- {explainer}が主役を紹介して始め、{questioner}が食いついて質問していく流れ。
+- **台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）**になるよう、各発言を十分な長さで書く。
+  短くまとめて早く終わらせない。
 - 専門用語は{explainer}が噛み砕く。
-
-## 補助素材の検索語（stock_queries）
-- 事実パートの実写補助として、NASAの無料画像庫(images.nasa.gov)を検索する **英語の検索語を2〜4個** 出すこと。
-- 実写が見つかりやすい語にする（探査機・望遠鏡・ミッション名・関連天体の固有名など）。抽象語や日本語は避ける。
-  例: "Hubble Space Telescope", "Alpha Centauri", "Proxima Centauri"
-
-## ifパートの想像イラスト案（manual_cuts）
-- ifパート（想像）の山場で見せたい「想像イラスト」を **1〜3個** 提案すること（実写が無い空想の情景）。
-- 各案に次の3つを付ける:
-  - label: 短い日本語の見出し
-  - prompt: その絵の情景描写（日本語1〜2文。動画のプレースホルダにも表示する）
-  - image_prompt: **画像生成AIにそのまま貼れる英語プロンプト**。被写体・構図・光・色・雰囲気を具体的に。
-    宇宙/天文の幻想的でシネマティックな作風、横長16:9を想定。人物の顔のクローズアップは避ける。
-- 例:
-  - label="赤い空の浜辺"
-  - prompt="二重星に照らされ、空が赤紫に染まった惑星の海岸線。砂浜に二つの影が伸びる。"
-  - image_prompt="A wide cinematic view of an alien coastline under a binary star system, sky glowing in red and violet hues, two long shadows cast on the sand, calm ocean reflecting twin suns, dreamy sci-fi concept art, ultra detailed, 16:9"
 
 ## 出力形式
 マークダウンのコードブロックは使わず、以下のJSONだけを出力すること:
 {{
-  "topic_title": "中央に表示する短い日本語タイトル（10〜18文字程度）",
-  "if_premise": "今回のifの一行要約（日本語）",
-  "stock_queries": ["English search term", "..."],
-  "manual_cuts": [{{"label": "短い見出し", "prompt": "情景描写(日本語)", "image_prompt": "English prompt for image AI"}}],
+  "theme": "動画のテーマ（日本語・meta.titleと章全体の見出しに使う）",
+  "chapters": [
+    {{"section": "intro", "title": "短い章見出し", "image_query": "English search term", "image_kind": "ambient"}},
+    {{"section": "turning_point", "title": "誕生の瞬間", "image_query": "Linus Torvalds", "image_kind": "subject"}}
+  ],
   "script": [
-    {{"speaker": "{explainer}", "text": "今日の一枚はこれよ。とても綺麗な写真なの。", "emotion": "normal", "phase": "intro", "effect": "kenburns"}},
-    {{"speaker": "{questioner}", "text": "わあ、これは何なのだ？", "emotion": "surprise", "phase": "fact", "effect": "kenburns"}},
-    ...
+    {{"speaker": "{explainer}", "text": "今日の主役はこれよ。…", "emotion": "normal", "section": "intro", "chapter": 0, "effect": "kenburns"}},
+    {{"speaker": "{questioner}", "text": "へえ、それは何なのだ？", "emotion": "surprise", "section": "intro", "chapter": 0, "effect": "kenburns"}}
   ]
 }}
 """.strip()
@@ -150,6 +149,7 @@ def parse_script_json(text: str) -> dict:
 
     - ```json ... ``` のコードフェンスを除去
     - 前後に余分なテキストがあっても最初の '{' から復号
+    - chapters/script を正規化（chaptersの構造を真として section を補完）
     """
     text = text.strip()
     if text.startswith("```"):
@@ -165,18 +165,17 @@ def parse_script_json(text: str) -> dict:
     for i, turn in enumerate(data["script"]):
         if "speaker" not in turn or "text" not in turn:
             raise ValueError(f"script[{i}] に speaker/text がありません: {turn}")
-    normalize_turns(data["script"])
-    # stock_queries は任意。文字列のみ・空白除去・最大4個に整える（無ければ空リスト）。
-    data["stock_queries"] = _clean_queries(data.get("stock_queries"))
-    # manual_cuts も任意。label/prompt を持つものだけ・最大3個（無ければ空リスト）。
-    data["manual_cuts"] = _clean_manual_cuts(data.get("manual_cuts"))
+    # 章メタを正規化（section/image_kind enum化・trim）。
+    data["chapters"] = _clean_chapters(data.get("chapters"))
+    # ターンを正規化（chaptersがあれば section をchapter由来で上書き＝構造を信頼）。
+    normalize_turns(data["script"], data["chapters"])
     return data
 
 
 def warn_role_voice(script, questioner, explainer):
     """役の語尾混同を検出して警告ログを出す（自動修正はしない＝不自然化を避ける）。
 
-    解説役(explainer)が質問役(ずんだもん)の「のだ／なのだ」語尾を使っていないか確認する。
+    解説役(explainer)が聞き手(questioner)の「のだ／なのだ」語尾を使っていないか確認する。
     音声合成の前に気づけるようにするための軽いガード。Returns: 混入文数。
     """
     import re
@@ -198,47 +197,74 @@ def warn_role_voice(script, questioner, explainer):
     return len(hits)
 
 
-def _clean_queries(queries, limit=4):
-    """stock_queries を文字列のみ・trim・重複/空除去・最大limit個へ正規化（純関数）。"""
-    if not isinstance(queries, list):
+def _clean_chapters(chapters, limit=12):
+    """chapters を {section,title,image_query,image_kind} へ正規化（純関数）。
+
+    section/image_kind はenum固定、title/image_query は trim。dict以外・空は除外。
+    """
+    if not isinstance(chapters, list):
         return []
     out = []
-    for q in queries:
-        if isinstance(q, str) and q.strip() and q.strip() not in out:
-            out.append(q.strip())
-    return out[:limit]
-
-
-def _clean_manual_cuts(cuts, limit=3):
-    """manual_cuts を {label, prompt} を持つものだけ・trim・最大limit個へ正規化（純関数）。"""
-    if not isinstance(cuts, list):
-        return []
-    out = []
-    for c in cuts:
+    for c in chapters:
         if not isinstance(c, dict):
             continue
-        label = (c.get("label") or "").strip()
-        prompt = (c.get("prompt") or "").strip()
-        image_prompt = (c.get("image_prompt") or "").strip()
-        if label or prompt:
-            out.append({"label": label, "prompt": prompt, "image_prompt": image_prompt})
+        section = c.get("section")
+        if section not in VALID_SECTIONS:
+            section = DEFAULT_SECTION
+        image_kind = c.get("image_kind")
+        if image_kind not in VALID_IMAGE_KINDS:
+            image_kind = DEFAULT_IMAGE_KIND
+        out.append({
+            "section": section,
+            "title": (c.get("title") or "").strip(),
+            "image_query": (c.get("image_query") or "").strip(),
+            "image_kind": image_kind,
+        })
     return out[:limit]
 
 
-def normalize_turns(script: list) -> list:
-    """各ターンの emotion / phase / effect をenum固定する（欠落・不正値はデフォルト補完）。
+def normalize_turns(script: list, chapters: list = None) -> list:
+    """各ターンの emotion / effect / section / chapter をenum・整数固定する（破壊的・in-place）。
 
-    Gemini生成・--from-scriptの旧台本どちらにも適用し、phase/effect未付与の台本でも
-    動画側が必ず有効値を受け取れるようにする（破壊的・in-place）。
+    - emotion / effect: enum外はデフォルト補完。
+    - chapter: 整数化。chapters があれば [0, len-1] にclamp、無ければ 0以上にclamp。
+    - section: chapters があれば chapters[chapter].section で上書き（構造を真とする＝proseを信頼しない）。
+      chapters が無ければ enum 正規化のみ。
     """
+    n = len(chapters) if chapters else 0
     for turn in script:
         if turn.get("emotion") not in VALID_EMOTIONS:
             turn["emotion"] = DEFAULT_EMOTION
-        if turn.get("phase") not in VALID_PHASES:
-            turn["phase"] = DEFAULT_PHASE
         if turn.get("effect") not in VALID_EFFECTS:
             turn["effect"] = DEFAULT_EFFECT
+        try:
+            ch = int(turn.get("chapter"))
+        except (TypeError, ValueError):
+            ch = 0
+        ch = max(0, min(ch, n - 1)) if n else max(0, ch)
+        turn["chapter"] = ch
+        if n:
+            turn["section"] = chapters[ch].get("section", DEFAULT_SECTION)
+        elif turn.get("section") not in VALID_SECTIONS:
+            turn["section"] = DEFAULT_SECTION
     return script
+
+
+def assign_sections_to_turns(script: list) -> list:
+    """ターン列を chapter の連続塊（章セグメント）に分ける純関数。
+
+    Returns: [{"chapter": int, "section": str, "turns": [turn_index, ...]}, ...]（出現順）。
+    同じchapterが非連続で再登場したら別セグメントになる（連続塊で切る）。
+    Phase1の build_chapter_topics がこの区間へ時間割当する。
+    """
+    segs = []
+    for i, t in enumerate(script):
+        ch = t.get("chapter", 0)
+        if segs and segs[-1]["chapter"] == ch:
+            segs[-1]["turns"].append(i)
+        else:
+            segs.append({"chapter": ch, "section": t.get("section", DEFAULT_SECTION), "turns": [i]})
+    return segs
 
 
 def _generate_with_retry(client, model_name, prompt, max_attempts=3):
@@ -257,34 +283,36 @@ def _generate_with_retry(client, model_name, prompt, max_attempts=3):
             time.sleep(wait)
 
 
-def generate_if_script(apod: dict, config: dict) -> dict:
+def generate_story_script(config: dict) -> dict:
     """
-    APODからif掛け合い台本を生成する。
-    Returns: {"script": [...], "topic_title": str|None, "if_premise": str|None}
+    configからIT技術史の章立て掛け合い台本を生成する。
+    Returns: {"theme": str|None, "chapters": [...], "script": [...]}
     """
-    from google import genai  # 遅延import（新SDK。tts_clientと同じ）
+    from google import genai  # 遅延import（新SDK）
 
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     model_name = config.get("models", {}).get("text", "gemini-2.5-flash")
-    logger.info(f"if台本を生成（モデル: {model_name}・題材: {apod.get('title')}）")
+    theme = (config.get("story", {}).get("theme") or "").strip() or "(Geminiが選定)"
+    logger.info(f"IT技術史台本を生成（モデル: {model_name}・テーマ: {theme}）")
 
-    text = _generate_with_retry(client, model_name, build_prompt(apod, config))
+    text = _generate_with_retry(client, model_name, build_prompt(config))
     try:
         data = parse_script_json(text)
     except Exception as e:
         logger.error(f"応答のパースに失敗: {e}\n{text}")
         raise
 
-    d = config.get("if_dialogue", {})
+    s = config.get("story", {})
     warn_role_voice(data["script"],
-                    d.get("questioner", DEFAULT_QUESTIONER),
-                    d.get("explainer", DEFAULT_EXPLAINER))
+                    s.get("questioner", DEFAULT_QUESTIONER),
+                    s.get("explainer", DEFAULT_EXPLAINER))
 
-    logger.info(f"if台本生成完了: {len(data['script'])}ターン・テーマ「{data.get('topic_title')}」")
+    logger.info(
+        f"台本生成完了: {len(data['script'])}ターン・{len(data['chapters'])}章・"
+        f"テーマ「{data.get('theme')}」"
+    )
     return {
+        "theme": data.get("theme"),
+        "chapters": data["chapters"],
         "script": data["script"],
-        "topic_title": data.get("topic_title"),
-        "if_premise": data.get("if_premise"),
-        "stock_queries": data.get("stock_queries", []),
-        "manual_cuts": data.get("manual_cuts", []),
     }

@@ -1,0 +1,53 @@
+# IT技術史ストーリー動画パイプライン設定
+# 秘密情報は書かない（APIキーは環境変数 GEMINI_API_KEY / PEXELS_API_KEY / PIXABAY_API_KEY）
+
+# 番組（章立て掛け合い）の設定
+story:
+  theme: "なぜGitは世界を変えたのか"   # 空ならGeminiにテーマ選定させる（MVPは固定推奨）
+  chapters: 5                          # 章数の目安（尺7分前後）
+  questioner: ずんだもん               # 聞き手・初心者役
+  explainer: 四国めたん                # 解説役
+  target_minutes: 7                    # 狙う尺（分）。総量目安に使う（実測約335字/分換算）
+
+# アバター性別割当 兼 画面配置（この定義順が画面配置: 上=画面左 / 下=画面右）。
+# → 左=四国めたん（女性アバター） / 右=ずんだもん（男性アバター）。
+characters_gender:
+  四国めたん: female
+  ずんだもん: male
+
+models:
+  text: gemini-2.5-flash     # 台本生成（無料枠）
+
+# 画像取得（Phase2）。image_kindで振り分け: subject→wikimedia / ambient→pexels→pixabay。
+# 商用可ライセンスのみ使用。Wikimediaは無認証、Pexels/Pixabayはキー無料登録（.env）。
+images:
+  width: 1280
+  height: 720
+  timeout: 30
+  wikimedia:
+    enable: true
+    licenses: [PD, CC0, CC-BY]   # これ以外（CC-BY-SA/ND/不明）は除外
+  pexels:
+    enable: true
+    api_key_env: PEXELS_API_KEY
+  pixabay:
+    enable: true
+    api_key_env: PIXABAY_API_KEY
+
+# VOICEVOX（自己ホスト・課金なし）。話者ID（四国めたん=2 / ずんだもん=3）。
+# 接続先は環境変数 VOICEVOX_URL で上書き可（コンテナからは host.docker.internal:50021）。
+tts_voicevox:
+  base_url: http://localhost:50021
+  speakers:
+    ずんだもん: 3          # ノーマル
+    四国めたん: 2          # ノーマル
+  speed: 1.0
+  pitch: 0.0
+  intonation: 1.0
+  voice_params:
+    四国めたん:
+      speed: 0.92
+    ずんだもん:
+      intonation: 1.3
+  caption_max_chars: 22    # 字幕1枚の最大文字数
+  inter_turn_pause: 0.3    # ターン間の無音秒（掛け合いの間）
