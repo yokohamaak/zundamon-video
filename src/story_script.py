@@ -87,7 +87,7 @@ def build_prompt(config: dict) -> str:
   - background: その技術が生まれる前の課題・時代背景（なぜ必要だったか）。
   - turning_point: 誕生・ブレイクスルーの瞬間（誰が・いつ・どう作ったか）。
   - impact: それが何を変えたか（歴史を塗り替えた点・その後の広がり）。
-  - outro: まとめ。一言で締める。
+  - outro: まとめ。動画全体（背景→転機→影響）を簡潔に振り返り、**最後に全体を通しての締めの言葉**で結ぶ。
 - background〜impact は内容に応じて複数章に分けてよい。**全体で約{chapters}章**にする。
 - **史実に忠実に。** 年・人物・経緯は事実の範囲で語り、不確かな逸話を断定で創作しない。
   確実でない所は「諸説あるけれど」「とされている」と限定する。
@@ -100,7 +100,7 @@ def build_prompt(config: dict) -> str:
   一人称「ぼく」、語尾は「〜なのだ」「〜のだ？」。
 - {explainer}（解説役）: 落ち着いた大人の女性。技術と歴史を噛み砕いて語る。
   一人称「わたし」、語尾は「〜よ」「〜わ」「〜なのよ」「〜ね」「〜だわ」など。
-  **各発言は3〜5文としっかり語る**（短い相槌だけで終えない）。
+  **各発言は4〜6文としっかり語る**（短い相槌だけで終えない。具体例・背景・理由を一つずつ足して厚くする）。
 - **【厳守】「〜のだ」「〜なのだ」「〜のだよ」は {questioner} 専用。{explainer} には絶対に使わせない。**
   逆に {explainer} の女性的語尾を {questioner} に使わせない。書く前に必ず誰の口調か確認すること。
 
@@ -119,16 +119,19 @@ def build_prompt(config: dict) -> str:
 各章について次を出すこと（chapter番号の昇順）:
 - "section": 上のenumのいずれか（その章の種別）。
 - "title": 画面に出す短い日本語の章見出し（10〜18文字程度）。
-- "image_query": その章で映す画像の**英語の検索語**（フリー素材庫を検索する）。
-- "image_kind": 画像の種類。
-  - "subject": 実在の人物・製品・歴史的な物/瞬間（例: "Linus Torvalds", "first Macintosh computer"）。
-  - "ambient": 抽象・雰囲気・概念の画像（例: "source code on screen", "server room"）。
-  - 実在の特定物を見せたい章は subject、つなぎ・概念の章は ambient にする。
+- "image_cuts": その章で**順に映す画像を 2〜4個** 並べた配列。章の話の展開（時間経過・登場物や
+  場面の変化）に沿って絵が切り替わるよう、**それぞれ別の被写体**にする（同じ章でも1枚で済ませない）。
+  各要素に次の2つ:
+  - "image_query": フリー素材庫を検索する**英語の検索語**（具体的な固有名や被写体にする）。
+  - "image_kind": 画像の種類。
+    - "subject": 実在の人物・製品・歴史的な物/瞬間（例: "Linus Torvalds", "first Macintosh computer"）。
+    - "ambient": 抽象・雰囲気・概念の画像（例: "source code on screen", "server room"）。
+    - 実在の特定物を見せたいcutは subject、つなぎ・概念のcutは ambient にする。
 
 ## 構成・分量（重要：尺を満たすこと）
 - {explainer}が主役を紹介して始め、{questioner}が食いついて質問していく流れ。
-- **台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）**になるよう、各発言を十分な長さで書く。
-  短くまとめて早く終わらせない。
+- **台本全体の合計文字数が {total_chars}字以上（読み上げ約{minutes:.0f}分相当）** になるよう書く。
+  これを下回らないこと。短くまとめて早く終わらせない。足りなければ各章の解説に具体例・経緯・影響を足す。
 - 専門用語は{explainer}が噛み砕く。
 
 ## 出力形式
@@ -136,8 +139,14 @@ def build_prompt(config: dict) -> str:
 {{
   "theme": "動画のテーマ（日本語・meta.titleと章全体の見出しに使う）",
   "chapters": [
-    {{"section": "intro", "title": "短い章見出し", "image_query": "English search term", "image_kind": "ambient"}},
-    {{"section": "turning_point", "title": "誕生の瞬間", "image_query": "Linus Torvalds", "image_kind": "subject"}}
+    {{"section": "intro", "title": "短い章見出し", "image_cuts": [
+      {{"image_query": "source code on screen", "image_kind": "ambient"}},
+      {{"image_query": "software developers collaborating", "image_kind": "ambient"}}
+    ]}},
+    {{"section": "turning_point", "title": "誕生の瞬間", "image_cuts": [
+      {{"image_query": "Linus Torvalds portrait", "image_kind": "subject"}},
+      {{"image_query": "Linux kernel source code", "image_kind": "ambient"}}
+    ]}}
   ],
   "script": [
     {{"speaker": "{explainer}", "text": "今日の主役はこれよ。…", "emotion": "normal", "section": "intro", "chapter": 0, "effect": "kenburns"}},
@@ -200,10 +209,32 @@ def warn_role_voice(script, questioner, explainer):
     return len(hits)
 
 
-def _clean_chapters(chapters, limit=12):
-    """chapters を {section,title,image_query,image_kind} へ正規化（純関数）。
+def _clean_image_cuts(cuts, limit=4):
+    """image_cuts を [{image_query, image_kind}] へ正規化（純関数）。
 
-    section/image_kind はenum固定、title/image_query は trim。dict以外・空は除外。
+    image_kind はenum固定、image_query は trim。dict以外・query空は除外・最大limit個。
+    """
+    if not isinstance(cuts, list):
+        return []
+    out = []
+    for c in cuts:
+        if not isinstance(c, dict):
+            continue
+        q = (c.get("image_query") or "").strip()
+        k = c.get("image_kind")
+        if k not in VALID_IMAGE_KINDS:
+            k = DEFAULT_IMAGE_KIND
+        if q:
+            out.append({"image_query": q, "image_kind": k})
+    return out[:limit]
+
+
+def _clean_chapters(chapters, limit=12):
+    """chapters を {section,title,image_cuts:[{image_query,image_kind}]} へ正規化（純関数）。
+
+    section はenum固定、title は trim、image_cuts は _clean_image_cuts。
+    旧形式（image_query/image_kind 単数）は 1cut へ変換（後方互換）。最低1cut（空query可）を保証。
+    dict以外は除外。
     """
     if not isinstance(chapters, list):
         return []
@@ -214,14 +245,16 @@ def _clean_chapters(chapters, limit=12):
         section = c.get("section")
         if section not in VALID_SECTIONS:
             section = DEFAULT_SECTION
-        image_kind = c.get("image_kind")
-        if image_kind not in VALID_IMAGE_KINDS:
-            image_kind = DEFAULT_IMAGE_KIND
+        cuts = _clean_image_cuts(c.get("image_cuts"))
+        if not cuts:
+            # 後方互換: 旧 image_query/image_kind 単数 → 1cut
+            q = (c.get("image_query") or "").strip()
+            k = c.get("image_kind") if c.get("image_kind") in VALID_IMAGE_KINDS else DEFAULT_IMAGE_KIND
+            cuts = [{"image_query": q, "image_kind": k}]
         out.append({
             "section": section,
             "title": (c.get("title") or "").strip(),
-            "image_query": (c.get("image_query") or "").strip(),
-            "image_kind": image_kind,
+            "image_cuts": cuts,
         })
     return out[:limit]
 

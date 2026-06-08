@@ -17,8 +17,9 @@ def test_build_prompt_contains_essentials():
     assert "5章" in p, "章数が反映される"
     assert "intro" in p and "turning_point" in p, "章立てsectionが入る"
     assert "chapter" in p and "section" in p, "各発言に付けるフィールド指示が入る"
-    assert "image_query" in p and "image_kind" in p, "章の画像指示が入る"
+    assert "image_cuts" in p and "image_query" in p and "image_kind" in p, "章の画像cut指示が入る"
     assert "subject" in p and "ambient" in p, "image_kindの値が入る"
+    assert "2〜4" in p, "章内に複数カットを出す指示が入る"
     assert "史実に忠実" in p, "史実忠実の指示が入る"
     assert "chapters" in p and "script" in p, "出力JSON形式の指定が入る"
     print("  build_prompt: 必須要素OK")
@@ -83,20 +84,28 @@ def test_parse_missing_script_raises():
 
 def test_clean_chapters():
     raw = [
-        {"section": "intro", "title": "  はじまり  ", "image_query": " git logo ", "image_kind": "subject"},
-        {"section": "bogus", "title": "x", "image_query": "y"},      # section不正→background, image_kind欠落→ambient
-        "not a dict",                                                 # 除外
-        {"title": "z"},                                              # section欠落→background
+        {"section": "intro", "title": "  はじまり  ", "image_cuts": [
+            {"image_query": " git logo ", "image_kind": "subject"},
+            {"image_query": "team", "image_kind": "bogus"},   # kind不正→ambient
+            {"image_query": "  "},                            # query空→除外
+        ]},
+        {"section": "bogus", "title": "x"},                   # image_cuts無し→空query 1cut保証
+        "not a dict",                                         # 除外
+        {"title": "z", "image_query": "old style", "image_kind": "subject"},  # 旧単数→1cut(後方互換)
     ]
     out = s._clean_chapters(raw)
     assert len(out) == 3, f"dict以外は除外: {len(out)}"
-    assert out[0]["title"] == "はじまり" and out[0]["image_query"] == "git logo", "trimされる"
-    assert out[0]["image_kind"] == "subject"
+    assert out[0]["title"] == "はじまり", "trim"
+    assert len(out[0]["image_cuts"]) == 2, "query空cutは除外"
+    assert out[0]["image_cuts"][0]["image_query"] == "git logo", "queryがtrimされる"
+    assert out[0]["image_cuts"][0]["image_kind"] == "subject"
+    assert out[0]["image_cuts"][1]["image_kind"] == "ambient", "不正kindはambient"
     assert out[1]["section"] == "background", "不正sectionはbackground"
-    assert out[1]["image_kind"] == "ambient", "image_kind欠落はambient"
-    assert out[2]["section"] == "background", "section欠落はbackground"
+    assert len(out[1]["image_cuts"]) == 1 and out[1]["image_cuts"][0]["image_query"] == "", "cut無しでも最低1cut(空query)"
+    assert out[2]["image_cuts"][0]["image_query"] == "old style", "旧単数形式→1cut(後方互換)"
+    assert out[2]["image_cuts"][0]["image_kind"] == "subject"
     assert s._clean_chapters(None) == [], "list以外は空"
-    print("  _clean_chapters: 正規化/除外/trim OK")
+    print("  _clean_chapters: image_cuts正規化/後方互換/除外 OK")
 
 
 def test_normalize_turns_enums():

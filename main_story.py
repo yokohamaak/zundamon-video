@@ -66,54 +66,69 @@ def load_config(config_path: str) -> dict:
         return yaml.safe_load(f)
 
 
-def chapter_image_name(chapter: int) -> str:
-    """章番号 → 画像ファイル名（prep.mjs が IMG_EXTS で拾う決め打ち名）。"""
-    return f"ch_{chapter:02d}.png"
+def chapter_image_name(chapter: int, cut: int = 0) -> str:
+    """章番号・カット番号 → 画像ファイル名（prep.mjs が IMG_EXTS で拾う決め打ち名）。"""
+    return f"ch_{chapter:02d}_{cut:02d}.png"
 
 
 def build_chapter_topics(segments, turns, chapters, image_status=None, attributions=None):
     """章区間 → meta.topics（純関数）。
 
-    各章区間に [0, total] を隙間なく被覆する start/end を割り当てる（切替はターン境界）。
-    画像が ready なら image を、未取得（Phase1/失敗）なら placeholder 枠を置く。
+    各章区間を image_cuts の数で複数カットに分割し、[0, total] を隙間なく被覆する
+    start/end を割り当てる（切替はターン境界・章内も均等割り）。画像が ready なら image を、
+    未取得（Phase1/失敗）なら placeholder 枠を置く。章バッジ情報(chapter/title/section)は全カットに付与。
 
     Args:
         segments: assign_sections_to_turns の出力 [{chapter, section, turns:[idx]}]（出現順）
         turns: TTS後のターン時刻 [{start, end, ...}]（script順）
-        chapters: 章メタ [{title, image_query, image_kind, section}]
-        image_status: {chapter: "ready"} 取得済みの章（無ければ全プレースホルダ）
-        attributions: {chapter: "出典文字列"} Wikimedia帰属（任意）
+        chapters: 章メタ [{title, section, image_cuts:[{image_query,image_kind}]}]
+        image_status: {(chapter, cut): "ready"} 取得済みカット（無ければ全プレースホルダ）
+        attributions: {(chapter, cut): "出典文字列"} Wikimedia帰属（任意）
     Returns:
         meta.topics のリスト（時刻順・[0,total]被覆）
     """
     image_status = image_status or {}
     attributions = attributions or {}
     total = turns[-1]["end"] if turns else 0.0
-    n = len(segments)
+    nseg = len(segments)
     topics = []
-    for i, seg in enumerate(segments):
+    for si, seg in enumerate(segments):
         ch = seg["chapter"]
         idxs = seg["turns"]
-        start = 0.0 if i == 0 else turns[idxs[0]]["start"]
-        end = total if i == n - 1 else turns[segments[i + 1]["turns"][0]]["start"]
         meta_ch = chapters[ch] if 0 <= ch < len(chapters) else {}
-        topic = {
-            "title": meta_ch.get("title"),
-            "start": round(float(start), 3),
-            "end": round(float(end), 3),
-            "section": meta_ch.get("section") or seg["section"],  # chaptersの構造を真とする
-            "chapter": ch,
-            "chapterTotal": len(chapters),
-        }
-        if image_status.get(ch) == "ready":
-            topic["image"] = chapter_image_name(ch)
-            if attributions.get(ch):
-                topic["credit"] = attributions[ch]
-        else:
-            # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
-            topic["note"] = meta_ch.get("image_query") or meta_ch.get("title")
-            topic["placeholder"] = chapter_image_name(ch)
-        topics.append(topic)
+        cuts = meta_ch.get("image_cuts") or [{}]
+        # 章区間の時間範囲 [seg_start, seg_end)。章間も連結（[0,total]被覆）。
+        seg_start = 0.0 if si == 0 else turns[idxs[0]]["start"]
+        seg_end = total if si == nseg - 1 else turns[segments[si + 1]["turns"][0]]["start"]
+        # 章内ターンを cut 数で分割（カット数は min(cuts, ターン数)＝ターンより多い画像は出さない）。
+        ncut = max(1, min(len(cuts), len(idxs)))
+        for ci in range(ncut):
+            lo = ci * len(idxs) // ncut
+            cstart = seg_start if ci == 0 else turns[idxs[lo]]["start"]
+            if ci == ncut - 1:
+                cend = seg_end
+            else:
+                hi = (ci + 1) * len(idxs) // ncut
+                cend = turns[idxs[hi]]["start"]
+            cut = cuts[ci] if ci < len(cuts) else {}
+            topic = {
+                "title": meta_ch.get("title"),
+                "start": round(float(cstart), 3),
+                "end": round(float(cend), 3),
+                "section": meta_ch.get("section") or seg["section"],  # chaptersの構造を真とする
+                "chapter": ch,
+                "chapterTotal": len(chapters),
+            }
+            key = (ch, ci)
+            if image_status.get(key) == "ready":
+                topic["image"] = chapter_image_name(ch, ci)
+                if attributions.get(key):
+                    topic["credit"] = attributions[key]
+            else:
+                # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
+                topic["note"] = cut.get("image_query") or meta_ch.get("title")
+                topic["placeholder"] = chapter_image_name(ch, ci)
+            topics.append(topic)
     return topics
 
 
@@ -198,7 +213,9 @@ def main():
     if args.from_script:
         with open(args.from_script, encoding="utf-8") as f:
             script_result = json.load(f)
-        story_script.normalize_turns(script_result["script"], script_result.get("chapters"))
+        # 旧/手書き台本でも image_cuts・enum を整える（旧 image_query 単数→1cut／sectionはchapters由来で補完）。
+        script_result["chapters"] = story_script._clean_chapters(script_result.get("chapters"))
+        story_script.normalize_turns(script_result["script"], script_result["chapters"])
         logger.info(f"既存台本を使用: {args.from_script}（{len(script_result['script'])}ターン）")
     else:
         script_result = story_script.generate_story_script(config)

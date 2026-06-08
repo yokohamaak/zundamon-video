@@ -19,55 +19,66 @@ def _turns(n, dur=2.0):
 
 
 CHAPTERS = [
-    {"section": "intro", "title": "はじまり", "image_query": "git logo", "image_kind": "subject"},
-    {"section": "turning_point", "title": "誕生", "image_query": "Linus Torvalds", "image_kind": "subject"},
-    {"section": "outro", "title": "まとめ", "image_query": "source code", "image_kind": "ambient"},
+    {"section": "intro", "title": "はじまり", "image_cuts": [
+        {"image_query": "git logo", "image_kind": "subject"},
+        {"image_query": "developers", "image_kind": "ambient"},
+    ]},
+    {"section": "turning_point", "title": "誕生", "image_cuts": [
+        {"image_query": "Linus Torvalds", "image_kind": "subject"},
+    ]},
+    {"section": "outro", "title": "まとめ", "image_cuts": [
+        {"image_query": "source code", "image_kind": "ambient"},
+    ]},
 ]
 
 
 def test_build_chapter_topics_coverage():
+    # 章0: cut2個・ターン2→2カット / 章1: cut1・ターン1→1 / 章2: cut1・ターン2→1。計4topic。
     script = [{"chapter": 0}, {"chapter": 0}, {"chapter": 1}, {"chapter": 2}, {"chapter": 2}]
     turns = _turns(len(script))
     segs = story_script.assign_sections_to_turns(script)
     topics = m.build_chapter_topics(segs, turns, CHAPTERS)
-    assert len(topics) == 3, "3章=3topic"
+    assert len(topics) == 4, f"章0が2カット+章1+章2=4topic: {len(topics)}"
     assert topics[0]["start"] == 0.0, "先頭は0始まり"
     assert topics[-1]["end"] == turns[-1]["end"], "末尾はtotalで終わる"
     # 隙間なく連結
     for a, b in zip(topics, topics[1:]):
         assert a["end"] == b["start"], f"隙間/重なりなし: {a['end']} != {b['start']}"
-    # 章メタ反映
+    # 章0の2カットは同じ章メタ・別ファイル名
+    assert topics[0]["chapter"] == 0 and topics[1]["chapter"] == 0
     assert topics[0]["title"] == "はじまり" and topics[0]["section"] == "intro"
-    assert topics[0]["chapter"] == 0 and topics[0]["chapterTotal"] == 3
-    print("  build_chapter_topics: [0,total]被覆/章メタ反映 OK")
+    assert topics[0]["chapterTotal"] == 3
+    assert topics[0]["placeholder"] == "ch_00_00.png" and topics[1]["placeholder"] == "ch_00_01.png"
+    print("  build_chapter_topics: 章内複数カット/[0,total]被覆 OK")
 
 
 def test_build_chapter_topics_placeholder():
-    script = [{"chapter": 0}, {"chapter": 1}]
-    turns = _turns(2)
+    script = [{"chapter": 0}, {"chapter": 0}, {"chapter": 1}]
+    turns = _turns(3)
     segs = story_script.assign_sections_to_turns(script)
     topics = m.build_chapter_topics(segs, turns, CHAPTERS)  # image_status空＝全プレースホルダ
     for t in topics:
         assert "image" not in t, "未取得はimage無し"
         assert t["placeholder"].startswith("ch_") and t["placeholder"].endswith(".png"), "決め打ち名のplaceholder"
         assert t["note"], "差し替え案内(note)が入る"
-    assert topics[0]["placeholder"] == "ch_00.png"
-    assert topics[1]["placeholder"] == "ch_01.png"
-    print("  build_chapter_topics: プレースホルダ枠 OK")
+    # 章0の2カットはcut別の検索語がnoteに出る
+    assert topics[0]["note"] == "git logo" and topics[1]["note"] == "developers"
+    print("  build_chapter_topics: プレースホルダ枠/cut別query OK")
 
 
 def test_build_chapter_topics_ready_image_and_credit():
-    script = [{"chapter": 0}, {"chapter": 1}]
-    turns = _turns(2)
+    script = [{"chapter": 0}, {"chapter": 0}, {"chapter": 1}]
+    turns = _turns(3)
     segs = story_script.assign_sections_to_turns(script)
     topics = m.build_chapter_topics(
         segs, turns, CHAPTERS,
-        image_status={0: "ready"},
-        attributions={0: "Linus Torvalds / CC-BY-3.0"},
+        image_status={(0, 0): "ready", (1, 0): "ready"},   # 章0cut0と章1cut0だけready
+        attributions={(0, 0): "Linus / CC-BY-3.0"},
     )
-    assert topics[0]["image"] == "ch_00.png", "ready章はimage"
-    assert topics[0]["credit"] == "Linus Torvalds / CC-BY-3.0", "帰属が付く"
-    assert "image" not in topics[1] and topics[1]["placeholder"] == "ch_01.png", "未取得章はプレースホルダ"
+    assert topics[0]["image"] == "ch_00_00.png", "ready章cutはimage"
+    assert topics[0]["credit"] == "Linus / CC-BY-3.0", "帰属が付く"
+    assert "image" not in topics[1] and topics[1]["placeholder"] == "ch_00_01.png", "同章の未取得cutはプレースホルダ"
+    assert topics[2]["image"] == "ch_01_00.png", "章1cut0はready"
     print("  build_chapter_topics: ready画像+credit / 混在 OK")
 
 
@@ -106,8 +117,8 @@ def test_build_meta():
     # script合流（start/end/sentences付与）
     assert len(meta["script"]) == 3
     assert meta["script"][0]["start"] == 0.0 and "sentences" in meta["script"][0]
-    # topics: 章数分・被覆
-    assert len(meta["topics"]) == 2, "2章（chapter0が2ターン+chapter1）"
+    # topics: 章0(cut2・ターン2→2カット)+章1(cut1・ターン1→1)=3・被覆
+    assert len(meta["topics"]) == 3, "章0が2カット+章1=3topic"
     assert meta["topics"][0]["start"] == 0.0 and meta["topics"][-1]["end"] == turns[-1]["end"]
     print("  build_meta: title/speakers/script合流/topics OK")
 
