@@ -28,7 +28,7 @@ for (const f of ["meta.json", "digest.mp3"]) {
 // 中央ビジュアル画像（APOD等）を srcDir → public/ にコピー。
 // meta.json の topics[].image がこれらを staticFile で参照する（例: "apod.jpg"）。
 // digest(docs/main)には画像が無いので no-op。
-const IMG_EXTS = [".jpg", ".jpeg", ".png", ".webp"];
+const IMG_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 const imgs = readdirSync(srcDir).filter((f) => IMG_EXTS.some((e) => f.toLowerCase().endsWith(e)));
 for (const f of imgs) copyFileSync(resolve(srcDir, f), resolve(pubDir, f));
 if (imgs.length) console.log(`[prep] copied ${imgs.length} topic image(s)  (from ${srcDir})`);
