@@ -18,6 +18,10 @@ const LIPSYNC_GAIN = 5;
 // 左上チャンネル名バッジの既定値（暫定）。meta.channel があればそちらを優先。
 const DEFAULT_CHANNEL = "ずんだもんの宇宙きょうしつ";
 
+// 中央ビジュアル枠の配置(px・1920x1080基準)。背景 bg.png の黒板の内縁に合わせた目測値。
+// 黒板の前に画像/立ち絵が乗る構図。背景を差し替えたら npm run dev で見ながらここを微調整する。
+const BOARD = { left: 175, right: 210, top: 65, bottom: 150 };
+
 // 話者→性別を解決。名前には依存しない（キャラ名が変わっても壊れない）。
 // ①meta.speakers の gender を優先 ②無ければ登場順（0番目=female, それ以外=male）
 function resolveGender(meta: Meta, name: string, index: number): Gender {
@@ -316,8 +320,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   // Ken Burns に zoom_punch/shake を合成（CSS transformは左→右に合成される）。
   const imgTransform = kenBurnsTransform(activeTopicIndex, kbProgress) + fxTransform;
   // 中央ビジュアル枠の実寸（focusアノテーションの contain フィット計算用。styleのleft/right/top/bottomと一致）。
-  const visualBoxW = 1920 - 288 - 288;
-  const visualBoxH = 1080 - 40 - 230;
+  const visualBoxW = 1920 - BOARD.left - BOARD.right;
+  const visualBoxH = 1080 - BOARD.top - BOARD.bottom;
 
   return (
     <AbsoluteFill
@@ -335,10 +339,10 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
       <div
         style={{
           position: "absolute",
-          left: 288,
-          right: 288,
-          top: 40,
-          bottom: 230,
+          left: BOARD.left,
+          right: BOARD.right,
+          top: BOARD.top,
+          bottom: BOARD.bottom,
           borderRadius: 18,
           overflow: "hidden",
           border: "3px solid rgba(150,180,225,0.35)",
