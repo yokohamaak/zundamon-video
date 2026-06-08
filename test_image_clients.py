@@ -1,0 +1,124 @@
+"""
+画像取得クライアントの単体テスト（ネットワーク/API/pillow不要・モンキーパッチで分岐検証）。
+
+実行: python3 test_image_clients.py
+Wikimedia: pick_license / build_attribution / build_*_url / _ext_from_url / fetch_one。
+"""
+import os
+import tempfile
+
+from src import wikimedia_client as w
+
+
+# ---- 純関数 ----
+
+def test_pick_license():
+    def em(short):
+        return {"LicenseShortName": {"value": short}}
+    for ok_name in ["Public domain", "CC0", "CC BY 4.0", "CC BY 3.0", "CC-BY-2.0"]:
+        ok, _ = w.pick_license(em(ok_name))
+        assert ok, f"{ok_name} は通すべき"
+    for ng_name in ["CC BY-SA 4.0", "CC BY-ND 4.0", "CC BY-NC 3.0", "GFDL", "", "All rights reserved"]:
+        ok, _ = w.pick_license(em(ng_name))
+        assert not ok, f"{ng_name} は弾くべき"
+    # extmetadata欠落も弾く
+    assert not w.pick_license({})[0] and not w.pick_license(None)[0]
+    print("  pick_license: PD/CC0/CC-BY通し・SA/ND/NC/GFDL/不明弾き OK")
+
+
+def test_build_attribution():
+    em = {"LicenseShortName": {"value": "CC BY 4.0"},
+          "Artist": {"value": '<a href="x">Jane Doe</a>'}}
+    assert w.build_attribution(em, "File:X.jpg") == "Jane Doe / CC BY 4.0", "HTML除去+license付与"
+    # Artist空 → ファイル名フォールバック
+    em2 = {"LicenseShortName": {"value": "CC0"}, "Artist": {"value": "  "}}
+    assert w.build_attribution(em2, "File:Cool_pic.jpg") == "Cool_pic.jpg / CC0"
+    # Artist空+title空 → Wikimedia Commons
+    assert w.build_attribution({}, "") == "Wikimedia Commons"
+    # license空 → artistのみ
+    assert w.build_attribution({"Artist": {"value": "Bob"}}, "") == "Bob"
+    print("  build_attribution: HTML除去/空フォールバック/license付与 OK")
+
+
+def test_build_urls_and_ext():
+    su = w.build_search_url("git logo", 5)
+    assert "list=search" in su and "srnamespace=6" in su and "srlimit=5" in su
+    assert "git+logo" in su or "git%20logo" in su, "queryがエンコードされる"
+    iu = w.build_imageinfo_url("File:X.jpg")
+    assert "prop=imageinfo" in iu and "extmetadata" in iu and "File" in iu
+    assert w._ext_from_url("https://x/Foo.PNG") == ".png"
+    assert w._ext_from_url("https://x/Foo.jpg?a=1") == ".jpg"
+    assert w._ext_from_url("https://x/noext") == ".jpg", "想定外は.jpg"
+    print("  build_*_url / _ext_from_url OK")
+
+
+# ---- fetch_one（search/imageinfo/_download をモンキーパッチ） ----
+
+def test_fetch_one_success():
+    tmp = tempfile.mkdtemp()
+    w.search = lambda q, n, t: ["File:Good.jpg"]
+    w.imageinfo = lambda title, t: {
+        "url": "https://upload.example/Good.jpg",
+        "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}, "Artist": {"value": "<a>Jane</a>"}},
+    }
+    w._download = lambda url, path, t: open(path, "wb").write(b"img")
+    fn, attr = w.fetch_one("git", tmp, "ch_00_00")
+    assert fn == "ch_00_00.jpg", f"実拡張子で保存: {fn}"
+    assert attr == "Jane / CC BY 4.0"
+    assert os.path.exists(os.path.join(tmp, "ch_00_00.jpg"))
+    print("  fetch_one: 成功(ライセンス適合→DL→帰属) OK")
+
+
+def test_fetch_one_skips_bad_license():
+    tmp = tempfile.mkdtemp()
+    w.search = lambda q, n, t: ["File:Bad.png", "File:Good.jpg"]
+
+    def fake_ii(title, t):
+        if "Bad" in title:
+            return {"url": "https://x/Bad.png", "extmetadata": {"LicenseShortName": {"value": "CC BY-SA 4.0"}}}
+        return {"url": "https://x/Good.jpg", "extmetadata": {"LicenseShortName": {"value": "Public domain"}}}
+
+    w.imageinfo = fake_ii
+    w._download = lambda url, path, t: open(path, "wb").write(b"x")
+    fn, attr = w.fetch_one("q", tmp, "ch_01_00")
+    assert fn == "ch_01_00.jpg", "SA(Bad.png)を飛ばしてPD(Good.jpg)を採用"
+    assert "Public domain" in attr
+    print("  fetch_one: 不適合ライセンスを飛ばし次候補を採用 OK")
+
+
+def test_fetch_one_none_when_all_denied():
+    tmp = tempfile.mkdtemp()
+    w.search = lambda q, n, t: ["File:A.jpg"]
+    w.imageinfo = lambda title, t: {"url": "https://x/A.jpg", "extmetadata": {"LicenseShortName": {"value": "CC BY-SA 4.0"}}}
+
+    def no_dl(*a):
+        raise AssertionError("弾いた画像をDLしてはいけない")
+
+    w._download = no_dl
+    fn, attr = w.fetch_one("q", tmp, "ch_02_00")
+    assert fn is None and attr is None, "全て不適合なら None"
+    print("  fetch_one: 全て不適合ライセンス→None OK")
+
+
+def test_fetch_one_search_error():
+    tmp = tempfile.mkdtemp()
+
+    def boom(*a):
+        raise RuntimeError("network down")
+
+    w.search = boom
+    fn, attr = w.fetch_one("q", tmp, "ch_03_00")
+    assert fn is None and attr is None, "検索失敗は None（呼び出し側でプレースホルダ）"
+    print("  fetch_one: 検索失敗→None OK")
+
+
+if __name__ == "__main__":
+    print("test_image_clients:")
+    test_pick_license()
+    test_build_attribution()
+    test_build_urls_and_ext()
+    test_fetch_one_success()
+    test_fetch_one_skips_bad_license()
+    test_fetch_one_none_when_all_denied()
+    test_fetch_one_search_error()
+    print("ALL PASS")
