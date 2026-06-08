@@ -20,7 +20,7 @@ const DEFAULT_CHANNEL = "ずんだもんの宇宙きょうしつ";
 
 // 中央ビジュアル枠の配置(px・1920x1080基準)。背景 bg.png の黒板の内縁に合わせた目測値。
 // 黒板の前に画像/立ち絵が乗る構図。背景を差し替えたら npm run dev で見ながらここを微調整する。
-const BOARD = { left: 175, right: 210, top: 65, bottom: 150 };
+const BOARD = { left: 252, right: 252, top: 70, bottom: 347 };
 
 // 話者→性別を解決。名前には依存しない（キャラ名が変わっても壊れない）。
 // ①meta.speakers の gender を優先 ②無ければ登場順（0番目=female, それ以外=male）
@@ -320,8 +320,15 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   // Ken Burns に zoom_punch/shake を合成（CSS transformは左→右に合成される）。
   const imgTransform = kenBurnsTransform(activeTopicIndex, kbProgress) + fxTransform;
   // 中央ビジュアル枠の実寸（focusアノテーションの contain フィット計算用。styleのleft/right/top/bottomと一致）。
-  const visualBoxW = 1920 - BOARD.left - BOARD.right;
-  const visualBoxH = 1080 - BOARD.top - BOARD.bottom;
+  // 黒板内縁(BOARD)に収まる最大の16:9枠を中央配置する（画像素材が16:9＝間延び/切れを防ぐ）。
+  const boardW = 1920 - BOARD.left - BOARD.right;
+  const boardH = 1080 - BOARD.top - BOARD.bottom;
+  const VISUAL_AR = 16 / 9;
+  const wide = boardW / boardH > VISUAL_AR; // 黒板が16:9より横長なら高さ基準
+  const visualBoxW = wide ? boardH * VISUAL_AR : boardW;
+  const visualBoxH = wide ? boardH : boardW / VISUAL_AR;
+  const visualLeft = BOARD.left + (boardW - visualBoxW) / 2;
+  const visualTop = BOARD.top + (boardH - visualBoxH) / 2;
 
   return (
     <AbsoluteFill
@@ -339,10 +346,10 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
       <div
         style={{
           position: "absolute",
-          left: BOARD.left,
-          right: BOARD.right,
-          top: BOARD.top,
-          bottom: BOARD.bottom,
+          left: visualLeft,
+          top: visualTop,
+          width: visualBoxW,
+          height: visualBoxH,
           borderRadius: 18,
           overflow: "hidden",
           border: "3px solid rgba(150,180,225,0.35)",
