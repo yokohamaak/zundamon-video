@@ -91,11 +91,16 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
     attributions = attributions or {}
     total = turns[-1]["end"] if turns else 0.0
     nseg = len(segments)
+    trivia_total = sum(1 for c in chapters if c.get("section") == "trivia")
+    trivia_seen = 0
     topics = []
     for si, seg in enumerate(segments):
         ch = seg["chapter"]
         idxs = seg["turns"]
         meta_ch = chapters[ch] if 0 <= ch < len(chapters) else {}
+        sec = meta_ch.get("section") or seg["section"]  # chaptersの構造を真とする
+        if sec == "trivia":
+            trivia_seen += 1
         cuts = meta_ch.get("image_cuts") or [{}]
         # 章区間の時間範囲 [seg_start, seg_end)。章間も連結（[0,total]被覆）。
         seg_start = 0.0 if si == 0 else turns[idxs[0]]["start"]
@@ -115,10 +120,14 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 "title": meta_ch.get("title"),
                 "start": round(float(cstart), 3),
                 "end": round(float(cend), 3),
-                "section": meta_ch.get("section") or seg["section"],  # chaptersの構造を真とする
+                "section": sec,
                 "chapter": ch,
                 "chapterTotal": len(chapters),
             }
+            if sec == "trivia":
+                # 「実は」ネタの通し番号（章バッジ「実は ①②③」用）。
+                topic["triviaIndex"] = trivia_seen
+                topic["triviaTotal"] = trivia_total
             key = (ch, ci)
             fname = image_files.get(key)
             if fname:

@@ -49,7 +49,12 @@ def test_build_chapter_topics_coverage():
     assert topics[0]["title"] == "はじまり" and topics[0]["section"] == "intro"
     assert topics[0]["chapterTotal"] == 3
     assert topics[0]["placeholder"] == "ch_00_00.png" and topics[1]["placeholder"] == "ch_00_01.png"
-    print("  build_chapter_topics: 章内複数カット/[0,total]被覆 OK")
+    # trivia章だけ「実は」通し番号が付く（intro/outroには付かない）
+    trivia = [t for t in topics if t["section"] == "trivia"]
+    intro = [t for t in topics if t["section"] == "intro"]
+    assert trivia and all(t["triviaIndex"] == 1 and t["triviaTotal"] == 1 for t in trivia), "trivia章に通し番号"
+    assert all("triviaIndex" not in t for t in intro), "intro章には通し番号を付けない"
+    print("  build_chapter_topics: 章内複数カット/[0,total]被覆/trivia番号 OK")
 
 
 def test_build_chapter_topics_placeholder():

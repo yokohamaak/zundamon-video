@@ -50,11 +50,13 @@ export type Topic = {
   // l/t/r/b は画像左上を原点に 0..1 へ正規化した枠。image_aspect(=画像 w/h)で枠位置を実被写体に合わせる。
   focus?: { l: number; t: number; r: number; b: number };
   image_aspect?: number;
-  // IT技術史ストーリー: 章メタ。chapter がある時だけ章バッジを重ねる（main_story.build_chapter_topics が付与）。
+  // 実は〇〇雑学: 章メタ（main_story.build_chapter_topics が付与）。
   chapter?: number;       // 0始まりの章番号
   chapterTotal?: number;  // 全章数
-  section?: Section;       // 章の種別
-  credit?: string;        // この章の画像出典（CC-BY帰属など）。画面隅に小表示。
+  section?: Section;       // intro / trivia / outro
+  triviaIndex?: number;   // 「実は」ネタの通し番号（1始まり・trivia章のみ。章バッジ「実は ①②③」用）
+  triviaTotal?: number;   // ネタ総数
+  credit?: string;        // この章の画像出典（CC-BY帰属など）。動画内には現状出さない。
 };
 
 export type Gender = "male" | "female";

@@ -19,6 +19,13 @@ const LIPSYNC_GAIN = 5;
 // 黒板の前に画像/立ち絵が乗る構図。背景を差し替えたら npm run dev で見ながらここを微調整する。
 const BOARD = { left: 252, right: 252, top: 70, bottom: 347 };
 
+// 「実は」バッジのラベル。ネタ番号を丸数字で（1〜10は①②…、超えたら数字）。
+function triviaLabel(idx?: number): string {
+  if (!idx) return "実は";
+  const circled = "①②③④⑤⑥⑦⑧⑨⑩";
+  return "実は " + (idx >= 1 && idx <= 10 ? circled[idx - 1] : String(idx));
+}
+
 // 話者→性別を解決。名前には依存しない（キャラ名が変わっても壊れない）。
 // ①meta.speakers の gender を優先 ②無ければ登場順（0番目=female, それ以外=male）
 function resolveGender(meta: Meta, name: string, index: number): Gender {
@@ -500,8 +507,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           </div>
         )}
 
-        {/* 章バッジ（IT技術史: chapter がある章だけ枠上部に重ねる。切替でフェード＋軽いスケールイン） */}
-        {activeTopic && typeof activeTopic.chapter === "number" ? (
+        {/* 「実は」バッジ（trivia章だけ枠上部に重ねる。intro/outroは出さない。切替でフェード＋スケールイン） */}
+        {activeTopic && activeTopic.section === "trivia" ? (
           <div
             key={`chap-${activeTopicIndex}`}
             style={{
@@ -530,7 +537,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
               }}
             >
               <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 2 }}>
-                第{activeTopic.chapter + 1}章
+                {triviaLabel(activeTopic.triviaIndex)}
               </span>
               {activeTopic.title ? (
                 <span
