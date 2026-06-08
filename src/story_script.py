@@ -122,11 +122,15 @@ def build_prompt(config: dict) -> str:
 - "image_cuts": その章で**順に映す画像を 2〜4個** 並べた配列。章の話の展開（時間経過・登場物や
   場面の変化）に沿って絵が切り替わるよう、**それぞれ別の被写体**にする（同じ章でも1枚で済ませない）。
   各要素に次の2つ:
-  - "image_query": フリー素材庫を検索する**英語の検索語**（具体的な固有名や被写体にする）。
   - "image_kind": 画像の種類。
-    - "subject": 実在の人物・製品・歴史的な物/瞬間（例: "Linus Torvalds", "first Macintosh computer"）。
+    - "subject": 実在の人物・製品・ロゴ・歴史的な物/瞬間（例: "Linus Torvalds", "GitHub logo"）。
     - "ambient": 抽象・雰囲気・概念の画像（例: "source code on screen", "server room"）。
     - 実在の特定物を見せたいcutは subject、つなぎ・概念のcutは ambient にする。
+  - "image_query": フリー素材庫を検索する**英語の検索語**。
+    - **subject は固有名詞のみ**にする（人名・製品名・ロゴ名）。状況・表情・説明を足さない。
+      良い例: "Linus Torvalds" / "GitHub logo" / "first Macintosh"。
+      悪い例: "Linus Torvalds giving a lecture, focused expression"（説明過多で実物に当たらない）。
+    - **ambient は情景の説明的キーワード**でよい（例: "server room with blinking lights"）。
 
 ## 構成・分量（重要：尺を満たすこと）
 - {explainer}が主役を紹介して始め、{questioner}が食いついて質問していく流れ。

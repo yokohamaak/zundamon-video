@@ -181,10 +181,32 @@ def test_fetch_images_routing():
         {"image_query": "code", "image_kind": "ambient"},    # → px
     ]}]
     files, attrs = fch.fetch_images(chapters, "/tmp", config)
-    assert files[(0, 0)] == "ch_00_00.jpg" and attrs[(0, 0)] == "WikiAttr", "subjectはWikimedia優先"
+    assert files[(0, 0)] == "ch_00_00.jpg" and attrs[(0, 0)] == "WikiAttr", "subjectはWikimedia"
     assert files[(0, 1)] == "ch_00_01.jpg" and attrs[(0, 1)] == "PxAttr", "ambientはPexels優先"
     assert ("wiki", "Linus") in calls and ("px", "code") in calls
     print("  fetch_images: subject→wiki / ambient→px 振り分け OK")
+
+
+def test_fetch_images_subject_no_stock_fallback():
+    import os
+    from src import image_fetch as fch
+    # subjectはWikimedia失敗してもstockに行かず未取得(プレースホルダ)＝嘘の絵を防ぐ
+    w.fetch_one = lambda q, d, b, t=30: (None, None)
+
+    def boom(*a, **k):
+        raise AssertionError("subjectでstock(Pexels/Pixabay)を呼んではいけない")
+
+    px.fetch_one = boom
+    pb.fetch_one = boom
+    os.environ["PEXELS_API_KEY"] = "K"
+    os.environ["PIXABAY_API_KEY"] = "K2"
+    config = {"images": {"wikimedia": {"enable": True},
+                         "pexels": {"enable": True, "api_key_env": "PEXELS_API_KEY"},
+                         "pixabay": {"enable": True, "api_key_env": "PIXABAY_API_KEY"}}}
+    chapters = [{"image_cuts": [{"image_query": "Linus Torvalds", "image_kind": "subject"}]}]
+    files, attrs = fch.fetch_images(chapters, "/tmp", config)
+    assert files == {}, "subject失敗はstockに逃げずプレースホルダ"
+    print("  fetch_images: subject失敗→stockに逃げずプレースホルダ OK")
 
 
 def test_fetch_images_ambient_fallback_to_pixabay():
@@ -235,6 +257,7 @@ if __name__ == "__main__":
     test_pixabay_url_and_pick()
     test_pixabay_fetch_one()
     test_fetch_images_routing()
+    test_fetch_images_subject_no_stock_fallback()
     test_fetch_images_ambient_fallback_to_pixabay()
     test_fetch_images_all_fail_is_placeholder()
     print("ALL PASS")

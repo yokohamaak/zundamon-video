@@ -49,8 +49,10 @@ def fetch_images(chapters, out_dir, config):
             total += 1
             base = f"ch_{ch:02d}_{ci:02d}"
             kind = cut.get("image_kind", "ambient")
-            # kind で優先順を決め、失敗したら次のproviderへフォールバック。
-            order = [fetch_wiki, fetch_px, fetch_pb] if kind == "subject" else [fetch_px, fetch_pb, fetch_wiki]
+            # subject(実在の人物/製品/ロゴ)はWikimediaのみ。取れなければ stock の無関係画像に
+            # フォールバックせずプレースホルダにする（別人/別物の「嘘の絵」を防ぐ）。
+            # ambient(雰囲気)は Pexels→Pixabay→Wikimedia の順でフォールバック可。
+            order = [fetch_wiki] if kind == "subject" else [fetch_px, fetch_pb, fetch_wiki]
             fn = attr = None
             for fetch in order:
                 fn, attr = fetch(query, base)
