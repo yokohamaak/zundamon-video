@@ -1,3 +1,4 @@
 google-genai==1.16.0     # Gemini: 台本生成(story_script)
 pyyaml==6.0.2            # config読み込み(main_story)
-pillow==11.0.0          # 画像保存/リサイズ(Phase2: wikimedia/pexels/pixabay)
+# pillow は Phase2(画像保存/リサイズ: wikimedia/pexels/pixabay)で追加する。
+# Phase0-1(台本/音声/meta/render)では不要。導入時はwheel欠落回避のため pillow>=11.1 で緩めに固定。
