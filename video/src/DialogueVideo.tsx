@@ -317,7 +317,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   const imgTransform = kenBurnsTransform(activeTopicIndex, kbProgress) + fxTransform;
   // 中央ビジュアル枠の実寸（focusアノテーションの contain フィット計算用。styleのleft/right/top/bottomと一致）。
   const visualBoxW = 1920 - 288 - 288;
-  const visualBoxH = 1080 - (meta.title ? 130 : 40) - 230;
+  const visualBoxH = 1080 - 40 - 230;
 
   return (
     <AbsoluteFill
@@ -329,23 +329,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
     >
       <Audio src={staticFile("digest.mp3")} />
 
-      {/* ヘッダー（タイトル指定時のみ表示。コンテンツ非依存） */}
-      {meta.title ? (
-        <div
-          style={{
-            position: "absolute",
-            top: 36,
-            width: "100%",
-            textAlign: "center",
-            color: "rgba(255,255,255,0.85)",
-            fontSize: 38,
-            fontWeight: 700,
-            letterSpacing: 4,
-          }}
-        >
-          {meta.title}
-        </div>
-      ) : null}
+      {/* タイトル(meta.title)は非表示。章バッジ(第N章+章タイトル)が上部に出るため冗長＝中央ビジュアルを上へ広げる。 */}
 
       {/* 中央ビジュアル（背面）。大きめ・角丸枠。立ち絵より後ろに描く。 */}
       <div
@@ -353,7 +337,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           position: "absolute",
           left: 288,
           right: 288,
-          top: meta.title ? 130 : 40,
+          top: 40,
           bottom: 230,
           borderRadius: 18,
           overflow: "hidden",
