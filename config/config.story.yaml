@@ -17,6 +17,10 @@ characters_gender:
 
 models:
   text: gemini-2.5-flash     # 台本生成（無料枠）
+  # 503(高負荷)が続く時に順に試すフォールバック（いずれも無料枠）
+  text_fallbacks:
+    - gemini-2.5-flash-lite
+    - gemini-2.0-flash
 
 # 画像取得（Phase2）。image_kindで振り分け: subject→wikimedia / ambient→pexels→pixabay。
 # 商用可ライセンスのみ使用。Wikimediaは無認証、Pexels/Pixabayはキー無料登録（.env）。

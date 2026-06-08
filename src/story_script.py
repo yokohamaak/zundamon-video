@@ -333,11 +333,27 @@ def generate_story_script(config: dict) -> dict:
     from google import genai  # 遅延import（新SDK）
 
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    model_name = config.get("models", {}).get("text", "gemini-2.5-flash")
+    models_cfg = config.get("models", {})
+    primary = models_cfg.get("text", "gemini-2.5-flash")
+    # 503(高負荷)が続くモデルを見切って順に試すフォールバック（いずれも無料枠）。
+    fallbacks = models_cfg.get("text_fallbacks", ["gemini-2.5-flash-lite", "gemini-2.0-flash"])
+    candidates = [primary] + [m for m in fallbacks if m != primary]
     theme = (config.get("story", {}).get("theme") or "").strip() or "(Geminiが選定)"
-    logger.info(f"IT技術史台本を生成（モデル: {model_name}・テーマ: {theme}）")
+    prompt = build_prompt(config)
 
-    text = _generate_with_retry(client, model_name, build_prompt(config))
+    text = None
+    last_err = None
+    for model_name in candidates:
+        logger.info(f"IT技術史台本を生成（モデル: {model_name}・テーマ: {theme}）")
+        try:
+            text = _generate_with_retry(client, model_name, prompt, max_attempts=3)
+            break
+        except Exception as e:  # noqa: BLE001 - 次のモデルへフォールバック
+            last_err = e
+            logger.warning(f"モデル {model_name} で生成できず、次の候補へフォールバック: {e}")
+    if text is None:
+        raise last_err
+
     try:
         data = parse_script_json(text)
     except Exception as e:
