@@ -1,7 +1,7 @@
 FROM node:22-slim
 
-# git/curl/python3: 収集〜TTS〜字幕パイプライン用
-# ffmpeg: VOICEVOX等のWAV→MP3変換（tts_voicevox.py / tts_client.py がsubprocessで使用）
+# git/curl/python3: 台本生成〜TTS〜動画描画パイプライン用
+# ffmpeg: VOICEVOXのWAV→MP3変換（tts_voicevox.py がsubprocessで使用）
 # 以降のlib群: Remotion描画のheadless Chrome実行に必要
 # fonts-noto-cjk: 動画内の日本語表示（無いと豆腐化）
 RUN apt-get update && apt-get install -y \
