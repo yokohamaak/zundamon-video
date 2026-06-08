@@ -8,6 +8,8 @@ import os
 import tempfile
 
 from src import wikimedia_client as w
+from src import pexels_client as px
+from src import pixabay_client as pb
 
 
 # ---- 純関数 ----
@@ -112,6 +114,54 @@ def test_fetch_one_search_error():
     print("  fetch_one: 検索失敗→None OK")
 
 
+# ---- Pexels ----
+
+def test_pexels_url_and_pick():
+    u = px.build_search_url("server room", 8)
+    assert "query=server+room" in u and "per_page=8" in u and "orientation=landscape" in u
+    assert px.pick_photo([]) is None
+    assert px.pick_photo([{"id": 1}, {"id": 2}])["id"] == 1, "先頭を選ぶ"
+    assert px._image_url({"src": {"large2x": "a", "large": "b"}}) == "a", "large2x優先"
+    assert px._image_url({"src": {"original": "o"}}) == "o", "fallback original"
+    print("  pexels: build_search_url/pick_photo/_image_url OK")
+
+
+def test_pexels_fetch_one():
+    tmp = tempfile.mkdtemp()
+    px.search = lambda q, k, pp, t: [{"src": {"large2x": "https://x/p.jpeg"}, "photographer": "Ann"}]
+    px._download = lambda url, path, t: open(path, "wb").write(b"x")
+    fn, attr = px.fetch_one("q", tmp, "ch_00_01", "KEY")
+    assert fn == "ch_00_01.jpeg" and attr == "Ann / Pexels"
+    # APIキー無し → None
+    assert px.fetch_one("q", tmp, "ch_00_02", "") == (None, None)
+    # 該当なし → None
+    px.search = lambda q, k, pp, t: []
+    assert px.fetch_one("q", tmp, "ch_00_03", "KEY") == (None, None)
+    print("  pexels: fetch_one 成功/キー無し/該当なし OK")
+
+
+# ---- Pixabay ----
+
+def test_pixabay_url_and_pick():
+    u = pb.build_search_url("network", "KEY", 5)
+    assert "q=network" in u and "key=KEY" in u and "per_page=5" in u and "orientation=horizontal" in u
+    assert pb.pick_hit([]) is None
+    assert pb.pick_hit([{"id": 1}])["id"] == 1
+    assert pb._image_url({"largeImageURL": "L", "webformatURL": "W"}) == "L", "large優先"
+    assert pb._image_url({"webformatURL": "W"}) == "W", "fallback webformat"
+    print("  pixabay: build_search_url/pick_hit/_image_url OK")
+
+
+def test_pixabay_fetch_one():
+    tmp = tempfile.mkdtemp()
+    pb.search = lambda q, k, pp, t: [{"largeImageURL": "https://x/i.png", "user": "Bob"}]
+    pb._download = lambda url, path, t: open(path, "wb").write(b"x")
+    fn, attr = pb.fetch_one("q", tmp, "ch_01_00", "KEY")
+    assert fn == "ch_01_00.png" and attr == "Bob / Pixabay"
+    assert pb.fetch_one("q", tmp, "ch_01_01", "") == (None, None), "キー無し→None"
+    print("  pixabay: fetch_one 成功/キー無し OK")
+
+
 if __name__ == "__main__":
     print("test_image_clients:")
     test_pick_license()
@@ -121,4 +171,8 @@ if __name__ == "__main__":
     test_fetch_one_skips_bad_license()
     test_fetch_one_none_when_all_denied()
     test_fetch_one_search_error()
+    test_pexels_url_and_pick()
+    test_pexels_fetch_one()
+    test_pixabay_url_and_pick()
+    test_pixabay_fetch_one()
     print("ALL PASS")
