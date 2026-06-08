@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News Digest</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding-bottom: 48px;
+    }
+
+    .inner {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* ===== STICKY PLAYER ===== */
+    #sticky-player {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #0f0f0f;
+      padding-top: 24px;
+      padding-bottom: 4px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: 0.05em; }
+
+    .top-nav {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      background: #1a1a1a;
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .top-tab {
+      flex: 1;
+      padding: 7px 20px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: #888;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .top-tab.active { background: #2a2a2a; color: #f0f0f0; }
+
+    #player-controls { }
+
+    .version-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      background: #1a1a1a;
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .vtab {
+      flex: 1;
+      padding: 8px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: #888;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .vtab.active { background: #2a2a2a; color: #f0f0f0; }
+
+    .player-card {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 16px 20px;
+    }
+    .meta-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .session-badge {
+      background: #2a2a2a; color: #aaa;
+      font-size: 0.75rem; padding: 4px 10px; border-radius: 20px;
+    }
+    .meta-time { font-size: 0.75rem; color: #666; }
+    audio { width: 100%; accent-color: #4f9eff; }
+    .seek-row { display: flex; gap: 8px; margin-top: 10px; }
+    .seek-btn {
+      flex: 1; padding: 8px; border-radius: 8px; border: none;
+      background: #2a2a2a; color: #ccc; font-size: 0.85rem; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .seek-btn:hover { background: #333; color: #f0f0f0; }
+
+    /* ===== SCRIPT SECTION ===== */
+    #player-panel { padding-top: 16px; }
+
+    .script-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .script-header h2 { font-size: 0.9rem; color: #888; letter-spacing: 0.05em; }
+
+    .btn-expand {
+      background: none;
+      border: none;
+      color: #4f9eff;
+      font-size: 0.82rem;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+
+    #script-wrap {
+      max-height: 420px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    #script-wrap::-webkit-scrollbar { display: none; }
+    #script-wrap.expanded {
+      max-height: none;
+      overflow-y: visible;
+    }
+
+    .turn {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+      transition: opacity 0.25s;
+    }
+    .speaker { font-size: 0.75rem; font-weight: 700; color: #4f9eff; min-width: 36px; padding-top: 2px; }
+    .speaker.guest { color: #ff9f4f; }
+    .text { font-size: 0.88rem; line-height: 1.6; color: #ccc; }
+
+    /* タイムスタンプあり時のハイライト */
+    #script-container.has-ts .turn { opacity: 0.35; }
+    #script-container.has-ts .turn.active { opacity: 1; }
+    #script-container.has-ts .turn.active .text { color: #ccc; }
+    .sentence { transition: color 0.2s; }
+    #script-container.has-ts .turn.active .sentence.active {
+      color: #f0f0f0;
+      font-weight: 600;
+    }
+
+    .msg { font-size: 0.85rem; text-align: center; padding: 20px; color: #666; }
+    .msg.error { color: #ff6b6b; }
+
+    /* ===== SETTINGS ===== */
+    #settings-panel { display: none; padding-top: 16px; }
+
+    .token-card {
+      background: #1a1a1a; border-radius: 12px; padding: 16px; margin-bottom: 16px;
+    }
+    .token-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .token-label { font-size: 0.8rem; color: #888; }
+    .token-status { font-size: 0.75rem; }
+    .token-status.ok { color: #4f9; }
+    .token-status.ng { color: #f66; }
+
+    .cfg-version-tabs {
+      display: flex; gap: 8px; margin-bottom: 16px;
+      background: #1a1a1a; padding: 4px; border-radius: 12px;
+    }
+    .cfg-vtab {
+      flex: 1; padding: 8px; border-radius: 9px; border: none;
+      background: transparent; color: #888; font-size: 0.88rem; cursor: pointer; transition: all 0.15s;
+    }
+    .cfg-vtab.active { background: #2a2a2a; color: #f0f0f0; }
+
+    .cfg-card {
+      background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 12px;
+    }
+    .cfg-card h3 { font-size: 0.8rem; color: #888; letter-spacing: 0.05em; margin-bottom: 14px; }
+
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { display: block; font-size: 0.78rem; color: #888; margin-bottom: 6px; }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field input[type="password"],
+    .field select,
+    .field textarea {
+      width: 100%;
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #f0f0f0;
+      font-size: 0.88rem;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: #4f9eff; }
+    .field textarea { resize: vertical; min-height: 72px; font-family: inherit; line-height: 1.5; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 28px; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #2a2a2a; border-radius: 20px;
+      font-size: 0.78rem; color: #ccc; padding: 3px 10px;
+    }
+    .tag button {
+      background: none; border: none; color: #666; cursor: pointer; font-size: 0.9rem;
+      line-height: 1; padding: 0 0 0 2px;
+    }
+    .tag button:hover { color: #f66; }
+    .add-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .add-row input { flex: 1; min-width: 80px; }
+    .add-row .btn-add {
+      background: #2a2a2a; border: 1px solid #333; border-radius: 8px;
+      color: #aaa; font-size: 0.82rem; padding: 6px 12px; cursor: pointer; white-space: nowrap;
+    }
+    .add-row .btn-add:hover { color: #f0f0f0; border-color: #4f9eff; }
+
+    .source-item {
+      display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
+    }
+    .source-item input { flex: 1; }
+    .source-item select, .add-row select {
+      background: #2a2a2a; border: 1px solid #333; border-radius: 8px;
+      color: #f0f0f0; font-size: 0.82rem; padding: 6px 8px; outline: none; cursor: pointer;
+    }
+    .source-item .btn-del {
+      background: none; border: none; color: #555; cursor: pointer; font-size: 1.1rem; padding: 4px;
+    }
+    .source-item .btn-del:hover { color: #f66; }
+
+    .btn-primary {
+      width: 100%; padding: 12px; border-radius: 10px; border: none;
+      background: #4f9eff; color: #fff; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s; margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .save-msg { font-size: 0.82rem; text-align: center; margin-top: 10px; min-height: 20px; }
+    .save-msg.ok { color: #4f9; }
+    .save-msg.err { color: #f66; }
+
+    input[type="text"], input[type="number"], input[type="password"] {
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 常時表示のstickyプレイヤー -->
+  <div id="sticky-player">
+    <div class="inner">
+      <div class="header"><h1>News Digest</h1></div>
+
+      <div class="top-nav">
+        <button class="top-tab active" data-panel="player">ラジオ</button>
+        <button class="top-tab" data-panel="settings">設定</button>
+      </div>
+
+      <div id="player-controls">
+        <div class="version-tabs">
+          <button class="vtab active" data-version="main">大人向け</button>
+          <button class="vtab" data-version="children">子供向け</button>
+        </div>
+        <div class="player-card">
+          <div class="meta-row">
+            <span class="session-badge" id="session-badge">--</span>
+            <span class="meta-time" id="meta-time"></span>
+          </div>
+          <audio id="player" controls preload="metadata">
+            <source id="audio-src" src="" type="audio/mpeg">
+          </audio>
+          <div class="seek-row">
+            <button class="seek-btn" id="seek-back">« 10秒</button>
+            <button class="seek-btn" id="seek-fwd">10秒 »</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="inner">
+
+    <!-- ラジオパネル -->
+    <div id="player-panel">
+      <div class="script-header">
+        <h2>ニュース原稿</h2>
+        <button class="btn-expand" id="expand-btn" onclick="toggleExpand()">全文を見る</button>
+      </div>
+      <div id="script-wrap">
+        <div id="script-container"><div class="msg">読み込み中...</div></div>
+      </div>
+    </div>
+
+    <!-- 設定パネル -->
+    <div id="settings-panel">
+      <div class="token-card">
+        <div class="token-label">GitHub Personal Access Token
+          <span id="token-status" class="token-status"></span>
+        </div>
+        <div class="token-row">
+          <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx" style="flex:1;background:#2a2a2a;border:1px solid #333;border-radius:8px;color:#f0f0f0;font-size:0.85rem;padding:7px 10px;outline:none;">
+          <button class="btn-add" onclick="saveToken()" style="background:#2a2a2a;border:1px solid #333;border-radius:8px;color:#aaa;font-size:0.82rem;padding:7px 12px;cursor:pointer;">保存</button>
+        </div>
+      </div>
+
+      <div class="cfg-version-tabs">
+        <button class="cfg-vtab active" data-cfg-version="main">大人向け</button>
+        <button class="cfg-vtab" data-cfg-version="children">子供向け</button>
+      </div>
+
+      <div id="cfg-form">
+        <div class="cfg-card">
+          <h3>RSS ソース</h3>
+          <div id="sources-list"></div>
+          <div class="add-row" style="margin-top:8px;">
+            <input type="text" id="new-source-name" placeholder="名前">
+            <input type="text" id="new-source-url" placeholder="URL" style="flex:2;">
+            <select id="new-source-category">
+              <option value="japan">前半</option>
+              <option value="vibe">後半</option>
+            </select>
+            <button class="btn-add" onclick="addSource()">追加</button>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h3>トピック（興味ジャンル）</h3>
+          <div class="tags" id="topics-tags"></div>
+          <div class="add-row">
+            <input type="text" id="new-topic" placeholder="例: スポーツ">
+            <button class="btn-add" onclick="addTag('topics')">追加</button>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h3>除外キーワード</h3>
+          <div class="tags" id="exclude-tags"></div>
+          <div class="add-row">
+            <input type="text" id="new-exclude" placeholder="例: 広告">
+            <button class="btn-add" onclick="addTag('exclude')">追加</button>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h3>生成設定</h3>
+          <div class="field">
+            <label>目標再生時間（分）</label>
+            <input type="number" id="target-minutes" min="1" max="60">
+          </div>
+          <div class="field">
+            <label>遡り時間（時間）</label>
+            <input type="number" id="lookback-hours" min="1" max="72">
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h3>キャラクター</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="field" style="margin:0;">
+              <label>ホスト名</label>
+              <input type="text" id="host-name">
+            </div>
+            <div class="field" style="margin:0;">
+              <label>ゲスト名</label>
+              <input type="text" id="guest-name">
+            </div>
+          </div>
+          <div class="field">
+            <label>ホストのスタイル</label>
+            <textarea id="host-style" rows="3"></textarea>
+          </div>
+          <div class="field">
+            <label>ゲストのスタイル</label>
+            <textarea id="guest-style" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h3>モデル</h3>
+          <div class="field">
+            <label>テキスト生成モデル</label>
+            <select id="text-model">
+              <option value="gemini-2.5-flash">gemini-2.5-flash（20回/日）</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <h3>TTS 音声</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field" style="margin:0;">
+              <label>ホスト音声</label>
+              <select id="host-voice"></select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>ゲスト音声</label>
+              <select id="guest-voice"></select>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="save-btn" onclick="saveConfig()">保存してコミット</button>
+        <div class="save-msg" id="save-msg"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const REPO = 'yokohamaak/news-digest-tts';
+    const CONFIG_PATHS = { main: 'config/config.yaml', children: 'config/config.children.yaml' };
+    const VOICES = [
+      { name: 'Zephyr', gender: '女性', desc: '明るい' },
+      { name: 'Puck',   gender: '男性', desc: '軽快' },
+      { name: 'Charon', gender: '男性', desc: '落ち着いた' },
+      { name: 'Kore',   gender: '女性', desc: '芯のある' },
+      { name: 'Fenrir', gender: '男性', desc: '元気' },
+      { name: 'Leda',   gender: '女性', desc: '若々しい' },
+      { name: 'Orus',   gender: '男性', desc: 'どっしりした' },
+      { name: 'Aoede',  gender: '女性', desc: '爽やか' },
+    ];
+
+    let currentPlayerVersion = 'main';
+    let currentCfgVersion = 'main';
+    let configSha = '';
+    let configData = null;
+    let currentScript = [];
+    let currentIdx = -1;
+    let isExpanded = false;
+
+    const player = document.getElementById('player');
+
+    // ===== SEEK (10秒送り/戻し) =====
+    function seek(delta) {
+      if (!player.duration) return;
+      player.currentTime = Math.min(Math.max(player.currentTime + delta, 0), player.duration);
+    }
+    document.getElementById('seek-back').addEventListener('click', () => seek(-10));
+    document.getElementById('seek-fwd').addEventListener('click', () => seek(10));
+
+    // ===== TOP NAV =====
+    document.querySelectorAll('.top-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const panel = tab.dataset.panel;
+        document.getElementById('player-controls').style.display = panel === 'player' ? '' : 'none';
+        document.getElementById('player-panel').style.display = panel === 'player' ? '' : 'none';
+        document.getElementById('settings-panel').style.display = panel === 'settings' ? 'block' : 'none';
+        if (panel === 'settings') initSettings();
+      });
+    });
+
+    // ===== PLAYER =====
+    document.querySelectorAll('.vtab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.vtab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentPlayerVersion = tab.dataset.version;
+        loadVersion(currentPlayerVersion);
+      });
+    });
+
+    async function loadVersion(version) {
+      const container = document.getElementById('script-container');
+      container.innerHTML = '<div class="msg">読み込み中...</div>';
+      container.classList.remove('has-ts');
+      document.getElementById('session-badge').textContent = '--';
+      document.getElementById('meta-time').textContent = '';
+      currentScript = [];
+      currentIdx = -1;
+
+      try {
+        const res = await fetch(`${version}/meta.json?t=${Date.now()}`);
+        if (!res.ok) throw new Error();
+        const meta = await res.json();
+        currentScript = meta.script || [];
+
+        const date = new Date(meta.generated_at);
+        const fmt = date.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        document.getElementById('session-badge').textContent = meta.session;
+        document.getElementById('meta-time').textContent = `${fmt} 生成`;
+
+        document.getElementById('audio-src').src = `${version}/digest.mp3?t=${Date.now()}`;
+        player.load();
+
+        const hasTs = currentScript.length > 0 && 'start' in currentScript[0];
+        renderScript(hasTs);
+
+        document.getElementById('script-wrap').scrollTop = 0;
+      } catch {
+        const msg = version === 'children'
+          ? 'まだ生成されていません。ワークフローを実行してください。'
+          : 'データの読み込みに失敗しました';
+        container.innerHTML = `<div class="msg error">${msg}</div>`;
+      }
+    }
+
+    function renderScript(hasTs) {
+      const container = document.getElementById('script-container');
+      container.innerHTML = '';
+      if (hasTs) container.classList.add('has-ts');
+
+      const hostName = currentScript[0]?.speaker;
+      currentScript.forEach((turn, i) => {
+        const div = document.createElement('div');
+        div.className = 'turn';
+        div.dataset.idx = i;
+
+        const hasSentences = hasTs && Array.isArray(turn.sentences) && turn.sentences.length > 0;
+        let textHtml;
+        if (hasSentences) {
+          textHtml = turn.sentences.map((s, j) =>
+            `<span class="sentence" data-si="${j}" data-start="${s.start}" data-end="${s.end}">${s.text}</span>`
+          ).join('');
+        } else if (hasTs && 'start' in turn) {
+          // 1文ターン：文全体を1つのsentenceとして扱い、ターン中は必ず白くする
+          textHtml = `<span class="sentence" data-si="0" data-start="${turn.start}" data-end="${turn.end}">${turn.text}</span>`;
+        } else {
+          textHtml = turn.text;
+        }
+
+        div.innerHTML = `<div class="speaker ${turn.speaker === hostName ? '' : 'guest'}">${turn.speaker}</div><div class="text">${textHtml}</div>`;
+        container.appendChild(div);
+      });
+    }
+
+    // ===== AUDIO SYNC =====
+    player.addEventListener('timeupdate', () => {
+      if (!currentScript.length || !('start' in (currentScript[0] || {}))) return;
+      const t = player.currentTime;
+
+      let idx = -1;
+      for (let i = currentScript.length - 1; i >= 0; i--) {
+        if (t >= currentScript[i].start) { idx = i; break; }
+      }
+
+      if (idx !== currentIdx) {
+        currentIdx = idx;
+        applyHighlight(idx, t);
+      } else {
+        applyActiveSentence(idx, t);
+      }
+    });
+
+    function applyHighlight(idx, t) {
+      const turns = document.querySelectorAll('.turn');
+      turns.forEach((el, i) => el.classList.toggle('active', i === idx));
+      applyActiveSentence(idx, t);
+
+      if (!isExpanded && idx >= 0 && turns[idx]) {
+        const wrap = document.getElementById('script-wrap');
+        const el = turns[idx];
+        const wrapRect = wrap.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const delta = elRect.top - wrapRect.top - wrapRect.height / 2 + elRect.height / 2;
+        wrap.scrollBy({ top: delta, behavior: 'smooth' });
+      }
+    }
+
+    function applyActiveSentence(idx, t) {
+      if (idx < 0) return;
+      const turns = document.querySelectorAll('.turn');
+      const activeTurn = turns[idx];
+      if (!activeTurn) return;
+      // 「startが現在時刻以下の最後の文」を選ぶ（ターンと同じ方式）。
+      // 文間にすき間があっても必ずどれか1文がアクティブになり白が途切れない。
+      const sentEls = activeTurn.querySelectorAll('.sentence');
+      let activeSi = -1;
+      sentEls.forEach((el, j) => {
+        if (t >= parseFloat(el.dataset.start)) activeSi = j;
+      });
+      sentEls.forEach((el, j) => el.classList.toggle('active', j === activeSi));
+    }
+
+    // ===== EXPAND / COLLAPSE =====
+    function toggleExpand() {
+      const wrap = document.getElementById('script-wrap');
+      const btn = document.getElementById('expand-btn');
+      isExpanded = !isExpanded;
+      wrap.classList.toggle('expanded', isExpanded);
+      btn.textContent = isExpanded ? '閉じる' : '全文を見る';
+
+      if (!isExpanded && currentIdx >= 0) {
+        setTimeout(() => applyHighlight(currentIdx), 50);
+      }
+    }
+
+    loadVersion(currentPlayerVersion);
+
+    // ===== SETTINGS =====
+    function getToken() { return localStorage.getItem('gh_token') || ''; }
+
+    function saveToken() {
+      const v = document.getElementById('token-input').value.trim();
+      if (!v) return;
+      localStorage.setItem('gh_token', v);
+      document.getElementById('token-input').value = '••••••••••••••••';
+      updateTokenStatus();
+      loadConfig();
+    }
+
+    function updateTokenStatus() {
+      const token = getToken();
+      const el = document.getElementById('token-status');
+      if (token) { el.textContent = '設定済み'; el.className = 'token-status ok'; }
+      else { el.textContent = '未設定'; el.className = 'token-status ng'; }
+    }
+
+    function initSettings() {
+      const token = getToken();
+      document.getElementById('token-input').value = token ? '••••••••••••••••' : '';
+      updateTokenStatus();
+      initVoiceSelects();
+      if (token) loadConfig();
+    }
+
+    function initVoiceSelects() {
+      ['host-voice', 'guest-voice'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel.options.length) return;
+        VOICES.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.name;
+          opt.textContent = `${v.name}（${v.gender}・${v.desc}）`;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    document.querySelectorAll('.cfg-vtab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.cfg-vtab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentCfgVersion = tab.dataset.cfgVersion;
+        loadConfig();
+      });
+    });
+
+    async function loadConfig() {
+      setSaveMsg('', '');
+      if (!getToken()) {
+        setSaveMsg('GitHub Token を設定すると現在の設定値が表示されます', '');
+        return;
+      }
+      try {
+        const configPath = CONFIG_PATHS[currentCfgVersion];
+        const res = await fetch(
+          `https://api.github.com/repos/${REPO}/contents/${configPath}?ref=main`,
+          { headers: { Authorization: `token ${getToken()}`, Accept: 'application/vnd.github.v3+json' } }
+        );
+        if (!res.ok) throw new Error(`GitHub API: ${res.status}`);
+        const json = await res.json();
+        configSha = json.sha;
+        const yaml = decodeURIComponent(escape(atob(json.content.replace(/\n/g, ''))));
+        configData = jsyaml.load(yaml);
+        renderForm(configData);
+      } catch (e) {
+        setSaveMsg('設定の読み込みに失敗しました: ' + e.message, 'err');
+      }
+    }
+
+    function renderForm(cfg) {
+      renderSources(cfg.sources?.rss || []);
+      renderTags('topics', cfg.topics || []);
+      renderTags('exclude', cfg.exclude_keywords || []);
+      document.getElementById('target-minutes').value = cfg.digest?.target_minutes ?? 10;
+      document.getElementById('lookback-hours').value = cfg.collection?.lookback_hours ?? 12;
+      document.getElementById('host-name').value = cfg.characters?.host?.name ?? '';
+      document.getElementById('guest-name').value = cfg.characters?.guest?.name ?? '';
+      document.getElementById('host-style').value = cfg.characters?.host?.style ?? '';
+      document.getElementById('guest-style').value = cfg.characters?.guest?.style ?? '';
+      document.getElementById('text-model').value = cfg.models?.text ?? 'gemini-2.5-flash';
+      document.getElementById('host-voice').value = cfg.tts?.host_voice ?? 'Leda';
+      document.getElementById('guest-voice').value = cfg.tts?.guest_voice ?? 'Puck';
+    }
+
+    function renderSources(sources) {
+      const el = document.getElementById('sources-list');
+      el.innerHTML = '';
+      sources.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'source-item';
+        const cat = s.category === 'vibe' ? 'vibe' : 'japan';
+        row.innerHTML = `
+          <input type="text" value="${s.name}" data-idx="${i}" data-field="name" onchange="updateSource(this)">
+          <input type="text" value="${s.url}" data-idx="${i}" data-field="url" onchange="updateSource(this)" style="flex:2;">
+          <select data-idx="${i}" data-field="category" onchange="updateSource(this)">
+            <option value="japan"${cat === 'japan' ? ' selected' : ''}>前半</option>
+            <option value="vibe"${cat === 'vibe' ? ' selected' : ''}>後半</option>
+          </select>
+          <button class="btn-del" onclick="removeSource(${i})">x</button>
+        `;
+        el.appendChild(row);
+      });
+    }
+
+    function updateSource(el) {
+      configData.sources.rss[+el.dataset.idx][el.dataset.field] = el.value;
+    }
+
+    function removeSource(idx) {
+      configData.sources.rss.splice(idx, 1);
+      renderSources(configData.sources.rss);
+    }
+
+    function addSource() {
+      const name = document.getElementById('new-source-name').value.trim();
+      const url = document.getElementById('new-source-url').value.trim();
+      const category = document.getElementById('new-source-category').value;
+      if (!name || !url) return;
+      configData.sources.rss.push({ name, url, category });
+      renderSources(configData.sources.rss);
+      document.getElementById('new-source-name').value = '';
+      document.getElementById('new-source-url').value = '';
+    }
+
+    function renderTags(type, items) {
+      const el = document.getElementById(type === 'topics' ? 'topics-tags' : 'exclude-tags');
+      el.innerHTML = '';
+      items.forEach((item, i) => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.innerHTML = `${item}<button onclick="removeTag('${type}',${i})">x</button>`;
+        el.appendChild(tag);
+      });
+    }
+
+    function removeTag(type, idx) {
+      const key = type === 'topics' ? 'topics' : 'exclude_keywords';
+      configData[key].splice(idx, 1);
+      renderTags(type, configData[key]);
+    }
+
+    function addTag(type) {
+      const inputId = type === 'topics' ? 'new-topic' : 'new-exclude';
+      const key = type === 'topics' ? 'topics' : 'exclude_keywords';
+      const val = document.getElementById(inputId).value.trim();
+      if (!val) return;
+      if (!configData[key]) configData[key] = [];
+      configData[key].push(val);
+      renderTags(type, configData[key]);
+      document.getElementById(inputId).value = '';
+    }
+
+    function collectForm() {
+      configData.digest.target_minutes = +document.getElementById('target-minutes').value;
+      configData.collection.lookback_hours = +document.getElementById('lookback-hours').value;
+      configData.characters.host.name = document.getElementById('host-name').value.trim();
+      configData.characters.guest.name = document.getElementById('guest-name').value.trim();
+      configData.characters.host.style = document.getElementById('host-style').value.trim();
+      configData.characters.guest.style = document.getElementById('guest-style').value.trim();
+      if (!configData.models) configData.models = {};
+      configData.models.text = document.getElementById('text-model').value;
+      configData.tts.host_voice = document.getElementById('host-voice').value;
+      configData.tts.guest_voice = document.getElementById('guest-voice').value;
+    }
+
+    function setSaveMsg(msg, type) {
+      const el = document.getElementById('save-msg');
+      el.textContent = msg;
+      el.className = 'save-msg' + (type ? ' ' + type : '');
+    }
+
+    async function saveConfig() {
+      if (!getToken() || !configData) return;
+      collectForm();
+
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      setSaveMsg('保存中...', '');
+
+      try {
+        const configPath = CONFIG_PATHS[currentCfgVersion];
+        const yamlStr = jsyaml.dump(configData, { lineWidth: -1, noRefs: true });
+        const content = btoa(unescape(encodeURIComponent(yamlStr)));
+
+        const res = await fetch(
+          `https://api.github.com/repos/${REPO}/contents/${configPath}`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `token ${getToken()}`,
+              Accept: 'application/vnd.github.v3+json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: `config: update settings (${currentCfgVersion})`,
+              content,
+              sha: configSha,
+              branch: 'main',
+            }),
+          }
+        );
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || res.status);
+        }
+
+        const json = await res.json();
+        configSha = json.content.sha;
+        setSaveMsg('保存しました', 'ok');
+      } catch (e) {
+        setSaveMsg('保存失敗: ' + e.message, 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    ['new-topic', 'new-exclude'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addTag(id === 'new-topic' ? 'topics' : 'exclude'); }
+      });
+    });
+  </script>
+</body>
+</html>

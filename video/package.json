@@ -1,0 +1,29 @@
+{
+  "name": "video",
+  "private": true,
+  "version": "1.0.0",
+  "description": "meta.json + digest.mp3 から掛け合い動画を生成するRemotionプロジェクト（ローカル描画）",
+  "type": "module",
+  "scripts": {
+    "prep": "node scripts/prep.mjs",
+    "parts": "node scripts/make-avatar-parts.mjs",
+    "psd:preview": "node scripts/psd-export.mjs preview",
+    "psd:build": "node scripts/psd-export.mjs build",
+    "dev": "npm run prep && remotion studio",
+    "render": "npm run prep && remotion render DialogueVideo out/video.mp4",
+    "compositions": "remotion compositions",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.0",
+    "@types/react": "^18.3.0",
+    "ag-psd": "^30.1.1",
+    "typescript": "^5.4.0"
+  }
+}

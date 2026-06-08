@@ -1,0 +1,7 @@
+feedparser==6.0.11
+google-generativeai==0.8.3
+google-genai==1.16.0
+pyyaml==6.0.2
+pykakasi==2.3.0
+faster-whisper==1.1.1
+pillow==11.0.0           # APOD画像プラン(クロップ)・stock実写の切出し/縮小

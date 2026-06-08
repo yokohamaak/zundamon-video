@@ -1,0 +1,115 @@
+name: News Digest TTS Generator
+
+on:
+  # schedule:  # GitHub schedule に戻す場合はコメント解除
+  #   # 朝版: 毎日 5:00 JST (20:00 UTC 前日)
+  #   - cron: '0 20 * * *'
+  #   # 夜版: 毎日 17:00 JST (8:00 UTC)
+  #   - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ffmpegインストール
+        run: |
+          sudo apt-get update --fix-missing
+          sudo apt-get install -y --fix-missing ffmpeg
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 依存パッケージインストール
+        run: pip install -r requirements.txt
+
+      - name: 大人向け生成
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python main.py --output-dir docs/main --skip-align
+
+      # - name: レート制限回避のため待機
+      #   run: sleep 60
+
+      # - name: 子供向け生成
+      #   env:
+      #     GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      #   run: python main.py --config config/config.children.yaml --output-dir docs/children
+
+      - name: 成果物をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add articles_cache.json docs/main/
+          git diff --staged --quiet || git commit -m "chore: update digest [skip ci]"
+          git push
+
+  align:
+    needs: generate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ffmpegインストール
+        run: sudo apt-get update --fix-missing && sudo apt-get install -y --fix-missing ffmpeg
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 依存パッケージインストール
+        run: pip install -r requirements.txt
+
+      - name: Whisperモデルのキャッシュ
+        id: hfcache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-faster-whisper-base
+
+      - name: 大人向けアライメント
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_HUB_OFFLINE: ${{ steps.hfcache.outputs.cache-hit == 'true' && '1' || '' }}
+        run: |
+          for i in 1 2 3 4 5; do
+            python main.py --align-only --output-dir docs/main --use-words && break
+            echo "リトライ $i/5（HF 429等）。30秒待機..."; sleep 30
+          done
+
+      - name: 成果物をコミット
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/main/meta.json
+          git diff --staged --quiet || git commit -m "chore: update alignment [skip ci]"
+          git push
+
+      - name: Cloudflare Pagesデプロイ
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy docs/ --project-name=news-digest-tts

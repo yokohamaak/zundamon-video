@@ -1,0 +1,1285 @@
+{
+  "articles": [
+    {
+      "title": "NVIDIAがArmベースの新型ノートPC向けチップ「N1」と「N1X」を発表か、低価格帯ノートPCとゲーミングノートPCへの搭載を狙う",
+      "url": "https://gigazine.net/news/20260601-nvidia-n1-n1x-leaked-specification/",
+      "source": "Gigazine",
+      "summary": "NVIDIAとWindowsとArmの公式Xアカウントが2026年5月30日に、「A new era of PC. 25.0528, 121.5990」というメッセージをポストしました。このことから、NVIDIAがArmベースの新型PC向けチップ「N1」「N1X」をついに発表するのではないかと報じられています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;nvidia&#45;n1&#45;n1x&#45;leaked&#45;specification/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T02:25:00+00:00",
+      "hash": "050a9aa2f0552d45986d3f7869dfdd5f",
+      "used": true
+    },
+    {
+      "title": "Intel Coreシリーズ3プロセッサーを搭載した新型Swift Air 14をAcerが発表、学生や家庭向けの低価格帯Windows PCか",
+      "url": "https://gigazine.net/news/20260601-acer-new-swift-air-14/",
+      "source": "Gigazine",
+      "summary": "台湾で2026年5月31日から開催されているPC見本市「COMPUTEX TAIPEI 2026」にあわせて、Acerが新型ノートPC「Swift Air 14」を発表しました。Swift Air 14はIntel Coreシリーズ3を搭載しながら、学生や家庭向けの低価格帯デバイスになるとみられています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;acer&#45;new&#45;swift&#45;air&#45;14/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T02:00:00+00:00",
+      "hash": "bfd4e5d23972c8389fadcc8fb0094b35",
+      "used": false
+    },
+    {
+      "title": "Appleはスマートグラス市場でMetaに対抗するだけでなく市場全体を変革しようとしている",
+      "url": "https://gigazine.net/news/20260601-apple-strategy-smart-glasses/",
+      "source": "Gigazine",
+      "summary": "Appleがスマートグラスのリリースを計画していることは長らく報じられてきました。Appleは初のスマートグラスで、スマートグラス市場で先行するMetaに対抗するだけでなく、市場全体を変革しようとしているとBloombergのマーク・ガーマン記者が報じています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;apple&#45;strategy&#45;smart&#45;glasses/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T01:38:00+00:00",
+      "hash": "7eba1169330680e9e069e1f74d749569",
+      "used": false
+    },
+    {
+      "title": "CodexがWindowsの自動操作に対応、自動でペイントで絵を描いたりブラウザを操作したりできる",
+      "url": "https://gigazine.net/news/20260601-codex-windows-computer-use/",
+      "source": "Gigazine",
+      "summary": "OpenAIのコーディングエージェント「Codex」にはPCを自動操作できる「Computer Use」という機能が備わっています。これまではComputer UseはmacOSにのみ対応していたのですが、2025年5月29日に実施されたアップデートによりWindowsでも使用可能となりました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;codex&#45;windows&#45;computer&#45;use/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T01:33:00+00:00",
+      "hash": "6c25dcd317c53fa5a74f02ff836f2ffe",
+      "used": true
+    },
+    {
+      "title": "医療従事者向けに作られたAI「OpenEvidence」に長年悩まされている症状について相談してみた",
+      "url": "https://gigazine.net/news/20260601-openevidence-medical-ai-review/",
+      "source": "Gigazine",
+      "summary": "「OpenEvidence」は医療従事者向けにゼロから構築された医療AI・臨床意思決定支援プラットフォームで、臨床上の疑問に対して医学論文やガイドラインなどのエビデンスに基づく回答を得るために使われるサービスです。今回は、医療従事者でない一般人からの相談にも分かりやすく答えてくれるのかどうかを確かめるため、実際に編集部員が悩まされている症状について相談してみました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;openevidence&#45;medical&#45;ai&#45;review/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T01:02:00+00:00",
+      "hash": "e19b21a85ed99b355d3010a6557ef8dd",
+      "used": true
+    },
+    {
+      "title": "5つの最先端AIでさまざまな主張のファクトチェックを行ったところ67％で意見が一致しないとの調査結果",
+      "url": "https://gigazine.net/news/20260601-llm-disagreement-on-fact-checks/",
+      "source": "Gigazine",
+      "summary": "Lenzはさまざまな主張について入力すると、複数のAIモデルによってその内容がファクトチェックされるというサービスです。そんなLenzが、実際にユーザーから寄せられた1000件の主張について調べたところ、なんと67％の割合で5つの最先端AIの意見が食い違ったと報告しました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;llm&#45;disagreement&#45;on&#45;fact&#45;checks/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T00:00:00+00:00",
+      "hash": "7550c041f55f1fa3dbe538d16c8ecde7",
+      "used": true
+    },
+    {
+      "title": "無料でiPhone・iPad内で動くターミナルアプリ「a-Shell」を使ってみた、Pythonやyt-dlpなどのCLIツールを実行できてショートカット連携も可能",
+      "url": "https://gigazine.net/news/20260601-a-shell/",
+      "source": "Gigazine",
+      "summary": "「a-Shell」は、iPhoneやiPad上でUnix系のターミナル環境を利用できる無料アプリです。スマートフォンやタブレットでどのようにターミナルを使えるのか、実際にインストールして試してみました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;a&#45;shell/\">続きを読む...</a></b></p>",
+      "published_at": "2026-05-31T23:00:00+00:00",
+      "hash": "9ca12386472d080b5117fc0d8d3bb9f8",
+      "used": true
+    },
+    {
+      "title": "父親になることで脳の構造や活動が劇的に変化するという研究結果",
+      "url": "https://gigazine.net/news/20260601-fatherhood-rewire-brain/",
+      "source": "Gigazine",
+      "summary": "女性の脳は妊娠や出産によって大きく変化することが知られています。一方で、父親は妊娠そのものを経験しないため、脳に同じような変化が起きるのかどうかはあまり詳しく分かっていませんでした。今回、ドイツ・アーヘン工科大学の研究チームが行った新たな研究により、父親になった男性の脳でも出産後の数週間から数カ月にかけて構造や活動が変化する可能性が示されました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;fatherhood&#45;rewire&#45;brain/\">続きを読む...</a></b></p>",
+      "published_at": "2026-05-31T22:00:00+00:00",
+      "hash": "cd68a24b82c88f4b15ed7ae49fa6ff0d",
+      "used": true
+    },
+    {
+      "title": "目がかゆくてもこすらない方がいい理由とは？専門家が原因と対策を解説",
+      "url": "https://gigazine.net/news/20260601-itchy-eyes-rubbing/",
+      "source": "Gigazine",
+      "summary": "かゆみや砂が入ったような違和感がある時に目をこするのは自然な反応です。しかし、イリノイ大学シカゴ校で眼科を専門とするテイラー・スターンズ氏とニーラム・パタディア氏は、目をこする行為にはリスクがあると指摘した上で、目をこすりたくなる原因とかゆみや違和感を減らす方法について解説しています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;itchy&#45;eyes&#45;rubbing/\">続きを読む...</a></b></p>",
+      "published_at": "2026-05-31T21:00:00+00:00",
+      "hash": "32b88e341c37f36f59e62a7aca10a619",
+      "used": false
+    },
+    {
+      "title": "【台風6号】沖縄・奄美に接近 西・東日本でも大雨・暴風おそれ",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136781000",
+      "source": "NHKニュース",
+      "summary": "台風6号は、これからあすにかけて沖縄・奄美にかなり接近する見込みで、猛烈な風が吹き、雨も非常に激しく降るおそれがあります。気象庁は、暴風や高波、土砂災害、低い土地の浸水などに厳重に警戒するよう呼びかけ…",
+      "published_at": "2026-06-01T01:25:42+00:00",
+      "hash": "7d69f86dd745125fe2f3f0ae0e02218f",
+      "used": false
+    },
+    {
+      "title": "株価 初の6万7000円台 取引時間中の最高値更新",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136891000",
+      "source": "NHKニュース",
+      "summary": "週明けの1日の東京株式市場、日経平均株価は600円あまり値上がりして初めて6万7000円台をつけ、取引時間中の最高値を更新しました。先週末のニューヨーク市場でダウ平均株価など主要な3つの指数がそろって…",
+      "published_at": "2026-06-01T01:15:14+00:00",
+      "hash": "acb6b1134c00b84b8297584874c0405a",
+      "used": true
+    },
+    {
+      "title": "東京 大田区 路線バスの乗客 男に顔切られけが 車内トラブルか",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137011000",
+      "source": "NHKニュース",
+      "summary": "警視庁によりますと、1日午前10時半ごろ、東京・大田区西糀谷の交番に、路線バスの運転手が「乗客が顔を切りつけられた」と駆け込みました。乗客2人がバスの車内でトラブルになって近くのバス停で降り、その直後…",
+      "published_at": "2026-06-01T02:37:10+00:00",
+      "hash": "c3d31fb044bc9f3c7668c816d6964a66",
+      "used": false
+    },
+    {
+      "title": "【熱中症対策を】東日本と北日本中心に気温上昇 猛暑日予想も",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136801000",
+      "source": "NHKニュース",
+      "summary": "東日本と北日本を中心にきょうも晴れて気温が上がり35度以上の猛暑日となるところもある見込みです。こまめに水分補給をするなど熱中症への対策を心がけてください。",
+      "published_at": "2026-05-31T20:54:19+00:00",
+      "hash": "220f36f1aca4320d2e84ab186f30d80b",
+      "used": false
+    },
+    {
+      "title": "“イラン側も覚書に修正追加” 米大統領の修正要求報道に",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136771000",
+      "source": "NHKニュース",
+      "summary": "アメリカとイランの協議の担当者が暫定的に一致したとされる覚書にトランプ大統領が修正を求めたと報じられるなか、イランの革命防衛隊とつながりのあるタスニム通信は31日、イラン側も修正を加えるとする情報筋の…",
+      "published_at": "2026-06-01T02:12:34+00:00",
+      "hash": "f37b9c5e1537b175d6faec6a9ce610d3",
+      "used": false
+    },
+    {
+      "title": "作詞家 橋本淳さん死去 86歳「ブルー・シャトウ」など手がける",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136951000",
+      "source": "NHKニュース",
+      "summary": "「ブルー・シャトウ」や「亜麻色の髪の乙女」など多くのヒット曲を手がけた昭和の歌謡界を代表する作詞家の橋本淳さんが、5月21日、肝硬変のため都内の病院で亡くなりました。86歳でした。",
+      "published_at": "2026-06-01T01:34:25+00:00",
+      "hash": "c1bfe507e78e32144ed017c15dcd4fc8",
+      "used": false
+    },
+    {
+      "title": "ドジャース山本由伸 6回途中10奪三振 無失点で5勝目 大谷2安打",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136911000",
+      "source": "NHKニュース",
+      "summary": "大リーグ、ドジャースの山本由伸投手がフィリーズ戦に先発し、6回途中を無失点、自己最多に並ぶ10個の三振を奪う力投で今シーズン5勝目をあげました。大谷翔平選手は、ヒット2本をマークして連続試合ヒットを4…",
+      "published_at": "2026-06-01T01:54:02+00:00",
+      "hash": "91cbc335074e74d3ec2cd7c866122dc2",
+      "used": false
+    },
+    {
+      "title": "2026年6月1日のヘッドラインニュース",
+      "url": "https://gigazine.net/news/20260601-headline/",
+      "source": "Gigazine",
+      "summary": "&#xa9;WASTED CHEF PROJECT劇場アニメ『映画大好きポンポさん』のスタッフが再集結した平尾隆之監督の初のオリジナルアニメーションプロジェクト『WASTED CHEF』の特報映像が公開されました。映像では、肉汁滴るハンバーガーなど観る者の胃袋を掴む「絶品エンターテインメント」としての魅力に加え、不穏な謎を感じさせる世界観も描かれており、本作への期待が高まる内容となっています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;headline/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T09:37:00+00:00",
+      "hash": "db59303402aea9ea9e0358e41927c02a",
+      "used": false
+    },
+    {
+      "title": "NVIDIAがアメリカ最強オープンモデル「Nemotron 3 Ultra」を発表＆AIサーバー「Vera Rubin」の量産開始を報告",
+      "url": "https://gigazine.net/news/20260601-nemotron-3-ultra/",
+      "source": "Gigazine",
+      "summary": "技術カンファレンス「NVIDIA GTC Taipei 2026」の基調講演が日本時間の2026年6月1日12時に実施されました。基調講演ではWindows PC向けSoC「RTX Spark」やWindowsデスクトップPC「DGX Station」が発表されたほか、アメリカ企業によるオープンモデルの中では最高性能の「Nemotron 3 Ultra」やAIサーバー「Vera Rubin」の量産開始も発表されました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;nemotron&#45;3&#45;ultra/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T08:59:00+00:00",
+      "hash": "fb02b3968f14fd3cc7107769007c75eb",
+      "used": true
+    },
+    {
+      "title": "経口補水液の「飲みにくさ」を改善してスポーツドリンクのようにゴクゴク飲める「SUNTORY DAKARA経口補水液」を飲んでみた",
+      "url": "https://gigazine.net/news/20260601-suntory-dakara-oral-rehydration-solution/",
+      "source": "Gigazine",
+      "summary": "経口補水液は脱水時に速やかに水分と電解質を補給できるように作られた飲料であり、一般的なスポーツドリンクよりもナトリウムやカリウムの量が多くなっています。サントリーは初めて経口補水液を飲む人や子どもでも飲みやすい「SUNTORY DAKARA経口補水液」を2026年6月9日(火)から発売する予定であり、サンプルが編集部にも届いたので、どんな経口補水液に仕上がっているのか実際に飲んで確かめてみました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;suntory&#45;dakara&#45;oral&#45;rehydration&#45;solution/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T08:00:00+00:00",
+      "hash": "1820b96c0db53aeaa28ad93db0457707",
+      "used": false
+    },
+    {
+      "title": "Anthropicの人材採用プロセスはこんな感じ、面接でのAI使用は厳禁",
+      "url": "https://gigazine.net/news/20260601-anthropic-recruiting/",
+      "source": "Gigazine",
+      "summary": "AI「Claude」を開発するAnthropicは、「OpenAIが安全性に十分な重点を置いていない」との懸念から同社を離れた人物により設立された企業であり、その採用プロセスにおいてAIの安全性をひときわ重視しているとされています。採用プロセスの実態をBloombergがまとめました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;anthropic&#45;recruiting/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T07:00:00+00:00",
+      "hash": "3a8509346b17e486f420bbce215c4798",
+      "used": false
+    },
+    {
+      "title": "Amazonの人工衛星を輸送予定だったBlue Originのニューグレンが大爆発、今後の影響は？",
+      "url": "https://gigazine.net/news/20260601-blue-origin-new-glenn-rocket-explodes/",
+      "source": "Gigazine",
+      "summary": "現地時間の2026年5月28日、アメリカのフロリダ州ケープカナベラルにあるケープカナベラル宇宙軍基地で、Amazonの設立者であるジェフ・ベゾス氏が設立した航空宇宙企業であるBlue Originの大型ロケット「ニューグレン」が試験発射され、爆発しました。アメリカ宇宙軍によるとこの爆発による負傷者はいません。<p><b><a href=\"https://gigazine.net/news/20260601&#45;blue&#45;origin&#45;new&#45;glenn&#45;rocket&#45;explodes/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T06:00:00+00:00",
+      "hash": "93e86496e20018064d9ec14615f20b05",
+      "used": false
+    },
+    {
+      "title": "中国のハイテクブームにより「テクノロジーツーリズム」が盛んに、最先端のロボタクシー乗車体験や工場見学などが可能",
+      "url": "https://gigazine.net/news/20260601-china-tech-ai-tourism/",
+      "source": "Gigazine",
+      "summary": "長らく野心的なテクノロジー投資家やスタートアップの創業者らは、最先端のテクノロジーを間近で目にするためにアメリカのシリコンバレーを訪れてきました。ところが近年では中国のハイテクブームにより、上海や深圳などを目的地とした「テクノロジーツーリズム」が盛んになっていると、海外メディアのRest of Worldが報じました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;china&#45;tech&#45;ai&#45;tourism/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T05:40:00+00:00",
+      "hash": "514720fbcb000eeb2831a376e599ba8b",
+      "used": true
+    },
+    {
+      "title": "OpenAIが生物兵器対策に参入、感染症流行の予測や危険なDNA注文の検出をAIで支援",
+      "url": "https://gigazine.net/news/20260601-openai-resalind-biodefense/",
+      "source": "Gigazine",
+      "summary": "AIは創薬や感染症研究などの生命科学分野でも活用が広がっています。論文の整理、実験計画の作成、データ分析などを支援できる一方で、生物兵器の開発に悪用されるリスクもあるため、安全対策が重要になっています。OpenAIは2026年5月29日、生命科学向けAIモデル「GPT-Rosalind」を使った生物防衛プログラム「Rosalind Biodefense」を開始したと発表しました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;openai&#45;resalind&#45;biodefense/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T05:35:00+00:00",
+      "hash": "9386173a7856b456d1fca42a00a0d475",
+      "used": true
+    },
+    {
+      "title": "NVIDIAがGB300を内蔵したモンスター級WindowsデスクトップPC「DGX Station」を発表、メモリは最大748GBで最大1兆パラメーターのAIを実行可能",
+      "url": "https://gigazine.net/news/20260601-nvidia-dgx-station/",
+      "source": "Gigazine",
+      "summary": "NVIDIAが技術カンファレンス「NVIDIA GTC Taipei 2026」の基調講演でWindows搭載デスクトップPC「DGX Station」を発表しました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;nvidia&#45;dgx&#45;station/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T05:11:00+00:00",
+      "hash": "ad7c736c0c13a1283250961c97e2b54d",
+      "used": false
+    },
+    {
+      "title": "AMDが「Ryzen 7 7700X3D」を発表、5800X3Dを10周年記念モデルとして復活させAM5サポート延長も表明",
+      "url": "https://gigazine.net/news/20260601-amd-ryzen-7-7700x3d/",
+      "source": "Gigazine",
+      "summary": "AMDが独自の3Dスタッキング技術である3D V-Cacheテクノロジーを搭載した新たなRyzenプロセッサ「Ryzen 7 7700X3D」など、新製品やアップデートを多数を発表しました。 AMD Computex 2026: 10 Years of AM4, AM5 Support Through 2029 and Expanded RDNA 4 Gaminghttps://www.amd.com/en/blogs/2026/amd-computex-2026-10-years-of-am4-am5-support-through.htmlAMD Ryzen 7 7700X3D launches July 16 for $329 - VideoCardz.comhttps://videocardz.com/newz/amd-ryzen-7-7700x3d-launches-july-16-for-329AMD previews EXPO Ultra Low Latency memory for Ryzen AM5 systems - VideoCardz.comhttps://videocardz.com/newz/amd-previews-expo-ultra-low-latency-memory-for-ryzen-am5-systemsAMDは「Computex 2026」に向けて、ゲーミング分野に関する新たな取り組みを発表しました。発表では、Socket AM4の登場10周年を記念して人気CPUの「Ryzen 7 5800X3D」を再投入することも明らかにしたほか、新しいプロセッサ「Ryzen 7 7700X3D」が公開されました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;amd&#45;ryzen&#45;7&#45;7700x3d/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T05:07:00+00:00",
+      "hash": "a648c25c70d9b239e58ff0dc34d61f18",
+      "used": false
+    },
+    {
+      "title": "ついにNVIDIAがノートPC向けSoC「NVIDIA RTX Spark」を発表、128GBメモリ＆NVIDIA製GPU＆ArmベースCPU搭載で高性能AIをローカル実行",
+      "url": "https://gigazine.net/news/20260601-nvidia-rtx-spark/",
+      "source": "Gigazine",
+      "summary": "NVIDIAの技術カンファレンス「NVIDIA GTC Taipei 2026」が日本時間の2026年6月1日に始まりました。日本時間の2026年6月1日12時からはジェンスン・フアンCEOによる基調講演が実施されており、基調講演の中でノートPC向けのSoC「NVIDIA RTX Spark」が発表されました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;nvidia&#45;rtx&#45;spark/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T04:32:00+00:00",
+      "hash": "df0d5a58777c5e4401e663efd8832226",
+      "used": false
+    },
+    {
+      "title": "DellがMacBook Neoに対抗する低価格帯ノートPC「XPS 13」を発表、重量わずか1kgで「XPSシリーズで最も薄く軽量」なモデル",
+      "url": "https://gigazine.net/news/20260601-dell-new-xps-13/",
+      "source": "Gigazine",
+      "summary": "Dellは、13.4インチの新型ノートPC「XPS 13(DX13260)」をComputex 2026に合わせて発表しました。価格は通常699ドル(約10万5000円)、16歳以上の学生向けには599ドル(約9万円)からとされており、AppleのMacBook Neoを意識したエントリー価格帯のプレミアムノートPCとして位置付けられています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;dell&#45;new&#45;xps&#45;13/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T04:30:00+00:00",
+      "hash": "2bad073dfe00bf68cbf6fda52c4513d2",
+      "used": false
+    },
+    {
+      "title": "OpenAIが「AIの能力は正しく測れていない可能性がある」と訴える",
+      "url": "https://gigazine.net/news/20260601-openai-third-party-evaluations/",
+      "source": "Gigazine",
+      "summary": "AIの性能評価と聞くと、問題を解かせて正答率やスコアを見る「ベンチマーク」を思い浮かべる人が多いはず。しかしOpenAIは、AIがツールを使い、複数の手順を踏み、外部環境に働きかけるようになったことで、単純な「質問に回答させるテスト」だけではAIの能力や安全性を正しく測れなくなっていると説明しています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;openai&#45;third&#45;party&#45;evaluations/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T03:54:00+00:00",
+      "hash": "69c914dc684732a9e156adb7f07926c2",
+      "used": true
+    },
+    {
+      "title": "SpaceXがアメリカ宇宙軍から40億ドル超えの契約を獲得、トランプ大統領の「ゴールデンドーム」計画で外国の航空機やミサイルを追跡するための衛星を構築",
+      "url": "https://gigazine.net/news/20260601-spacex-us-space-force/",
+      "source": "Gigazine",
+      "summary": "イーロン・マスク氏が率いる宇宙企業・SpaceXが、宇宙空間を担当するアメリカの軍隊であるアメリカ宇宙軍と41億6000万ドル(約6600億円)の契約を獲得したことを発表しました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;spacex&#45;us&#45;space&#45;force/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T03:35:00+00:00",
+      "hash": "c55dc5ebcf548b87a6482134c75f8269",
+      "used": true
+    },
+    {
+      "title": "90以上の言語でオリジナルの話者の感情・トーン・ペースを維持しながらコンテンツと同期する音声AI「Dubbing v2」をElevenLabsがリリース",
+      "url": "https://gigazine.net/news/20260601-elevenlabs-dubbing-v2/",
+      "source": "Gigazine",
+      "summary": "Googleの元エンジニアが立ち上げたAI企業のElevenLabsが、音声吹き替えモデルの「Dubbing v2」をリリースしました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;elevenlabs&#45;dubbing&#45;v2/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T03:27:00+00:00",
+      "hash": "a1e301b6cf640c95b13a8bd54a6a718c",
+      "used": false
+    },
+    {
+      "title": "無料清掃サービス「shift」がついにスタート、どうして無料で家をピカピカに清掃してもらえるのか？",
+      "url": "https://gigazine.net/news/20260601-free-home-cleaning-shift/",
+      "source": "Gigazine",
+      "summary": "無料清掃サービスの「shift」が、アメリカのニューヨークでサービスを開始しました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;free&#45;home&#45;cleaning&#45;shift/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T03:21:00+00:00",
+      "hash": "94092d6ab93bbdf28053e8e206f6b367",
+      "used": false
+    },
+    {
+      "title": "幽霊を見たり超常現象に遭遇したりする可能性を高める「3つの要因」を心理学者が解説",
+      "url": "https://gigazine.net/news/20260601-psychologist-3-factors-paranormal-experience/",
+      "source": "Gigazine",
+      "summary": "「自分には幽霊が見える」と公言する人はそれほど多くありませんが、アメリカ人の5人に1人は「幽霊を見たことがある」と答えており、心霊的な体験をしたことがある人は大勢います。アメリカのウェイクフォレスト大学で心理学准教授を務めるメリッサ・マフェオ氏が、「幽霊を見たり超常現象に遭遇したりする可能性を高める3つの要因」について解説しました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;psychologist&#45;3&#45;factors&#45;paranormal&#45;experience/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T03:00:00+00:00",
+      "hash": "dbb4bdc8af7c19d8564a03d7c101565a",
+      "used": false
+    },
+    {
+      "title": "Twitchで横長画面と縦長画面の同時配信が可能に、1440p配信の拡大や途中参加者向けの要約機能も登場",
+      "url": "https://gigazine.net/news/20260601-dual-format-streaming-horizontal-vertical/",
+      "source": "Gigazine",
+      "summary": "ライブ配信プラットフォームのTwitchが横長画面と縦長画面の同時配信機能をテスト中です。視聴者は同じ配信をPCやテレビでは横長画面、スマートフォンの縦持ち中は縦長画面で視聴できるようになります。<p><b><a href=\"https://gigazine.net/news/20260601&#45;dual&#45;format&#45;streaming&#45;horizontal&#45;vertical/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T02:56:00+00:00",
+      "hash": "c34b6fb6a25408ef6311185092066e93",
+      "used": false
+    },
+    {
+      "title": "SamsungがMicronを抜き車載用メモリ市場で首位に躍り出る",
+      "url": "https://gigazine.net/news/20260601-samsung-overtakes-micron/",
+      "source": "Gigazine",
+      "summary": "長年にわたり車載メモリ供給市場のトップに君臨していたMicronがSamsungに追い抜かれ、その座を奪われてしまったことが分かりました。<p><b><a href=\"https://gigazine.net/news/20260601&#45;samsung&#45;overtakes&#45;micron/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T02:49:00+00:00",
+      "hash": "52cf1a7a184b229c0f01b99dfd1087bf",
+      "used": false
+    },
+    {
+      "title": "【台風影響】沖縄便中心にあす230便余欠航 新幹線も運休可能性",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136811000",
+      "source": "NHKニュース",
+      "summary": "国内の主な航空会社によりますと台風の影響で、きょうは沖縄を発着する便を中心におよそ400便が欠航しました。あすも230便余りの欠航が決まっています。",
+      "published_at": "2026-06-01T08:48:03+00:00",
+      "hash": "9e31b14db0d38323071cb2b0e4abbf70",
+      "used": false
+    },
+    {
+      "title": "埼玉 川口 “ケアマネ包丁で刺した”通報 見つかった男女死亡",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137361000",
+      "source": "NHKニュース",
+      "summary": "6月1日午後、埼玉県川口市で、「ケアマネージャーの女性を包丁で刺した。これから自分のことも刺す」と男の声で通報があり、現場の住宅で血を流して倒れているのが見つかった男女2人が、その後、死亡しました。警…",
+      "published_at": "2026-06-01T09:38:06+00:00",
+      "hash": "b24ed5b8f08e43cbc8ba56191cad581c",
+      "used": false
+    },
+    {
+      "title": "名古屋 マイクロバス事故 時速30キロ以下で男女2人をはねたか",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137071000",
+      "source": "NHKニュース",
+      "summary": "名古屋市の交差点で、マイクロバスにはねられて男女2人が死亡した事故で、ドライブレコーダーの映像から、逮捕された85歳の運転手が時速30キロ以下の速度ではねた疑いがあることが捜査関係者への取材で分かりま…",
+      "published_at": "2026-06-01T10:07:20+00:00",
+      "hash": "0c06b986a43664156655414b40b28279",
+      "used": false
+    },
+    {
+      "title": "辺野古沖事故“政治的中立性に違反”文科省の判断に波紋広がる",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015136981000",
+      "source": "NHKニュース",
+      "summary": "アメリカ軍普天間基地の移設工事が行われている沖縄県名護市辺野古の沖合で、研修旅行中だった京都府にある同志社国際高校の女子生徒など2人が死亡した船の転覆事故をめぐって、文部科学省は、高校の教育内容が偏っ…",
+      "published_at": "2026-06-01T10:12:31+00:00",
+      "hash": "7364d159776b2d9f5c6aa0a034d30e4f",
+      "used": false
+    },
+    {
+      "title": "AIによる人員削減のせいで市場が壊滅して民主主義体制が揺らぐ「死んだ経済理論」とは？",
+      "url": "https://gigazine.net/news/20260602-ai-dead-economy-theory/",
+      "source": "Gigazine",
+      "summary": "AIテクノロジーの発達によりさまざまなタスクをAIが実行できるようになり、企業は人間の従業員をAIシステムに置き換えようと躍起になっています。哲学やテクノロジーに関するブログを書いているオーウェン・マクグラン氏が、AIによる人員削減がもたらす社会経済の問題を「死んだ経済理論」と名付け、起こり得る問題について指摘しました。<p><b><a href=\"https://gigazine.net/news/20260602&#45;ai&#45;dead&#45;economy&#45;theory/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T22:00:00+00:00",
+      "hash": "23d9bd42d249d67a6a1fbbb5d92c781b",
+      "used": true
+    },
+    {
+      "title": "アメリカの民家の庭で見つかった石板が約1900年前の古代ローマ水兵の墓碑だったと判明",
+      "url": "https://gigazine.net/news/20260602-roman-headstone-new-orleans-backyard/",
+      "source": "Gigazine",
+      "summary": "アメリカ・ニューオーリンズの民家の庭で見つかったラテン語碑文入りの大理石板が、約1900年前にローマ帝国海軍の水兵「セクストゥス・コンゲニウス・ウェルス」を記念して作られた墓碑だったと判明しました。<p><b><a href=\"https://gigazine.net/news/20260602&#45;roman&#45;headstone&#45;new&#45;orleans&#45;backyard/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T21:00:00+00:00",
+      "hash": "d58bb42bf7a34e8ba8434bc575e45cdc",
+      "used": true
+    },
+    {
+      "title": "「GTA 6」開発元の従業員が労働組合を結成",
+      "url": "https://gigazine.net/news/20260601-rockstar-games-workers-union/",
+      "source": "Gigazine",
+      "summary": "業界から登場が心待ちにされているゲーム「グランド・セフト・オートVI(GTA 6)」を開発するRockstar Gamesの従業員が、Rockstar Gamesに対抗するための労働組合を結成しました。同社は2025年に実施した解雇措置について不当解雇だと訴えられています。<p><b><a href=\"https://gigazine.net/news/20260601&#45;rockstar&#45;games&#45;workers&#45;union/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T13:00:00+00:00",
+      "hash": "d3676424affb729ead6daf526c91c170",
+      "used": false
+    },
+    {
+      "title": "Microsoft Office 2019および2021 for Macで編集できなくなる「閲覧専用」への移行が物議を醸しまくり",
+      "url": "https://gigazine.net/news/20260601-microsoft-office-2019-2021-for-mac/",
+      "source": "Gigazine",
+      "summary": "Microsoft Office 2019および2021 for Macの一部環境で、2026年7月13日以降にアプリが閲覧専用へ移行する予定であることが物議を醸しています。対象となる古いバージョンではWord、Excel、PowerPoint、Outlook、OneNoteのファイルを開いて表示することはできますが、編集や保存などのフル機能は利用できなくなります。<p><b><a href=\"https://gigazine.net/news/20260601&#45;microsoft&#45;office&#45;2019&#45;2021&#45;for&#45;mac/\">続きを読む...</a></b></p>",
+      "published_at": "2026-06-01T12:00:00+00:00",
+      "hash": "6d3c9f3e7cf7f7d70781285074742926",
+      "used": true
+    },
+    {
+      "title": "台風6号 奄美が暴風域に 九州南部と奄美で線状降水帯おそれ",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137661000",
+      "source": "NHKニュース",
+      "summary": "台風6号は鹿児島県の奄美地方を暴風域に巻き込みながら北上していて非常に強い風が吹いています。九州南部と奄美では2日、線状降水帯が発生し災害の危険度が急激に高まるおそれがあります。台風は3日にかけて西日…",
+      "published_at": "2026-06-01T22:34:59+00:00",
+      "hash": "4aab970afcf17513d1804fc14eb60ff3",
+      "used": true
+    },
+    {
+      "title": "埼玉 ケアマネ殺害疑いの息子は一方的な思い込みで事件か",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137721000",
+      "source": "NHKニュース",
+      "summary": "1日、埼玉県川口市の住宅で血を流して倒れていた男女2人が死亡し、警察は、高齢の母親と暮らす60歳の息子が、自宅を訪ねた介護支援専門員の女性を刃物で殺害し、自殺したとして殺人の疑いで捜査しています。捜査…",
+      "published_at": "2026-06-01T20:52:29+00:00",
+      "hash": "c7d03e34c4bac5adf489abc81c4c7ffb",
+      "used": false
+    },
+    {
+      "title": "イランメディア「協議停止」 米トランプ大統領「協議継続」",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137671000",
+      "source": "NHKニュース",
+      "summary": "アメリカとの戦闘終結に向けた協議をめぐり、イランメディアは1日、レバノンで戦闘が続いていることなどを理由に、「イランは協議を停止する」と伝えました。これに対し、アメリカのトランプ大統領は「イランとの協…",
+      "published_at": "2026-06-01T22:33:37+00:00",
+      "hash": "348177e5349151fb861c51aa00552a47",
+      "used": false
+    },
+    {
+      "title": "【台風影響】九州地方を中心に326便欠航 新幹線も運休可能性",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137741000",
+      "source": "NHKニュース",
+      "summary": "台風6号の影響で、空の便は午前4時の時点で九州地方を発着する便を中心に欠航が決まっているほか、新幹線は2日夜間から運行に影響が出る可能性があります。",
+      "published_at": "2026-06-01T20:54:28+00:00",
+      "hash": "b18dc3317e7108b11e6afe9bb527729a",
+      "used": true
+    },
+    {
+      "title": "米AI新興企業「アンソロピック」新規株式公開を申請と発表",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137731000",
+      "source": "NHKニュース",
+      "summary": "アメリカのAI新興企業「アンソロピック」は1日、証券取引委員会にIPO＝新規株式公開の申請をしたと発表しました。複数の現地メディアは、早ければことしの秋ごろに上場する見通しだと伝えています。",
+      "published_at": "2026-06-01T22:36:21+00:00",
+      "hash": "36705b60ce9c676fd80e259889138eb4",
+      "used": true
+    },
+    {
+      "title": "NYダウ最高値更新 ナスダック S＆P500も イラン情勢に期待感",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137751000",
+      "source": "NHKニュース",
+      "summary": "1日のニューヨーク株式市場では、アメリカとイランの協議が継続されるのではないかとの期待感などを背景に、ダウ平均株価やそのほかの代表的な株価指数がそろって最高値を更新しました。",
+      "published_at": "2026-06-01T22:30:35+00:00",
+      "hash": "31741f99417bbfa222083abf234bb840",
+      "used": false
+    },
+    {
+      "title": "秀吉の備中高松城「水攻め」毛利側・吉川元春が記した書状発見",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015137571000",
+      "source": "NHKニュース",
+      "summary": "戦国時代、羽柴秀吉が、今の岡山市にあった備中高松城に対して行った「水攻め」について、敵対する毛利側の武将、吉川元春が厳しい戦況を伝えた書状が見つかりました。専門家は「水攻めについて毛利側がリアルタイム…",
+      "published_at": "2026-06-01T20:51:50+00:00",
+      "hash": "681d49275a2f3234295886f627e61a45",
+      "used": true
+    },
+    {
+      "title": "台風6号 関東や静岡に最接近 氾濫や土砂災害など厳重警戒",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015138881000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "大型の台風6号はこの時間、関東や静岡県に最も近づいています。3日朝は神奈川県東部で線状降水帯が発生するなど関東南部と静岡県では大雨になりました。気象庁は、土砂災害や低い土地の浸水、川の氾濫などに厳重に…",
+      "published_at": "2026-06-03T03:05:32+00:00",
+      "hash": "3e940a84c86fa4bf85472515728bce52",
+      "used": true
+    },
+    {
+      "title": "台風6号 首都圏在来線に運休や遅れ相次ぐ 空の便欠航も",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015138791000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "台風6号による交通機関への影響をまとめています。各新幹線はおおむね平常どおり運行していますが、首都圏の在来線は運休や遅れが相次ぎ、ダイヤが乱れています。",
+      "published_at": "2026-06-03T02:56:49+00:00",
+      "hash": "d512c15d6123da34ee3a4cf975f17645",
+      "used": true
+    },
+    {
+      "title": "中東情勢受けた補正予算案 3兆1135億円 閣議決定",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015139341000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "政府は中東情勢を受け、一般会計の総額が3兆1135億円となる今年度の補正予算案を決定し、国会に提出しました。",
+      "published_at": "2026-06-03T03:04:43+00:00",
+      "hash": "3d753bb2e5da0bae6ca632bef5f9fd29",
+      "used": false
+    },
+    {
+      "title": "【台風 各地の影響】川崎で道路や商店街が冠水",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015139571000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "台風6号の影響で、各地で大雨による道路や商店街が冠水するなど被害が出ています。",
+      "published_at": "2026-06-03T03:13:43+00:00",
+      "hash": "5546f18b6db735699c371b28982fb2bb",
+      "used": true
+    },
+    {
+      "title": "神奈川県東部に線状降水帯が発生 災害危険度高まる 安全確保を",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015139351000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "気象庁は3日午前9時2分、神奈川県東部に「線状降水帯発生」の気象防災速報を発表しました。「線状降水帯」は、発達した積乱雲が連なって大雨をもたらす現象で、気象庁は、命に危険が及ぶ土砂災害や洪水が発生する…",
+      "published_at": "2026-06-03T00:06:11+00:00",
+      "hash": "2bf80d0694d708b88d06c70de2f231ee",
+      "used": true
+    },
+    {
+      "title": "食料品の消費税減税 来年4月から1％に引き下げる案も 政府与党",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015139591000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "食料品の消費税減税をめぐり、政府は、税率を1％に引き下げた場合、レジシステムの改修は、最大で半年程度になるという見通しを示しました。政府・与党内では、早期に減税を実現するため、改修期間を考慮して、来年…",
+      "published_at": "2026-06-03T03:08:35+00:00",
+      "hash": "f797de61672a216858e34e16f9e670fd",
+      "used": false
+    },
+    {
+      "title": "株価 初の6万8000円台 半導体などがけん引",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015139421000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "3日の東京株式市場、AI＝人工知能の需要拡大への期待感から、半導体関連の銘柄を中心に買い注文が広がり、日経平均株価は、取り引き時間中の最高値を更新し初の6万8000円台をつけました。",
+      "published_at": "2026-06-03T03:11:32+00:00",
+      "hash": "74388e7612e232121854b9e5acc32799",
+      "used": true
+    },
+    {
+      "title": "Microsoft's new MAI models",
+      "url": "https://simonwillison.net/2026/Jun/2/microsofts-new-models/#atom-everything",
+      "source": "Simon Willison",
+      "category": "vibe",
+      "summary": "<p>Microsoft <a href=\"https://microsoft.ai/news/building-a-hillclimbing-machine-launching-seven-new-mai-models/\">announced two new text LLMs</a> this morning - <strong><a href=\"https://microsoft.ai/news/introducing-mai-thinking-1/\">MAI-Thinking-1</a></strong> (reasoning, 1T parameters, 35B active, available to \"select early partners\") and <strong><a href=\"https://microsoft.ai/news/introducingmai-code-1-flash/\">MAI-Code-1-Flash</a></strong> (137B Parameters, 5B active, \"purpose-built for GitHub Copilot and VS Code to deliver high performance and lower cost [...] rolling out to GitHub Copilot individual users in Visual Studio Code\"). I've not been able to try either of them just yet.</p>\n<p><strike>It's very interesting to see Microsoft releasing models with such low parameter counts, especially given how expensive larger models are to access right now. They claim MAI-Thinking-1 \"is preferred to Sonnet 4.6 in our blind human side-by-side evaluations\", which is impressive for a 35B model seeing as I frequently run models larger than that on my own laptop.</strike> (UPDATE: I got this entirely wrong, see note below.)</p>\n<p>Also <a href=\"https://microsoft.ai/news/introducing-mai-thinking-1/\">of note</a>:</p>\n<blockquote>\n<p>We trained [MAI-Thinking-1] from the ground up on enterprise grade, clean and commercially licensed data, without distillation from third-party models.</p>\n</blockquote>\n<p>And for <a href=\"https://microsoft.ai/news/introducingmai-code-1-flash/\">MAI-Code-1-Flash</a> as well:</p>\n<blockquote>\n<p>It is built end-to-end by Microsoft using clean and appropriately licensed data.</p>\n</blockquote>\n<p>I would <em>very much</em> like to learn more about this \"appropriately licensed\" data! Could these be the first generally useful code-specialist models that didn't train on an unlicensed dump of the web? (<strong>Update</strong>: the answer is no, see note below.)</p>\n<p><strong>Update</strong>: My initial published notes got the size of the models wrong. I misread Microsoft's announcements and interpreted the MoE active parameter count as the total parameter count, but the <a href=\"https://microsoft.ai/pdf/MAI-Code-1-Flash-Model-Card.PDF\">model card for MAI-Code-1-Flash</a> lists it as 137B with 5B active and the <a href=\"https://microsoft.ai/wp-content/uploads/2026/06/main_20260602_2.pdf\">MAI-Thinking-1 technical paper</a> reveals it to be a 1T model with 35B active.</p>\n<p>I deeply regret this error.</p>\n<p><strong>Update 2</strong>: That technical paper describes the training data in some detail from page 80 onwards. It has the same licensing problems as all of the other major LLMs: it's trained on a crawl of the public web:</p>\n<blockquote>\n<p>The majority of our web HTML corpus comes from a proprietary crawl. After initial page discovery and selection, approximately 1.2 trillion pages are crawled and parsed. [...] In addition to Microsoft standard policy Sec. 2.4, we apply UT1 block list (Prigent, 2026) to remove adult content and piracy-related domains. In all, this filtering reduces the corpus from 1.2 trillion pages to 794 billion pages. Given the prevalence of AI-generated content on the web, we also score pages with a proprietary AI-content detection model and use manual inspection to identify domains with extensive AI-generated content; those domains are filtered out of the training corpus.</p>\n<p>[...]</p>\n<p>We process Common Crawl with the same pipeline. [...] After filtering, deduplication, merging with the proprietary web corpus, and a final round of exact-URL and content-level fuzzy deduplication, the Common Crawl portion contains 24.2 billion pages.</p>\n</blockquote>\n<p>I did not cover this one at all well, which is somewhat ironic since I was at the Microsoft Build conference when I wrote this up! I'm sorry for not digging deeper before publishing my initial notes.</p>\n\n    <p>Tags: <a href=\"https://simonwillison.net/tags/llm-release\">llm-release</a>, <a href=\"https://simonwillison.net/tags/generative-ai\">generative-ai</a>, <a href=\"https://simonwillison.net/tags/ai\">ai</a>, <a href=\"https://simonwillison.net/tags/microsoft\">microsoft</a>, <a href=\"https://simonwillison.net/tags/llms\">llms</a>, <a href=\"https://simonwillison.net/tags/training-data\">training-data</a></p>",
+      "published_at": "2026-06-02T22:21:52+00:00",
+      "hash": "803489294803b5dbfb4a709228344e8b",
+      "used": true
+    },
+    {
+      "title": "datasette-agent-micropython 0.1a0",
+      "url": "https://simonwillison.net/2026/Jun/2/datasette-agent-micropython/#atom-everything",
+      "source": "Simon Willison",
+      "category": "vibe",
+      "summary": "<p><strong>Release:</strong> <a href=\"https://github.com/datasette/datasette-agent-micropython/releases/tag/0.1a0\">datasette-agent-micropython 0.1a0</a></p>\n        <p>I want <a href=\"https://agent.datasette.io\">Datasette Agent</a> to be able to generate and execute Python code safely. This alpha is looking promising so far. GPT-5.5 has so far failed to break out of the sandbox!</p>\n    \n    \n        <p>Tags: <a href=\"https://simonwillison.net/tags/python\">python</a>, <a href=\"https://simonwillison.net/tags/sandboxing\">sandboxing</a>, <a href=\"https://simonwillison.net/tags/datasette\">datasette</a>, <a href=\"https://simonwillison.net/tags/webassembly\">webassembly</a>, <a href=\"https://simonwillison.net/tags/datasette-agent\">datasette-agent</a></p>",
+      "published_at": "2026-06-02T19:28:36+00:00",
+      "hash": "dc3ce743ad8edf00a6cbd5f334623390",
+      "used": false
+    },
+    {
+      "title": "micropython-wasm 0.1a1",
+      "url": "https://simonwillison.net/2026/Jun/2/micropython-wasm/#atom-everything",
+      "source": "Simon Willison",
+      "category": "vibe",
+      "summary": "<p><strong>Release:</strong> <a href=\"https://github.com/simonw/micropython-wasm/releases/tag/0.1a1\">micropython-wasm 0.1a1</a></p>\n        <p>Fixes for some limitations that emerged while I was trying to use this to build <code>datasette-agent-micropython</code>.</p>\n    \n    \n        <p>Tags: <a href=\"https://simonwillison.net/tags/python\">python</a>, <a href=\"https://simonwillison.net/tags/sandboxing\">sandboxing</a>, <a href=\"https://simonwillison.net/tags/webassembly\">webassembly</a></p>",
+      "published_at": "2026-06-02T19:20:47+00:00",
+      "hash": "1cfe3ed46eb14de6ed9dd8520b52a25f",
+      "used": false
+    },
+    {
+      "title": "California Brown Pelican",
+      "url": "https://simonwillison.net/2026/Jun/2/sighting-367841339/#atom-everything",
+      "source": "Simon Willison",
+      "category": "vibe",
+      "summary": "<p><img alt=\"California Brown Pelican\" src=\"https://static.inaturalist.org/photos/671786719/large.jpg\" /></p><p>California Brown Pelican, in Fort Mason, CA, US</p><p>I'm at the <a href=\"https://build.microsoft.com/\">Microsoft Build</a> conference today, held at <a href=\"https://en.wikipedia.org/wiki/Fort_Mason\">Fort Mason</a> in San Francisco. There are California Brown Pelicans diving into the water directly behind venue!</p>\n    \n    \n        <p>Tags: <a href=\"https://simonwillison.net/tags/microsoft\">microsoft</a>, <a href=\"https://simonwillison.net/tags/ai\">ai</a>, <a href=\"https://simonwillison.net/tags/generative-ai\">generative-ai</a>, <a href=\"https://simonwillison.net/tags/llms\">llms</a>, <a href=\"https://simonwillison.net/tags/llm-release\">llm-release</a></p>",
+      "published_at": "2026-06-02T18:17:03+00:00",
+      "hash": "68285788e87547106afe97bd17e5c580",
+      "used": false
+    },
+    {
+      "title": "Agentic Mfw",
+      "url": "https://agenticmotherfucking.website",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://agenticmotherfucking.website\">https://agenticmotherfucking.website</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48379203\">https://news.ycombinator.com/item?id=48379203</a></p>\n<p>Points: 8</p>\n<p># Comments: 2</p>",
+      "published_at": "2026-06-03T02:32:48+00:00",
+      "hash": "7f3b8f6e536a93b9db60950a8d807848",
+      "used": false
+    },
+    {
+      "title": "Capstone – multi-platform, multi-architecture disassembly framework",
+      "url": "https://www.capstone-engine.org/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.capstone-engine.org/\">https://www.capstone-engine.org/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48378925\">https://news.ycombinator.com/item?id=48378925</a></p>\n<p>Points: 11</p>\n<p># Comments: 0</p>",
+      "published_at": "2026-06-03T01:59:46+00:00",
+      "hash": "c92ea7e2279fb77c558541958d4d750c",
+      "used": false
+    },
+    {
+      "title": "Roku LT Operating System open source distribution",
+      "url": "https://blog.roku.com/developer/roku-lt-os",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://blog.roku.com/developer/roku-lt-os\">https://blog.roku.com/developer/roku-lt-os</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48378495\">https://news.ycombinator.com/item?id=48378495</a></p>\n<p>Points: 19</p>\n<p># Comments: 7</p>",
+      "published_at": "2026-06-03T01:13:38+00:00",
+      "hash": "eac79a5c60c8487823a5bdb672cd3d58",
+      "used": false
+    },
+    {
+      "title": "More than 6 out of 10 people turn to AI for psychological support",
+      "url": "https://www.axa.com/en/press/press-releases/2026-mind-health-report",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.axa.com/en/press/press-releases/2026-mind-health-report\">https://www.axa.com/en/press/press-releases/2026-mind-health-report</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48377854\">https://news.ycombinator.com/item?id=48377854</a></p>\n<p>Points: 66</p>\n<p># Comments: 59</p>",
+      "published_at": "2026-06-02T23:55:04+00:00",
+      "hash": "05e2b721be8cd1ae572a2a0ffd30a15b",
+      "used": false
+    },
+    {
+      "title": "AI outperforms law professors in Stanford Law study",
+      "url": "https://law.stanford.edu/press/ai-outperforms-law-professors-in-stanford-law-study/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p><a href=\"https://law.stanford.edu/wp-content/uploads/2026/06/salinas_et_al.pdf\" rel=\"nofollow\">https://law.stanford.edu/wp-content/uploads/2026/06/salinas_...</a></p>\n<hr />\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48377761\">https://news.ycombinator.com/item?id=48377761</a></p>\n<p>Points: 120</p>\n<p># Comments: 112</p>",
+      "published_at": "2026-06-02T23:43:12+00:00",
+      "hash": "ff143591c78244ad11762b3d8ba4cec9",
+      "used": false
+    },
+    {
+      "title": "Pluto.jl 1.0 release – reactive notebook for Julia",
+      "url": "https://discourse.julialang.org/t/pluto-1-0-release/137296",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://discourse.julialang.org/t/pluto-1-0-release/137296\">https://discourse.julialang.org/t/pluto-1-0-release/137296</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48377496\">https://news.ycombinator.com/item?id=48377496</a></p>\n<p>Points: 39</p>\n<p># Comments: 1</p>",
+      "published_at": "2026-06-02T23:09:09+00:00",
+      "hash": "bd123a29745f48dc43bd48f01d09dd23",
+      "used": false
+    },
+    {
+      "title": "Use your Nvidia GPU's VRAM as swap space on Linux",
+      "url": "https://github.com/c0dejedi/nbd-vram",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://github.com/c0dejedi/nbd-vram\">https://github.com/c0dejedi/nbd-vram</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48377404\">https://news.ycombinator.com/item?id=48377404</a></p>\n<p>Points: 167</p>\n<p># Comments: 46</p>",
+      "published_at": "2026-06-02T22:55:33+00:00",
+      "hash": "79c44a3e94ea04cdd6ed528252545f87",
+      "used": false
+    },
+    {
+      "title": "Show HN: Paseo – Beautiful open-source coding agent interface",
+      "url": "https://github.com/getpaseo/paseo",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Repo: <a href=\"https://github.com/getpaseo/paseo\" rel=\"nofollow\">https://github.com/getpaseo/paseo</a><p>Homepage: <a href=\"https://paseo.sh/\" rel=\"nofollow\">https://paseo.sh/</a><p>Discord: <a href=\"https://discord.gg/jz8T2uahpH\" rel=\"nofollow\">https://discord.gg/jz8T2uahpH</a></p>\n<hr />\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48377250\">https://news.ycombinator.com/item?id=48377250</a></p>\n<p>Points: 33</p>\n<p># Comments: 16</p>",
+      "published_at": "2026-06-02T22:34:42+00:00",
+      "hash": "a2880da061270512f4f864a4dee63cf8",
+      "used": false
+    },
+    {
+      "title": "4K years ago, Mohenjo-daro grew more equal over time",
+      "url": "https://archaeologymag.com/2026/05/mohenjo-daro-grew-more-equal-over-time/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://archaeologymag.com/2026/05/mohenjo-daro-grew-more-equal-over-time/\">https://archaeologymag.com/2026/05/mohenjo-daro-grew-more-equal-over-time/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48377140\">https://news.ycombinator.com/item?id=48377140</a></p>\n<p>Points: 56</p>\n<p># Comments: 29</p>",
+      "published_at": "2026-06-02T22:22:34+00:00",
+      "hash": "56f4a9c9d9db3bab90483a243b337db1",
+      "used": false
+    },
+    {
+      "title": "CT scans of BYD car parts",
+      "url": "https://www.lumafield.com/scan-of-the-month/byd",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.lumafield.com/scan-of-the-month/byd\">https://www.lumafield.com/scan-of-the-month/byd</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48375824\">https://news.ycombinator.com/item?id=48375824</a></p>\n<p>Points: 256</p>\n<p># Comments: 97</p>",
+      "published_at": "2026-06-02T20:30:08+00:00",
+      "hash": "7678ea2a30a537f7d4097aa40f75d073",
+      "used": false
+    },
+    {
+      "title": "My thoughts after using Clojure for about a month",
+      "url": "https://www.acdw.net/clojure/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.acdw.net/clojure/\">https://www.acdw.net/clojure/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48375393\">https://news.ycombinator.com/item?id=48375393</a></p>\n<p>Points: 126</p>\n<p># Comments: 76</p>",
+      "published_at": "2026-06-02T19:56:46+00:00",
+      "hash": "6259d1b372b1a9c4c61a9dbaf46fc206",
+      "used": false
+    },
+    {
+      "title": "The advertising cartel coming to your web browser",
+      "url": "https://blog.zgp.org/the-advertising-cartel-coming-to-your-web-browser/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://blog.zgp.org/the-advertising-cartel-coming-to-your-web-browser/\">https://blog.zgp.org/the-advertising-cartel-coming-to-your-web-browser/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48375175\">https://news.ycombinator.com/item?id=48375175</a></p>\n<p>Points: 140</p>\n<p># Comments: 40</p>",
+      "published_at": "2026-06-02T19:39:25+00:00",
+      "hash": "6eda0d428f443f21a81405562c2686b9",
+      "used": false
+    },
+    {
+      "title": "Open Repair Data Standard – Open Repair Alliance",
+      "url": "https://openrepair.org/open-data/open-standard/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://openrepair.org/open-data/open-standard/\">https://openrepair.org/open-data/open-standard/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48375150\">https://news.ycombinator.com/item?id=48375150</a></p>\n<p>Points: 104</p>\n<p># Comments: 3</p>",
+      "published_at": "2026-06-02T19:37:10+00:00",
+      "hash": "6a91bb9e77a5b7683825a7aded3e9bb7",
+      "used": false
+    },
+    {
+      "title": "Gmail thinks I'm stupid, so I left",
+      "url": "https://moddedbear.com/gmail-thinks-im-stupid-so-i-left",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://moddedbear.com/gmail-thinks-im-stupid-so-i-left\">https://moddedbear.com/gmail-thinks-im-stupid-so-i-left</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48375016\">https://news.ycombinator.com/item?id=48375016</a></p>\n<p>Points: 674</p>\n<p># Comments: 407</p>",
+      "published_at": "2026-06-02T19:27:40+00:00",
+      "hash": "4a8e60d6a363b8c8112aa16747bfcee8",
+      "used": false
+    },
+    {
+      "title": "HP re-releases classic computer science calculator: The HP-16C",
+      "url": "https://hpcalcs.com/product/hp-16c-collectors-edition/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://hpcalcs.com/product/hp-16c-collectors-edition/\">https://hpcalcs.com/product/hp-16c-collectors-edition/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48374685\">https://news.ycombinator.com/item?id=48374685</a></p>\n<p>Points: 135</p>\n<p># Comments: 84</p>",
+      "published_at": "2026-06-02T19:02:40+00:00",
+      "hash": "17c5268221615b598ba24025e7cc2b8d",
+      "used": false
+    },
+    {
+      "title": "MAI-Code-1-Flash",
+      "url": "https://microsoft.ai/news/introducingmai-code-1-flash/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p><a href=\"https://microsoft.ai/models/mai-code-1-flash/\" rel=\"nofollow\">https://microsoft.ai/models/mai-code-1-flash/</a><p><a href=\"https://microsoft.ai/pdf/MAI-Code-1-Flash-Model-Card.PDF\" rel=\"nofollow\">https://microsoft.ai/pdf/MAI-Code-1-Flash-Model-Card.PDF</a><p>Launching seven new MAI models: <a href=\"https://microsoft.ai/news/building-a-hillclimbing-machine-launching-seven-new-mai-models/\" rel=\"nofollow\">https://microsoft.ai/news/building-a-hillclimbing-machine-la...</a></p>\n<hr />\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48374466\">https://news.ycombinator.com/item?id=48374466</a></p>\n<p>Points: 408</p>\n<p># Comments: 178</p>",
+      "published_at": "2026-06-02T18:47:07+00:00",
+      "hash": "cf136cba317516a07eba26ad4fdb13c9",
+      "used": false
+    },
+    {
+      "title": "Bringing Up DeepSeek-V4-Flash on AMD MI300X",
+      "url": "https://fergusfinn.com/blog/deepseek-v4-flash-mi300x/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://fergusfinn.com/blog/deepseek-v4-flash-mi300x/\">https://fergusfinn.com/blog/deepseek-v4-flash-mi300x/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48373675\">https://news.ycombinator.com/item?id=48373675</a></p>\n<p>Points: 87</p>\n<p># Comments: 8</p>",
+      "published_at": "2026-06-02T17:52:48+00:00",
+      "hash": "76cddd64ae110c41bc9a5c7805f33146",
+      "used": false
+    },
+    {
+      "title": "QBE – Compiler Backend – 1.3",
+      "url": "https://c9x.me/compile/release/qbe-1.3.html",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://c9x.me/compile/release/qbe-1.3.html\">https://c9x.me/compile/release/qbe-1.3.html</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48373442\">https://news.ycombinator.com/item?id=48373442</a></p>\n<p>Points: 82</p>\n<p># Comments: 28</p>",
+      "published_at": "2026-06-02T17:37:32+00:00",
+      "hash": "b331a23a70868e30d4b1d3fe3738f444",
+      "used": false
+    },
+    {
+      "title": "Trump signs downsized AI order after weeks of reversals",
+      "url": "https://www.politico.com/news/2026/06/02/trump-signs-downsized-ai-order-00946389",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p><a href=\"https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/\" rel=\"nofollow\">https://www.whitehouse.gov/presidential-actions/2026/06/prom...</a><p><a href=\"https://www.nytimes.com/2026/06/02/technology/trump-executive-order-ai.html\" rel=\"nofollow\">https://www.nytimes.com/2026/06/02/technology/trump-executiv...</a></p>\n<hr />\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48372628\">https://news.ycombinator.com/item?id=48372628</a></p>\n<p>Points: 182</p>\n<p># Comments: 129</p>",
+      "published_at": "2026-06-02T16:40:16+00:00",
+      "hash": "07ea7bde811868a4c58d178026f0fe34",
+      "used": false
+    },
+    {
+      "title": "How we index images for RAG",
+      "url": "https://www.kapa.ai/blog/how-we-index-images-for-rag",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.kapa.ai/blog/how-we-index-images-for-rag\">https://www.kapa.ai/blog/how-we-index-images-for-rag</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48372239\">https://news.ycombinator.com/item?id=48372239</a></p>\n<p>Points: 97</p>\n<p># Comments: 14</p>",
+      "published_at": "2026-06-02T16:13:41+00:00",
+      "hash": "3e7a75789f2f002a58223d20a30bb11f",
+      "used": false
+    },
+    {
+      "title": "GitHub Copilot app: The agent-native desktop experience",
+      "url": "https://github.blog/news-insights/product-news/github-copilot-app-the-agent-native-desktop-experience/",
+      "source": "GitHub Blog",
+      "category": "vibe",
+      "summary": "<p>At Microsoft Build 2026, GitHub introduced new tools, updates, and surfaces so agents can work the way you already work.</p>\n<p>The post <a href=\"https://github.blog/news-insights/product-news/github-copilot-app-the-agent-native-desktop-experience/\">GitHub Copilot app: The agent-native desktop experience</a> appeared first on <a href=\"https://github.blog\">The GitHub Blog</a>.</p>",
+      "published_at": "2026-06-02T17:30:03+00:00",
+      "hash": "cc54f17665bf280c105911e27c391211",
+      "used": true
+    },
+    {
+      "title": "Microsoft Build 2026: The 7 biggest announcements",
+      "url": "https://www.theverge.com/tech/941738/microsoft-build-2026-biggest-announcements",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Microsoft just kicked off Build 2026 with a keynote from CEO Satya Nadella and other company leaders. As expected, it was filled with announcements, ranging from new Surface hardware to an always-on personal assistant and updates across Microsoft's in-house AI models. If you didn't watch the event live, you can catch up on all the [&#8230;]",
+      "published_at": "2026-06-02T19:23:52+00:00",
+      "hash": "312f7282d6e49f3f31f0ce69891cc6dc",
+      "used": false
+    },
+    {
+      "title": "Trump signs executive order to review AI models before they’re released",
+      "url": "https://www.theverge.com/policy/941775/trump-ai-executive-order",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "President Donald Trump signed an executive order Tuesday creating a \"voluntary framework\" for AI companies to share their frontier models with the federal government before they're released \"to promote secure innovation and strengthen the cybersecurity of critical infrastructure.\" The order says the US AI industry has succeeded in part \"because we refuse to stifle this [&#8230;]",
+      "published_at": "2026-06-02T18:33:42+00:00",
+      "hash": "21a79230188592b830e4df720fdd042c",
+      "used": false
+    },
+    {
+      "title": "Microsoft’s first advanced reasoning AI is here",
+      "url": "https://www.theverge.com/tech/941664/microsoft-ai-model-reasoning-mai-thinking-1-build-2026",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Microsoft announced a bunch of new in-house AI models at Build 2026, including a new \"flagship\" model: MAI-Thinking-1. It's an ambitious step into model development for Microsoft, which introduced its initial in-house models last year - before then, it had relied on OpenAI's models. The two companies recently renegotiated their deal to loosen ties. According [&#8230;]",
+      "published_at": "2026-06-02T18:12:44+00:00",
+      "hash": "f681706b508cb36ce2d0a1ea2e4c4287",
+      "used": false
+    },
+    {
+      "title": "Microsoft Scout is a new AI personal assistant built on OpenClaw",
+      "url": "https://www.theverge.com/news/939713/microsoft-scout-assistant-openclaw",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Much like Google, Microsoft is launching its own version of OpenClaw. Microsoft Scout is an always-on assistant that integrates into Microsoft 365 apps like Outlook, OneDrive, and Microsoft Teams, allowing businesses to assign a virtual assistant to employees to help with organizing calendars, expense reporting, email drafts, and much more. Unlike Copilot that lives inside [&#8230;]",
+      "published_at": "2026-06-02T18:00:00+00:00",
+      "hash": "20f5c4bfa695a6cd06ab6fc7e9a48b38",
+      "used": false
+    },
+    {
+      "title": "Google’s Phone app will tell you if a scammer is impersonating one of your contacts",
+      "url": "https://www.theverge.com/tech/941517/google-phone-scammer-ai-impersonation",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Google is launching a new feature for its Phone app that aims to protect you from AI impersonation scams. Now, when you receive a call from a scammer that appears to be coming from the same number as one of your contacts, Phone by Google will flag the call as suspicious so you can hang [&#8230;]",
+      "published_at": "2026-06-02T18:00:00+00:00",
+      "hash": "a19c9d4810b106ac214fd86f68dd2857",
+      "used": false
+    },
+    {
+      "title": "Microsoft&#8217;s Project Solara is an OS for AI agent gadgets",
+      "url": "https://www.theverge.com/news/941830/microsoft-project-solara-os-ai-agent-gadgets",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Microsoft just announced \"Project Solara,\" a new OS designed for gadgets that run AI agents, at Build 2026. The company is calling it \"a new platform built from the ground up to power agent-driven experiences.\" It's built on Android, not Windows. Microsoft demonstrated two concept Project Solara devices at Build today: Desk concept and badge [&#8230;]",
+      "published_at": "2026-06-02T17:31:02+00:00",
+      "hash": "7838244d4bbf4f6b0c1a043f24050ebb",
+      "used": false
+    },
+    {
+      "title": "Microsoft created the mini Surface dev box that Qualcomm couldn&#8217;t",
+      "url": "https://www.theverge.com/news/941271/microsoft-surface-rtx-spark-dev-box-specs-availability",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Microsoft only just announced a new Surface Laptop Ultra at the weekend, and it's now revealing a miniature Surface PC aimed at developers. The new Surface RTX Spark Dev Box is powered by Nvidia's new Arm-based RTX Spark chips, just like the Surface Laptop Ultra, and is optimized for sustained workloads and local AI tasks. [&#8230;]",
+      "published_at": "2026-06-02T16:30:00+00:00",
+      "hash": "907cfaf72d4999e1da55ef8a278a3940",
+      "used": false
+    },
+    {
+      "title": "Microsoft Build 2026: All the news about Windows, AI, RTX Spark, and more",
+      "url": "https://www.theverge.com/tech/941668/microsoft-build-may-2026-live-news-updates",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Microsoft Build 2026 kicked off with a keynote presentation that introduced some developer-focused Windows updates, an OpenClaw-based AI assistant called Scout, the new Majorana 2 quantum computing chip, and a Surface mini PC designed for AI developers. Microsoft also rolled out a new Android-based OS called Project Solara that’s designed for gadgets that run AI [&#8230;]",
+      "published_at": "2026-06-02T15:59:58+00:00",
+      "hash": "1d9dab17ae3d3cdbc405b6a93eec2d2e",
+      "used": false
+    },
+    {
+      "title": "兵庫 たつの 母娘殺害事件 川で見つかった遺体は容疑者と確認",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140301000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "3日、兵庫県たつの市の川で見つかった遺体について、警察が調べた結果、DNA鑑定などから、先月母親と娘が殺害された事件で指名手配されていた42歳の男の容疑者と確認されました。警察は容疑者が死亡したいきさ…",
+      "published_at": "2026-06-03T22:11:22+00:00",
+      "hash": "cc5b0ec669eb44e7ce9af60e95d47643",
+      "used": false
+    },
+    {
+      "title": "新しい防災気象情報 専門家“台風6号での伝わり方 検証を”",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140171000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "西日本と東日本の太平洋側を中心に6月としては記録的な大雨をもたらした台風6号は、3日に温帯低気圧へ変わりました。この大雨で、5月下旬から運用が始まった防災気象情報が次々に発表されましたが、災害情報に詳…",
+      "published_at": "2026-06-03T19:43:53+00:00",
+      "hash": "f18f9ed72b67ee21c2569ad2a710bb52",
+      "used": true
+    },
+    {
+      "title": "米・イラン“自衛で攻撃”イスラエルとヒズボラも攻撃応酬続く",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140141000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "アメリカのトランプ大統領は、3日に配信されたアメリカメディアの番組でイランとの協議に取り組んでいると改めて強調しましたが、アメリカ軍とイラン側との間では双方が自衛のための攻撃を行ったとしているほか、イ…",
+      "published_at": "2026-06-03T21:51:52+00:00",
+      "hash": "646048f55a0e460fb3fec261afd0e853",
+      "used": false
+    },
+    {
+      "title": "【詳しく】去年の出生数67万人 過去最少 少子化対策ポイントは",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015139641000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "去年1年間に生まれた日本人の子どもの数は、67万1000人余りと前の年より1万4000人余り減少し、統計を取り始めてから最も少なくなったことが、厚生労働省のまとめでわかりました。また、1人の女性が産む…",
+      "published_at": "2026-06-03T11:56:12+00:00",
+      "hash": "d544d882141dc9cfbcfa26803fadee86",
+      "used": true
+    },
+    {
+      "title": "韓国統一選 革新系与党が主要選挙で多数勝利 政権に弾みも",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140151000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "韓国で3日、統一地方選挙の投票が行われ、公共放送KBSは4日午前6時現在、革新系の与党「共に民主党」が主要な16の自治体の選挙のうち12自治体で当選を決めたとしています。首都ソウルの市長選挙は開票作業…",
+      "published_at": "2026-06-03T22:41:01+00:00",
+      "hash": "efd5af20183d05e23742eabc3a22f9e6",
+      "used": false
+    },
+    {
+      "title": "川口ケアマネ殺害事件受け 複数人での訪問費用助成へ 厚労省",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140191000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "埼玉県川口市で利用者の住宅を訪問したケアマネージャーの女性が刃物で殺害された事件を受け、厚生労働省は、ケアマネージャーの安全確保のため、複数人で訪問した際に追加でかかった費用を公費で助成すると、全国の…",
+      "published_at": "2026-06-03T21:51:00+00:00",
+      "hash": "7e21598d26a20d132c661f1e186c6cbd",
+      "used": false
+    },
+    {
+      "title": "ホワイトソックス村上宗隆が月間最優秀新人 日本選手で9人目",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140311000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "大リーグ、ホワイトソックスの村上宗隆選手が、アメリカンリーグの5月の月間最優秀新人に選ばれました。日本選手の受賞は、おととしのカブスの今永昇太投手以来、9人目です。",
+      "published_at": "2026-06-03T22:18:11+00:00",
+      "hash": "3ac11c9f9e4103b51a193ec7dc62a638",
+      "used": false
+    },
+    {
+      "title": "Uber Caps Usage of AI Tools Like Claude Code to Manage Costs",
+      "url": "https://simonwillison.net/2026/Jun/3/uber-caps-usage/#atom-everything",
+      "source": "Simon Willison",
+      "category": "vibe",
+      "summary": "<p><strong><a href=\"https://www.bloomberg.com/news/articles/2026-06-02/uber-caps-usage-of-ai-tools-like-claude-code-to-cut-costs\">Uber Caps Usage of AI Tools Like Claude Code to Manage Costs</a></strong></p>\nI wrote <a href=\"https://simonwillison.net/2026/May/27/product-market-fit/#the-ai-failure-stories-around-this-are-pretty-thin\">the other day</a> about Uber blowing its 2026 AI budget in four months, and how that wasn't particularly surprising given they would have set that budget in 2025, before anyone could have predicted how popular token-burning coding agents were about to become.</p>\n<p>Natalie Lung for Bloomberg:</p>\n<blockquote>\n<p>The rideshare giant is limiting all employees to $1,500 in monthly token spending per AI coding tool, an Uber spokesperson said in response to a Bloomberg News inquiry. That means spending on one tool doesn’t have a bearing on the budget for another. The limits, which have been instituted in recent months, only apply to agentic coding software such as Cursor or Anthropic PBC’s Claude Code.</p>\n</blockquote>\n<p>A $1,500 monthly limit per tool strikes me as a rational policy response to over-spending, and <em>much</em> more sensible than those <a href=\"https://en.wikipedia.org/wiki/Token_maxxing\">tokenmaxxing</a> leaderboards encouraging employees to compete for as much AI usage as possible.</p>\n<p>It's also interesting in that it hints at a real dollar value for what Uber is getting out of these tools. If we assume two actively used tools per engineer that's $3,000 * 12 = $36,000 cap per engineer per year. Levels.fyi lists <a href=\"https://www.levels.fyi/companies/uber/salaries/software-engineer?country=254\">the median yearly compensation package for Uber software engineers in the USA</a> at $330,000.</p>\n<p>That means each employee's AI spending cap is ~11% of that median compensation package.</p>\n<p>I <a href=\"https://simonwillison.net/2026/May/27/product-market-fit/#enterprise-customers-are-now-paying-api-prices\">noted</a> that my own token usage comes to about $1,000/month against each of Anthropic and OpenAI - which currently costs me just $100 per provider thanks to their generous subsidized plans for individual subscribers. Those plans are no longer available to larger companies like Uber.</p>\n<p>Their new policy means if I were working at Uber I'd still have ~$500/month of tokens to spare for each of those tools, given my current usage patterns.\n\n\n    <p>Tags: <a href=\"https://simonwillison.net/tags/ai\">ai</a>, <a href=\"https://simonwillison.net/tags/generative-ai\">generative-ai</a>, <a href=\"https://simonwillison.net/tags/llms\">llms</a>, <a href=\"https://simonwillison.net/tags/llm-pricing\">llm-pricing</a>, <a href=\"https://simonwillison.net/tags/coding-agents\">coding-agents</a>, <a href=\"https://simonwillison.net/tags/uber\">uber</a></p>",
+      "published_at": "2026-06-03T12:01:27+00:00",
+      "hash": "0437d7972bce31e25a42f8c92c77300d",
+      "used": true
+    },
+    {
+      "title": "Journey to JPEG XL: open-source experiments shaped the future of image coding",
+      "url": "https://opensource.googleblog.com/2026/06/journey-to-jpeg-xl-how-open-source-experiments-shaped-the-future-of-image-coding.html",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://opensource.googleblog.com/2026/06/journey-to-jpeg-xl-how-open-source-experiments-shaped-the-future-of-image-coding.html\">https://opensource.googleblog.com/2026/06/journey-to-jpeg-xl-how-open-source-experiments-shaped-the-future-of-image-coding.html</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48390688\">https://news.ycombinator.com/item?id=48390688</a></p>\n<p>Points: 5</p>\n<p># Comments: 2</p>",
+      "published_at": "2026-06-03T21:55:23+00:00",
+      "hash": "8b98aacc9683ed77b9029856fb3002ec",
+      "used": true
+    },
+    {
+      "title": "A Mathematician's Lament – Paul Lockhart (2002) [pdf]",
+      "url": "https://worrydream.com/refs/Lockhart_2002_-_A_Mathematician%27s_Lament.pdf",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://worrydream.com/refs/Lockhart_2002_-_A_Mathematician%27s_Lament.pdf\">https://worrydream.com/refs/Lockhart_2002_-_A_Mathematician%27s_Lament.pdf</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48390400\">https://news.ycombinator.com/item?id=48390400</a></p>\n<p>Points: 9</p>\n<p># Comments: 0</p>",
+      "published_at": "2026-06-03T21:32:10+00:00",
+      "hash": "ddfa0ac3948afda0d0493bd49acdc38c",
+      "used": false
+    },
+    {
+      "title": "Ableton Extensions SDK",
+      "url": "https://www.ableton.com/en/live/extensions/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.ableton.com/en/live/extensions/\">https://www.ableton.com/en/live/extensions/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48389681\">https://news.ycombinator.com/item?id=48389681</a></p>\n<p>Points: 29</p>\n<p># Comments: 8</p>",
+      "published_at": "2026-06-03T20:39:34+00:00",
+      "hash": "019c2fde17f91db44f009f9fb314a48d",
+      "used": false
+    },
+    {
+      "title": "Show HN: Mnemo – local-first AI memory layer for any LLM (Rust, SQLite,petgraph)",
+      "url": "https://github.com/zaydmulani09/mnemo",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://github.com/zaydmulani09/mnemo\">https://github.com/zaydmulani09/mnemo</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48389586\">https://news.ycombinator.com/item?id=48389586</a></p>\n<p>Points: 16</p>\n<p># Comments: 5</p>",
+      "published_at": "2026-06-03T20:32:10+00:00",
+      "hash": "bf39cb90d5bf3cd6560c40ee093ed04d",
+      "used": false
+    },
+    {
+      "title": "A Man Who Reads Books for a Living (One Every Two Days)",
+      "url": "https://lithub.com/the-man-who-reads-books-for-a-living-one-every-two-days/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://lithub.com/the-man-who-reads-books-for-a-living-one-every-two-days/\">https://lithub.com/the-man-who-reads-books-for-a-living-one-every-two-days/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48389284\">https://news.ycombinator.com/item?id=48389284</a></p>\n<p>Points: 44</p>\n<p># Comments: 19</p>",
+      "published_at": "2026-06-03T20:08:33+00:00",
+      "hash": "bfefbd1717ae1f7e2a33474732a30001",
+      "used": false
+    },
+    {
+      "title": "Self-hosted dev sandboxes with preview URLs (Docker, Go, no K8s)",
+      "url": "https://github.com/tastyeffectco/sandboxes",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://github.com/tastyeffectco/sandboxes\">https://github.com/tastyeffectco/sandboxes</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48388909\">https://news.ycombinator.com/item?id=48388909</a></p>\n<p>Points: 24</p>\n<p># Comments: 4</p>",
+      "published_at": "2026-06-03T19:43:37+00:00",
+      "hash": "1104da0809b7cd0d89b09c1509e729d2",
+      "used": false
+    },
+    {
+      "title": "Brume is a 24-voice multi-timbral desktop synth for the CM5",
+      "url": "https://brume.aftertone.co/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://brume.aftertone.co/\">https://brume.aftertone.co/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48388870\">https://news.ycombinator.com/item?id=48388870</a></p>\n<p>Points: 39</p>\n<p># Comments: 14</p>",
+      "published_at": "2026-06-03T19:41:21+00:00",
+      "hash": "550e8db84d9fdfb87887a86e5e773342",
+      "used": false
+    },
+    {
+      "title": "Elixir v1.20: Now a gradually typed language",
+      "url": "https://elixir-lang.org/blog/2026/06/03/elixir-v1-20-0-released/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://elixir-lang.org/blog/2026/06/03/elixir-v1-20-0-released/\">https://elixir-lang.org/blog/2026/06/03/elixir-v1-20-0-released/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48388324\">https://news.ycombinator.com/item?id=48388324</a></p>\n<p>Points: 419</p>\n<p># Comments: 142</p>",
+      "published_at": "2026-06-03T19:02:26+00:00",
+      "hash": "e4384e18dab3ec1d75b58b1227faac05",
+      "used": false
+    },
+    {
+      "title": "Rootshell: A new E2EE email service hosted in Iceland",
+      "url": "https://rootshell.is",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://rootshell.is\">https://rootshell.is</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48388253\">https://news.ycombinator.com/item?id=48388253</a></p>\n<p>Points: 37</p>\n<p># Comments: 29</p>",
+      "published_at": "2026-06-03T18:58:05+00:00",
+      "hash": "9e66ba0bbf878bcaca589dc660eea251",
+      "used": false
+    },
+    {
+      "title": "Embryos shape their limbs: a key discovery of \"genetic brakes\"",
+      "url": "https://nouvelles.umontreal.ca/en/article/2026/06/02/how-embryos-shape-their-limbs-a-key-discovery-of-genetic-brakes",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://nouvelles.umontreal.ca/en/article/2026/06/02/how-embryos-shape-their-limbs-a-key-discovery-of-genetic-brakes\">https://nouvelles.umontreal.ca/en/article/2026/06/02/how-embryos-shape-their-limbs-a-key-discovery-of-genetic-brakes</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48387251\">https://news.ycombinator.com/item?id=48387251</a></p>\n<p>Points: 41</p>\n<p># Comments: 1</p>",
+      "published_at": "2026-06-03T17:50:16+00:00",
+      "hash": "0074385c2ad6b5b1e79d53e80f698b1d",
+      "used": false
+    },
+    {
+      "title": "Launch HN: Hyper (YC P26) – Company brain to power agentic development",
+      "url": "https://news.ycombinator.com/item?id=48387095",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Hey HN, we’re Shalin & Kanyes, best friends who've been hacking together for 10+yrs, and now founders of Hyper (<a href=\"https://heyhyper.ai/\">https://heyhyper.ai/</a>). Hyper is a shared “company brain” that plugs into information flowing inside a company to make AI agents and automations better and ultimately save people time.<p>Models have gotten good enough that they can (mostly) take on long-horizon, complex tasks. We believe the bottleneck now is that these smart-enough models often lack information about your company, which is scattered in people's heads, Slack threads, stale docs, and in back-and-forth convos with AI.<p>MCP is useful for getting some info in front of an agent, but there are problems: (1) Once the session dies, so does the insight, so instead of copy-pasting a whole doc each time you're telling the agent to dig through Drive each time - not much of a win; (2) Even when MCP works, what it gathers isn't comprehensive, because people decide things on a whiteboard, brainstorm out loud, post a little in Slack, and scribble the rest in a doc, which leaves the agent working from partial information; (3)  And even if it had everything, it doesn't do the meta-reasoning required to do a great job. If you paste in a Notion doc and it won't learn your design taste or your writing style unless you tell it to, and it won't know why a decision was made or when.<p>As undergrads 5 years ago, we were into the tools-for-thought wave and became power users of Notion, Obsidian, Roam, Anki, real believers in building a second brain. After GPT-3.5 came out we started to realize how much more powerful that second brain could be if an AI could actually read it, because suddenly it would know our backstory, our taste, our preferences, and unlock genuinely new capabilities. That’s <i>why</i> we’re building Hyper.<p>We know it’s not for everybody! But for people who do want to be on the cutting edge, this is a force multiplier that makes agents faster and better. It increases the number of tasks they can do, and how effectively they do them.<p>Hyper works by ingesting everything you give it access to, Docs, Slack, Email, Calendar, Granola, and synthesizes it into a knowledge graph of facts and their relationships with embeddings for semantic search. The memory system we’ve built is hybrid, with two modalities. Episodes are the raw source items kept as the source of truth. Facts are the meaning pulled out of each episode, stored as subject-predicate-object records with a plain summary and timestamps for when the fact was introduced and when it was invalidated (subject=person, predicate=works_at, object=company). Facts form a graph with typed edges between them: X is in tension with Y, A is derived from B, J supersedes K. Every time a new fact comes in we update the facts in its neighborhood, so the graph stays current, and that's how we handle stale information. When \"we'll ship Friday\" is later contradicted by \"we're shipping Monday,\" the new fact supersedes the old one instead of both looking equally true, and we never auto-discard the superseded version, so you can still ask how you landed on Monday.<p>Every fact carries provenance back to its source and access-control tags for who is allowed to see it. At retrieval we query-expand, then fuse semantic search over embeddings with Postgres full-text search using reciprocal rank fusion, and we only ever evaluate a query against the facts and episodes that person has access to, which means two people on the same team can ask the same question and get different answers. We keep information fresh with webhooks where they exist and polling where they don't, hashing contents to catch changes for sources that don’t handle native dedupe. Agents read and write through two paths: lifecycle hooks in tools like Claude Code, Cowork, Codex, and Cursor, where we inject relevant context on every prompt and pull interesting facts out of every response, and plain MCP tool calls for everything that doesn't expose hooks.<p>We love it! and so do our early users: one CEO uses Hyper to draft emails in his voice with full company context. What took hours/week now takes minutes and gets sharper each time Hyper learns more how he thinks and how his company is changing. Another YC founder one-shotted a launch video script because Hyper already knew their product, voice, positioning accumulated over months.<p>We have a 3-day free trial, explained more on our pricing page (<a href=\"https://heyhyper.ai/pricing\">https://heyhyper.ai/pricing</a>) and there are more details in our FAQ (<a href=\"https://heyhyper.ai/faq\">https://heyhyper.ai/faq</a>), including things like privacy, compliance, and how we’re different from other “memory” companies..<p>Give it a spin! break it! and tell us where it falls short: <a href=\"https://heyhyper.ai/\">https://heyhyper.ai/</a>. We'd love to build you a 10-star experience :) Comments welcome!</p>\n<hr />\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48387095\">https://news.ycombinator.com/item?id=48387095</a></p>\n<p>Points: 45</p>\n<p># Comments: 43</p>",
+      "published_at": "2026-06-03T17:39:53+00:00",
+      "hash": "d635cd83aaabca772aed663a04b4a7d3",
+      "used": true
+    },
+    {
+      "title": "Gooey: A GPU-accelerated UI framework for Zig",
+      "url": "https://github.com/duanebester/gooey",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://github.com/duanebester/gooey\">https://github.com/duanebester/gooey</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48386725\">https://news.ycombinator.com/item?id=48386725</a></p>\n<p>Points: 122</p>\n<p># Comments: 34</p>",
+      "published_at": "2026-06-03T17:12:27+00:00",
+      "hash": "ed5f315105059f6ef9cded5d4d58943c",
+      "used": false
+    },
+    {
+      "title": "Skyvern (YC S23) Is Hiring Open-Source Loving DevRel Engineers",
+      "url": "https://www.ycombinator.com/companies/skyvern/jobs/1qRTlVx-founding-developer-marketing-open-source-ai",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.ycombinator.com/companies/skyvern/jobs/1qRTlVx-founding-developer-marketing-open-source-ai\">https://www.ycombinator.com/companies/skyvern/jobs/1qRTlVx-founding-developer-marketing-open-source-ai</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48386588\">https://news.ycombinator.com/item?id=48386588</a></p>\n<p>Points: 0</p>\n<p># Comments: 0</p>",
+      "published_at": "2026-06-03T17:01:00+00:00",
+      "hash": "97799c6d5509e947a5f24df566ed1593",
+      "used": false
+    },
+    {
+      "title": "MacBook Neo is so popular that Apple doubled production",
+      "url": "https://www.macrumors.com/2026/06/03/macbook-neo-production-doubled-says-kuo/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.macrumors.com/2026/06/03/macbook-neo-production-doubled-says-kuo/\">https://www.macrumors.com/2026/06/03/macbook-neo-production-doubled-says-kuo/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48386238\">https://news.ycombinator.com/item?id=48386238</a></p>\n<p>Points: 296</p>\n<p># Comments: 309</p>",
+      "published_at": "2026-06-03T16:33:17+00:00",
+      "hash": "39f18e0e041a5cea8f4fd800c91d8676",
+      "used": false
+    },
+    {
+      "title": "New Texas Instruments 5532 chips are not the 5532s we’ve used for decades",
+      "url": "https://groupdiy.com/threads/the-new-ti-5532-chips-are-not-5532s-weve-used-for-decades.93707/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://groupdiy.com/threads/the-new-ti-5532-chips-are-not-5532s-weve-used-for-decades.93707/\">https://groupdiy.com/threads/the-new-ti-5532-chips-are-not-5532s-weve-used-for-decades.93707/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48386133\">https://news.ycombinator.com/item?id=48386133</a></p>\n<p>Points: 70</p>\n<p># Comments: 32</p>",
+      "published_at": "2026-06-03T16:25:08+00:00",
+      "hash": "69deb9e5a67975c174b8724e903bd895",
+      "used": false
+    },
+    {
+      "title": "Show HN: Nutrepedia – Nutrition info in 29 locales built with Clojure and Htmx",
+      "url": "https://nutrepedia.com/en-us/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://nutrepedia.com/en-us/\">https://nutrepedia.com/en-us/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48386129\">https://news.ycombinator.com/item?id=48386129</a></p>\n<p>Points: 109</p>\n<p># Comments: 20</p>",
+      "published_at": "2026-06-03T16:24:46+00:00",
+      "hash": "40c4899cd54ef684f1e097bacda9a6f3",
+      "used": false
+    },
+    {
+      "title": "ESP32-S31",
+      "url": "https://www.espressif.com/en/products/socs/esp32-s31",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.espressif.com/en/products/socs/esp32-s31\">https://www.espressif.com/en/products/socs/esp32-s31</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48385965\">https://news.ycombinator.com/item?id=48385965</a></p>\n<p>Points: 231</p>\n<p># Comments: 125</p>",
+      "published_at": "2026-06-03T16:10:25+00:00",
+      "hash": "eb3b1dbc63096ffd27f05fd022e9f99c",
+      "used": false
+    },
+    {
+      "title": "Gemma 4 12B: A unified, encoder-free multimodal model",
+      "url": "https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12b/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12b/\">https://blog.google/innovation-and-ai/technology/developers-tools/introducing-gemma-4-12b/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48385906\">https://news.ycombinator.com/item?id=48385906</a></p>\n<p>Points: 617</p>\n<p># Comments: 251</p>",
+      "published_at": "2026-06-03T16:04:42+00:00",
+      "hash": "16b2e2d45d991fd527392fa88bca9934",
+      "used": true
+    },
+    {
+      "title": "A Post-Quantum Future for Let's Encrypt",
+      "url": "https://letsencrypt.org/2026/06/03/pq-certs",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://letsencrypt.org/2026/06/03/pq-certs\">https://letsencrypt.org/2026/06/03/pq-certs</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48385114\">https://news.ycombinator.com/item?id=48385114</a></p>\n<p>Points: 200</p>\n<p># Comments: 107</p>",
+      "published_at": "2026-06-03T15:06:09+00:00",
+      "hash": "cedfe30673291103641c67ee82ab2ebd",
+      "used": false
+    },
+    {
+      "title": "DaVinci Resolve 21",
+      "url": "https://www.blackmagicdesign.com/products/davinciresolve/whatsnew",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.blackmagicdesign.com/products/davinciresolve/whatsnew\">https://www.blackmagicdesign.com/products/davinciresolve/whatsnew</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48384482\">https://news.ycombinator.com/item?id=48384482</a></p>\n<p>Points: 349</p>\n<p># Comments: 166</p>",
+      "published_at": "2026-06-03T14:18:39+00:00",
+      "hash": "4d9e50a88f0438eaf8bc4bf3099b6bf5",
+      "used": false
+    },
+    {
+      "title": "As AI gets better, it reveals an empty promise",
+      "url": "https://www.theverge.com/ai-artificial-intelligence/942629/as-ai-gets-better-it-reveals-an-empty-promise",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "This week we've got tandem hands-ons with Google's new Gemini AI agent - Spark - from my colleagues David Pierce and Jay Peters. Their takeaways are similar: It's so effective that it's scary. Spark knew that David's dog is named Frida and knew the first name of Jay's wife, even though neither of them explicitly [&#8230;]",
+      "published_at": "2026-06-03T17:45:35+00:00",
+      "hash": "29a9efb7498650ed7d09526f48c3c335",
+      "used": false
+    },
+    {
+      "title": "Amazon&#8217;s search bar will invent AI-generated products you can&#8217;t buy",
+      "url": "https://www.theverge.com/tech/942547/amazon-search-bar-ai-images",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "Amazon's updated search bar will now show you AI-generated images of products as you describe them. For now, the in-app feature only surfaces AI images of clothing and home goods, allowing you to tap on the image that best matches what you're looking for and search for similar-looking items. In a blog post, Amazon positions [&#8230;]",
+      "published_at": "2026-06-03T16:07:31+00:00",
+      "hash": "581cb35474331e95db226d8631420e28",
+      "used": false
+    },
+    {
+      "title": "Microsoft and OpenAI broke up — now they’re ready to fight",
+      "url": "https://www.theverge.com/ai-artificial-intelligence/942242/microsoft-build-ai-agents-openai-competition",
+      "source": "The Verge AI",
+      "category": "vibe",
+      "summary": "At Microsoft's annual Build conference on Tuesday, the company announced a slew of new or expanded AI initiatives, including a super app, in-house reasoning models, a cybersecurity tool, and OpenClaw-esque AI agents. All this news added up to a clear message: Microsoft is positioned to be one of the biggest players in AI, and it's [&#8230;]",
+      "published_at": "2026-06-03T14:04:00+00:00",
+      "hash": "00653aa16e261f68e68e4d35cedfb70e",
+      "used": false
+    },
+    {
+      "title": "九州北部 中国地方 近畿が梅雨入り 気象庁が発表",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140401000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "前線や湿った空気の影響で西日本では雨や曇りの天気となっていて、気象庁は4日午前、「九州北部と中国地方、近畿が梅雨入りしたとみられる」と発表しました。九州では5日にかけて大気の状態が非常に不安定になる見…",
+      "published_at": "2026-06-04T02:52:53+00:00",
+      "hash": "0ff2a7701969dd37acc92aaea6316af4",
+      "used": true
+    },
+    {
+      "title": "高市首相 中傷動画報道の関連音声 動画作成やりとりではない",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015141051000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "高市総理大臣は、先の自民党総裁選挙などでみずからの陣営がほかの候補をひぼう中傷する動画を投稿したなどと報じられたことをめぐり、新たに公開された関係者のやりとりだとする音声の内容を確認したものの、動画の…",
+      "published_at": "2026-06-04T07:16:38+00:00",
+      "hash": "ec6449eccf52316fd8c57321f07d002f",
+      "used": false
+    },
+    {
+      "title": "AI拡大で電力・水の消費が5年で倍増か 国連大学の報告書",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015141031000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "AIの普及でデータセンターの設置が各国で急拡大する中、その運用に欠かせない電力や水の消費量が2030年までに倍増するという報告書を国連大学の研究所がまとめ、環境に影響を及ぼす可能性があると指摘していま…",
+      "published_at": "2026-06-04T07:18:47+00:00",
+      "hash": "c06b361410b188c52c12211f93fbb265",
+      "used": true
+    },
+    {
+      "title": "ヤマダホールディングスとエディオン 経営統合の方向で検討",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140341000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "家電量販店大手の「ヤマダホールディングス」と「エディオン」が経営統合に向けた協議を進めていることがわかりました。実現すれば売上高で2兆5000億円規模のグループとなり、ネット通販などとの競争が激しくな…",
+      "published_at": "2026-06-04T08:18:21+00:00",
+      "hash": "3d918edce71f981de4026f993efe46f5",
+      "used": true
+    },
+    {
+      "title": "福島 4人襲ったクマ 事業所の敷地外へ 周辺で警戒続く",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015141011000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "2日、福島市の工場や住宅街で4人にけがをさせ、近くの事業所にとどまっていたクマが3日夜、敷地の外に出ていきました。市は建物内にいたクマが窓の鍵を開けて外に出た可能性があるとしています。市と警察は引き続…",
+      "published_at": "2026-06-04T07:26:31+00:00",
+      "hash": "9bd23e5a76ef1d417f523552624e07d0",
+      "used": false
+    },
+    {
+      "title": "能登半島地震 災害関連死新たに3人認定で死者は738人に",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015141061000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "能登半島地震のあとに亡くなった石川県内の3人が新たに災害関連死と認定されました。能登半島地震の災害関連死は510人となり、地震の死者は直接死と合わせて738人となりました。",
+      "published_at": "2026-06-04T07:41:56+00:00",
+      "hash": "f211828cb734df1bcd883b7faee11a56",
+      "used": false
+    },
+    {
+      "title": "ドジャース 大谷翔平 二刀流出場で今季6勝目 打者でも3安打",
+      "url": "https://news.web.nhk/newsweb/na/na-k10015140821000",
+      "source": "NHKニュース",
+      "category": "japan",
+      "summary": "大リーグ、ドジャースの大谷翔平選手がダイヤモンドバックス戦に投打の二刀流で先発出場し、6回を無失点と好投して今シーズン6勝目をあげました。バッターではヒット3本を打ち投打でチームの連勝に貢献しました。",
+      "published_at": "2026-06-04T06:16:45+00:00",
+      "hash": "2147c3666ee7860980e7757b0b4f11b7",
+      "used": false
+    },
+    {
+      "title": "I built a vulnerable app and spent $1,500 seeing if LLMs could hack it",
+      "url": "https://kasra.blog/blog/i-spent-1500-seeing-if-llms-could-hack-my-app/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://kasra.blog/blog/i-spent-1500-seeing-if-llms-could-hack-my-app/\">https://kasra.blog/blog/i-spent-1500-seeing-if-llms-could-hack-my-app/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48392343\">https://news.ycombinator.com/item?id=48392343</a></p>\n<p>Points: 194</p>\n<p># Comments: 78</p>",
+      "published_at": "2026-06-04T00:56:32+00:00",
+      "hash": "dda31ab4713f31dc36969a831bdcbb09",
+      "used": true
+    },
+    {
+      "title": "U.S. to dismantle system tracking Atlantic currents that are at risk of collapse",
+      "url": "https://e360.yale.edu/digest/trump-ooi-amoc",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://e360.yale.edu/digest/trump-ooi-amoc\">https://e360.yale.edu/digest/trump-ooi-amoc</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48392232\">https://news.ycombinator.com/item?id=48392232</a></p>\n<p>Points: 459</p>\n<p># Comments: 301</p>",
+      "published_at": "2026-06-04T00:44:13+00:00",
+      "hash": "38e0b5cc162212e13090095e5d072b09",
+      "used": false
+    },
+    {
+      "title": "Dumbphone 2",
+      "url": "https://dumb.co/",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://dumb.co/\">https://dumb.co/</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48392203\">https://news.ycombinator.com/item?id=48392203</a></p>\n<p>Points: 37</p>\n<p># Comments: 35</p>",
+      "published_at": "2026-06-04T00:41:09+00:00",
+      "hash": "b784fe46aaa57b921a535e4aae882464",
+      "used": false
+    },
+    {
+      "title": "The ways we contain Claude across products",
+      "url": "https://www.anthropic.com/engineering/how-we-contain-claude",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.anthropic.com/engineering/how-we-contain-claude\">https://www.anthropic.com/engineering/how-we-contain-claude</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48392082\">https://news.ycombinator.com/item?id=48392082</a></p>\n<p>Points: 117</p>\n<p># Comments: 51</p>",
+      "published_at": "2026-06-04T00:27:52+00:00",
+      "hash": "e5ea6e2bc04bb575036825380b9d129b",
+      "used": true
+    },
+    {
+      "title": "Failing grades soar with AI usage, dwindling math skills in Berkeley CS classes",
+      "url": "https://www.dailycal.org/news/campus/academics/failing-grades-soar-as-professors-see-greater-ai-usage-dwindling-math-skills-in-uc-berkeley/article_16fad0bf-02cb-4b8c-8d88-888ffd9f8608.html",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://www.dailycal.org/news/campus/academics/failing-grades-soar-as-professors-see-greater-ai-usage-dwindling-math-skills-in-uc-berkeley/article_16fad0bf-02cb-4b8c-8d88-888ffd9f8608.html\">https://www.dailycal.org/news/campus/academics/failing-grades-soar-as-professors-see-greater-ai-usage-dwindling-math-skills-in-uc-berkeley/article_16fad0bf-02cb-4b8c-8d88-888ffd9f8608.html</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48392004\">https://news.ycombinator.com/item?id=48392004</a></p>\n<p>Points: 252</p>\n<p># Comments: 196</p>",
+      "published_at": "2026-06-04T00:18:02+00:00",
+      "hash": "66eba240bc52d5911c9f3b6ada6408a3",
+      "used": false
+    },
+    {
+      "title": "\"They're made out of weights\"",
+      "url": "https://maxleiter.com/blog/weights",
+      "source": "Hacker News",
+      "category": "vibe",
+      "summary": "<p>Article URL: <a href=\"https://maxleiter.com/blog/weights\">https://maxleiter.com/blog/weights</a></p>\n<p>Comments URL: <a href=\"https://news.ycombinator.com/item?id=48391611\">https://news.ycombinator.com/item?id=48391611</a></p>\n<p>Points: 594</p>\n<p># Comments: 217</p>",
+      "published_at": "2026-06-03T23:37:18+00:00",
+      "hash": "19a34061ea33be9dcbb6f5ada0ec9b81",
+      "used": false
+    }
+  ]
+}

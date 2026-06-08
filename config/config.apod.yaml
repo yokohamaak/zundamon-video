@@ -1,0 +1,67 @@
+# APOD if動画パイプライン設定
+# 秘密情報は書かない（APIキーは環境変数 NASA_API_KEY / GEMINI_API_KEY）
+
+nasa:
+  date:            # 空なら当日。特定日を焼くなら "YYYY-MM-DD"
+
+# if掛け合いの役割（ずんだもん=質問役 / 四国めたん=解説役）
+if_dialogue:
+  questioner: ずんだもん
+  explainer: 四国めたん
+  target_turns: 18        # 会話ターン数の目安
+  target_minutes: 7       # 狙う尺（分）。総量目安に使う（実測約335字/分換算）
+
+# アバター性別割当 兼 画面配置。
+# この定義順が動画の画面配置になる（上=画面左 / 下=画面右）。固定。
+# → 左=四国めたん（女性アバター） / 右=ずんだもん（男性アバター）。
+# 声と絵のミスマッチは承知の上の暫定（案う=今の大人アバターをそのまま使用）。
+characters_gender:
+  四国めたん: female
+  ずんだもん: male
+
+models:
+  text: gemini-2.5-flash     # 台本生成（無料枠）
+  vision: gemini-2.5-flash   # 画像プラン＝クロップ領域指定（無料枠・マルチモーダル）
+
+# 画像プラン（Gemini visionでAPODの注目領域を複数指定→複数カット風＝単調さ解消）
+# mode=focus（既定）: 切り出さず元画像に注目枠を重ね、その領域へゆっくり寄る（題材一致・文脈保持）。
+# mode=crop: 従来の切り出し（cut_NN.jpg）。
+image_plan:
+  enable: true
+  mode: focus
+  count: 5                   # 注目領域数の目安（Geminiへの指示。実際はこれ以下になりうる）
+
+# stock実写（images.nasa.gov・無料/パブリックドメイン）。
+# 既定オフ：images.nasaは「別画像」で今日のAPOD題材と構造的に合わず誤誘導するため、
+# 事実パートはAPOD元画像の注目アノテーション(image_plan mode=focus)に一本化した。
+# 関連性の解決策が見つかれば enable:true で復活可（コードは温存）。
+stock:
+  enable: false
+  per_query: 1               # 1検索語あたり取得枚数
+  max_total: 4               # 全体の取得上限
+
+# manual想像イラスト（ifパートの空想画＝人間が差し込む穴）。画像生成はしない。
+# docs/apod/manual_NN.png を置けば差し替わる。未用意でもプレースホルダで動画は完成。
+# 不足は docs/apod/manifest.json に出力（target/prompt付き）。
+manual:
+  enable: true
+
+# VOICEVOX（自己ホスト・課金なし）。話者IDは /speakers で確認済み（四国めたん=2/ずんだもん=3）
+# 接続先は環境変数 VOICEVOX_URL で上書き可（コンテナからは host.docker.internal:50021）
+tts_voicevox:
+  base_url: http://localhost:50021
+  speakers:
+    ずんだもん: 3          # ノーマル
+    四国めたん: 2          # ノーマル
+  # 全体デフォルト
+  speed: 1.0
+  pitch: 0.0
+  intonation: 1.0
+  # 話者ごと上書き（感想反映: めたんは少し遅く / ずんだもんは抑揚強め）
+  voice_params:
+    四国めたん:
+      speed: 0.92
+    ずんだもん:
+      intonation: 1.3
+  caption_max_chars: 22    # 字幕1枚の最大文字数（超えたら文→読点→強制で分割）
+  inter_turn_pause: 0.3    # ターン間の無音秒（掛け合いの間）
