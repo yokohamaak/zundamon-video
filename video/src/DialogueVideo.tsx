@@ -423,21 +423,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
                     letterSpacing: 3,
                   }}
                 >
-                  ✎ 想像イラスト（準備中）
+                  ✎ 画像（準備中）
                 </div>
-                {activeTopic.title ? (
-                  <div
-                    style={{
-                      color: "#fff",
-                      fontSize: 56,
-                      fontWeight: 800,
-                      textAlign: "center",
-                      textShadow: "0 2px 8px rgba(0,0,0,0.4)",
-                    }}
-                  >
-                    {activeTopic.title}
-                  </div>
-                ) : null}
                 {activeTopic.note ? (
                   <div
                     style={{
@@ -520,6 +507,76 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             中央ビジュアル（topics未設定）
           </div>
         )}
+
+        {/* 章バッジ（IT技術史: chapter がある章だけ枠上部に重ねる。切替でフェード＋軽いスケールイン） */}
+        {activeTopic && typeof activeTopic.chapter === "number" ? (
+          <div
+            key={`chap-${activeTopicIndex}`}
+            style={{
+              position: "absolute",
+              top: 20,
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              pointerEvents: "none",
+              opacity: topicFade,
+              transform: `scale(${(0.92 + 0.08 * topicFade).toFixed(3)})`,
+              transformOrigin: "top center",
+              zIndex: 8,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                background: "rgba(18,30,58,0.78)",
+                border: "2px solid rgba(125,170,235,0.5)",
+                borderRadius: 999,
+                padding: "8px 26px",
+                boxShadow: "0 3px 14px rgba(0,0,0,0.5)",
+              }}
+            >
+              <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 2 }}>
+                第{activeTopic.chapter + 1}章
+              </span>
+              {activeTopic.title ? (
+                <span
+                  style={{
+                    color: "#fff",
+                    fontSize: 30,
+                    fontWeight: 800,
+                    textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+                  }}
+                >
+                  {activeTopic.title}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {/* 出典クレジット（章ごと・Wikimedia帰属など）。credit がある章だけ枠右下に小表示。 */}
+        {activeTopic?.credit ? (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 12,
+              right: 16,
+              zIndex: 8,
+              pointerEvents: "none",
+              opacity: topicFade * 0.9,
+              color: "rgba(255,255,255,0.8)",
+              fontSize: 18,
+              background: "rgba(0,0,0,0.42)",
+              padding: "3px 10px",
+              borderRadius: 6,
+              textShadow: "0 1px 3px rgba(0,0,0,0.85)",
+            }}
+          >
+            出典: {activeTopic.credit}
+          </div>
+        ) : null}
 
         {/* glow_pulse: 中央ビジュアルの内側に脈動する発光リング（神秘的な強調） */}
         {fx.glow > 0 ? (

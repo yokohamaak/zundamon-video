@@ -6,6 +6,9 @@ export type Emotion = "normal" | "surprise" | "happy" | "sad" | "angry";
 // 進行フェーズ。演出の強弱に使う。任意（未指定なら "fact" 扱い）。
 export type Phase = "intro" | "fact" | "if" | "outro";
 
+// 章の種別（IT技術史ストーリー）。章ごとの時系列の役割。任意。
+export type Section = "intro" | "background" | "turning_point" | "impact" | "outro";
+
 // 画面演出。ifパートの見せ場で強い演出を出す。任意（未指定なら "kenburns"）。
 // kenburns=標準ズーム/パン / zoom_punch=寄り / shake=揺れ / flash=白転換 / glow_pulse=発光脈動。
 export type Effect = "kenburns" | "zoom_punch" | "shake" | "flash" | "glow_pulse";
@@ -27,6 +30,9 @@ export type Turn = {
   // 進行フェーズ・画面演出（apod_script.py が付与）。Remotionが演出に使う。
   phase?: Phase;
   effect?: Effect;
+  // IT技術史ストーリー: 所属章とsection（story_script が付与）。描画では未使用だが型整合用。
+  chapter?: number;
+  section?: Section;
 };
 
 // 中央ビジュアルのトピック。imageがあれば画像、無ければtitleでカード描画。
@@ -44,6 +50,11 @@ export type Topic = {
   // l/t/r/b は画像左上を原点に 0..1 へ正規化した枠。image_aspect(=画像 w/h)で枠位置を実被写体に合わせる。
   focus?: { l: number; t: number; r: number; b: number };
   image_aspect?: number;
+  // IT技術史ストーリー: 章メタ。chapter がある時だけ章バッジを重ねる（main_story.build_chapter_topics が付与）。
+  chapter?: number;       // 0始まりの章番号
+  chapterTotal?: number;  // 全章数
+  section?: Section;       // 章の種別
+  credit?: string;        // この章の画像出典（CC-BY帰属など）。画面隅に小表示。
 };
 
 export type Gender = "male" | "female";
