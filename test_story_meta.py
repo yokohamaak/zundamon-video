@@ -20,14 +20,14 @@ def _turns(n, dur=2.0):
 
 CHAPTERS = [
     {"section": "intro", "title": "はじまり", "image_cuts": [
-        {"image_query": "git logo", "image_kind": "subject"},
+        {"image_query": "wifi router", "image_kind": "subject"},
         {"image_query": "developers", "image_kind": "ambient"},
     ]},
-    {"section": "turning_point", "title": "誕生", "image_cuts": [
-        {"image_query": "Linus Torvalds", "image_kind": "subject"},
+    {"section": "trivia", "title": "Wi-Fiは略語じゃない", "image_cuts": [
+        {"image_query": "wifi symbol", "image_kind": "subject"},
     ]},
     {"section": "outro", "title": "まとめ", "image_cuts": [
-        {"image_query": "source code", "image_kind": "ambient"},
+        {"image_query": "gadgets", "image_kind": "ambient"},
     ]},
 ]
 
@@ -62,7 +62,7 @@ def test_build_chapter_topics_placeholder():
         assert t["placeholder"].startswith("ch_") and t["placeholder"].endswith(".png"), "決め打ち名のplaceholder"
         assert t["note"], "差し替え案内(note)が入る"
     # 章0の2カットはcut別の検索語がnoteに出る
-    assert topics[0]["note"] == "git logo" and topics[1]["note"] == "developers"
+    assert topics[0]["note"] == "wifi router" and topics[1]["note"] == "developers"
     print("  build_chapter_topics: プレースホルダ枠/cut別query OK")
 
 
@@ -103,7 +103,7 @@ def test_build_meta():
         "script": [
             {"speaker": "四国めたん", "text": "a", "chapter": 0, "section": "intro", "emotion": "normal", "effect": "kenburns"},
             {"speaker": "ずんだもん", "text": "b", "chapter": 0, "section": "intro", "emotion": "surprise", "effect": "kenburns"},
-            {"speaker": "四国めたん", "text": "c", "chapter": 1, "section": "turning_point", "emotion": "normal", "effect": "flash"},
+            {"speaker": "四国めたん", "text": "c", "chapter": 1, "section": "trivia", "emotion": "normal", "effect": "flash"},
         ],
     }
     turns = _turns(3)

@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_QUESTIONER = "ずんだもん"
 DEFAULT_EXPLAINER = "四国めたん"
-DEFAULT_CHAPTERS = 5
+DEFAULT_TOPICS = 5  # 1本に束ねる「実は」ネタの目安数
 DEFAULT_MINUTES = 7
 
 # 読み上げ速度の実測換算（VOICEVOX・現行の話者speed設定下で約335字/分）。
@@ -37,9 +37,10 @@ CHARS_PER_MINUTE = 335
 VALID_EMOTIONS = {"normal", "surprise", "happy", "sad", "angry"}
 DEFAULT_EMOTION = "normal"
 
-# 章の種別（時系列）。chapters[].section と script[].section に使う。不正値は background に倒す。
-VALID_SECTIONS = {"intro", "background", "turning_point", "impact", "outro"}
-DEFAULT_SECTION = "background"
+# セクション種別。chapters[].section と script[].section に使う。不正値は trivia に倒す。
+# intro=導入 / trivia=各「実は」ネタ / outro=締め。
+VALID_SECTIONS = {"intro", "trivia", "outro"}
+DEFAULT_SECTION = "trivia"
 
 # 演出effect enum（video/src/types.ts と一致）。不正値は kenburns に倒す。
 # kenburns=標準のゆっくりズーム/パン / zoom_punch=寄る / shake=揺れ
@@ -58,103 +59,99 @@ def build_prompt(config: dict) -> str:
     s = config.get("story", {})
     questioner = s.get("questioner", DEFAULT_QUESTIONER)
     explainer = s.get("explainer", DEFAULT_EXPLAINER)
-    chapters = int(s.get("chapters", DEFAULT_CHAPTERS))
+    topics = int(s.get("topics", s.get("chapters", DEFAULT_TOPICS)))
     minutes = float(s.get("target_minutes", DEFAULT_MINUTES))
     total_chars = int(minutes * CHARS_PER_MINUTE)  # 実測約335字/分換算の総量目安
     theme = (s.get("theme") or "").strip()
 
     if theme:
-        theme_line = f'今回のテーマは「{theme}」。このテーマで台本を作ってください。'
+        theme_line = f'今回の小テーマは「{theme}」。このテーマに沿った「実は」ネタを集めてください。'
     else:
         theme_line = (
-            "今回のテーマはあなたが選んでください。IT・コンピュータ技術史の中で、"
-            "「誕生の物語」や「なぜ歴史を塗り替えたのか」が語れる題材を1つ選ぶ"
-            "（例: Unix / TCP-IP / Git / WWW / リレーショナルデータベース / トランジスタ）。"
+            "今回の小テーマはあなたが選んでください。テクノロジー全般（IT・コンピュータ・科学・"
+            "ガジェット・工学など）から、身近で意外な雑学が複数集まる小テーマを1つ選ぶ"
+            "（例:「デジタルの名前の由来」「キーボードの謎」「身近な技術の意外な仕組み」"
+            "「有名IT企業の創業秘話」「単位や記号の由来」）。"
         )
 
     return f"""
-あなたはIT技術史を扱う教養系YouTubeの掛け合い台本ライターです。
-1つの技術・出来事を題材に、その「誕生の物語」「なぜ歴史を塗り替えたのか」を、
-時系列の章立てで掘り下げる日本語の掛け合い台本を作ってください。
+あなたはテクノロジー雑学を扱う教養系YouTubeの掛け合い台本ライターです。
+1つの小テーマのもとに「実は〇〇なんです」という意外な雑学を複数集め、
+「へぇ！」が連発する日本語の掛け合い台本を作ってください。視聴者が明日誰かに話したくなる動画にします。
 
 ## テーマ
 {theme_line}
 
-## 企画の骨子（章立て時系列）
-- 全体を時系列の「章」で構成し、章ごとに語る対象（＝映す画像）が必ず変わるようにする。
-- 章の流れは原則この順:
-  - intro: つかみ。今日の主役を一言で紹介し、なぜ重要かを予告する。
-  - background: その技術が生まれる前の課題・時代背景（なぜ必要だったか）。
-  - turning_point: 誕生・ブレイクスルーの瞬間（誰が・いつ・どう作ったか）。
-  - impact: それが何を変えたか（歴史を塗り替えた点・その後の広がり）。
-  - outro: まとめ。動画全体（背景→転機→影響）を簡潔に振り返り、**最後に全体を通しての締めの言葉**で結ぶ。
-- background〜impact は内容に応じて複数章に分けてよい。**全体で約{chapters}章**にする。
-- **史実に忠実に。** 年・人物・経緯は事実の範囲で語り、不確かな逸話を断定で創作しない。
-  確実でない所は「諸説あるけれど」「とされている」と限定する。
-- **年号と出来事の前後関係を正確に。** 「いつ始まり・いつ終わったか」「Aの後にB」という順序や期間を
-  取り違えないこと。年を述べるときは、それが「出来事が起きた年」か「続いた期間」かを区別する
-  （例:「2002年から利用していた」と「2002年まで利用していた」は意味が逆。混同しない）。
+## 企画の骨子（実は〇〇雑学・ネタを束ねる）
+- 小テーマに沿った**「実は」ネタを {topics} 個**集める。各ネタは独立して「へぇ」となる意外な事実にする。
+- 各ネタは次のリズムで展開する（これが面白さの型）:
+  1. {explainer}が問いを投げる（「〜って何の略か知ってる？」「なんで〜なんだと思う？」）。
+  2. {questioner}が素朴に外した答えを言う（視聴者の予想を代弁）。
+  3. {explainer}が「実はね、…」と意外な真実を明かす。
+  4. {questioner}が驚く（「ええーっ！？」）。
+  5. {explainer}が追い打ちの小ネタ・豆知識を1つ足して締める。
+- **冒頭で強く掴む**：最初に今日の小テーマと「意外な話を連発するよ」と予告し、すぐ1ネタ目の問いに入る。前置きを長くしない。
+- **意外性は“正確な意外な事実”で作る。** 面白くするために嘘や誇張をしない。
+  確実でない逸話は「諸説あるけれど」「と言われている」と限定する。年号・前後関係も正確に。
+- ネタの順序は、軽いもの→意外性の強いものへ。最後のネタを一番の山場にすると締まる。
 
 ## 登場人物と口調（語尾を混同しないこと・最重要）
-- {questioner}（聞き手・初心者役）: 好奇心旺盛。素朴な疑問を投げ、視聴者の代弁をする。
-  一人称「ぼく」、語尾は「〜なのだ」「〜のだ？」。
-- {explainer}（解説役）: 落ち着いた大人の女性。技術と歴史を噛み砕いて語る。
+- {questioner}（聞き手・ボケ役）: 好奇心旺盛。問いに素朴に外した答えを出し、真実に驚く。視聴者の代弁者。
+  一人称「ぼく」、語尾は「〜なのだ」「〜のだ？」。リアクションは毎回同じにせず変化をつける
+  （驚き・感心・脱線・ツッコミ・共感など）。
+- {explainer}（解説役・語り役）: 落ち着いた大人の女性。意外な事実を楽しげに明かす。
   一人称「わたし」、語尾は「〜よ」「〜わ」「〜なのよ」「〜ね」「〜だわ」など。
-  **各発言は3〜5文で語る**（短い相槌だけで終えない。冗長に伸ばしすぎない）。
+  **各ネタの“実は”の説明は2〜4文**で、意外な核心＋なぜそうなったかを簡潔に。長すぎる講義にしない。
 - **【厳守】「〜のだ」「〜なのだ」「〜のだよ」は {questioner} 専用。{explainer} には絶対に使わせない。**
   逆に {explainer} の女性的語尾を {questioner} に使わせない。書く前に必ず誰の口調か確認すること。
 
 ## 各発言に必ず付けるフィールド
-1. "chapter": その発言が属する章の番号（0始まりの整数）。0=最初の章。発言は章順に並べ、章番号は飛ばさない。
-2. "section": その章の種別。{sorted(VALID_SECTIONS)} のいずれか1つ。同じ章の発言は同じsectionにする。
-3. "emotion": 感情。次のいずれか1つ:
-   - normal（基本）/ surprise（驚き・意外）/ happy（嬉しい・わくわく）/ sad（残念・しんみり）/ angry（ほぼ使わない）
-   - {questioner} は驚き役なので surprise/happy が出やすい。迷ったら normal。
-4. "effect": 画面演出。次のいずれか1つ:
-   - kenburns（標準・基本はこれ）/ zoom_punch（強調したい所）/ shake（衝撃）
-   - flash（章の切り替わり＝場面転換）/ glow_pulse（神秘的な強調）
-   - **基本は kenburns。章が切り替わる最初の発言に flash を使うと転換が締まる。** 強い演出は多用しない。
+1. "chapter": その発言が属する章の番号（0始まりの整数）。章＝「導入(1つ)＋各ネタ(1つずつ)＋締め(1つ)」。
+   発言は章順に並べ、章番号は飛ばさない。
+2. "section": その章の種別。{sorted(VALID_SECTIONS)} のいずれか。intro=導入 / trivia=各ネタ / outro=締め。
+   同じ章の発言は同じsectionにする。
+3. "emotion": normal（基本）/ surprise（驚き・意外）/ happy（嬉しい・わくわく）/ sad / angry。
+   {questioner} は驚き役なので surprise/happy が出やすい。迷ったら normal。
+4. "effect": kenburns（基本）/ zoom_punch（“実は”の真実を明かす瞬間に効く）/ shake / flash（ネタの切替）/ glow_pulse。
+   **基本は kenburns。ネタが切り替わる最初の発言に flash、真実を明かす所に zoom_punch** を使うと締まる。多用しない。
 
 ## 章メタ（chapters・各章に1つ）
-各章について次を出すこと（chapter番号の昇順）:
-- "section": 上のenumのいずれか（その章の種別）。
-- "title": 画面に出す短い日本語の章見出し（10〜18文字程度）。
-- "image_cuts": その章で**順に映す画像を 2〜4個** 並べた配列。章の話の展開（時間経過・登場物や
-  場面の変化）に沿って絵が切り替わるよう、**それぞれ別の被写体**にする（同じ章でも1枚で済ませない）。
-  各要素に次の2つ:
-  - "image_kind": 画像の種類。
-    - "subject": 実在の人物・製品・ロゴ・歴史的な物/瞬間（例: "Linus Torvalds", "GitHub logo"）。
-    - "ambient": 抽象・雰囲気・概念の画像（例: "source code on screen", "server room"）。
-    - 実在の特定物を見せたいcutは subject、つなぎ・概念のcutは ambient にする。
-  - "image_query": フリー素材庫を検索する**英語の検索語**。
-    - **subject は固有名詞のみ**にする（人名・製品名・ロゴ名）。状況・表情・説明を足さない。
-      良い例: "Linus Torvalds" / "GitHub logo" / "first Macintosh"。
-      悪い例: "Linus Torvalds giving a lecture, focused expression"（説明過多で実物に当たらない）。
-    - **ambient は情景の説明的キーワード**でよい（例: "server room with blinking lights"）。
+章の構成 = intro(導入) 1つ ＋ trivia(各ネタ) {topics}個 ＋ outro(締め) 1つ。各章に次を出す（chapter番号の昇順）:
+- "section": intro / trivia / outro のいずれか。
+- "title": 画面に出す短い日本語の見出し（ネタの核を10〜18文字で。例「Wi-Fiは略語じゃない」）。
+- "image_cuts": その章で**順に映す画像を 2〜4個**。ネタの対象物が変わるよう別々の被写体にする。
+  各要素に:
+  - "image_kind": "subject"（実在の人物・製品・ロゴ・記号など特定物。例 "Bluetooth logo", "Larry Tesler"）
+    / "ambient"（抽象・雰囲気。例 "wifi router", "old typewriter"）。
+  - "image_query": 英語の検索語。**subject は固有名詞のみ**（説明を足さない）。**ambient は情景キーワード**でよい。
 
-## 構成・分量（重要：尺を満たすこと）
-- {explainer}が主役を紹介して始め、{questioner}が食いついて質問していく流れ。
-- **台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）を目安**にする。
-  これを大きく超えないこと（長すぎる動画にしない）。短すぎる場合だけ各章に具体例・経緯を足す。
-- 専門用語は{explainer}が噛み砕く。
+## 構成・分量
+- **台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）を目安**。大きく超えない。
+- テンポよく。1ネタを長く語りすぎず、{topics}個を歯切れよく回す。
+- 専門用語は{explainer}が一言で噛み砕く。
 
 ## 出力形式
 マークダウンのコードブロックは使わず、以下のJSONだけを出力すること:
 {{
-  "theme": "動画のテーマ（日本語・meta.titleと章全体の見出しに使う）",
+  "theme": "動画のテーマ（日本語・meta.titleに使う。例「実は知らないデジタルの名前の謎」）",
   "chapters": [
-    {{"section": "intro", "title": "短い章見出し", "image_cuts": [
-      {{"image_query": "source code on screen", "image_kind": "ambient"}},
-      {{"image_query": "software developers collaborating", "image_kind": "ambient"}}
+    {{"section": "intro", "title": "今日のテーマ", "image_cuts": [
+      {{"image_query": "wifi router", "image_kind": "ambient"}}
     ]}},
-    {{"section": "turning_point", "title": "誕生の瞬間", "image_cuts": [
-      {{"image_query": "Linus Torvalds portrait", "image_kind": "subject"}},
-      {{"image_query": "Linux kernel source code", "image_kind": "ambient"}}
+    {{"section": "trivia", "title": "Wi-Fiは略語じゃない", "image_cuts": [
+      {{"image_query": "wifi symbol", "image_kind": "subject"}},
+      {{"image_query": "vintage hifi audio system", "image_kind": "ambient"}}
+    ]}},
+    {{"section": "outro", "title": "まとめ", "image_cuts": [
+      {{"image_query": "technology gadgets flat lay", "image_kind": "ambient"}}
     ]}}
   ],
   "script": [
-    {{"speaker": "{explainer}", "text": "今日の主役はこれよ。…", "emotion": "normal", "section": "intro", "chapter": 0, "effect": "kenburns"}},
-    {{"speaker": "{questioner}", "text": "へえ、それは何なのだ？", "emotion": "surprise", "section": "intro", "chapter": 0, "effect": "kenburns"}}
+    {{"speaker": "{explainer}", "text": "今日は身近なのに意外と知らない…の話よ。へぇって言わせるわ。", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns"}},
+    {{"speaker": "{questioner}", "text": "へぇを連発させてやるのだ！望むところなのだ！", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns"}},
+    {{"speaker": "{explainer}", "text": "じゃあ最初。Wi-Fiって何の略か言える？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash"}},
+    {{"speaker": "{questioner}", "text": "ワイヤレス…なんとかなのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns"}},
+    {{"speaker": "{explainer}", "text": "実はね、何の略でもないの。語呂で作った造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch"}}
   ]
 }}
 """.strip()

@@ -6,8 +6,8 @@ export type Emotion = "normal" | "surprise" | "happy" | "sad" | "angry";
 // 進行フェーズ。演出の強弱に使う。任意（未指定なら "fact" 扱い）。
 export type Phase = "intro" | "fact" | "if" | "outro";
 
-// 章の種別（IT技術史ストーリー）。章ごとの時系列の役割。任意。
-export type Section = "intro" | "background" | "turning_point" | "impact" | "outro";
+// セクション種別（実は〇〇雑学）。intro=導入 / trivia=各ネタ / outro=締め。任意。
+export type Section = "intro" | "trivia" | "outro";
 
 // 画面演出。ifパートの見せ場で強い演出を出す。任意（未指定なら "kenburns"）。
 // kenburns=標準ズーム/パン / zoom_punch=寄り / shake=揺れ / flash=白転換 / glow_pulse=発光脈動。
