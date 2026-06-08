@@ -134,6 +134,23 @@ def test_build_meta_length_mismatch_raises():
     raise AssertionError("ターン数不一致でValueErrorが出ていない")
 
 
+def test_write_credits_txt():
+    import pathlib
+    import tempfile
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    config = {"tts_voicevox": {"speakers": {"四国めたん": 2, "ずんだもん": 3}}}
+    m.write_credits_txt(tmp, config, {(0, 0): "Jane / CC BY 4.0", (1, 0): "Ann / Pexels",
+                                      (2, 0): "Jane / CC BY 4.0"})
+    txt = (tmp / "credits.txt").read_text(encoding="utf-8")
+    assert "VOICEVOX:四国めたん" in txt and "VOICEVOX:ずんだもん" in txt
+    assert "Jane / CC BY 4.0" in txt and "Ann / Pexels" in txt
+    assert txt.count("Jane / CC BY 4.0") == 1, "重複除去"
+    # 帰属なし → 汎用表記
+    m.write_credits_txt(tmp, config, {})
+    assert "商用可ライセンス" in (tmp / "credits.txt").read_text(encoding="utf-8")
+    print("  write_credits_txt: VOICEVOX+画像帰属/重複除去/帰属なし OK")
+
+
 if __name__ == "__main__":
     print("test_story_meta:")
     test_build_chapter_topics_coverage()
@@ -142,4 +159,5 @@ if __name__ == "__main__":
     test_build_credits()
     test_build_meta()
     test_build_meta_length_mismatch_raises()
+    test_write_credits_txt()
     print("ALL PASS")

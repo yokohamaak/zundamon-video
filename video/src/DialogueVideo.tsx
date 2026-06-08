@@ -548,27 +548,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           </div>
         ) : null}
 
-        {/* 出典クレジット（章ごと・Wikimedia帰属など）。credit がある章だけ枠右下に小表示。 */}
-        {activeTopic?.credit ? (
-          <div
-            style={{
-              position: "absolute",
-              bottom: 12,
-              right: 16,
-              zIndex: 8,
-              pointerEvents: "none",
-              opacity: topicFade * 0.9,
-              color: "rgba(255,255,255,0.8)",
-              fontSize: 18,
-              background: "rgba(0,0,0,0.42)",
-              padding: "3px 10px",
-              borderRadius: 6,
-              textShadow: "0 1px 3px rgba(0,0,0,0.85)",
-            }}
-          >
-            出典: {activeTopic.credit}
-          </div>
-        ) : null}
+        {/* クレジットは動画内に出さない（帰属は概要欄の credits.txt に集約＝CC-BY要件はそこで満たす）。 */}
 
         {/* glow_pulse: 中央ビジュアルの内側に脈動する発光リング（神秘的な強調） */}
         {fx.glow > 0 ? (
@@ -640,6 +620,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             background: "rgba(0,0,0,0.7)",
             backdropFilter: "blur(10px)",
             borderRadius: 24,
+            border: "5px solid #ffe14d",
             padding: "22px 44px",
             boxSizing: "border-box",
           }}
@@ -661,34 +642,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         </div>
       ) : null}
 
-      {/* クレジット（右上・最前面）。音声(VOICEVOX)は概要欄に記載するためここは画像出典のみ。
-          中央ビジュアルより後に描く＝画像の上に乗る（複数行でも隠れない）。薄い背景で視認性確保。 */}
-      {(() => {
-        const creds = (meta.credits ?? []).filter((c) => !c.includes("VOICEVOX"));
-        if (creds.length === 0) return null;
-        return (
-          <div
-            style={{
-              position: "absolute",
-              top: 10,
-              right: 20,
-              zIndex: 10,
-              textAlign: "right",
-              color: "rgba(255,255,255,0.7)",
-              fontSize: 18,
-              lineHeight: 1.35,
-              padding: "4px 10px",
-              borderRadius: 8,
-              background: "rgba(0,0,0,0.32)",
-              textShadow: "0 1px 3px rgba(0,0,0,0.8)",
-            }}
-          >
-            {creds.map((c, i) => (
-              <div key={i}>{c}</div>
-            ))}
-          </div>
-        );
-      })()}
+      {/* クレジットは動画内に出さない（帰属は概要欄の credits.txt に集約）。meta.credits はデータとして保持。 */}
     </AbsoluteFill>
   );
 };

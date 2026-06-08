@@ -150,6 +150,27 @@ def build_credits(config, attributions=None):
     return creds
 
 
+def write_credits_txt(out_dir, config, attributions):
+    """概要欄に貼るクレジットを credits.txt に出力（CC-BY帰属はここで必須要件を満たす）。
+
+    動画内には出さない方針。画像帰属は重複除去して列挙（PD/CC0/Pexels/Pixabayは任意だが併記）。
+    """
+    lines = ["【使用素材クレジット】", "", "■ 音声（VOICEVOX）"]
+    for name in config.get("tts_voicevox", {}).get("speakers", {}):
+        lines.append(f"  VOICEVOX:{name}")
+    lines += ["", "■ 画像"]
+    seen = []
+    for a in (attributions or {}).values():
+        if a and a not in seen:
+            seen.append(a)
+    if seen:
+        lines += [f"  {a}" for a in seen]
+    else:
+        lines.append("  Wikimedia Commons / Pexels / Pixabay（商用可ライセンス）")
+    lines += ["", "※ CC-BY画像は上記表記により帰属。PD/CC0/Pexels/Pixabayは帰属不要。"]
+    (out_dir / "credits.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def build_meta(script_result, turns, config, now_iso, image_files=None, attributions=None):
     """動画(video/)が読む meta.json 構造を組み立てる（純関数・テスト可能）。
 
@@ -250,6 +271,9 @@ def main():
     meta = build_meta(script_result, turns, config, now_iso, image_files, attributions)
     with open(out_dir / "meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
+
+    # 概要欄用クレジット（動画内には出さない。CC-BY帰属はここで要件を満たす）。
+    write_credits_txt(out_dir, config, attributions)
 
     dur = meta["topics"][-1]["end"] if meta["topics"] else 0.0
     logger.info(f"=== 完了: {out_dir} （{len(meta['script'])}ターン・{len(meta['topics'])}章・{dur:.1f}秒）===")
