@@ -15,9 +15,6 @@ import type { Emotion, Gender, Meta, Topic, Turn } from "./types";
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。素材/音声に合わせて調整。
 const LIPSYNC_GAIN = 5;
 
-// 左上チャンネル名バッジの既定値（暫定）。meta.channel があればそちらを優先。
-const DEFAULT_CHANNEL = "ずんだもんの宇宙きょうしつ";
-
 // 中央ビジュアル枠の配置(px・1920x1080基準)。背景 bg.png の黒板の内縁に合わせた目測値。
 // 黒板の前に画像/立ち絵が乗る構図。背景を差し替えたら npm run dev で見ながらここを微調整する。
 const BOARD = { left: 252, right: 252, top: 70, bottom: 347 };
@@ -663,43 +660,6 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           </div>
         </div>
       ) : null}
-
-      {/* 左上：チャンネル名バッジ（アイコン＋ピル）。最前面。 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 18,
-          left: 24,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          background: "rgba(18,30,58,0.82)",
-          border: "2px solid rgba(125,170,235,0.45)",
-          borderRadius: 999,
-          padding: "8px 20px 8px 14px",
-          boxShadow: "0 3px 12px rgba(0,0,0,0.45)",
-        }}
-      >
-        <svg width="26" height="26" viewBox="0 0 24 24">
-          <path
-            d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.8 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"
-            fill="#ffd84d"
-            stroke="#b8860b"
-            strokeWidth="0.6"
-          />
-        </svg>
-        <span
-          style={{
-            color: "#fff",
-            fontSize: 28,
-            fontWeight: 800,
-            letterSpacing: 1,
-            textShadow: "0 1px 3px rgba(0,0,0,0.6)",
-          }}
-        >
-          {meta.channel ?? DEFAULT_CHANNEL}
-        </span>
-      </div>
 
       {/* クレジット（右上・最前面）。音声(VOICEVOX)は概要欄に記載するためここは画像出典のみ。
           中央ビジュアルより後に描く＝画像の上に乗る（複数行でも隠れない）。薄い背景で視認性確保。 */}
