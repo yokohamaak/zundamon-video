@@ -116,6 +116,63 @@ def apply_approve(review, key, approved=True):
     return True
 
 
+def _clean_crop(v):
+    """crop パッチを検証して {l,t,r,b}(0..1, l<r,t<b) に整える。不正/Noneは None。"""
+    if not isinstance(v, dict):
+        return None
+    try:
+        l, t, r, b = (float(v["l"]), float(v["t"]), float(v["r"]), float(v["b"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+    l, t = max(0.0, min(1.0, l)), max(0.0, min(1.0, t))
+    r, b = max(0.0, min(1.0, r)), max(0.0, min(1.0, b))
+    if r - l < 0.02 or b - t < 0.02:  # 極小は無効（誤クリック）
+        return None
+    return {"l": round(l, 4), "t": round(t, 4), "r": round(r, 4), "b": round(b, 4)}
+
+
+def _clean_filter(v):
+    """filter パッチを brightness/contrast/grayscale の数値のみに整える。既定等倍だけなら None。"""
+    if not isinstance(v, dict):
+        return None
+    out = {}
+    for k, default in (("brightness", 1.0), ("contrast", 1.0), ("grayscale", 0.0)):
+        if k in v and v[k] is not None:
+            try:
+                fv = round(float(v[k]), 3)
+            except (TypeError, ValueError):
+                continue
+            if abs(fv - default) > 1e-6:  # 既定値は持たない（=なし扱い）
+                out[k] = fv
+    return out or None
+
+
+def apply_options(review, key, patch):
+    """描画オプション(fit/crop/filter/hide)を1カットへ適用（検証込み・純ロジック）。
+
+    patch に含まれるキーだけ更新。fit は cover/contain/None、crop/filter は専用バリデータ、hide は bool。
+    Returns: (ok, applied_dict)
+    """
+    cut = find_cut(review, key)
+    if not cut:
+        return False, {}
+    applied = {}
+    if "fit" in patch:
+        v = patch["fit"]
+        cut["fit"] = v if v in ("cover", "contain") else None
+        applied["fit"] = cut["fit"]
+    if "crop" in patch:
+        cut["crop"] = _clean_crop(patch["crop"])
+        applied["crop"] = cut["crop"]
+    if "filter" in patch:
+        cut["filter"] = _clean_filter(patch["filter"])
+        applied["filter"] = cut["filter"]
+    if "hide" in patch:
+        cut["hide"] = bool(patch["hide"])
+        applied["hide"] = cut["hide"]
+    return True, applied
+
+
 def review_summary(review):
     cuts = review.get("cuts", [])
     return {
@@ -153,21 +210,32 @@ PAGE = """<!doctype html>
   .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
           overflow:hidden; display:flex; flex-direction:column; }
   .card.approved { border-color:var(--ok); box-shadow:0 0 0 1px var(--ok); }
-  .thumb { aspect-ratio:16/9; background:#0c0f15; display:flex; align-items:center;
-           justify-content:center; }
-  .thumb img { width:100%; height:100%; object-fit:contain; }
+  .thumb { position:relative; aspect-ratio:16/9; background:#0c0f15; display:flex;
+           align-items:center; justify-content:center; cursor:crosshair; user-select:none; }
+  .thumb img { width:100%; height:100%; object-fit:contain; pointer-events:none; }
   .thumb .ph { color:var(--sub); font-size:14px; }
+  .croprect { position:absolute; border:2px solid #ffd84d; background:rgba(255,216,77,.12);
+              pointer-events:none; }
+  .card.hidden .thumb { opacity:.35; }
   .body { padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
   .title { font-weight:700; font-size:15px; }
   .meta { font-size:12px; color:var(--sub); display:flex; gap:8px; flex-wrap:wrap; }
   .kind { padding:1px 8px; border-radius:999px; background:var(--line); }
   input[type=text] { width:100%; font:inherit; font-size:12px; padding:6px 8px;
            background:#0c0f15; color:var(--fg); border:1px solid var(--line); border-radius:6px; }
-  .row { display:flex; gap:8px; }
+  select { font:inherit; font-size:12px; padding:6px 8px; background:#0c0f15; color:var(--fg);
+           border:1px solid var(--line); border-radius:6px; }
+  .row { display:flex; gap:8px; align-items:center; }
   .row button { flex:1; padding:7px 10px; font-size:13px; }
   label.file { flex:1; }
   label.file input { display:none; }
-  .hint { color:var(--sub); font-size:12px; }
+  .chk { font-size:12px; color:var(--sub); display:flex; align-items:center; gap:5px; white-space:nowrap; }
+  .filters { display:grid; grid-template-columns:auto 1fr; gap:4px 8px; align-items:center;
+             font-size:11px; color:var(--sub); }
+  .filters input[type=range] { width:100%; }
+  .filters .frow { display:contents; }
+  .tools button { background:var(--line); font-size:12px; padding:5px 10px; }
+  .hint { color:var(--sub); font-size:12px; min-height:14px; }
   #done { display:none; padding:22px; }
   #done code { background:#0c0f15; padding:10px 14px; border-radius:8px; display:block;
            color:#bfe3c4; font-size:13px; white-space:pre-wrap; }
@@ -199,16 +267,31 @@ function refreshCount(){
   document.getElementById('count').textContent = `${a} / ${cuts.length} 承認`;
 }
 
+function setOpt(key, patch){ return api('/api/options', {key, patch}); }
+
+// contain表示の画像内容矩形（letterbox込みの実描画領域）。クロップ座標を画像基準にするため。
+function contentRect(img, box){
+  const nw=img.naturalWidth, nh=img.naturalHeight;
+  if(!nw||!nh) return {x:0,y:0,w:box.width,h:box.height};
+  const s=Math.min(box.width/nw, box.height/nh);
+  const w=nw*s, h=nh*s;
+  return {x:(box.width-w)/2, y:(box.height-h)/2, w, h};
+}
+function cssFilter(f){
+  if(!f) return '';
+  return `brightness(${f.brightness??1}) contrast(${f.contrast??1}) grayscale(${f.grayscale??0})`;
+}
+
 function card(c){
   const key = `${c.ch}_${c.ci}`;
   const el = document.createElement('div');
-  el.className = 'card' + (c.approved ? ' approved':'');
+  el.className = 'card' + (c.approved ? ' approved':'') + (c.hide ? ' hidden':'');
   el.dataset.key = key;
   const img = c.image
     ? `<img src="/img/${key}?v=${Date.now()}" alt="">`
     : `<span class="ph">画像なし（プレースホルダ）</span>`;
   el.innerHTML = `
-    <div class="thumb">${img}</div>
+    <div class="thumb">${img}<div class="croprect" style="display:none"></div></div>
     <div class="body">
       <div class="title">${c.title || '(無題)'}</div>
       <div class="meta"><span class="kind">${c.kind}</span><span>検索: ${c.query||'-'}</span></div>
@@ -218,39 +301,139 @@ function card(c){
         <label class="file"><button type="button" class="repl">差し替え</button>
           <input type="file" accept="image/*"></label>
       </div>
-      <div class="hint"></div>
+      <div class="row">
+        <select class="fit" title="枠への収め方">
+          <option value="">fit:自動</option><option value="cover">cover(埋める)</option>
+          <option value="contain">contain(全体)</option>
+        </select>
+        <label class="chk"><input type="checkbox" class="hide"> 画像なし</label>
+      </div>
+      <div class="filters">
+        <span>明るさ</span><input type="range" class="fb" min="0.3" max="1.5" step="0.05" value="1">
+        <span>コントラスト</span><input type="range" class="fc" min="0.5" max="1.5" step="0.05" value="1">
+        <span>白黒</span><input type="range" class="fg" min="0" max="1" step="0.05" value="0">
+      </div>
+      <div class="row tools">
+        <button class="cropclear">クロップ解除</button>
+        <button class="fclear">補正解除</button>
+      </div>
+      <div class="hint">画像をドラッグで範囲選択＝クロップ</div>
     </div>`;
-  // OK
+
+  const thumb = el.querySelector('.thumb');
+  const imgEl = thumb.querySelector('img');
+  const rectEl = thumb.querySelector('.croprect');
+  const hint = el.querySelector('.hint');
+
+  // 初期状態を反映
+  el.querySelector('.fit').value = c.fit || '';
+  el.querySelector('.hide').checked = !!c.hide;
+  if(c.filter){
+    el.querySelector('.fb').value = c.filter.brightness??1;
+    el.querySelector('.fc').value = c.filter.contrast??1;
+    el.querySelector('.fg').value = c.filter.grayscale??0;
+  }
+  if(imgEl) imgEl.style.filter = cssFilter(c.filter);
+
+  function drawCrop(){
+    if(!c.crop || !imgEl){ rectEl.style.display='none'; return; }
+    const box = thumb.getBoundingClientRect();
+    const r = contentRect(imgEl, box);
+    rectEl.style.display='block';
+    rectEl.style.left = (r.x + c.crop.l*r.w)+'px';
+    rectEl.style.top  = (r.y + c.crop.t*r.h)+'px';
+    rectEl.style.width  = ((c.crop.r-c.crop.l)*r.w)+'px';
+    rectEl.style.height = ((c.crop.b-c.crop.t)*r.h)+'px';
+  }
+  if(imgEl){ imgEl.complete ? drawCrop() : (imgEl.onload = drawCrop); }
+
+  const approve = ()=>{ c.approved=true; el.classList.add('approved');
+    el.querySelector('.approve').textContent='承認済み'; refreshCount(); };
+
   el.querySelector('.approve').onclick = async ()=>{
-    const r = await api('/api/approve', {key, approved:true});
-    if(r.ok){ c.approved=true; el.classList.add('approved');
-      el.querySelector('.approve').textContent='承認済み'; refreshCount(); }
+    const r = await api('/api/approve', {key, approved:true}); if(r.ok) approve();
   };
-  // 出典編集（blurで保存）
-  el.querySelector('.attr').onchange = async (e)=>{
-    await api('/api/attribution', {key, attribution:e.target.value});
-    c.attribution = e.target.value;
+  el.querySelector('.attr').onchange = (e)=>{
+    api('/api/attribution', {key, attribution:e.target.value}); c.attribution=e.target.value;
   };
-  // 差し替え（base64でPOST）
+  el.querySelector('.fit').onchange = (e)=>{
+    setOpt(key, {fit: e.target.value || null}); c.fit = e.target.value || null;
+  };
+  el.querySelector('.hide').onchange = (e)=>{
+    setOpt(key, {hide: e.target.checked}); c.hide=e.target.checked;
+    el.classList.toggle('hidden', c.hide);
+  };
+  const sendFilter = ()=>{
+    const f = {brightness:+el.querySelector('.fb').value,
+               contrast:+el.querySelector('.fc').value,
+               grayscale:+el.querySelector('.fg').value};
+    c.filter = f; if(imgEl) imgEl.style.filter = cssFilter(f);
+    setOpt(key, {filter: f});
+  };
+  ['fb','fc','fg'].forEach(k=>{
+    const s = el.querySelector('.'+k);
+    s.oninput = ()=>{ if(imgEl) imgEl.style.filter = cssFilter(
+      {brightness:+el.querySelector('.fb').value, contrast:+el.querySelector('.fc').value,
+       grayscale:+el.querySelector('.fg').value}); };
+    s.onchange = sendFilter;
+  });
+  el.querySelector('.fclear').onclick = ()=>{
+    el.querySelector('.fb').value=1; el.querySelector('.fc').value=1; el.querySelector('.fg').value=0;
+    c.filter=null; if(imgEl) imgEl.style.filter=''; setOpt(key, {filter:null});
+  };
+  el.querySelector('.cropclear').onclick = ()=>{
+    c.crop=null; rectEl.style.display='none'; setOpt(key, {crop:null});
+  };
+
+  // 差し替え
   const fileInput = el.querySelector('input[type=file]');
   el.querySelector('.repl').onclick = ()=> fileInput.click();
   fileInput.onchange = (e)=>{
     const f = e.target.files[0]; if(!f) return;
-    const hint = el.querySelector('.hint'); hint.textContent = '送信中…';
+    hint.textContent='送信中…';
     const reader = new FileReader();
     reader.onload = async ()=>{
       const b64 = reader.result.split(',')[1];
-      const attr = el.querySelector('.attr').value;
-      const r = await api('/api/replace', {key, filename:f.name, dataB64:b64, attribution:attr});
+      const r = await api('/api/replace', {key, filename:f.name, dataB64:b64,
+        attribution: el.querySelector('.attr').value});
       if(r.ok){
-        c.image=r.filename; c.approved=true;
-        el.querySelector('.thumb').innerHTML = `<img src="/img/${key}?v=${Date.now()}">`;
-        el.classList.add('approved'); el.querySelector('.approve').textContent='承認済み';
-        hint.textContent=''; refreshCount();
+        c.image=r.filename; c.crop=null;
+        thumb.innerHTML = `<img src="/img/${key}?v=${Date.now()}"><div class="croprect" style="display:none"></div>`;
+        approve(); hint.textContent='画像をドラッグで範囲選択＝クロップ';
+        load();  // 簡易：再読込で新imgのハンドラ再付与
       } else { hint.textContent='失敗: '+(r.message||''); }
     };
     reader.readAsDataURL(f);
   };
+
+  // クロップ：画像上をドラッグで矩形選択 → 画像内容基準で正規化して保存
+  if(c.image){
+    let drag=null;
+    thumb.onmousedown = (e)=>{
+      const box = thumb.getBoundingClientRect();
+      drag = {box, r:contentRect(imgEl, box), x0:e.clientX-box.left, y0:e.clientY-box.top};
+    };
+    window.addEventListener('mousemove', (e)=>{
+      if(!drag) return;
+      const x=e.clientX-drag.box.left, y=e.clientY-drag.box.top;
+      const L=Math.min(drag.x0,x), T=Math.min(drag.y0,y), W=Math.abs(x-drag.x0), H=Math.abs(y-drag.y0);
+      rectEl.style.display='block';
+      rectEl.style.left=L+'px'; rectEl.style.top=T+'px'; rectEl.style.width=W+'px'; rectEl.style.height=H+'px';
+    });
+    thumb.onmouseup = (e)=>{
+      if(!drag) return;
+      const r=drag.r;
+      const x=e.clientX-drag.box.left, y=e.clientY-drag.box.top;
+      const norm=(px,py)=>[ (px-r.x)/r.w, (py-r.y)/r.h ];
+      let [l,t]=norm(Math.min(drag.x0,x), Math.min(drag.y0,y));
+      let [rr,bb]=norm(Math.max(drag.x0,x), Math.max(drag.y0,y));
+      const cl=v=>Math.max(0,Math.min(1,v));
+      const crop={l:cl(l),t:cl(t),r:cl(rr),b:cl(bb)};
+      drag=null;
+      if(crop.r-crop.l<0.02 || crop.b-crop.t<0.02){ drawCrop(); return; } // 誤クリックは無視
+      c.crop=crop; setOpt(key,{crop}); drawCrop();
+    };
+  }
   return el;
 }
 
@@ -351,6 +534,12 @@ class Handler(BaseHTTPRequestHandler):
             if ok:
                 save_review(review)
             self._json({"ok": ok})
+            return
+        if path == "/api/options":
+            ok, applied = apply_options(review, body.get("key"), body.get("patch") or {})
+            if ok:
+                save_review(review)
+            self._json({"ok": ok, "applied": applied})
             return
         if path == "/api/replace":
             ok, msg, fn = apply_replace(

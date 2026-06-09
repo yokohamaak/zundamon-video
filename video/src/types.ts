@@ -53,6 +53,12 @@ export type Topic = {
   // 画像の枠への収め方。"cover"(既定)=枠を埋めはみ出しを切る（写真向き）/
   // "contain"=全体を収め余白を入れる（ロゴ・アイコン・記号は端が切れると意味を失うため）。
   fit?: "cover" | "contain";
+  // 手動クロップ（画像レビューで指定）。元画像の {l,t,r,b}(0..1正規化)の矩形だけを枠に表示。
+  crop?: { l: number; t: number; r: number; b: number };
+  // 補正フィルタ（画像レビューで指定）。CSS filterに変換。brightness/contrast=1が等倍, grayscale=0..1。
+  filter?: { brightness?: number; contrast?: number; grayscale?: number };
+  // true=中央ビジュアルを出さない（黒板＋立ち絵のみ）。画像レビューで「画像なし」を選んだカット。
+  blank?: boolean;
   // 実は〇〇雑学: 章メタ（main_story.build_chapter_topics が付与）。
   chapter?: number;       // 0始まりの章番号
   chapterTotal?: number;  // 全章数

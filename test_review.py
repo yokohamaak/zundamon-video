@@ -67,6 +67,32 @@ def test_replace_writes_and_updates():
     print("  replace: base64保存・review更新・承認扱い OK")
 
 
+def test_clean_crop_and_filter():
+    assert R._clean_crop({"l": 0.1, "t": 0.2, "r": 0.8, "b": 0.7}) == {"l": 0.1, "t": 0.2, "r": 0.8, "b": 0.7}
+    assert R._clean_crop({"l": 0.5, "t": 0, "r": 0.505, "b": 1}) is None, "極小幅は無効"
+    assert R._clean_crop({"l": -1, "t": 0, "r": 2, "b": 1}) == {"l": 0.0, "t": 0.0, "r": 1.0, "b": 1.0}, "0..1にクランプ"
+    assert R._clean_crop("nope") is None
+    assert R._clean_filter({"brightness": 0.6, "contrast": 1.0, "grayscale": 0}) == {"brightness": 0.6}, "既定値は落とす"
+    assert R._clean_filter({"brightness": 1, "contrast": 1, "grayscale": 0}) is None, "全て既定→None"
+    assert R._clean_filter({"grayscale": 1}) == {"grayscale": 1}
+    print("  _clean_crop / _clean_filter: 検証・既定除去 OK")
+
+
+def test_apply_options():
+    rev = _sample_review()
+    ok, ap = R.apply_options(rev, "0_0", {"fit": "cover"})
+    assert ok and rev["cuts"][0]["fit"] == "cover"
+    R.apply_options(rev, "0_0", {"fit": "bogus"})
+    assert rev["cuts"][0]["fit"] is None, "不正fitはNone"
+    R.apply_options(rev, "0_0", {"hide": True, "filter": {"grayscale": 1}})
+    assert rev["cuts"][0]["hide"] is True
+    assert rev["cuts"][0]["filter"] == {"grayscale": 1}
+    R.apply_options(rev, "0_0", {"crop": {"l": 0, "t": 0, "r": 0.5, "b": 0.5}})
+    assert rev["cuts"][0]["crop"] == {"l": 0, "t": 0, "r": 0.5, "b": 0.5}
+    assert R.apply_options(rev, "9_9", {"fit": "cover"}) == (False, {})
+    print("  apply_options: fit/crop/filter/hide 適用・検証 OK")
+
+
 def test_summary():
     rev = _sample_review()
     R.apply_approve(rev, "0_0", True)
@@ -95,18 +121,46 @@ def test_build_review_matches_fetch_order():
 def test_load_images_from_review_roundtrip():
     tmp = tempfile.mkdtemp()
     rev = {"cuts": [
-        {"ch": 0, "ci": 0, "image": "ch_00_00.jpeg", "attribution": "X / Pexels"},
-        {"ch": 0, "ci": 1, "image": None, "attribution": None},
-        {"ch": 2, "ci": 0, "image": "ch_02_00.png", "attribution": None},
+        {"ch": 0, "ci": 0, "image": "ch_00_00.jpeg", "attribution": "X / Pexels",
+         "fit": "contain", "filter": {"grayscale": 1}},
+        {"ch": 0, "ci": 1, "image": None, "attribution": None, "hide": True},
+        {"ch": 2, "ci": 0, "image": "ch_02_00.png", "attribution": None,
+         "crop": {"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.8}},
     ]}
     with open(os.path.join(tmp, "review.json"), "w", encoding="utf-8") as f:
         json.dump(rev, f)
-    imgs, attrs = M.load_images_from_review(tmp)
+    imgs, attrs, opts = M.load_images_from_review(tmp)
     assert imgs == {(0, 0): "ch_00_00.jpeg", (2, 0): "ch_02_00.png"}, imgs
     assert attrs == {(0, 0): "X / Pexels"}, attrs
+    assert opts[(0, 0)] == {"fit": "contain", "filter": {"grayscale": 1}}, opts.get((0, 0))
+    assert opts[(0, 1)] == {"hide": True}, opts.get((0, 1))
+    assert opts[(2, 0)] == {"crop": {"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.8}}, opts.get((2, 0))
     # review.json が無いディレクトリは空（フォールバック）
-    assert M.load_images_from_review(tempfile.mkdtemp()) == ({}, {})
-    print("  load_images_from_review: 復元・欠落スキップ・無ファイル空 OK")
+    assert M.load_images_from_review(tempfile.mkdtemp()) == ({}, {}, {})
+    print("  load_images_from_review: 画像/帰属/描画オプション復元・無ファイル空 OK")
+
+
+def test_build_chapter_topics_applies_opts():
+    chapters = [{"title": "章A", "section": "trivia",
+                 "image_cuts": [{"image_query": "q1", "image_kind": "ambient"},
+                                {"image_query": "q2", "image_kind": "subject"},
+                                {"image_query": "q3", "image_kind": "ambient"}]}]
+    # カット数≤ターン数の仕様。3カット出すにはターンも3つ要る。
+    turns = [{"speaker": "A", "text": "x", "start": float(i * 3), "end": float(i * 3 + 3)}
+             for i in range(3)]
+    segments = [{"chapter": 0, "section": "trivia", "turns": [0, 1, 2]}]
+    image_files = {(0, 0): "ch_00_00.jpg", (0, 1): "ch_00_01.jpg", (0, 2): "ch_00_02.jpg"}
+    cut_opts = {
+        (0, 0): {"filter": {"brightness": 0.6}, "fit": "cover"},
+        (0, 1): {"crop": {"l": 0, "t": 0, "r": 0.5, "b": 0.5}},
+        (0, 2): {"hide": True},
+    }
+    tops = M.build_chapter_topics(segments, turns, chapters, image_files, {}, cut_opts)
+    assert tops[0]["fit"] == "cover" and tops[0]["filter"] == {"brightness": 0.6}
+    assert tops[1]["crop"] == {"l": 0, "t": 0, "r": 0.5, "b": 0.5}
+    assert tops[1]["fit"] == "contain", "subjectは既定contain（opt.fit無し時）"
+    assert tops[2].get("blank") is True and "image" not in tops[2], "hide=画像なし(blank)"
+    print("  build_chapter_topics: fit/crop/filter/hide 反映 OK")
 
 
 if __name__ == "__main__":
@@ -115,7 +169,10 @@ if __name__ == "__main__":
     test_safe_ext()
     test_approve_and_attribution()
     test_replace_writes_and_updates()
+    test_clean_crop_and_filter()
+    test_apply_options()
     test_summary()
     test_build_review_matches_fetch_order()
     test_load_images_from_review_roundtrip()
+    test_build_chapter_topics_applies_opts()
     print("ALL PASS")

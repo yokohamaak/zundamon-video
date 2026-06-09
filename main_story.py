@@ -71,7 +71,7 @@ def chapter_image_name(chapter: int, cut: int = 0) -> str:
     return f"ch_{chapter:02d}_{cut:02d}.png"
 
 
-def build_chapter_topics(segments, turns, chapters, image_files=None, attributions=None):
+def build_chapter_topics(segments, turns, chapters, image_files=None, attributions=None, cut_opts=None):
     """章区間 → meta.topics（純関数）。
 
     各章区間を image_cuts の数で複数カットに分割し、[0, total] を隙間なく被覆する
@@ -129,13 +129,23 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 topic["triviaIndex"] = trivia_seen
                 topic["triviaTotal"] = trivia_total
             key = (ch, ci)
+            opt = (cut_opts or {}).get(key, {})
             fname = image_files.get(key)
-            if fname:
+            if opt.get("hide"):
+                # レビューで「画像なし」を選択＝中央ビジュアルを出さず黒板のみ。
+                topic["blank"] = True
+            elif fname:
                 topic["image"] = fname
                 # subject(ロゴ・記号・製品)は端が切れると意味を失うため contain で全体表示。
-                # ambient(写真)は cover で枠を埋める（既定）。
-                if cut.get("image_kind") == "subject":
+                # ambient(写真)は cover で枠を埋める（既定）。レビュー指定(opt.fit)があれば優先。
+                if opt.get("fit"):
+                    topic["fit"] = opt["fit"]
+                elif cut.get("image_kind") == "subject":
                     topic["fit"] = "contain"
+                if opt.get("crop"):
+                    topic["crop"] = opt["crop"]
+                if opt.get("filter"):
+                    topic["filter"] = opt["filter"]
                 if attributions.get(key):
                     topic["credit"] = attributions[key]
             else:
@@ -168,6 +178,11 @@ def build_review(chapters, image_files=None, attributions=None):
                 "image": image_files.get(key),          # None=未取得(プレースホルダ)
                 "attribution": attributions.get(key),    # None=帰属不要/無し
                 "approved": False,
+                # レビューで人が決める描画オプション（既定=自動/なし）
+                "fit": None,        # None=自動(kindで決定) / "cover" / "contain"
+                "crop": None,       # None=なし / {l,t,r,b}(0..1)
+                "filter": None,     # None=なし / {brightness,contrast,grayscale}
+                "hide": False,      # True=画像を出さない(黒板のみ)
             })
     return {"cuts": cuts}
 
@@ -176,21 +191,34 @@ def load_images_from_review(out_dir):
     """review.json から image_files/attributions を復元する（レビュー承認後の続行用）。
 
     人が差し替え/編集した結果を真として meta を作るため、fetch を再実行しない。
-    Returns: (image_files{(ch,ci):filename}, attributions{(ch,ci):attr})
+    Returns: (image_files{(ch,ci):filename}, attributions{(ch,ci):attr},
+              cut_opts{(ch,ci):{fit?,crop?,filter?,hide?}})
     """
     path = Path(out_dir) / "review.json"
     if not path.exists():
-        return {}, {}
+        return {}, {}, {}
     with open(path, encoding="utf-8") as f:
         review = json.load(f)
-    image_files, attributions = {}, {}
+    image_files, attributions, cut_opts = {}, {}, {}
     for c in review.get("cuts", []):
         key = (c["ch"], c["ci"])
         if c.get("image"):
             image_files[key] = c["image"]
         if c.get("attribution"):
             attributions[key] = c["attribution"]
-    return image_files, attributions
+        # 描画オプション（自動/なし以外だけ持たせる）
+        opt = {}
+        if c.get("fit"):
+            opt["fit"] = c["fit"]
+        if c.get("crop"):
+            opt["crop"] = c["crop"]
+        if c.get("filter"):
+            opt["filter"] = c["filter"]
+        if c.get("hide"):
+            opt["hide"] = True
+        if opt:
+            cut_opts[key] = opt
+    return image_files, attributions, cut_opts
 
 
 def build_credits(config, attributions=None):
@@ -231,7 +259,7 @@ def write_credits_txt(out_dir, config, attributions):
     (out_dir / "credits.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def build_meta(script_result, turns, config, now_iso, image_files=None, attributions=None):
+def build_meta(script_result, turns, config, now_iso, image_files=None, attributions=None, cut_opts=None):
     """動画(video/)が読む meta.json 構造を組み立てる（純関数・テスト可能）。
 
     - script に VOICEVOX のターン情報(start/end/sentences=字幕単位)を合流
@@ -266,7 +294,7 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
         "generated_at": now_iso,
         "title": script_result.get("theme"),
         "speakers": speakers,
-        "topics": build_chapter_topics(segments, turns, chapters, image_files, attributions),
+        "topics": build_chapter_topics(segments, turns, chapters, image_files, attributions, cut_opts),
         "credits": build_credits(config, attributions),
         "script": script,
     }
@@ -318,11 +346,11 @@ def main():
         return
 
     # 2. 画像取得（image_kindで Wikimedia / Pexels / Pixabay に振り分け）。失敗カットはプレースホルダ。
-    image_files, attributions = {}, {}
+    image_files, attributions, cut_opts = {}, {}, {}
     if args.images_from_dir:
-        # レビュー承認後の続行：fetchせず review.json の人手結果（差し替え/帰属編集込み）を真とする。
-        image_files, attributions = load_images_from_review(out_dir)
-        logger.info(f"--images-from-dir: review.json から画像{len(image_files)}件を使用（再取得なし）")
+        # レビュー承認後の続行：fetchせず review.json の人手結果（差し替え/帰属/描画オプション込み）を真とする。
+        image_files, attributions, cut_opts = load_images_from_review(out_dir)
+        logger.info(f"--images-from-dir: review.json から画像{len(image_files)}件・オプション{len(cut_opts)}件を使用（再取得なし）")
     elif args.no_images:
         logger.info("--no-images: 画像取得をskipし全章プレースホルダで続行します。")
     else:
@@ -354,7 +382,7 @@ def main():
 
     # 4. meta.json
     now_iso = datetime.now(JST).isoformat()
-    meta = build_meta(script_result, turns, config, now_iso, image_files, attributions)
+    meta = build_meta(script_result, turns, config, now_iso, image_files, attributions, cut_opts)
     with open(out_dir / "meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 

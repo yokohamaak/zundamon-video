@@ -353,6 +353,13 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   // contain（ロゴ等の全体表示）はパンすると余白が露出するため、中央ゆっくりズームのみ。
   const isContain = activeTopic?.fit === "contain";
   const containTransform = `scale(${(1 + 0.04 * kbProgress).toFixed(4)})` + fxTransform;
+  // 補正フィルタ（画像レビュー指定）→ CSS filter 文字列。
+  const flt = activeTopic?.filter;
+  const imgFilter = flt
+    ? `brightness(${flt.brightness ?? 1}) contrast(${flt.contrast ?? 1}) grayscale(${flt.grayscale ?? 0})`
+    : undefined;
+  // 手動クロップ（画像レビュー指定）。元画像の[l..r]×[t..b]だけを枠に出す。
+  const crop = activeTopic?.crop;
   // 中央ビジュアル枠の実寸（focusアノテーションの contain フィット計算用。styleのleft/right/top/bottomと一致）。
   // 黒板内縁(BOARD)に収まる最大の16:9枠を中央配置する（画像素材が16:9＝間延び/切れを防ぐ）。
   const boardW = 1920 - BOARD.left - BOARD.right;
@@ -390,7 +397,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           boxShadow: "0 8px 30px rgba(0,0,0,0.45)",
         }}
       >
-        {activeTopic ? (
+        {activeTopic && activeTopic.blank ? null : activeTopic ? (
           <div
             // トピック切替でフェードをやり直すためkeyを付与
             key={activeTopicIndex}
@@ -420,6 +427,23 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
                   p={kbProgress}
                   fxTransform={fxTransform}
                 />
+              ) : crop ? (
+                // 手動クロップ：元画像の[l..r]×[t..b]だけを枠に出す（はみ出しはoverflow:hiddenで切る）。
+                // 画像を 1/(r-l)×1/(b-t) に拡大し -l,-t へずらして該当矩形を枠に合わせる。Ken Burnsも乗せる。
+                <Img
+                  src={staticFile(activeTopic.image)}
+                  style={{
+                    position: "absolute",
+                    width: `${(100 / (crop.r - crop.l)).toFixed(3)}%`,
+                    height: `${(100 / (crop.b - crop.t)).toFixed(3)}%`,
+                    left: `${(-crop.l * 100 / (crop.r - crop.l)).toFixed(3)}%`,
+                    top: `${(-crop.t * 100 / (crop.b - crop.t)).toFixed(3)}%`,
+                    objectFit: "fill",
+                    transform: imgTransform,
+                    filter: imgFilter,
+                    willChange: "transform",
+                  }}
+                />
               ) : (
                 <Img
                   src={staticFile(activeTopic.image)}
@@ -430,6 +454,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
                     objectFit: isContain ? "contain" : "cover",
                     // contain は余白露出を避け中央ズームのみ。cover は Ken Burns＋effect。
                     transform: isContain ? containTransform : imgTransform,
+                    filter: imgFilter,
                     willChange: "transform",
                   }}
                 />
