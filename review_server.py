@@ -743,10 +743,11 @@ SCRIPT_PAGE = """<!doctype html>
   .cuts .idx { color:var(--sub); width:28px; }
   input[type=text], textarea, select { font:inherit; background:#0c0f15; color:var(--fg);
           border:1px solid var(--line); border-radius:6px; padding:6px 9px; }
-  textarea { width:100%; resize:vertical; min-height:38px; font-size:15px; }
-  .turn { display:grid; grid-template-columns:120px 1fr 96px; gap:10px; align-items:start;
-          padding:8px 0; border-top:1px solid var(--line); }
-  .turn .sp { font-size:13px; color:var(--sub); padding-top:8px; }
+  textarea { width:100%; resize:vertical; min-height:38px; font-size:15px; overflow:hidden; }
+  .turn { display:grid; grid-template-columns:140px 1fr 96px; gap:10px; align-items:start;
+          padding:8px 0 8px 12px; border-top:1px solid var(--line); border-left:4px solid transparent; }
+  .turn .sp { font-size:14px; font-weight:700; padding-top:8px; display:flex; align-items:center; gap:6px; }
+  .turn .sp .dot { width:9px; height:9px; border-radius:50%; flex:none; }
   .turn .cutsel { font-size:13px; }
   .titleInput { font-size:15px; font-weight:700; flex:1; }
   .qInput { flex:1; }
@@ -764,6 +765,13 @@ SCRIPT_PAGE = """<!doctype html>
 let DATA = null;
 function api(path, body){ return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(body)}).then(r=>r.json()); }
+
+function speakerColor(name){
+  if(/ずんだ/.test(name)) return '#3fa34d';
+  if(/めたん|メタン/.test(name)) return '#d85a9c';
+  return '#90a0b5';
+}
+function autosize(ta){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px'; }
 
 function render(){
   const m = document.getElementById('main'); m.innerHTML='';
@@ -801,9 +809,12 @@ function render(){
     DATA.script.forEach((tn)=>{
       if(tn.chapter !== ci) return;
       const row = document.createElement('div'); row.className='turn';
-      const sp = document.createElement('div'); sp.className='sp'; sp.textContent = tn.speaker;
+      const col = speakerColor(tn.speaker);
+      row.style.borderLeftColor = col;
+      const sp = document.createElement('div'); sp.className='sp'; sp.style.color = col;
+      sp.innerHTML = `<span class="dot" style="background:${col}"></span>${tn.speaker}`;
       const ta = document.createElement('textarea'); ta.value = tn.text;
-      ta.oninput = ()=> tn.text = ta.value;
+      ta.oninput = ()=>{ tn.text = ta.value; autosize(ta); };
       const sel = document.createElement('select'); sel.className='cutsel';
       const n = Math.max(1, cuts.length);
       for(let i=0;i<n;i++){ const o=document.createElement('option'); o.value=i; o.textContent='画像'+i; sel.appendChild(o); }
@@ -814,6 +825,8 @@ function render(){
     });
     m.appendChild(box);
   });
+  // DOM反映後にテキスト全文が見えるよう高さを内容に合わせる（見切れ防止）。
+  document.querySelectorAll('#main textarea').forEach(autosize);
 }
 
 document.getElementById('save').onclick = async ()=>{
