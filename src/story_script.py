@@ -139,7 +139,12 @@ def build_prompt(config: dict) -> str:
 - 専門用語は{explainer}が一言で噛み砕く。
 
 ## 出力形式
-マークダウンのコードブロックは使わず、以下のJSONだけを出力すること:
+マークダウンのコードブロックは使わず、以下のJSONだけを出力すること。
+**厳密に有効なJSONにすること**:
+- 文字列の中でダブルクオート(")を使わない。セリフの強調・引用は必ず「」や『』を使う。
+- 末尾カンマを付けない。各要素の区切りカンマを忘れない。
+- 文字列内に生の改行を入れない（1つのtextは1行）。
+- バックスラッシュや制御文字を入れない。
 {{
   "theme": "動画のテーマ（日本語・meta.titleに使う。例「実は知らないデジタルの名前の謎」）",
   "chapters": [
@@ -165,6 +170,11 @@ def build_prompt(config: dict) -> str:
 """.strip()
 
 
+def _repair_json(text: str) -> str:
+    """Gemini応答JSONの軽微な崩れを修復（純関数）。末尾カンマ除去のみ（安全側）。"""
+    return re.sub(r",(\s*[}\]])", r"\1", text)
+
+
 def parse_script_json(text: str) -> dict:
     """Geminiの応答テキストからJSONを取り出してdictを返す（純関数）。
 
@@ -180,7 +190,11 @@ def parse_script_json(text: str) -> dict:
         text = text.strip()
 
     start = text.index("{")
-    data, _ = json.JSONDecoder().raw_decode(text, start)
+    try:
+        data, _ = json.JSONDecoder().raw_decode(text, start)
+    except json.JSONDecodeError:
+        # 末尾カンマ等の軽微な崩れを修復して再試行（直らなければ呼び出し側が再生成）。
+        data, _ = json.JSONDecoder().raw_decode(_repair_json(text), start)
     if "script" not in data or not isinstance(data["script"], list) or not data["script"]:
         raise ValueError("応答に有効な script がありません")
     for i, turn in enumerate(data["script"]):
@@ -375,24 +389,34 @@ def generate_story_script(config: dict) -> dict:
     theme = (config.get("story", {}).get("theme") or "").strip() or "(Geminiが選定)"
     prompt = build_prompt(config)
 
-    text = None
+    # 生成→パースをセットで試す。JSON不正は再生成で直ることが多いので同一モデルで複数回、
+    # API系エラー(429/503等)は次のモデルへフォールバック。
+    data = None
     last_err = None
     for model_name in candidates:
-        logger.info(f"IT技術史台本を生成（モデル: {model_name}・テーマ: {theme}）")
-        try:
-            text = _generate_with_retry(client, model_name, prompt, max_attempts=3)
+        for attempt in range(1, 3):
+            logger.info(f"台本を生成（モデル: {model_name}・試行{attempt}/2・テーマ: {theme}）")
+            try:
+                text = _generate_with_retry(client, model_name, prompt, max_attempts=3)
+            except Exception as e:  # noqa: BLE001 - API系はこのモデルを諦め次候補へ
+                last_err = e
+                logger.warning(f"モデル {model_name} で生成できず、次の候補へ: {e}")
+                break
+            try:
+                data = parse_script_json(text)
+                break
+            except (json.JSONDecodeError, ValueError) as e:  # 不正な応答→同一モデルで再生成
+                last_err = e
+                logger.warning(f"応答JSONが不正（モデル {model_name}・試行{attempt}/2）、再生成: {e}")
+                try:  # デバッグ用に生応答を残す
+                    with open("last_bad_script.txt", "w", encoding="utf-8") as f:
+                        f.write(text)
+                except OSError:
+                    pass
+        if data is not None:
             break
-        except Exception as e:  # noqa: BLE001 - 次のモデルへフォールバック
-            last_err = e
-            logger.warning(f"モデル {model_name} で生成できず、次の候補へフォールバック: {e}")
-    if text is None:
+    if data is None:
         raise last_err
-
-    try:
-        data = parse_script_json(text)
-    except Exception as e:
-        logger.error(f"応答のパースに失敗: {e}\n{text}")
-        raise
 
     s = config.get("story", {})
     warn_role_voice(data["script"],

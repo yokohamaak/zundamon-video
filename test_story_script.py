@@ -106,6 +106,17 @@ def test_clean_chapters():
     print("  _clean_chapters: image_cuts正規化/後方互換/除外 OK")
 
 
+def test_repair_json_trailing_comma():
+    assert s._repair_json('{"a":1,}') == '{"a":1}'
+    assert s._repair_json('[1,2,]') == '[1,2]'
+    import json as _j
+    assert _j.loads(s._repair_json('[1, 2, ]')) == [1, 2]  # 空白入り末尾カンマもパース可
+    # 末尾カンマ入りでもパースできる（修復フォールバック）
+    d = s.parse_script_json('{"script":[{"speaker":"x","text":"y"},],"chapters":[]}')
+    assert len(d["script"]) == 1
+    print("  _repair_json: 末尾カンマ修復・パース成功 OK")
+
+
 def test_strip_markdown():
     assert s.strip_markdown("**実は**すごい") == "実はすごい"
     assert s.strip_markdown("これは*強調*だ") == "これは強調だ"
@@ -222,6 +233,7 @@ if __name__ == "__main__":
     test_parse_with_leading_text()
     test_parse_missing_script_raises()
     test_clean_chapters()
+    test_repair_json_trailing_comma()
     test_strip_markdown()
     test_normalize_turns_strips_markdown()
     test_normalize_turns_enums()
