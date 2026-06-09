@@ -973,7 +973,7 @@ STORY_PAGE = """<!doctype html>
   .turn .sp .dot { width:9px; height:9px; border-radius:50%; flex:none; }
   .adjust { display:flex; gap:16px; flex-wrap:wrap; margin:2px 0 10px; padding:12px;
             background:#0c0f15; border:1px solid var(--accent); border-radius:8px; }
-  .adjust .crop { position:relative; width:320px; height:180px; background:#11151c; cursor:crosshair;
+  .adjust .crop { position:relative; width:560px; height:315px; max-width:100%; background:#11151c; cursor:crosshair;
             flex:none; border-radius:6px; overflow:hidden; user-select:none; }
   .adjust .crop img { width:100%; height:100%; object-fit:contain; pointer-events:none; }
   .adjust .croprect { position:absolute; border:2px solid #ffd84d; background:rgba(255,216,77,.12); pointer-events:none; }
