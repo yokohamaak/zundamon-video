@@ -71,6 +71,36 @@ def chapter_image_name(chapter: int, cut: int = 0) -> str:
     return f"ch_{chapter:02d}_{cut:02d}.png"
 
 
+def _cut_groups(idxs, turns, ncuts):
+    """章内ターン列を、各ターンの cut アンカー（その章の何番目の画像か）でグループ化する。
+
+    cut が一つも無ければ None（呼び出し側が均等割りにフォールバック）。
+    cut は章内で非減少にクランプ（画像が逆戻りしない）・欠落は直前を引き継ぐ。
+    Returns: [(cut_index, lo, hi)]（lo..hi は idxs 内の位置・hi排他・連続被覆）または None
+    """
+    if ncuts <= 0:
+        return None
+    vals, cur, any_anchor = [], 0, False
+    for j in idxs:
+        c = turns[j].get("cut")
+        if isinstance(c, int) and not isinstance(c, bool) and 0 <= c < ncuts:
+            any_anchor = True
+            c = max(cur, c)        # 非減少
+        else:
+            c = cur                # 欠落は直前のcutを継続
+        vals.append(c)
+        cur = c
+    if not any_anchor:
+        return None
+    groups, pos, n = [], 0, len(vals)
+    while pos < n:
+        ci, start = vals[pos], pos
+        while pos < n and vals[pos] == ci:
+            pos += 1
+        groups.append((ci, start, pos))
+    return groups
+
+
 def build_chapter_topics(segments, turns, chapters, image_files=None, attributions=None, cut_opts=None):
     """章区間 → meta.topics（純関数）。
 
@@ -105,16 +135,16 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
         # 章区間の時間範囲 [seg_start, seg_end)。章間も連結（[0,total]被覆）。
         seg_start = 0.0 if si == 0 else turns[idxs[0]]["start"]
         seg_end = total if si == nseg - 1 else turns[segments[si + 1]["turns"][0]]["start"]
-        # 章内ターンを cut 数で分割（カット数は min(cuts, ターン数)＝ターンより多い画像は出さない）。
-        ncut = max(1, min(len(cuts), len(idxs)))
-        for ci in range(ncut):
-            lo = ci * len(idxs) // ncut
-            cstart = seg_start if ci == 0 else turns[idxs[lo]]["start"]
-            if ci == ncut - 1:
-                cend = seg_end
-            else:
-                hi = (ci + 1) * len(idxs) // ncut
-                cend = turns[idxs[hi]]["start"]
+        # カット割り当て: ターンの cut アンカー（その章の何番目の画像か）があれば章内をそれで
+        # 区切る（話の流れで切替）。無ければ均等割り（後方互換）。
+        groups = _cut_groups(idxs, turns, len(cuts))
+        if groups is None:
+            ncut = max(1, min(len(cuts), len(idxs)))
+            groups = [(ci, ci * len(idxs) // ncut, (ci + 1) * len(idxs) // ncut)
+                      for ci in range(ncut)]
+        for gi, (ci, lo, hi) in enumerate(groups):
+            cstart = seg_start if gi == 0 else turns[idxs[lo]]["start"]
+            cend = seg_end if gi == len(groups) - 1 else turns[idxs[hi]]["start"]
             cut = cuts[ci] if ci < len(cuts) else {}
             topic = {
                 "title": meta_ch.get("title"),

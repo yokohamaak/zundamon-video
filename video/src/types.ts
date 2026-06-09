@@ -33,6 +33,8 @@ export type Turn = {
   // IT技術史ストーリー: 所属章とsection（story_script が付与）。描画では未使用だが型整合用。
   chapter?: number;
   section?: Section;
+  // C-1: その発言中に映す画像が章の image_cuts の何番目か（0始まり）。timing算出に使う（描画では未使用）。
+  cut?: number;
 };
 
 // 中央ビジュアルのトピック。imageがあれば画像、無ければtitleでカード描画。

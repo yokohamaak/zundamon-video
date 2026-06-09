@@ -118,6 +118,9 @@ def build_prompt(config: dict) -> str:
    {questioner} は驚き役なので surprise/happy が出やすい。迷ったら normal。
 4. "effect": kenburns（基本）/ zoom_punch（“実は”の真実を明かす瞬間に効く）/ shake / flash（ネタの切替）/ glow_pulse。
    **基本は kenburns。ネタが切り替わる最初の発言に flash、真実を明かす所に zoom_punch** を使うと締まる。多用しない。
+5. "cut": その発言の間に画面に映す画像が、その章の image_cuts の**何番目か（0始まりの整数）**。
+   章の最初の発言は 0。話が進んで別の被写体に移る発言で 1, 2… と増やす（**戻さない・飛ばさない**）。
+   画像の切替が**話の流れ（被写体が変わる所）に合う**ようにする。image_cuts の個数と対応させること。
 
 ## 章メタ（chapters・各章に1つ）
 章の構成 = intro(導入) 1つ ＋ trivia(各ネタ) {topics}個 ＋ outro(締め) 1つ。各章に次を出す（chapter番号の昇順）:
@@ -164,11 +167,11 @@ def build_prompt(config: dict) -> str:
     ]}}
   ],
   "script": [
-    {{"speaker": "{explainer}", "text": "今日は身近なのに意外と知らない…の話よ。へぇって言わせるわ。", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns"}},
-    {{"speaker": "{questioner}", "text": "へぇを連発させてやるのだ！望むところなのだ！", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns"}},
-    {{"speaker": "{explainer}", "text": "じゃあ最初。Wi-Fiって何の略か言える？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash"}},
-    {{"speaker": "{questioner}", "text": "ワイヤレス…なんとかなのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns"}},
-    {{"speaker": "{explainer}", "text": "実はね、何の略でもないの。語呂で作った造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch"}}
+    {{"speaker": "{explainer}", "text": "今日は身近なのに意外と知らない…の話よ。へぇって言わせるわ。", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
+    {{"speaker": "{questioner}", "text": "へぇを連発させてやるのだ！望むところなのだ！", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
+    {{"speaker": "{explainer}", "text": "じゃあ最初。Wi-Fiって何の略か言える？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}},
+    {{"speaker": "{questioner}", "text": "ワイヤレス…なんとかなのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 0}},
+    {{"speaker": "{explainer}", "text": "実はね、何の略でもないの。Hi-Fi（ハイファイ）の響きに似せた造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch", "cut": 1}}
   ]
 }}
 """.strip()
@@ -310,6 +313,28 @@ def strip_markdown(text: str) -> str:
     return t.strip()
 
 
+def _normalize_cut(turn, chapters, n):
+    """turn["cut"] を整数化し、その章の image_cuts 範囲 [0, ncuts-1] にクランプ（in-place）。
+
+    chapter は normalize_turns で先に確定している前提。不正/範囲外で章情報が無ければ削除。
+    """
+    if "cut" not in turn:
+        return
+    try:
+        c = int(turn["cut"])
+    except (TypeError, ValueError):
+        turn.pop("cut", None)
+        return
+    ch = turn.get("chapter")
+    ncuts = 0
+    if isinstance(ch, int) and 0 <= ch < n:
+        ncuts = len(chapters[ch].get("image_cuts") or [])
+    if ncuts <= 0:
+        turn.pop("cut", None)  # 章のカット数不明＝判定不能なので捨てる
+    else:
+        turn["cut"] = max(0, min(c, ncuts - 1))
+
+
 def normalize_turns(script: list, chapters: list = None) -> list:
     """各ターンの emotion / effect / section / chapter をenum・整数固定する（破壊的・in-place）。
 
@@ -331,6 +356,9 @@ def normalize_turns(script: list, chapters: list = None) -> list:
             ch = 0
         ch = max(0, min(ch, n - 1)) if n else max(0, ch)
         turn["chapter"] = ch
+        # cut アンカー（その章の何番目の画像か）を整数化＋章のimage_cuts範囲にクランプ。
+        # chapter確定後に判定。不正/範囲不明は削除（build側で均等割りフォールバック）。
+        _normalize_cut(turn, chapters, n)
         if n:
             turn["section"] = chapters[ch].get("section", DEFAULT_SECTION)
         elif turn.get("section") not in VALID_SECTIONS:

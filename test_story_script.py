@@ -137,6 +137,25 @@ def test_normalize_turns_strips_markdown():
     print("  normalize_turns: 本文のMarkdown除去 OK")
 
 
+def test_normalize_turns_cut_clamp():
+    chapters = [{"section": "intro", "image_cuts": [{"image_query": "q"}]},
+                {"section": "trivia", "image_cuts": [{"image_query": "a"}, {"image_query": "b"}]}]
+    script = [
+        {"speaker": "x", "text": "t", "chapter": 1, "cut": 5},   # 範囲外→1にクランプ
+        {"speaker": "x", "text": "t", "chapter": 1, "cut": "0"},  # 文字列→0
+        {"speaker": "x", "text": "t", "chapter": 0, "cut": 3},   # 章0はcut1個→0
+        {"speaker": "x", "text": "t", "chapter": 1, "cut": "x"},  # 不正→削除
+        {"speaker": "x", "text": "t", "chapter": 1},               # 未指定→無し
+    ]
+    s.normalize_turns(script, chapters)
+    assert script[0]["cut"] == 1
+    assert script[1]["cut"] == 0
+    assert script[2]["cut"] == 0
+    assert "cut" not in script[3]
+    assert "cut" not in script[4]
+    print("  normalize_turns: cut の整数化/範囲クランプ/不正削除 OK")
+
+
 def test_normalize_turns_enums():
     script = [{"speaker": "x", "text": "y"}]  # emotion/effect/chapter/section 欠落
     s.normalize_turns(script)
@@ -236,6 +255,7 @@ if __name__ == "__main__":
     test_repair_json_trailing_comma()
     test_strip_markdown()
     test_normalize_turns_strips_markdown()
+    test_normalize_turns_cut_clamp()
     test_normalize_turns_enums()
     test_normalize_turns_chapter_clamp_and_section_from_chapters()
     test_assign_sections_to_turns()

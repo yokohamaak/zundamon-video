@@ -173,6 +173,36 @@ def test_load_images_from_review_roundtrip():
     print("  load_images_from_review: 画像/帰属/描画オプション復元・無ファイル空 OK")
 
 
+def test_cut_groups():
+    turns = [{"cut": 0}, {"cut": 0}, {"cut": 1}, {"cut": 1}, {"cut": 2}]
+    assert M._cut_groups([0, 1, 2, 3, 4], turns, 3) == [(0, 0, 2), (1, 2, 4), (2, 4, 5)]
+    # 非減少クランプ（逆戻りは前の値に）
+    t2 = [{"cut": 1}, {"cut": 0}, {"cut": 2}]
+    assert M._cut_groups([0, 1, 2], t2, 3) == [(1, 0, 2), (2, 2, 3)]
+    # 欠落は直前を継続
+    t3 = [{"cut": 0}, {}, {"cut": 1}]
+    assert M._cut_groups([0, 1, 2], t3, 2) == [(0, 0, 2), (1, 2, 3)]
+    # アンカー皆無→None（均等割りへ）
+    assert M._cut_groups([0, 1], [{}, {}], 2) is None
+    assert M._cut_groups([0], [{"cut": 0}], 0) is None  # cuts無し
+    print("  _cut_groups: グループ化/非減少/欠落補完/フォールバック OK")
+
+
+def test_build_chapter_topics_anchored():
+    chapters = [{"title": "章A", "section": "trivia",
+                 "image_cuts": [{"image_query": "q0", "image_kind": "ambient"},
+                                {"image_query": "q1", "image_kind": "subject"}]}]
+    # 5ターン。cut: 0,0,0,1,1 → 画像0は0-3秒、画像1は3-5秒
+    turns = [{"start": float(i), "end": float(i + 1), "cut": (0 if i < 3 else 1)} for i in range(5)]
+    segments = [{"chapter": 0, "section": "trivia", "turns": [0, 1, 2, 3, 4]}]
+    imgs = {(0, 0): "ch_00_00.jpg", (0, 1): "ch_00_01.jpg"}
+    tops = M.build_chapter_topics(segments, turns, chapters, imgs, {})
+    assert len(tops) == 2
+    assert tops[0]["image"] == "ch_00_00.jpg" and tops[0]["start"] == 0.0 and tops[0]["end"] == 3.0
+    assert tops[1]["image"] == "ch_00_01.jpg" and tops[1]["start"] == 3.0
+    print("  build_chapter_topics: cutアンカーで切替タイミングを反映 OK")
+
+
 def test_build_chapter_topics_applies_opts():
     chapters = [{"title": "章A", "section": "trivia",
                  "image_cuts": [{"image_query": "q1", "image_kind": "ambient"},
@@ -209,5 +239,7 @@ if __name__ == "__main__":
     test_summary()
     test_build_review_matches_fetch_order()
     test_load_images_from_review_roundtrip()
+    test_cut_groups()
+    test_build_chapter_topics_anchored()
     test_build_chapter_topics_applies_opts()
     print("ALL PASS")
