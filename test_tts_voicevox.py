@@ -143,6 +143,12 @@ def test_reading_gloss_pure():
     assert tv._spoken_text("音響のHIFI（ハイファイ）だ") == "音響のハイファイだ"
     # 括弧内のかなに空白があっても畳む（Wireless Fidelity の二重読み対策）
     assert tv._spoken_text("「Wireless Fidelity（ワイヤレス フィデリティ）」の略") == "「ワイヤレス フィデリティ」の略"
+    # 語末の促音「っ」は落とす（囁き化対策）。
+    assert tv._spoken_text("えぇーっ！？") == "えぇー！？"
+    assert tv._spoken_text("そうなんだっ。") == "そうなんだ。"
+    assert tv._spoken_text("やっぱりそうか。") == "やっぱりそうか。", "語中の促音は残す"
+    # 語末促音＋へぇ伸ばしの併用
+    assert tv._spoken_text("へぇっ！") == "へぇ〜！"
     # 感嘆の「へぇ」は伸ばす（！？。」の直前）。字幕は原文（synthesis側テストで担保）。
     assert tv._spoken_text("へぇ！すごい") == "へぇ〜！すごい"
     assert tv._spoken_text("頭が「へぇ」でいっぱい") == "頭が「へぇ〜」でいっぱい"
