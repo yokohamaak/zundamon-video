@@ -74,6 +74,30 @@ def save_script(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def translate_text(text, to):
+    """Geminiで翻訳（to="ja"/"en"）。訳文だけ返す。GEMINI_API_KEY 必須・無料枠。
+
+    ネットワーク/外部依存。呼び出し側で例外を捕捉してUIへ返す。
+    """
+    text = (text or "").strip()
+    if not text:
+        return ""
+    from google import genai  # 遅延import
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    tgt = "日本語" if to == "ja" else "英語"
+    prompt = (f"次の語句を{tgt}に翻訳して、訳文だけを1行で返してください"
+              f"（引用符・説明・前置き不要）:\n{text}")
+    for model in ("gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"):
+        try:
+            resp = client.models.generate_content(model=model, contents=prompt)
+            out = (resp.text or "").strip().strip('"「」')
+            if out:
+                return out
+        except Exception:  # noqa: BLE001 - 次モデルへ
+            continue
+    raise RuntimeError("翻訳できませんでした（モデル全滅 or APIキー未設定）")
+
+
 def pipeline_status():
     """各工程の成果物の有無からステージ完了状況を推定。"""
     def ex(name):
@@ -739,8 +763,13 @@ SCRIPT_PAGE = """<!doctype html>
   .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line); color:var(--sub); }
   .cuts { display:flex; flex-direction:column; gap:6px; margin:8px 0 12px; padding:8px 10px;
           background:#0c0f15; border-radius:8px; }
-  .cuts .row { display:flex; gap:8px; align-items:center; font-size:13px; }
-  .cuts .idx { color:var(--sub); width:28px; }
+  .cuts .row { display:flex; gap:6px; align-items:center; font-size:13px; flex-wrap:wrap; }
+  .cuts .idx { color:var(--sub); width:28px; flex:none; }
+  .qInput { flex:2; min-width:140px; }
+  .jaInput { flex:2; min-width:120px; }
+  button.mini { font-size:12px; padding:5px 9px; background:var(--line); }
+  button.mini.add { background:transparent; border:1px dashed var(--line); color:var(--sub); width:100%; margin-top:4px; }
+  button.mini.del { background:transparent; color:#c66; padding:4px 8px; }
   input[type=text], textarea, select { font:inherit; background:#0c0f15; color:var(--fg);
           border:1px solid var(--line); border-radius:6px; padding:6px 9px; }
   textarea { width:100%; resize:vertical; min-height:38px; font-size:15px; overflow:hidden; }
@@ -785,25 +814,42 @@ function render(){
 
   chapters.forEach((ch, ci)=>{
     const box = document.createElement('div'); box.className='chap';
-    const cuts = ch.image_cuts || [];
     box.innerHTML = `<div class="head"><span class="badge">${ch.section||'-'}</span></div>`;
     // title
     const title = document.createElement('input'); title.type='text'; title.className='titleInput';
     title.value = ch.title||''; title.placeholder='章タイトル';
     title.onchange = ()=> ch.title = title.value;
     box.querySelector('.head').appendChild(title);
-    // image_cuts
+    // image_cuts（追加/削除・日本語訳・kindは日本語表示）
     const cb = document.createElement('div'); cb.className='cuts';
-    cuts.forEach((cut, k)=>{
+    const cutList = ch.image_cuts || (ch.image_cuts = []);
+    cutList.forEach((cut, k)=>{
       const row = document.createElement('div'); row.className='row';
-      const q = document.createElement('input'); q.type='text'; q.className='qInput';
-      q.value = cut.image_query||''; q.onchange=()=> cut.image_query=q.value;
-      const kind = document.createElement('select');
-      kind.innerHTML = `<option value="ambient">ambient</option><option value="subject">subject</option>`;
-      kind.value = cut.image_kind||'ambient'; kind.onchange=()=> cut.image_kind=kind.value;
       row.innerHTML = `<span class="idx">#${k}</span>`;
-      row.appendChild(q); row.appendChild(kind); cb.appendChild(row);
+      const q = document.createElement('input'); q.type='text'; q.className='qInput';
+      q.placeholder='英語の検索語'; q.value = cut.image_query||''; q.onchange=()=> cut.image_query=q.value;
+      const kind = document.createElement('select');
+      kind.innerHTML = `<option value="subject">被写体(ロゴ/人物/製品)</option><option value="ambient">雰囲気(イメージ)</option>`;
+      kind.value = cut.image_kind||'ambient'; kind.onchange=()=> cut.image_kind=kind.value;
+      const ja = document.createElement('input'); ja.type='text'; ja.className='jaInput';
+      ja.placeholder='日本語(意味)'; ja.value = cut.image_query_ja||''; ja.onchange=()=> cut.image_query_ja=ja.value;
+      const bWa = document.createElement('button'); bWa.className='mini'; bWa.textContent='和訳';
+      bWa.title='英語→日本語'; bWa.onclick = async ()=>{ bWa.textContent='…';
+        const r=await api('/api/translate',{text:q.value,to:'ja'});
+        bWa.textContent='和訳'; if(r.ok){ ja.value=r.text; cut.image_query_ja=r.text; } else alert(r.message||'翻訳失敗'); };
+      const bEn = document.createElement('button'); bEn.className='mini'; bEn.textContent='英訳→反映';
+      bEn.title='日本語→英語にして検索語に設定'; bEn.onclick = async ()=>{ bEn.textContent='…';
+        const r=await api('/api/translate',{text:ja.value,to:'en'});
+        bEn.textContent='英訳→反映'; if(r.ok){ q.value=r.text; cut.image_query=r.text; } else alert(r.message||'翻訳失敗'); };
+      const del = document.createElement('button'); del.className='mini del'; del.textContent='×';
+      del.title='この画像を削除'; del.onclick = ()=>{ cutList.splice(k,1); render(); };
+      row.appendChild(q); row.appendChild(kind); row.appendChild(ja);
+      row.appendChild(bWa); row.appendChild(bEn); row.appendChild(del);
+      cb.appendChild(row);
     });
+    const add = document.createElement('button'); add.className='mini add'; add.textContent='＋画像を追加';
+    add.onclick = ()=>{ cutList.push({image_query:'', image_kind:'ambient'}); render(); };
+    cb.appendChild(add);
     box.appendChild(cb);
     // turns of this chapter
     DATA.script.forEach((tn)=>{
@@ -816,7 +862,7 @@ function render(){
       const ta = document.createElement('textarea'); ta.value = tn.text;
       ta.oninput = ()=>{ tn.text = ta.value; autosize(ta); };
       const sel = document.createElement('select'); sel.className='cutsel';
-      const n = Math.max(1, cuts.length);
+      const n = Math.max(1, cutList.length);
       for(let i=0;i<n;i++){ const o=document.createElement('option'); o.value=i; o.textContent='画像'+i; sel.appendChild(o); }
       sel.value = (typeof tn.cut==='number'?tn.cut:0);
       sel.onchange = ()=> tn.cut = parseInt(sel.value);
@@ -919,6 +965,12 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         body = self._read_json()
         review = load_review()
+        if path == "/api/translate":
+            try:
+                self._json({"ok": True, "text": translate_text(body.get("text", ""), body.get("to", "ja"))})
+            except Exception as e:  # noqa: BLE001
+                self._json({"ok": False, "message": str(e)})
+            return
         if path == "/api/script":
             ok, msg, norm = apply_save_script(body)
             if ok:

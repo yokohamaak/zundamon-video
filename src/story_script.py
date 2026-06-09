@@ -135,6 +135,7 @@ def build_prompt(config: dict) -> str:
     抽象的なambient（"artificial intelligence", "robot" 等）にすると題材と無関係なストック画像になり逆効果。
     適切なロゴが無ければ取得失敗→プレースホルダで構わない（無関係画像より良い）。
   - "image_query": 英語の検索語。**subject は固有名詞のみ**（説明を足さない）。**ambient は情景キーワード**でよい。
+  - "image_query_ja": image_query の**日本語訳**（人が確認するためのラベル。例 image_query="vintage radio"→image_query_ja="昔のラジオ"）。
 
 ## 読み上げ（VOICEVOX）の注意
 - **セリフ(text)中の英字を含む語には必ず直後に（カタカナ読み）を付ける**（例「Hi-Fi（ハイファイ）」「API（エーピーアイ）」）。
@@ -159,8 +160,8 @@ def build_prompt(config: dict) -> str:
       {{"image_query": "wifi router", "image_kind": "ambient"}}
     ]}},
     {{"section": "trivia", "title": "Wi-Fiは略語じゃない", "image_cuts": [
-      {{"image_query": "wifi symbol", "image_kind": "subject"}},
-      {{"image_query": "vintage hifi audio system", "image_kind": "ambient"}}
+      {{"image_query": "wifi symbol", "image_kind": "subject", "image_query_ja": "Wi-Fiのマーク"}},
+      {{"image_query": "vintage hifi audio system", "image_kind": "ambient", "image_query_ja": "昔のオーディオ機器"}}
     ]}},
     {{"section": "outro", "title": "まとめ", "image_cuts": [
       {{"image_query": "technology gadgets flat lay", "image_kind": "ambient"}}
@@ -255,7 +256,11 @@ def _clean_image_cuts(cuts, limit=4):
         if k not in VALID_IMAGE_KINDS:
             k = DEFAULT_IMAGE_KIND
         if q:
-            out.append({"image_query": q, "image_kind": k})
+            cut = {"image_query": q, "image_kind": k}
+            ja = (c.get("image_query_ja") or "").strip()
+            if ja:  # 人が確認するための日本語ラベル（任意）
+                cut["image_query_ja"] = ja
+            out.append(cut)
     return out[:limit]
 
 
