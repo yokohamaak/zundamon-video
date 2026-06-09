@@ -915,8 +915,8 @@ STORY_PAGE = """<!doctype html>
   .lbl { color:var(--sub); font-size:12px; margin:10px 0 4px; }
   .imgrow { display:flex; gap:8px; align-items:center; padding:6px; background:#0c0f15;
             border-radius:8px; margin-bottom:6px; flex-wrap:wrap; }
-  .imgrow img, .imgrow .ph2 { width:160px; height:90px; object-fit:contain; background:#11151c;
-            border:1px solid var(--line); border-radius:4px; flex:none; }
+  .imgrow img, .imgrow .ph2 { width:320px; height:180px; object-fit:contain; background:#11151c;
+            border:1px solid var(--line); border-radius:6px; flex:none; }
   .imgrow .ph2 { display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:11px; }
   .imgrow .q { flex:2; min-width:120px; }
   .imgrow .ja { flex:2; min-width:100px; }
