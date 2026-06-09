@@ -1172,6 +1172,10 @@ function render(){
         const r=document.createElement('div'); r.className='imgrow';
         const u=imgUrl(ci,k);
         r.innerHTML = u?`<img src="${u}">`:`<div class="ph2">#${k} 未取得</div>`;
+        // サムネクリックでも調整パネルを開閉
+        const preview=r.querySelector('img')||r.querySelector('.ph2');
+        if(preview){ preview.style.cursor='pointer'; preview.title='クリックで調整';
+          preview.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); }; }
         const q=document.createElement('input'); q.type='text'; q.className='q'; q.placeholder='英語の検索語';
         q.value=cut.image_query||''; q.onchange=()=>cut.image_query=q.value;
         const kind=document.createElement('select');
