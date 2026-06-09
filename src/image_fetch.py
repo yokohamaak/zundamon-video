@@ -23,22 +23,41 @@ def _key(cfg, name, env_default):
     return os.environ.get(cfg.get("api_key_env", env_default), "") or ""
 
 
-def fetch_images(chapters, out_dir, config):
+def fetch_one_cut(query, kind, out_dir, base, config):
+    """1カット分の画像を取得する（provider振り分け＋フォールバック）。
+
+    - subject(実在の人物/製品/ロゴ)はWikimediaのみ。取れなければ stock の無関係画像に
+      フォールバックせず None（呼び出し側でプレースホルダ＝別物の「嘘の絵」を防ぐ）。
+    - ambient(雰囲気)は Pexels→Pixabay→Wikimedia の順でフォールバック可。
+    Returns: (filename|None, attribution|None)
+    """
+    query = (query or "").strip()
+    if not query:
+        return None, None
     images_cfg = config.get("images", {})
     timeout = int(images_cfg.get("timeout", 30))
     wiki_on = images_cfg.get("wikimedia", {}).get("enable", True)
     px_key = _key(images_cfg.get("pexels", {}), "pexels", "PEXELS_API_KEY")
     pb_key = _key(images_cfg.get("pixabay", {}), "pixabay", "PIXABAY_API_KEY")
 
-    def fetch_wiki(q, base):
-        return wikimedia_client.fetch_one(q, out_dir, base, timeout) if wiki_on else (None, None)
+    def fetch_wiki():
+        return wikimedia_client.fetch_one(query, out_dir, base, timeout) if wiki_on else (None, None)
 
-    def fetch_px(q, base):
-        return pexels_client.fetch_one(q, out_dir, base, px_key, timeout) if px_key else (None, None)
+    def fetch_px():
+        return pexels_client.fetch_one(query, out_dir, base, px_key, timeout) if px_key else (None, None)
 
-    def fetch_pb(q, base):
-        return pixabay_client.fetch_one(q, out_dir, base, pb_key, timeout) if pb_key else (None, None)
+    def fetch_pb():
+        return pixabay_client.fetch_one(query, out_dir, base, pb_key, timeout) if pb_key else (None, None)
 
+    order = [fetch_wiki] if kind == "subject" else [fetch_px, fetch_pb, fetch_wiki]
+    for fetch in order:
+        fn, attr = fetch()
+        if fn:
+            return fn, attr
+    return None, None
+
+
+def fetch_images(chapters, out_dir, config):
     image_files, attributions = {}, {}
     total = 0
     for ch, chapter in enumerate(chapters):
@@ -49,15 +68,7 @@ def fetch_images(chapters, out_dir, config):
             total += 1
             base = f"ch_{ch:02d}_{ci:02d}"
             kind = cut.get("image_kind", "ambient")
-            # subject(実在の人物/製品/ロゴ)はWikimediaのみ。取れなければ stock の無関係画像に
-            # フォールバックせずプレースホルダにする（別人/別物の「嘘の絵」を防ぐ）。
-            # ambient(雰囲気)は Pexels→Pixabay→Wikimedia の順でフォールバック可。
-            order = [fetch_wiki] if kind == "subject" else [fetch_px, fetch_pb, fetch_wiki]
-            fn = attr = None
-            for fetch in order:
-                fn, attr = fetch(query, base)
-                if fn:
-                    break
+            fn, attr = fetch_one_cut(query, kind, out_dir, base, config)
             if fn:
                 image_files[(ch, ci)] = fn
                 if attr:

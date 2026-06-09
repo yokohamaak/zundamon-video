@@ -136,6 +136,14 @@ def test_apply_save_script():
     print("  apply_save_script: 検証/正規化 OK")
 
 
+def test_do_fetch_cut_guards():
+    # ネットワークに行かないガード（空クエリ・不正ch）。
+    assert R.do_fetch_cut(0, 0, "", "subject")["ok"] is False
+    assert R.do_fetch_cut(0, 0, "   ", "ambient")["ok"] is False
+    assert R.do_fetch_cut("x", 0, "query", "subject")["ok"] is False
+    print("  do_fetch_cut: 空クエリ/不正chを取得前に弾く OK")
+
+
 def test_summary():
     rev = _sample_review()
     R.apply_approve(rev, "0_0", True)
@@ -245,6 +253,7 @@ if __name__ == "__main__":
     test_clean_crop_and_filter()
     test_apply_options()
     test_apply_save_script()
+    test_do_fetch_cut_guards()
     test_valid_http_url()
     test_import_url_guards()
     test_summary()

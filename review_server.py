@@ -74,6 +74,46 @@ def save_script(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def do_fetch_cut(ch, ci, query, kind):
+    """1カットを取得して review.json を更新（upsert）。検索のみ・Geminiは使わない。
+
+    Returns: {ok, image?, attribution?, message?}
+    """
+    try:
+        ch, ci = int(ch), int(ci)
+    except (TypeError, ValueError):
+        return {"ok": False, "message": "ch/ci が不正"}
+    query = (query or "").strip()
+    if not query:
+        return {"ok": False, "message": "検索語が空です"}
+    from src import image_fetch  # yaml不要。Wikimediaはキー不要で動く
+    config = {}
+    try:  # .env(Pexels/Pixabayキー)＋config読込はベストエフォート。失敗してもWikimediaは可
+        import main_story
+        main_story.load_dotenv()
+        config = main_story.load_config("config/config.story.yaml")
+    except Exception as e:  # noqa: BLE001
+        print(f"[review] config/.env 読込失敗（Wikimediaのみで続行）: {e}")
+    base = f"ch_{ch:02d}_{ci:02d}"
+    try:
+        fn, attr = image_fetch.fetch_one_cut(query, kind or "ambient", DIR, base, config)
+    except Exception as e:  # noqa: BLE001 - 取得失敗はメッセージで返す
+        return {"ok": False, "message": f"取得エラー: {e}"}
+    if not fn:
+        return {"ok": False, "message": "該当画像が見つかりませんでした（検索語を変えて再取得）"}
+    review = load_review()
+    cut = find_cut(review, f"{ch}_{ci}")
+    if not cut:
+        cut = {"ch": ch, "ci": ci, "approved": False}
+        review.setdefault("cuts", []).append(cut)
+    cut["image"] = fn
+    cut["query"] = query
+    cut["kind"] = kind
+    cut["attribution"] = attr
+    save_review(review)
+    return {"ok": True, "image": fn, "attribution": attr}
+
+
 def pipeline_status():
     """各工程の成果物の有無からステージ完了状況を推定。"""
     def ex(name):
@@ -1016,8 +1056,15 @@ function render(){
         kind.value=cut.image_kind||'ambient'; kind.onchange=()=>cut.image_kind=kind.value;
         const ja=document.createElement('input'); ja.type='text'; ja.className='ja'; ja.placeholder='日本語(意味)';
         ja.value=cut.image_query_ja||''; ja.onchange=()=>cut.image_query_ja=ja.value;
-        const refetch=document.createElement('button'); refetch.className='mini'; refetch.textContent='再取得';
-        refetch.title='検索語で取り直し（次チャンクで実装）'; refetch.onclick=()=>alert('再取得は次チャンクで対応します');
+        const refetch=document.createElement('button'); refetch.className='mini'; refetch.textContent=u?'再取得':'取得';
+        refetch.title='検索語で画像を取得/取り直し'; refetch.onclick=async()=>{
+          if(!cut.image_query){ alert('検索語を入れてください'); return; }
+          refetch.textContent='取得中…'; refetch.disabled=true;
+          const r=await api('/api/fetch',{ch:ci,ci:k,query:cut.image_query,kind:cut.image_kind});
+          refetch.disabled=false;
+          if(r.ok){ cutMap[ci+'_'+k]=Object.assign({},cutMap[ci+'_'+k]||{ch:ci,ci:k},{image:r.image,query:cut.image_query,kind:cut.image_kind}); render(); }
+          else { refetch.textContent=u?'再取得':'取得'; alert(r.message||'取得失敗'); }
+        };
         const adj=document.createElement('a'); adj.href='/images'; adj.innerHTML='<button class="mini">調整</button>';
         const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
         del.onclick=()=>{ cuts.splice(k,1); render(); };
@@ -1156,6 +1203,10 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         body = self._read_json()
         review = load_review()
+        if path == "/api/fetch":
+            self._json(do_fetch_cut(body.get("ch"), body.get("ci"),
+                                    body.get("query"), body.get("kind")))
+            return
         if path == "/api/script":
             ok, msg, norm = apply_save_script(body)
             if ok:
