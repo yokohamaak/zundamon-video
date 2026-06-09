@@ -74,30 +74,6 @@ def save_script(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def translate_text(text, to):
-    """Geminiで翻訳（to="ja"/"en"）。訳文だけ返す。GEMINI_API_KEY 必須・無料枠。
-
-    ネットワーク/外部依存。呼び出し側で例外を捕捉してUIへ返す。
-    """
-    text = (text or "").strip()
-    if not text:
-        return ""
-    from google import genai  # 遅延import
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    tgt = "日本語" if to == "ja" else "英語"
-    prompt = (f"次の語句を{tgt}に翻訳して、訳文だけを1行で返してください"
-              f"（引用符・説明・前置き不要）:\n{text}")
-    for model in ("gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"):
-        try:
-            resp = client.models.generate_content(model=model, contents=prompt)
-            out = (resp.text or "").strip().strip('"「」')
-            if out:
-                return out
-        except Exception:  # noqa: BLE001 - 次モデルへ
-            continue
-    raise RuntimeError("翻訳できませんでした（モデル全滅 or APIキー未設定）")
-
-
 def pipeline_status():
     """各工程の成果物の有無からステージ完了状況を推定。"""
     def ex(name):
@@ -773,10 +749,13 @@ SCRIPT_PAGE = """<!doctype html>
   input[type=text], textarea, select { font:inherit; background:#0c0f15; color:var(--fg);
           border:1px solid var(--line); border-radius:6px; padding:6px 9px; }
   textarea { width:100%; resize:vertical; min-height:38px; font-size:15px; overflow:hidden; }
-  .turn { display:grid; grid-template-columns:140px 1fr 96px; gap:10px; align-items:start;
+  .turn { display:grid; grid-template-columns:130px 1fr 88px auto; gap:10px; align-items:start;
           padding:8px 0 8px 12px; border-top:1px solid var(--line); border-left:4px solid transparent; }
   .turn .sp { font-size:14px; font-weight:700; padding-top:8px; display:flex; align-items:center; gap:6px; }
   .turn .sp .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .turn .acts { display:flex; flex-direction:column; gap:4px; }
+  .turn .acts button { font-size:11px; padding:4px 8px; background:var(--line); }
+  .turn .acts button.del { background:transparent; color:#c66; }
   .turn .cutsel { font-size:13px; }
   .titleInput { font-size:15px; font-weight:700; flex:1; }
   .qInput { flex:1; }
@@ -801,6 +780,27 @@ function speakerColor(name){
   return '#90a0b5';
 }
 function autosize(ta){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px'; }
+
+// 長いセリフを分割：カーソル位置（無ければ最初の文末/中央）で2つの発言に割る。
+function splitTurn(tn, ta){
+  const text = tn.text || '';
+  let pos = ta.selectionStart;
+  if(!(pos > 0 && pos < text.length)){
+    const m = text.slice(1).search(/[。！？]/);
+    pos = m >= 0 ? m + 2 : Math.floor(text.length / 2);
+  }
+  const a = text.slice(0, pos).trim(), b = text.slice(pos).trim();
+  if(!a || !b){ alert('分割位置が不正です（カーソルを文の途中に置いてください）'); return; }
+  tn.text = a;
+  const nt = Object.assign({}, tn, {text: b});  // speaker/chapter/section/emotion/effect/cut を継承
+  ['start','end','sentences'].forEach(k=> delete nt[k]);  // 時刻はTTSで再算出
+  DATA.script.splice(DATA.script.indexOf(tn) + 1, 0, nt);
+  render();
+}
+function delTurn(tn){
+  const i = DATA.script.indexOf(tn);
+  if(i >= 0 && confirm('この発言を削除しますか？')){ DATA.script.splice(i, 1); render(); }
+}
 
 function render(){
   const m = document.getElementById('main'); m.innerHTML='';
@@ -833,18 +833,9 @@ function render(){
       kind.value = cut.image_kind||'ambient'; kind.onchange=()=> cut.image_kind=kind.value;
       const ja = document.createElement('input'); ja.type='text'; ja.className='jaInput';
       ja.placeholder='日本語(意味)'; ja.value = cut.image_query_ja||''; ja.onchange=()=> cut.image_query_ja=ja.value;
-      const bWa = document.createElement('button'); bWa.className='mini'; bWa.textContent='和訳';
-      bWa.title='英語→日本語'; bWa.onclick = async ()=>{ bWa.textContent='…';
-        const r=await api('/api/translate',{text:q.value,to:'ja'});
-        bWa.textContent='和訳'; if(r.ok){ ja.value=r.text; cut.image_query_ja=r.text; } else alert(r.message||'翻訳失敗'); };
-      const bEn = document.createElement('button'); bEn.className='mini'; bEn.textContent='英訳→反映';
-      bEn.title='日本語→英語にして検索語に設定'; bEn.onclick = async ()=>{ bEn.textContent='…';
-        const r=await api('/api/translate',{text:ja.value,to:'en'});
-        bEn.textContent='英訳→反映'; if(r.ok){ q.value=r.text; cut.image_query=r.text; } else alert(r.message||'翻訳失敗'); };
       const del = document.createElement('button'); del.className='mini del'; del.textContent='×';
       del.title='この画像を削除'; del.onclick = ()=>{ cutList.splice(k,1); render(); };
-      row.appendChild(q); row.appendChild(kind); row.appendChild(ja);
-      row.appendChild(bWa); row.appendChild(bEn); row.appendChild(del);
+      row.appendChild(q); row.appendChild(kind); row.appendChild(ja); row.appendChild(del);
       cb.appendChild(row);
     });
     const add = document.createElement('button'); add.className='mini add'; add.textContent='＋画像を追加';
@@ -866,7 +857,13 @@ function render(){
       for(let i=0;i<n;i++){ const o=document.createElement('option'); o.value=i; o.textContent='画像'+i; sel.appendChild(o); }
       sel.value = (typeof tn.cut==='number'?tn.cut:0);
       sel.onchange = ()=> tn.cut = parseInt(sel.value);
-      row.appendChild(sp); row.appendChild(ta); row.appendChild(sel);
+      const acts = document.createElement('div'); acts.className='acts';
+      const bSplit = document.createElement('button'); bSplit.textContent='分割';
+      bSplit.title='カーソル位置でセリフを2つに分ける'; bSplit.onclick = ()=> splitTurn(tn, ta);
+      const bDel = document.createElement('button'); bDel.className='del'; bDel.textContent='削除';
+      bDel.onclick = ()=> delTurn(tn);
+      acts.appendChild(bSplit); acts.appendChild(bDel);
+      row.appendChild(sp); row.appendChild(ta); row.appendChild(sel); row.appendChild(acts);
       box.appendChild(row);
     });
     m.appendChild(box);
@@ -965,12 +962,6 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         body = self._read_json()
         review = load_review()
-        if path == "/api/translate":
-            try:
-                self._json({"ok": True, "text": translate_text(body.get("text", ""), body.get("to", "ja"))})
-            except Exception as e:  # noqa: BLE001
-                self._json({"ok": False, "message": str(e)})
-            return
         if path == "/api/script":
             ok, msg, norm = apply_save_script(body)
             if ok:
