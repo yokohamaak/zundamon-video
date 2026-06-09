@@ -44,6 +44,22 @@ DEFAULT_CAPTION_MAX_CHARS = 22
 _SENTENCE_RE = re.compile(r"[^。！？!?]*[。！？!?]+|[^。！？!?]+")
 _MIN_CAPTION_CHARS = 6  # これ未満の字幕断片は隣に併合する
 
+# 英字の直後に「（かな）」が続く読み仮名（例: HIFI（ハイファイ））。VOICEVOXが英字と
+# かなを二重に読むのを防ぐため、合成テキストではかなだけにする（字幕は原文のまま）。
+# 括弧内が純粋なかな（ひらがな/カタカナ/長音・中黒）かつ直前が英字のときだけ発動＝
+# （笑）（諸説あり）等は対象外。全角/半角の括弧に対応。
+_READING_GLOSS_RE = re.compile(
+    r"[A-Za-z][A-Za-z0-9.\-'’&\s]*[（(]([ぁ-んゔァ-ヴヷ-ヺー・]+)[）)]"
+)
+
+
+def _spoken_text(text):
+    """音声合成用にテキストを整える（字幕には使わない）。
+
+    「英字（かな）」の読み仮名はかなだけ残す（英字＋括弧を落とす）＝二重読み防止。
+    """
+    return _READING_GLOSS_RE.sub(lambda m: m.group(1), text)
+
 
 def _http_post(url, data=None, headers=None, timeout=60):
     req = urllib.request.Request(url, data=data, headers=headers or {}, method="POST")
@@ -199,7 +215,9 @@ def synthesize_dialogue(script, config):
         captions = []
 
         for sentence in _split_sentences(turn["text"]):
-            query = audio_query(base_url, sentence, speaker_id)
+            # 音声に渡すのは読み仮名を畳んだテキスト（字幕＝sentenceは原文のまま）。
+            spoken = _spoken_text(sentence)
+            query = audio_query(base_url, spoken, speaker_id)
             query["speedScale"] = vp["speed"]
             query["pitchScale"] = vp["pitch"]
             query["intonationScale"] = vp["intonation"]

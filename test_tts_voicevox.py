@@ -128,6 +128,31 @@ def test_unknown_speaker():
     raise AssertionError("未知話者でKeyErrorが出ていない")
 
 
+def test_reading_gloss_pure():
+    # 英字（かな）→ かなだけ（音声用）。読み仮名以外は触らない。
+    assert tv._spoken_text("HIFI（ハイファイ）はね") == "ハイファイはね"
+    assert tv._spoken_text("Wi-Fi（ワイファイ）") == "ワイファイ"
+    assert tv._spoken_text("音響のHIFI（ハイファイ）だ") == "音響のハイファイだ"
+    # 読み仮名でないものは不変
+    assert tv._spoken_text("そう（笑）") == "そう（笑）"             # 中身が漢字
+    assert tv._spoken_text("諸説あり（諸説あり）") == "諸説あり（諸説あり）"  # 漢字含む
+    assert tv._spoken_text("（なるほど）") == "（なるほど）"          # 直前が英字でない
+    assert tv._spoken_text("Mac (2020)") == "Mac (2020)"          # 中身が数字
+    print("  _spoken_text: 英字の読み仮名だけ畳む・他は不変 OK")
+
+
+def test_reading_gloss_in_synthesis():
+    # 合成には畳んだテキスト、字幕には原文が使われることを確認。
+    _install_fakes()
+    script = [{"speaker": "四国めたん", "text": "HIFI（ハイファイ）の話。"}]
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2}}}
+    _, turns, _ = tv.synthesize_dialogue(script, cfg)
+    sent_texts = [q["text"] for q in _last_queries]
+    assert sent_texts == ["ハイファイの話。"], sent_texts          # 合成は畳んだ方
+    assert turns[0]["sentences"][0]["text"] == "HIFI（ハイファイ）の話。"  # 字幕は原文
+    print("  synthesis=畳む / caption=原文 OK")
+
+
 def test_generate_audio_end_to_end():
     import os
     import shutil
@@ -158,5 +183,7 @@ if __name__ == "__main__":
     test_per_speaker_voice_params()
     test_inter_turn_pause()
     test_unknown_speaker()
+    test_reading_gloss_pure()
+    test_reading_gloss_in_synthesis()
     test_generate_audio_end_to_end()
     print("ALL PASS")
