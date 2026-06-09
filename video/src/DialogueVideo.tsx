@@ -67,6 +67,12 @@ function speakerColor(dir: string | null, gender: Gender): string {
   return gender === "female" ? "#d85a9c" : "#3fa34d";
 }
 
+// 字幕背景：話者カラーを暗くティントした半透明色（白文字の可読性は維持）。
+function speakerCaptionBg(dir: string | null, gender: Gender): string {
+  const isMetan = dir === "metan" || (dir == null && gender === "female");
+  return isMetan ? "rgba(58,14,38,0.74)" : "rgba(12,42,22,0.74)";
+}
+
 // 字幕テキスト：『』「」で囲まれた語を黄色で強調。それ以外は白。
 function renderCaption(text: string): React.ReactNode {
   const parts = text.split(/(『[^』]*』|「[^」]*」)/g);
@@ -657,37 +663,14 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             left: 320,
             right: 320,
             bottom: 40,
-            background: "rgba(0,0,0,0.7)",
+            background: speakerCaptionBg(activeDir, activeGender),
             backdropFilter: "blur(10px)",
             borderRadius: 24,
-            border: "5px solid #ffe14d",
+            border: `5px solid ${nameColor}`,
             padding: "22px 44px",
             boxSizing: "border-box",
           }}
         >
-          {/* 話者名タグ：話している側（左=めたん/右=ずんだもん）に、話者カラーで表示。 */}
-          {activeSpeaker ? (
-            <div
-              style={{
-                position: "absolute",
-                top: -30,
-                left: activeIsRight ? undefined : 36,
-                right: activeIsRight ? 36 : undefined,
-                background: nameColor,
-                color: "#fff",
-                fontSize: 30,
-                fontWeight: 800,
-                letterSpacing: 1,
-                padding: "5px 24px",
-                borderRadius: 14,
-                border: "3px solid #fff",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.55)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {activeSpeaker}
-            </div>
-          ) : null}
           <div
             style={{
               fontSize: 50,
