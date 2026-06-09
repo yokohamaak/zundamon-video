@@ -971,6 +971,20 @@ STORY_PAGE = """<!doctype html>
           padding:6px 0 6px 12px; border-top:1px solid var(--line); border-left:4px solid transparent; }
   .turn .sp { font-size:14px; font-weight:700; padding-top:8px; display:flex; align-items:center; gap:6px; }
   .turn .sp .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .adjust { display:flex; gap:16px; flex-wrap:wrap; margin:2px 0 10px; padding:12px;
+            background:#0c0f15; border:1px solid var(--accent); border-radius:8px; }
+  .adjust .crop { position:relative; width:320px; height:180px; background:#11151c; cursor:crosshair;
+            flex:none; border-radius:6px; overflow:hidden; user-select:none; }
+  .adjust .crop img { width:100%; height:100%; object-fit:contain; pointer-events:none; }
+  .adjust .croprect { position:absolute; border:2px solid #ffd84d; background:rgba(255,216,77,.12); pointer-events:none; }
+  .adjust .ctl { display:flex; flex-direction:column; gap:8px; min-width:260px; flex:1; }
+  .adjust .filters { display:grid; grid-template-columns:auto 1fr; gap:4px 8px; align-items:center; font-size:12px; color:var(--sub); }
+  .adjust .filters input[type=range] { width:100%; }
+  .adjust .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .adjust .chk { font-size:12px; color:var(--sub); display:flex; align-items:center; gap:5px; }
+  .adjust input[type=text] { flex:1; min-width:120px; }
+  .adjust select { background:#11151c; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:5px 8px; }
+  .adjust .hint { color:var(--sub); font-size:12px; min-height:14px; }
   .cutpick { display:flex; flex-wrap:wrap; gap:5px; }
   .copt { width:88px; height:50px; border:2px solid transparent; border-radius:6px; overflow:hidden;
           cursor:pointer; background:#0c0f15; flex:none; position:relative; }
@@ -993,12 +1007,17 @@ STORY_PAGE = """<!doctype html>
 </header>
 <main id="main">読み込み中…</main>
 <script>
-let DATA=null, CUTS=[], cutMap={}, OPEN=new Set();
+let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set();
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
+function setOpt(key,patch){ return api('/api/options',{key,patch}); }
 function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん|メタン/.test(n))return '#d85a9c'; return '#90a0b5'; }
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
+function cssFilter(f){ return f?`brightness(${f.brightness??1}) contrast(${f.contrast??1}) grayscale(${f.grayscale??0})`:''; }
+function contentRect(img,box){ const nw=img.naturalWidth,nh=img.naturalHeight; if(!nw||!nh) return {x:0,y:0,w:box.width,h:box.height};
+  const s=Math.min(box.width/nw,box.height/nh),w=nw*s,h=nh*s; return {x:(box.width-w)/2,y:(box.height-h)/2,w,h}; }
+function mkrange(min,max,step,val){ const s=document.createElement('input'); s.type='range'; s.min=min; s.max=max; s.step=step; s.value=val; return s; }
 
 function splitTurn(tn,ta){
   const text=tn.text||''; let pos=ta.selectionStart;
@@ -1009,6 +1028,105 @@ function splitTurn(tn,ta){
   DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
 }
 function delTurn(tn){ const i=DATA.script.indexOf(tn); if(i>=0&&confirm('この発言を削除？')){ DATA.script.splice(i,1); render(); } }
+
+// 画像のインライン調整パネル（fit/クロップ/補正/余白色/画像なし/差し替え/出典）。既存APIを使う。
+function buildAdjust(ci,k){
+  const key=ci+'_'+k;
+  const cut=cutMap[key]||(cutMap[key]={ch:ci,ci:k});
+  const wrap=document.createElement('div'); wrap.className='adjust';
+  const crop=document.createElement('div'); crop.className='crop';
+  const u=imgUrl(ci,k);
+  crop.innerHTML=u?`<img src="${u}">`:'<div class="hint" style="display:flex;height:100%;align-items:center;justify-content:center">画像なし（取得 or 差し替え）</div>';
+  const rectEl=document.createElement('div'); rectEl.className='croprect'; rectEl.style.display='none'; crop.appendChild(rectEl);
+  const imgEl=crop.querySelector('img');
+  const ctl=document.createElement('div'); ctl.className='ctl';
+
+  // fit
+  const fr=document.createElement('div'); fr.className='row'; fr.innerHTML='<span class="hint">収め方</span>';
+  const fit=document.createElement('select');
+  fit.innerHTML='<option value="">自動</option><option value="cover">cover(埋める)</option><option value="contain">contain(全体)</option>';
+  fit.value=cut.fit||''; fit.onchange=()=>{ cut.fit=fit.value||null; setOpt(key,{fit:fit.value||null}); };
+  fr.appendChild(fit);
+
+  // filters
+  const filt=document.createElement('div'); filt.className='filters';
+  const fb=mkrange(0.3,1.5,0.05,(cut.filter&&cut.filter.brightness)||1);
+  const fc=mkrange(0.5,1.5,0.05,(cut.filter&&cut.filter.contrast)||1);
+  const fg=mkrange(0,1,0.05,(cut.filter&&cut.filter.grayscale)||0);
+  filt.innerHTML='<span>明るさ</span>'; filt.appendChild(fb);
+  filt.insertAdjacentHTML('beforeend','<span>コントラスト</span>'); filt.appendChild(fc);
+  filt.insertAdjacentHTML('beforeend','<span>白黒</span>'); filt.appendChild(fg);
+  const curFilter=()=>({brightness:+fb.value,contrast:+fc.value,grayscale:+fg.value});
+  const liveFilter=()=>{ if(imgEl) imgEl.style.filter=cssFilter(curFilter()); };
+  [fb,fc,fg].forEach(s=>{ s.oninput=liveFilter; s.onchange=()=>{ cut.filter=curFilter(); setOpt(key,{filter:curFilter()}); }; });
+  if(imgEl) imgEl.style.filter=cssFilter(cut.filter);
+  const fclr=document.createElement('button'); fclr.className='mini'; fclr.textContent='補正解除';
+  fclr.onclick=()=>{ fb.value=1; fc.value=1; fg.value=0; cut.filter=null; if(imgEl) imgEl.style.filter=''; setOpt(key,{filter:null}); };
+
+  // 余白(contain) + 画像なし
+  const r2=document.createElement('div'); r2.className='row'; r2.innerHTML='<span class="hint">余白</span>';
+  const pad=document.createElement('input'); pad.type='number'; pad.min=0; pad.max=400; pad.step=4; pad.value=cut.pad||0; pad.style.width='62px';
+  pad.title='contain余白px'; pad.onchange=()=>{ const n=parseInt(pad.value)||0; cut.pad=n||null; setOpt(key,{pad:n}); };
+  const bg=document.createElement('input'); bg.type='color'; bg.value=cut.bg||'#eef1f5'; bg.title='余白色';
+  bg.onchange=()=>{ cut.bg=bg.value; setOpt(key,{bg:bg.value}); };
+  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='色既定';
+  bgc.onclick=()=>{ cut.bg=null; bg.value='#eef1f5'; setOpt(key,{bg:null}); };
+  const hideL=document.createElement('label'); hideL.className='chk';
+  const hide=document.createElement('input'); hide.type='checkbox'; hide.checked=!!cut.hide;
+  hide.onchange=()=>{ cut.hide=hide.checked; setOpt(key,{hide:hide.checked}); };
+  hideL.appendChild(hide); hideL.appendChild(document.createTextNode(' 画像なし'));
+  r2.appendChild(pad); r2.appendChild(bg); r2.appendChild(bgc); r2.appendChild(hideL);
+
+  // 出典
+  const attr=document.createElement('input'); attr.type='text'; attr.placeholder='出典(任意・CC-BY等)'; attr.value=cut.attribution||'';
+  attr.onchange=()=>{ cut.attribution=attr.value; api('/api/attribution',{key,attribution:attr.value}); };
+
+  // 差し替え / クロップ解除
+  const r3=document.createElement('div'); r3.className='row';
+  const fileL=document.createElement('label'); fileL.className='mini'; fileL.style.cursor='pointer'; fileL.textContent='差し替え';
+  const file=document.createElement('input'); file.type='file'; file.accept='image/*'; file.style.display='none'; fileL.appendChild(file);
+  const onNew=(fn)=>{ cutMap[key]=Object.assign({},cutMap[key],{image:fn}); cut.image=fn; render(); };
+  file.onchange=()=>{ const f=file.files[0]; if(!f)return; const rd=new FileReader();
+    rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
+    rd.readAsDataURL(f); };
+  const cclr=document.createElement('button'); cclr.className='mini'; cclr.textContent='クロップ解除';
+  cclr.onclick=()=>{ cut.crop=null; rectEl.style.display='none'; setOpt(key,{crop:null}); };
+  r3.appendChild(fileL); r3.appendChild(cclr); r3.appendChild(fclr);
+
+  const hint=document.createElement('div'); hint.className='hint'; hint.textContent='画像をドラッグ＝クロップ / 画像をドロップ＝差し替え';
+  ctl.appendChild(fr); ctl.appendChild(filt); ctl.appendChild(r2); ctl.appendChild(attr); ctl.appendChild(r3); ctl.appendChild(hint);
+  wrap.appendChild(crop); wrap.appendChild(ctl);
+
+  // クロップ枠描画＋ドラッグ
+  function drawCrop(){ if(!cut.crop||!imgEl){ rectEl.style.display='none'; return; }
+    const box=crop.getBoundingClientRect(), rr=contentRect(imgEl,box);
+    rectEl.style.display='block'; rectEl.style.left=(rr.x+cut.crop.l*rr.w)+'px'; rectEl.style.top=(rr.y+cut.crop.t*rr.h)+'px';
+    rectEl.style.width=((cut.crop.r-cut.crop.l)*rr.w)+'px'; rectEl.style.height=((cut.crop.b-cut.crop.t)*rr.h)+'px'; }
+  if(imgEl){ imgEl.complete?drawCrop():(imgEl.onload=drawCrop);
+    let drag=null;
+    crop.onmousedown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; };
+    window.addEventListener('mousemove',(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
+      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; });
+    crop.onmouseup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
+      let [l,t]=nm(Math.min(drag.x0,x),Math.min(drag.y0,y)), [rr2,bb]=nm(Math.max(drag.x0,x),Math.max(drag.y0,y));
+      const c={l:cl(l),t:cl(t),r:cl(rr2),b:cl(bb)}; drag=null;
+      if(c.r-c.l<0.02||c.b-c.t<0.02){ drawCrop(); return; } cut.crop=c; setOpt(key,{crop:c}); drawCrop(); };
+    crop.addEventListener('dragover',e=>{e.preventDefault(); crop.style.outline='2px dashed #ffd84d';});
+    crop.addEventListener('dragleave',()=>crop.style.outline='');
+    crop.addEventListener('drop',async(e)=>{ e.preventDefault(); crop.style.outline='';
+      const dt=e.dataTransfer;
+      if(dt.files&&dt.files.length){ const f=dt.files[0],rd=new FileReader();
+        rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
+        rd.readAsDataURL(f); return; }
+      let url=(dt.getData('text/uri-list')||dt.getData('text/plain')||'').split('\\n').find(s=>s&&!s.startsWith('#'))||'';
+      if(!url) return;
+      if(url.startsWith('data:image')){ const r=await api('/api/replace',{key,filename:'drop.png',dataB64:url.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); return; }
+      const r=await api('/api/import-url',{key,url,attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); });
+  }
+  return wrap;
+}
 
 function sectionLabel(ch, ci){
   if(ch.section==='intro') return 'intro';
@@ -1070,7 +1188,8 @@ function render(){
           if(r.ok){ cutMap[ci+'_'+k]=Object.assign({},cutMap[ci+'_'+k]||{ch:ci,ci:k},{image:r.image,query:cut.image_query,kind:cut.image_kind}); render(); }
           else { refetch.textContent=u?'再取得':'取得'; alert(r.message||'取得失敗'); }
         };
-        const adj=document.createElement('a'); adj.href='/images'; adj.innerHTML='<button class="mini">調整</button>';
+        const adj=document.createElement('button'); adj.className='mini'; adj.textContent=adjustOpen.has(ci+'_'+k)?'調整を閉じる':'調整';
+        adj.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); };
         const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
         del.onclick=()=>{ cuts.splice(k,1); render(); };
         // 画像の右にフィールドを縦積み：検索語 → 日本語 → [kindプルダウン＋ボタン]
@@ -1080,6 +1199,7 @@ function render(){
         fields.appendChild(q); fields.appendChild(ja); fields.appendChild(row3);
         r.appendChild(fields);
         il.appendChild(r);
+        if(adjustOpen.has(ci+'_'+k)) il.appendChild(buildAdjust(ci,k));
       });
       const add=document.createElement('button'); add.className='mini'; add.textContent='＋画像を追加';
       add.style.cssText='background:transparent;border:1px dashed var(--line);color:var(--sub);width:100%;margin-top:4px;';
