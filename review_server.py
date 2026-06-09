@@ -960,9 +960,9 @@ STORY_PAGE = """<!doctype html>
             border:1px solid var(--line); border-radius:6px; flex:none; }
   .imgrow .ph2 { display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:11px; }
   .imgrow .fields { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
-  .imgrow .fields .frow { display:flex; gap:8px; }
+  .imgrow .fields .frow { display:flex; gap:8px; align-items:center; }
   .imgrow .fields input, .imgrow .fields select { width:100%; }
-  .imgrow .fields .frow select { flex:1; } .imgrow .fields .frow .ja { flex:2; }
+  .imgrow .fields .frow select { flex:1; }
   .imgrow .fields .q { font-size:14px; }
   button.mini { font-size:12px; padding:5px 9px; background:var(--line); color:#fff; border:none;
                 border-radius:6px; cursor:pointer; font-weight:700; }
@@ -1073,11 +1073,11 @@ function render(){
         const adj=document.createElement('a'); adj.href='/images'; adj.innerHTML='<button class="mini">調整</button>';
         const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
         del.onclick=()=>{ cuts.splice(k,1); render(); };
-        // 画像の右にフィールドを縦積み（検索語は全幅＝見切れ防止）
+        // 画像の右にフィールドを縦積み：検索語 → 日本語 → [kindプルダウン＋ボタン]
         const fields=document.createElement('div'); fields.className='fields';
-        const row2=document.createElement('div'); row2.className='frow'; row2.appendChild(kind); row2.appendChild(ja);
-        const row3=document.createElement('div'); row3.className='frow'; row3.appendChild(refetch); row3.appendChild(adj); row3.appendChild(del);
-        fields.appendChild(q); fields.appendChild(row2); fields.appendChild(row3);
+        const row3=document.createElement('div'); row3.className='frow';
+        row3.appendChild(kind); row3.appendChild(refetch); row3.appendChild(adj); row3.appendChild(del);
+        fields.appendChild(q); fields.appendChild(ja); fields.appendChild(row3);
         r.appendChild(fields);
         il.appendChild(r);
       });
