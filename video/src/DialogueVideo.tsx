@@ -522,20 +522,19 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           </div>
         )}
 
-        {/* 「実は」バッジ（trivia章だけ枠上部に重ねる。intro/outroは出さない。切替でフェード＋スケールイン） */}
+        {/* 「実は」バッジ（trivia章だけ画像エリア左上に重ねる。intro/outroは出さない。切替でフェード＋スケールイン） */}
         {activeTopic && activeTopic.section === "trivia" ? (
           <div
             key={`chap-${activeTopicIndex}`}
             style={{
               position: "absolute",
-              top: 20,
-              width: "100%",
+              top: visualTop + 16,
+              left: visualLeft + 16,
               display: "flex",
-              justifyContent: "center",
               pointerEvents: "none",
               opacity: topicFade,
               transform: `scale(${(0.92 + 0.08 * topicFade).toFixed(3)})`,
-              transformOrigin: "top center",
+              transformOrigin: "top left",
               zIndex: 8,
             }}
           >
