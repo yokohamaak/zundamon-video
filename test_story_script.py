@@ -106,6 +106,26 @@ def test_clean_chapters():
     print("  _clean_chapters: image_cuts正規化/後方互換/除外 OK")
 
 
+def test_strip_markdown():
+    assert s.strip_markdown("**実は**すごい") == "実はすごい"
+    assert s.strip_markdown("これは*強調*だ") == "これは強調だ"
+    assert s.strip_markdown("`code`と~~消~~と__太__") == "codeと消と太"
+    assert s.strip_markdown("詳しくは[ここ](http://x)を見て") == "詳しくはここを見て"
+    assert s.strip_markdown("## 見出し") == "見出し"
+    assert s.strip_markdown("- 箇条書き") == "箇条書き"
+    assert s.strip_markdown("壊れた**強調") == "壊れた強調", "孤立した**も除去"
+    # 日本語の普通の文は不変
+    assert s.strip_markdown("普通の台詞だよ。") == "普通の台詞だよ。"
+    print("  strip_markdown: 強調/リンク/見出し/箇条書き/孤立マーカー除去 OK")
+
+
+def test_normalize_turns_strips_markdown():
+    script = [{"speaker": "x", "text": "**実は**ね、すごいの"}]
+    s.normalize_turns(script)
+    assert script[0]["text"] == "実はね、すごいの", script[0]["text"]
+    print("  normalize_turns: 本文のMarkdown除去 OK")
+
+
 def test_normalize_turns_enums():
     script = [{"speaker": "x", "text": "y"}]  # emotion/effect/chapter/section 欠落
     s.normalize_turns(script)
@@ -202,6 +222,8 @@ if __name__ == "__main__":
     test_parse_with_leading_text()
     test_parse_missing_script_raises()
     test_clean_chapters()
+    test_strip_markdown()
+    test_normalize_turns_strips_markdown()
     test_normalize_turns_enums()
     test_normalize_turns_chapter_clamp_and_section_from_chapters()
     test_assign_sections_to_turns()

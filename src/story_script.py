@@ -22,6 +22,7 @@ config（例）:
 import json
 import logging
 import os
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -258,10 +259,34 @@ def _clean_chapters(chapters, limit=12):
             cuts = [{"image_query": q, "image_kind": k}]
         out.append({
             "section": section,
-            "title": (c.get("title") or "").strip(),
+            "title": strip_markdown((c.get("title") or "").strip()),
             "image_cuts": cuts,
         })
     return out[:limit]
+
+
+def strip_markdown(text: str) -> str:
+    """台詞/見出しから Markdown 記法を除去（純関数）。
+
+    Geminiが **強調** 等を混ぜると字幕に「**文字**」と出て音声でも読まれるため落とす。
+    強調(**/__/*/_)・取り消し線(~~)・コード(`)・リンク[t](u)・見出し(#)・箇条書き(-/*)を除去。
+    日本語台詞で *,_,`,# が正規に使われることはほぼ無い前提。
+    """
+    if not text:
+        return text
+    t = text
+    t = re.sub(r"\*\*\*(.+?)\*\*\*", r"\1", t)        # ***太字斜体***
+    t = re.sub(r"\*\*(.+?)\*\*", r"\1", t)            # **太字**
+    t = re.sub(r"__(.+?)__", r"\1", t)                # __太字__
+    t = re.sub(r"~~(.+?)~~", r"\1", t)                # ~~取り消し~~
+    t = re.sub(r"`(.+?)`", r"\1", t)                  # `コード`
+    t = re.sub(r"\*(.+?)\*", r"\1", t)                # *斜体*
+    t = re.sub(r"(?<![\wぁ-んァ-ヶ一-龠])_(.+?)_(?![\wぁ-んァ-ヶ一-龠])", r"\1", t)  # _斜体_
+    t = re.sub(r"\[(.+?)\]\([^)]*\)", r"\1", t)       # [表示](URL)
+    t = re.sub(r"^\s{0,3}#{1,6}\s*", "", t, flags=re.M)   # 見出し #
+    t = re.sub(r"^\s*[-*•]\s+", "", t, flags=re.M)        # 箇条書き
+    t = t.replace("**", "").replace("`", "")              # 残った孤立マーカー
+    return t.strip()
 
 
 def normalize_turns(script: list, chapters: list = None) -> list:
@@ -274,6 +299,7 @@ def normalize_turns(script: list, chapters: list = None) -> list:
     """
     n = len(chapters) if chapters else 0
     for turn in script:
+        turn["text"] = strip_markdown(turn.get("text", ""))  # 字幕/音声からMarkdown崩れを除去
         if turn.get("emotion") not in VALID_EMOTIONS:
             turn["emotion"] = DEFAULT_EMOTION
         if turn.get("effect") not in VALID_EFFECTS:
