@@ -59,6 +59,14 @@ function resolveFlip(meta: Meta, name: string, side: "left" | "right"): boolean 
   return side === "left";
 }
 
+// 話者カラー。立ち絵dir優先（ずんだもん=緑/めたん=ピンク）、無ければ性別で割当。
+// 字幕の名前タグ＝「誰が話しているか」の色分けに使う。
+function speakerColor(dir: string | null, gender: Gender): string {
+  if (dir === "zundamon") return "#3fa34d";
+  if (dir === "metan") return "#d85a9c";
+  return gender === "female" ? "#d85a9c" : "#3fa34d";
+}
+
 // 字幕テキスト：『』「」で囲まれた語を黄色で強調。それ以外は白。
 function renderCaption(text: string): React.ReactNode {
   const parts = text.split(/(『[^』]*』|「[^」]*」)/g);
@@ -273,6 +281,13 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   const activeTurn = pickActive(meta.script, t) as Turn | null;
   const activeSpeaker = activeTurn?.speaker ?? "";
   const activatedAtFrame = Math.round((activeTurn?.start ?? 0) * fps);
+
+  // 字幕の名前タグ用：話者の配置側・立ち絵・色を解決（話している側にタグを出す）。
+  const activeIsLeft = !!activeSpeaker && activeSpeaker === leftSpeaker;
+  const activeIsRight = !!activeSpeaker && activeSpeaker === rightSpeaker && !activeIsLeft;
+  const activeDir = activeIsLeft ? leftDir : activeIsRight ? rightDir : null;
+  const activeGender = activeIsLeft ? leftGender : rightGender;
+  const nameColor = speakerColor(activeDir, activeGender);
 
   // 現在のトピック（中央ビジュアル）。切替時にフェードイン。
   const topics = meta.topics ?? [];
@@ -650,6 +665,29 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             boxSizing: "border-box",
           }}
         >
+          {/* 話者名タグ：話している側（左=めたん/右=ずんだもん）に、話者カラーで表示。 */}
+          {activeSpeaker ? (
+            <div
+              style={{
+                position: "absolute",
+                top: -30,
+                left: activeIsRight ? undefined : 36,
+                right: activeIsRight ? 36 : undefined,
+                background: nameColor,
+                color: "#fff",
+                fontSize: 30,
+                fontWeight: 800,
+                letterSpacing: 1,
+                padding: "5px 24px",
+                borderRadius: 14,
+                border: "3px solid #fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.55)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {activeSpeaker}
+            </div>
+          ) : null}
           <div
             style={{
               fontSize: 50,
