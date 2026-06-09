@@ -739,8 +739,8 @@ LANDING_PAGE = """<!doctype html>
 const STAGES = [
   {key:'script', t:'① ストーリー編集', d:'台本＋画像を一体で確認/編集（概要→章を開く）', link:'/story',
    cmd:'python main_story.py --stop-after-images'},
-  {key:'review', t:'(旧)画像レビュー', d:'画像だけの調整画面（/storyに統合予定）', link:'/images',
-   cmd:'(通常は /story から)'},
+  {key:'review', t:'画像一覧（一括編集）', d:'全画像をグリッドで一括確認・承認', link:'/images',
+   cmd:'(個別の編集は /story から)'},
   {key:'audio',  t:'③ 音声+meta', d:'VOICEVOXで音声・字幕生成', link:null,
    cmd:'python main_story.py --from-script DIR/script.json --images-from-dir'},
   {key:'meta',   t:'④ 仕上げ', d:'Remotionで動画書き出し', link:null,
