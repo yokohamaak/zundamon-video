@@ -160,6 +160,13 @@ def test_reading_gloss_pure():
     assert tv._spoken_text("へぇっ！") == "へえ〜！"          # 語末促音→へぇ系正規化の併用
     assert tv._spoken_text("頭が「へぇ」でいっぱい") == "頭が「へえ〜」でいっぱい"
     assert tv._spoken_text("へぇって言わせる") == "へぇって言わせる", "感嘆用法でない所は不変"
+    # 英字IT用語は辞書でカタカナ読みに（音声専用）。
+    assert tv._apply_readings("Hi-Fiの話") == "ハイファイの話"
+    assert tv._apply_readings("wifiとWi-Fi") == "ワイファイとワイファイ", "大小無視"
+    assert tv._spoken_text("Bluetoothは便利。") == "ブルートゥースは便利。"
+    assert tv._apply_readings("Applications") == "Applications", "辞書外/部分一致は不変(境界)"
+    # 台本に（かな）読みがあればそれ優先（辞書より先に畳む）
+    assert tv._spoken_text("Hi-Fi（ハイファイ）だ") == "ハイファイだ"
     # 読み仮名でないものは不変
     assert tv._spoken_text("そう（笑）") == "そう（笑）"             # 中身が漢字
     assert tv._spoken_text("諸説あり（諸説あり）") == "諸説あり（諸説あり）"  # 漢字含む

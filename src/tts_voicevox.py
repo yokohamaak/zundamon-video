@@ -70,16 +70,69 @@ _EE_CANON = "ええ〜"
 _INTERJECTION_EE_RE = re.compile(rf"え[ぇえ][ーぇえ〜]+(?={_CLAUSE_END}|$)")
 
 
+# 英字→カタカナ読み辞書（IT用語前提）。台本に（読み）が無い英字を音声で正しく読ませる。
+# 字幕は英字のまま（_spoken_text＝音声専用）。config/readings.json で上書き/追記できる。
+_DEFAULT_READINGS = {
+    "hi-fi": "ハイファイ", "hifi": "ハイファイ", "wi-fi": "ワイファイ", "wifi": "ワイファイ",
+    "fidelity": "フィデリティ",
+    "wireless": "ワイヤレス", "bluetooth": "ブルートゥース", "captcha": "キャプチャ",
+    "jpeg": "ジェイペグ", "mpeg": "エムペグ", "gif": "ジフ", "png": "ピング",
+    "http": "エイチティーティーピー", "https": "エイチティーティーピーエス",
+    "url": "ユーアールエル", "api": "エーピーアイ", "html": "エイチティーエムエル",
+    "css": "シーエスエス", "sql": "エスキューエル", "usb": "ユーエスビー",
+    "cpu": "シーピーユー", "gpu": "ジーピーユー", "ram": "ラム", "rom": "ロム",
+    "ssd": "エスエスディー", "hdd": "エイチディーディー", "os": "オーエス",
+    "ai": "エーアイ", "iot": "アイオーティー", "ok": "オーケー",
+}
+
+
+def _load_readings():
+    """組み込み辞書に config/readings.json をマージ（あれば上書き/追記）。キーは小文字化。"""
+    merged = {k.lower(): v for k, v in _DEFAULT_READINGS.items()}
+    path = os.path.join("config", "readings.json")
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                for k, v in (json.load(f) or {}).items():
+                    if isinstance(k, str) and not k.startswith("_") and isinstance(v, str) and v:
+                        merged[k.lower()] = v
+        except (OSError, ValueError) as e:
+            logger.warning(f"config/readings.json 読込失敗（組み込み辞書のみ使用）: {e}")
+    return merged
+
+
+_READINGS = _load_readings()
+# 長いキー優先（httpsをhttpより先に）。語境界つきで英字語のみ置換。
+_READINGS_RE = (
+    re.compile(
+        r"(?<![A-Za-z0-9])(" +
+        "|".join(re.escape(k) for k in sorted(_READINGS, key=len, reverse=True)) +
+        r")(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    )
+    if _READINGS else None
+)
+
+
+def _apply_readings(text):
+    """英字のIT用語をカタカナ読みへ（音声専用）。辞書に無い語はそのまま。"""
+    if not _READINGS_RE:
+        return text
+    return _READINGS_RE.sub(lambda m: _READINGS[m.group(1).lower()], text)
+
+
 def _spoken_text(text):
     """音声合成用にテキストを整える（字幕には使わない）。
 
-    感嘆詞がVOICEVOXで弱く/平板に読まれるのを、典型2パターンの一般ルールで補正する:
+    感嘆詞がVOICEVOXで弱く/平板に読まれるのを補正し、英字を辞書でカタカナ読みにする:
     - 「英字（かな）」の読み仮名はかなだけ残す＝二重読み防止。
-    - 語末の促音「っ」（！？。」等の直前）を落とす＝“囁き”化を防ぐ（例「えぇーっ！？」→「えぇー！？」）。
-    - 感嘆の「へぇ！」等は「へぇ〜」に伸ばす＝平板化を防ぐ。
+    - 残った英字IT用語は辞書でカタカナ読みへ（例 Hi-Fi→ハイファイ。台本に読みが無くても救う）。
+    - 語末の促音「っ」（！？。」等の直前）を落とす＝“囁き”化を防ぐ。
+    - 感嘆の「へぇ/ええ」系は正規形(へえ〜/ええ〜)に＝平板/無声化を防ぐ。
     """
-    t = _READING_GLOSS_RE.sub(lambda m: m.group(1), text)
-    t = _TRAILING_SOKUON_RE.sub("", t)            # 語末促音を落とす（先に）
+    t = _READING_GLOSS_RE.sub(lambda m: m.group(1), text)  # 台本の（かな）読みを優先採用
+    t = _apply_readings(t)                          # 残った英字IT用語を辞書でカタカナ化
+    t = _TRAILING_SOKUON_RE.sub("", t)            # 語末促音を落とす
     t = _INTERJECTION_HEE_RE.sub(_HEE_CANON, t)   # 「へぇ」系を正規形へ
     t = _INTERJECTION_EE_RE.sub(_EE_CANON, t)     # 「ええ」系(驚き)を正規形へ
     return t
