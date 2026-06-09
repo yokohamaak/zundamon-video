@@ -527,9 +527,10 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           <div
             key={`chap-${activeTopicIndex}`}
             style={{
+              // 親は中央ビジュアル枠なので枠内の相対座標で左上に置く（frame絶対座標を足さない）。
               position: "absolute",
-              top: visualTop + 16,
-              left: visualLeft + 16,
+              top: 16,
+              left: 16,
               display: "flex",
               pointerEvents: "none",
               opacity: topicFade,
