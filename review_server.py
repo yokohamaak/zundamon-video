@@ -18,6 +18,7 @@ import argparse
 import base64
 import json
 import os
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
@@ -170,7 +171,39 @@ def apply_options(review, key, patch):
     if "hide" in patch:
         cut["hide"] = bool(patch["hide"])
         applied["hide"] = cut["hide"]
+    if "pad" in patch:
+        cut["pad"] = _clean_pad(patch["pad"])
+        applied["pad"] = cut["pad"]
+    if "bg" in patch:
+        cut["bg"] = _clean_color(patch["bg"])
+        applied["bg"] = cut["bg"]
     return True, applied
+
+
+def _clean_pad(v):
+    """contain余白px。0..400にクランプ、0/不正は None。"""
+    try:
+        n = round(float(v))
+    except (TypeError, ValueError):
+        return None
+    n = max(0, min(400, n))
+    return n or None
+
+
+def _clean_color(v):
+    """余白背景色。CSS color文字列を素朴に検証（#hex / rgb()/rgba() / 英数の色名）。不正/空は None。"""
+    if not isinstance(v, str):
+        return None
+    s = v.strip()
+    if not s or len(s) > 32:
+        return None
+    if re.fullmatch(r"#[0-9a-fA-F]{3,8}", s):
+        return s
+    if re.fullmatch(r"(rgb|rgba|hsl|hsla)\([0-9.,%\s/]+\)", s):
+        return s
+    if re.fullmatch(r"[a-zA-Z]+", s):  # 色名(white等)
+        return s
+    return None
 
 
 def review_summary(review):
@@ -313,6 +346,11 @@ function card(c){
         <span>コントラスト</span><input type="range" class="fc" min="0.5" max="1.5" step="0.05" value="1">
         <span>白黒</span><input type="range" class="fg" min="0" max="1" step="0.05" value="0">
       </div>
+      <div class="row" title="containの余白(px)と余白色">
+        <label class="chk">余白 <input type="number" class="pad" min="0" max="400" step="4" value="0" style="width:56px"></label>
+        <label class="chk">色 <input type="color" class="bg" value="#eef1f5"></label>
+        <button class="bgclear">色既定</button>
+      </div>
       <div class="row tools">
         <button class="cropclear">クロップ解除</button>
         <button class="fclear">補正解除</button>
@@ -334,6 +372,8 @@ function card(c){
     el.querySelector('.fg').value = c.filter.grayscale??0;
   }
   if(imgEl) imgEl.style.filter = cssFilter(c.filter);
+  if(c.pad) el.querySelector('.pad').value = c.pad;
+  if(c.bg) el.querySelector('.bg').value = c.bg;
 
   function drawCrop(){
     if(!c.crop || !imgEl){ rectEl.style.display='none'; return; }
@@ -377,6 +417,15 @@ function card(c){
        grayscale:+el.querySelector('.fg').value}); };
     s.onchange = sendFilter;
   });
+  el.querySelector('.pad').onchange = (e)=>{
+    const n = parseInt(e.target.value) || 0; c.pad = n || null; setOpt(key, {pad:n});
+  };
+  el.querySelector('.bg').onchange = (e)=>{
+    c.bg = e.target.value; setOpt(key, {bg:e.target.value});
+  };
+  el.querySelector('.bgclear').onclick = ()=>{
+    c.bg=null; el.querySelector('.bg').value='#eef1f5'; setOpt(key, {bg:null});
+  };
   el.querySelector('.fclear').onclick = ()=>{
     el.querySelector('.fb').value=1; el.querySelector('.fc').value=1; el.querySelector('.fg').value=0;
     c.filter=null; if(imgEl) imgEl.style.filter=''; setOpt(key, {filter:null});

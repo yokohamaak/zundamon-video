@@ -360,6 +360,9 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
     : undefined;
   // 手動クロップ（画像レビュー指定）。元画像の[l..r]×[t..b]だけを枠に出す。
   const crop = activeTopic?.crop;
+  // contain時の余白(px・全方向)と余白背景色（画像レビュー指定）。
+  const containPad = activeTopic?.pad ?? 0;
+  const containBg = activeTopic?.bg;
   // 中央ビジュアル枠の実寸（focusアノテーションの contain フィット計算用。styleのleft/right/top/bottomと一致）。
   // 黒板内縁(BOARD)に収まる最大の16:9枠を中央配置する（画像素材が16:9＝間延び/切れを防ぐ）。
   const boardW = 1920 - BOARD.left - BOARD.right;
@@ -408,11 +411,15 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              // contain（ロゴ等）は余白が出るため、透過ロゴでも視認できる淡い背景を敷く。
+              boxSizing: "border-box",
+              // contain（ロゴ等）は余白が出るため、透過ロゴでも視認できる背景を敷く。
+              // bg指定があればその色、無ければ既定の淡いグレーグラデ。
               background:
                 isContain && activeTopic.image
-                  ? "linear-gradient(160deg, #f3f5f8 0%, #dfe4ec 100%)"
+                  ? containBg || "linear-gradient(160deg, #f3f5f8 0%, #dfe4ec 100%)"
                   : undefined,
+              // contain時のみ内側余白（ロゴが枠いっぱいの素材に呼吸を持たせる）。
+              padding: isContain ? containPad : 0,
             }}
           >
             {activeTopic.image ? (

@@ -75,7 +75,17 @@ def test_clean_crop_and_filter():
     assert R._clean_filter({"brightness": 0.6, "contrast": 1.0, "grayscale": 0}) == {"brightness": 0.6}, "既定値は落とす"
     assert R._clean_filter({"brightness": 1, "contrast": 1, "grayscale": 0}) is None, "全て既定→None"
     assert R._clean_filter({"grayscale": 1}) == {"grayscale": 1}
-    print("  _clean_crop / _clean_filter: 検証・既定除去 OK")
+    # pad: 0..400クランプ・0/不正はNone
+    assert R._clean_pad(80) == 80
+    assert R._clean_pad(0) is None and R._clean_pad("x") is None
+    assert R._clean_pad(9999) == 400
+    # color: #hex/rgb()/色名のみ
+    assert R._clean_color("#ffffff") == "#ffffff"
+    assert R._clean_color("white") == "white"
+    assert R._clean_color("rgb(255,0,0)") == "rgb(255,0,0)"
+    assert R._clean_color("javascript:alert(1)") is None
+    assert R._clean_color(None) is None
+    print("  _clean_crop / _clean_filter / _clean_pad / _clean_color OK")
 
 
 def test_apply_options():
@@ -89,6 +99,10 @@ def test_apply_options():
     assert rev["cuts"][0]["filter"] == {"grayscale": 1}
     R.apply_options(rev, "0_0", {"crop": {"l": 0, "t": 0, "r": 0.5, "b": 0.5}})
     assert rev["cuts"][0]["crop"] == {"l": 0, "t": 0, "r": 0.5, "b": 0.5}
+    R.apply_options(rev, "0_0", {"pad": 80, "bg": "#ffffff"})
+    assert rev["cuts"][0]["pad"] == 80 and rev["cuts"][0]["bg"] == "#ffffff"
+    R.apply_options(rev, "0_0", {"pad": 0, "bg": "bad;url"})
+    assert rev["cuts"][0]["pad"] is None and rev["cuts"][0]["bg"] is None, "0/不正色はNone"
     assert R.apply_options(rev, "9_9", {"fit": "cover"}) == (False, {})
     print("  apply_options: fit/crop/filter/hide 適用・検証 OK")
 

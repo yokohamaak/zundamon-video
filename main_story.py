@@ -146,6 +146,10 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                     topic["crop"] = opt["crop"]
                 if opt.get("filter"):
                     topic["filter"] = opt["filter"]
+                if opt.get("pad"):
+                    topic["pad"] = opt["pad"]
+                if opt.get("bg"):
+                    topic["bg"] = opt["bg"]
                 if attributions.get(key):
                     topic["credit"] = attributions[key]
             else:
@@ -183,6 +187,8 @@ def build_review(chapters, image_files=None, attributions=None):
                 "crop": None,       # None=なし / {l,t,r,b}(0..1)
                 "filter": None,     # None=なし / {brightness,contrast,grayscale}
                 "hide": False,      # True=画像を出さない(黒板のみ)
+                "pad": None,        # contain時の余白px(全方向)。None/0=なし
+                "bg": None,         # contain時の余白背景色(CSS color)。None=既定
             })
     return {"cuts": cuts}
 
@@ -216,6 +222,10 @@ def load_images_from_review(out_dir):
             opt["filter"] = c["filter"]
         if c.get("hide"):
             opt["hide"] = True
+        if c.get("pad"):
+            opt["pad"] = c["pad"]
+        if c.get("bg"):
+            opt["bg"] = c["bg"]
         if opt:
             cut_opts[key] = opt
     return image_files, attributions, cut_opts

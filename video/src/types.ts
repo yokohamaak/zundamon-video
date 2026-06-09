@@ -59,6 +59,10 @@ export type Topic = {
   filter?: { brightness?: number; contrast?: number; grayscale?: number };
   // true=中央ビジュアルを出さない（黒板＋立ち絵のみ）。画像レビューで「画像なし」を選んだカット。
   blank?: boolean;
+  // contain時の余白（px・全方向）。ロゴが枠いっぱいの素材に内側マージンを足す。
+  pad?: number;
+  // contain時の余白背景色（CSS color）。未指定なら既定の淡いグレーグラデ。
+  bg?: string;
   // 実は〇〇雑学: 章メタ（main_story.build_chapter_topics が付与）。
   chapter?: number;       // 0始まりの章番号
   chapterTotal?: number;  // 全章数
