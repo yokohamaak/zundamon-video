@@ -56,12 +56,19 @@ _READING_GLOSS_RE = re.compile(
 )
 
 
+# 感嘆の「へぇ/へえ」（！？。、」』の直前＝感嘆用法）。素読みは平板なので伸ばす。
+_INTERJECTION_HEE_RE = re.compile(r"へ[ぇえ](?=[！!？?。、」』）)]|$)")
+
+
 def _spoken_text(text):
     """音声合成用にテキストを整える（字幕には使わない）。
 
-    「英字（かな）」の読み仮名はかなだけ残す（英字＋括弧を落とす）＝二重読み防止。
+    - 「英字（かな）」の読み仮名はかなだけ残す（英字＋括弧を落とす）＝二重読み防止。
+    - 感嘆の「へぇ！」等は「へぇ〜」に伸ばして感嘆らしく（素読みが平板になるのを防ぐ）。
     """
-    return _READING_GLOSS_RE.sub(lambda m: m.group(1), text)
+    t = _READING_GLOSS_RE.sub(lambda m: m.group(1), text)
+    t = _INTERJECTION_HEE_RE.sub("へぇ〜", t)
+    return t
 
 
 def _http_post(url, data=None, headers=None, timeout=60):
