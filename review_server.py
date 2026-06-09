@@ -697,10 +697,10 @@ LANDING_PAGE = """<!doctype html>
 <main id="main">読み込み中…</main>
 <script>
 const STAGES = [
-  {key:'script', t:'① 台本', d:'生成→確認/編集→承認', link:'/script',
+  {key:'script', t:'① ストーリー編集', d:'台本＋画像を一体で確認/編集（概要→章を開く）', link:'/story',
    cmd:'python main_story.py --stop-after-images'},
-  {key:'review', t:'② 画像', d:'取得→差し替え/調整→承認', link:'/images',
-   cmd:'(台本承認で取得 → このページで調整)'},
+  {key:'review', t:'(旧)画像レビュー', d:'画像だけの調整画面（/storyに統合予定）', link:'/images',
+   cmd:'(通常は /story から)'},
   {key:'audio',  t:'③ 音声+meta', d:'VOICEVOXで音声・字幕生成', link:null,
    cmd:'python main_story.py --from-script DIR/script.json --images-from-dir'},
   {key:'meta',   t:'④ 仕上げ', d:'Remotionで動画書き出し', link:null,
@@ -886,6 +886,181 @@ fetch('/api/script').then(r=>r.json()).then(d=>{
 </body></html>
 """
 
+STORY_PAGE = """<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ストーリー編集</title>
+<style>__CSS__
+  .theme { display:flex; gap:10px; align-items:center; margin-bottom:14px; }
+  .theme input { flex:1; font-size:16px; font-weight:700; background:#0c0f15; color:var(--fg);
+                 border:1px solid var(--line); border-radius:8px; padding:8px 12px; }
+  .sec { background:var(--card); border:1px solid var(--line); border-radius:12px;
+         margin-bottom:12px; overflow:hidden; }
+  .sec.open { border-color:var(--accent); }
+  .sechead { display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; }
+  .sechead:hover { background:#222a37; }
+  .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line);
+           color:var(--sub); flex:none; }
+  .sechead .ttl { font-weight:700; flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sechead .sum { color:var(--sub); font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .thumbs { display:flex; gap:4px; flex:none; }
+  .thumbs .th { width:40px; height:24px; border-radius:4px; object-fit:cover; background:#0c0f15;
+                border:1px solid var(--line); }
+  .thumbs .ph { width:40px; height:24px; border-radius:4px; background:#0c0f15; border:1px dashed var(--line);
+                display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:10px; }
+  .body { padding:0 16px 16px; }
+  input[type=text], textarea, select { font:inherit; background:#0c0f15; color:var(--fg);
+          border:1px solid var(--line); border-radius:6px; padding:6px 9px; }
+  textarea { width:100%; resize:vertical; overflow:hidden; }
+  .lbl { color:var(--sub); font-size:12px; margin:10px 0 4px; }
+  .imgrow { display:flex; gap:8px; align-items:center; padding:6px; background:#0c0f15;
+            border-radius:8px; margin-bottom:6px; flex-wrap:wrap; }
+  .imgrow img, .imgrow .ph2 { width:96px; height:54px; object-fit:contain; background:#11151c;
+            border:1px solid var(--line); border-radius:4px; flex:none; }
+  .imgrow .ph2 { display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:11px; }
+  .imgrow .q { flex:2; min-width:120px; }
+  .imgrow .ja { flex:2; min-width:100px; }
+  button.mini { font-size:12px; padding:5px 9px; background:var(--line); color:#fff; border:none;
+                border-radius:6px; cursor:pointer; font-weight:700; }
+  .turn { display:grid; grid-template-columns:120px 1fr 80px auto; gap:10px; align-items:start;
+          padding:8px 0 8px 12px; border-top:1px solid var(--line); border-left:4px solid transparent; }
+  .turn .sp { font-size:14px; font-weight:700; padding-top:8px; display:flex; align-items:center; gap:6px; }
+  .turn .sp .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .turn .acts { display:flex; flex-direction:column; gap:4px; }
+  .turn .acts button { font-size:11px; padding:4px 8px; background:var(--line); color:#fff; border:none; border-radius:6px; cursor:pointer; }
+  .turn .acts button.del { background:transparent; color:#c66; }
+</style></head>
+<body>
+<header>
+  <a href="/">← パネル</a>
+  <h1>ストーリー編集</h1>
+  <span class="spacer"></span>
+  <button class="ok" id="save">保存</button>
+</header>
+<main id="main">読み込み中…</main>
+<script>
+let DATA=null, CUTS=[], cutMap={}, OPEN=new Set();
+function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(b)}).then(r=>r.json()); }
+function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん|メタン/.test(n))return '#d85a9c'; return '#90a0b5'; }
+function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
+function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
+
+function splitTurn(tn,ta){
+  const text=tn.text||''; let pos=ta.selectionStart;
+  if(!(pos>0&&pos<text.length)){ const m=text.slice(1).search(/[。！？]/); pos=m>=0?m+2:Math.floor(text.length/2); }
+  const a=text.slice(0,pos).trim(), b=text.slice(pos).trim();
+  if(!a||!b){ alert('分割位置が不正'); return; }
+  tn.text=a; const nt=Object.assign({},tn,{text:b}); ['start','end','sentences'].forEach(k=>delete nt[k]);
+  DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
+}
+function delTurn(tn){ const i=DATA.script.indexOf(tn); if(i>=0&&confirm('この発言を削除？')){ DATA.script.splice(i,1); render(); } }
+
+function sectionLabel(ch, ci){
+  if(ch.section==='intro') return 'intro';
+  if(ch.section==='outro') return 'outro';
+  // trivia通し番号
+  let n=0; for(let i=0;i<=ci;i++){ if((DATA.chapters[i].section)==='trivia') n++; }
+  return 'trivia'+n;
+}
+
+function render(){
+  const m=document.getElementById('main'); m.innerHTML='';
+  // theme
+  const th=document.createElement('div'); th.className='theme';
+  const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
+  ti.onchange=()=>DATA.theme=ti.value; th.innerHTML='<span class="badge">テーマ</span>'; th.appendChild(ti);
+  m.appendChild(th);
+
+  (DATA.chapters||[]).forEach((ch,ci)=>{
+    const cuts=ch.image_cuts||(ch.image_cuts=[]);
+    const sec=document.createElement('div'); sec.className='sec'+(OPEN.has(ci)?' open':'');
+    // head
+    const head=document.createElement('div'); head.className='sechead';
+    let thumbs='';
+    cuts.forEach((c,k)=>{ const u=imgUrl(ci,k);
+      thumbs += u?`<img class="th" src="${u}">`:`<span class="ph">#${k}</span>`; });
+    head.innerHTML=`<span class="badge">${sectionLabel(ch,ci)}</span>
+      <span class="ttl">${ch.title||'(無題)'}</span>
+      <span class="sum">${ch.summary||''}</span>
+      <span class="thumbs">${thumbs}</span>`;
+    head.onclick=()=>{ OPEN.has(ci)?OPEN.delete(ci):OPEN.add(ci); render(); };
+    sec.appendChild(head);
+    if(OPEN.has(ci)){
+      const body=document.createElement('div'); body.className='body';
+      // title / summary
+      const tt=document.createElement('input'); tt.type='text'; tt.value=ch.title||''; tt.placeholder='章タイトル';
+      tt.style.width='100%'; tt.onchange=()=>ch.title=tt.value;
+      const sm=document.createElement('textarea'); sm.value=ch.summary||''; sm.placeholder='要約';
+      sm.oninput=()=>{ch.summary=sm.value; autosize(sm);};
+      body.innerHTML='<div class="lbl">タイトル / 要約</div>'; body.appendChild(tt); body.appendChild(sm);
+      // images
+      const il=document.createElement('div'); const lb=document.createElement('div'); lb.className='lbl'; lb.textContent='画像（台本に対応）'; body.appendChild(lb);
+      cuts.forEach((cut,k)=>{
+        const r=document.createElement('div'); r.className='imgrow';
+        const u=imgUrl(ci,k);
+        r.innerHTML = u?`<img src="${u}">`:`<div class="ph2">#${k} 未取得</div>`;
+        const q=document.createElement('input'); q.type='text'; q.className='q'; q.placeholder='英語の検索語';
+        q.value=cut.image_query||''; q.onchange=()=>cut.image_query=q.value;
+        const kind=document.createElement('select');
+        kind.innerHTML='<option value="subject">被写体(ロゴ/人物/製品)</option><option value="ambient">雰囲気(イメージ)</option>';
+        kind.value=cut.image_kind||'ambient'; kind.onchange=()=>cut.image_kind=kind.value;
+        const ja=document.createElement('input'); ja.type='text'; ja.className='ja'; ja.placeholder='日本語(意味)';
+        ja.value=cut.image_query_ja||''; ja.onchange=()=>cut.image_query_ja=ja.value;
+        const refetch=document.createElement('button'); refetch.className='mini'; refetch.textContent='再取得';
+        refetch.title='検索語で取り直し（次チャンクで実装）'; refetch.onclick=()=>alert('再取得は次チャンクで対応します');
+        const adj=document.createElement('a'); adj.href='/images'; adj.innerHTML='<button class="mini">調整</button>';
+        const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
+        del.onclick=()=>{ cuts.splice(k,1); render(); };
+        r.appendChild(q); r.appendChild(kind); r.appendChild(ja); r.appendChild(refetch); r.appendChild(adj); r.appendChild(del);
+        il.appendChild(r);
+      });
+      const add=document.createElement('button'); add.className='mini'; add.textContent='＋画像を追加';
+      add.style.cssText='background:transparent;border:1px dashed var(--line);color:var(--sub);width:100%;margin-top:4px;';
+      add.onclick=()=>{ cuts.push({image_query:'',image_kind:'ambient'}); render(); };
+      il.appendChild(add); body.appendChild(il);
+      // dialogue
+      const dl=document.createElement('div'); const lb2=document.createElement('div'); lb2.className='lbl'; lb2.textContent='台本'; body.appendChild(lb2);
+      DATA.script.forEach((tn)=>{ if(tn.chapter!==ci) return;
+        const row=document.createElement('div'); row.className='turn';
+        const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
+        const sp=document.createElement('div'); sp.className='sp'; sp.style.color=col;
+        sp.innerHTML=`<span class="dot" style="background:${col}"></span>${tn.speaker}`;
+        const ta=document.createElement('textarea'); ta.value=tn.text; ta.oninput=()=>{tn.text=ta.value; autosize(ta);};
+        const sel=document.createElement('select'); const n=Math.max(1,cuts.length);
+        for(let i=0;i<n;i++){const o=document.createElement('option'); o.value=i; o.textContent='画像'+i; sel.appendChild(o);}
+        sel.value=(typeof tn.cut==='number'?tn.cut:0); sel.onchange=()=>tn.cut=parseInt(sel.value);
+        const acts=document.createElement('div'); acts.className='acts';
+        const bs=document.createElement('button'); bs.textContent='分割'; bs.onclick=()=>splitTurn(tn,ta);
+        const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除'; bd.onclick=()=>delTurn(tn);
+        acts.appendChild(bs); acts.appendChild(bd);
+        row.appendChild(sp); row.appendChild(ta); row.appendChild(sel); row.appendChild(acts);
+        dl.appendChild(row);
+      });
+      body.appendChild(dl);
+      sec.appendChild(body);
+    }
+    m.appendChild(sec);
+  });
+  document.querySelectorAll('#main textarea').forEach(autosize);
+}
+
+document.getElementById('save').onclick=async()=>{
+  const r=await api('/api/script', DATA);
+  const b=document.getElementById('save'); b.textContent=r.ok?'保存✓':'失敗'; setTimeout(()=>b.textContent='保存',1500);
+};
+
+Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>r.json())])
+.then(([s,rev])=>{
+  if(s.error){ document.getElementById('main').textContent=s.error; return; }
+  DATA=s; CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
+  if(DATA.chapters&&DATA.chapters.length) OPEN.add(0);  // 先頭は開いておく
+  render();
+});
+</script>
+</body></html>
+"""
+
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):  # 既定の逐次ログを抑制
@@ -926,6 +1101,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/script":
             self._html(SCRIPT_PAGE.replace("__CSS__", _BASE_CSS))
+            return
+        if path == "/story":
+            self._html(STORY_PAGE.replace("__CSS__", _BASE_CSS))
             return
         if path == "/api/status":
             self._json({"dir": DIR, "status": pipeline_status()})
