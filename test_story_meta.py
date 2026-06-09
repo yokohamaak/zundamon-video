@@ -128,6 +128,27 @@ def test_build_meta():
     print("  build_meta: title/speakers/script合流/topics OK")
 
 
+def test_build_meta_cut_anchors():
+    # C-1: cutは台本ターンに付く。TTSターン(turns)はcut無し。build_metaがmerged scriptを
+    # build_chapter_topicsに渡すことで、均等割りでなくcutアンカーで切替されることを検証。
+    script_result = {
+        "theme": "t", "chapters": CHAPTERS,
+        "script": [
+            {"speaker": "A", "text": "a", "chapter": 0, "section": "intro", "cut": 0},
+            {"speaker": "A", "text": "b", "chapter": 0, "section": "intro", "cut": 0},  # 両方cut0
+            {"speaker": "A", "text": "c", "chapter": 1, "section": "trivia", "cut": 0},
+        ],
+    }
+    turns = _turns(3)  # TTSターン（cut無し）
+    config = {"characters_gender": {"A": "female"}, "tts_voicevox": {"speakers": {"A": 2}}}
+    meta = m.build_meta(script_result, turns, config, "2026-06-08T12:00:00+09:00")
+    ch0 = [t for t in meta["topics"] if t["chapter"] == 0]
+    assert len(ch0) == 1, f"章0は2ターンとも cut0 → 1topic(均等割りなら2): {len(ch0)}"
+    assert len(meta["topics"]) == 2, "章0(1)+章1(1)=2"
+    assert ch0[0]["start"] == 0.0 and ch0[0]["end"] == turns[1]["end"], "章0=2ターン分の区間"
+    print("  build_meta: cutアンカーが実経路で効く(turnsでなくscriptを渡す) OK")
+
+
 def test_build_meta_length_mismatch_raises():
     script_result = {"theme": "x", "chapters": CHAPTERS,
                      "script": [{"speaker": "x", "text": "y", "chapter": 0}]}
@@ -163,6 +184,7 @@ if __name__ == "__main__":
     test_build_chapter_topics_ready_image_and_credit()
     test_build_credits()
     test_build_meta()
+    test_build_meta_cut_anchors()
     test_build_meta_length_mismatch_raises()
     test_write_credits_txt()
     print("ALL PASS")

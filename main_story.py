@@ -334,7 +334,9 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
         "generated_at": now_iso,
         "title": script_result.get("theme"),
         "speakers": speakers,
-        "topics": build_chapter_topics(segments, turns, chapters, image_files, attributions, cut_opts),
+        # script(merged) は timing(start/end) と cut(台本由来)の両方を持つ。turns(TTS)は cut を
+        # 持たないので必ず script を渡す（C-1のcutアンカーを効かせるため）。
+        "topics": build_chapter_topics(segments, script, chapters, image_files, attributions, cut_opts),
         "credits": build_credits(config, attributions),
         "script": script,
     }

@@ -136,6 +136,24 @@ def test_apply_save_script():
     print("  apply_save_script: 検証/正規化 OK")
 
 
+def test_pipeline_status_and_script_io():
+    tmp = tempfile.mkdtemp()
+    old = R.DIR
+    R.DIR = tmp
+    try:
+        # 何も無ければ全False、load_scriptはNone
+        st = R.pipeline_status()
+        assert st == {"script": False, "review": False, "audio": False, "meta": False}, st
+        assert R.load_script() is None
+        # script.json 保存→load→status反映
+        R.save_script({"theme": "t", "script": [{"speaker": "x", "text": "y"}]})
+        assert R.load_script()["theme"] == "t"
+        assert R.pipeline_status()["script"] is True
+    finally:
+        R.DIR = old
+    print("  pipeline_status / load_script / save_script OK")
+
+
 def test_do_fetch_cut_guards():
     # ネットワークに行かないガード（空クエリ・不正ch）。
     assert R.do_fetch_cut(0, 0, "", "subject")["ok"] is False
@@ -253,6 +271,7 @@ if __name__ == "__main__":
     test_clean_crop_and_filter()
     test_apply_options()
     test_apply_save_script()
+    test_pipeline_status_and_script_io()
     test_do_fetch_cut_guards()
     test_valid_http_url()
     test_import_url_guards()

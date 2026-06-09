@@ -103,7 +103,17 @@ def test_clean_chapters():
     assert out[2]["image_cuts"][0]["image_query"] == "old style", "旧単数形式→1cut(後方互換)"
     assert out[2]["image_cuts"][0]["image_kind"] == "subject"
     assert s._clean_chapters(None) == [], "list以外は空"
-    print("  _clean_chapters: image_cuts正規化/後方互換/除外 OK")
+    # summary（章の要約）と image_query_ja（検索語の日本語）を通す
+    o2 = s._clean_chapters([{"section": "trivia", "title": "T", "summary": " 要約だよ ",
+                             "image_cuts": [{"image_query": "radio", "image_kind": "ambient", "image_query_ja": " ラジオ "}]}])
+    assert o2[0]["summary"] == "要約だよ", "summaryをtrimして通す"
+    assert o2[0]["image_cuts"][0]["image_query_ja"] == "ラジオ", "image_query_jaをtrimして通す"
+    # image_query_ja が空なら付けない
+    o3 = s._clean_chapters([{"section": "trivia", "title": "T", "summary": "",
+                             "image_cuts": [{"image_query": "x", "image_kind": "subject"}]}])
+    assert "image_query_ja" not in o3[0]["image_cuts"][0], "空のjaは省く"
+    assert o3[0]["summary"] == "", "summary無しは空文字"
+    print("  _clean_chapters: image_cuts正規化/後方互換/除外/summary/ja OK")
 
 
 def test_repair_json_trailing_comma():
