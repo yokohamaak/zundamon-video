@@ -387,7 +387,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
 
       {/* タイトル(meta.title)は非表示。章バッジ(第N章+章タイトル)が上部に出るため冗長＝中央ビジュアルを上へ広げる。 */}
 
-      {/* 中央ビジュアル（背面）。大きめ・角丸枠。立ち絵より後ろに描く。 */}
+      {/* 中央ビジュアル（背面）。立ち絵より後ろに描く。枠線/影は無し（空枠が浮くのを避ける）。
+          角丸＋overflow:hiddenは画像の角取りのため残す。 */}
       <div
         style={{
           position: "absolute",
@@ -397,8 +398,6 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           height: visualBoxH,
           borderRadius: 18,
           overflow: "hidden",
-          border: "3px solid rgba(150,180,225,0.35)",
-          boxShadow: "0 8px 30px rgba(0,0,0,0.45)",
         }}
       >
         {activeTopic && activeTopic.blank ? null : activeTopic ? (
