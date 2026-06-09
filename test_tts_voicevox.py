@@ -144,9 +144,15 @@ def test_reading_gloss_pure():
     # 括弧内のかなに空白があっても畳む（Wireless Fidelity の二重読み対策）
     assert tv._spoken_text("「Wireless Fidelity（ワイヤレス フィデリティ）」の略") == "「ワイヤレス フィデリティ」の略"
     # 語末の促音「っ」は落とす（囁き化対策）。
-    assert tv._spoken_text("えぇーっ！？") == "えぇー！？"
     assert tv._spoken_text("そうなんだっ。") == "そうなんだ。"
     assert tv._spoken_text("やっぱりそうか。") == "やっぱりそうか。", "語中の促音は残す"
+    # 驚きの「ええ」系（伸ばした形）は正規形に。促音除去と併用。
+    assert tv._spoken_text("えぇーっ！？") == "ええ〜！？"
+    assert tv._spoken_text("ええーっ！") == "ええ〜！"
+    assert tv._spoken_text("えええー！") == "ええ〜！"
+    assert tv._spoken_text("え！") == "え！", "単独のえは不変"
+    assert tv._spoken_text("えーと、それは") == "えーと、それは", "えー(フィラー)は不変"
+    assert tv._spoken_text("ええ、そうです。") == "ええ、そうです。", "肯定のええ(伸ばし無し)は不変"
     # 「へぇ」系は正規形に揃える（小さいぇ/ーの有無に関わらず）。字幕は原文（synthesis側で担保）。
     assert tv._spoken_text("へぇ！すごい") == "へえ〜！すごい"
     assert tv._spoken_text("へぇー！") == "へえ〜！"          # ー付きも対象

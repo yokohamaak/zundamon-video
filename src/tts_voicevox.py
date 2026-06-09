@@ -64,6 +64,10 @@ _TRAILING_SOKUON_RE = re.compile(rf"[っッ](?={_CLAUSE_END}|$)")
 # 音声では正規形に揃える。_HEE_CANON は耳で調整できるよう定数化（例「へえ〜」「へー」）。
 _HEE_CANON = "へえ〜"
 _INTERJECTION_HEE_RE = re.compile(rf"へ[ぇえ][ーぇえ〜]*(?={_CLAUSE_END}|$)")
+# 驚きの「ええ」系（ええー/えぇー/えええー…）。語尾無声化＝囁き化するので正規形に揃える。
+# 短い「え」「えー」(相槌/フィラー)や「ええ」(肯定)は触らず、伸ばした驚き形だけが対象。
+_EE_CANON = "ええ〜"
+_INTERJECTION_EE_RE = re.compile(rf"え[ぇえ][ーぇえ〜]+(?={_CLAUSE_END}|$)")
 
 
 def _spoken_text(text):
@@ -76,7 +80,8 @@ def _spoken_text(text):
     """
     t = _READING_GLOSS_RE.sub(lambda m: m.group(1), text)
     t = _TRAILING_SOKUON_RE.sub("", t)            # 語末促音を落とす（先に）
-    t = _INTERJECTION_HEE_RE.sub(_HEE_CANON, t)   # その後に「へぇ」系を正規形へ
+    t = _INTERJECTION_HEE_RE.sub(_HEE_CANON, t)   # 「へぇ」系を正規形へ
+    t = _INTERJECTION_EE_RE.sub(_EE_CANON, t)     # 「ええ」系(驚き)を正規形へ
     return t
 
 
