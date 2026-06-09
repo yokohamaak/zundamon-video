@@ -522,54 +522,6 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           </div>
         )}
 
-        {/* 「実は」バッジ（trivia章だけ画像エリア左上に重ねる。intro/outroは出さない。切替でフェード＋スケールイン） */}
-        {activeTopic && activeTopic.section === "trivia" ? (
-          <div
-            key={`chap-${activeTopicIndex}`}
-            style={{
-              // 親は中央ビジュアル枠なので枠内の相対座標で左上に置く（frame絶対座標を足さない）。
-              position: "absolute",
-              top: 16,
-              left: 16,
-              display: "flex",
-              pointerEvents: "none",
-              opacity: topicFade,
-              transform: `scale(${(0.92 + 0.08 * topicFade).toFixed(3)})`,
-              transformOrigin: "top left",
-              zIndex: 8,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                background: "rgba(18,30,58,0.78)",
-                border: "2px solid rgba(125,170,235,0.5)",
-                borderRadius: 999,
-                padding: "8px 26px",
-                boxShadow: "0 3px 14px rgba(0,0,0,0.5)",
-              }}
-            >
-              <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 2 }}>
-                {triviaLabel(activeTopic.triviaIndex)}
-              </span>
-              {activeTopic.title ? (
-                <span
-                  style={{
-                    color: "#fff",
-                    fontSize: 30,
-                    fontWeight: 800,
-                    textShadow: "0 1px 4px rgba(0,0,0,0.6)",
-                  }}
-                >
-                  {activeTopic.title}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
         {/* クレジットは動画内に出さない（帰属は概要欄の credits.txt に集約＝CC-BY要件はそこで満たす）。 */}
 
         {/* glow_pulse: 中央ビジュアルの内側に脈動する発光リング（神秘的な強調） */}
@@ -598,6 +550,57 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           />
         ) : null}
       </div>
+
+      {/* 章見出し（trivia章のみ）。画像枠の外＝画像の上に、フラットな見出しバーで「実は＋タイトル」。
+          画像に重ねない。切替でフェード＋わずかに下から出す。 */}
+      {activeTopic && activeTopic.section === "trivia" ? (
+        <div
+          key={`chap-${activeTopicIndex}`}
+          style={{
+            position: "absolute",
+            left: BOARD.left + 1,
+            top: BOARD.top - 6,
+            maxWidth: boardW - 24,
+            display: "flex",
+            alignItems: "stretch",
+            pointerEvents: "none",
+            opacity: topicFade,
+            transform: `translateY(${((1 - topicFade) * 8).toFixed(1)}px)`,
+            borderRadius: 6,
+            overflow: "hidden",
+            boxShadow: "0 3px 14px rgba(0,0,0,0.5)",
+            zIndex: 8,
+          }}
+        >
+          {/* 左アクセント帯（フラット） */}
+          <div style={{ width: 8, background: "#ffd84d" }} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              background: "rgba(18,30,58,0.88)",
+              padding: "7px 22px",
+            }}
+          >
+            <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>
+              {triviaLabel(activeTopic.triviaIndex)}
+            </span>
+            {activeTopic.title ? (
+              <span
+                style={{
+                  color: "#fff",
+                  fontSize: 30,
+                  fontWeight: 800,
+                  textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+                }}
+              >
+                {activeTopic.title}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {/* 左立ち絵（中央画像より前面・下端の左右コーナーに大きく配置。最下部が胸あたりになるよう下げる。字幕に被らない位置まで左へ） */}
       <div style={{ position: "absolute", left: -70, bottom: -70 }}>
