@@ -314,8 +314,14 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
       cur?.emotion ?? activeTurn.emotion ?? inferEmotion(caption || activeTurn.text);
     emotionAtFrame = Math.round((cur?.start ?? activeTurn.start ?? 0) * fps);
   }
-  const leftEmotion = activeSpeaker === leftSpeaker ? emotion : "normal";
-  const rightEmotion = activeSpeaker === rightSpeaker ? emotion : "normal";
+  // 解説役（expressive=false、例:めたん先生）は驚き/焦り顔を出さず落ち着かせる。
+  // surprise→normal に落とす（happyの笑顔は許容）。
+  const calm = (e: Emotion, expressive: boolean): Emotion =>
+    !expressive && e === "surprise" ? "normal" : e;
+  const leftEmotion =
+    activeSpeaker === leftSpeaker ? calm(emotion, leftExpressive) : "normal";
+  const rightEmotion =
+    activeSpeaker === rightSpeaker ? calm(emotion, rightExpressive) : "normal";
 
   // 重ねエフェクト（台本 turn.effect）。ifパートの見せ場で発火する。
   const fx = effectState(activeTurn, t, frame);
@@ -323,6 +329,9 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   const fxTransform = ` scale(${(1 + fx.punchScale).toFixed(4)}) translate(${fx.shakeX.toFixed(3)}%, ${fx.shakeY.toFixed(3)}%)`;
   // Ken Burns に zoom_punch/shake を合成（CSS transformは左→右に合成される）。
   const imgTransform = kenBurnsTransform(activeTopicIndex, kbProgress) + fxTransform;
+  // contain（ロゴ等の全体表示）はパンすると余白が露出するため、中央ゆっくりズームのみ。
+  const isContain = activeTopic?.fit === "contain";
+  const containTransform = `scale(${(1 + 0.04 * kbProgress).toFixed(4)})` + fxTransform;
   // 中央ビジュアル枠の実寸（focusアノテーションの contain フィット計算用。styleのleft/right/top/bottomと一致）。
   // 黒板内縁(BOARD)に収まる最大の16:9枠を中央配置する（画像素材が16:9＝間延び/切れを防ぐ）。
   const boardW = 1920 - BOARD.left - BOARD.right;
@@ -371,6 +380,11 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              // contain（ロゴ等）は余白が出るため、透過ロゴでも視認できる淡い背景を敷く。
+              background:
+                isContain && activeTopic.image
+                  ? "linear-gradient(160deg, #f3f5f8 0%, #dfe4ec 100%)"
+                  : undefined,
             }}
           >
             {activeTopic.image ? (
@@ -391,9 +405,10 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
                   style={{
                     width: "100%",
                     height: "100%",
-                    objectFit: "cover",
-                    // Ken Burns（カットごとズーム/パン）＋ effect（zoom_punch/shake）合成。
-                    transform: imgTransform,
+                    // ロゴ/アイコンは contain で全体表示（端切れ防止）。写真は cover で枠を埋める。
+                    objectFit: isContain ? "contain" : "cover",
+                    // contain は余白露出を避け中央ズームのみ。cover は Ken Burns＋effect。
+                    transform: isContain ? containTransform : imgTransform,
                     willChange: "transform",
                   }}
                 />

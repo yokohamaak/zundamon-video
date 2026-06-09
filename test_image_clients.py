@@ -48,6 +48,15 @@ def test_title_matches():
     assert w._title_matches("first Macintosh", "File:Macintosh 128k.jpg"), "最長語macintosh含む→関連"
     assert not w._title_matches("GitHub logo", "File:SecurityLab portrait.jpg"), "github含まず→非関連"
     assert w._title_matches("q", "File:anything.jpg"), "短すぎる語は判定せず通す"
+    # 3字略語も判定対象。拡張子は除外して比較する。
+    assert w._title_matches("PNG", "File:PNG-Gradient.png"), "PNGが名に含まれる→関連"
+    assert not w._title_matches("PNG", "File:Polish Institute logo.png"), "拡張子.pngだけ一致では非関連"
+    assert not w._title_matches("GIF", "File:New man pin badge.gif"), "拡張子.gifだけ一致では非関連"
+    assert w._title_matches("Siri", "File:Siri icon.png"), "Siriが名に含まれる→関連"
+    # 汎用語(logo等)が最長でも核は固有名で判定する。
+    assert not w._title_matches("PNG logo", "File:Logo-ip-Minsk.png"), "logoで全ロゴ一致を防ぐ→非関連"
+    assert w._title_matches("PNG logo", "File:PNG transparency demonstration.png"), "核pngが含まれる→関連"
+    assert w._title_matches("logo", "File:Anything.png"), "汎用語のみのクエリは判定せず通す"
     print("  _title_matches: 固有名でのタイトル関連判定 OK")
 
 
@@ -67,7 +76,7 @@ def test_build_urls_and_ext():
 
 def test_fetch_one_success():
     tmp = tempfile.mkdtemp()
-    w.search = lambda q, n, t: ["File:Good.jpg"]
+    w.search = lambda q, n, t: ["File:Git logo.jpg"]
     w.imageinfo = lambda title, t: {
         "url": "https://upload.example/Good.jpg",
         "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}, "Artist": {"value": "<a>Jane</a>"}},

@@ -123,6 +123,10 @@ def build_prompt(config: dict) -> str:
   各要素に:
   - "image_kind": "subject"（実在の人物・製品・ロゴ・記号など特定物。例 "Bluetooth logo", "Larry Tesler"）
     / "ambient"（抽象・雰囲気。例 "wifi router", "old typewriter"）。
+  - **略語・規格・技術用語そのもの（例 PNG, GIF, CAPTCHA, HTTP, Bluetooth）が題材のネタは
+    必ず "subject" にし、image_query はそのロゴ/ワードマーク名（例 "PNG logo", "CAPTCHA"）にする。**
+    抽象的なambient（"artificial intelligence", "robot" 等）にすると題材と無関係なストック画像になり逆効果。
+    適切なロゴが無ければ取得失敗→プレースホルダで構わない（無関係画像より良い）。
   - "image_query": 英語の検索語。**subject は固有名詞のみ**（説明を足さない）。**ambient は情景キーワード**でよい。
 
 ## 構成・分量

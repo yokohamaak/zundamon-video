@@ -132,6 +132,10 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
             fname = image_files.get(key)
             if fname:
                 topic["image"] = fname
+                # subject(ロゴ・記号・製品)は端が切れると意味を失うため contain で全体表示。
+                # ambient(写真)は cover で枠を埋める（既定）。
+                if cut.get("image_kind") == "subject":
+                    topic["fit"] = "contain"
                 if attributions.get(key):
                     topic["credit"] = attributions[key]
             else:

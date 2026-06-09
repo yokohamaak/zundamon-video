@@ -100,17 +100,32 @@ def _is_raster_url(url):
     return ext in _RASTER_EXTS
 
 
+# 検索語に付きがちな汎用語。これが最長語になると判定が骨抜きになる
+# （"PNG logo"→"logo"で全ロゴ一致）ため、固有名の核を選ぶ際は除外する。
+_GENERIC_WORDS = {
+    "logo", "image", "photo", "picture", "icon", "symbol", "illustration",
+    "diagram", "format", "system", "file", "screenshot", "wordmark", "sign",
+}
+
+
 def _title_matches(query, title):
     """検索結果タイトルがクエリに関連するか（純関数）。
 
     Wikimedia全文検索は関連度が低く1位が被写体と限らない（"BitKeeper"→"The Keeper of
-    the Bees"等）。クエリの固有名の核（最長の4字以上の語）がFile名に含まれるものだけ採用し、
-    無関係画像の誤採用を防ぐ。該当語が無い短いクエリは判定せず通す。
+    the Bees"等）。クエリの固有名の核（汎用語を除いた最長の3字以上の語）がFile名に含まれる
+    ものだけ採用し、無関係画像の誤採用を防ぐ。該当語が無い短いクエリは判定せず通す。
+
+    - 略語(PNG/GIF/Siri等3字)も判定対象にする。
+    - title の拡張子は除いて比較する（"png"/"gif" が全PNG/GIFファイルの拡張子に一致して
+      素通りする事故を防ぐ）。
+    - "logo"/"format" 等の汎用語は核から除外（残らなければ全語にフォールバック）。
     """
-    words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) >= 4]
-    if not words:
-        return True
-    return max(words, key=len) in title.lower()
+    words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) >= 3]
+    key_words = [w for w in words if w not in _GENERIC_WORDS]
+    if not key_words:
+        return True  # 固有名の核が無い（汎用語のみ/短い）クエリは判定せず通す
+    stem = os.path.splitext(title)[0].lower()  # 拡張子(.png/.gif)を除く
+    return max(key_words, key=len) in stem
 
 
 def _get_json(url, timeout=30):

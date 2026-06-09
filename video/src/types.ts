@@ -50,6 +50,9 @@ export type Topic = {
   // l/t/r/b は画像左上を原点に 0..1 へ正規化した枠。image_aspect(=画像 w/h)で枠位置を実被写体に合わせる。
   focus?: { l: number; t: number; r: number; b: number };
   image_aspect?: number;
+  // 画像の枠への収め方。"cover"(既定)=枠を埋めはみ出しを切る（写真向き）/
+  // "contain"=全体を収め余白を入れる（ロゴ・アイコン・記号は端が切れると意味を失うため）。
+  fit?: "cover" | "contain";
   // 実は〇〇雑学: 章メタ（main_story.build_chapter_topics が付与）。
   chapter?: number;       // 0始まりの章番号
   chapterTotal?: number;  // 全章数
