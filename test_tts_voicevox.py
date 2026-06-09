@@ -141,6 +141,8 @@ def test_reading_gloss_pure():
     assert tv._spoken_text("HIFI（ハイファイ）はね") == "ハイファイはね"
     assert tv._spoken_text("Wi-Fi（ワイファイ）") == "ワイファイ"
     assert tv._spoken_text("音響のHIFI（ハイファイ）だ") == "音響のハイファイだ"
+    # 括弧内のかなに空白があっても畳む（Wireless Fidelity の二重読み対策）
+    assert tv._spoken_text("「Wireless Fidelity（ワイヤレス フィデリティ）」の略") == "「ワイヤレス フィデリティ」の略"
     # 読み仮名でないものは不変
     assert tv._spoken_text("そう（笑）") == "そう（笑）"             # 中身が漢字
     assert tv._spoken_text("諸説あり（諸説あり）") == "諸説あり（諸説あり）"  # 漢字含む
