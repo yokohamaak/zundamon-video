@@ -147,11 +147,12 @@ def test_reading_gloss_pure():
     assert tv._spoken_text("えぇーっ！？") == "えぇー！？"
     assert tv._spoken_text("そうなんだっ。") == "そうなんだ。"
     assert tv._spoken_text("やっぱりそうか。") == "やっぱりそうか。", "語中の促音は残す"
-    # 語末促音＋へぇ伸ばしの併用
-    assert tv._spoken_text("へぇっ！") == "へぇ〜！"
-    # 感嘆の「へぇ」は伸ばす（！？。」の直前）。字幕は原文（synthesis側テストで担保）。
-    assert tv._spoken_text("へぇ！すごい") == "へぇ〜！すごい"
-    assert tv._spoken_text("頭が「へぇ」でいっぱい") == "頭が「へぇ〜」でいっぱい"
+    # 「へぇ」系は正規形に揃える（小さいぇ/ーの有無に関わらず）。字幕は原文（synthesis側で担保）。
+    assert tv._spoken_text("へぇ！すごい") == "へえ〜！すごい"
+    assert tv._spoken_text("へぇー！") == "へえ〜！"          # ー付きも対象
+    assert tv._spoken_text("へえ。") == "へえ〜。"
+    assert tv._spoken_text("へぇっ！") == "へえ〜！"          # 語末促音→へぇ系正規化の併用
+    assert tv._spoken_text("頭が「へぇ」でいっぱい") == "頭が「へえ〜」でいっぱい"
     assert tv._spoken_text("へぇって言わせる") == "へぇって言わせる", "感嘆用法でない所は不変"
     # 読み仮名でないものは不変
     assert tv._spoken_text("そう（笑）") == "そう（笑）"             # 中身が漢字

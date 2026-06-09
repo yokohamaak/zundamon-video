@@ -60,8 +60,10 @@ _READING_GLOSS_RE = re.compile(
 _CLAUSE_END = r"[！!？?。、」』）)]"
 # 語末の促音「っ/ッ」（句末の直前）。VOICEVOXは声を切る“囁き”に読むので落とす（例「えぇーっ！？」）。
 _TRAILING_SOKUON_RE = re.compile(rf"[っッ](?={_CLAUSE_END}|$)")
-# 感嘆の「へぇ/へえ」（句末の直前＝感嘆用法）。素読みは平板なので伸ばす。
-_INTERJECTION_HEE_RE = re.compile(rf"へ[ぇえ](?={_CLAUSE_END}|$)")
+# 感嘆の「へぇ」系（へぇ/へえ/へぇー/へえー…）。小さい「ぇ」は弱く読まれ平板になるので、
+# 音声では正規形に揃える。_HEE_CANON は耳で調整できるよう定数化（例「へえ〜」「へー」）。
+_HEE_CANON = "へえ〜"
+_INTERJECTION_HEE_RE = re.compile(rf"へ[ぇえ][ーぇえ〜]*(?={_CLAUSE_END}|$)")
 
 
 def _spoken_text(text):
@@ -73,8 +75,8 @@ def _spoken_text(text):
     - 感嘆の「へぇ！」等は「へぇ〜」に伸ばす＝平板化を防ぐ。
     """
     t = _READING_GLOSS_RE.sub(lambda m: m.group(1), text)
-    t = _TRAILING_SOKUON_RE.sub("", t)        # 語末促音を落とす（先に）
-    t = _INTERJECTION_HEE_RE.sub("へぇ〜", t)  # その後に「へぇ」を伸ばす
+    t = _TRAILING_SOKUON_RE.sub("", t)            # 語末促音を落とす（先に）
+    t = _INTERJECTION_HEE_RE.sub(_HEE_CANON, t)   # その後に「へぇ」系を正規形へ
     return t
 
 
