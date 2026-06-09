@@ -107,6 +107,25 @@ def test_apply_options():
     print("  apply_options: fit/crop/filter/hide 適用・検証 OK")
 
 
+def test_valid_http_url():
+    assert R.valid_http_url("https://example.com/a.png")
+    assert R.valid_http_url("http://x.test/i.jpg")
+    assert not R.valid_http_url("file:///etc/passwd")
+    assert not R.valid_http_url("javascript:alert(1)")
+    assert not R.valid_http_url("data:image/png;base64,xxxx")  # data:はクライアントで処理（ここでは弾く）
+    assert not R.valid_http_url(None)
+    print("  valid_http_url: http/httpsのみ許可 OK")
+
+
+def test_import_url_guards():
+    # 不正keyとURLスキームはネットワークに行かず弾く
+    rev = _sample_review()
+    assert R.apply_import_url(rev, "9_9", "https://x/a.png", None)[0] is False, "未知key"
+    ok, msg, _ = R.apply_import_url(rev, "0_0", "file:///x", None)
+    assert ok is False and "URL" in msg, "非http(s)は弾く"
+    print("  apply_import_url: key/スキームのガード OK")
+
+
 def test_summary():
     rev = _sample_review()
     R.apply_approve(rev, "0_0", True)
@@ -185,6 +204,8 @@ if __name__ == "__main__":
     test_replace_writes_and_updates()
     test_clean_crop_and_filter()
     test_apply_options()
+    test_valid_http_url()
+    test_import_url_guards()
     test_summary()
     test_build_review_matches_fetch_order()
     test_load_images_from_review_roundtrip()

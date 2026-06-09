@@ -19,6 +19,7 @@ import base64
 import json
 import os
 import re
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
@@ -77,6 +78,65 @@ def safe_ext(filename, default=".png"):
     """アップロードファイル名から許可拡張子のみ採用（パス事故防止）。"""
     ext = os.path.splitext(filename or "")[1].lower()
     return ext if ext in _CT else default
+
+
+# Content-Type → 拡張子（URL取り込み時の保存名決め）。
+_CT_EXT = {"image/png": ".png", "image/jpeg": ".jpg", "image/jpg": ".jpg",
+           "image/gif": ".gif", "image/webp": ".webp"}
+_MAX_IMG = 15 * 1024 * 1024  # 取り込み上限15MB
+
+
+def valid_http_url(url):
+    """http/httpsのみ許可（file://やjs:等を弾く）。純関数。"""
+    if not isinstance(url, str):
+        return False
+    try:
+        p = urlparse(url.strip())
+    except ValueError:
+        return False
+    return p.scheme in ("http", "https") and bool(p.netloc)
+
+
+def download_image(url, timeout=20):
+    """画像URLをダウンロード。Returns: (ok, ext_or_msg, data)。ネットワークI/O。"""
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "Mozilla/5.0 (zundamon-video review tool)"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        data = r.read(_MAX_IMG + 1)
+    if len(data) > _MAX_IMG:
+        return False, "画像が大きすぎます(15MB超)", None
+    ext = _CT_EXT.get(ctype)
+    if not ext:  # Content-Typeが当てにならない時はURL拡張子で補完
+        ext = safe_ext(urlparse(url).path, default="")
+    if ext not in _CT_EXT.values():
+        return False, f"画像ではない可能性(Content-Type={ctype or '不明'})", None
+    return True, ext, data
+
+
+def apply_import_url(review, key, url, attribution):
+    """WebからD&DされたURLを取り込み、ch_NN_MM.<ext>で保存して review を更新。
+
+    帰属は指定が無ければ出典URLを入れる（商用可かは人が要確認）。
+    Returns: (ok, message, saved_filename)。ネットワークI/Oを伴う。
+    """
+    cut = find_cut(review, key)
+    if not cut:
+        return False, "unknown key", None
+    if not valid_http_url(url):
+        return False, "http(s)のURLのみ取り込めます", None
+    try:
+        ok, ext_or_msg, data = download_image(url)
+    except Exception as e:  # noqa: BLE001 - 取得失敗は呼び出し側にメッセージ返す
+        return False, f"取得失敗: {e}", None
+    if not ok:
+        return False, ext_or_msg, None
+    filename = f"ch_{cut['ch']:02d}_{cut['ci']:02d}{ext_or_msg}"
+    write_image_bytes(filename, data)
+    cut["image"] = filename
+    cut["attribution"] = (attribution or "").strip() or url  # 既定は出典URL（要ライセンス確認）
+    cut["approved"] = True
+    return True, "ok", filename
 
 
 def apply_replace(review, key, upload_name, data_b64, attribution):
@@ -355,7 +415,7 @@ function card(c){
         <button class="cropclear">クロップ解除</button>
         <button class="fclear">補正解除</button>
       </div>
-      <div class="hint">画像をドラッグで範囲選択＝クロップ</div>
+      <div class="hint">ドラッグ=クロップ / 画像をドロップ=取り込み</div>
     </div>`;
 
   const thumb = el.querySelector('.thumb');
@@ -448,12 +508,52 @@ function card(c){
       if(r.ok){
         c.image=r.filename; c.crop=null;
         thumb.innerHTML = `<img src="/img/${key}?v=${Date.now()}"><div class="croprect" style="display:none"></div>`;
-        approve(); hint.textContent='画像をドラッグで範囲選択＝クロップ';
+        approve(); hint.textContent='ドラッグ=クロップ / 画像をドロップ=取り込み';
         load();  // 簡易：再読込で新imgのハンドラ再付与
       } else { hint.textContent='失敗: '+(r.message||''); }
     };
     reader.readAsDataURL(f);
   };
+
+  // D&D取り込み：Webサイトからの画像ドロップ(URL) / OSファイル / data:画像 に対応。
+  function setImported(filename){
+    c.image=filename; c.crop=null;
+    thumb.innerHTML = `<img src="/img/${key}?v=${Date.now()}"><div class="croprect" style="display:none"></div>`;
+    approve(); hint.textContent='取り込みました（出典/ライセンスを確認）';
+    load();  // 新imgへハンドラ再付与
+  }
+  thumb.addEventListener('dragover', (e)=>{ e.preventDefault(); thumb.style.outline='2px dashed #ffd84d'; });
+  thumb.addEventListener('dragleave', ()=>{ thumb.style.outline=''; });
+  thumb.addEventListener('drop', async (e)=>{
+    e.preventDefault(); thumb.style.outline='';
+    const dt = e.dataTransfer;
+    // ① OSファイル（ファイル本体）
+    if(dt.files && dt.files.length){
+      const f = dt.files[0]; hint.textContent='取り込み中…';
+      const reader = new FileReader();
+      reader.onload = async ()=>{
+        const r = await api('/api/replace', {key, filename:f.name, dataB64:reader.result.split(',')[1],
+          attribution: el.querySelector('.attr').value});
+        r.ok ? setImported(r.filename) : (hint.textContent='失敗: '+(r.message||''));
+      };
+      reader.readAsDataURL(f); return;
+    }
+    // ② Webページからの画像ドロップ＝URL（data:はその場でデコード）
+    let url = dt.getData('text/uri-list') || dt.getData('text/plain') || '';
+    url = url.split('\\n').find(s=>s && !s.startsWith('#')) || '';
+    if(!url){ hint.textContent='画像のURL/ファイルを取得できませんでした'; return; }
+    hint.textContent='取り込み中…';
+    if(url.startsWith('data:image')){
+      const r = await api('/api/replace', {key, filename:'dropped.png', dataB64:url.split(',')[1],
+        attribution: el.querySelector('.attr').value});
+      r.ok ? setImported(r.filename) : (hint.textContent='失敗: '+(r.message||'')); return;
+    }
+    const r = await api('/api/import-url', {key, url, attribution: el.querySelector('.attr').value});
+    if(r.ok){
+      const a = el.querySelector('.attr'); if(!a.value){ a.value = url; c.attribution = url; }
+      setImported(r.filename);
+    } else hint.textContent='失敗: '+(r.message||'');
+  });
 
   // クロップ：画像上をドラッグで矩形選択 → 画像内容基準で正規化して保存
   if(c.image){
@@ -589,6 +689,13 @@ class Handler(BaseHTTPRequestHandler):
             if ok:
                 save_review(review)
             self._json({"ok": ok, "applied": applied})
+            return
+        if path == "/api/import-url":
+            ok, msg, fn = apply_import_url(
+                review, body.get("key"), body.get("url"), body.get("attribution"))
+            if ok:
+                save_review(review)
+            self._json({"ok": ok, "message": msg, "filename": fn})
             return
         if path == "/api/replace":
             ok, msg, fn = apply_replace(
