@@ -67,18 +67,19 @@ function speakerColor(dir: string | null, gender: Gender): string {
   return gender === "female" ? "#d85a9c" : "#3fa34d";
 }
 
-// 字幕背景：話者カラーを暗くティントした半透明色（白文字の可読性は維持）。
+// 字幕背景：ほぼ白（話者ごとにごく薄く色味を足す）。発話者は枠色で示す＝色は強すぎない。
+// 濃い文字色前提（白地に読める）。
 function speakerCaptionBg(dir: string | null, gender: Gender): string {
   const isMetan = dir === "metan" || (dir == null && gender === "female");
-  return isMetan ? "rgba(58,14,38,0.74)" : "rgba(12,42,22,0.74)";
+  return isMetan ? "rgba(252,247,250,0.96)" : "rgba(247,251,248,0.96)";
 }
 
-// 字幕テキスト：『』「」で囲まれた語を黄色で強調。それ以外は白。
-function renderCaption(text: string): React.ReactNode {
+// 字幕テキスト：『』「」で囲まれた語を強調色で。それ以外は地の文色（呼び出し側で指定）。
+function renderCaption(text: string, highlight: string): React.ReactNode {
   const parts = text.split(/(『[^』]*』|「[^」]*」)/g);
   return parts.map((p, i) =>
     /^[『「]/.test(p) ? (
-      <span key={i} style={{ color: "#ffe14d" }}>
+      <span key={i} style={{ color: highlight, fontWeight: 900 }}>
         {p}
       </span>
     ) : (
@@ -684,7 +685,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         />
       </div>
 
-      {/* 字幕（最前面）：角丸の濃紺ボックス＋枠線＋太字白文字（縁取り）。キーワードは黄色。 */}
+      {/* 字幕（最前面）：ほぼ白の角丸ボックス＋話者色の枠＋濃色太字。キーワードは話者色。 */}
       {caption ? (
         <div
           style={{
@@ -698,6 +699,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             border: `5px solid ${nameColor}`,
             padding: "22px 44px",
             boxSizing: "border-box",
+            boxShadow: "0 6px 22px rgba(0,0,0,0.4)",
           }}
         >
           <div
@@ -706,13 +708,10 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
               fontWeight: 800,
               lineHeight: 1.34,
               textAlign: "center",
-              color: "#fff",
-              WebkitTextStroke: "6px #10141d",
-              paintOrder: "stroke",
-              textShadow: "0 3px 10px rgba(0,0,0,0.6)",
+              color: "#1b2330",
             }}
           >
-            {renderCaption(caption)}
+            {renderCaption(caption, nameColor)}
           </div>
         </div>
       ) : null}
