@@ -146,6 +146,53 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
     return topics
 
 
+def build_review(chapters, image_files=None, attributions=None):
+    """画像レビュー用のマニフェスト（カット単位）を作る。
+
+    fetch_images と同じ順（chapters × image_cuts）でカットを列挙し、
+    各カットに「章タイトル・検索語・種別・取得画像・帰属・承認フラグ」を持たせる。
+    レビュー画面(review_server)が読み、人が差し替え/帰属編集/承認する。
+    """
+    image_files = image_files or {}
+    attributions = attributions or {}
+    cuts = []
+    for ch, chapter in enumerate(chapters):
+        for ci, cut in enumerate(chapter.get("image_cuts", [])):
+            key = (ch, ci)
+            cuts.append({
+                "ch": ch,
+                "ci": ci,
+                "title": chapter.get("title") or "",
+                "query": (cut.get("image_query") or "").strip(),
+                "kind": cut.get("image_kind", "ambient"),
+                "image": image_files.get(key),          # None=未取得(プレースホルダ)
+                "attribution": attributions.get(key),    # None=帰属不要/無し
+                "approved": False,
+            })
+    return {"cuts": cuts}
+
+
+def load_images_from_review(out_dir):
+    """review.json から image_files/attributions を復元する（レビュー承認後の続行用）。
+
+    人が差し替え/編集した結果を真として meta を作るため、fetch を再実行しない。
+    Returns: (image_files{(ch,ci):filename}, attributions{(ch,ci):attr})
+    """
+    path = Path(out_dir) / "review.json"
+    if not path.exists():
+        return {}, {}
+    with open(path, encoding="utf-8") as f:
+        review = json.load(f)
+    image_files, attributions = {}, {}
+    for c in review.get("cuts", []):
+        key = (c["ch"], c["ci"])
+        if c.get("image"):
+            image_files[key] = c["image"]
+        if c.get("attribution"):
+            attributions[key] = c["attribution"]
+    return image_files, attributions
+
+
 def build_credits(config, attributions=None):
     """動画に表示するクレジット（VOICEVOX規約＋画像出典）。
 
@@ -235,6 +282,10 @@ def main():
                         help="既存のscript.jsonを使いGemini生成をskip")
     parser.add_argument("--no-images", action="store_true",
                         help="画像取得を無効化し全プレースホルダで動画化する（Phase1検証用）")
+    parser.add_argument("--stop-after-images", action="store_true",
+                        help="画像取得まで実行しreview.json/script.jsonを出力して停止（人手レビュー用）")
+    parser.add_argument("--images-from-dir", action="store_true",
+                        help="画像取得をskipしreview.jsonの承認結果から meta を生成（レビュー承認後の続行用）")
     args = parser.parse_args()
 
     load_dotenv()  # .env を自動読込（source忘れ対策・既存環境変数は優先）
@@ -268,12 +319,34 @@ def main():
 
     # 2. 画像取得（image_kindで Wikimedia / Pexels / Pixabay に振り分け）。失敗カットはプレースホルダ。
     image_files, attributions = {}, {}
-    if args.no_images:
+    if args.images_from_dir:
+        # レビュー承認後の続行：fetchせず review.json の人手結果（差し替え/帰属編集込み）を真とする。
+        image_files, attributions = load_images_from_review(out_dir)
+        logger.info(f"--images-from-dir: review.json から画像{len(image_files)}件を使用（再取得なし）")
+    elif args.no_images:
         logger.info("--no-images: 画像取得をskipし全章プレースホルダで続行します。")
     else:
         from src import image_fetch
         image_files, attributions = image_fetch.fetch_images(
             script_result["chapters"], str(out_dir), config)
+
+    # 画像レビュー用マニフェストを出力（人手チェックポイント。--images-from-dir時は人手結果を維持）。
+    if not args.images_from_dir:
+        review = build_review(script_result["chapters"], image_files, attributions)
+        with open(out_dir / "review.json", "w", encoding="utf-8") as f:
+            json.dump(review, f, ensure_ascii=False, indent=2)
+
+    # --stop-after-images: 画像レビューのため音声/meta生成の手前で停止。
+    # script.json も保存し、承認後に `--from-script ... --images-from-dir` で続行できるようにする。
+    if args.stop_after_images:
+        with open(out_dir / "script.json", "w", encoding="utf-8") as f:
+            json.dump(script_result, f, ensure_ascii=False, indent=2)
+        logger.info(
+            f"=== 画像取得まで完了・レビュー待ちで停止: {out_dir}/review.json ===\n"
+            f"レビュー: python review_server.py --dir {out_dir}\n"
+            f"承認後の続行: python main_story.py --from-script {out_dir}/script.json --images-from-dir"
+        )
+        return
 
     # 3. VOICEVOXで音声＋厳密タイムスタンプ（文単位字幕付き）
     mp3_path = out_dir / "digest.mp3"
