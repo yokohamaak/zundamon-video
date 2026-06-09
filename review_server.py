@@ -915,17 +915,26 @@ STORY_PAGE = """<!doctype html>
   .lbl { color:var(--sub); font-size:12px; margin:10px 0 4px; }
   .imgrow { display:flex; gap:8px; align-items:center; padding:6px; background:#0c0f15;
             border-radius:8px; margin-bottom:6px; flex-wrap:wrap; }
-  .imgrow img, .imgrow .ph2 { width:96px; height:54px; object-fit:contain; background:#11151c;
+  .imgrow img, .imgrow .ph2 { width:160px; height:90px; object-fit:contain; background:#11151c;
             border:1px solid var(--line); border-radius:4px; flex:none; }
   .imgrow .ph2 { display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:11px; }
   .imgrow .q { flex:2; min-width:120px; }
   .imgrow .ja { flex:2; min-width:100px; }
   button.mini { font-size:12px; padding:5px 9px; background:var(--line); color:#fff; border:none;
                 border-radius:6px; cursor:pointer; font-weight:700; }
-  .turn { display:grid; grid-template-columns:120px 1fr 80px auto; gap:10px; align-items:start;
-          padding:8px 0 8px 12px; border-top:1px solid var(--line); border-left:4px solid transparent; }
+  .turn { display:grid; grid-template-columns:120px 1fr 200px auto; gap:10px; align-items:start;
+          padding:10px 0 10px 12px; border-top:1px solid var(--line); border-left:4px solid transparent; }
   .turn .sp { font-size:14px; font-weight:700; padding-top:8px; display:flex; align-items:center; gap:6px; }
   .turn .sp .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .cutpick { display:flex; flex-wrap:wrap; gap:5px; }
+  .copt { width:88px; height:50px; border:2px solid transparent; border-radius:6px; overflow:hidden;
+          cursor:pointer; background:#0c0f15; flex:none; position:relative; }
+  .copt.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+  .copt img { width:100%; height:100%; object-fit:cover; }
+  .copt .ph3 { display:flex; width:100%; height:100%; align-items:center; justify-content:center;
+          color:var(--sub); font-size:11px; }
+  .copt .num { position:absolute; left:2px; top:1px; font-size:10px; color:#fff; background:rgba(0,0,0,.55);
+          padding:0 4px; border-radius:3px; }
   .turn .acts { display:flex; flex-direction:column; gap:4px; }
   .turn .acts button { font-size:11px; padding:4px 8px; background:var(--line); color:#fff; border:none; border-radius:6px; cursor:pointer; }
   .turn .acts button.del { background:transparent; color:#c66; }
@@ -1027,14 +1036,21 @@ function render(){
         const sp=document.createElement('div'); sp.className='sp'; sp.style.color=col;
         sp.innerHTML=`<span class="dot" style="background:${col}"></span>${tn.speaker}`;
         const ta=document.createElement('textarea'); ta.value=tn.text; ta.oninput=()=>{tn.text=ta.value; autosize(ta);};
-        const sel=document.createElement('select'); const n=Math.max(1,cuts.length);
-        for(let i=0;i<n;i++){const o=document.createElement('option'); o.value=i; o.textContent='画像'+i; sel.appendChild(o);}
-        sel.value=(typeof tn.cut==='number'?tn.cut:0); sel.onchange=()=>tn.cut=parseInt(sel.value);
+        // cut選択＝サムネをクリックして選ぶ（どの画像が出るか一目で分かる）
+        const pick=document.createElement('div'); pick.className='cutpick';
+        const cur=(typeof tn.cut==='number'?tn.cut:0);
+        (cuts.length?cuts:[{}]).forEach((c,k)=>{
+          const u=imgUrl(ci,k);
+          const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
+          o.innerHTML=(u?`<img src="${u}">`:`<span class="ph3">#${k} 未取得</span>`)+`<span class="num">${k}</span>`;
+          o.onclick=()=>{ tn.cut=k; pick.querySelectorAll('.copt').forEach((e,j)=>e.classList.toggle('sel',j===k)); };
+          pick.appendChild(o);
+        });
         const acts=document.createElement('div'); acts.className='acts';
         const bs=document.createElement('button'); bs.textContent='分割'; bs.onclick=()=>splitTurn(tn,ta);
         const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除'; bd.onclick=()=>delTurn(tn);
         acts.appendChild(bs); acts.appendChild(bd);
-        row.appendChild(sp); row.appendChild(ta); row.appendChild(sel); row.appendChild(acts);
+        row.appendChild(sp); row.appendChild(ta); row.appendChild(pick); row.appendChild(acts);
         dl.appendChild(row);
       });
       body.appendChild(dl);
