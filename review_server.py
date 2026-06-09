@@ -61,7 +61,50 @@ def write_image_bytes(filename, data):
         f.write(data)
 
 
+def load_script():
+    path = os.path.join(DIR, "script.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_script(data):
+    with open(os.path.join(DIR, "script.json"), "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def pipeline_status():
+    """各工程の成果物の有無からステージ完了状況を推定。"""
+    def ex(name):
+        return os.path.exists(os.path.join(DIR, name))
+    return {"script": ex("script.json"), "review": ex("review.json"),
+            "audio": ex("digest.mp3"), "meta": ex("meta.json")}
+
+
 # ---- 純ロジック（テスト可能） ----
+
+def apply_save_script(data):
+    """台本編集の保存内容を検証して dict を返す（純ロジック・I/Oは呼び出し側）。
+
+    script は [{speaker,text,...}] の非空リスト必須。chapters/theme はあればそのまま。
+    Returns: (ok, message, normalized_or_None)
+    """
+    if not isinstance(data, dict):
+        return False, "形式が不正", None
+    script = data.get("script")
+    if not isinstance(script, list) or not script:
+        return False, "script が空", None
+    for i, t in enumerate(script):
+        if not isinstance(t, dict) or "speaker" not in t or "text" not in t:
+            return False, f"script[{i}] に speaker/text が無い", None
+    out = {"script": script}
+    if "theme" in data:
+        out["theme"] = data["theme"]
+    if "chapters" in data:
+        out["chapters"] = data["chapters"]
+    return True, "ok", out
+
 
 def cut_key(cut):
     return f"{cut['ch']}_{cut['ci']}"
@@ -277,7 +320,7 @@ def review_summary(review):
 
 # ---- HTTP ----
 
-PAGE = """<!doctype html>
+IMAGE_PAGE = """<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>画像レビュー</title>
@@ -613,6 +656,181 @@ load();
 """
 
 
+# 共通スタイル（各ページで使い回す）
+_BASE_CSS = """
+  :root { --bg:#11151c; --card:#1b212c; --line:#2c3543; --fg:#e8edf4; --sub:#90a0b5;
+          --ok:#3fa34d; --accent:#4a86ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
+         background:var(--bg); color:var(--fg); }
+  header { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px;
+           padding:14px 22px; background:#0d1117ee; backdrop-filter:blur(8px);
+           border-bottom:1px solid var(--line); }
+  header h1 { font-size:18px; margin:0; font-weight:700; }
+  header a { color:var(--sub); text-decoration:none; font-size:14px; }
+  header a:hover { color:var(--fg); }
+  .spacer { flex:1; }
+  button { font:inherit; border:none; border-radius:8px; padding:8px 16px; cursor:pointer;
+           font-weight:700; color:#fff; background:var(--line); }
+  button.primary { background:var(--accent); }
+  button.ok { background:var(--ok); }
+  main { padding:22px; max-width:1000px; margin:0 auto; }
+  code { background:#0c0f15; padding:2px 7px; border-radius:5px; color:#bfe3c4; font-size:13px; }
+"""
+
+LANDING_PAGE = """<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>制作パネル</title>
+<style>__CSS__
+  .stage { display:flex; align-items:center; gap:14px; background:var(--card);
+           border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:12px; }
+  .dot { width:12px; height:12px; border-radius:50%; background:var(--line); flex:none; }
+  .dot.done { background:var(--ok); }
+  .stage .t { font-weight:700; }
+  .stage .d { color:var(--sub); font-size:13px; }
+  .stage .go { margin-left:auto; }
+  .cmd { color:var(--sub); font-size:12px; margin-top:6px; }
+</style></head>
+<body>
+<header><h1>制作パネル</h1><span class="spacer"></span><span class="d" id="dir"></span></header>
+<main id="main">読み込み中…</main>
+<script>
+const STAGES = [
+  {key:'script', t:'① 台本', d:'生成→確認/編集→承認', link:'/script',
+   cmd:'python main_story.py --stop-after-images'},
+  {key:'review', t:'② 画像', d:'取得→差し替え/調整→承認', link:'/images',
+   cmd:'(台本承認で取得 → このページで調整)'},
+  {key:'audio',  t:'③ 音声+meta', d:'VOICEVOXで音声・字幕生成', link:null,
+   cmd:'python main_story.py --from-script DIR/script.json --images-from-dir'},
+  {key:'meta',   t:'④ 仕上げ', d:'Remotionで動画書き出し', link:null,
+   cmd:'cd video && SRC_DIR=../DIR npm run render'},
+];
+fetch('/api/status').then(r=>r.json()).then(st=>{
+  document.getElementById('dir').textContent = '対象: '+st.dir;
+  const m = document.getElementById('main'); m.innerHTML='';
+  for(const s of STAGES){
+    const done = st.status[s.key];
+    const el = document.createElement('div'); el.className='stage';
+    el.innerHTML = `<span class="dot ${done?'done':''}"></span>
+      <div><div class="t">${s.t} ${done?'<span class="d">✓ 生成済</span>':''}</div>
+        <div class="d">${s.d}</div>
+        <div class="cmd"><code>${s.cmd.replace('DIR', st.dir)}</code></div></div>
+      ${s.link?`<a class="go" href="${s.link}"><button class="primary">開く</button></a>`:''}`;
+    m.appendChild(el);
+  }
+  const note = document.createElement('p'); note.className='d';
+  note.style.color='var(--sub)'; note.style.fontSize='13px';
+  note.innerHTML='※ 生成/書き出しは今はコマンドで実行（ボタン起動は今後対応）。台本・画像は「開く」で確認/編集。';
+  m.appendChild(note);
+});
+</script>
+</body></html>
+"""
+
+SCRIPT_PAGE = """<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台本レビュー</title>
+<style>__CSS__
+  .chap { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:14px 16px; margin-bottom:16px; }
+  .chap .head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line); color:var(--sub); }
+  .cuts { display:flex; flex-direction:column; gap:6px; margin:8px 0 12px; padding:8px 10px;
+          background:#0c0f15; border-radius:8px; }
+  .cuts .row { display:flex; gap:8px; align-items:center; font-size:13px; }
+  .cuts .idx { color:var(--sub); width:28px; }
+  input[type=text], textarea, select { font:inherit; background:#0c0f15; color:var(--fg);
+          border:1px solid var(--line); border-radius:6px; padding:6px 9px; }
+  textarea { width:100%; resize:vertical; min-height:38px; font-size:15px; }
+  .turn { display:grid; grid-template-columns:120px 1fr 96px; gap:10px; align-items:start;
+          padding:8px 0; border-top:1px solid var(--line); }
+  .turn .sp { font-size:13px; color:var(--sub); padding-top:8px; }
+  .turn .cutsel { font-size:13px; }
+  .titleInput { font-size:15px; font-weight:700; flex:1; }
+  .qInput { flex:1; }
+</style></head>
+<body>
+<header>
+  <a href="/">← パネル</a>
+  <h1>台本レビュー</h1>
+  <span class="spacer"></span>
+  <button class="ok" id="save">保存</button>
+  <a href="/images"><button class="primary">画像へ →</button></a>
+</header>
+<main id="main">読み込み中…</main>
+<script>
+let DATA = null;
+function api(path, body){ return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(body)}).then(r=>r.json()); }
+
+function render(){
+  const m = document.getElementById('main'); m.innerHTML='';
+  const chapters = DATA.chapters || [];
+  // theme
+  const th = document.createElement('div'); th.className='chap';
+  th.innerHTML = `<div class="head"><span class="badge">テーマ</span></div>`;
+  const ti = document.createElement('input'); ti.type='text'; ti.className='titleInput';
+  ti.value = DATA.theme||''; ti.style.width='100%';
+  ti.onchange = ()=> DATA.theme = ti.value; th.appendChild(ti); m.appendChild(th);
+
+  chapters.forEach((ch, ci)=>{
+    const box = document.createElement('div'); box.className='chap';
+    const cuts = ch.image_cuts || [];
+    box.innerHTML = `<div class="head"><span class="badge">${ch.section||'-'}</span></div>`;
+    // title
+    const title = document.createElement('input'); title.type='text'; title.className='titleInput';
+    title.value = ch.title||''; title.placeholder='章タイトル';
+    title.onchange = ()=> ch.title = title.value;
+    box.querySelector('.head').appendChild(title);
+    // image_cuts
+    const cb = document.createElement('div'); cb.className='cuts';
+    cuts.forEach((cut, k)=>{
+      const row = document.createElement('div'); row.className='row';
+      const q = document.createElement('input'); q.type='text'; q.className='qInput';
+      q.value = cut.image_query||''; q.onchange=()=> cut.image_query=q.value;
+      const kind = document.createElement('select');
+      kind.innerHTML = `<option value="ambient">ambient</option><option value="subject">subject</option>`;
+      kind.value = cut.image_kind||'ambient'; kind.onchange=()=> cut.image_kind=kind.value;
+      row.innerHTML = `<span class="idx">#${k}</span>`;
+      row.appendChild(q); row.appendChild(kind); cb.appendChild(row);
+    });
+    box.appendChild(cb);
+    // turns of this chapter
+    DATA.script.forEach((tn)=>{
+      if(tn.chapter !== ci) return;
+      const row = document.createElement('div'); row.className='turn';
+      const sp = document.createElement('div'); sp.className='sp'; sp.textContent = tn.speaker;
+      const ta = document.createElement('textarea'); ta.value = tn.text;
+      ta.oninput = ()=> tn.text = ta.value;
+      const sel = document.createElement('select'); sel.className='cutsel';
+      const n = Math.max(1, cuts.length);
+      for(let i=0;i<n;i++){ const o=document.createElement('option'); o.value=i; o.textContent='画像'+i; sel.appendChild(o); }
+      sel.value = (typeof tn.cut==='number'?tn.cut:0);
+      sel.onchange = ()=> tn.cut = parseInt(sel.value);
+      row.appendChild(sp); row.appendChild(ta); row.appendChild(sel);
+      box.appendChild(row);
+    });
+    m.appendChild(box);
+  });
+}
+
+document.getElementById('save').onclick = async ()=>{
+  const r = await api('/api/script', DATA);
+  document.getElementById('save').textContent = r.ok ? '保存✓' : '失敗:'+(r.message||'');
+  setTimeout(()=>document.getElementById('save').textContent='保存', 1500);
+};
+
+fetch('/api/script').then(r=>r.json()).then(d=>{
+  if(d.error){ document.getElementById('main').textContent = d.error; return; }
+  DATA = d; render();
+});
+</script>
+</body></html>
+"""
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):  # 既定の逐次ログを抑制
         pass
@@ -634,15 +852,31 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return {}
 
+    def _html(self, s):
+        body = s.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/":
-            body = PAGE.encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            self._html(LANDING_PAGE.replace("__CSS__", _BASE_CSS))
+            return
+        if path == "/images":
+            self._html(IMAGE_PAGE)
+            return
+        if path == "/script":
+            self._html(SCRIPT_PAGE.replace("__CSS__", _BASE_CSS))
+            return
+        if path == "/api/status":
+            self._json({"dir": DIR, "status": pipeline_status()})
+            return
+        if path == "/api/script":
+            data = load_script()
+            self._json(data if data else {"error": "script.json がありません（先に台本生成）"})
             return
         if path == "/api/cuts":
             review = load_review()
@@ -672,6 +906,12 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         body = self._read_json()
         review = load_review()
+        if path == "/api/script":
+            ok, msg, norm = apply_save_script(body)
+            if ok:
+                save_script(norm)
+            self._json({"ok": ok, "message": msg})
+            return
         if path == "/api/approve":
             ok = apply_approve(review, body.get("key"), body.get("approved", True))
             if ok:

@@ -126,6 +126,16 @@ def test_import_url_guards():
     print("  apply_import_url: key/スキームのガード OK")
 
 
+def test_apply_save_script():
+    ok, _, norm = R.apply_save_script(
+        {"theme": "t", "chapters": [{"title": "A"}], "script": [{"speaker": "x", "text": "y", "cut": 1}]})
+    assert ok and norm["theme"] == "t" and norm["script"][0]["cut"] == 1
+    assert R.apply_save_script({"script": []})[0] is False, "空scriptは不可"
+    assert R.apply_save_script({"script": [{"speaker": "x"}]})[0] is False, "text無しは不可"
+    assert R.apply_save_script("nope")[0] is False
+    print("  apply_save_script: 検証/正規化 OK")
+
+
 def test_summary():
     rev = _sample_review()
     R.apply_approve(rev, "0_0", True)
@@ -234,6 +244,7 @@ if __name__ == "__main__":
     test_replace_writes_and_updates()
     test_clean_crop_and_filter()
     test_apply_options()
+    test_apply_save_script()
     test_valid_http_url()
     test_import_url_guards()
     test_summary()
