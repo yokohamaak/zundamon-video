@@ -171,7 +171,7 @@ def test_reading_gloss_pure():
     assert tv._spoken_text("そう（笑）") == "そう（笑）"             # 中身が漢字
     assert tv._spoken_text("諸説あり（諸説あり）") == "諸説あり（諸説あり）"  # 漢字含む
     assert tv._spoken_text("（なるほど）") == "（なるほど）"          # 直前が英字でない
-    assert tv._spoken_text("Mac (2020)") == "Mac (2020)"          # 中身が数字
+    assert tv._spoken_text("Mac (2020)") == "マック (2020)"        # 数字の()は読みに畳まない（Macは辞書で変換）
     print("  _spoken_text: 英字の読み仮名だけ畳む・他は不変 OK")
 
 
