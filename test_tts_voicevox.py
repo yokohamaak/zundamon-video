@@ -128,6 +128,14 @@ def test_unknown_speaker():
     raise AssertionError("未知話者でKeyErrorが出ていない")
 
 
+def test_sentence_keeps_closing_bracket():
+    # 終止符の後の閉じ括弧は同じ文に残る（次の字幕にこぼれない）。
+    assert tv._split_sentences("「へぇ！」そうなの。") == ["「へぇ！」", "そうなの。"]
+    assert tv._split_sentences("彼は言った（本当だ）。次へ。") == ["彼は言った（本当だ）。", "次へ。"]
+    assert tv._split_sentences("すごい！？」ほんと。") == ["すごい！？」", "ほんと。"]
+    print("  _split_sentences: 終止符後の閉じ括弧を保持 OK")
+
+
 def test_reading_gloss_pure():
     # 英字（かな）→ かなだけ（音声用）。読み仮名以外は触らない。
     assert tv._spoken_text("HIFI（ハイファイ）はね") == "ハイファイはね"
@@ -183,6 +191,7 @@ if __name__ == "__main__":
     test_per_speaker_voice_params()
     test_inter_turn_pause()
     test_unknown_speaker()
+    test_sentence_keeps_closing_bracket()
     test_reading_gloss_pure()
     test_reading_gloss_in_synthesis()
     test_generate_audio_end_to_end()

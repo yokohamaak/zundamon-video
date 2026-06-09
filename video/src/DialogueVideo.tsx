@@ -412,12 +412,9 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
               alignItems: "center",
               justifyContent: "center",
               boxSizing: "border-box",
-              // contain（ロゴ等）は余白が出るため、透過ロゴでも視認できる背景を敷く。
-              // bg指定があればその色、無ければ既定の淡いグレーグラデ。
+              // contain余白の背景は既定では付けない（黒板が透ける）。bg指定時だけその色を敷く。
               background:
-                isContain && activeTopic.image
-                  ? containBg || "linear-gradient(160deg, #f3f5f8 0%, #dfe4ec 100%)"
-                  : undefined,
+                isContain && activeTopic.image && containBg ? containBg : undefined,
               // contain時のみ内側余白（ロゴが枠いっぱいの素材に呼吸を持たせる）。
               padding: isContain ? containPad : 0,
             }}
