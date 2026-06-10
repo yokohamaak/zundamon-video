@@ -322,6 +322,31 @@ def test_regenerate_ignores_intro_outro():
     print("  regenerate_chapters: intro/outro混入を除外しtriviaのみ抽出 OK")
 
 
+def test_regenerate_uses_also_avoid():
+    # also_avoid（過去に却下したネタ）が重複回避リストとしてプロンプトに渡ること。
+    cfg = {"story": {"questioner": "ずんだもん", "explainer": "四国めたん"}}
+    script_result = {"theme": "T", "chapters": [
+        {"section": "trivia", "title": "現存ネタ", "summary": "now"}], "script": []}
+    captured = {}
+
+    def fake_gen(c, p, log_label=""):
+        captured["prompt"] = p
+        return {"theme": "T",
+                "chapters": [{"section": "trivia", "title": "新", "summary": "n",
+                              "image_cuts": [{"image_query": "x", "image_kind": "ambient"}]}],
+                "script": [{"chapter": 0, "section": "trivia", "speaker": "四国めたん", "text": "新A", "cut": 0}]}
+    orig = s._generate_parsed
+    s._generate_parsed = fake_gen
+    try:
+        s.regenerate_chapters(cfg, script_result, [0],
+                              also_avoid=[{"title": "却下したネタ", "summary": "rej"}])
+    finally:
+        s._generate_parsed = orig
+    p = captured["prompt"]
+    assert "現存ネタ" in p and "却下したネタ" in p, "現存＋却下の両方が重複禁止に入る"
+    print("  regenerate_chapters: also_avoid(却下履歴)を重複回避に渡す OK")
+
+
 def test_splice_regenerated():
     sr = {"theme": "t", "chapters": [
         {"section": "intro", "title": "i"},
@@ -369,5 +394,6 @@ if __name__ == "__main__":
     test_parse_integration_section_from_chapters()
     test_build_regen_prompt()
     test_regenerate_ignores_intro_outro()
+    test_regenerate_uses_also_avoid()
     test_splice_regenerated()
     print("ALL PASS")

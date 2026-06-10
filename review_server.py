@@ -278,15 +278,29 @@ def do_regenerate_chapters(indices):
         return {"ok": False, "message": "再生成する章が選択されていません"}
     from src import image_fetch, story_script
     config = _load_image_config()
+    review = load_review()
+    rejected = review.get("rejected", [])  # このレビュー中に却下したネタ（復活防止）
+    # 置き換える前の対象 trivia 章の内容を控える（成功したら却下履歴に積む）。
+    chs = script.get("chapters", [])
+    old_facts = [{"title": chs[i].get("title", ""), "summary": chs[i].get("summary", "")}
+                 for i in indices if 0 <= i < len(chs) and chs[i].get("section") == "trivia"]
     try:
-        regen = story_script.regenerate_chapters(config, script, indices)
+        regen = story_script.regenerate_chapters(config, script, indices, also_avoid=rejected)
     except Exception as e:  # noqa: BLE001 - 生成失敗はメッセージで返す
         return {"ok": False, "message": f"台本の再生成に失敗: {e}"}
     story_script.splice_regenerated(script, regen)
     save_script(script)
 
+    # 捨てたネタを却下履歴に追記（タイトルで重複排除）。次回以降の再生成で除外される。
+    seen = {(f.get("title") or "").strip() for f in rejected}
+    for f in old_facts:
+        t = (f.get("title") or "").strip()
+        if t and t not in seen:
+            rejected.append(f)
+            seen.add(t)
+    review["rejected"] = rejected
+
     # 再生成した章の画像を取り直し、review.json を更新（他章のレビューは保持）。
-    review = load_review()
     cuts = review.get("cuts", [])
     regen_chs = set(regen["chapters"].keys())
     for c in [c for c in cuts if c.get("ch") in regen_chs]:

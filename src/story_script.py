@@ -612,10 +612,13 @@ def build_regen_prompt(config: dict, theme: str, existing_facts: list, n_targets
 - "chapter" は 0 から {n_targets - 1} までの連番のみ。""".strip()
 
 
-def regenerate_chapters(config: dict, script_result: dict, target_indices: list) -> dict:
+def regenerate_chapters(config: dict, script_result: dict, target_indices: list,
+                        also_avoid: list = None) -> dict:
     """既存台本の指定 trivia 章（target_indices）だけ、既出ネタと重複しない内容で再生成する。
 
     Gemini呼び出しは1回（選択章をまとめて生成し相互重複も防ぐ）。
+    also_avoid=過去のレビューで却下したネタ[{title,summary}]。現存ネタに加えて重複回避に渡す
+    （同じ章を振り直しても捨てたネタが復活しないように）。
     Returns: {"chapters": {idx: chapter_meta}, "turns": {idx: [turn,...]}}（元の章番号付き）。
     呼び出し側がこれで script_result を差し替える。
     """
@@ -629,6 +632,13 @@ def regenerate_chapters(config: dict, script_result: dict, target_indices: list)
     # 既出ネタ＝全 trivia 章のタイトル＋要約（差し替え対象も含めて重複回避の母集合にする）。
     existing = [{"title": c.get("title", ""), "summary": c.get("summary", "")}
                 for c in chapters if c.get("section") == "trivia"]
+    # 過去に却下したネタもタイトルで重複排除しつつ加える。
+    seen = {(f.get("title") or "").strip() for f in existing}
+    for f in (also_avoid or []):
+        t = (f.get("title") or "").strip()
+        if t and t not in seen:
+            existing.append({"title": t, "summary": f.get("summary", "")})
+            seen.add(t)
     prompt = build_regen_prompt(config, theme, existing, len(targets))
     data = _generate_parsed(config, prompt, log_label=f"{len(targets)}章の差し替え台本")
 
