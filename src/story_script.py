@@ -470,6 +470,24 @@ def assign_sections_to_turns(script: list) -> list:
     return segs
 
 
+def _is_daily_quota(msg: str, retry_secs=None) -> bool:
+    """日次クォータ(RPD)枯渇＝待っても回復しない（同一モデルを再試行せず即フォールバックすべき）か。
+
+    RESOURCE_EXHAUSTED/quota系のうち PerDay/日次 のものだけTrue。分次レート制限(PerMinute)・
+    503・一過性エラーは対象外（従来通り待ってリトライ）。判別できないクォータ系は、待機指示が
+    長い(>=5分)なら日次相当とみなす。
+    """
+    m = msg.lower()
+    if "resource_exhausted" not in m and "quota" not in m:
+        return False  # クォータ系でなければ対象外（待ってリトライ）
+    flat = m.replace(" ", "").replace("_", "")
+    if "perminute" in flat:
+        return False  # 分次レート制限は待てば回復する
+    if "perday" in flat or "daily" in m:
+        return True   # 日次上限＝待っても無駄→即フォールバック
+    return retry_secs is not None and retry_secs >= 300  # 長い待機指示は日次相当
+
+
 def _generate_with_retry(client, model_name, prompt, max_attempts=5):
     import re
     import time
@@ -478,12 +496,17 @@ def _generate_with_retry(client, model_name, prompt, max_attempts=5):
         try:
             return client.models.generate_content(model=model_name, contents=prompt).text
         except Exception as e:  # noqa: BLE001
-            if attempt == max_attempts:
-                raise
             msg = str(e)
             match = re.search(r"retry[^\d]*(\d+(?:\.\d+)?)\s*s", msg, re.IGNORECASE)
-            if match:
-                wait = max(int(float(match.group(1))) + 10, 65)  # 429(レート制限): 指示秒+余裕
+            retry_secs = float(match.group(1)) if match else None
+            # 日次クォータ(RPD)枯渇は待っても回復しない→再試行せず即送出（呼び出し側が次モデルへ）。
+            if _is_daily_quota(msg, retry_secs):
+                logger.warning(f"日次クォータ上限のため再試行せず即フォールバック（{model_name}）: {e}")
+                raise
+            if attempt == max_attempts:
+                raise
+            if retry_secs is not None:
+                wait = max(int(retry_secs) + 10, 65)  # 分次レート制限: 指示秒+余裕
             elif re.search(r"503|UNAVAILABLE|overloaded|high demand", msg, re.IGNORECASE):
                 wait = 20  # 一時的な高負荷は短間隔で再試行
             else:

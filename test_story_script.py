@@ -322,6 +322,60 @@ def test_regenerate_ignores_intro_outro():
     print("  regenerate_chapters: intro/outro混入を除外しtriviaのみ抽出 OK")
 
 
+def test_is_daily_quota():
+    perday = ("429 RESOURCE_EXHAUSTED quota exceeded. violations quotaId: "
+              "GenerateContentRequestsPerDayPerProjectPerModel retryDelay: 32s")
+    permin = ("429 RESOURCE_EXHAUSTED quota exceeded. quotaId: "
+              "GenerateRequestsPerMinutePerProjectPerModel retryDelay: 20s")
+    assert s._is_daily_quota(perday, 32) is True, "日次は即フォールバック"
+    assert s._is_daily_quota(permin, 20) is False, "分次は待ってリトライ"
+    assert s._is_daily_quota("503 UNAVAILABLE overloaded") is False, "503はクォータでない"
+    assert s._is_daily_quota("some quota error", 600) is True, "長い待機指示は日次相当"
+    assert s._is_daily_quota("connection reset") is False
+    print("  _is_daily_quota: 日次/分次/503/長待機 の判別 OK")
+
+
+def test_daily_quota_immediate_fallback():
+    # 日次クォータエラーは sleep せず即 raise（呼び出し側が次モデルへ）。分次は待ってリトライ。
+    import time as _t
+    orig_sleep = _t.sleep
+    slept = []
+    _t.sleep = lambda x: slept.append(x)
+
+    class FakeModels:
+        def __init__(self, exc):
+            self.exc = exc
+            self.calls = 0
+
+        def generate_content(self, model, contents):
+            self.calls += 1
+            raise self.exc
+
+    class FakeClient:
+        def __init__(self, exc):
+            self.models = FakeModels(exc)
+    try:
+        # 日次: 1回で即raise・sleepなし
+        c1 = FakeClient(Exception("429 RESOURCE_EXHAUSTED quotaId: RequestsPerDay retryDelay: 30s"))
+        raised = False
+        try:
+            s._generate_with_retry(c1, "m", "p", max_attempts=3)
+        except Exception:
+            raised = True
+        assert raised and c1.models.calls == 1 and slept == [], (c1.models.calls, slept)
+        # 分次: max_attempts まで再試行（sleepあり）
+        slept.clear()
+        c2 = FakeClient(Exception("429 RESOURCE_EXHAUSTED quotaId: RequestsPerMinute retryDelay: 20s"))
+        try:
+            s._generate_with_retry(c2, "m", "p", max_attempts=2)
+        except Exception:
+            pass
+        assert c2.models.calls == 2 and len(slept) == 1, (c2.models.calls, slept)
+    finally:
+        _t.sleep = orig_sleep
+    print("  _generate_with_retry: 日次=即raise / 分次=待って再試行 OK")
+
+
 def test_build_prompt_also_avoid():
     cfg = {"story": {"theme": "X", "topics": 5, "questioner": "ずんだもん", "explainer": "四国めたん"}}
     # 指定なし＝既出ネタ節は出ない（従来通り）
@@ -403,6 +457,8 @@ if __name__ == "__main__":
     test_warn_role_voice()
     test_parse_integration_section_from_chapters()
     test_build_regen_prompt()
+    test_is_daily_quota()
+    test_daily_quota_immediate_fallback()
     test_build_prompt_also_avoid()
     test_regenerate_ignores_intro_outro()
     test_regenerate_uses_also_avoid()
