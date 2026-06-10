@@ -559,7 +559,11 @@ def build_regen_prompt(config: dict, theme: str, existing_facts: list, n_targets
 - 各ネタはテンポよく簡潔に。1ネタあたり数往復で歯切れよく。
 
 {_output_block(explainer, questioner)}
-""".strip()
+
+## この再生成での出力（最重要・上の例や章メタ説明より優先）
+- 上のJSON例や「章メタ」には intro / outro が出てくるが、**今回は trivia 章だけを {n_targets} 個**出力する。
+- chapters[] と script[] に **intro と outro を絶対に含めない**。全ての section は "trivia"。
+- "chapter" は 0 から {n_targets - 1} までの連番のみ。導入の挨拶や締めの言葉は入れない（各ネタは繋ぎ→問い→実は→驚き→まとめ で完結）。""".strip()
 
 
 def regenerate_chapters(config: dict, script_result: dict, target_indices: list) -> dict:
@@ -582,18 +586,23 @@ def regenerate_chapters(config: dict, script_result: dict, target_indices: list)
     prompt = build_regen_prompt(config, theme, existing, len(targets))
     data = _generate_parsed(config, prompt, log_label=f"{len(targets)}章の差し替え台本")
 
-    new_chapters = [c for c in data.get("chapters", []) if c.get("section") == "trivia"]
+    chapters_out = data.get("chapters", [])
     new_script = data.get("script", [])
-    if len(new_chapters) < len(targets):
-        raise ValueError(f"再生成結果の章数が不足（要求{len(targets)}・取得{len(new_chapters)}）")
-    # ローカル章番号(0..)→元の章番号 に対応付け。余剰章は捨てる。
+    # Geminiが指示に反して intro/outro を混ぜても、trivia の「実章index」で拾う。
+    # （フィルタ後リストの並び順で拾うと、intro等で番号がずれ intro/outro のターンを取り込む）
+    trivia_idx = [i for i, c in enumerate(chapters_out) if c.get("section") == "trivia"]
+    if len(trivia_idx) < len(targets):
+        raise ValueError(f"再生成結果のネタ章が不足（要求{len(targets)}・取得{len(trivia_idx)}）")
     out_chapters, out_turns = {}, {}
-    for local, orig in enumerate(targets):
-        ch = new_chapters[local]
+    for n, orig in enumerate(targets):
+        src = trivia_idx[n]                       # 返答内での実章index（intro/outroを除いた本物）
+        ch = chapters_out[src]
         ch["section"] = "trivia"
         out_chapters[orig] = ch
         turns = [dict(t, chapter=orig, section="trivia")
-                 for t in new_script if t.get("chapter") == local]
+                 for t in new_script if t.get("chapter") == src]
+        if not turns:
+            raise ValueError(f"再生成結果にネタ章の台詞が見つかりません（章{orig}）")
         out_turns[orig] = turns
     return {"chapters": out_chapters, "turns": out_turns}
 

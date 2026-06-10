@@ -284,6 +284,44 @@ def test_build_regen_prompt():
     print("  build_regen_prompt: テーマ固定/既出回避/共有ルール OK")
 
 
+def test_regenerate_ignores_intro_outro():
+    # Geminiが指示に反して intro/outro を混ぜて返しても、trivia だけを正しく拾うこと（回帰）。
+    cfg = {"story": {"questioner": "ずんだもん", "explainer": "四国めたん"}}
+    script_result = {"theme": "T", "chapters": [
+        {"section": "intro", "title": "i"},
+        {"section": "trivia", "title": "旧1", "summary": "o1"},
+        {"section": "trivia", "title": "旧2", "summary": "o2"},
+        {"section": "outro", "title": "e"}],
+        "script": []}
+    # 返答: intro(0) + trivia(1) + trivia(2) + outro(3) を含む（混入ケース）
+    fake = {"theme": "T", "chapters": [
+        {"section": "intro", "title": "導入も作っちゃった", "image_cuts": [{"image_query": "x", "image_kind": "ambient"}]},
+        {"section": "trivia", "title": "新A", "summary": "na", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}]},
+        {"section": "trivia", "title": "新B", "summary": "nb", "image_cuts": [{"image_query": "b", "image_kind": "ambient"}]},
+        {"section": "outro", "title": "締めも作っちゃった", "image_cuts": [{"image_query": "y", "image_kind": "ambient"}]}],
+        "script": [
+        {"chapter": 0, "section": "intro", "speaker": "四国めたん", "text": "イントロ挨拶", "cut": 0},
+        {"chapter": 1, "section": "trivia", "speaker": "四国めたん", "text": "新Aの話", "cut": 0},
+        {"chapter": 2, "section": "trivia", "speaker": "四国めたん", "text": "新Bの話", "cut": 0},
+        {"chapter": 3, "section": "outro", "speaker": "四国めたん", "text": "締めの言葉", "cut": 0}]}
+    orig = s._generate_parsed
+    s._generate_parsed = lambda c, p, log_label="": fake
+    try:
+        regen = s.regenerate_chapters(cfg, script_result, [1, 2])  # 章1,2を再生成
+    finally:
+        s._generate_parsed = orig
+    # 章1→新A・章2→新B（intro/outroは混ざらない）
+    assert regen["chapters"][1]["title"] == "新A" and regen["chapters"][2]["title"] == "新B", regen["chapters"]
+    t1 = [t["text"] for t in regen["turns"][1]]
+    t2 = [t["text"] for t in regen["turns"][2]]
+    assert t1 == ["新Aの話"] and t2 == ["新Bの話"], (t1, t2)
+    # intro/outro のセリフが混入していないこと
+    allt = t1 + t2
+    assert "イントロ挨拶" not in allt and "締めの言葉" not in allt, allt
+    assert all(t["section"] == "trivia" for t in regen["turns"][1] + regen["turns"][2])
+    print("  regenerate_chapters: intro/outro混入を除外しtriviaのみ抽出 OK")
+
+
 def test_splice_regenerated():
     sr = {"theme": "t", "chapters": [
         {"section": "intro", "title": "i"},
@@ -330,5 +368,6 @@ if __name__ == "__main__":
     test_warn_role_voice()
     test_parse_integration_section_from_chapters()
     test_build_regen_prompt()
+    test_regenerate_ignores_intro_outro()
     test_splice_regenerated()
     print("ALL PASS")
