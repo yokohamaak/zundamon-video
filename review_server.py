@@ -61,6 +61,50 @@ def write_image_bytes(filename, data):
         f.write(data)
 
 
+def remove_file(name):
+    p = os.path.join(DIR, name)
+    if name and os.path.exists(p):
+        os.remove(p)
+
+
+def rename_file(old, new):
+    a, b = os.path.join(DIR, old), os.path.join(DIR, new)
+    if old and new and os.path.exists(a):
+        os.replace(a, b)
+
+
+def reindex_review_after_cut_delete(ch, ci):
+    """章 ch のカット ci を削除した整合を review.json に反映（位置キーのずれを防ぐ）。
+
+    - (ch,ci) のカットと画像ファイルを削除。
+    - (ch, ci'>ci) のカットを ci'-1 へ詰め、画像ファイルも ch_ch_(ci'-1).ext へリネーム。
+    ※ 昇順で処理（削除でci枠が空くので衝突しない）。Returns: {ok, removed, shifted}
+    """
+    review = load_review()
+    cuts = review.get("cuts", [])
+    removed_img, kept = None, []
+    for c in cuts:
+        if c.get("ch") == ch and c.get("ci") == ci:
+            removed_img = c.get("image")
+            continue
+        kept.append(c)
+    review["cuts"] = kept
+    if removed_img:
+        remove_file(removed_img)
+    shifts = sorted([c for c in kept if c.get("ch") == ch and c.get("ci", 0) > ci],
+                    key=lambda c: c["ci"])
+    for c in shifts:
+        new_ci = c["ci"] - 1
+        img = c.get("image")
+        if img:
+            new_name = f"ch_{ch:02d}_{new_ci:02d}{os.path.splitext(img)[1]}"
+            rename_file(img, new_name)
+            c["image"] = new_name
+        c["ci"] = new_ci
+    save_review(review)
+    return {"ok": True, "removed": removed_img, "shifted": len(shifts)}
+
+
 def load_script():
     path = os.path.join(DIR, "script.json")
     if not os.path.exists(path):
@@ -1195,7 +1239,16 @@ function render(){
         const adj=document.createElement('button'); adj.className='mini'; adj.textContent=adjustOpen.has(ci+'_'+k)?'調整を閉じる':'調整';
         adj.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); };
         const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
-        del.onclick=()=>{ cuts.splice(k,1); render(); };
+        del.onclick=async()=>{
+          if(!confirm('この画像カットを削除しますか？（以降のカットは前に詰まり、画像も整列します）')) return;
+          cuts.splice(k,1); const newLen=cuts.length;
+          DATA.script.forEach(tn=>{ if(tn.chapter!==ci||typeof tn.cut!=='number') return;
+            if(tn.cut>k) tn.cut--; else if(tn.cut===k) tn.cut=Math.min(k,Math.max(0,newLen-1)); });
+          await api('/api/script', DATA);              // script.json(image_cuts/turn cut)を整合保存
+          await api('/api/delete-cut',{ch:ci,ci:k});   // review.jsonを再番号＋画像リネーム
+          const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
+          render();
+        };
         // 画像の右にフィールドを縦積み：検索語 → 日本語 → [kindプルダウン＋ボタン]
         const fields=document.createElement('div'); fields.className='fields';
         const row3=document.createElement('div'); row3.className='frow';
@@ -1340,6 +1393,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/fetch":
             self._json(do_fetch_cut(body.get("ch"), body.get("ci"),
                                     body.get("query"), body.get("kind")))
+            return
+        if path == "/api/delete-cut":
+            try:
+                self._json(reindex_review_after_cut_delete(int(body["ch"]), int(body["ci"])))
+            except (KeyError, TypeError, ValueError):
+                self._json({"ok": False, "message": "ch/ci が不正"})
             return
         if path == "/api/script":
             ok, msg, norm = apply_save_script(body)

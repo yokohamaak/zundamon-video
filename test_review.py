@@ -136,6 +136,43 @@ def test_apply_save_script():
     print("  apply_save_script: 検証/正規化 OK")
 
 
+def test_reindex_after_cut_delete():
+    tmp = tempfile.mkdtemp()
+    old = R.DIR
+    R.DIR = tmp
+    try:
+        # 章0に3カット(画像あり)。中間 ci=1 を削除 → ci=2 が ci=1 に詰まり画像もリネーム。
+        rev = {"cuts": [
+            {"ch": 0, "ci": 0, "image": "ch_00_00.png", "query": "a"},
+            {"ch": 0, "ci": 1, "image": "ch_00_01.png", "query": "b"},
+            {"ch": 0, "ci": 2, "image": "ch_00_02.png", "query": "c"},
+            {"ch": 1, "ci": 0, "image": "ch_01_00.png", "query": "z"},
+        ]}
+        for c in rev["cuts"]:
+            open(os.path.join(tmp, c["image"]), "wb").write(b"x")
+        with open(os.path.join(tmp, "review.json"), "w", encoding="utf-8") as f:
+            json.dump(rev, f)
+        res = R.reindex_review_after_cut_delete(0, 1)
+        assert res["ok"] and res["removed"] == "ch_00_01.png" and res["shifted"] == 1
+        out = R.load_review()["cuts"]
+        # 章0: ci0(a)とci1(元c・画像はch_00_01へリネーム) の2つ。章1は不変。
+        ch0 = sorted([c for c in out if c["ch"] == 0], key=lambda c: c["ci"])
+        assert [c["ci"] for c in ch0] == [0, 1]
+        assert ch0[0]["query"] == "a" and ch0[1]["query"] == "c", "ci=2(c)がci=1へ詰まる"
+        assert ch0[1]["image"] == "ch_00_01.png", "画像も詰めてリネーム"
+        # ファイル実体: 00_00と00_01が存在、00_02は消えている、削除元画像は無い
+        assert os.path.exists(os.path.join(tmp, "ch_00_00.png"))
+        assert os.path.exists(os.path.join(tmp, "ch_00_01.png"))
+        assert not os.path.exists(os.path.join(tmp, "ch_00_02.png")), "リネームで移動済"
+        assert os.path.exists(os.path.join(tmp, "ch_01_00.png")), "他章は不変"
+        # 画像なしカットの削除も壊れない
+        R.reindex_review_after_cut_delete(1, 0)
+        assert all(c["ch"] != 1 for c in R.load_review()["cuts"])
+    finally:
+        R.DIR = old
+    print("  reindex_after_cut_delete: 中間カット削除で詰め＋画像リネーム OK")
+
+
 def test_pipeline_status_and_script_io():
     tmp = tempfile.mkdtemp()
     old = R.DIR
@@ -272,6 +309,7 @@ if __name__ == "__main__":
     test_apply_options()
     test_apply_save_script()
     test_pipeline_status_and_script_io()
+    test_reindex_after_cut_delete()
     test_do_fetch_cut_guards()
     test_valid_http_url()
     test_import_url_guards()
