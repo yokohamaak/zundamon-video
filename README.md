@@ -7,7 +7,9 @@
 Gemini（章立て掛け合い台本） → VOICEVOX（音声） → フリー素材画像（Wikimedia/Pexels/Pixabay） → Remotion（描画）
 ```
 
-設計・実装計画の詳細は **[PLAN.md](PLAN.md)** を参照。
+- **実行方法・全オプション** → **[USAGE.md](USAGE.md)**（コマンド/オプションのチートシート）
+- 制作ワークフロー・データ構造 → **[WORKFLOW.md](WORKFLOW.md)**
+- 設計・実装計画 → **[PLAN.md](PLAN.md)**
 
 ## 構成
 - `src/story_script.py` … Gemini で章立て掛け合い台本を生成
