@@ -286,6 +286,8 @@ def synthesize_dialogue(script, config):
     base_url = os.environ.get("VOICEVOX_URL") or vc.get("base_url") or DEFAULT_BASE_URL
     speakers_map = vc.get("speakers", {})
     pause = float(vc.get("inter_turn_pause", 0.0))
+    # ネタ(章)が切り替わる境目に足す追加の間。0.3前後でネタの区切りが立ち、テンポの単調さが和らぐ。
+    chapter_gap = float(vc.get("chapter_gap_pause", 0.0))
     max_chars = int(vc.get("caption_max_chars", DEFAULT_CAPTION_MAX_CHARS))
     # 文ごとに個別合成するため、文の境目に VOICEVOX の前後無音(pre+post)が毎回入る。
     # pre を 0 にして「文の先頭の無音」を消す＝複数文ターン(長い説明)のカクつきを抑える。
@@ -348,6 +350,9 @@ def synthesize_dialogue(script, config):
 
         # ターン間の無音＝全体設定(inter_turn_pause)＋この台詞の pause（任意の間）。最後の後には付けない。
         sil = pause + float(turn.get("pause", 0) or 0)
+        # 次のターンが別の章（＝次のネタ）に変わるなら、境目に追加の間を足してネタの区切りを立てる。
+        if idx < len(script) - 1 and script[idx + 1].get("chapter") != turn.get("chapter"):
+            sil += chapter_gap
         if sil > 0 and idx < len(script) - 1:
             channels, width, rate = ref_params
             pcm_chunks.append(b"\x00" * (int(sil * rate) * width * channels))

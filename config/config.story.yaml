@@ -56,5 +56,6 @@ tts_voicevox:
       intonation: 1.3
   caption_max_chars: 22    # 字幕1枚の最大文字数
   inter_turn_pause: 0.3    # ターン間（話者交代）の無音秒
+  chapter_gap_pause: 0.35  # ネタ(章)の境目に足す追加の間。0で無効。ネタの区切りを立てテンポの単調さを和らげる
   pre_phoneme_length: 0.0  # 各文の先頭の無音秒。0で文の境目のカクつきを抑える（長い説明が滑らかに）
   post_phoneme_length: 0.1 # 各文末の余韻秒＝文と文の間。大きいほど一文ずつ区切る感じ（耳で調整）

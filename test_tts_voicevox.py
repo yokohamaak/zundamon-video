@@ -115,6 +115,23 @@ def test_inter_turn_pause():
     print("  pause: ターン間無音 反映 OK")
 
 
+def test_chapter_gap_pause():
+    _install_fakes()
+    # 同章内の境目には足さず、章が変わる境目にだけ chapter_gap を足す。
+    script = [
+        {"speaker": "四国めたん", "text": "あ。", "chapter": 1},
+        {"speaker": "ずんだもん", "text": "い。", "chapter": 1},  # 同章→gap無し
+        {"speaker": "四国めたん", "text": "う。", "chapter": 2},  # 章変化→gap有り
+    ]
+    pause, gap = 0.3, 0.4
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2, "ずんだもん": 3},
+                            "inter_turn_pause": pause, "chapter_gap_pause": gap}}
+    _, turns, _ = tv.synthesize_dialogue(script, cfg)
+    assert abs(turns[1]["start"] - (turns[0]["end"] + pause)) < 1e-6, "同章はpauseのみ"
+    assert abs(turns[2]["start"] - (turns[1]["end"] + pause + gap)) < 1e-6, "章境界はpause+gap"
+    print("  chapter-gap: 章境界のみ追加の間 OK")
+
+
 def test_unknown_speaker():
     _install_fakes()
     script = [{"speaker": "謎", "text": "だれ？"}]
@@ -247,6 +264,7 @@ if __name__ == "__main__":
     test_long_sentence_split_by_chars()
     test_per_speaker_voice_params()
     test_inter_turn_pause()
+    test_chapter_gap_pause()
     test_unknown_speaker()
     test_per_turn_voice_override()
     test_per_turn_pause()

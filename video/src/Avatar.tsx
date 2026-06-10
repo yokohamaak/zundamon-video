@@ -90,8 +90,12 @@ export const Avatar: React.FC<{
   const breath = Math.sin((time * Math.PI * 2) / 3) * 3;
   // 発話中の体の揺れ（ゆっくりめ）
   const sway = active ? Math.sin(time * Math.PI * 2 * 0.7) * 1.2 : 0;
+  // 聞き手のうなずき（相槌）：時々ゆっくり頷く＝発話者の話を聞いている気配。静止による単調さを和らげる。
+  // 約0.4Hz(≈2.5秒周期)で、下向き(+Y)に軽く一拍。max(0,sin)^3 で間隔を空けて自然に。
+  const nodPhase = Math.sin(time * Math.PI * 2 * 0.4 + (hash(dir ?? "x") % 7));
+  const nod = !active ? Math.max(0, nodPhase) ** 3 * 5 : 0;
 
-  let translateY = breath - bounce * 8;
+  let translateY = breath - bounce * 8 + nod;
   // 発話者は少し手前にポップ（拡大）。非発話者は等倍（透明化・減光はしない）。
   let scale = active ? 1.04 + interpolate(bounce, [0, 1], [0, 0.04]) : 1.0;
   let rotate = sway;
