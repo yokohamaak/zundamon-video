@@ -1270,6 +1270,18 @@ function fmtKB(b){ if(b==null) return '?'; return b<1024? b+'B' : b<1048576? Mat
 function fl(text, el){ const w=document.createElement('label'); w.className='fl';
   const t=document.createElement('span'); t.className='fll'; t.textContent=text;
   w.appendChild(t); w.appendChild(el); return w; }
+// D&D取り込み共通：OSファイル / data:画像 / WebのURL を ch_NN_MM に保存。行サムネと調整パネルで共用。
+async function dropImport(ky, dt, attribution){
+  if(dt.files && dt.files.length){
+    const f=dt.files[0];
+    const b64=await new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result.split(',')[1]); rd.readAsDataURL(f); });
+    return api('/api/replace', {key:ky, filename:f.name, dataB64:b64, attribution});
+  }
+  const url=(dt.getData('text/uri-list')||dt.getData('text/plain')||'').split('\\n').find(s=>s&&!s.startsWith('#'))||'';
+  if(!url) return null;
+  if(url.startsWith('data:image')) return api('/api/replace', {key:ky, filename:'drop.png', dataB64:url.split(',')[1], attribution});
+  return api('/api/import-url', {key:ky, url, attribution});
+}
 // 候補画像の取得（取得先別・DLせずサムネ表示）。1検索=複数件で追加課金なし。
 async function loadCand(ci,k,cut,source){ const ky=ci+'_'+k;
   candState[ky]=Object.assign({},candState[ky],{loading:true,error:null}); render();
@@ -1403,14 +1415,8 @@ function buildAdjust(ci,k){
     crop.addEventListener('dragover',e=>{e.preventDefault(); crop.style.outline='2px dashed #ffd84d';});
     crop.addEventListener('dragleave',()=>crop.style.outline='');
     crop.addEventListener('drop',async(e)=>{ e.preventDefault(); crop.style.outline='';
-      const dt=e.dataTransfer;
-      if(dt.files&&dt.files.length){ const f=dt.files[0],rd=new FileReader();
-        rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
-        rd.readAsDataURL(f); return; }
-      let url=(dt.getData('text/uri-list')||dt.getData('text/plain')||'').split('\\n').find(s=>s&&!s.startsWith('#'))||'';
-      if(!url) return;
-      if(url.startsWith('data:image')){ const r=await api('/api/replace',{key,filename:'drop.png',dataB64:url.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); return; }
-      const r=await api('/api/import-url',{key,url,attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); });
+      const r=await dropImport(key, e.dataTransfer, attr.value);  // 共通の取り込みヘルパー
+      if(r) r.ok?onNew(r.filename):alert(r.message||'失敗'); });
   }
   return wrap;
 }
@@ -1466,10 +1472,17 @@ function render(){
         const r=document.createElement('div'); r.className='imgrow';
         const u=imgUrl(ci,k);
         r.innerHTML = u?`<img src="${u}">`:`<div class="ph2">#${k} 未取得</div>`;
-        // サムネクリックでも調整パネルを開閉
+        // サムネクリックで調整パネルを開閉。サムネに直接D&Dで差し替えも可（調整を開かなくてよい）。
         const preview=r.querySelector('img')||r.querySelector('.ph2');
-        if(preview){ preview.style.cursor='pointer'; preview.title='クリックで調整';
+        if(preview){ preview.style.cursor='pointer'; preview.title='クリックで調整 / 画像をドロップで差し替え';
           preview.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); }; }
+        preview.addEventListener('dragover', e=>{ e.preventDefault(); preview.style.outline='2px dashed #ffd84d'; });
+        preview.addEventListener('dragleave', ()=>{ preview.style.outline=''; });
+        preview.addEventListener('drop', async e=>{ e.preventDefault(); preview.style.outline='';
+          const ky=ci+'_'+k;
+          const res=await dropImport(ky, e.dataTransfer, (cutMap[ky]||{}).attribution||'');
+          if(res && res.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:res.filename}); render(); }
+          else if(res){ alert(res.message||'取り込み失敗'); } });
         const q=document.createElement('input'); q.type='text'; q.className='q'; q.placeholder='英語の検索語';
         q.value=cut.image_query||''; q.onchange=()=>cut.image_query=q.value;
         const kind=document.createElement('select');
