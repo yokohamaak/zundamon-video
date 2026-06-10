@@ -32,6 +32,55 @@
 | `meta.json` | 動画(Remotion)が読む最終構造（script＋timing＋topics＋credits） | build_meta |
 | `credits.txt` | 概要欄用クレジット（CC-BY帰属はここで充足） | write_credits_txt |
 
+## 何が調整可/不可/自動か（台本・レビュー・生成物の関係）
+
+### ① 台本（script.json）— Geminiが生成、`/story`で編集
+
+| 要素 | 生成 | `/story`編集 | 効く先 |
+|---|---|---|---|
+| theme（テーマ） | Gemini | ○ | meta.title |
+| 章 title | Gemini | ○ | 章バッジ |
+| 章 summary（要約） | Gemini | ○ | 概要表示のみ（動画に出ない） |
+| 画像 image_query（英検索語） | Gemini | ○（追加/削除も） | 画像取得 |
+| 画像 image_kind（被写体/雰囲気） | Gemini | ○ | 取得先＋fit既定 |
+| 画像 image_query_ja（日本語） | Gemini | ○ | 表示のみ（検索に不使用） |
+| 台詞 text | Gemini | ○（分割/削除も） | 音声・字幕 |
+| 台詞 cut（どの画像） | Gemini | ○（サムネ選択） | 画像の切替タイミング |
+| 台詞 speaker | Gemini | ✗ UIなし | 音声話者・立ち絵 |
+| 台詞 emotion（表情） | Gemini | ✗ UIなし | 立ち絵の表情 |
+| 台詞 effect（画面演出） | Gemini | ✗ UIなし | zoom/shake/flash等 |
+| 台詞 voice（声の演技） | Gemini(任意) | ✗ UIなし | 速さ/高さ/抑揚/音量 |
+| 台詞 pause（間） | Gemini(任意) | ✗ UIなし | 台詞後の無音 |
+| chapter/section割当 | Gemini | ✗ UIなし | 構成 |
+
+✗UIなし＝script.jsonを手編集 or 再生成で変更可（画面では未対応）。
+
+### ② 画像の状態（review.json）— レビュー画面で決まる
+
+| 要素 | 初期 | `/story`調整 |
+|---|---|---|
+| image（実画像） | 自動取得 | ○ 取得/再取得/差し替え(D&D) |
+| fit（収め方） | kindで自動 | ○ 自動/cover/contain |
+| crop（切り出し） | なし | ○ ドラッグ |
+| filter（明/コ/白黒） | なし | ○ |
+| pad/bg（余白px/色） | なし | ○ |
+| hide（画像なし） | — | ○ |
+| attribution（出典） | 取得時自動 | ○ 編集 |
+| approved（承認） | — | ○ |
+
+### ③ 完全自動（人は触らない）
+
+| 生成物 | 算出元 |
+|---|---|
+| digest.mp3（音声） | VOICEVOX |
+| 字幕 start/end | VOICEVOX実尺 |
+| topics 表示区間 | cut＋音声タイミング |
+| Ken Burns（画像の動き） | カット番号で自動 |
+| credits.txt | 画像の帰属から自動 |
+| meta.json | build_meta が組立 |
+
+要点：台本＝Gemini生成→`/story`で大半を編集（話者/表情/演出/声/間だけUI未対応）。画像＝自動取得→レビュー調整。音声/タイミング/動き/クレジット＝完全自動。
+
 ## レビュー画面（review_server.py）
 
 - **`/story`（メイン）**：物語軸の統合編集。
