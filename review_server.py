@@ -19,6 +19,7 @@ import base64
 import json
 import os
 import re
+import struct
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
@@ -54,6 +55,63 @@ def read_image_bytes(filename):
         return None
     with open(path, "rb") as f:
         return f.read()
+
+
+def image_dims(filename):
+    """画像の(幅,高さ)をヘッダから読む。Pillow不要・PNG/GIF/JPEG/WEBP/BMP対応。失敗時None。"""
+    path = os.path.join(DIR, filename)
+    try:
+        with open(path, "rb") as f:
+            head = f.read(26)
+            if len(head) < 24:
+                return None
+            if head[:8] == b"\x89PNG\r\n\x1a\n":
+                return struct.unpack(">II", head[16:24])
+            if head[:6] in (b"GIF87a", b"GIF89a"):
+                return struct.unpack("<HH", head[6:10])
+            if head[:2] == b"BM":
+                w, h = struct.unpack("<ii", head[18:26])
+                return (abs(w), abs(h))
+            if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+                fmt = head[12:16]
+                f.seek(0)
+                d = f.read(30)
+                if fmt == b"VP8X":
+                    w = 1 + (d[24] | d[25] << 8 | d[26] << 16)
+                    h = 1 + (d[27] | d[28] << 8 | d[29] << 16)
+                    return (w, h)
+                if fmt == b"VP8 ":
+                    return (struct.unpack("<H", d[26:28])[0] & 0x3FFF,
+                            struct.unpack("<H", d[28:30])[0] & 0x3FFF)
+                if fmt == b"VP8L":
+                    b0, b1, b2, b3 = d[21], d[22], d[23], d[24]
+                    return (1 + (((b1 & 0x3F) << 8) | b0),
+                            1 + (((b3 & 0x0F) << 10) | (b2 << 2) | ((b1 & 0xC0) >> 6)))
+                return None
+            if head[:2] == b"\xff\xd8":  # JPEG: SOFマーカーまで読み進める
+                f.seek(2)
+                while True:
+                    b = f.read(1)
+                    while b and b != b"\xff":
+                        b = f.read(1)
+                    marker = f.read(1)
+                    while marker == b"\xff":
+                        marker = f.read(1)
+                    if not marker:
+                        return None
+                    m = marker[0]
+                    if 0xC0 <= m <= 0xCF and m not in (0xC4, 0xC8, 0xCC):
+                        f.read(3)
+                        h = struct.unpack(">H", f.read(2))[0]
+                        w = struct.unpack(">H", f.read(2))[0]
+                        return (w, h)
+                    seg = f.read(2)
+                    if len(seg) < 2:
+                        return None
+                    f.seek(struct.unpack(">H", seg)[0] - 2, 1)
+    except Exception:
+        return None
+    return None
 
 
 def write_image_bytes(filename, data):
@@ -441,6 +499,7 @@ IMAGE_PAGE = """<!doctype html>
   .title { font-weight:700; font-size:15px; }
   .meta { font-size:12px; color:var(--sub); display:flex; gap:8px; flex-wrap:wrap; }
   .kind { padding:1px 8px; border-radius:999px; background:var(--line); }
+  .meta .sz { font-variant-numeric:tabular-nums; }
   input[type=text] { width:100%; font:inherit; font-size:12px; padding:6px 8px;
            background:#0c0f15; color:var(--fg); border:1px solid var(--line); border-radius:6px; }
   select { font:inherit; font-size:12px; padding:6px 8px; background:#0c0f15; color:var(--fg);
@@ -502,6 +561,7 @@ function cssFilter(f){
   return `brightness(${f.brightness??1}) contrast(${f.contrast??1}) grayscale(${f.grayscale??0})`;
 }
 
+function fmtKB(b){ if(b==null) return '?'; return b<1024? b+'B' : b<1048576? Math.round(b/1024)+'KB' : (b/1048576).toFixed(1)+'MB'; }
 function card(c){
   const key = `${c.ch}_${c.ci}`;
   const el = document.createElement('div');
@@ -514,7 +574,7 @@ function card(c){
     <div class="thumb">${img}<div class="croprect" style="display:none"></div></div>
     <div class="body">
       <div class="title">${c.title || '(無題)'}</div>
-      <div class="meta"><span class="kind">${c.kind}</span><span>検索: ${c.query||'-'}</span></div>
+      <div class="meta"><span class="kind">${c.kind}</span><span>検索: ${c.query||'-'}</span>${c.w?`<span class="sz">${c.w}×${c.h}px・${fmtKB(c.bytes)}</span>`:''}</div>
       <input type="text" class="attr" placeholder="出典（任意・CC-BY等）" value="${c.attribution||''}">
       <div class="row">
         <button class="ok approve">${c.approved?'承認済み':'OK'}</button>
@@ -1006,6 +1066,7 @@ STORY_PAGE = """<!doctype html>
   .imgrow .fields { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
   .imgrow .fields .frow { display:flex; gap:8px; align-items:center; }
   .imgrow .fields input, .imgrow .fields select { width:100%; }
+  .imgrow .fields .szinfo { font-size:11px; color:var(--sub); font-variant-numeric:tabular-nums; min-height:13px; }
   .imgrow .fields .frow select { flex:1; }
   .imgrow .fields .q { font-size:14px; }
   button.mini { font-size:12px; padding:5px 9px; background:var(--line); color:#fff; border:none;
@@ -1058,6 +1119,7 @@ function setOpt(key,patch){ return api('/api/options',{key,patch}); }
 function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん|メタン/.test(n))return '#d85a9c'; return '#90a0b5'; }
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
+function fmtKB(b){ if(b==null) return '?'; return b<1024? b+'B' : b<1048576? Math.round(b/1024)+'KB' : (b/1048576).toFixed(1)+'MB'; }
 function cssFilter(f){ return f?`brightness(${f.brightness??1}) contrast(${f.contrast??1}) grayscale(${f.grayscale??0})`:''; }
 function contentRect(img,box){ const nw=img.naturalWidth,nh=img.naturalHeight; if(!nw||!nh) return {x:0,y:0,w:box.width,h:box.height};
   const s=Math.min(box.width/nw,box.height/nh),w=nw*s,h=nh*s; return {x:(box.width-w)/2,y:(box.height-h)/2,w,h}; }
@@ -1253,7 +1315,10 @@ function render(){
         const fields=document.createElement('div'); fields.className='fields';
         const row3=document.createElement('div'); row3.className='frow';
         row3.appendChild(kind); row3.appendChild(refetch); row3.appendChild(adj); row3.appendChild(del);
-        fields.appendChild(q); fields.appendChild(ja); fields.appendChild(row3);
+        const rc=cutMap[ci+'_'+k];
+        const sz=document.createElement('div'); sz.className='szinfo';
+        sz.textContent = (u&&rc&&rc.w) ? (rc.w+'×'+rc.h+'px・'+fmtKB(rc.bytes)) : (u?'サイズ不明':'');
+        fields.appendChild(q); fields.appendChild(ja); fields.appendChild(row3); fields.appendChild(sz);
         r.appendChild(fields);
         il.appendChild(r);
         if(adjustOpen.has(ci+'_'+k)) il.appendChild(buildAdjust(ci,k));
@@ -1364,6 +1429,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/cuts":
             review = load_review()
+            for c in review.get("cuts", []):
+                img = c.get("image")
+                if not img:
+                    continue
+                dims = image_dims(img)
+                if dims:
+                    c["w"], c["h"] = dims
+                p = os.path.join(DIR, img)
+                if os.path.exists(p):
+                    c["bytes"] = os.path.getsize(p)
             review.update({"summary": review_summary(review)})
             self._json(review)
             return
