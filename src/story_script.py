@@ -55,8 +55,14 @@ VALID_IMAGE_KINDS = {"subject", "ambient"}
 DEFAULT_IMAGE_KIND = "ambient"
 
 
-def _rules_block(questioner: str, explainer: str, topics: int) -> str:
-    """口調・各発言フィールド・章メタ・読み上げの共通ルール（build_prompt と再生成で共用）。"""
+def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = False) -> str:
+    """口調・各発言フィールド・章メタ・読み上げの共通ルール（build_prompt と再生成で共用）。
+
+    regen=True のときは章メタ説明を「trivia章のみ（intro/outro無し）」に切り替える。
+    """
+    structure = (f"今回出すのは trivia(各ネタ) {topics}個のみ（intro/outro は作らない）。"
+                 if regen else
+                 f"章の構成 = intro(導入) 1つ ＋ trivia(各ネタ) {topics}個 ＋ outro(締め) 1つ。")
     return f"""## 登場人物と口調（語尾を混同しないこと・最重要）
 - {questioner}（聞き手・ボケ役）: 好奇心旺盛。問いに素朴に外した答えを出し、真実に驚く。視聴者の代弁者。
   一人称「ぼく」、語尾は「〜なのだ」「〜のだ？」。リアクションは毎回同じにせず変化をつける
@@ -85,7 +91,7 @@ def _rules_block(questioner: str, explainer: str, topics: int) -> str:
 7. "pause"（任意・間）: その台詞の**後に置く無音秒**（0〜2）。「実は…」のタメや、オチ前の溜めに少しだけ。**多用しない**。
 
 ## 章メタ（chapters・各章に1つ）
-章の構成 = intro(導入) 1つ ＋ trivia(各ネタ) {topics}個 ＋ outro(締め) 1つ。各章に次を出す（chapter番号の昇順）:
+{structure}各章に次を出す（chapter番号の昇順）:
 - "section": intro / trivia / outro のいずれか。
 - "title": 画面に出す短い日本語の見出し（ネタの核を10〜18文字で。例「Wi-Fiは略語じゃない」）。
 - "summary": そのセクションの要点を1〜2文の日本語で（編集時の概要表示用。動画には出さない）。
@@ -515,6 +521,40 @@ def _generate_parsed(config: dict, prompt: str, log_label: str = "台本") -> di
     return data
 
 
+def _regen_output_block(explainer: str, questioner: str, n_targets: int) -> str:
+    """再生成専用の出力形式＋例（trivia章のみ・挨拶/締めなし・中立的な繋ぎで完結）。
+
+    通常の _output_block は intro/outro を含む例なので、Geminiがそれをコピーして
+    挨拶だけの章を作る事故が起きる。再生成では trivia 完結の実例を見せる。
+    """
+    return f"""## 出力形式
+マークダウンのコードブロックは使わず、以下のJSONだけを出力すること。
+**厳密に有効なJSONにすること**:
+- 文字列の中でダブルクオート(")を使わない。セリフの強調・引用は必ず「」や『』を使う。
+- 末尾カンマを付けない。各要素の区切りカンマを忘れない。文字列内に生の改行を入れない。
+- chapters は **trivia を {n_targets} 個だけ**（intro/outro を入れない）。下は2個の例（実際は {n_targets} 個）:
+{{{{
+  "theme": "（動画のテーマをそのまま・日本語）",
+  "chapters": [
+    {{{{"section": "trivia", "title": "QRコードのQの意味", "summary": "QRコードのQはQuick（速い）の意味で、高速に読み取れることに由来する。", "image_cuts": [
+      {{{{"image_query": "QR code", "image_kind": "subject", "image_query_ja": "QRコード"}}}},
+      {{{{"image_query": "smartphone scanning qr code", "image_kind": "ambient", "image_query_ja": "QRを読むスマホ"}}}}
+    ]}}}},
+    {{{{"section": "trivia", "title": "（2つ目のネタの見出し）", "summary": "（要点を1〜2文）", "image_cuts": [
+      {{{{"image_query": "（固有名詞）", "image_kind": "subject", "image_query_ja": "（日本語）"}}}}
+    ]}}}}
+  ],
+  "script": [
+    {{{{"speaker": "{explainer}", "text": "ところでね、QRコード（キューアールコード）の『Q』が何の略か知ってる？", "emotion": "normal", "section": "trivia", "chapter": 0, "effect": "flash", "cut": 0}}}},
+    {{{{"speaker": "{questioner}", "text": "うーん、Quick（クイック）…早いってことなのだ？", "emotion": "normal", "section": "trivia", "chapter": 0, "effect": "kenburns", "cut": 0}}}},
+    {{{{"speaker": "{explainer}", "text": "実はその通りで、Quick Response（クイックレスポンス）の略なのよ。一瞬で読み取れる速さが名前の由来なの。", "emotion": "surprise", "section": "trivia", "chapter": 0, "effect": "zoom_punch", "cut": 1}}}},
+    {{{{"speaker": "{questioner}", "text": "へぇー！つまりQRコードは『素早く読めるコード』ってことなのだ！", "emotion": "happy", "section": "trivia", "chapter": 0, "effect": "kenburns", "cut": 1}}}},
+    {{{{"speaker": "{explainer}", "text": "次はね、（2つ目のネタの問い）…", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}}}}
+  ]
+}}}}
+※ 例のように各章は「ところでね」「次はね」等の**中立的な繋ぎ**で始め、いきなり問い→実は→驚き→まとめ で完結させる。"""
+
+
 def build_regen_prompt(config: dict, theme: str, existing_facts: list, n_targets: int) -> str:
     """選択した trivia 章だけを差し替え再生成するプロンプト（純関数）。
 
@@ -548,22 +588,25 @@ def build_regen_prompt(config: dict, theme: str, existing_facts: list, n_targets
 - 各ネタは独立して「へぇ」となる意外な“正確な事実”。軽い→意外性の強い順。
 
 ## 各ネタの面白さの型（リズム）
-1.（繋ぎ）滑らかに入る　2.{explainer}が問いを投げる　3.{questioner}が素朴に外す
+1.（繋ぎ）前の話題から中立的に入る（「ところでね」「次はね」等）　2.{explainer}が問いを投げる　3.{questioner}が素朴に外す
 4.{explainer}が「実はね、…」と明かす　5.{questioner}が驚く　6.{explainer}が追い打ちの小ネタ
 7.（締め）{questioner}が自分の言葉で一言まとめ（「つまり〇〇は〜なのだ！」）。各ネタは必ずこのまとめで終える。
 - 意外性は嘘や誇張でなく正確な事実で。確実でない逸話は「諸説あるけれど」と限定。年号・前後関係も正確に。
 
-{_rules_block(questioner, explainer, topics)}
+{_rules_block(questioner, explainer, topics, regen=True)}
 
 ## 分量
 - 各ネタはテンポよく簡潔に。1ネタあたり数往復で歯切れよく。
 
-{_output_block(explainer, questioner)}
+{_regen_output_block(explainer, questioner, n_targets)}
 
-## この再生成での出力（最重要・上の例や章メタ説明より優先）
-- 上のJSON例や「章メタ」には intro / outro が出てくるが、**今回は trivia 章だけを {n_targets} 個**出力する。
-- chapters[] と script[] に **intro と outro を絶対に含めない**。全ての section は "trivia"。
-- "chapter" は 0 から {n_targets - 1} までの連番のみ。導入の挨拶や締めの言葉は入れない（各ネタは繋ぎ→問い→実は→驚き→まとめ で完結）。""".strip()
+## この再生成での出力（最重要・上の説明より優先）
+- 全ての section は "trivia"。intro/outro や、番組全体の**挨拶・導入・締めを絶対に入れない**。
+- 次のような番組全体向けフレーズは**禁止**：「皆さんこんにちは」「今日は〜の話」「今日のテーマは」「最初のネタ」
+  「さあ今日のラスト」「準備はいい」「また次の動画で」など。各章は中立的な繋ぎで前から自然に切り替える。
+- **各 trivia 章には必ずネタ本体（問い→実は→まとめ）を入れる。挨拶だけ・前置きだけの空の章を作らない。**
+  タイトルに掲げた題材の「実は」を必ずその章の台詞で説明すること。
+- "chapter" は 0 から {n_targets - 1} までの連番のみ。""".strip()
 
 
 def regenerate_chapters(config: dict, script_result: dict, target_indices: list) -> dict:
