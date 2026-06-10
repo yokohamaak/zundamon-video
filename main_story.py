@@ -374,7 +374,12 @@ def main():
         story_script.normalize_turns(script_result["script"], script_result["chapters"])
         logger.info(f"既存台本を使用: {args.from_script}（{len(script_result['script'])}ターン）")
     else:
-        script_result = story_script.generate_story_script(config)
+        from src import topic_history
+        genre = topic_history.genre_of(config)
+        avoid = topic_history.facts(genre)  # 過去動画の採用済み＋却下を避ける
+        if avoid:
+            logger.info(f"既出ネタ {len(avoid)}件を避けて生成（ジャンル: {genre}）")
+        script_result = story_script.generate_story_script(config, also_avoid=avoid)
 
     # --script-only はここまでで停止（音声/metaはskip）
     if args.script_only:
@@ -427,6 +432,14 @@ def main():
     meta = build_meta(script_result, turns, config, now_iso, image_files, attributions, cut_opts)
     with open(out_dir / "meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
+
+    # 動画を確定（meta生成＝採用）した時点で、この動画のネタを永続履歴に「採用済み」で記録。
+    # 以降の動画生成・再生成で重複回避に使う（ジャンル別・動画をまたいで残る）。
+    from src import topic_history
+    genre = topic_history.genre_of(config)
+    used = topic_history.trivia_facts(script_result.get("chapters", []))
+    n_added = topic_history.add(genre, used, "used")
+    logger.info(f"採用ネタ {n_added}件を履歴に記録（ジャンル: {genre}・累計回避対象に追加）")
 
     # 概要欄用クレジット（動画内には出さない。CC-BY帰属はここで要件を満たす）。
     write_credits_txt(out_dir, config, attributions)

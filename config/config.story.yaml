@@ -3,6 +3,7 @@
 
 # 番組（実は〇〇雑学・掛け合い）の設定
 story:
+  genre: tech                          # ジャンルID。重複回避の履歴ファイルをジャンル別に分ける（topic_history/<genre>.json）
   theme: "実は知らないデジタルの名前の謎"   # 空ならGeminiに小テーマ選定させる（MVPは固定推奨）
   topics: 5                            # 1本に束ねる「実は」ネタの数（尺7分前後）
   questioner: ずんだもん               # 聞き手・ボケ役

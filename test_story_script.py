@@ -322,6 +322,16 @@ def test_regenerate_ignores_intro_outro():
     print("  regenerate_chapters: intro/outro混入を除外しtriviaのみ抽出 OK")
 
 
+def test_build_prompt_also_avoid():
+    cfg = {"story": {"theme": "X", "topics": 5, "questioner": "ずんだもん", "explainer": "四国めたん"}}
+    # 指定なし＝既出ネタ節は出ない（従来通り）
+    assert "既出ネタ（重複禁止" not in s.build_prompt(cfg)
+    # 指定あり＝過去ネタが重複禁止に入る
+    p = s.build_prompt(cfg, also_avoid=[{"title": "過去ネタZ", "summary": "z"}])
+    assert "既出ネタ（重複禁止" in p and "過去ネタZ" in p
+    print("  build_prompt: also_avoid指定時のみ既出ネタ節 OK")
+
+
 def test_regenerate_uses_also_avoid():
     # also_avoid（過去に却下したネタ）が重複回避リストとしてプロンプトに渡ること。
     cfg = {"story": {"questioner": "ずんだもん", "explainer": "四国めたん"}}
@@ -393,6 +403,7 @@ if __name__ == "__main__":
     test_warn_role_voice()
     test_parse_integration_section_from_chapters()
     test_build_regen_prompt()
+    test_build_prompt_also_avoid()
     test_regenerate_ignores_intro_outro()
     test_regenerate_uses_also_avoid()
     test_splice_regenerated()

@@ -145,8 +145,22 @@ def _output_block(explainer: str, questioner: str) -> str:
 }}}}"""
 
 
-def build_prompt(config: dict) -> str:
-    """configから日本語のIT技術史・章立て掛け合い台本生成プロンプトを作る（純関数）。"""
+def _avoid_block(also_avoid) -> str:
+    """過去に出した/却下したネタの重複禁止セクション（指定時のみ）。build_prompt と再生成で共用。"""
+    facts = [f for f in (also_avoid or []) if (f.get("title") or "").strip()]
+    if not facts:
+        return ""
+    lines = "\n".join(f"- {f.get('title', '')}：{f.get('summary', '')}".rstrip("：") for f in facts)
+    return ("\n## 既出ネタ（重複禁止・過去動画分も含む）\n"
+            "過去にこのジャンルで既に扱った/却下したネタは次の通り。**これらと題材もオチも重複しない**ネタにすること。\n"
+            f"{lines}\n")
+
+
+def build_prompt(config: dict, also_avoid=None) -> str:
+    """configから日本語のIT技術史・章立て掛け合い台本生成プロンプトを作る（純関数）。
+
+    also_avoid=過去に出した/却下したネタ[{title,summary}]。指定すると重複禁止セクションを足す。
+    """
     s = config.get("story", {})
     questioner = s.get("questioner", DEFAULT_QUESTIONER)
     explainer = s.get("explainer", DEFAULT_EXPLAINER)
@@ -154,6 +168,7 @@ def build_prompt(config: dict) -> str:
     minutes = float(s.get("target_minutes", DEFAULT_MINUTES))
     total_chars = int(minutes * CHARS_PER_MINUTE)  # 実測約335字/分換算の総量目安
     theme = (s.get("theme") or "").strip()
+    avoid_block = _avoid_block(also_avoid)
 
     if theme:
         theme_line = f'今回の小テーマは「{theme}」。このテーマに沿った「実は」ネタを集めてください。'
@@ -172,7 +187,7 @@ def build_prompt(config: dict) -> str:
 
 ## テーマ
 {theme_line}
-
+{avoid_block}
 ## 企画の骨子（実は〇〇雑学・ネタを束ねる）
 - 小テーマに沿った**「実は」ネタを {topics} 個**集める。各ネタは独立して「へぇ」となる意外な事実にする。
 - 各ネタは次のリズムで展開する（これが面白さの型）:
@@ -692,13 +707,15 @@ def splice_regenerated(script_result: dict, regen: dict) -> dict:
     return script_result
 
 
-def generate_story_script(config: dict) -> dict:
+def generate_story_script(config: dict, also_avoid=None) -> dict:
     """
     configからIT技術史の章立て掛け合い台本を生成する。
+    also_avoid=過去動画で出した/却下したネタ[{title,summary}]。指定すると重複回避に渡す。
     Returns: {"theme": str|None, "chapters": [...], "script": [...]}
     """
     theme = (config.get("story", {}).get("theme") or "").strip() or "(Geminiが選定)"
-    data = _generate_parsed(config, build_prompt(config), log_label=f"台本（テーマ: {theme}）")
+    data = _generate_parsed(config, build_prompt(config, also_avoid),
+                            log_label=f"台本（テーマ: {theme}）")
 
     s = config.get("story", {})
     warn_role_voice(data["script"],
