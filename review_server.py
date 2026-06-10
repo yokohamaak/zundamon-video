@@ -1158,6 +1158,13 @@ STORY_PAGE = """<!doctype html>
   #regen { background:var(--line); color:var(--fg); }
   #regen:not(:disabled) { background:#ffd84d; color:#1a1a1a; }
   #regen:disabled { opacity:.45; cursor:default; }
+  #lockov { position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center;
+            background:rgba(8,10,14,.78); backdrop-filter:blur(1px); }
+  .lockbox { display:flex; flex-direction:column; align-items:center; gap:14px; color:var(--fg); font-size:15px;
+             background:#11151c; border:1px solid var(--line); border-radius:12px; padding:28px 38px; text-align:center; }
+  .spin { width:30px; height:30px; border:3px solid var(--line); border-top-color:#ffd84d;
+          border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
   .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line);
            color:var(--sub); flex:none; }
   .sechead .ttl { font-weight:700; flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1544,21 +1551,35 @@ function updateRegenBtn(){
   const n=selChs.size; b.disabled=!n;
   b.textContent = n ? `選択章を再生成（${n}）` : '選択章を再生成';
 }
+// 生成中のロック（全操作をブロック・編集消失を防ぐ）
+function showLock(msg){
+  let o=document.getElementById('lockov');
+  if(!o){ o=document.createElement('div'); o.id='lockov';
+    o.innerHTML='<div class="lockbox"><div class="spin"></div><span></span></div>';
+    document.body.appendChild(o); }
+  o.querySelector('span').textContent=msg; o.style.display='flex';
+}
+function hideLock(){ const o=document.getElementById('lockov'); if(o) o.style.display='none'; }
+
 document.getElementById('regen').onclick=async()=>{
   const idx=[...selChs].sort((a,c)=>a-c); if(!idx.length) return;
   const names=idx.map(i=>'・'+((DATA.chapters[i]||{}).title||('第'+i+'章'))).join('\\n');
-  if(!confirm(`次の ${idx.length} 章の台本と画像を再生成します。\\n${names}\\n\\nメインテーマは維持し、既存ネタと重複しない内容を新規生成します（Gemini 1回・既存の台本/画像は破棄）。よろしいですか？`)) return;
-  const b=document.getElementById('regen'); b.disabled=true; b.textContent='再生成中…';
+  if(!confirm(`次の ${idx.length} 章の台本と画像を再生成します。\\n${names}\\n\\nメインテーマは維持し、既存ネタと重複しない内容を新規生成します（Gemini 1回・既存の台本/画像は破棄）。\\n※生成中はパネルを操作できません。よろしいですか？`)) return;
+  // 開始時に自動保存（他章の編集を確定し、再生成の基準に含める）→ ロック → 再生成
+  showLock('再生成の前に保存中…');
+  const sv=await api('/api/script', DATA);
+  if(!sv.ok){ hideLock(); alert('保存に失敗したため中止しました: '+(sv.message||'')); return; }
+  showLock('再生成中… Gemini生成のため操作できません（20〜40秒）');
   const r=await api('/api/regenerate', {indices: idx});
   if(r.ok){
     selChs.clear();
     const [s,rev]=await Promise.all([fetch('/api/script').then(x=>x.json()), fetch('/api/cuts').then(x=>x.json())]);
     DATA=s; CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
     (r.regenerated||[]).forEach(i=>OPEN.add(i));  // 再生成した章を開いて確認しやすく
-    render(); updateRegenBtn();
+    render(); updateRegenBtn(); hideLock();
     alert('再生成しました: '+ (r.titles||[]).map(t=>'「'+t+'」').join(' '));
   } else {
-    updateRegenBtn(); alert('再生成に失敗: '+(r.message||''));
+    hideLock(); updateRegenBtn(); alert('再生成に失敗: '+(r.message||''));
   }
 };
 
