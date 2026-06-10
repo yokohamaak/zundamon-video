@@ -120,14 +120,18 @@ def write_image_bytes(filename, data):
 
 
 def remove_file(name):
+    if not name:  # 未取得カット(image=None)で os.path.join が落ちるのを防ぐ
+        return
     p = os.path.join(DIR, name)
-    if name and os.path.exists(p):
+    if os.path.exists(p):
         os.remove(p)
 
 
 def rename_file(old, new):
+    if not (old and new):  # None を join する前に弾く
+        return
     a, b = os.path.join(DIR, old), os.path.join(DIR, new)
-    if old and new and os.path.exists(a):
+    if os.path.exists(a):
         os.replace(a, b)
 
 
