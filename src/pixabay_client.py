@@ -63,6 +63,30 @@ def search(query, key, per_page=10, timeout=30):
     return _get_json(build_search_url(query, key, per_page), timeout).get("hits", [])
 
 
+def candidates(query, api_key, per_page=12, timeout=30):
+    """検索結果を候補リストで返す（DLしない・サムネ表示用）。1検索=複数件で追加課金なし。
+
+    Returns: [{"source","thumb","url","attribution"}]。キー無し/失敗時は []。
+    """
+    if not api_key:
+        return []
+    try:
+        hits = search(query, api_key, per_page, timeout)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Pixabay候補検索失敗 '{query}': {e}")
+        return []
+    out = []
+    for h in hits:
+        url = _image_url(h)
+        if not url:
+            continue
+        thumb = h.get("webformatURL") or h.get("previewURL") or url
+        user = (h.get("user") or "").strip()
+        out.append({"source": "pixabay", "thumb": thumb, "url": url,
+                    "attribution": f"{user} / Pixabay" if user else "Pixabay"})
+    return out
+
+
 def fetch_one(query, out_dir, base_name, api_key, timeout=30, per_page=10):
     """query で検索し先頭画像を out_dir/base_name.<ext> に保存する。
 

@@ -77,11 +77,14 @@ def build_search_url(query, limit=10):
     return f"{API}?{qs}"
 
 
-def build_imageinfo_url(title):
-    qs = urllib.parse.urlencode({
+def build_imageinfo_url(title, thumb_width=None):
+    params = {
         "action": "query", "titles": title,
         "prop": "imageinfo", "iiprop": "url|extmetadata", "format": "json",
-    })
+    }
+    if thumb_width:  # 指定時のみサムネURL(thumburl)も返させる（候補一覧の軽量表示用）
+        params["iiurlwidth"] = int(thumb_width)
+    qs = urllib.parse.urlencode(params)
     return f"{API}?{qs}"
 
 
@@ -148,14 +151,45 @@ def search(query, limit=10, timeout=30):
     return [hit["title"] for hit in data.get("query", {}).get("search", [])]
 
 
-def imageinfo(title, timeout=30):
-    """ファイルの imageinfo(url + extmetadata) を返す。無ければ None。"""
-    data = _get_json(build_imageinfo_url(title), timeout)
+def imageinfo(title, timeout=30, thumb_width=None):
+    """ファイルの imageinfo(url + extmetadata[+thumburl]) を返す。無ければ None。"""
+    data = _get_json(build_imageinfo_url(title, thumb_width), timeout)
     for _, page in data.get("query", {}).get("pages", {}).items():
         ii = page.get("imageinfo")
         if ii:
             return ii[0]
     return None
+
+
+def candidates(query, max_candidates=12, timeout=30, thumb_width=320):
+    """検索→ライセンス適合(PD/CC0/CC-BY)・ラスタ・固有名一致のみ候補で返す。
+
+    各候補は thumb(縮小URL)/url(原寸)/attribution を持つ。fetch_one と同じ選別基準。
+    Returns: [{"source","thumb","url","attribution"}]。失敗時は []。
+    """
+    try:
+        titles = search(query, max_candidates, timeout)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Wikimedia候補検索失敗 '{query}': {e}")
+        return []
+    out = []
+    for title in titles:
+        if not _title_matches(query, title):
+            continue
+        try:
+            ii = imageinfo(title, timeout, thumb_width)
+        except Exception:  # noqa: BLE001 - 個別失敗は次候補へ
+            continue
+        if not ii or not ii.get("url") or not _is_raster_url(ii["url"]):
+            continue
+        ok, _ = pick_license(ii.get("extmetadata", {}))
+        if not ok:
+            continue
+        out.append({"source": "wikimedia",
+                    "thumb": ii.get("thumburl") or ii["url"],
+                    "url": ii["url"],
+                    "attribution": build_attribution(ii.get("extmetadata", {}), title)})
+    return out
 
 
 def fetch_one(query, out_dir, base_name, timeout=30, max_candidates=10):

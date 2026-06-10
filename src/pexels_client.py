@@ -60,6 +60,31 @@ def search(query, api_key, per_page=10, timeout=30):
     return _get_json(build_search_url(query, per_page), api_key, timeout).get("photos", [])
 
 
+def candidates(query, api_key, per_page=12, timeout=30):
+    """検索結果を候補リストで返す（DLしない・サムネ表示用）。1検索=複数件で追加課金なし。
+
+    Returns: [{"source","thumb","url","attribution"}]。キー無し/失敗時は []。
+    """
+    if not api_key:
+        return []
+    try:
+        photos = search(query, api_key, per_page, timeout)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Pexels候補検索失敗 '{query}': {e}")
+        return []
+    out = []
+    for p in photos:
+        url = _image_url(p)
+        if not url:
+            continue
+        src = p.get("src", {})
+        thumb = src.get("medium") or src.get("small") or url
+        ph = (p.get("photographer") or "").strip()
+        out.append({"source": "pexels", "thumb": thumb, "url": url,
+                    "attribution": f"{ph} / Pexels" if ph else "Pexels"})
+    return out
+
+
 def fetch_one(query, out_dir, base_name, api_key, timeout=30, per_page=10):
     """query で検索し先頭画像を out_dir/base_name.<ext> に保存する。
 

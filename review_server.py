@@ -176,6 +176,17 @@ def save_script(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def _load_image_config():
+    """.env(Pexels/Pixabayキー)＋config をベストエフォートで読む。失敗時は空（Wikimediaのみ可）。"""
+    try:
+        import main_story
+        main_story.load_dotenv()
+        return main_story.load_config("config/config.story.yaml")
+    except Exception as e:  # noqa: BLE001
+        print(f"[review] config/.env 読込失敗（Wikimediaのみで続行）: {e}")
+        return {}
+
+
 def do_fetch_cut(ch, ci, query, kind):
     """1カットを取得して review.json を更新（upsert）。検索のみ・Geminiは使わない。
 
@@ -189,13 +200,7 @@ def do_fetch_cut(ch, ci, query, kind):
     if not query:
         return {"ok": False, "message": "検索語が空です"}
     from src import image_fetch  # yaml不要。Wikimediaはキー不要で動く
-    config = {}
-    try:  # .env(Pexels/Pixabayキー)＋config読込はベストエフォート。失敗してもWikimediaは可
-        import main_story
-        main_story.load_dotenv()
-        config = main_story.load_config("config/config.story.yaml")
-    except Exception as e:  # noqa: BLE001
-        print(f"[review] config/.env 読込失敗（Wikimediaのみで続行）: {e}")
+    config = _load_image_config()
     base = f"ch_{ch:02d}_{ci:02d}"
     try:
         fn, attr = image_fetch.fetch_one_cut(query, kind or "ambient", DIR, base, config)
@@ -214,6 +219,32 @@ def do_fetch_cut(ch, ci, query, kind):
     cut["attribution"] = attr
     save_review(review)
     return {"ok": True, "image": fn, "attribution": attr}
+
+
+def do_candidates(query, kind, source):
+    """検索語の候補画像を取得先別に返す（DLしない・サムネ表示用）。追加課金なし。
+
+    source 未指定/不適合なら kind に許される先頭の取得先を使う。
+    Returns: {ok, sources:[{id,label}], source, candidates:[{source,thumb,url,attribution}], message?}
+    """
+    query = (query or "").strip()
+    if not query:
+        return {"ok": False, "message": "検索語が空です", "sources": [], "candidates": []}
+    from src import image_fetch
+    config = _load_image_config()
+    kind = kind or "ambient"
+    sources = image_fetch.available_sources(kind, config)
+    if not sources:
+        return {"ok": False, "message": "利用できる取得先がありません（APIキー未設定）",
+                "sources": [], "candidates": []}
+    ids = [s["id"] for s in sources]
+    src = source if source in ids else ids[0]
+    try:
+        cands = image_fetch.fetch_candidates(query, kind, src, config)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "message": f"候補取得エラー: {e}",
+                "sources": sources, "source": src, "candidates": []}
+    return {"ok": True, "sources": sources, "source": src, "candidates": cands}
 
 
 def pipeline_status():
@@ -306,8 +337,13 @@ def apply_import_url(review, key, url, attribution):
     Returns: (ok, message, saved_filename)。ネットワークI/Oを伴う。
     """
     cut = find_cut(review, key)
-    if not cut:
-        return False, "unknown key", None
+    if not cut:  # 未取得カット（review.json未登録）でも key=ch_ci から作って取り込めるように
+        try:
+            ch, ci = (int(x) for x in str(key).split("_"))
+        except (ValueError, TypeError):
+            return False, "unknown key", None
+        cut = {"ch": ch, "ci": ci, "approved": False}
+        review.setdefault("cuts", []).append(cut)
     if not valid_http_url(url):
         return False, "http(s)のURLのみ取り込めます", None
     try:
@@ -500,6 +536,7 @@ IMAGE_PAGE = """<!doctype html>
   .meta { font-size:12px; color:var(--sub); display:flex; gap:8px; flex-wrap:wrap; }
   .kind { padding:1px 8px; border-radius:999px; background:var(--line); }
   .meta .sz { font-variant-numeric:tabular-nums; }
+  .fll { font-size:10px; color:var(--sub); margin:2px 0 -4px; }
   input[type=text] { width:100%; font:inherit; font-size:12px; padding:6px 8px;
            background:#0c0f15; color:var(--fg); border:1px solid var(--line); border-radius:6px; }
   select { font:inherit; font-size:12px; padding:6px 8px; background:#0c0f15; color:var(--fg);
@@ -575,12 +612,14 @@ function card(c){
     <div class="body">
       <div class="title">${c.title || '(無題)'}</div>
       <div class="meta"><span class="kind">${c.kind}</span><span>検索: ${c.query||'-'}</span>${c.w?`<span class="sz">${c.w}×${c.h}px・${fmtKB(c.bytes)}</span>`:''}</div>
-      <input type="text" class="attr" placeholder="出典（任意・CC-BY等）" value="${c.attribution||''}">
+      <div class="fll">出典（CC-BY等の帰属・任意）</div>
+      <input type="text" class="attr" placeholder="例: John Doe / CC BY 4.0" value="${c.attribution||''}">
       <div class="row">
         <button class="ok approve">${c.approved?'承認済み':'OK'}</button>
         <label class="file"><button type="button" class="repl">差し替え</button>
           <input type="file" accept="image/*"></label>
       </div>
+      <div class="fll">枠への収め方</div>
       <div class="row">
         <select class="fit" title="枠への収め方">
           <option value="">fit:自動</option><option value="cover">cover(埋める)</option>
@@ -883,8 +922,11 @@ SCRIPT_PAGE = """<!doctype html>
   .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line); color:var(--sub); }
   .cuts { display:flex; flex-direction:column; gap:6px; margin:8px 0 12px; padding:8px 10px;
           background:#0c0f15; border-radius:8px; }
-  .cuts .row { display:flex; gap:6px; align-items:center; font-size:13px; flex-wrap:wrap; }
+  .cuts .row { display:flex; gap:6px; align-items:flex-end; font-size:13px; flex-wrap:wrap; }
   .cuts .idx { color:var(--sub); width:28px; flex:none; }
+  .cuts .fl { display:flex; flex-direction:column; gap:2px; flex:2; min-width:120px; }
+  .cuts .fll { font-size:10px; color:var(--sub); }
+  .cuts .fl .qInput, .cuts .fl .jaInput, .cuts .fl select { width:100%; }
   .qInput { flex:2; min-width:140px; }
   .jaInput { flex:2; min-width:120px; }
   button.mini { font-size:12px; padding:5px 9px; background:var(--line); }
@@ -946,6 +988,10 @@ function delTurn(tn){
   if(i >= 0 && confirm('この発言を削除しますか？')){ DATA.script.splice(i, 1); render(); }
 }
 
+function fl(text, el){ const w=document.createElement('label'); w.className='fl';
+  const t=document.createElement('span'); t.className='fll'; t.textContent=text;
+  w.appendChild(t); w.appendChild(el); return w; }
+
 function render(){
   const m = document.getElementById('main'); m.innerHTML='';
   const chapters = DATA.chapters || [];
@@ -979,7 +1025,8 @@ function render(){
       ja.placeholder='日本語(意味)'; ja.value = cut.image_query_ja||''; ja.onchange=()=> cut.image_query_ja=ja.value;
       const del = document.createElement('button'); del.className='mini del'; del.textContent='×';
       del.title='この画像を削除'; del.onclick = ()=>{ cutList.splice(k,1); render(); };
-      row.appendChild(q); row.appendChild(kind); row.appendChild(ja); row.appendChild(del);
+      row.appendChild(fl('検索語（英語）', q)); row.appendChild(fl('種別', kind));
+      row.appendChild(fl('意味（日本語）', ja)); row.appendChild(del);
       cb.appendChild(row);
     });
     const add = document.createElement('button'); add.className='mini add'; add.textContent='＋画像を追加';
@@ -1067,6 +1114,21 @@ STORY_PAGE = """<!doctype html>
   .imgrow .fields .frow { display:flex; gap:8px; align-items:center; }
   .imgrow .fields input, .imgrow .fields select { width:100%; }
   .imgrow .fields .szinfo { font-size:11px; color:var(--sub); font-variant-numeric:tabular-nums; min-height:13px; }
+  .fl { display:flex; flex-direction:column; gap:2px; }
+  .fll { font-size:10px; color:var(--sub); }
+  .imgrow .fields .frow { align-items:flex-end; }
+  .candpanel { background:#0c0f15; border:1px solid var(--line); border-radius:8px; padding:8px; margin:2px 0 8px; }
+  .ctabs { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .ctab { font-size:12px; padding:3px 10px; border-radius:999px; border:1px solid var(--line);
+          background:transparent; color:var(--sub); cursor:pointer; }
+  .ctab.on { background:#ffd84d; color:#1a1a1a; border-color:#ffd84d; }
+  .chint { font-size:12px; color:var(--sub); padding:8px 2px; }
+  .cgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+  .ccell { cursor:pointer; border:2px solid transparent; border-radius:6px; overflow:hidden; background:#11151c; }
+  .ccell:hover { border-color:#ffd84d; }
+  .ccell.busy { opacity:.5; pointer-events:none; }
+  .ccell img { width:100%; height:90px; object-fit:cover; display:block; }
+  .ccap { font-size:9px; color:var(--sub); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .imgrow .fields .frow select { flex:1; }
   .imgrow .fields .q { font-size:14px; }
   button.mini { font-size:12px; padding:5px 9px; background:var(--line); color:#fff; border:none;
@@ -1112,7 +1174,7 @@ STORY_PAGE = """<!doctype html>
 </header>
 <main id="main">読み込み中…</main>
 <script>
-let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set();
+let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={};
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -1120,6 +1182,41 @@ function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
 function fmtKB(b){ if(b==null) return '?'; return b<1024? b+'B' : b<1048576? Math.round(b/1024)+'KB' : (b/1048576).toFixed(1)+'MB'; }
+// 入力/プルダウンに小さなラベルを上付けする（何の項目か分かるように）
+function fl(text, el){ const w=document.createElement('label'); w.className='fl';
+  const t=document.createElement('span'); t.className='fll'; t.textContent=text;
+  w.appendChild(t); w.appendChild(el); return w; }
+// 候補画像の取得（取得先別・DLせずサムネ表示）。1検索=複数件で追加課金なし。
+async function loadCand(ci,k,cut,source){ const ky=ci+'_'+k;
+  candState[ky]=Object.assign({},candState[ky],{loading:true,error:null}); render();
+  const r=await api('/api/candidates',{query:cut.image_query,kind:cut.image_kind,source:source});
+  candState[ky]=r.ok ? {loading:false,sources:r.sources,source:r.source,candidates:r.candidates,error:null}
+                     : {loading:false,sources:r.sources||[],candidates:[],error:r.message||'取得失敗'};
+  render();
+}
+function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
+  const wrap=document.createElement('div'); wrap.className='candpanel';
+  const tabs=document.createElement('div'); tabs.className='ctabs';
+  const tl=document.createElement('span'); tl.className='fll'; tl.textContent='取得先：'; tabs.appendChild(tl);
+  (st.sources||[]).forEach(s=>{ const b=document.createElement('button');
+    b.className='ctab'+(s.id===st.source?' on':''); b.textContent=s.label;
+    b.onclick=()=>loadCand(ci,k,cut,s.id); tabs.appendChild(b); });
+  wrap.appendChild(tabs);
+  if(st.loading){ wrap.insertAdjacentHTML('beforeend','<div class="chint">検索中…</div>'); return wrap; }
+  if(st.error){ const d=document.createElement('div'); d.className='chint'; d.textContent=st.error; wrap.appendChild(d); return wrap; }
+  if(!(st.candidates||[]).length){ wrap.insertAdjacentHTML('beforeend','<div class="chint">候補なし（検索語や取得先を変えてください）</div>'); return wrap; }
+  const grid=document.createElement('div'); grid.className='cgrid';
+  st.candidates.forEach(c=>{ const cell=document.createElement('div'); cell.className='ccell'; cell.title=c.attribution||'';
+    const im=document.createElement('img'); im.src=c.thumb; im.loading='lazy'; cell.appendChild(im);
+    const cap=document.createElement('div'); cap.className='ccap'; cap.textContent=c.attribution||''; cell.appendChild(cap);
+    cell.onclick=async()=>{ if(cell.classList.contains('busy'))return; cell.classList.add('busy');
+      const r=await api('/api/import-url',{key:ky,url:c.url,attribution:c.attribution});
+      if(r.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:r.filename,attribution:c.attribution,query:cut.image_query,kind:cut.image_kind});
+        candOpen.delete(ky); render(); }
+      else { cell.classList.remove('busy'); alert(r.message||'採用失敗'); } };
+    grid.appendChild(cell); });
+  wrap.appendChild(grid); return wrap;
+}
 function cssFilter(f){ return f?`brightness(${f.brightness??1}) contrast(${f.contrast??1}) grayscale(${f.grayscale??0})`:''; }
 function contentRect(img,box){ const nw=img.naturalWidth,nh=img.naturalHeight; if(!nw||!nh) return {x:0,y:0,w:box.width,h:box.height};
   const s=Math.min(box.width/nw,box.height/nh),w=nw*s,h=nh*s; return {x:(box.width-w)/2,y:(box.height-h)/2,w,h}; }
@@ -1289,14 +1386,12 @@ function render(){
         kind.value=cut.image_kind||'ambient'; kind.onchange=()=>cut.image_kind=kind.value;
         const ja=document.createElement('input'); ja.type='text'; ja.className='ja'; ja.placeholder='日本語(意味)';
         ja.value=cut.image_query_ja||''; ja.onchange=()=>cut.image_query_ja=ja.value;
-        const refetch=document.createElement('button'); refetch.className='mini'; refetch.textContent=u?'再取得':'取得';
-        refetch.title='検索語で画像を取得/取り直し'; refetch.onclick=async()=>{
+        const refetch=document.createElement('button'); refetch.className='mini'; refetch.textContent=u?'候補から選ぶ':'取得';
+        refetch.title='検索語で候補画像を一覧表示して選ぶ'; refetch.onclick=()=>{
+          const ky=ci+'_'+k;
+          if(candOpen.has(ky)){ candOpen.delete(ky); render(); return; }
           if(!cut.image_query){ alert('検索語を入れてください'); return; }
-          refetch.textContent='取得中…'; refetch.disabled=true;
-          const r=await api('/api/fetch',{ch:ci,ci:k,query:cut.image_query,kind:cut.image_kind});
-          refetch.disabled=false;
-          if(r.ok){ cutMap[ci+'_'+k]=Object.assign({},cutMap[ci+'_'+k]||{ch:ci,ci:k},{image:r.image,query:cut.image_query,kind:cut.image_kind}); render(); }
-          else { refetch.textContent=u?'再取得':'取得'; alert(r.message||'取得失敗'); }
+          candOpen.add(ky); loadCand(ci,k,cut,null);
         };
         const adj=document.createElement('button'); adj.className='mini'; adj.textContent=adjustOpen.has(ci+'_'+k)?'調整を閉じる':'調整';
         adj.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); };
@@ -1311,17 +1406,19 @@ function render(){
           const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
           render();
         };
-        // 画像の右にフィールドを縦積み：検索語 → 日本語 → [kindプルダウン＋ボタン]
+        // 画像の右にフィールドを縦積み：検索語 → 日本語 → [種別＋ボタン]（各ラベル付き）
         const fields=document.createElement('div'); fields.className='fields';
         const row3=document.createElement('div'); row3.className='frow';
-        row3.appendChild(kind); row3.appendChild(refetch); row3.appendChild(adj); row3.appendChild(del);
+        row3.appendChild(fl('取得の種別', kind)); row3.appendChild(refetch); row3.appendChild(adj); row3.appendChild(del);
         const rc=cutMap[ci+'_'+k];
         const sz=document.createElement('div'); sz.className='szinfo';
         sz.textContent = (u&&rc&&rc.w) ? (rc.w+'×'+rc.h+'px・'+fmtKB(rc.bytes)) : (u?'サイズ不明':'');
-        fields.appendChild(q); fields.appendChild(ja); fields.appendChild(row3); fields.appendChild(sz);
+        fields.appendChild(fl('検索語（英語）', q)); fields.appendChild(fl('意味（日本語）', ja));
+        fields.appendChild(row3); fields.appendChild(sz);
         r.appendChild(fields);
         il.appendChild(r);
         if(adjustOpen.has(ci+'_'+k)) il.appendChild(buildAdjust(ci,k));
+        if(candOpen.has(ci+'_'+k)) il.appendChild(buildCand(ci,k,cut));
       });
       const add=document.createElement('button'); add.className='mini'; add.textContent='＋画像を追加';
       add.style.cssText='background:transparent;border:1px dashed var(--line);color:var(--sub);width:100%;margin-top:4px;';
@@ -1468,6 +1565,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/fetch":
             self._json(do_fetch_cut(body.get("ch"), body.get("ci"),
                                     body.get("query"), body.get("kind")))
+            return
+        if path == "/api/candidates":
+            self._json(do_candidates(body.get("query"), body.get("kind"),
+                                     body.get("source")))
             return
         if path == "/api/delete-cut":
             try:

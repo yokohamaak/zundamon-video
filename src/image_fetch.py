@@ -57,6 +57,49 @@ def fetch_one_cut(query, kind, out_dir, base, config):
     return None, None
 
 
+_SOURCE_LABELS = {"pexels": "Pexels", "pixabay": "Pixabay", "wikimedia": "Wikimedia"}
+
+
+def available_sources(kind, config):
+    """kind と設定(キー有無)から、使える取得先IDを優先順で返す。
+
+    subject は Wikimedia のみ（実物の正確さ優先）。ambient は Pexels→Pixabay→Wikimedia。
+    キー未設定の provider は除外する。Returns: [{"id","label"}]。
+    """
+    images_cfg = config.get("images", {})
+    wiki_on = images_cfg.get("wikimedia", {}).get("enable", True)
+    px_key = _key(images_cfg.get("pexels", {}), "pexels", "PEXELS_API_KEY")
+    pb_key = _key(images_cfg.get("pixabay", {}), "pixabay", "PIXABAY_API_KEY")
+    order = ["wikimedia"] if kind == "subject" else ["pexels", "pixabay", "wikimedia"]
+    avail = {"wikimedia": wiki_on, "pexels": bool(px_key), "pixabay": bool(pb_key)}
+    return [{"id": s, "label": _SOURCE_LABELS[s]} for s in order if avail[s]]
+
+
+def fetch_candidates(query, kind, source, config, per_source=12):
+    """指定 source の候補画像リストを返す（DLしない・サムネ表示用）。追加課金なし。
+
+    Returns: [{"source","thumb","url","attribution"}]。空クエリ/未対応sourceは []。
+    """
+    query = (query or "").strip()
+    if not query:
+        return []
+    images_cfg = config.get("images", {})
+    timeout = int(images_cfg.get("timeout", 30))
+    if source == "pexels":
+        return pexels_client.candidates(
+            query, _key(images_cfg.get("pexels", {}), "pexels", "PEXELS_API_KEY"),
+            per_source, timeout)
+    if source == "pixabay":
+        return pixabay_client.candidates(
+            query, _key(images_cfg.get("pixabay", {}), "pixabay", "PIXABAY_API_KEY"),
+            per_source, timeout)
+    if source == "wikimedia":
+        if not images_cfg.get("wikimedia", {}).get("enable", True):
+            return []
+        return wikimedia_client.candidates(query, per_source, timeout)
+    return []
+
+
 def fetch_images(chapters, out_dir, config):
     image_files, attributions = {}, {}
     total = 0
