@@ -75,7 +75,9 @@ def _cut_groups(idxs, turns, ncuts):
     """章内ターン列を、各ターンの cut アンカー（その章の何番目の画像か）でグループ化する。
 
     cut が一つも無ければ None（呼び出し側が均等割りにフォールバック）。
-    cut は章内で非減少にクランプ（画像が逆戻りしない）・欠落は直前を引き継ぐ。
+    cut アンカーはそのまま尊重する（人手レビューで自由に並べられるよう・逆戻りも可）。
+    欠落（cut無し）のターンは直前のcutを引き継ぐ。
+    ※Geminiの自動生成はプロンプトで前進（戻さない）を促すが、強制はしない＝レビューで人が決める。
     Returns: [(cut_index, lo, hi)]（lo..hi は idxs 内の位置・hi排他・連続被覆）または None
     """
     if ncuts <= 0:
@@ -84,10 +86,9 @@ def _cut_groups(idxs, turns, ncuts):
     for j in idxs:
         c = turns[j].get("cut")
         if isinstance(c, int) and not isinstance(c, bool) and 0 <= c < ncuts:
-            any_anchor = True
-            c = max(cur, c)        # 非減少
+            any_anchor = True       # アンカー値をそのまま採用（逆戻りも許可＝手動割当を尊重）
         else:
-            c = cur                # 欠落は直前のcutを継続
+            c = cur                # 欠落/不正は直前のcutを継続
         vals.append(c)
         cur = c
     if not any_anchor:

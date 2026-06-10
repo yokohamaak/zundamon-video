@@ -249,16 +249,19 @@ def test_load_images_from_review_roundtrip():
 def test_cut_groups():
     turns = [{"cut": 0}, {"cut": 0}, {"cut": 1}, {"cut": 1}, {"cut": 2}]
     assert M._cut_groups([0, 1, 2, 3, 4], turns, 3) == [(0, 0, 2), (1, 2, 4), (2, 4, 5)]
-    # 非減少クランプ（逆戻りは前の値に）
+    # 逆戻りも尊重（手動割当＝レビューで自由に並べられる）
     t2 = [{"cut": 1}, {"cut": 0}, {"cut": 2}]
-    assert M._cut_groups([0, 1, 2], t2, 3) == [(1, 0, 2), (2, 2, 3)]
+    assert M._cut_groups([0, 1, 2], t2, 3) == [(1, 0, 1), (0, 1, 2), (2, 2, 3)]
+    # 同じ画像が離れて再登場するのもOK（1→0→1）
+    t4 = [{"cut": 1}, {"cut": 0}, {"cut": 1}]
+    assert M._cut_groups([0, 1, 2], t4, 2) == [(1, 0, 1), (0, 1, 2), (1, 2, 3)]
     # 欠落は直前を継続
     t3 = [{"cut": 0}, {}, {"cut": 1}]
     assert M._cut_groups([0, 1, 2], t3, 2) == [(0, 0, 2), (1, 2, 3)]
     # アンカー皆無→None（均等割りへ）
     assert M._cut_groups([0, 1], [{}, {}], 2) is None
     assert M._cut_groups([0], [{"cut": 0}], 0) is None  # cuts無し
-    print("  _cut_groups: グループ化/非減少/欠落補完/フォールバック OK")
+    print("  _cut_groups: グループ化/逆戻り尊重/欠落補完/フォールバック OK")
 
 
 def test_build_chapter_topics_anchored():
