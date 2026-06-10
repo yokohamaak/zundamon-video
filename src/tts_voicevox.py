@@ -287,6 +287,11 @@ def synthesize_dialogue(script, config):
     speakers_map = vc.get("speakers", {})
     pause = float(vc.get("inter_turn_pause", 0.0))
     max_chars = int(vc.get("caption_max_chars", DEFAULT_CAPTION_MAX_CHARS))
+    # 文ごとに個別合成するため、文の境目に VOICEVOX の前後無音(pre+post)が毎回入る。
+    # pre を 0 にして「文の先頭の無音」を消す＝複数文ターン(長い説明)のカクつきを抑える。
+    # 値は config で耳調整可（pre=文先頭の無音 / post=文末の余韻＝文間の間）。
+    pre_phoneme = float(vc.get("pre_phoneme_length", 0.0))
+    post_phoneme = float(vc.get("post_phoneme_length", 0.1))
 
     if not script:
         raise ValueError("空の台本です")
@@ -311,6 +316,8 @@ def synthesize_dialogue(script, config):
             query["pitchScale"] = vp["pitch"]
             query["intonationScale"] = vp["intonation"]
             query["volumeScale"] = vp["volume"]
+            query["prePhonemeLength"] = pre_phoneme    # 文先頭の無音（境目のカクつき低減）
+            query["postPhonemeLength"] = post_phoneme   # 文末の余韻（文間の自然な間）
             wav_bytes = synthesis(base_url, query, speaker_id)
             params, frames, duration = _wav_params_and_frames(wav_bytes)
 
