@@ -55,51 +55,9 @@ VALID_IMAGE_KINDS = {"subject", "ambient"}
 DEFAULT_IMAGE_KIND = "ambient"
 
 
-def build_prompt(config: dict) -> str:
-    """configから日本語のIT技術史・章立て掛け合い台本生成プロンプトを作る（純関数）。"""
-    s = config.get("story", {})
-    questioner = s.get("questioner", DEFAULT_QUESTIONER)
-    explainer = s.get("explainer", DEFAULT_EXPLAINER)
-    topics = int(s.get("topics", s.get("chapters", DEFAULT_TOPICS)))
-    minutes = float(s.get("target_minutes", DEFAULT_MINUTES))
-    total_chars = int(minutes * CHARS_PER_MINUTE)  # 実測約335字/分換算の総量目安
-    theme = (s.get("theme") or "").strip()
-
-    if theme:
-        theme_line = f'今回の小テーマは「{theme}」。このテーマに沿った「実は」ネタを集めてください。'
-    else:
-        theme_line = (
-            "今回の小テーマはあなたが選んでください。テクノロジー全般（IT・コンピュータ・科学・"
-            "ガジェット・工学など）から、身近で意外な雑学が複数集まる小テーマを1つ選ぶ"
-            "（例:「デジタルの名前の由来」「キーボードの謎」「身近な技術の意外な仕組み」"
-            "「有名IT企業の創業秘話」「単位や記号の由来」）。"
-        )
-
-    return f"""
-あなたはテクノロジー雑学を扱う教養系YouTubeの掛け合い台本ライターです。
-1つの小テーマのもとに「実は〇〇なんです」という意外な雑学を複数集め、
-「へぇ！」が連発する日本語の掛け合い台本を作ってください。視聴者が明日誰かに話したくなる動画にします。
-
-## テーマ
-{theme_line}
-
-## 企画の骨子（実は〇〇雑学・ネタを束ねる）
-- 小テーマに沿った**「実は」ネタを {topics} 個**集める。各ネタは独立して「へぇ」となる意外な事実にする。
-- 各ネタは次のリズムで展開する（これが面白さの型）:
-  1. （繋ぎ）前のネタから一言で滑らかに入る（「じゃあ次はね」「ところでさ」等）。唐突に問いから始めない。
-  2. {explainer}が問いを投げる（「〜って何の略か知ってる？」「なんで〜なんだと思う？」）。
-  3. {questioner}が素朴に外した答えを言う（視聴者の予想を代弁）。
-  4. {explainer}が「実はね、…」と意外な真実を明かす。
-  5. {questioner}が驚く（「ええーっ！？」）。
-  6. {explainer}が追い打ちの小ネタ・豆知識を1つ足す。
-  7. （締め）{questioner}がそのネタを自分の言葉で一言にまとめて締める（「つまり〇〇は〜ってことなのだ！」）。
-     **各ネタは必ずこの {questioner} のまとめ一言で終える**（唐突に切らない）。次のネタへは1の繋ぎで入る。
-- **冒頭で強く掴む**：最初に今日の小テーマと「意外な話を連発するよ」と予告し、すぐ1ネタ目の問いに入る。前置きを長くしない。
-- **意外性は“正確な意外な事実”で作る。** 面白くするために嘘や誇張をしない。
-  確実でない逸話は「諸説あるけれど」「と言われている」と限定する。年号・前後関係も正確に。
-- ネタの順序は、軽いもの→意外性の強いものへ。最後のネタを一番の山場にすると締まる。
-
-## 登場人物と口調（語尾を混同しないこと・最重要）
+def _rules_block(questioner: str, explainer: str, topics: int) -> str:
+    """口調・各発言フィールド・章メタ・読み上げの共通ルール（build_prompt と再生成で共用）。"""
+    return f"""## 登場人物と口調（語尾を混同しないこと・最重要）
 - {questioner}（聞き手・ボケ役）: 好奇心旺盛。問いに素朴に外した答えを出し、真実に驚く。視聴者の代弁者。
   一人称「ぼく」、語尾は「〜なのだ」「〜のだ？」。リアクションは毎回同じにせず変化をつける
   （驚き・感心・脱線・ツッコミ・共感など）。
@@ -145,42 +103,94 @@ def build_prompt(config: dict) -> str:
 
 ## 読み上げ（VOICEVOX）の注意
 - **セリフ(text)中の英字を含む語には必ず直後に（カタカナ読み）を付ける**（例「Hi-Fi（ハイファイ）」「API（エーピーアイ）」）。
-  付けないとVOICEVOXが英字を1文字ずつ不自然に読む。読みはカタカナで（漢字の訳語ではなく音の読み）。
+  付けないとVOICEVOXが英字を1文字ずつ不自然に読む。読みはカタカナで（漢字の訳語ではなく音の読み）。"""
 
-## 構成・分量
-- **台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）を目安**。大きく超えない。
-- テンポよく。1ネタを長く語りすぎず、{topics}個を歯切れよく回す。
-- 専門用語は{explainer}が一言で噛み砕く。
 
-## 出力形式
+def _output_block(explainer: str, questioner: str) -> str:
+    """出力JSON形式の指定（build_prompt と再生成で共用）。"""
+    return f"""## 出力形式
 マークダウンのコードブロックは使わず、以下のJSONだけを出力すること。
 **厳密に有効なJSONにすること**:
 - 文字列の中でダブルクオート(")を使わない。セリフの強調・引用は必ず「」や『』を使う。
 - 末尾カンマを付けない。各要素の区切りカンマを忘れない。
 - 文字列内に生の改行を入れない（1つのtextは1行）。
 - バックスラッシュや制御文字を入れない。
-{{
+{{{{
   "theme": "動画のテーマ（日本語・meta.titleに使う。例「実は知らないデジタルの名前の謎」）",
   "chapters": [
-    {{"section": "intro", "title": "今日のテーマ", "image_cuts": [
-      {{"image_query": "wifi router", "image_kind": "ambient"}}
-    ]}},
-    {{"section": "trivia", "title": "Wi-Fiは略語じゃない", "summary": "Wi-Fiは何かの略ではなく、Hi-Fiの響きに似せて作られた造語。", "image_cuts": [
-      {{"image_query": "wifi symbol", "image_kind": "subject", "image_query_ja": "Wi-Fiのマーク"}},
-      {{"image_query": "vintage hifi audio system", "image_kind": "ambient", "image_query_ja": "昔のオーディオ機器"}}
-    ]}},
-    {{"section": "outro", "title": "まとめ", "image_cuts": [
-      {{"image_query": "technology gadgets flat lay", "image_kind": "ambient"}}
-    ]}}
+    {{{{"section": "intro", "title": "今日のテーマ", "image_cuts": [
+      {{{{"image_query": "wifi router", "image_kind": "ambient"}}}}
+    ]}}}},
+    {{{{"section": "trivia", "title": "Wi-Fiは略語じゃない", "summary": "Wi-Fiは何かの略ではなく、Hi-Fiの響きに似せて作られた造語。", "image_cuts": [
+      {{{{"image_query": "wifi symbol", "image_kind": "subject", "image_query_ja": "Wi-Fiのマーク"}}}},
+      {{{{"image_query": "vintage hifi audio system", "image_kind": "ambient", "image_query_ja": "昔のオーディオ機器"}}}}
+    ]}}}},
+    {{{{"section": "outro", "title": "まとめ", "image_cuts": [
+      {{{{"image_query": "technology gadgets flat lay", "image_kind": "ambient"}}}}
+    ]}}}}
   ],
   "script": [
-    {{"speaker": "{explainer}", "text": "今日は身近なのに意外と知らない…の話よ。へぇって言わせるわ。", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
-    {{"speaker": "{questioner}", "text": "へぇを連発させてやるのだ！望むところなのだ！", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
-    {{"speaker": "{explainer}", "text": "じゃあ最初。Wi-Fiって何の略か言える？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}},
-    {{"speaker": "{questioner}", "text": "ワイヤレス…なんとかなのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 0}},
-    {{"speaker": "{explainer}", "text": "実はね、何の略でもないの。Hi-Fi（ハイファイ）の響きに似せた造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch", "cut": 1}}
+    {{{{"speaker": "{explainer}", "text": "今日は身近なのに意外と知らない…の話よ。へぇって言わせるわ。", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}}}},
+    {{{{"speaker": "{questioner}", "text": "へぇを連発させてやるのだ！望むところなのだ！", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}}}},
+    {{{{"speaker": "{explainer}", "text": "じゃあ最初。Wi-Fiって何の略か言える？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}}}},
+    {{{{"speaker": "{questioner}", "text": "ワイヤレス…なんとかなのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 0}}}},
+    {{{{"speaker": "{explainer}", "text": "実はね、何の略でもないの。Hi-Fi（ハイファイ）の響きに似せた造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch", "cut": 1}}}}
   ]
-}}
+}}}}"""
+
+
+def build_prompt(config: dict) -> str:
+    """configから日本語のIT技術史・章立て掛け合い台本生成プロンプトを作る（純関数）。"""
+    s = config.get("story", {})
+    questioner = s.get("questioner", DEFAULT_QUESTIONER)
+    explainer = s.get("explainer", DEFAULT_EXPLAINER)
+    topics = int(s.get("topics", s.get("chapters", DEFAULT_TOPICS)))
+    minutes = float(s.get("target_minutes", DEFAULT_MINUTES))
+    total_chars = int(minutes * CHARS_PER_MINUTE)  # 実測約335字/分換算の総量目安
+    theme = (s.get("theme") or "").strip()
+
+    if theme:
+        theme_line = f'今回の小テーマは「{theme}」。このテーマに沿った「実は」ネタを集めてください。'
+    else:
+        theme_line = (
+            "今回の小テーマはあなたが選んでください。テクノロジー全般（IT・コンピュータ・科学・"
+            "ガジェット・工学など）から、身近で意外な雑学が複数集まる小テーマを1つ選ぶ"
+            "（例:「デジタルの名前の由来」「キーボードの謎」「身近な技術の意外な仕組み」"
+            "「有名IT企業の創業秘話」「単位や記号の由来」）。"
+        )
+
+    return f"""
+あなたはテクノロジー雑学を扱う教養系YouTubeの掛け合い台本ライターです。
+1つの小テーマのもとに「実は〇〇なんです」という意外な雑学を複数集め、
+「へぇ！」が連発する日本語の掛け合い台本を作ってください。視聴者が明日誰かに話したくなる動画にします。
+
+## テーマ
+{theme_line}
+
+## 企画の骨子（実は〇〇雑学・ネタを束ねる）
+- 小テーマに沿った**「実は」ネタを {topics} 個**集める。各ネタは独立して「へぇ」となる意外な事実にする。
+- 各ネタは次のリズムで展開する（これが面白さの型）:
+  1. （繋ぎ）前のネタから一言で滑らかに入る（「じゃあ次はね」「ところでさ」等）。唐突に問いから始めない。
+  2. {explainer}が問いを投げる（「〜って何の略か知ってる？」「なんで〜なんだと思う？」）。
+  3. {questioner}が素朴に外した答えを言う（視聴者の予想を代弁）。
+  4. {explainer}が「実はね、…」と意外な真実を明かす。
+  5. {questioner}が驚く（「ええーっ！？」）。
+  6. {explainer}が追い打ちの小ネタ・豆知識を1つ足す。
+  7. （締め）{questioner}がそのネタを自分の言葉で一言にまとめて締める（「つまり〇〇は〜ってことなのだ！」）。
+     **各ネタは必ずこの {questioner} のまとめ一言で終える**（唐突に切らない）。次のネタへは1の繋ぎで入る。
+- **冒頭で強く掴む**：最初に今日の小テーマと「意外な話を連発するよ」と予告し、すぐ1ネタ目の問いに入る。前置きを長くしない。
+- **意外性は“正確な意外な事実”で作る。** 面白くするために嘘や誇張をしない。
+  確実でない逸話は「諸説あるけれど」「と言われている」と限定する。年号・前後関係も正確に。
+- ネタの順序は、軽いもの→意外性の強いものへ。最後のネタを一番の山場にすると締まる。
+
+{_rules_block(questioner, explainer, topics)}
+
+## 構成・分量
+- **台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）を目安**。大きく超えない。
+- テンポよく。1ネタを長く語りすぎず、{topics}個を歯切れよく回す。
+- 専門用語は{explainer}が一言で噛み砕く。
+
+{_output_block(explainer, questioner)}
 """.strip()
 
 
@@ -461,10 +471,11 @@ def _generate_with_retry(client, model_name, prompt, max_attempts=5):
             time.sleep(wait)
 
 
-def generate_story_script(config: dict) -> dict:
-    """
-    configからIT技術史の章立て掛け合い台本を生成する。
-    Returns: {"theme": str|None, "chapters": [...], "script": [...]}
+def _generate_parsed(config: dict, prompt: str, log_label: str = "台本") -> dict:
+    """Geminiで生成→parse_script_jsonを、モデルフォールバック付きで試す共通処理。
+
+    全文生成と章単位の再生成で共用。JSON不正は同一モデルで再試行、API系エラーは次モデルへ。
+    Returns: parse_script_json の結果。全滅時は最後の例外を送出。
     """
     from google import genai  # 遅延import（新SDK）
 
@@ -474,16 +485,12 @@ def generate_story_script(config: dict) -> dict:
     # 503(高負荷)が続くモデルを見切って順に試すフォールバック（いずれも無料枠）。
     fallbacks = models_cfg.get("text_fallbacks", ["gemini-2.5-flash-lite", "gemini-2.0-flash"])
     candidates = [primary] + [m for m in fallbacks if m != primary]
-    theme = (config.get("story", {}).get("theme") or "").strip() or "(Geminiが選定)"
-    prompt = build_prompt(config)
 
-    # 生成→パースをセットで試す。JSON不正は再生成で直ることが多いので同一モデルで複数回、
-    # API系エラー(429/503等)は次のモデルへフォールバック。
     data = None
     last_err = None
     for model_name in candidates:
         for attempt in range(1, 3):
-            logger.info(f"台本を生成（モデル: {model_name}・試行{attempt}/2・テーマ: {theme}）")
+            logger.info(f"{log_label}を生成（モデル: {model_name}・試行{attempt}/2）")
             try:
                 text = _generate_with_retry(client, model_name, prompt, max_attempts=3)
             except Exception as e:  # noqa: BLE001 - API系はこのモデルを諦め次候補へ
@@ -505,6 +512,128 @@ def generate_story_script(config: dict) -> dict:
             break
     if data is None:
         raise last_err
+    return data
+
+
+def build_regen_prompt(config: dict, theme: str, existing_facts: list, n_targets: int) -> str:
+    """選択した trivia 章だけを差し替え再生成するプロンプト（純関数）。
+
+    theme は固定。existing_facts（既出の全ネタ）と重複しない新ネタを n_targets 個作らせる。
+    出力は通常と同じ {theme, chapters, script} だが chapters は trivia を n_targets 章のみ、
+    各発言の chapter は 0..n_targets-1 のローカル連番（呼び出し側で元の章番号へ振り直す）。
+    """
+    s = config.get("story", {})
+    questioner = s.get("questioner", DEFAULT_QUESTIONER)
+    explainer = s.get("explainer", DEFAULT_EXPLAINER)
+    topics = n_targets
+    facts = "\n".join(f"- {f.get('title', '')}：{f.get('summary', '')}".rstrip("：")
+                      for f in existing_facts) or "（なし）"
+    return f"""
+あなたはテクノロジー雑学を扱う教養系YouTubeの掛け合い台本ライターです。
+既存動画の一部の「実は」ネタだけを**差し替え再生成**します。
+
+## テーマ（固定・変更しない）
+動画のメインテーマは「{theme}」。このテーマに沿った「実は」ネタを作ります。
+
+## 最重要：既出ネタと重複させない
+この動画には既に以下の「実は」ネタがあります。**これらと題材もオチも重複しない、全く新しい
+「実は」ネタを {n_targets} 個**作ってください（同じ対象・同じ結論を避ける。切り口を変えるだけでもダメ）。
+### 既出ネタ一覧（重複禁止）
+{facts}
+
+## 作るもの（章の構成・厳守）
+- **trivia（各ネタ）の章を {n_targets} 個だけ**出す。**intro / outro は出さない。**
+- chapters[] は trivia の章を {n_targets} 個。script[] の各発言の "chapter" は **0 から始まる連番**
+  （0, 1, …, {n_targets - 1}）にする。"section" は全て "trivia"。
+- 各ネタは独立して「へぇ」となる意外な“正確な事実”。軽い→意外性の強い順。
+
+## 各ネタの面白さの型（リズム）
+1.（繋ぎ）滑らかに入る　2.{explainer}が問いを投げる　3.{questioner}が素朴に外す
+4.{explainer}が「実はね、…」と明かす　5.{questioner}が驚く　6.{explainer}が追い打ちの小ネタ
+7.（締め）{questioner}が自分の言葉で一言まとめ（「つまり〇〇は〜なのだ！」）。各ネタは必ずこのまとめで終える。
+- 意外性は嘘や誇張でなく正確な事実で。確実でない逸話は「諸説あるけれど」と限定。年号・前後関係も正確に。
+
+{_rules_block(questioner, explainer, topics)}
+
+## 分量
+- 各ネタはテンポよく簡潔に。1ネタあたり数往復で歯切れよく。
+
+{_output_block(explainer, questioner)}
+""".strip()
+
+
+def regenerate_chapters(config: dict, script_result: dict, target_indices: list) -> dict:
+    """既存台本の指定 trivia 章（target_indices）だけ、既出ネタと重複しない内容で再生成する。
+
+    Gemini呼び出しは1回（選択章をまとめて生成し相互重複も防ぐ）。
+    Returns: {"chapters": {idx: chapter_meta}, "turns": {idx: [turn,...]}}（元の章番号付き）。
+    呼び出し側がこれで script_result を差し替える。
+    """
+    chapters = script_result.get("chapters", [])
+    targets = sorted(i for i in target_indices
+                     if 0 <= i < len(chapters) and chapters[i].get("section") == "trivia")
+    if not targets:
+        raise ValueError("再生成できる trivia 章が選択されていません")
+    theme = (script_result.get("theme")
+             or config.get("story", {}).get("theme") or "").strip() or "テクノロジー雑学"
+    # 既出ネタ＝全 trivia 章のタイトル＋要約（差し替え対象も含めて重複回避の母集合にする）。
+    existing = [{"title": c.get("title", ""), "summary": c.get("summary", "")}
+                for c in chapters if c.get("section") == "trivia"]
+    prompt = build_regen_prompt(config, theme, existing, len(targets))
+    data = _generate_parsed(config, prompt, log_label=f"{len(targets)}章の差し替え台本")
+
+    new_chapters = [c for c in data.get("chapters", []) if c.get("section") == "trivia"]
+    new_script = data.get("script", [])
+    if len(new_chapters) < len(targets):
+        raise ValueError(f"再生成結果の章数が不足（要求{len(targets)}・取得{len(new_chapters)}）")
+    # ローカル章番号(0..)→元の章番号 に対応付け。余剰章は捨てる。
+    out_chapters, out_turns = {}, {}
+    for local, orig in enumerate(targets):
+        ch = new_chapters[local]
+        ch["section"] = "trivia"
+        out_chapters[orig] = ch
+        turns = [dict(t, chapter=orig, section="trivia")
+                 for t in new_script if t.get("chapter") == local]
+        out_turns[orig] = turns
+    return {"chapters": out_chapters, "turns": out_turns}
+
+
+def splice_regenerated(script_result: dict, regen: dict) -> dict:
+    """regenerate_chapters の結果を script_result にインプレース反映する（純関数・I/Oなし）。
+
+    指定章の chapters[i] を差し替え、その章の発言（chapter==i）を新ターンに丸ごと置換。
+    章番号・章数は不変なので他章とreview.jsonの (章,カット) キーは保たれる。
+    """
+    new_chapters = regen["chapters"]
+    new_turns = regen["turns"]
+    for i, ch in new_chapters.items():
+        script_result["chapters"][i] = ch
+    # 旧スクリプトから対象章の発言を除き、章順を保って新ターンを差し込む。
+    rebuilt, inserted = [], set()
+    for t in script_result["script"]:
+        c = t.get("chapter")
+        if c in new_turns:
+            if c not in inserted:  # その章の最初の旧ターン位置に新ターン群を挿入
+                rebuilt.extend(new_turns[c])
+                inserted.add(c)
+            continue  # 旧ターンは捨てる
+        rebuilt.append(t)
+    # 旧スクリプトに発言が無かった対象章（まれ）は末尾の同章付近に追補
+    for c, turns in new_turns.items():
+        if c not in inserted:
+            rebuilt.extend(turns)
+    script_result["script"] = rebuilt
+    normalize_turns(script_result["script"], script_result["chapters"])
+    return script_result
+
+
+def generate_story_script(config: dict) -> dict:
+    """
+    configからIT技術史の章立て掛け合い台本を生成する。
+    Returns: {"theme": str|None, "chapters": [...], "script": [...]}
+    """
+    theme = (config.get("story", {}).get("theme") or "").strip() or "(Geminiが選定)"
+    data = _generate_parsed(config, build_prompt(config), log_label=f"台本（テーマ: {theme}）")
 
     s = config.get("story", {})
     warn_role_voice(data["script"],

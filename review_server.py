@@ -247,6 +247,66 @@ def do_candidates(query, kind, source):
     return {"ok": True, "sources": sources, "source": src, "candidates": cands}
 
 
+def _blank_review_cut(ch, ci, chapter, cut, image, attribution):
+    """review.json の1カット分の辞書を作る（main_story.build_review と同形・章再生成用）。"""
+    return {"ch": ch, "ci": ci, "title": chapter.get("title") or "",
+            "query": (cut.get("image_query") or "").strip(),
+            "kind": cut.get("image_kind", "ambient"),
+            "image": image, "attribution": attribution, "approved": False,
+            "fit": None, "crop": None, "filter": None, "hide": False, "pad": None, "bg": None}
+
+
+def do_regenerate_chapters(indices):
+    """選択した trivia 章だけ、既出ネタと重複しない台本＋画像で再生成する（Gemini 1回）。
+
+    台本(script.json)を差し替え、再生成章の画像を取り直して review.json を更新する。
+    章番号・章数は不変なので他章のレビュー（承認/調整）はそのまま保たれる。
+    Returns: {ok, regenerated:[章番号], titles:[新タイトル], message?}
+    """
+    script = load_script()
+    if not script:
+        return {"ok": False, "message": "script.json がありません（先に台本生成）"}
+    try:
+        indices = sorted({int(i) for i in indices})
+    except (TypeError, ValueError):
+        return {"ok": False, "message": "章番号が不正です"}
+    if not indices:
+        return {"ok": False, "message": "再生成する章が選択されていません"}
+    from src import image_fetch, story_script
+    config = _load_image_config()
+    try:
+        regen = story_script.regenerate_chapters(config, script, indices)
+    except Exception as e:  # noqa: BLE001 - 生成失敗はメッセージで返す
+        return {"ok": False, "message": f"台本の再生成に失敗: {e}"}
+    story_script.splice_regenerated(script, regen)
+    save_script(script)
+
+    # 再生成した章の画像を取り直し、review.json を更新（他章のレビューは保持）。
+    review = load_review()
+    cuts = review.get("cuts", [])
+    regen_chs = set(regen["chapters"].keys())
+    for c in [c for c in cuts if c.get("ch") in regen_chs]:
+        remove_file(c.get("image"))  # 旧画像ファイルを掃除
+    cuts = [c for c in cuts if c.get("ch") not in regen_chs]
+    for ch in sorted(regen_chs):
+        chapter = script["chapters"][ch]
+        for ci, cut in enumerate(chapter.get("image_cuts", [])):
+            query = (cut.get("image_query") or "").strip()
+            base = f"ch_{ch:02d}_{ci:02d}"
+            fn = attr = None
+            if query:
+                try:
+                    fn, attr = image_fetch.fetch_one_cut(
+                        query, cut.get("image_kind", "ambient"), DIR, base, config)
+                except Exception:  # noqa: BLE001 - 取得失敗はプレースホルダ
+                    fn = attr = None
+            cuts.append(_blank_review_cut(ch, ci, chapter, cut, fn, attr))
+    review["cuts"] = cuts
+    save_review(review)
+    titles = [script["chapters"][i].get("title", "") for i in sorted(regen_chs)]
+    return {"ok": True, "regenerated": sorted(regen_chs), "titles": titles}
+
+
 def pipeline_status():
     """各工程の成果物の有無からステージ完了状況を推定。"""
     def ex(name):
@@ -1090,6 +1150,10 @@ STORY_PAGE = """<!doctype html>
   .sec.open { border-color:var(--accent); }
   .sechead { display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; }
   .sechead:hover { background:#222a37; }
+  .sechead .selcb { width:17px; height:17px; flex:none; cursor:pointer; accent-color:#ffd84d; }
+  #regen { background:var(--line); color:var(--fg); }
+  #regen:not(:disabled) { background:#ffd84d; color:#1a1a1a; }
+  #regen:disabled { opacity:.45; cursor:default; }
   .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line);
            color:var(--sub); flex:none; }
   .sechead .ttl { font-weight:700; flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1170,11 +1234,12 @@ STORY_PAGE = """<!doctype html>
   <a href="/">← パネル</a>
   <h1>ストーリー編集</h1>
   <span class="spacer"></span>
+  <button id="regen" disabled title="チェックしたネタ章を、既存と重複しない内容で作り直す（Gemini1回）">選択章を再生成</button>
   <button class="ok" id="save">保存</button>
 </header>
 <main id="main">読み込み中…</main>
 <script>
-let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={};
+let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -1360,6 +1425,13 @@ function render(){
       <span class="sum">${ch.summary||''}</span>
       <span class="thumbs">${thumbs}</span>`;
     head.onclick=()=>{ OPEN.has(ci)?OPEN.delete(ci):OPEN.add(ci); render(); };
+    if((ch.section||'')==='trivia'){  // ネタ章だけ再生成の対象に選べる
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.className='selcb';
+      cb.checked=selChs.has(ci); cb.title='再生成の対象に選ぶ';
+      cb.onclick=(e)=>{ e.stopPropagation();
+        selChs.has(ci)?selChs.delete(ci):selChs.add(ci); cb.checked=selChs.has(ci); updateRegenBtn(); };
+      head.insertBefore(cb, head.firstChild);
+    }
     sec.appendChild(head);
     if(OPEN.has(ci)){
       const body=document.createElement('div'); body.className='body';
@@ -1460,6 +1532,30 @@ function render(){
 document.getElementById('save').onclick=async()=>{
   const r=await api('/api/script', DATA);
   const b=document.getElementById('save'); b.textContent=r.ok?'保存✓':'失敗'; setTimeout(()=>b.textContent='保存',1500);
+};
+
+// 再生成ボタンの活性/表示更新（選択ネタ章数を反映）
+function updateRegenBtn(){
+  const b=document.getElementById('regen');
+  const n=selChs.size; b.disabled=!n;
+  b.textContent = n ? `選択章を再生成（${n}）` : '選択章を再生成';
+}
+document.getElementById('regen').onclick=async()=>{
+  const idx=[...selChs].sort((a,c)=>a-c); if(!idx.length) return;
+  const names=idx.map(i=>'・'+((DATA.chapters[i]||{}).title||('第'+i+'章'))).join('\\n');
+  if(!confirm(`次の ${idx.length} 章の台本と画像を再生成します。\\n${names}\\n\\nメインテーマは維持し、既存ネタと重複しない内容を新規生成します（Gemini 1回・既存の台本/画像は破棄）。よろしいですか？`)) return;
+  const b=document.getElementById('regen'); b.disabled=true; b.textContent='再生成中…';
+  const r=await api('/api/regenerate', {indices: idx});
+  if(r.ok){
+    selChs.clear();
+    const [s,rev]=await Promise.all([fetch('/api/script').then(x=>x.json()), fetch('/api/cuts').then(x=>x.json())]);
+    DATA=s; CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
+    (r.regenerated||[]).forEach(i=>OPEN.add(i));  // 再生成した章を開いて確認しやすく
+    render(); updateRegenBtn();
+    alert('再生成しました: '+ (r.titles||[]).map(t=>'「'+t+'」').join(' '));
+  } else {
+    updateRegenBtn(); alert('再生成に失敗: '+(r.message||''));
+  }
 };
 
 Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>r.json())])
@@ -1569,6 +1665,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/candidates":
             self._json(do_candidates(body.get("query"), body.get("kind"),
                                      body.get("source")))
+            return
+        if path == "/api/regenerate":
+            self._json(do_regenerate_chapters(body.get("indices") or []))
             return
         if path == "/api/delete-cut":
             try:

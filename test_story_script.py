@@ -271,6 +271,42 @@ def test_parse_integration_section_from_chapters():
     print("  parse: chapters由来のsection上書き(統合) OK")
 
 
+def test_build_regen_prompt():
+    cfg = {"story": {"questioner": "ずんだもん", "explainer": "四国めたん"}}
+    facts = [{"title": "Wi-Fiは略語じゃない", "summary": "造語"},
+             {"title": "Bluetoothの由来", "summary": "王の名"}]
+    p = s.build_regen_prompt(cfg, "デジタルの名前の謎", facts, 2)
+    assert "デジタルの名前の謎" in p, "テーマ固定が入る"
+    assert "Wi-Fiは略語じゃない" in p and "Bluetoothの由来" in p, "既出ネタが重複回避に渡る"
+    assert "重複" in p and "intro / outro は出さない" in p, "再生成の制約が入る"
+    assert "ずんだもん" in p and "四国めたん" in p, "キャラ名（共有ルール）が入る"
+    assert "image_query" in p and "chapters" in p, "共有の出力形式が入る"
+    print("  build_regen_prompt: テーマ固定/既出回避/共有ルール OK")
+
+
+def test_splice_regenerated():
+    sr = {"theme": "t", "chapters": [
+        {"section": "intro", "title": "i"},
+        {"section": "trivia", "title": "old1", "summary": "o1"},
+        {"section": "trivia", "title": "old2", "summary": "o2"},
+        {"section": "outro", "title": "e"}],
+        "script": [
+        {"chapter": 0, "section": "intro", "text": "導入", "speaker": "四国めたん"},
+        {"chapter": 1, "section": "trivia", "text": "旧1A", "speaker": "四国めたん"},
+        {"chapter": 1, "section": "trivia", "text": "旧1B", "speaker": "ずんだもん"},
+        {"chapter": 2, "section": "trivia", "text": "旧2A", "speaker": "四国めたん"},
+        {"chapter": 3, "section": "outro", "text": "締め", "speaker": "四国めたん"}]}
+    regen = {"chapters": {1: {"section": "trivia", "title": "new1", "summary": "n1",
+                              "image_cuts": [{"image_query": "x", "image_kind": "ambient"}]}},
+             "turns": {1: [{"chapter": 1, "section": "trivia", "text": "新1A", "speaker": "四国めたん", "cut": 0},
+                           {"chapter": 1, "section": "trivia", "text": "新1B", "speaker": "ずんだもん", "cut": 0}]}}
+    s.splice_regenerated(sr, regen)
+    assert sr["chapters"][1]["title"] == "new1", "章メタ差し替え"
+    assert [t["text"] for t in sr["script"]] == ["導入", "新1A", "新1B", "旧2A", "締め"], "章1だけ置換・順序維持"
+    assert [t["chapter"] for t in sr["script"]] == [0, 1, 1, 2, 3], "章番号は不変"
+    print("  splice_regenerated: 指定章のみ置換・順序/章番号維持 OK")
+
+
 if __name__ == "__main__":
     print("test_story_script:")
     test_build_prompt_contains_essentials()
@@ -293,4 +329,6 @@ if __name__ == "__main__":
     test_assign_sections_noncontiguous()
     test_warn_role_voice()
     test_parse_integration_section_from_chapters()
+    test_build_regen_prompt()
+    test_splice_regenerated()
     print("ALL PASS")
