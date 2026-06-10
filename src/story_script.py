@@ -121,6 +121,10 @@ def build_prompt(config: dict) -> str:
 5. "cut": その発言の間に画面に映す画像が、その章の image_cuts の**何番目か（0始まりの整数）**。
    章の最初の発言は 0。話が進んで別の被写体に移る発言で 1, 2… と増やす（**戻さない・飛ばさない**）。
    画像の切替が**話の流れ（被写体が変わる所）に合う**ようにする。image_cuts の個数と対応させること。
+6. "voice"（任意・声の演技）: その台詞だけ声を変える。{{"speed":速さ,"pitch":高さ,"intonation":抑揚,"volume":音量}}。
+   既定は全部1.0（pitchは0.0）。範囲 speed/intonation/volume=0.5〜2.0、pitch=-0.15〜0.15。**多用しない**。
+   例: 驚き=intonation 1.4・volume 1.2 / 焦り=speed 1.3 / しみじみ=speed 0.9・intonation 0.8。
+7. "pause"（任意・間）: その台詞の**後に置く無音秒**（0〜2）。「実は…」のタメや、オチ前の溜めに少しだけ。**多用しない**。
 
 ## 章メタ（chapters・各章に1つ）
 章の構成 = intro(導入) 1つ ＋ trivia(各ネタ) {topics}個 ＋ outro(締め) 1つ。各章に次を出す（chapter番号の昇順）:
@@ -321,6 +325,48 @@ def strip_markdown(text: str) -> str:
     return t.strip()
 
 
+# 台詞ごとの声上書きの安全範囲（VOICEVOXのscale値）。範囲外はクランプ。
+_VOICE_RANGE = {"speed": (0.5, 2.0), "pitch": (-0.15, 0.15),
+                "intonation": (0.0, 2.0), "volume": (0.0, 2.0)}
+
+
+def _normalize_voice(turn):
+    """turn["voice"]（速さ/高さ/抑揚/音量の上書き）を数値化＋範囲クランプ（in-place）。
+
+    dict以外/有効キー無しは削除。各キーは _VOICE_RANGE にクランプ。
+    """
+    v = turn.get("voice")
+    if not isinstance(v, dict):
+        turn.pop("voice", None)
+        return
+    out = {}
+    for k, (lo, hi) in _VOICE_RANGE.items():
+        if k in v and v[k] is not None:
+            try:
+                out[k] = round(max(lo, min(hi, float(v[k]))), 3)
+            except (TypeError, ValueError):
+                pass
+    if out:
+        turn["voice"] = out
+    else:
+        turn.pop("voice", None)
+
+
+def _normalize_pause(turn):
+    """turn["pause"]（この台詞の後の無音秒）を 0..2 にクランプ（in-place）。0/不正は削除。"""
+    if "pause" not in turn:
+        return
+    try:
+        p = max(0.0, min(2.0, float(turn["pause"])))
+    except (TypeError, ValueError):
+        turn.pop("pause", None)
+        return
+    if p > 0:
+        turn["pause"] = round(p, 3)
+    else:
+        turn.pop("pause", None)
+
+
 def _normalize_cut(turn, chapters, n):
     """turn["cut"] を整数化し、その章の image_cuts 範囲 [0, ncuts-1] にクランプ（in-place）。
 
@@ -367,6 +413,8 @@ def normalize_turns(script: list, chapters: list = None) -> list:
         # cut アンカー（その章の何番目の画像か）を整数化＋章のimage_cuts範囲にクランプ。
         # chapter確定後に判定。不正/範囲不明は削除（build側で均等割りフォールバック）。
         _normalize_cut(turn, chapters, n)
+        _normalize_voice(turn)  # 声の上書き（任意）をクランプ
+        _normalize_pause(turn)  # 台詞後の間（任意）をクランプ
         if n:
             turn["section"] = chapters[ch].get("section", DEFAULT_SECTION)
         elif turn.get("section") not in VALID_SECTIONS:

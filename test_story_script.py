@@ -166,6 +166,26 @@ def test_normalize_turns_cut_clamp():
     print("  normalize_turns: cut の整数化/範囲クランプ/不正削除 OK")
 
 
+def test_normalize_voice_and_pause():
+    # voice: 数値化＋範囲クランプ、有効キー無し/不正は削除
+    script = [
+        {"speaker": "x", "text": "t", "voice": {"speed": 3.0, "pitch": -0.5, "intonation": 1.4, "volume": "1.2"}},
+        {"speaker": "x", "text": "t", "voice": {"bogus": 1, "speed": "no"}},  # 有効値0→削除
+        {"speaker": "x", "text": "t", "voice": "nope"},                       # dict以外→削除
+        {"speaker": "x", "text": "t", "pause": 5},                            # 0..2にクランプ
+        {"speaker": "x", "text": "t", "pause": 0},                            # 0→削除
+        {"speaker": "x", "text": "t", "pause": "x"},                          # 不正→削除
+    ]
+    s.normalize_turns(script)
+    assert script[0]["voice"] == {"speed": 2.0, "pitch": -0.15, "intonation": 1.4, "volume": 1.2}, script[0]["voice"]
+    assert "voice" not in script[1]
+    assert "voice" not in script[2]
+    assert script[3]["pause"] == 2.0
+    assert "pause" not in script[4]
+    assert "pause" not in script[5]
+    print("  normalize_turns: voice/pause クランプ・不正削除 OK")
+
+
 def test_normalize_turns_enums():
     script = [{"speaker": "x", "text": "y"}]  # emotion/effect/chapter/section 欠落
     s.normalize_turns(script)
@@ -266,6 +286,7 @@ if __name__ == "__main__":
     test_strip_markdown()
     test_normalize_turns_strips_markdown()
     test_normalize_turns_cut_clamp()
+    test_normalize_voice_and_pause()
     test_normalize_turns_enums()
     test_normalize_turns_chapter_clamp_and_section_from_chapters()
     test_assign_sections_to_turns()

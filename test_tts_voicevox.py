@@ -85,9 +85,9 @@ def test_per_speaker_voice_params():
         "speed": 1.0, "pitch": 0.0, "intonation": 1.0,
         "voice_params": {"四国めたん": {"speed": 0.92}, "ずんだもん": {"intonation": 1.3}},
     }
-    assert tv._resolve_voice_params(vc, "四国めたん") == {"speed": 0.92, "pitch": 0.0, "intonation": 1.0}
-    assert tv._resolve_voice_params(vc, "ずんだもん") == {"speed": 1.0, "pitch": 0.0, "intonation": 1.3}
-    assert tv._resolve_voice_params(vc, "知らない人") == {"speed": 1.0, "pitch": 0.0, "intonation": 1.0}
+    assert tv._resolve_voice_params(vc, "四国めたん") == {"speed": 0.92, "pitch": 0.0, "intonation": 1.0, "volume": 1.0}
+    assert tv._resolve_voice_params(vc, "ずんだもん") == {"speed": 1.0, "pitch": 0.0, "intonation": 1.3, "volume": 1.0}
+    assert tv._resolve_voice_params(vc, "知らない人") == {"speed": 1.0, "pitch": 0.0, "intonation": 1.0, "volume": 1.0}
 
     # synthesisに正しいパラメータが渡るか（queryに反映）
     _install_fakes()
@@ -175,6 +175,37 @@ def test_reading_gloss_pure():
     print("  _spoken_text: 英字の読み仮名だけ畳む・他は不変 OK")
 
 
+def test_per_turn_voice_override():
+    _install_fakes()
+    script = [
+        {"speaker": "四国めたん", "text": "ふつう。", "voice": {"speed": 1.3, "volume": 1.2}},
+        {"speaker": "四国めたん", "text": "そのまま。"},
+    ]
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2}, "voice_params": {"四国めたん": {"intonation": 1.1}}}}
+    tv.synthesize_dialogue(script, cfg)
+    q0, q1 = _last_queries[0], _last_queries[1]
+    assert q0["speedScale"] == 1.3 and q0["volumeScale"] == 1.2, "台詞のvoice上書きが効く"
+    assert q0["intonationScale"] == 1.1, "上書き以外は話者値を維持"
+    assert q1["speedScale"] == 1.0 and q1["volumeScale"] == 1.0, "voice無しは既定"
+    print("  per-turn voice: speed/volume上書き＋話者値維持 OK")
+
+
+def test_per_turn_pause():
+    import shutil
+    if not shutil.which("ffmpeg"):
+        print("  per-turn pause: ffmpeg無しのためスキップ"); return
+    _install_fakes()
+    base = [{"speaker": "四国めたん", "text": "あ。"}, {"speaker": "四国めたん", "text": "い。"}]
+    paused = [{"speaker": "四国めたん", "text": "あ。", "pause": 1.0}, {"speaker": "四国めたん", "text": "い。"}]
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2}}}
+    _, t_base, _ = tv.synthesize_dialogue(base, cfg)
+    _install_fakes()
+    _, t_pause, _ = tv.synthesize_dialogue(paused, cfg)
+    # pauseの分だけ2ターン目の開始と総尺が後ろにずれる
+    assert abs((t_pause[1]["start"] - t_base[1]["start"]) - 1.0) < 1e-3, "pause=1秒で2ターン目が1秒後ろ"
+    print("  per-turn pause: 台詞後の間が尺に反映 OK")
+
+
 def test_reading_gloss_in_synthesis():
     # 合成には畳んだテキスト、字幕には原文が使われることを確認。
     _install_fakes()
@@ -217,6 +248,8 @@ if __name__ == "__main__":
     test_per_speaker_voice_params()
     test_inter_turn_pause()
     test_unknown_speaker()
+    test_per_turn_voice_override()
+    test_per_turn_pause()
     test_sentence_keeps_closing_bracket()
     test_reading_gloss_pure()
     test_reading_gloss_in_synthesis()

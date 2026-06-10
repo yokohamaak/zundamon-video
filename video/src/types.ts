@@ -35,6 +35,10 @@ export type Turn = {
   section?: Section;
   // C-1: その発言中に映す画像が章の image_cuts の何番目か（0始まり）。timing算出に使う（描画では未使用）。
   cut?: number;
+  // 声の演技（任意・音声生成で使用／描画では未使用）。speed/pitch/intonation/volume の上書き。
+  voice?: { speed?: number; pitch?: number; intonation?: number; volume?: number };
+  // この台詞の後の無音秒（任意・音声生成で使用）。「実は…」のタメ等。
+  pause?: number;
 };
 
 // 中央ビジュアルのトピック。imageがあれば画像、無ければtitleでカード描画。

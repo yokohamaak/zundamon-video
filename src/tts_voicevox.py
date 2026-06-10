@@ -197,17 +197,29 @@ def _resolve_speaker_id(turn_speaker, speakers_map):
 
 
 def _resolve_voice_params(vc, speaker):
-    """全体デフォルト＋話者別上書きで (speed, pitch, intonation) を決める。"""
+    """全体デフォルト＋話者別上書きで (speed, pitch, intonation, volume) を決める。"""
     params = {
         "speed": float(vc.get("speed", 1.0)),
         "pitch": float(vc.get("pitch", 0.0)),
         "intonation": float(vc.get("intonation", 1.0)),
+        "volume": float(vc.get("volume", 1.0)),
     }
     override = (vc.get("voice_params") or {}).get(speaker, {})
     for k in params:
         if k in override:
             params[k] = float(override[k])
     return params
+
+
+def _effective_voice(vp, turn):
+    """話者の声パラメータに、台詞ごとの turn["voice"] 上書きを重ねる（per-turnの声演技）。"""
+    ev = dict(vp)
+    over = turn.get("voice")
+    if isinstance(over, dict):
+        for k in ev:
+            if k in over and over[k] is not None:
+                ev[k] = float(over[k])
+    return ev
 
 
 def _split_sentences(text):
@@ -287,7 +299,7 @@ def synthesize_dialogue(script, config):
     for idx, turn in enumerate(script):
         speaker = turn["speaker"]
         speaker_id = _resolve_speaker_id(speaker, speakers_map)
-        vp = _resolve_voice_params(vc, speaker)
+        vp = _effective_voice(_resolve_voice_params(vc, speaker), turn)  # 話者＋台詞ごとの声上書き
         turn_start = current
         captions = []
 
@@ -298,6 +310,7 @@ def synthesize_dialogue(script, config):
             query["speedScale"] = vp["speed"]
             query["pitchScale"] = vp["pitch"]
             query["intonationScale"] = vp["intonation"]
+            query["volumeScale"] = vp["volume"]
             wav_bytes = synthesis(base_url, query, speaker_id)
             params, frames, duration = _wav_params_and_frames(wav_bytes)
 
@@ -326,11 +339,12 @@ def synthesize_dialogue(script, config):
             "sentences": captions,
         })
 
-        # ターン間の無音（任意）。最後のターン後には付けない。
-        if pause > 0 and idx < len(script) - 1:
+        # ターン間の無音＝全体設定(inter_turn_pause)＋この台詞の pause（任意の間）。最後の後には付けない。
+        sil = pause + float(turn.get("pause", 0) or 0)
+        if sil > 0 and idx < len(script) - 1:
             channels, width, rate = ref_params
-            pcm_chunks.append(b"\x00" * (int(pause * rate) * width * channels))
-            current += pause
+            pcm_chunks.append(b"\x00" * (int(sil * rate) * width * channels))
+            current += sil
 
     return b"".join(pcm_chunks), turns_out, ref_params
 
