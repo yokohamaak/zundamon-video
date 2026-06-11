@@ -494,8 +494,13 @@ def apply_replace(review, key, upload_name, data_b64, attribution):
     Returns: (ok, message, saved_filename)。I/Oは write_image_bytes 経由。
     """
     cut = find_cut(review, key)
-    if not cut:
-        return False, "unknown key", None
+    if not cut:  # 未取得カット（review.json未登録）でも key=ch_ci から作って差し替えられるように
+        try:
+            ch, ci = (int(x) for x in str(key).split("_"))
+        except (ValueError, TypeError):
+            return False, "unknown key", None
+        cut = {"ch": ch, "ci": ci, "approved": False}
+        review.setdefault("cuts", []).append(cut)
     try:
         data = base64.b64decode(data_b64)
     except Exception:
@@ -1405,6 +1410,45 @@ function shrinkImage(src, maxDim, maxBytes){
     img.src=src;
   });
 }
+// ── クリップボード(スクショ)から画像を取り込む ──
+function blobToB64(blob){ return new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result.split(',')[1]); rd.readAsDataURL(blob); }); }
+async function importImageBlob(ky, ci, k, blob){
+  let b64, fn='clipboard.png';
+  if(blob.size > 8*1024*1024){
+    try{ const durl=await shrinkImage(URL.createObjectURL(blob), 1920, 5*1024*1024); b64=durl.split(',')[1]; fn='clipboard.jpg'; }
+    catch(e){ b64=await blobToB64(blob); }
+  } else { b64=await blobToB64(blob); }
+  const r=await api('/api/replace', {key:ky, filename:fn, dataB64:b64, attribution:''});
+  if(r.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},
+    {image:r.filename,crop:null,filter:null,fit:null,pad:null,bg:null,hide:false}); render(); return true; }
+  alert(r.message||'登録に失敗'); return false;
+}
+let pasteTarget=null;  // フォールバック貼り付け先
+async function pasteClipboard(ky, ci, k){
+  // ① Clipboard API で直接読む（Chrome等・localhost＋ユーザー操作下なら可）
+  if(navigator.clipboard && navigator.clipboard.read){
+    try{
+      const items=await navigator.clipboard.read();
+      for(const it of items){ const ty=(it.types||[]).find(t=>t.startsWith('image/'));
+        if(ty){ const blob=await it.getType(ty); await importImageBlob(ky,ci,k,blob); return; } }
+      alert('クリップボードに画像がありません（先に スクショ Cmd+Ctrl+Shift+4 を撮ってください）'); return;
+    }catch(e){ /* 権限拒否/非対応 → ②フォールバックへ */ }
+  }
+  // ② フォールバック：貼り付け先を記憶し、Cmd+V を促す（全ブラウザ対応）
+  pasteTarget={ky,ci,k};
+  alert('このカットを貼り付け先にしました。そのまま Cmd+V を押してください。');
+}
+// ページ全体の paste（Cmd+V）で画像を取り込む。pasteTarget か、調整パネルが1つだけ開いてればそこへ。
+document.addEventListener('paste', async (e)=>{
+  const items=(e.clipboardData&&e.clipboardData.items)||[];
+  for(const it of items){ if(it.type && it.type.startsWith('image/')){
+    let tgt=pasteTarget;
+    if(!tgt){ const open=[...adjustOpen]; if(open.length===1){ const [a,b]=open[0].split('_').map(Number); tgt={ky:open[0],ci:a,k:b}; } }
+    if(tgt){ e.preventDefault(); const blob=it.getAsFile(); pasteTarget=null; await importImageBlob(tgt.ky,tgt.ci,tgt.k,blob); }
+    else { alert('貼り付け先が未選択です。カットの『📋貼付』を押してから Cmd+V してください。'); }
+    return;
+  } }
+});
 // 候補を採用：まずサーバ取得、大きすぎる時だけ手元で縮小して登録。
 async function applyCandidate(ci,k,cut,ky,c){
   const st=candState[ky]||{};
@@ -1656,6 +1700,9 @@ function render(){
         enBtn.onclick=()=>openCand(ci,k,cut,'en');
         const jaBtn=document.createElement('button'); jaBtn.className='mini'; jaBtn.textContent='日本語で取得'; jaBtn.title='日本語の検索語で候補を表示（Pexels/Pixabay・自分で翻訳しなくてよい）';
         jaBtn.onclick=()=>openCand(ci,k,cut,'ja');
+        const clip=document.createElement('button'); clip.className='mini'; clip.textContent='📋貼付';
+        clip.title='クリップボードの画像(スクショ)をこのカットに取り込む（Cmd+Ctrl+Shift+4で撮影→これ）';
+        clip.onclick=()=>pasteClipboard(ci+'_'+k, ci, k);
         const adj=document.createElement('button'); adj.className='mini'; adj.textContent=adjustOpen.has(ci+'_'+k)?'調整を閉じる':'調整';
         adj.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); };
         const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
@@ -1677,7 +1724,7 @@ function render(){
         const jaWrap=document.createElement('div'); jaWrap.style.cssText='display:flex;gap:6px;align-items:center';
         ja.style.flex='1'; jaWrap.appendChild(ja); jaWrap.appendChild(jaBtn);
         const row3=document.createElement('div'); row3.className='frow';
-        row3.appendChild(fl('取得の種別', kind)); row3.appendChild(adj); row3.appendChild(del);
+        row3.appendChild(fl('取得の種別', kind)); row3.appendChild(clip); row3.appendChild(adj); row3.appendChild(del);
         const rc=cutMap[ci+'_'+k];
         const sz=document.createElement('div'); sz.className='szinfo';
         sz.textContent = (u&&rc&&rc.w) ? (rc.w+'×'+rc.h+'px・'+fmtKB(rc.bytes)) : (u?'サイズ不明':'');
