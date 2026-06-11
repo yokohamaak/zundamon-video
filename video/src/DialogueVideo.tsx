@@ -75,11 +75,14 @@ function speakerCaptionBg(dir: string | null, gender: Gender): string {
   return isMetan ? "rgba(252,247,250,0.96)" : "rgba(247,251,248,0.96)";
 }
 
-// キーワード強調色＝黄色。話者色（ピンク/緑）より視認性が高い。
-// ※字幕箱はほぼ白地なので、黄色のみだと埋もれる→濃い縁取り(影)で白地でも読めるようにする。
+// キーワード強調色＝黄色。話者色（ピンク/緑）より目を引く。
+// ※字幕箱はほぼ白地なので黄色のみだと埋もれる→黒の太い縁取り(全方向の影)で
+//   黄色を縁取り、白地でもはっきり浮かせる（ゆっくり系の縁取り文字と同じ手法）。
 const KEYWORD_HIGHLIGHT = "#ffd000";
 const KEYWORD_OUTLINE =
-  "0 0 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.75), 0 0 1px rgba(0,0,0,0.9)";
+  "1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000," +
+  " 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000," +
+  " 0 2px 6px rgba(0,0,0,0.45)";
 
 // 字幕テキスト：『』「」で囲まれた語を黄色＋縁取りで強調。それ以外は地の文色。
 function renderCaption(text: string): React.ReactNode {
