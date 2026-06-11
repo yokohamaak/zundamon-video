@@ -1256,6 +1256,17 @@ STORY_PAGE = """<!doctype html>
   .ccell.busy { opacity:.5; pointer-events:none; }
   .ccell img { width:100%; height:90px; object-fit:cover; display:block; }
   .ccap { font-size:9px; color:var(--sub); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* 候補の拡大確認オーバーレイ */
+  .cprev { position:fixed; inset:0; background:rgba(0,0,0,.78); display:flex; align-items:center;
+           justify-content:center; z-index:50; padding:24px; }
+  .cprevbox { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px;
+              display:flex; flex-direction:column; gap:10px; max-width:90vw; max-height:90vh; }
+  .cprevbox img { max-width:84vw; max-height:72vh; object-fit:contain; border-radius:6px; background:#0c0f15; }
+  .cprevcap { font-size:12px; color:var(--sub); word-break:break-all; }
+  .cprevrow { display:flex; gap:10px; justify-content:flex-end; }
+  .cprevrow button { font-size:14px; padding:8px 18px; border-radius:8px; border:none; cursor:pointer;
+                     background:var(--line); color:#fff; font-weight:700; }
+  .cprevrow button.primary { background:var(--accent); }
   .imgrow .fields .frow select { flex:1; }
   .imgrow .fields .q { font-size:14px; }
   button.mini { font-size:12px; padding:5px 9px; background:var(--line); color:#fff; border:none;
@@ -1318,9 +1329,14 @@ function fl(text, el){ const w=document.createElement('label'); w.className='fl'
 // D&D取り込み共通：OSファイル / data:画像 / WebのURL を ch_NN_MM に保存。行サムネと調整パネルで共用。
 async function dropImport(ky, dt, attribution){
   if(dt.files && dt.files.length){
-    const f=dt.files[0];
-    const b64=await new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result.split(',')[1]); rd.readAsDataURL(f); });
-    return api('/api/replace', {key:ky, filename:f.name, dataB64:b64, attribution});
+    const f=dt.files[0]; let b64, fn=f.name;
+    if(f.size > 8*1024*1024){  // 大きい画像は手元で縮小してから登録（15MB制限/重さ対策）
+      try{ const durl=await shrinkImage(URL.createObjectURL(f), 1920, 5*1024*1024); b64=durl.split(',')[1]; fn='resized.jpg'; }
+      catch(e){ b64=await new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result.split(',')[1]); rd.readAsDataURL(f); }); }
+    } else {
+      b64=await new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result.split(',')[1]); rd.readAsDataURL(f); });
+    }
+    return api('/api/replace', {key:ky, filename:fn, dataB64:b64, attribution});
   }
   const url=(dt.getData('text/uri-list')||dt.getData('text/plain')||'').split('\\n').find(s=>s&&!s.startsWith('#'))||'';
   if(!url) return null;
@@ -1339,11 +1355,58 @@ async function loadCand(ci,k,cut,source,lang,query){ const ky=ci+'_'+k; const pr
   render();
 }
 // 取得ボタン（言語別）：パネルを開いてその言語で候補ロード。同言語で開いてたら閉じる。
-function openCand(ci,k,cut,lang){ const ky=ci+'_'+k; const st=candState[ky]||{};
+function openCand(ci,k,cut,lang){ const ky=ci+'_'+k;
   const query = lang==='ja' ? (cut.image_query_ja||'') : (cut.image_query||'');
   if(!query){ alert(lang==='ja'?'日本語の検索語を入れてください':'英語の検索語を入れてください'); return; }
-  if(candOpen.has(ky) && st.lang===lang){ candOpen.delete(ky); render(); return; }
-  candOpen.add(ky); loadCand(ci,k,cut,null,lang,query);
+  candOpen.add(ky); loadCand(ci,k,cut,null,lang,query);  // 押したら常に再取得（前状態に戻さない・閉じるは×）
+}
+// 画像を縮小してJPEG dataURLにする（巨大画像の登録対策＝720p動画には十分）。crossOrigin対応URL/Fileを受ける。
+function shrinkImage(src, maxDim, maxBytes){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{ let w=img.naturalWidth,h=img.naturalHeight;
+      const s=Math.min(1, maxDim/Math.max(w,h)); w=Math.max(1,Math.round(w*s)); h=Math.max(1,Math.round(h*s));
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      try{ let q=0.88, u=cv.toDataURL('image/jpeg',q);
+        while(u.length*0.75>maxBytes && q>0.4){ q-=0.1; u=cv.toDataURL('image/jpeg',q); }
+        resolve(u);
+      }catch(e){ reject(e); } };
+    img.onerror=()=>reject(new Error('画像読み込み失敗'));
+    img.src=src;
+  });
+}
+// 候補を採用：まずサーバ取得、大きすぎる時だけ手元で縮小して登録。
+async function applyCandidate(ci,k,cut,ky,c){
+  const st=candState[ky]||{};
+  const setImg=(fn)=>{ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},
+    {image:fn,attribution:c.attribution,query:(st.query!=null?st.query:cut.image_query),kind:cut.image_kind});
+    candOpen.delete(ky); render(); };
+  const r=await api('/api/import-url',{key:ky,url:c.url,attribution:c.attribution});
+  if(r.ok){ setImg(r.filename); return; }
+  if(/大き|15MB|too large/i.test(r.message||'')){
+    try{ const durl=await shrinkImage(c.url, 1600, 3*1024*1024);
+      const r2=await api('/api/replace',{key:ky,filename:'cand.jpg',dataB64:durl.split(',')[1],attribution:c.attribution});
+      if(r2.ok){ setImg(r2.filename); return; }
+      alert(r2.message||'縮小登録に失敗'); return;
+    }catch(e){ alert('画像が大きく自動縮小もできませんでした（手元でリサイズしてD&Dしてください）'); return; }
+  }
+  alert(r.message||'採用失敗');
+}
+// 候補クリック：すぐ反映せず大きいサイズで確認させてから採用。
+function previewCandidate(ci,k,cut,ky,c){
+  const ov=document.createElement('div'); ov.className='cprev';
+  const box=document.createElement('div'); box.className='cprevbox';
+  const im=document.createElement('img'); im.src=c.url||c.thumb; box.appendChild(im);
+  if(c.attribution){ const cap=document.createElement('div'); cap.className='cprevcap'; cap.textContent=c.attribution; box.appendChild(cap); }
+  const row=document.createElement('div'); row.className='cprevrow';
+  const ok=document.createElement('button'); ok.className='primary'; ok.textContent='これにする';
+  ok.onclick=async()=>{ ok.disabled=true; ok.textContent='登録中…'; document.body.removeChild(ov); await applyCandidate(ci,k,cut,ky,c); };
+  const ng=document.createElement('button'); ng.textContent='やめる'; ng.onclick=()=>{ if(ov.parentNode) document.body.removeChild(ov); };
+  row.appendChild(ok); row.appendChild(ng); box.appendChild(row);
+  ov.appendChild(box);
+  ov.onclick=(e)=>{ if(e.target===ov && ov.parentNode) document.body.removeChild(ov); };
+  document.body.appendChild(ov);
 }
 function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
   const wrap=document.createElement('div'); wrap.className='candpanel';
@@ -1354,6 +1417,8 @@ function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
   (st.sources||[]).forEach(s=>{ const b=document.createElement('button');
     b.className='ctab'+(s.id===st.source?' on':''); b.textContent=s.label;
     b.onclick=()=>loadCand(ci,k,cut,s.id,st.lang,st.query); tabs.appendChild(b); });
+  const cx=document.createElement('button'); cx.className='ctab'; cx.textContent='× 閉じる';
+  cx.onclick=()=>{ candOpen.delete(ky); render(); }; tabs.appendChild(cx);
   wrap.appendChild(tabs);
   if(st.loading){ wrap.insertAdjacentHTML('beforeend','<div class="chint">検索中…</div>'); return wrap; }
   if(st.error){ const d=document.createElement('div'); d.className='chint'; d.textContent=st.error; wrap.appendChild(d); return wrap; }
@@ -1362,11 +1427,8 @@ function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
   st.candidates.forEach(c=>{ const cell=document.createElement('div'); cell.className='ccell'; cell.title=c.attribution||'';
     const im=document.createElement('img'); im.src=c.thumb; im.loading='lazy'; cell.appendChild(im);
     const cap=document.createElement('div'); cap.className='ccap'; cap.textContent=c.attribution||''; cell.appendChild(cap);
-    cell.onclick=async()=>{ if(cell.classList.contains('busy'))return; cell.classList.add('busy');
-      const r=await api('/api/import-url',{key:ky,url:c.url,attribution:c.attribution});
-      if(r.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:r.filename,attribution:c.attribution,query:(st.query!=null?st.query:cut.image_query),kind:cut.image_kind});
-        candOpen.delete(ky); render(); }
-      else { cell.classList.remove('busy'); alert(r.message||'採用失敗'); } };
+    cell.title='クリックで大きく確認 → 採用';
+    cell.onclick=()=>previewCandidate(ci,k,cut,ky,c);  // すぐ反映せず大きいサイズで確認
     grid.appendChild(cell); });
   wrap.appendChild(grid); return wrap;
 }
