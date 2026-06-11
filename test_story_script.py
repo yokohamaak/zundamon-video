@@ -20,6 +20,7 @@ def test_build_prompt_contains_essentials():
     assert "image_cuts" in p and "image_query" in p and "image_kind" in p, "章の画像cut指示が入る"
     assert "subject" in p and "ambient" in p, "image_kindの値が入る"
     assert "chapters" in p and "script" in p, "出力JSON形式の指定が入る"
+    assert "切り口" in p and "由来" in p, "テーマの切り口厳守・名前由来ネタ逃げ禁止の指示が入る"
     print("  build_prompt: 必須要素OK")
 
 

@@ -320,6 +320,49 @@ def do_regenerate_chapters(indices):
     return {"ok": True, "regenerated": sorted(regen_chs), "titles": titles}
 
 
+def do_regenerate_all():
+    """現在のテーマで台本を丸ごと作り直す（intro＋全trivia＋outro）。画像も全カット取り直す。
+
+    章単位の再生成と違い intro/outro も新しくなるため整合性が保たれる（冒頭フックや締めが
+    新しいネタと噛み合う）。旧triviaは却下履歴に積み、新生成はそれらを避ける。
+    Gemini＋画像API（いずれも無料枠）を使う。Returns: {ok, theme?, chapters?, message?}
+    """
+    from src import image_fetch, story_script, topic_history
+    config = _load_image_config()
+    genre = topic_history.genre_of(config)
+    old = load_script() or {}
+    old_facts = [{"title": c.get("title", ""), "summary": c.get("summary", "")}
+                 for c in old.get("chapters", []) if c.get("section") == "trivia"]
+    avoid = topic_history.facts(genre)
+    try:
+        script_result = story_script.generate_story_script(config, also_avoid=avoid)
+    except Exception as e:  # noqa: BLE001 - 生成失敗はメッセージで返す
+        return {"ok": False, "message": f"台本生成に失敗: {e}"}
+    save_script(script_result)
+    if old_facts:
+        topic_history.add(genre, old_facts, "rejected")  # 旧ネタは却下＝今後の生成で避ける
+
+    # 旧画像を掃除し、新カットで全取得＋review.json を再構築。
+    for c in load_review().get("cuts", []):
+        remove_file(c.get("image"))
+    cuts = []
+    for ch, chapter in enumerate(script_result.get("chapters", [])):
+        for ci, cut in enumerate(chapter.get("image_cuts", []) or [{}]):
+            query = (cut.get("image_query") or "").strip()
+            base = f"ch_{ch:02d}_{ci:02d}"
+            fn = attr = None
+            if query:
+                try:
+                    fn, attr = image_fetch.fetch_one_cut(
+                        query, cut.get("image_kind", "ambient"), DIR, base, config)
+                except Exception:  # noqa: BLE001 - 取得失敗はプレースホルダ
+                    fn = attr = None
+            cuts.append(_blank_review_cut(ch, ci, chapter, cut, fn, attr))
+    save_review({"cuts": cuts})
+    return {"ok": True, "theme": script_result.get("theme"),
+            "chapters": len(script_result.get("chapters", []))}
+
+
 def pipeline_status():
     """各工程の成果物の有無からステージ完了状況を推定。"""
     def ex(name):
@@ -1254,6 +1297,7 @@ STORY_PAGE = """<!doctype html>
   <a href="/">← パネル</a>
   <h1>ストーリー編集</h1>
   <span class="spacer"></span>
+  <button id="regenall" title="テーマで台本を丸ごと作り直す（intro+全ネタ+outroを新規生成・整合性が保たれる）">全体を作り直す</button>
   <button id="regen" disabled title="チェックしたネタ章を、既存と重複しない内容で作り直す（Gemini1回）">選択章を再生成</button>
   <button class="ok" id="save">保存</button>
 </header>
@@ -1597,6 +1641,22 @@ function showLock(msg){
 }
 function hideLock(){ const o=document.getElementById('lockov'); if(o) o.style.display='none'; }
 
+document.getElementById('regenall').onclick=async()=>{
+  if(!confirm('現在のテーマで台本を丸ごと作り直します（intro＋全ネタ＋outro）。\\n\\n章単位の再生成と違い冒頭/締めも新しいネタに合わせて作り直すので整合性が保たれます。\\n既存の台本・画像はすべて破棄し、画像も全カット取り直します（Gemini＋画像API・1〜2分）。\\n※生成中はパネルを操作できません。よろしいですか？')) return;
+  showLock('全体を生成中… Gemini＋画像取得のため操作できません（1〜2分）');
+  const r=await api('/api/regenerate-all', {});
+  if(r.ok){
+    selChs.clear(); OPEN.clear();
+    const [s,rev]=await Promise.all([fetch('/api/script').then(x=>x.json()), fetch('/api/cuts').then(x=>x.json())]);
+    DATA=s; CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
+    if(DATA.chapters&&DATA.chapters.length) OPEN.add(0);
+    render(); updateRegenBtn(); hideLock();
+    alert('テーマ「'+(r.theme||'')+'」で全体を作り直しました（'+(r.chapters||0)+'章）。');
+  } else {
+    hideLock(); alert('全体生成に失敗: '+(r.message||''));
+  }
+};
+
 document.getElementById('regen').onclick=async()=>{
   const idx=[...selChs].sort((a,c)=>a-c); if(!idx.length) return;
   const names=idx.map(i=>'・'+((DATA.chapters[i]||{}).title||('第'+i+'章'))).join('\\n');
@@ -1729,6 +1789,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/regenerate":
             self._json(do_regenerate_chapters(body.get("indices") or []))
+            return
+        if path == "/api/regenerate-all":
+            self._json(do_regenerate_all())
             return
         if path == "/api/delete-cut":
             try:
