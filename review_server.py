@@ -226,11 +226,12 @@ def do_fetch_cut(ch, ci, query, kind, lang=None):
     return {"ok": True, "image": fn, "attribution": attr}
 
 
-def do_candidates(query, kind, source, lang=None):
+def do_candidates(query, kind, source, lang=None, page=1):
     """検索語の候補画像を取得先別に返す（DLしない・サムネ表示用）。追加課金なし。
 
     source 未指定/不適合なら kind に許される先頭の取得先を使う。lang='ja' で日本語クエリ解釈。
-    Returns: {ok, sources:[{id,label}], source, candidates:[{source,thumb,url,attribution}], message?}
+    page は 1始まり（「もっと見る」用）。
+    Returns: {ok, sources:[{id,label}], source, page, candidates:[{source,thumb,url,attribution}], message?}
     """
     query = (query or "").strip()
     if not query:
@@ -238,6 +239,10 @@ def do_candidates(query, kind, source, lang=None):
     from src import image_fetch
     config = _load_image_config()
     kind = kind or "ambient"
+    try:
+        page = max(1, int(page))
+    except (TypeError, ValueError):
+        page = 1
     sources = image_fetch.available_sources(kind, config)
     if not sources:
         return {"ok": False, "message": "利用できる取得先がありません（APIキー未設定）",
@@ -245,11 +250,11 @@ def do_candidates(query, kind, source, lang=None):
     ids = [s["id"] for s in sources]
     src = source if source in ids else ids[0]
     try:
-        cands = image_fetch.fetch_candidates(query, kind, src, config, lang=lang)
+        cands = image_fetch.fetch_candidates(query, kind, src, config, lang=lang, page=page)
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "message": f"候補取得エラー: {e}",
                 "sources": sources, "source": src, "candidates": []}
-    return {"ok": True, "sources": sources, "source": src, "candidates": cands}
+    return {"ok": True, "sources": sources, "source": src, "page": page, "candidates": cands}
 
 
 def _blank_review_cut(ch, ci, chapter, cut, image, attribution):
@@ -1256,6 +1261,7 @@ STORY_PAGE = """<!doctype html>
   .ccell.busy { opacity:.5; pointer-events:none; }
   .ccell img { width:100%; height:90px; object-fit:cover; display:block; }
   .ccap { font-size:9px; color:var(--sub); padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cfoot { display:flex; justify-content:center; padding:8px 0 2px; color:var(--sub); font-size:12px; }
   /* 候補の拡大確認オーバーレイ */
   .cprev { position:fixed; inset:0; background:rgba(0,0,0,.78); display:flex; align-items:center;
            justify-content:center; z-index:50; padding:24px; }
@@ -1345,13 +1351,20 @@ async function dropImport(ky, dt, attribution){
 }
 // 候補画像の取得（取得先別・DLせずサムネ表示）。1検索=複数件で追加課金なし。
 // lang/query は前回値を引き継ぐ（取得先タブ切替で言語が変わらないように）。
-async function loadCand(ci,k,cut,source,lang,query){ const ky=ci+'_'+k; const prev=candState[ky]||{};
+async function loadCand(ci,k,cut,source,lang,query,page,append){ const ky=ci+'_'+k; const prev=candState[ky]||{};
   lang = lang || prev.lang || 'en';
   query = (query!=null) ? query : (prev.query!=null ? prev.query : cut.image_query);
+  page = page || 1;
   candState[ky]=Object.assign({},prev,{loading:true,error:null,lang,query}); render();
-  const r=await api('/api/candidates',{query:query,kind:cut.image_kind,source:source,lang:lang});
-  candState[ky]=r.ok ? {loading:false,sources:r.sources,source:r.source,candidates:r.candidates,error:null,lang,query}
-                     : {loading:false,sources:r.sources||[],candidates:[],error:r.message||'取得失敗',lang,query};
+  const r=await api('/api/candidates',{query:query,kind:cut.image_kind,source:source,lang:lang,page:page});
+  const base = (append && prev.candidates) ? prev.candidates : [];
+  if(r.ok){ const got=r.candidates||[];
+    candState[ky]={loading:false,sources:r.sources,source:r.source,candidates:base.concat(got),
+                   error:null,lang,query,page:r.page||page,noMore:got.length===0};
+  } else {
+    candState[ky]=Object.assign({},prev,{loading:false,error:r.message||'取得失敗',
+                   sources:r.sources||prev.sources||[],candidates:base,lang,query});
+  }
   render();
 }
 // 取得ボタン（言語別）：パネルを開いてその言語で候補ロード。同言語で開いてたら閉じる。
@@ -1420,9 +1433,10 @@ function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
   const cx=document.createElement('button'); cx.className='ctab'; cx.textContent='× 閉じる';
   cx.onclick=()=>{ candOpen.delete(ky); render(); }; tabs.appendChild(cx);
   wrap.appendChild(tabs);
-  if(st.loading){ wrap.insertAdjacentHTML('beforeend','<div class="chint">検索中…</div>'); return wrap; }
-  if(st.error){ const d=document.createElement('div'); d.className='chint'; d.textContent=st.error; wrap.appendChild(d); return wrap; }
-  if(!(st.candidates||[]).length){ wrap.insertAdjacentHTML('beforeend','<div class="chint">候補なし（検索語や取得先を変えてください）</div>'); return wrap; }
+  const has=(st.candidates||[]).length;
+  if(st.loading && !has){ wrap.insertAdjacentHTML('beforeend','<div class="chint">検索中…</div>'); return wrap; }
+  if(st.error && !has){ const d=document.createElement('div'); d.className='chint'; d.textContent=st.error; wrap.appendChild(d); return wrap; }
+  if(!has){ wrap.insertAdjacentHTML('beforeend','<div class="chint">候補なし（検索語や取得先を変えてください）</div>'); return wrap; }
   const grid=document.createElement('div'); grid.className='cgrid';
   st.candidates.forEach(c=>{ const cell=document.createElement('div'); cell.className='ccell'; cell.title=c.attribution||'';
     const im=document.createElement('img'); im.src=c.thumb; im.loading='lazy'; cell.appendChild(im);
@@ -1430,7 +1444,14 @@ function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
     cell.title='クリックで大きく確認 → 採用';
     cell.onclick=()=>previewCandidate(ci,k,cut,ky,c);  // すぐ反映せず大きいサイズで確認
     grid.appendChild(cell); });
-  wrap.appendChild(grid); return wrap;
+  wrap.appendChild(grid);
+  // ページング：もっと見る / 読み込み中 / これ以上なし
+  const foot=document.createElement('div'); foot.className='cfoot';
+  if(st.loading){ foot.textContent='読み込み中…'; }
+  else if(st.noMore){ foot.textContent='これ以上ありません'; }
+  else { const mb=document.createElement('button'); mb.className='ctab'; mb.textContent='もっと見る（'+has+'枚表示中）';
+    mb.onclick=()=>loadCand(ci,k,cut, st.source, st.lang, st.query, (st.page||1)+1, true); foot.appendChild(mb); }
+  wrap.appendChild(foot); return wrap;
 }
 function cssFilter(f){ return f?`brightness(${f.brightness??1}) contrast(${f.contrast??1}) grayscale(${f.grayscale??0})`:''; }
 function contentRect(img,box){ const nw=img.naturalWidth,nh=img.naturalHeight; if(!nw||!nh) return {x:0,y:0,w:box.width,h:box.height};
@@ -1847,7 +1868,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/candidates":
             self._json(do_candidates(body.get("query"), body.get("kind"),
-                                     body.get("source"), body.get("lang")))
+                                     body.get("source"), body.get("lang"), body.get("page")))
             return
         if path == "/api/regenerate":
             self._json(do_regenerate_chapters(body.get("indices") or []))

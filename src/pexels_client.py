@@ -21,11 +21,16 @@ UA = "zundamon-video/0.1 (educational; https://github.com/yokohamaak/zundamon-vi
 _IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
 
-def build_search_url(query, per_page=10, locale=None):
-    """locale 指定時は Pexels がクエリをその言語で解釈して検索する（例 "ja-JP"＝日本語で検索）。"""
+def build_search_url(query, per_page=10, locale=None, page=1):
+    """locale 指定時は Pexels がクエリをその言語で解釈して検索する（例 "ja-JP"＝日本語で検索）。
+
+    page は 1始まりのページ番号（候補の「もっと見る」用）。
+    """
     params = {"query": query, "per_page": per_page, "orientation": "landscape"}
     if locale:
         params["locale"] = locale
+    if page and int(page) > 1:
+        params["page"] = int(page)
     return f"{SEARCH}?{urllib.parse.urlencode(params)}"
 
 
@@ -59,11 +64,11 @@ def _download(url, out_path, timeout=30):
         f.write(data)
 
 
-def search(query, api_key, per_page=10, timeout=30, locale=None):
-    return _get_json(build_search_url(query, per_page, locale), api_key, timeout).get("photos", [])
+def search(query, api_key, per_page=10, timeout=30, locale=None, page=1):
+    return _get_json(build_search_url(query, per_page, locale, page), api_key, timeout).get("photos", [])
 
 
-def candidates(query, api_key, per_page=12, timeout=30, locale=None):
+def candidates(query, api_key, per_page=12, timeout=30, locale=None, page=1):
     """検索結果を候補リストで返す（DLしない・サムネ表示用）。1検索=複数件で追加課金なし。
 
     Returns: [{"source","thumb","url","attribution"}]。キー無し/失敗時は []。
@@ -71,7 +76,7 @@ def candidates(query, api_key, per_page=12, timeout=30, locale=None):
     if not api_key:
         return []
     try:
-        photos = search(query, api_key, per_page, timeout, locale)
+        photos = search(query, api_key, per_page, timeout, locale, page)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Pexels候補検索失敗 '{query}': {e}")
         return []

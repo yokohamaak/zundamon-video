@@ -21,14 +21,19 @@ UA = "zundamon-video/0.1 (educational; https://github.com/yokohamaak/zundamon-vi
 _IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
 
-def build_search_url(query, key, per_page=10, lang=None):
-    """lang 指定時はその言語でクエリ語を解釈して検索する（例 "ja"＝日本語）。既定は en。"""
+def build_search_url(query, key, per_page=10, lang=None, page=1):
+    """lang 指定時はその言語でクエリ語を解釈して検索する（例 "ja"＝日本語）。既定は en。
+
+    page は 1始まりのページ番号（候補の「もっと見る」用）。
+    """
     params = {
         "key": key, "q": query, "image_type": "photo",
         "orientation": "horizontal", "safesearch": "true", "per_page": per_page,
     }
     if lang:
         params["lang"] = lang
+    if page and int(page) > 1:
+        params["page"] = int(page)
     return f"{API}?{urllib.parse.urlencode(params)}"
 
 
@@ -62,11 +67,11 @@ def _download(url, out_path, timeout=30):
         f.write(data)
 
 
-def search(query, key, per_page=10, timeout=30, lang=None):
-    return _get_json(build_search_url(query, key, per_page, lang), timeout).get("hits", [])
+def search(query, key, per_page=10, timeout=30, lang=None, page=1):
+    return _get_json(build_search_url(query, key, per_page, lang, page), timeout).get("hits", [])
 
 
-def candidates(query, api_key, per_page=12, timeout=30, lang=None):
+def candidates(query, api_key, per_page=12, timeout=30, lang=None, page=1):
     """検索結果を候補リストで返す（DLしない・サムネ表示用）。1検索=複数件で追加課金なし。
 
     Returns: [{"source","thumb","url","attribution"}]。キー無し/失敗時は []。
@@ -74,7 +79,7 @@ def candidates(query, api_key, per_page=12, timeout=30, lang=None):
     if not api_key:
         return []
     try:
-        hits = search(query, api_key, per_page, timeout, lang)
+        hits = search(query, api_key, per_page, timeout, lang, page)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Pixabay候補検索失敗 '{query}': {e}")
         return []

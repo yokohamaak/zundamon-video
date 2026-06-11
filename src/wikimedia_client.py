@@ -69,12 +69,14 @@ def build_attribution(extmetadata, title=""):
     return f"{artist} / {short}" if short else artist
 
 
-def build_search_url(query, limit=10):
-    qs = urllib.parse.urlencode({
+def build_search_url(query, limit=10, offset=0):
+    params = {
         "action": "query", "list": "search", "srsearch": query,
         "srnamespace": 6, "srlimit": limit, "format": "json",
-    })
-    return f"{API}?{qs}"
+    }
+    if offset:  # ページング用（候補の「もっと見る」＝次のlimit件）
+        params["sroffset"] = int(offset)
+    return f"{API}?{urllib.parse.urlencode(params)}"
 
 
 def build_imageinfo_url(title, thumb_width=None):
@@ -145,9 +147,9 @@ def _download(url, out_path, timeout=30):
         f.write(data)
 
 
-def search(query, limit=10, timeout=30):
-    """Commons をファイル検索し File:タイトル のリストを返す。"""
-    data = _get_json(build_search_url(query, limit), timeout)
+def search(query, limit=10, timeout=30, offset=0):
+    """Commons をファイル検索し File:タイトル のリストを返す。offset でページング。"""
+    data = _get_json(build_search_url(query, limit, offset), timeout)
     return [hit["title"] for hit in data.get("query", {}).get("search", [])]
 
 
@@ -161,14 +163,15 @@ def imageinfo(title, timeout=30, thumb_width=None):
     return None
 
 
-def candidates(query, max_candidates=12, timeout=30, thumb_width=320):
+def candidates(query, max_candidates=12, timeout=30, thumb_width=320, page=1):
     """検索→ライセンス適合(PD/CC0/CC-BY)・ラスタ・固有名一致のみ候補で返す。
 
     各候補は thumb(縮小URL)/url(原寸)/attribution を持つ。fetch_one と同じ選別基準。
+    page は 1始まり（「もっと見る」用。次の max_candidates 件を検索）。
     Returns: [{"source","thumb","url","attribution"}]。失敗時は []。
     """
     try:
-        titles = search(query, max_candidates, timeout)
+        titles = search(query, max_candidates, timeout, (int(page) - 1) * max_candidates)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Wikimedia候補検索失敗 '{query}': {e}")
         return []

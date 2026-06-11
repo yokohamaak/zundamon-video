@@ -64,6 +64,8 @@ def test_build_urls_and_ext():
     su = w.build_search_url("git logo", 5)
     assert "list=search" in su and "srnamespace=6" in su and "srlimit=5" in su
     assert "git+logo" in su or "git%20logo" in su, "queryがエンコードされる"
+    assert "sroffset" not in su, "offset=0は付けない"
+    assert "sroffset=10" in w.build_search_url("git logo", 5, 10), "offsetでページング"
     iu = w.build_imageinfo_url("File:X.jpg")
     assert "prop=imageinfo" in iu and "extmetadata" in iu and "File" in iu
     assert w._ext_from_url("https://x/Foo.PNG") == ".png"
@@ -155,6 +157,8 @@ def test_pexels_url_and_pick():
     assert "query=server+room" in u and "per_page=8" in u and "orientation=landscape" in u
     assert "locale" not in u, "locale未指定なら付けない"
     assert "locale=ja-JP" in px.build_search_url("server", 8, "ja-JP"), "locale指定で日本語検索"
+    assert "page" not in px.build_search_url("server", 8), "page=1は付けない"
+    assert "page=2" in px.build_search_url("server", 8, None, 2), "page指定でページング"
     assert px.pick_photo([]) is None
     assert px.pick_photo([{"id": 1}, {"id": 2}])["id"] == 1, "先頭を選ぶ"
     assert px._image_url({"src": {"large2x": "a", "large": "b"}}) == "a", "large2x優先"
@@ -183,6 +187,7 @@ def test_pixabay_url_and_pick():
     assert "q=network" in u and "key=KEY" in u and "per_page=5" in u and "orientation=horizontal" in u
     assert "lang" not in u, "lang未指定なら付けない（既定en）"
     assert "lang=ja" in pb.build_search_url("network", "KEY", 5, "ja"), "lang指定で日本語検索"
+    assert "page=3" in pb.build_search_url("network", "KEY", 5, None, 3), "page指定でページング"
     assert pb.pick_hit([]) is None
     assert pb.pick_hit([{"id": 1}])["id"] == 1
     assert pb._image_url({"largeImageURL": "L", "webformatURL": "W"}) == "L", "large優先"
