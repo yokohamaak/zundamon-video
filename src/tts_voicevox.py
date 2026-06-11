@@ -340,9 +340,16 @@ def synthesize_dialogue(script, config):
         speaker_id = _resolve_speaker_id(speaker, speakers_map)
         vp = _effective_voice(_resolve_voice_params(vc, speaker), turn)  # 話者＋台詞ごとの声上書き
         # chorus=True のターンは設定の全話者で同じ文を合成して重ねる（二人同時発話＝締めの挨拶等）。
+        # ユニゾンが揃って聞こえるよう、話者ごとに違う speed/intonation を共通値に統一する
+        # （声の個性は pitch で残す）。speed が違うとテンポがズレて二人がバラバラに聞こえるため。
         if turn.get("chorus"):
-            voices = [(_resolve_speaker_id(n, speakers_map),
-                       _effective_voice(_resolve_voice_params(vc, n), turn)) for n in chorus_names]
+            uni_speed = float(vc.get("chorus_speed", vc.get("speed", 1.0)))
+            uni_into = float(vc.get("chorus_intonation", vc.get("intonation", 1.0)))
+            voices = []
+            for n in chorus_names:
+                cvp = _effective_voice(_resolve_voice_params(vc, n), turn)
+                cvp = {**cvp, "speed": uni_speed, "intonation": uni_into}  # テンポ/抑揚を揃える
+                voices.append((_resolve_speaker_id(n, speakers_map), cvp))
         else:
             voices = [(speaker_id, vp)]
         turn_start = current

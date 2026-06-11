@@ -153,10 +153,17 @@ def test_lead_in_silence():
 def test_chorus_turn():
     _install_fakes()
     script = [{"speaker": "四国めたん", "text": "やあ。", "chorus": True}]
-    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2, "ずんだもん": 3}}}
+    # 話者ごとに speed/intonation が違う設定でも、ユニゾンは統一されることを確認。
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2, "ずんだもん": 3},
+                            "speed": 1.0, "intonation": 1.0,
+                            "voice_params": {"四国めたん": {"speed": 0.92},
+                                             "ずんだもん": {"intonation": 1.3}}}}
     pcm, turns, params = tv.synthesize_dialogue(script, cfg)
     # chorus: 文ごとに全話者(2人)で合成 → synthesis 2回
     assert len(_last_queries) == 2, f"2話者で重ねて合成: {len(_last_queries)}"
+    # ユニゾン: テンポ/抑揚を統一（バラバラに聞こえないように）
+    assert _last_queries[0]["speedScale"] == _last_queries[1]["speedScale"] == 1.0, "speed統一"
+    assert _last_queries[0]["intonationScale"] == _last_queries[1]["intonationScale"] == 1.0, "intonation統一"
     # 混ぜたPCM: 同サンプル(0x2211=8721)×2本 = 17442（16bit範囲内・クランプなし）
     import array
     a = array.array("h")

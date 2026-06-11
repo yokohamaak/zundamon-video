@@ -362,13 +362,13 @@ def append_closing_chorus(script_result, config):
     """締めに固定エンディングを足す：固定CTA(closing_lines・高評価/登録) → 二人同時(closing_chorus)。
 
     定型の挨拶/CTAはGeminiに生成させず固定にする＝入れ忘れ防止・毎回一貫。
-    既に末尾が closing 済みなら二重に足さない（--from-script の再実行に安全）。
-    chorus=True のターンは tts が全話者で重ねて合成し、描画は両方の立ち絵の口を動かす。
+    **既存の締め（過去に付けた closing/chorus ターン）を除去してから付け直す**＝重複防止
+    （--from-script の再実行や、旧マーカーの台本でも二重にならない）。closing/chorus は
+    このappendでしか付かないので除去して安全。chorus=True は tts が全話者で重ねて合成する。
     """
     s = config.get("story", {})
-    script = script_result.get("script") or []
-    if script and script[-1].get("closing"):
-        return  # 既に追加済み
+    script = [t for t in (script_result.get("script") or [])
+              if not (t.get("closing") or t.get("chorus"))]
     last = script[-1] if script else {}
     ch, cut = last.get("chapter", 0), last.get("cut", 0)
     explainer = s.get("explainer", story_script.DEFAULT_EXPLAINER)

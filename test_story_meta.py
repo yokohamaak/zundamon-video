@@ -230,7 +230,14 @@ def test_append_closing_chorus():
     sr3 = {"script": [{"speaker": "x", "text": "y", "chapter": 0}]}
     m.append_closing_chorus(sr3, {"story": {}})
     assert len(sr3["script"]) == 1
-    print("  append_closing_chorus: CTA＋ユニゾン締め/順序/冪等/空無効 OK")
+    # 既存の締め(旧マーカー chorus のみ含む)があっても重複させず1つに付け直す
+    sr4 = {"script": [{"speaker": "x", "text": "本編", "chapter": 0, "cut": 0},
+                      {"speaker": "x", "text": "旧またね", "chapter": 0, "cut": 0, "chorus": True}]}
+    m.append_closing_chorus(sr4, cfg)
+    assert sr4["script"][0]["text"] == "本編", "本編は残す"
+    assert sum(1 for t in sr4["script"] if t.get("chorus")) == 1, "ユニゾンは1つだけ(旧締め除去)"
+    assert sr4["script"][-1].get("chorus") and sr4["script"][-1]["text"] == "それじゃあまた見てね〜"
+    print("  append_closing_chorus: CTA＋ユニゾン締め/順序/重複防止/空無効 OK")
 
 
 if __name__ == "__main__":
