@@ -112,5 +112,12 @@ export type Meta = {
   // Root.tsx が public/avatars/manifest.json を読んで注入する。
   // 形: { "zundamon": { "base": "base.png", "mouth_open": "mouth_open.png", ... } }
   avatarManifest?: Record<string, Record<string, string>>;
+  // BGM / 効果音(SE)。main_story.build_audio が出力し、prep.mjs が未配置ファイルを除去（無ければ無音）。
+  audio?: {
+    bgm?: { file: string; volume?: number; fade?: number } | null;  // 全体ループBGM
+    se_volume?: number;                                              // SE全体の音量
+    se?: Record<string, string>;                                    // トリガー名→ファイル名（se/配下）
+    events?: { t: number; se: string }[];                          // 鳴らすSEイベント（時刻順）
+  } | null;
   script: Turn[];
 };

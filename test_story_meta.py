@@ -177,8 +177,35 @@ def test_write_credits_txt():
     print("  write_credits_txt: VOICEVOX+画像帰属/重複除去/帰属なし OK")
 
 
+def test_build_audio():
+    # config.audio が無ければ None
+    assert m.build_audio({}, []) is None
+    cfg = {"story": {"questioner": "ずんだもん"},
+           "audio": {"bgm": {"file": "bgm.mp3", "volume": 0.07},
+                     "se_volume": 0.5, "se_min_gap": 0.8,
+                     "se": {"intro": "i.mp3", "outro": "o.mp3",
+                            "flash": "f.mp3", "surprise": "s.mp3"}}}
+    script = [
+        {"speaker": "四国めたん", "text": "a", "section": "intro", "effect": "kenburns", "emotion": "happy", "start": 0.0},
+        {"speaker": "四国めたん", "text": "b", "section": "trivia", "effect": "flash", "emotion": "normal", "start": 5.0},
+        {"speaker": "四国めたん", "text": "実は", "section": "trivia", "effect": "zoom_punch", "emotion": "surprise", "start": 7.0},  # 解説役surprise→鳴らさない
+        {"speaker": "ずんだもん", "text": "ええー", "section": "trivia", "effect": "kenburns", "emotion": "surprise", "start": 9.0},  # 聞き手surprise→鳴る
+        {"speaker": "四国めたん", "text": "c", "section": "trivia", "effect": "flash", "emotion": "normal", "start": 20.0},
+        {"speaker": "ずんだもん", "text": "ええー", "section": "trivia", "effect": "kenburns", "emotion": "surprise", "start": 20.3},  # flash直後→min_gapで抑制
+        {"speaker": "四国めたん", "text": "z", "section": "outro", "effect": "flash", "emotion": "happy", "start": 30.0},
+    ]
+    a = m.build_audio(cfg, script)
+    assert a["bgm"]["file"] == "bgm.mp3" and a["se_volume"] == 0.5
+    got = [(e["t"], e["se"]) for e in a["events"]]
+    # intro(0)、flash(5)、聞き手surprise(9)、flash(20)、outro(30)。
+    # 解説役surprise(7)は除外。flash直後のsurprise(20.3)はmin_gapで抑制。section=outro発言のflashはoutro優先。
+    assert got == [(0.0, "intro"), (5.0, "flash"), (9.0, "surprise"), (20.0, "flash"), (30.0, "outro")], got
+    print("  build_audio: SEイベント導出/聞き手surprise限定/連発抑制 OK")
+
+
 if __name__ == "__main__":
     print("test_story_meta:")
+    test_build_audio()
     test_build_chapter_topics_coverage()
     test_build_chapter_topics_placeholder()
     test_build_chapter_topics_ready_image_and_credit()

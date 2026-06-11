@@ -67,3 +67,19 @@ tts_voicevox:
   chapter_gap_pause: 0.35  # ネタ(章)の境目に足す追加の間。0で無効。ネタの区切りを立てテンポの単調さを和らげる
   pre_phoneme_length: 0.0  # 各文の先頭の無音秒。0で文の境目のカクつきを抑える（長い説明が滑らかに）
   post_phoneme_length: 0.1 # 各文末の余韻秒＝文と文の間。大きいほど一文ずつ区切る感じ（耳で調整）
+
+# BGM / 効果音(SE)。無料・商用可・収益化可の音源のみ（効果音ラボ/DOVA/魔王魂 等）。
+# ファイルは video/assets/bgm/・video/assets/se/ に置く。無ければ自動でスキップ（無音）＝
+# まず仕組みだけ動かし、実音は後で差し替えて調整する前提。音量は render を見て詰める。
+audio:
+  bgm:
+    file: bgm.mp3          # video/assets/bgm/ に置く。空/無ければBGMなし
+    volume: 0.07           # 声(1.0)を埋めない薄さ
+    fade: 1.5              # 冒頭フェードイン/末尾フェードアウト秒
+  se_volume: 0.5           # SE全体の音量
+  se_min_gap: 0.8          # 直前SEからこの秒数以内のSEは抑制（連発防止・先勝ち）
+  se:                      # トリガー → ファイル名（video/assets/se/ に置く）
+    intro: intro.mp3       # 動画冒頭のチャイム
+    outro: outro.mp3       # outro章の頭
+    flash: flash.mp3       # ネタ切替（各ネタ最初の発言）
+    surprise: surprise.mp3 # ずんだもん(聞き手)の驚き「ええー！？」の頭だけ

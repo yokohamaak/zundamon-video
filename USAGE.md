@@ -175,6 +175,7 @@ for t in test_*.py; do echo "== $t =="; python3 "$t" || break; done
 |---|---|
 | ネタ数・尺・話者・テーマ | `config/config.story.yaml`（`story:`） |
 | 間・速度・章境界gap・字幕文字数 | `config/config.story.yaml`（`tts_voicevox:`）→ 早見表は [docs/60ten-review.md](docs/60ten-review.md) |
+| BGM・効果音(SE)・音量 | `config/config.story.yaml`（`audio:`）。音源は `video/assets/bgm/`・`video/assets/se/` に置く（[README](video/assets/se/README.md)・未配置は無音でスキップ） |
 | 英字→カタカナ読み辞書 | `config/readings.json` |
 | 台本の作風（型・フック） | `src/story_script.py` のプロンプト |
 | 立ち絵の動き・うなずき・演出 | `video/src/Avatar.tsx` / `video/src/DialogueVideo.tsx` |

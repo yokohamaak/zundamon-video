@@ -300,6 +300,55 @@ def write_credits_txt(out_dir, config, attributions):
     (out_dir / "credits.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def build_audio(config, script):
+    """meta.audio を組み立てる（純関数）。BGM設定＋SEイベント列（発言timingに同期）。
+
+    SEイベントは既存の effect/emotion/section と timing から導出する（追加データ不要）:
+      - intro:    動画冒頭(t=0)
+      - flash:    effect=="flash" の発言の開始（各ネタ切替の頭）
+      - outro:    section=="outro" の最初の発言の開始
+      - surprise: questioner(ずんだもん) かつ emotion=="surprise" の発言の開始だけ
+                  （解説役の驚きは鳴らさない＝連発防止）
+    直前に採用したSEと se_min_gap 秒以内に重なるイベントは抑制する（先勝ち・優先度順）。
+    config.audio が無ければ None（=BGM/SEなし）。
+    """
+    ac = config.get("audio") or {}
+    if not ac:
+        return None
+    se_files = ac.get("se") or {}
+    questioner = config.get("story", {}).get("questioner", "ずんだもん")
+    min_gap = float(ac.get("se_min_gap", 0.8))
+
+    raw = []  # (t, priority, se_type)。priorityが小さいほど衝突時に優先。
+    if se_files.get("intro"):
+        raw.append((0.0, 0, "intro"))
+    outro_done = False
+    for turn in script:
+        t = float(turn.get("start", 0.0) or 0.0)
+        if se_files.get("flash") and turn.get("effect") == "flash":
+            raw.append((t, 1, "flash"))
+        if se_files.get("outro") and not outro_done and turn.get("section") == "outro":
+            raw.append((t, 0, "outro"))  # outro章頭はflashも持つが、締めSEを優先（prio小）
+            outro_done = True
+        if (se_files.get("surprise") and turn.get("speaker") == questioner
+                and turn.get("emotion") == "surprise"):
+            raw.append((t, 2, "surprise"))
+
+    raw.sort(key=lambda x: (x[0], x[1]))
+    events = []
+    for t, _prio, se in raw:
+        if events and t - events[-1]["t"] < min_gap:
+            continue  # 直前SEと近すぎ→抑制（連発防止）
+        events.append({"t": round(t, 3), "se": se})
+
+    return {
+        "bgm": ac.get("bgm"),                       # {file, volume, fade} or None（prepが欠損を除去）
+        "se_volume": float(ac.get("se_volume", 0.5)),
+        "se": se_files,                             # トリガー名 → ファイル名
+        "events": events,                           # [{t, se}]（時刻順）
+    }
+
+
 def build_meta(script_result, turns, config, now_iso, image_files=None, attributions=None, cut_opts=None):
     """動画(video/)が読む meta.json 構造を組み立てる（純関数・テスト可能）。
 
@@ -339,6 +388,7 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
         # 持たないので必ず script を渡す（C-1のcutアンカーを効かせるため）。
         "topics": build_chapter_topics(segments, script, chapters, image_files, attributions, cut_opts),
         "credits": build_credits(config, attributions),
+        "audio": build_audio(config, script),
         "script": script,
     }
 

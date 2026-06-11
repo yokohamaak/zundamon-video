@@ -3,6 +3,7 @@ import {
   Audio,
   Img,
   interpolate,
+  Sequence,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
@@ -247,7 +248,7 @@ function effectState(
 
 export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
   const t = frame / fps;
 
   // 左右の割当: meta.speakers の並び順を優先（[0]=左 / [1]=右）。
@@ -393,6 +394,44 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
       }}
     >
       <Audio src={staticFile("digest.mp3")} />
+
+      {/* BGM（全体ループ・薄く・冒頭/末尾フェード）。prep が未配置なら meta.audio.bgm=null で無音。 */}
+      {meta.audio?.bgm ? (
+        <Audio
+          src={staticFile(`bgm/${meta.audio.bgm.file}`)}
+          loop
+          volume={(f) => {
+            const v = meta.audio?.bgm?.volume ?? 0.07;
+            const fadeF = Math.round((meta.audio?.bgm?.fade ?? 0) * fps);
+            if (fadeF <= 0) return v;
+            const inV = interpolate(f, [0, fadeF], [0, v], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            });
+            const outV = interpolate(f, [durationInFrames - fadeF, durationInFrames], [v, 0], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            });
+            return Math.min(inV, outV);
+          }}
+        />
+      ) : null}
+
+      {/* SE（効果音）：各イベント時刻に1発鳴らす。prep が実ファイルの在るイベントだけ残す。 */}
+      {(meta.audio?.events ?? []).map((ev, i) => {
+        const file = meta.audio?.se?.[ev.se];
+        if (!file) return null;
+        return (
+          <Sequence
+            key={`se-${i}`}
+            from={Math.round(ev.t * fps)}
+            durationInFrames={Math.round(4 * fps)}
+            name={`se:${ev.se}`}
+          >
+            <Audio src={staticFile(`se/${file}`)} volume={meta.audio?.se_volume ?? 0.5} />
+          </Sequence>
+        );
+      })}
 
       {/* タイトル(meta.title)は非表示。章バッジ(第N章+章タイトル)が上部に出るため冗長＝中央ビジュアルを上へ広げる。 */}
 

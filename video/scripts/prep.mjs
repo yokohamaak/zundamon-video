@@ -40,6 +40,8 @@ for (const [sub, exts, label] of [
   ["avatars", [".png"], "avatar images"],
   ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts"],
   ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image"],
+  ["bgm", [".mp3", ".wav", ".m4a", ".ogg"], "bgm"],
+  ["se", [".mp3", ".wav", ".m4a", ".ogg"], "se"],
 ]) {
   const s = resolve(root, "assets", sub);
   const d = resolve(pubDir, sub);
@@ -127,6 +129,26 @@ if (!meta.topics || meta.topics.length === 0) {
   console.log(`[prep] topics未設定のためデモtopicsを${N}件注入（total=${total.toFixed(1)}s）`);
 } else {
   console.log(`[prep] topicsはmeta.json由来のものを使用（${meta.topics.length}件）`);
+}
+
+// 音声(BGM/SE)：public に実ファイルが在るものだけ meta.audio に残す（無ければ無音でスキップ）。
+// 「音源を置く→renderするだけ」で鳴り、未配置でも壊れない（画像プレースホルダと同じ思想）。
+if (meta.audio) {
+  const present = (sub, file) => file && existsSync(resolve(pubDir, sub, file));
+  if (meta.audio.bgm && !present("bgm", meta.audio.bgm.file)) {
+    meta.audio.bgm = null;
+    metaChanged = true;
+    console.log("[prep] BGM未配置のためスキップ");
+  }
+  const se = meta.audio.se ?? {};
+  for (const k of Object.keys(se)) {
+    if (!present("se", se[k])) { delete se[k]; metaChanged = true; }
+  }
+  const before = (meta.audio.events ?? []).length;
+  meta.audio.events = (meta.audio.events ?? []).filter((e) => se[e.se]);
+  if (meta.audio.events.length !== before) metaChanged = true;
+  const seKinds = Object.keys(se);
+  console.log(`[prep] audio: BGM=${meta.audio.bgm ? "on" : "off"} / SE種=${seKinds.length ? seKinds.join(",") : "なし"} / イベント${meta.audio.events.length}件`);
 }
 
 if (metaChanged) writeFileSync(metaPath, JSON.stringify(meta, null, 2));
