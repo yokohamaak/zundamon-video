@@ -792,7 +792,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         <div
           style={{
             position: "absolute",
-            left: 320,
+            left: 330,   // 左端を10px右へ（めたんの髪と被るのを回避）。右端は据え置き
             right: 320,
             bottom: 40,
             backdropFilter: "blur(10px)",
