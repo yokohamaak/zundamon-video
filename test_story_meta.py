@@ -182,7 +182,7 @@ def test_build_audio():
     assert m.build_audio({}, []) is None
     cfg = {"story": {"questioner": "ずんだもん"},
            "audio": {"bgm": {"file": "bgm.mp3", "volume": 0.07},
-                     "se_volume": 0.5, "se_min_gap": 0.8, "se_lead": 0.0,
+                     "se_volume": 0.5, "se_min_gap": 0.8,
                      "se": {"intro": "i.mp3", "outro": "o.mp3",
                             "flash": "f.mp3", "surprise": "s.mp3"}}}
     script = [
@@ -200,20 +200,7 @@ def test_build_audio():
     # intro(0)、flash(5)、聞き手surprise(9)、flash(20)、outro(30)。
     # 解説役surprise(7)は除外。flash直後のsurprise(20.3)はmin_gapで抑制。section=outro発言のflashはoutro優先。
     assert got == [(0.0, "intro"), (5.0, "flash"), (9.0, "surprise"), (20.0, "flash"), (30.0, "outro")], got
-
-    # se_lead: ネタ切替SEを発話の前(章境界の無音)に前出し。直前の発話末より前には出さない。
-    cfg["audio"]["se_lead"] = 0.35
-    sc2 = [
-        {"speaker": "四国めたん", "text": "a", "section": "trivia", "effect": "kenburns", "emotion": "normal", "start": 0.0, "end": 4.35},
-        {"speaker": "四国めたん", "text": "b", "section": "trivia", "effect": "flash", "emotion": "normal", "start": 5.0, "end": 7.0},  # 直前末4.35→gap0.65
-    ]
-    ev2 = m.build_audio(cfg, sc2)["events"]
-    assert {"t": 4.65, "se": "flash"} in ev2, ev2  # 5.0-0.35=4.65（無音内・直前末4.35より後）
-    # gap が lead より狭ければ直前の発話末でクランプ（声に被せない）
-    sc2[1]["start"] = 4.5  # 直前末4.35との gap=0.15 < lead
-    ev3 = m.build_audio(cfg, sc2)["events"]
-    assert {"t": 4.35, "se": "flash"} in ev3, ev3  # max(prev_end, 4.5-0.35=4.15)=4.35
-    print("  build_audio: SEイベント導出/聞き手surprise限定/連発抑制/lead前出し OK")
+    print("  build_audio: SEイベント導出/聞き手surprise限定/連発抑制 OK")
 
 
 if __name__ == "__main__":

@@ -318,27 +318,21 @@ def build_audio(config, script):
     se_files = ac.get("se") or {}
     questioner = config.get("story", {}).get("questioner", "ずんだもん")
     min_gap = float(ac.get("se_min_gap", 0.8))
-    # ネタ切替/締めSEを発話頭ではなく「直前の無音」に少し前出しして鳴らす（転換を予告し、
-    # SEと声が同時に来る唐突さを避ける）。驚きSEは反応なので発話に同期（前出ししない）。
-    lead = float(ac.get("se_lead", 0.35))
 
     raw = []  # (t, priority, se_type)。priorityが小さいほど衝突時に優先。
     if se_files.get("intro"):
         raw.append((0.0, 0, "intro"))
     outro_done = False
-    prev_end = 0.0
     for turn in script:
         t = float(turn.get("start", 0.0) or 0.0)
-        lead_t = max(prev_end, t - lead)  # 直前の発話末より前には出さない＝章境界の無音に収める
         if se_files.get("flash") and turn.get("effect") == "flash":
-            raw.append((lead_t, 1, "flash"))
+            raw.append((t, 1, "flash"))
         if se_files.get("outro") and not outro_done and turn.get("section") == "outro":
-            raw.append((lead_t, 0, "outro"))  # outro章頭はflashも持つが、締めSEを優先（prio小）
+            raw.append((t, 0, "outro"))  # outro章頭はflashも持つが、締めSEを優先（prio小）
             outro_done = True
         if (se_files.get("surprise") and turn.get("speaker") == questioner
                 and turn.get("emotion") == "surprise"):
             raw.append((t, 2, "surprise"))
-        prev_end = float(turn.get("end", t) or t)
 
     raw.sort(key=lambda x: (x[0], x[1]))
     events = []
