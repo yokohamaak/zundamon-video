@@ -17,11 +17,12 @@ characters_gender:
   ずんだもん: male
 
 models:
-  text: gemini-2.5-flash     # 台本生成（無料枠）
-  # 503(高負荷)が続く時に順に試すフォールバック（いずれも無料枠）
+  text: gemini-3.5-flash     # 台本生成（無料枠・レート制限あり）。Stable・最新世代で台本品質が期待できる
+  # 503(高負荷)/クォータ枯渇時に順に試すフォールバック（いずれも無料枠のStableモデル）
+  # ※ gemini-2.0-flash は廃止進行中のため除外した
   text_fallbacks:
-    - gemini-2.5-flash-lite
-    - gemini-2.0-flash
+    - gemini-2.5-flash
+    - gemini-3.1-flash-lite
 
 # 画像取得（Phase2）。image_kindで振り分け: subject→wikimedia / ambient→pexels→pixabay。
 # 商用可ライセンスのみ使用。Wikimediaは無認証、Pexels/Pixabayはキー無料登録（.env）。

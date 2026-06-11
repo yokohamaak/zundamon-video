@@ -18,7 +18,7 @@ config（例）:
       explainer: 四国めたん                # 解説役
       target_minutes: 7
     models:
-      text: gemini-2.5-flash
+      text: gemini-3.5-flash
 """
 import json
 import logging
@@ -525,9 +525,9 @@ def _generate_parsed(config: dict, prompt: str, log_label: str = "台本") -> di
 
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     models_cfg = config.get("models", {})
-    primary = models_cfg.get("text", "gemini-2.5-flash")
-    # 503(高負荷)が続くモデルを見切って順に試すフォールバック（いずれも無料枠）。
-    fallbacks = models_cfg.get("text_fallbacks", ["gemini-2.5-flash-lite", "gemini-2.0-flash"])
+    primary = models_cfg.get("text", "gemini-3.5-flash")
+    # 503(高負荷)が続くモデルを見切って順に試すフォールバック（いずれも無料枠のStableモデル）。
+    fallbacks = models_cfg.get("text_fallbacks", ["gemini-2.5-flash", "gemini-3.1-flash-lite"])
     candidates = [primary] + [m for m in fallbacks if m != primary]
 
     data = None
