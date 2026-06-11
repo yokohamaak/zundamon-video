@@ -189,9 +189,14 @@ export const Avatar: React.FC<{
   // 目：感情差分 > まばたき > 通常。
   const phase = hash(dir!) % BLINK_CYCLE;
   const blinking = (frame + phase) % BLINK_CYCLE >= BLINK_CYCLE - BLINK_DUR;
+  // 笑顔の目(eye_smile)は閉じ目素材なので、happyが続く間ずっと出すと目を閉じっぱなしに見える。
+  // → 感情発生から短い間だけ表示し、過ぎたら通常の開き目＋まばたきへ戻す。
+  // 驚き目(eye_surprise)は開いた表情なので固定でも問題なし＝従来どおり。
+  const EYE_SMILE_DUR = Math.round(fps * 1.0);
+  const smileFresh = reactT >= 0 && reactT < EYE_SMILE_DUR;
   let eyeStem = "eye_open";
   if (emotion === "surprise" && part("eye_surprise")) eyeStem = "eye_surprise";
-  else if (emotion === "happy" && part("eye_smile")) eyeStem = "eye_smile";
+  else if (emotion === "happy" && smileFresh && part("eye_smile")) eyeStem = "eye_smile";
   else if (blinking && part("eye_close")) eyeStem = "eye_close";
   const eyeSrc = part(eyeStem) || part("eye_open");
 
