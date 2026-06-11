@@ -78,6 +78,7 @@ audio:
     fade: 1.5              # 冒頭フェードイン/末尾フェードアウト秒
   se_volume: 0.5           # SE全体の音量
   se_min_gap: 0.8          # 直前SEからこの秒数以内のSEは抑制（連発防止・先勝ち）
+  se_lead: 0.35            # ネタ切替/締めSEを発話の何秒前(章境界の無音)に鳴らすか。0で発話頭に同期
   se:                      # トリガー → ファイル名（video/assets/se/ に置く）
     intro: intro.mp3       # 動画冒頭のチャイム
     outro: outro.mp3       # outro章の頭
