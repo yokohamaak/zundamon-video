@@ -1012,6 +1012,8 @@ LANDING_PAGE = """<!doctype html>
 const STAGES = [
   {key:'script', t:'① ストーリー編集', d:'台本＋画像を一体で確認/編集（概要→章を開く）', link:'/story',
    cmd:'python main_story.py --stop-after-images'},
+  {key:'script', t:'台本ファクトチェック', d:'フル台本／概要を読み取り専用で表示（事実確認用）', link:'/read',
+   cmd:'(読むだけ・編集は /story から)'},
   {key:'review', t:'画像一覧（一括編集）', d:'全画像をグリッドで一括確認・承認', link:'/images',
    cmd:'(個別の編集は /story から)'},
   {key:'audio',  t:'③ 音声+meta', d:'VOICEVOXで音声・字幕生成', link:null,
@@ -1327,6 +1329,7 @@ STORY_PAGE = """<!doctype html>
   <a href="/">← パネル</a>
   <h1>ストーリー編集</h1>
   <span class="spacer"></span>
+  <a href="/read"><button title="フル台本/概要を読み取り専用で表示（事実確認）">台本を読む</button></a>
   <button id="regenall" title="テーマで台本を丸ごと作り直す（intro+全ネタ+outroを新規生成・整合性が保たれる）">全体を作り直す</button>
   <button id="regen" disabled title="チェックしたネタ章を、既存と重複しない内容で作り直す（Gemini1回）">選択章を再生成</button>
   <button class="ok" id="save">保存</button>
@@ -1793,6 +1796,91 @@ Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>
 """
 
 
+# 台本ファクトチェック用：読み取り専用ビュー（フル台本／概要のみ）。編集はしない。
+READ_PAGE = """<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台本ファクトチェック</title>
+<style>__CSS__
+  .toggle { display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+  .toggle button { background:transparent; color:var(--sub); border:none; border-radius:0; padding:7px 16px; font-weight:700; }
+  .toggle button.on { background:var(--accent); color:#fff; }
+  .doc { max-width:860px; margin:0 auto; }
+  .hint { color:var(--sub); font-size:13px; margin:0 0 16px; }
+  .chaphead { display:flex; align-items:baseline; gap:10px; margin:22px 0 8px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .chaphead .t { font-size:18px; font-weight:700; }
+  .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line); color:var(--sub); flex:none; }
+  .sum { color:var(--sub); font-size:14px; line-height:1.7; margin:2px 0 0; }
+  .line { display:flex; gap:12px; padding:5px 0; line-height:1.8; }
+  .line .sp { flex:none; width:80px; font-weight:700; font-size:13px; padding-top:3px; }
+  .line .sp .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .line .tx { font-size:16px; }
+  .sumitem { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+  .sumitem .th { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .sumitem .th .t { font-weight:700; }
+</style></head>
+<body>
+<header>
+  <a href="/">← パネル</a>
+  <h1>台本ファクトチェック</h1>
+  <span class="spacer"></span>
+  <div class="toggle"><button id="mFull" class="on">フル台本</button><button id="mSum">概要のみ</button></div>
+  <a href="/story"><button class="primary">編集へ →</button></a>
+</header>
+<main><div id="doc" class="doc">読み込み中…</div></main>
+<script>
+let DATA=null, MODE='full';
+function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん|メタン/.test(n))return '#d85a9c'; return '#90a0b5'; }
+function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+function secLabel(ch, idx, all){
+  if(ch.section==='intro') return '導入';
+  if(ch.section==='outro') return '締め';
+  let n=0; for(let i=0;i<=idx;i++){ if((all[i].section)==='trivia') n++; }
+  return '実は '+n;
+}
+function render(){
+  const root=document.getElementById('doc'); root.innerHTML='';
+  if(!DATA){ root.textContent='台本がありません'; return; }
+  const chapters=DATA.chapters||[];
+  if(DATA.theme){ const h=document.createElement('div'); h.className='chaphead';
+    h.innerHTML='<span class="t">テーマ：'+esc(DATA.theme)+'</span>'; root.appendChild(h); }
+  if(MODE==='sum'){
+    const hint=document.createElement('div'); hint.className='hint';
+    hint.textContent='各ネタの要点(summary)だけを一覧。事実確認の素早いスキャン用。'; root.appendChild(hint);
+    chapters.forEach((ch,i)=>{ if(!ch.summary && ch.section!=='trivia') return;
+      const it=document.createElement('div'); it.className='sumitem';
+      const th=document.createElement('div'); th.className='th';
+      th.innerHTML='<span class="badge">'+secLabel(ch,i,chapters)+'</span><span class="t">'+esc(ch.title||'')+'</span>';
+      it.appendChild(th);
+      if(ch.summary){ const s=document.createElement('div'); s.className='sum'; s.textContent=ch.summary; it.appendChild(s); }
+      root.appendChild(it); });
+    return;
+  }
+  // フル台本：章ごとに見出し＋要点＋全台詞
+  chapters.forEach((ch,i)=>{
+    const head=document.createElement('div'); head.className='chaphead';
+    head.innerHTML='<span class="badge">'+secLabel(ch,i,chapters)+'</span><span class="t">'+esc(ch.title||'')+'</span>';
+    root.appendChild(head);
+    if(ch.summary){ const s=document.createElement('div'); s.className='sum'; s.textContent='（要点）'+ch.summary; root.appendChild(s); }
+    (DATA.script||[]).filter(t=>t.chapter===i).forEach(t=>{
+      const ln=document.createElement('div'); ln.className='line';
+      const sp=document.createElement('div'); sp.className='sp';
+      sp.innerHTML='<span class="dot" style="background:'+speakerColor(t.speaker)+'"></span>'+esc((t.speaker||'').slice(0,4));
+      const tx=document.createElement('div'); tx.className='tx'; tx.textContent=t.text||'';
+      ln.appendChild(sp); ln.appendChild(tx); root.appendChild(ln);
+    });
+  });
+}
+function setMode(m){ MODE=m; document.getElementById('mFull').className=m==='full'?'on':'';
+  document.getElementById('mSum').className=m==='sum'?'on':''; render(); }
+document.getElementById('mFull').onclick=()=>setMode('full');
+document.getElementById('mSum').onclick=()=>setMode('sum');
+fetch('/api/script').then(r=>r.json()).then(d=>{ if(d.error){ document.getElementById('doc').textContent=d.error; return; } DATA=d; render(); });
+</script>
+</body></html>
+"""
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):  # 既定の逐次ログを抑制
         pass
@@ -1832,6 +1920,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/script":
             self._html(SCRIPT_PAGE.replace("__CSS__", _BASE_CSS))
+            return
+        if path == "/read":
+            self._html(READ_PAGE.replace("__CSS__", _BASE_CSS))
             return
         if path == "/story":
             self._html(STORY_PAGE.replace("__CSS__", _BASE_CSS))
