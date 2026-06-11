@@ -1241,6 +1241,10 @@ STORY_PAGE = """<!doctype html>
   .imgrow { align-items:flex-start; }
   .imgrow img, .imgrow .ph2 { width:320px; height:180px; object-fit:contain; background:#11151c;
             border:1px solid var(--line); border-radius:6px; flex:none; }
+  /* クロップ反映サムネ：枠内にクロップ後の領域だけを表示（render結果に近い見た目） */
+  .imgrow .imgthumb { width:320px; height:180px; position:relative; overflow:hidden; background:#11151c;
+            border:1px solid var(--line); border-radius:6px; flex:none; }
+  .imgrow .imgthumb img { border:none; border-radius:0; }
   .imgrow .ph2 { display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:11px; }
   .imgrow .fields { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
   .imgrow .fields .frow { display:flex; gap:8px; align-items:center; }
@@ -1529,7 +1533,7 @@ function buildAdjust(ci,k){
     rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
     rd.readAsDataURL(f); };
   const cclr=document.createElement('button'); cclr.className='mini'; cclr.textContent='クロップ解除';
-  cclr.onclick=()=>{ cut.crop=null; rectEl.style.display='none'; setOpt(key,{crop:null}); };
+  cclr.onclick=()=>{ cut.crop=null; setOpt(key,{crop:null}); render(); };  // 行サムネのクロップも解除
   r3.appendChild(fileL); r3.appendChild(cclr); r3.appendChild(fclr);
 
   const hint=document.createElement('div'); hint.className='hint'; hint.textContent='画像をドラッグ＝クロップ / 画像をドロップ＝差し替え';
@@ -1551,7 +1555,7 @@ function buildAdjust(ci,k){
       const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
       let [l,t]=nm(Math.min(drag.x0,x),Math.min(drag.y0,y)), [rr2,bb]=nm(Math.max(drag.x0,x),Math.max(drag.y0,y));
       const c={l:cl(l),t:cl(t),r:cl(rr2),b:cl(bb)}; drag=null;
-      if(c.r-c.l<0.02||c.b-c.t<0.02){ drawCrop(); return; } cut.crop=c; setOpt(key,{crop:c}); drawCrop(); };
+      if(c.r-c.l<0.02||c.b-c.t<0.02){ drawCrop(); return; } cut.crop=c; setOpt(key,{crop:c}); render(); };  // render()で行サムネにもクロップ反映
     crop.addEventListener('dragover',e=>{e.preventDefault(); crop.style.outline='2px dashed #ffd84d';});
     crop.addEventListener('dragleave',()=>crop.style.outline='');
     crop.addEventListener('drop',async(e)=>{ e.preventDefault(); crop.style.outline='';
@@ -1611,9 +1615,15 @@ function render(){
       cuts.forEach((cut,k)=>{
         const r=document.createElement('div'); r.className='imgrow';
         const u=imgUrl(ci,k);
-        r.innerHTML = u?`<img src="${u}">`:`<div class="ph2">#${k} 未取得</div>`;
+        // 調整（クロップ/補正）を反映したサムネにする＝render結果に近い見た目を確認できる（非破壊）。
+        const co=cutMap[ci+'_'+k]||{}; const cr=co.crop;
+        const flt=co.filter?(' style="filter:'+cssFilter(co.filter)+'"'):'';
+        if(u && cr){ const w=100/(cr.r-cr.l), h=100/(cr.b-cr.t);
+          r.innerHTML = '<div class="imgthumb"><img src="'+u+'" style="position:absolute;width:'+w+'%;height:'+h+'%;left:'+(-cr.l*w)+'%;top:'+(-cr.t*h)+'%;object-fit:fill;'+(co.filter?'filter:'+cssFilter(co.filter):'')+'"></div>';
+        } else if(u){ r.innerHTML = '<img src="'+u+'"'+flt+'>';
+        } else { r.innerHTML = '<div class="ph2">#'+k+' 未取得</div>'; }
         // サムネクリックで調整パネルを開閉。サムネに直接D&Dで差し替えも可（調整を開かなくてよい）。
-        const preview=r.querySelector('img')||r.querySelector('.ph2');
+        const preview=r.querySelector('.imgthumb')||r.querySelector('img')||r.querySelector('.ph2');
         if(preview){ preview.style.cursor='pointer'; preview.title='クリックで調整 / 画像をドロップで差し替え';
           preview.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); }; }
         preview.addEventListener('dragover', e=>{ e.preventDefault(); preview.style.outline='2px dashed #ffd84d'; });
