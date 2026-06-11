@@ -423,7 +423,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
     >
       <Audio src={staticFile("digest.mp3")} />
 
-      {/* BGM（全体ループ・薄く・冒頭/末尾フェード）。prep が未配置なら meta.audio.bgm=null で無音。 */}
+      {/* BGM（全体ループ・薄く）。フェードインは無し（冒頭から定常音量）・末尾のみフェードアウト。
+          prep が未配置なら meta.audio.bgm=null で無音。 */}
       {meta.audio?.bgm ? (
         <Audio
           src={staticFile(`bgm/${meta.audio.bgm.file}`)}
@@ -432,15 +433,11 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             const v = meta.audio?.bgm?.volume ?? 0.07;
             const fadeF = Math.round((meta.audio?.bgm?.fade ?? 0) * fps);
             if (fadeF <= 0) return v;
-            const inV = interpolate(f, [0, fadeF], [0, v], {
+            // フェードインはせず冒頭から v。末尾だけ fade 秒かけて 0 へ。
+            return interpolate(f, [durationInFrames - fadeF, durationInFrames], [v, 0], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             });
-            const outV = interpolate(f, [durationInFrames - fadeF, durationInFrames], [v, 0], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            });
-            return Math.min(inV, outV);
           }}
         />
       ) : null}
