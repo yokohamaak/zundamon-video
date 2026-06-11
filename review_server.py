@@ -1222,6 +1222,10 @@ STORY_PAGE = """<!doctype html>
   .theme { display:flex; gap:10px; align-items:center; margin-bottom:14px; }
   .theme input { flex:1; font-size:16px; font-weight:700; background:#0c0f15; color:var(--fg);
                  border:1px solid var(--line); border-radius:8px; padding:8px 12px; }
+  .estbar { background:#0c0f15; border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-bottom:14px; }
+  .estbar b { font-size:15px; } .estbar .es { color:var(--sub); font-size:12px; margin-left:8px; }
+  .estbar .es2 { margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; }
+  .estbar .es3 { font-size:11px; color:var(--sub); background:var(--line); padding:2px 9px; border-radius:999px; }
   .sec { background:var(--card); border:1px solid var(--line); border-radius:12px;
          margin-bottom:12px; overflow:hidden; }
   .sec.open { border-color:var(--accent); }
@@ -1629,6 +1633,29 @@ function sectionLabel(ch, ci){
   return 'trivia'+n;
 }
 
+// 喋り文字数→推定分。英字（かな）は読み仮名だけ喋る＝畳んで数える（実測較正305字/分）。
+const SPOKEN_CPM=305, TARGET_MIN=8;
+function spokenLen(text){
+  if(!text) return 0;
+  let s=String(text).replace(/[0-9A-Za-z][0-9A-Za-z._\\-]*（([^（）]+)）/g,'$1');
+  s=s.replace(/[\\s\\u3000（）「」『』、。！？・,.!?]/g,'');
+  return [...s].length;
+}
+function secLbl(ch,i,all){ if(ch.section==='intro')return '導入'; if(ch.section==='outro')return '締め';
+  let n=0; for(let j=0;j<=i;j++) if((all[j]||{}).section==='trivia')n++; return '実は'+n; }
+function buildEstimate(){
+  const sc=DATA.script||[], ch=DATA.chapters||[]; const per=ch.map(()=>0); let total=0;
+  sc.forEach(t=>{ const n=spokenLen(t.text); total+=n; if(typeof t.chapter==='number'&&per[t.chapter]!=null) per[t.chapter]+=n; });
+  const minE=total/SPOKEN_CPM, tgtChars=Math.round(TARGET_MIN*SPOKEN_CPM), diff=tgtChars-total;
+  const w=document.createElement('div'); w.className='estbar'; w.id='estbar';
+  const parts=ch.map((c,i)=>'<span class="es3">'+secLbl(c,i,ch)+' '+per[i]+'</span>').join('');
+  w.innerHTML='<b>喋り '+total+'字 ≈ 推定 '+minE.toFixed(1)+'分</b>'
+    +' <span class="es">目標'+TARGET_MIN+'分≈'+tgtChars+'字（'+(diff>=0?'あと'+diff+'字':(-diff)+'字オーバー')+'）</span>'
+    +'<div class="es2">'+parts+'</div>';
+  return w;
+}
+function refreshEst(){ const o=document.getElementById('estbar'); if(o) o.replaceWith(buildEstimate()); }
+
 function render(){
   const m=document.getElementById('main'); m.innerHTML='';
   // theme
@@ -1636,6 +1663,7 @@ function render(){
   const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
   ti.onchange=()=>DATA.theme=ti.value; th.innerHTML='<span class="badge">テーマ</span>'; th.appendChild(ti);
   m.appendChild(th);
+  m.appendChild(buildEstimate());  // 喋り字数・推定分のライブゲージ
 
   (DATA.chapters||[]).forEach((ch,ci)=>{
     const cuts=ch.image_cuts||(ch.image_cuts=[]);
@@ -1746,7 +1774,7 @@ function render(){
         const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
         const sp=document.createElement('div'); sp.className='sp'; sp.style.color=col;
         sp.innerHTML=`<span class="dot" style="background:${col}"></span>${tn.speaker}`;
-        const ta=document.createElement('textarea'); ta.value=tn.text; ta.oninput=()=>{tn.text=ta.value; autosize(ta);};
+        const ta=document.createElement('textarea'); ta.value=tn.text; ta.oninput=()=>{tn.text=ta.value; autosize(ta); refreshEst();};
         // cut選択＝サムネをクリックして選ぶ（どの画像が出るか一目で分かる）
         const pick=document.createElement('div'); pick.className='cutpick';
         const cur=(typeof tn.cut==='number'?tn.cut:0);
