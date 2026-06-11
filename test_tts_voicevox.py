@@ -174,6 +174,28 @@ def test_chorus_turn():
     print("  chorus: 全話者で重ねて混ぜる(ユニゾン) OK")
 
 
+def test_chorus_resync_chunks():
+    _install_fakes()
+    # 読点(、)で2チャンクに分け、各チャンクで二人の頭を揃え直す（ズレ蓄積防止）。
+    script = [{"speaker": "四国めたん", "text": "それじゃあ、またね。", "chorus": True}]
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2, "ずんだもん": 3}}}
+    _, turns, _ = tv.synthesize_dialogue(script, cfg)
+    assert len(_last_queries) == 4, f"2チャンク×2話者=4合成: {len(_last_queries)}"
+    assert len(turns) == 1, "字幕は文単位のまま"
+    # 単独(非chorus)は分割しない＝1チャンク×1話者
+    _install_fakes()
+    tv.synthesize_dialogue([{"speaker": "四国めたん", "text": "それじゃあ、またね。"}], cfg)
+    assert len(_last_queries) == 1, "非chorusはチャンク分割しない"
+    print("  chorus-resync: 読点でチャンク分割し各チャンクで同期 OK")
+
+
+def test_split_chorus_chunks():
+    assert tv._split_chorus_chunks("それじゃあ、また見てね") == ["それじゃあ、", "また見てね"]
+    assert tv._split_chorus_chunks("またね") == ["またね"], "区切り無し→1チャンク"
+    assert tv._split_chorus_chunks("a,b，c、d") == ["a,", "b，", "c、", "d"]
+    print("  _split_chorus_chunks: 読点後で分割 OK")
+
+
 def test_mix_pcm_clamp():
     import array
     # 大きい値同士はクランプ（オーバーフローしない）
@@ -328,6 +350,8 @@ if __name__ == "__main__":
     test_chapter_gap_pause()
     test_lead_in_silence()
     test_chorus_turn()
+    test_chorus_resync_chunks()
+    test_split_chorus_chunks()
     test_mix_pcm_clamp()
     test_unknown_speaker()
     test_per_turn_voice_override()

@@ -254,6 +254,16 @@ def _split_sentences(text):
     return [s.strip() for s in _SENTENCE_RE.findall(text) if s.strip()]
 
 
+def _split_chorus_chunks(text):
+    """ユニゾンの再同期点で分割（読点/カンマの直後で切る）。各チャンクで二人の頭を揃え直す。
+
+    区切り文字は前側のチャンクに残す（、の自然な間を保つ）。区切りが無ければ全体を1チャンク。
+    例「それじゃあ、また見てね」→ ["それじゃあ、", "また見てね"]（2チャンクで2回同期）。
+    """
+    parts = [p for p in (s.strip() for s in re.split(r"(?<=[、，,])", text)) if p]
+    return parts or [text]
+
+
 def _split_caption_units(sentence, max_chars):
     """
     1文を字幕表示単位に分割。max_chars以下ならそのまま。
@@ -356,28 +366,36 @@ def synthesize_dialogue(script, config):
         captions = []
 
         for sentence in _split_sentences(turn["text"]):
-            # 音声に渡すのは読み仮名を畳んだテキスト（字幕＝sentenceは原文のまま）。
-            spoken = _spoken_text(sentence)
-            outs = []
-            for sid, vparams in voices:
-                query = audio_query(base_url, spoken, sid)
-                query["speedScale"] = vparams["speed"]
-                query["pitchScale"] = vparams["pitch"]
-                query["intonationScale"] = vparams["intonation"]
-                query["volumeScale"] = vparams["volume"]
-                query["prePhonemeLength"] = pre_phoneme    # 文先頭の無音（境目のカクつき低減）
-                query["postPhonemeLength"] = post_phoneme   # 文末の余韻（文間の自然な間）
-                wav_bytes = synthesis(base_url, query, sid)
-                outs.append(_wav_params_and_frames(wav_bytes))
+            # ユニゾンは読点(、)でさらに細かく分け、チャンクごとに二人の頭を揃え直す
+            # （1フレーズ丸ごと混ぜると途中でズレが蓄積するため・字幕は文単位のまま）。
+            chunks = (_split_chorus_chunks(sentence)
+                      if turn.get("chorus") and len(voices) > 1 else [sentence])
+            sent_frames = []
+            duration = 0.0
+            for chunk in chunks:
+                # 音声に渡すのは読み仮名を畳んだテキスト（字幕＝sentenceは原文のまま）。
+                spoken = _spoken_text(chunk)
+                outs = []
+                for sid, vparams in voices:
+                    query = audio_query(base_url, spoken, sid)
+                    query["speedScale"] = vparams["speed"]
+                    query["pitchScale"] = vparams["pitch"]
+                    query["intonationScale"] = vparams["intonation"]
+                    query["volumeScale"] = vparams["volume"]
+                    query["prePhonemeLength"] = pre_phoneme    # 文先頭の無音（境目のカクつき低減）
+                    query["postPhonemeLength"] = post_phoneme   # 文末の余韻（文間の自然な間）
+                    wav_bytes = synthesis(base_url, query, sid)
+                    outs.append(_wav_params_and_frames(wav_bytes))
 
-            params = outs[0][0]
-            if ref_params is None:
-                ref_params = params
-            elif params != ref_params:
-                raise ValueError(f"WAV形式が不一致: {params} != {ref_params}（話者で出力形式が違う？）")
-            # 単独はそのまま、chorusは重ねて混ぜる（尺は最長に合わせる）。
-            frames = _mix_pcm([o[1] for o in outs], params[1])
-            duration = max(o[2] for o in outs)
+                params = outs[0][0]
+                if ref_params is None:
+                    ref_params = params
+                elif params != ref_params:
+                    raise ValueError(f"WAV形式が不一致: {params} != {ref_params}（話者で出力形式が違う？）")
+                # 単独はそのまま、chorusは重ねて混ぜる（チャンクごとに最長へ合わせ＝頭を揃える）。
+                sent_frames.append(_mix_pcm([o[1] for o in outs], params[1]))
+                duration += max(o[2] for o in outs)
+            frames = b"".join(sent_frames)
             pcm_chunks.append(frames)
 
             # この文の実尺を字幕単位へ文字数比で配分（端数は最後で吸収）。
