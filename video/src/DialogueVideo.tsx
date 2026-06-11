@@ -309,6 +309,9 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   const activeDir = activeIsLeft ? leftDir : activeIsRight ? rightDir : null;
   const activeGender = activeIsLeft ? leftGender : rightGender;
   const nameColor = speakerColor(activeDir, activeGender);
+  // ユニゾン(二人同時)字幕用：両話者の色（枠を二色グラデにして「二人」を示す）。
+  const leftColor = speakerColor(leftDir, leftGender);
+  const rightColor = speakerColor(rightDir, rightGender);
 
   // 現在のトピック（中央ビジュアル）。切替時にフェードイン。
   const topics = meta.topics ?? [];
@@ -786,7 +789,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         />
       </div>
 
-      {/* 字幕（最前面）：ほぼ白の角丸ボックス＋話者色の枠（誰が話しているか）＋濃色太字。キーワードは黄色強調。 */}
+      {/* 字幕（最前面）：ほぼ白の角丸ボックス＋枠＋濃色太字。キーワードは黄色強調。
+          枠の色は通常＝話者色（誰が話しているか）。ユニゾン時＝両話者色のグラデ（二人を示す・別色）。 */}
       {caption ? (
         <div
           style={{
@@ -794,13 +798,21 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             left: 320,
             right: 320,
             bottom: 40,
-            background: speakerCaptionBg(activeDir, activeGender),
             backdropFilter: "blur(10px)",
             borderRadius: 24,
-            border: `5px solid ${nameColor}`,
             padding: "22px 44px",
             boxSizing: "border-box",
             boxShadow: "0 6px 22px rgba(0,0,0,0.4)",
+            // ユニゾン：角丸を保ったまま二色グラデ枠（padding-box/border-box の二重背景）。
+            ...(isChorus
+              ? {
+                  border: "5px solid transparent",
+                  background: `linear-gradient(rgba(250,248,252,0.96), rgba(250,248,252,0.96)) padding-box, linear-gradient(90deg, ${leftColor}, ${rightColor}) border-box`,
+                }
+              : {
+                  border: `5px solid ${nameColor}`,
+                  background: speakerCaptionBg(activeDir, activeGender),
+                }),
           }}
         >
           <div
