@@ -80,7 +80,7 @@ audio:
   se_min_gap: 0.8          # 直前SEからこの秒数以内のSEは抑制（連発防止・先勝ち）
   se_lead: 0.15            # ネタ切替/締めSEを章境界の無音内(直前発話の終わり+この秒数)に鳴らす＝めくり開始と同期
   se:                      # トリガー → ファイル名（video/assets/se/ に置く）
-    intro: intro.mp3       # 動画冒頭のチャイム
+    intro: flash.mp3       # 動画冒頭のSE＝章切替と同じ音に揃える
     outro: outro.mp3       # outro章の頭
     flash: flash.mp3       # ネタ切替（各ネタ最初の発言）
     surprise: surprise.mp3 # ずんだもん(聞き手)の驚き「ええー！？」の頭だけ
