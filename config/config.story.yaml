@@ -4,7 +4,7 @@
 # 番組（実は〇〇雑学・掛け合い）の設定
 story:
   genre: tech                          # ジャンルID。重複回避の履歴ファイルをジャンル別に分ける（topic_history/<genre>.json）
-  theme: ""                            # 固定したい時はここに小テーマを書く。空なら theme_pool→Gemini自動 の順で決定
+  theme: "実は知らないデジタルの名前の謎"   # 当面はこれで固定（微調整中）。空にすると theme_pool→Gemini自動 で巡回
   theme_pool:                          # theme が空のとき、ここから使用済み(topic_history)を避けて1つ巡回（techの軸は固定）
     - "実は知らないデジタルの名前の謎"
     - "キーボードと入力の意外な歴史"

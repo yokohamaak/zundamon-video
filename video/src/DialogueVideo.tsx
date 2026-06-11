@@ -74,12 +74,21 @@ function speakerCaptionBg(dir: string | null, gender: Gender): string {
   return isMetan ? "rgba(252,247,250,0.96)" : "rgba(247,251,248,0.96)";
 }
 
-// 字幕テキスト：『』「」で囲まれた語を強調色で。それ以外は地の文色（呼び出し側で指定）。
-function renderCaption(text: string, highlight: string): React.ReactNode {
+// キーワード強調色＝黄色。話者色（ピンク/緑）より視認性が高い。
+// ※字幕箱はほぼ白地なので、黄色のみだと埋もれる→濃い縁取り(影)で白地でも読めるようにする。
+const KEYWORD_HIGHLIGHT = "#ffd000";
+const KEYWORD_OUTLINE =
+  "0 0 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.75), 0 0 1px rgba(0,0,0,0.9)";
+
+// 字幕テキスト：『』「」で囲まれた語を黄色＋縁取りで強調。それ以外は地の文色。
+function renderCaption(text: string): React.ReactNode {
   const parts = text.split(/(『[^』]*』|「[^」]*」)/g);
   return parts.map((p, i) =>
     /^[『「]/.test(p) ? (
-      <span key={i} style={{ color: highlight, fontWeight: 900 }}>
+      <span
+        key={i}
+        style={{ color: KEYWORD_HIGHLIGHT, fontWeight: 900, textShadow: KEYWORD_OUTLINE }}
+      >
         {p}
       </span>
     ) : (
@@ -684,7 +693,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         />
       </div>
 
-      {/* 字幕（最前面）：ほぼ白の角丸ボックス＋話者色の枠＋濃色太字。キーワードは話者色。 */}
+      {/* 字幕（最前面）：ほぼ白の角丸ボックス＋話者色の枠（誰が話しているか）＋濃色太字。キーワードは黄色強調。 */}
       {caption ? (
         <div
           style={{
@@ -710,7 +719,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
               color: "#1b2330",
             }}
           >
-            {renderCaption(caption, nameColor)}
+            {renderCaption(caption)}
           </div>
         </div>
       ) : null}
