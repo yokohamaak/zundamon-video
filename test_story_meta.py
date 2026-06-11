@@ -237,7 +237,15 @@ def test_append_closing_chorus():
     assert sr4["script"][0]["text"] == "本編", "本編は残す"
     assert sum(1 for t in sr4["script"] if t.get("chorus")) == 1, "ユニゾンは1つだけ(旧締め除去)"
     assert sr4["script"][-1].get("chorus") and sr4["script"][-1]["text"] == "それじゃあまた見てね〜"
-    print("  append_closing_chorus: CTA＋ユニゾン締め/順序/重複防止/空無効 OK")
+    # Geminiがoutroに書いた定型CTA(チャンネル登録/高評価)は除去し、固定CTAだけにする
+    sr5 = {"script": [{"speaker": "x", "text": "まとめ", "chapter": 0, "section": "outro", "cut": 0},
+                      {"speaker": "x", "text": "チャンネル登録と高評価よろしく！", "chapter": 0, "section": "outro", "cut": 0}]}
+    m.append_closing_chorus(sr5, cfg)
+    texts = [t["text"] for t in sr5["script"]]
+    assert "チャンネル登録と高評価よろしく！" not in texts, "Gemini生成CTAは除去"
+    assert sum(1 for t in sr5["script"] if "登録" in t["text"]) == 1, "登録セリフは固定の1つだけ"
+    assert texts[0] == "まとめ", "まとめ(非CTA)は残す"
+    print("  append_closing_chorus: CTA＋ユニゾン/重複防止/Gemini-CTA除去/空無効 OK")
 
 
 if __name__ == "__main__":

@@ -367,8 +367,14 @@ def append_closing_chorus(script_result, config):
     このappendでしか付かないので除去して安全。chorus=True は tts が全話者で重ねて合成する。
     """
     s = config.get("story", {})
+
+    def _is_cta(t):
+        # Geminiがoutroに書いてしまった定型CTA（高評価/チャンネル登録）も除去＝固定CTAと重複させない。
+        txt = t.get("text") or ""
+        return t.get("section") == "outro" and ("チャンネル登録" in txt or "高評価" in txt)
+
     script = [t for t in (script_result.get("script") or [])
-              if not (t.get("closing") or t.get("chorus"))]
+              if not (t.get("closing") or t.get("chorus") or _is_cta(t))]
     last = script[-1] if script else {}
     ch, cut = last.get("chapter", 0), last.get("cut", 0)
     explainer = s.get("explainer", story_script.DEFAULT_EXPLAINER)
