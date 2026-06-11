@@ -45,8 +45,12 @@ export const RemotionRoot: React.FC = () => {
           // 取得失敗時はアライメント末尾にフォールバック
         }
         const end = Math.max(scriptEnd, audioDur);
+        // 末尾の余白：最後のセリフが終わってからBGMをフェードアウトしきる時間を確保する
+        // （BGMフェードは末尾 fade 秒に当たるので、声の後に fade ぶん残す）。
+        const bgmFade = meta.audio?.bgm?.fade ?? 0;
+        const tail = Math.max(TAIL_SEC, bgmFade + 0.4);
         return {
-          durationInFrames: Math.max(1, Math.ceil((end + TAIL_SEC) * FPS)),
+          durationInFrames: Math.max(1, Math.ceil((end + tail) * FPS)),
           props: { meta },
         };
       }}

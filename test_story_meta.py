@@ -206,20 +206,31 @@ def test_build_audio():
 
 
 def test_append_closing_chorus():
-    sr = {"script": [{"speaker": "四国めたん", "text": "またね", "chapter": 2, "section": "outro", "cut": 0}]}
-    cfg = {"story": {"explainer": "四国めたん", "closing_chorus": "それじゃあまた見てね〜"}}
+    sr = {"script": [{"speaker": "四国めたん", "text": "まとめ", "chapter": 2, "section": "outro", "cut": 1}]}
+    cfg = {"story": {"explainer": "四国めたん",
+                     "closing_lines": [{"speaker": "四国めたん", "text": "高評価お願い", "emotion": "happy"},
+                                       {"speaker": "ずんだもん", "text": "登録するのだ"}],
+                     "closing_chorus": "それじゃあまた見てね〜"}}
     m.append_closing_chorus(sr, cfg)
-    last = sr["script"][-1]
-    assert last["chorus"] is True and last["text"] == "それじゃあまた見てね〜"
-    assert last["section"] == "outro" and last["chapter"] == 2, last
-    # 冪等: 再実行で二重に足さない
+    s = sr["script"]
+    # 元1 + CTA2 + ユニゾン1 = 4。順序: まとめ→CTA→ユニゾン
+    assert [t["text"] for t in s[1:]] == ["高評価お願い", "登録するのだ", "それじゃあまた見てね〜"], s
+    assert s[-1].get("chorus") is True, "末尾は二人同時"
+    assert all(t.get("closing") for t in s[1:]), "追加分にclosingマーカー"
+    assert s[1]["chapter"] == 2 and s[1]["cut"] == 1 and s[1]["section"] == "outro"
+    # 冪等: 再実行で二重に足さない（closingマーカーで判定）
     m.append_closing_chorus(sr, cfg)
-    assert sum(1 for t in sr["script"] if t.get("chorus")) == 1, "重複追加しない"
-    # 空設定なら何もしない
-    sr2 = {"script": [{"speaker": "x", "text": "y", "chapter": 0}]}
-    m.append_closing_chorus(sr2, {"story": {}})
-    assert len(sr2["script"]) == 1
-    print("  append_closing_chorus: ユニゾン締め追加/冪等/空無効 OK")
+    assert len(sr["script"]) == 4, "重複追加しない"
+    # chorus空・CTAのみでも閊えず、冪等
+    sr2 = {"script": [{"speaker": "x", "text": "y", "chapter": 0, "cut": 0}]}
+    cfg2 = {"story": {"closing_lines": [{"speaker": "x", "text": "z"}]}}
+    m.append_closing_chorus(sr2, cfg2); m.append_closing_chorus(sr2, cfg2)
+    assert len(sr2["script"]) == 2 and sr2["script"][-1].get("closing"), "CTAのみでもclosingで冪等"
+    # 全部空なら何もしない
+    sr3 = {"script": [{"speaker": "x", "text": "y", "chapter": 0}]}
+    m.append_closing_chorus(sr3, {"story": {}})
+    assert len(sr3["script"]) == 1
+    print("  append_closing_chorus: CTA＋ユニゾン締め/順序/冪等/空無効 OK")
 
 
 if __name__ == "__main__":

@@ -359,22 +359,37 @@ def build_audio(config, script):
 
 
 def append_closing_chorus(script_result, config):
-    """締めに「二人同時(ユニゾン)」の固定挨拶ターンを足す（config.story.closing_chorus）。
+    """締めに固定エンディングを足す：固定CTA(closing_lines・高評価/登録) → 二人同時(closing_chorus)。
 
-    空なら何もしない。既に末尾が chorus なら二重に足さない（--from-script の再実行に安全）。
+    定型の挨拶/CTAはGeminiに生成させず固定にする＝入れ忘れ防止・毎回一貫。
+    既に末尾が closing 済みなら二重に足さない（--from-script の再実行に安全）。
     chorus=True のターンは tts が全話者で重ねて合成し、描画は両方の立ち絵の口を動かす。
     """
-    text = (config.get("story", {}).get("closing_chorus") or "").strip()
+    s = config.get("story", {})
     script = script_result.get("script") or []
-    if not text or (script and script[-1].get("chorus")):
-        return
+    if script and script[-1].get("closing"):
+        return  # 既に追加済み
     last = script[-1] if script else {}
-    explainer = config.get("story", {}).get("explainer", story_script.DEFAULT_EXPLAINER)
-    script.append({
-        "speaker": explainer, "text": text, "emotion": "happy",
-        "section": "outro", "chapter": last.get("chapter", 0),
-        "effect": "kenburns", "cut": last.get("cut", 0), "chorus": True,
-    })
+    ch, cut = last.get("chapter", 0), last.get("cut", 0)
+    explainer = s.get("explainer", story_script.DEFAULT_EXPLAINER)
+
+    def _line(speaker, text, emotion="happy", chorus=False):
+        t = {"speaker": speaker, "text": text, "emotion": emotion, "section": "outro",
+             "chapter": ch, "effect": "kenburns", "cut": cut, "closing": True}
+        if chorus:
+            t["chorus"] = True
+        return t
+
+    # ① 固定CTA（高評価・チャンネル登録など）
+    for line in (s.get("closing_lines") or []):
+        text = (line.get("text") or "").strip()
+        if text:
+            script.append(_line(line.get("speaker") or explainer, text, line.get("emotion") or "happy"))
+    # ② 二人同時の締め
+    chorus_text = (s.get("closing_chorus") or "").strip()
+    if chorus_text:
+        script.append(_line(explainer, chorus_text, chorus=True))
+
     script_result["script"] = script
 
 
