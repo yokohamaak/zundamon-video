@@ -157,8 +157,8 @@ def test_pexels_url_and_pick():
     assert "query=server+room" in u and "per_page=8" in u and "orientation=landscape" in u
     assert "locale" not in u, "locale未指定なら付けない"
     assert "locale=ja-JP" in px.build_search_url("server", 8, "ja-JP"), "locale指定で日本語検索"
-    assert "page" not in px.build_search_url("server", 8), "page=1は付けない"
-    assert "page=2" in px.build_search_url("server", 8, None, 2), "page指定でページング"
+    assert "&page=" not in px.build_search_url("server", 8), "page=1は付けない（per_pageと混同しない）"
+    assert "&page=2" in px.build_search_url("server", 8, None, 2), "page指定でページング"
     assert px.pick_photo([]) is None
     assert px.pick_photo([{"id": 1}, {"id": 2}])["id"] == 1, "先頭を選ぶ"
     assert px._image_url({"src": {"large2x": "a", "large": "b"}}) == "a", "large2x優先"
@@ -187,7 +187,7 @@ def test_pixabay_url_and_pick():
     assert "q=network" in u and "key=KEY" in u and "per_page=5" in u and "orientation=horizontal" in u
     assert "lang" not in u, "lang未指定なら付けない（既定en）"
     assert "lang=ja" in pb.build_search_url("network", "KEY", 5, "ja"), "lang指定で日本語検索"
-    assert "page=3" in pb.build_search_url("network", "KEY", 5, None, 3), "page指定でページング"
+    assert "&page=3" in pb.build_search_url("network", "KEY", 5, None, 3), "page指定でページング"
     assert pb.pick_hit([]) is None
     assert pb.pick_hit([{"id": 1}])["id"] == 1
     assert pb._image_url({"largeImageURL": "L", "webformatURL": "W"}) == "L", "large優先"
