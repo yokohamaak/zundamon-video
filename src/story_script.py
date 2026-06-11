@@ -110,7 +110,9 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
 
 ## 読み上げ（VOICEVOX）の注意
 - **セリフ(text)中の英字を含む語には必ず直後に（カタカナ読み）を付ける**（例「Hi-Fi（ハイファイ）」「API（エーピーアイ）」）。
-  付けないとVOICEVOXが英字を1文字ずつ不自然に読む。読みはカタカナで（漢字の訳語ではなく音の読み）。"""
+  付けないとVOICEVOXが英字を1文字ずつ不自然に読む。読みはカタカナで（漢字の訳語ではなく音の読み）。
+- **既にカタカナ・ひらがなで書かれた語には読みを付けない**（カタカナはそのまま正しく読まれる）。
+  特に**カタカナの固有名詞に同じカタカナの読みを重ねない**（×「ロバート・メトカーフ（ロバート・メトカーフ）」→○「ロバート・メトカーフ」）。冗長で字幕も音声も二重になる。"""
 
 
 def _output_block(explainer: str, questioner: str) -> str:
@@ -155,6 +157,31 @@ def _avoid_block(also_avoid) -> str:
     return ("\n## 既出ネタ（重複禁止・過去動画分も含む）\n"
             "過去にこのジャンルで既に扱った/却下したネタは次の通り。**これらと題材もオチも重複しない**ネタにすること。\n"
             f"{lines}\n")
+
+
+def select_theme(config: dict, used_themes=None) -> str:
+    """この動画で使う小テーマ文字列を決める（純関数）。
+
+    優先順位:
+      1. story.theme が非空 → それを固定で使う（従来動作）。
+      2. story.theme_pool があれば、used_themes に無いものを先頭から1つ選ぶ
+         （全て使用済みなら、最後に使った時期が最も古いものを選んで巡回）。
+      3. どちらも無ければ "" を返す（呼び出し側でGeminiにテーマ自動選定させる）。
+    used_themes=過去に使ったテーマ文字列の時系列リスト（古い→新しい）。
+    """
+    s = config.get("story", {})
+    fixed = (s.get("theme") or "").strip()
+    if fixed:
+        return fixed
+    pool = [str(t).strip() for t in (s.get("theme_pool") or []) if str(t).strip()]
+    if not pool:
+        return ""
+    used = [u for u in (used_themes or []) if u]
+    unused = [t for t in pool if t not in used]
+    if unused:
+        return unused[0]
+    # 全て使用済み → プール各要素の「最後に使われた位置」が最も小さい＝最も昔のものを選ぶ。
+    return min(pool, key=lambda t: max((i for i, u in enumerate(used) if u == t), default=-1))
 
 
 def build_prompt(config: dict, also_avoid=None) -> str:
@@ -356,6 +383,30 @@ def strip_markdown(text: str) -> str:
     return t.strip()
 
 
+# カタカナ語（中黒・長音含む）の直後に続く（カタカナ読み）。読み仮名グロスは英字/漢字向けで、
+# 既にカタカナの語に付くと冗長＝字幕も音声も二重になる（例「ロバート・メトカーフ（ロバート・メトカーフ）」）。
+_REDUNDANT_KANA_GLOSS_RE = re.compile(r"([ァ-ヶー・]{2,})（([ァ-ヶー・]{2,})）")
+
+
+def strip_redundant_kana_gloss(text: str) -> str:
+    """カタカナ語の直後の冗長な（同じカタカナ読み）を除去（純関数）。
+
+    前のカタカナ列と括弧内が一致／一方が他方を含むときだけ落とす（別語の補足説明は残す）。
+    例「ロバート・メトカーフ（ロバート・メトカーフ）博士」→「ロバート・メトカーフ博士」。
+    英字（かな）グロス（USB（ユーエスビー）等）や、ひらがな読み（ハーラル1世（いちせい））には作用しない。
+    """
+    if not text:
+        return text
+
+    def _repl(m):
+        head, inner = m.group(1), m.group(2)
+        if inner == head or inner in head or head in inner:
+            return head
+        return m.group(0)
+
+    return _REDUNDANT_KANA_GLOSS_RE.sub(_repl, text)
+
+
 # 台詞ごとの声上書きの安全範囲（VOICEVOXのscale値）。範囲外はクランプ。
 _VOICE_RANGE = {"speed": (0.5, 2.0), "pitch": (-0.15, 0.15),
                 "intonation": (0.0, 2.0), "volume": (0.0, 2.0)}
@@ -430,7 +481,8 @@ def normalize_turns(script: list, chapters: list = None) -> list:
     """
     n = len(chapters) if chapters else 0
     for turn in script:
-        turn["text"] = strip_markdown(turn.get("text", ""))  # 字幕/音声からMarkdown崩れを除去
+        # 字幕/音声からMarkdown崩れを除去＋カタカナ語への冗長な同一カタカナ読みを除去。
+        turn["text"] = strip_redundant_kana_gloss(strip_markdown(turn.get("text", "")))
         if turn.get("emotion") not in VALID_EMOTIONS:
             turn["emotion"] = DEFAULT_EMOTION
         if turn.get("effect") not in VALID_EFFECTS:

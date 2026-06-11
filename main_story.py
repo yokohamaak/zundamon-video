@@ -377,6 +377,10 @@ def main():
     else:
         from src import topic_history
         genre = topic_history.genre_of(config)
+        # テーマ選定: story.theme(固定) > theme_pool(使用済みを避けて巡回) > Gemini自動選定。
+        chosen_theme = story_script.select_theme(config, topic_history.used_themes(genre))
+        config.setdefault("story", {})["theme"] = chosen_theme  # build_prompt がこの値を使う
+        logger.info(f"テーマ: 「{chosen_theme}」" if chosen_theme else "テーマ: Gemini自動選定")
         avoid = topic_history.facts(genre)  # 過去動画の採用済み＋却下を避ける
         if avoid:
             logger.info(f"既出ネタ {len(avoid)}件を避けて生成（ジャンル: {genre}）")
@@ -441,6 +445,9 @@ def main():
     used = topic_history.trivia_facts(script_result.get("chapters", []))
     n_added = topic_history.add(genre, used, "used")
     logger.info(f"採用ネタ {n_added}件を履歴に記録（ジャンル: {genre}・累計回避対象に追加）")
+    # 採用テーマも記録（theme_pool 巡回用。Geminiが選んだ場合も実テーマを残す）。
+    if topic_history.add_theme(genre, script_result.get("theme")):
+        logger.info(f"採用テーマを履歴に記録: 「{script_result.get('theme')}」")
 
     # 概要欄用クレジット（動画内には出さない。CC-BY帰属はここで要件を満たす）。
     write_credits_txt(out_dir, config, attributions)

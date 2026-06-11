@@ -70,6 +70,24 @@ def add(genre: str, items: list, status: str) -> int:
     return added
 
 
+def used_themes(genre: str) -> list:
+    """過去に採用した小テーマ文字列の時系列リスト（古い→新しい）。theme_pool の巡回に使う。"""
+    return [t for t in load(genre).get("themes", []) if isinstance(t, str) and t.strip()]
+
+
+def add_theme(genre: str, theme: str) -> bool:
+    """採用した小テーマを時系列で追記する（プール巡回用）。空は無視。Returns: 追記したか。"""
+    theme = (theme or "").strip()
+    if not theme:
+        return False
+    data = load(genre)
+    data.setdefault("themes", []).append(theme)
+    os.makedirs(os.path.dirname(_path(genre)) or ".", exist_ok=True)
+    with open(_path(genre), "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return True
+
+
 def trivia_facts(chapters: list) -> list:
     """章リストから trivia 章の {title, summary} を取り出す（記録用ヘルパー）。"""
     return [{"title": c.get("title", ""), "summary": c.get("summary", "")}

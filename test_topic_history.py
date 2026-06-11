@@ -51,6 +51,23 @@ def test_trivia_facts():
     print("  trivia_facts: trivia章のみ抽出 OK")
 
 
+def test_used_themes_and_add_theme():
+    g = "themes1"
+    assert th.used_themes(g) == []
+    assert th.add_theme(g, "テーマA") is True
+    assert th.add_theme(g, "  ") is False, "空は無視"
+    assert th.add_theme(g, "テーマB") is True
+    assert th.used_themes(g) == ["テーマA", "テーマB"], "時系列で蓄積"
+    # 同テーマの再採用も時系列に追記（巡回の鮮度判定用）
+    th.add_theme(g, "テーマA")
+    assert th.used_themes(g) == ["テーマA", "テーマB", "テーマA"]
+    # ネタ履歴(topics)とテーマ履歴(themes)は同一ファイルで共存
+    th.add(g, [{"title": "ネタX", "summary": "x"}], "used")
+    assert [f["title"] for f in th.facts(g)] == ["ネタX"]
+    assert th.used_themes(g) == ["テーマA", "テーマB", "テーマA"], "ネタ追記でテーマは不変"
+    print("  used_themes/add_theme: テーマ時系列蓄積・ネタと共存 OK")
+
+
 if __name__ == "__main__":
     print("test_topic_history:")
     test_genre_of()
@@ -58,4 +75,5 @@ if __name__ == "__main__":
     test_genre_separation()
     test_persist_across_load()
     test_trivia_facts()
+    test_used_themes_and_add_theme()
     print("ALL PASS")

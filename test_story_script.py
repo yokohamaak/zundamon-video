@@ -434,8 +434,40 @@ def test_splice_regenerated():
     print("  splice_regenerated: 指定章のみ置換・順序/章番号維持 OK")
 
 
+def test_select_theme():
+    # 固定theme優先
+    assert s.select_theme({"story": {"theme": "固定", "theme_pool": ["a", "b"]}}, ["a"]) == "固定"
+    # poolから未使用を先頭順に
+    cfg = {"story": {"theme": "", "theme_pool": ["a", "b", "c"]}}
+    assert s.select_theme(cfg, ["a"]) == "b", "使用済みaを飛ばしb"
+    assert s.select_theme(cfg, []) == "a", "未使用は先頭"
+    # 全部使用済み→最後に使われた位置が最も古いもの（巡回）
+    assert s.select_theme(cfg, ["b", "c", "a"]) == "b", "最も昔に使ったbへ巡回"
+    # poolもthemeも無ければ空（Gemini自動）
+    assert s.select_theme({"story": {"theme": ""}}, []) == ""
+    print("  select_theme: 固定>プール巡回>自動 OK")
+
+
+def test_strip_redundant_kana_gloss():
+    assert s.strip_redundant_kana_gloss("ロバート・メトカーフ（ロバート・メトカーフ）博士") == "ロバート・メトカーフ博士"
+    assert s.strip_redundant_kana_gloss("イーサネット（イーサネット）") == "イーサネット"
+    # 英字（かな）グロスは残す
+    assert s.strip_redundant_kana_gloss("USB（ユーエスビー）") == "USB（ユーエスビー）"
+    # ひらがな読みは残す
+    assert s.strip_redundant_kana_gloss("ハーラル1世（いちせい）") == "ハーラル1世（いちせい）"
+    # 別語の補足カタカナは残す
+    assert s.strip_redundant_kana_gloss("ブルー（レッド）") == "ブルー（レッド）"
+    # normalize_turns 経由でも効く
+    sc = [{"text": "ロバート・メトカーフ（ロバート・メトカーフ）博士", "chapter": 0}]
+    s.normalize_turns(sc)
+    assert sc[0]["text"] == "ロバート・メトカーフ博士", "normalize_turnsで除去"
+    print("  strip_redundant_kana_gloss: 冗長カナ読み除去/グロス温存 OK")
+
+
 if __name__ == "__main__":
     print("test_story_script:")
+    test_select_theme()
+    test_strip_redundant_kana_gloss()
     test_build_prompt_contains_essentials()
     test_build_prompt_theme_auto()
     test_build_prompt_emotion_effect_instruction()
