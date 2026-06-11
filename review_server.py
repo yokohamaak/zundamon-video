@@ -191,9 +191,10 @@ def _load_image_config():
         return {}
 
 
-def do_fetch_cut(ch, ci, query, kind):
+def do_fetch_cut(ch, ci, query, kind, lang=None):
     """1カットを取得して review.json を更新（upsert）。検索のみ・Geminiは使わない。
 
+    lang='ja' で日本語クエリ解釈（手動の日本語取得ボタン用）。
     Returns: {ok, image?, attribution?, message?}
     """
     try:
@@ -207,7 +208,7 @@ def do_fetch_cut(ch, ci, query, kind):
     config = _load_image_config()
     base = f"ch_{ch:02d}_{ci:02d}"
     try:
-        fn, attr = image_fetch.fetch_one_cut(query, kind or "ambient", DIR, base, config)
+        fn, attr = image_fetch.fetch_one_cut(query, kind or "ambient", DIR, base, config, lang=lang)
     except Exception as e:  # noqa: BLE001 - 取得失敗はメッセージで返す
         return {"ok": False, "message": f"取得エラー: {e}"}
     if not fn:
@@ -225,10 +226,10 @@ def do_fetch_cut(ch, ci, query, kind):
     return {"ok": True, "image": fn, "attribution": attr}
 
 
-def do_candidates(query, kind, source):
+def do_candidates(query, kind, source, lang=None):
     """検索語の候補画像を取得先別に返す（DLしない・サムネ表示用）。追加課金なし。
 
-    source 未指定/不適合なら kind に許される先頭の取得先を使う。
+    source 未指定/不適合なら kind に許される先頭の取得先を使う。lang='ja' で日本語クエリ解釈。
     Returns: {ok, sources:[{id,label}], source, candidates:[{source,thumb,url,attribution}], message?}
     """
     query = (query or "").strip()
@@ -244,7 +245,7 @@ def do_candidates(query, kind, source):
     ids = [s["id"] for s in sources]
     src = source if source in ids else ids[0]
     try:
-        cands = image_fetch.fetch_candidates(query, kind, src, config)
+        cands = image_fetch.fetch_candidates(query, kind, src, config, lang=lang)
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "message": f"候補取得エラー: {e}",
                 "sources": sources, "source": src, "candidates": []}
@@ -1283,20 +1284,32 @@ async function dropImport(ky, dt, attribution){
   return api('/api/import-url', {key:ky, url, attribution});
 }
 // 候補画像の取得（取得先別・DLせずサムネ表示）。1検索=複数件で追加課金なし。
-async function loadCand(ci,k,cut,source){ const ky=ci+'_'+k;
-  candState[ky]=Object.assign({},candState[ky],{loading:true,error:null}); render();
-  const r=await api('/api/candidates',{query:cut.image_query,kind:cut.image_kind,source:source});
-  candState[ky]=r.ok ? {loading:false,sources:r.sources,source:r.source,candidates:r.candidates,error:null}
-                     : {loading:false,sources:r.sources||[],candidates:[],error:r.message||'取得失敗'};
+// lang/query は前回値を引き継ぐ（取得先タブ切替で言語が変わらないように）。
+async function loadCand(ci,k,cut,source,lang,query){ const ky=ci+'_'+k; const prev=candState[ky]||{};
+  lang = lang || prev.lang || 'en';
+  query = (query!=null) ? query : (prev.query!=null ? prev.query : cut.image_query);
+  candState[ky]=Object.assign({},prev,{loading:true,error:null,lang,query}); render();
+  const r=await api('/api/candidates',{query:query,kind:cut.image_kind,source:source,lang:lang});
+  candState[ky]=r.ok ? {loading:false,sources:r.sources,source:r.source,candidates:r.candidates,error:null,lang,query}
+                     : {loading:false,sources:r.sources||[],candidates:[],error:r.message||'取得失敗',lang,query};
   render();
+}
+// 取得ボタン（言語別）：パネルを開いてその言語で候補ロード。同言語で開いてたら閉じる。
+function openCand(ci,k,cut,lang){ const ky=ci+'_'+k; const st=candState[ky]||{};
+  const query = lang==='ja' ? (cut.image_query_ja||'') : (cut.image_query||'');
+  if(!query){ alert(lang==='ja'?'日本語の検索語を入れてください':'英語の検索語を入れてください'); return; }
+  if(candOpen.has(ky) && st.lang===lang){ candOpen.delete(ky); render(); return; }
+  candOpen.add(ky); loadCand(ci,k,cut,null,lang,query);
 }
 function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
   const wrap=document.createElement('div'); wrap.className='candpanel';
   const tabs=document.createElement('div'); tabs.className='ctabs';
-  const tl=document.createElement('span'); tl.className='fll'; tl.textContent='取得先：'; tabs.appendChild(tl);
+  const ll=document.createElement('span'); ll.className='fll';
+  ll.textContent='検索: '+(st.lang==='ja'?'日本語「'+(st.query||'')+'」':'英語')+' ／ 取得先：';
+  tabs.appendChild(ll);
   (st.sources||[]).forEach(s=>{ const b=document.createElement('button');
     b.className='ctab'+(s.id===st.source?' on':''); b.textContent=s.label;
-    b.onclick=()=>loadCand(ci,k,cut,s.id); tabs.appendChild(b); });
+    b.onclick=()=>loadCand(ci,k,cut,s.id,st.lang,st.query); tabs.appendChild(b); });
   wrap.appendChild(tabs);
   if(st.loading){ wrap.insertAdjacentHTML('beforeend','<div class="chint">検索中…</div>'); return wrap; }
   if(st.error){ const d=document.createElement('div'); d.className='chint'; d.textContent=st.error; wrap.appendChild(d); return wrap; }
@@ -1307,7 +1320,7 @@ function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
     const cap=document.createElement('div'); cap.className='ccap'; cap.textContent=c.attribution||''; cell.appendChild(cap);
     cell.onclick=async()=>{ if(cell.classList.contains('busy'))return; cell.classList.add('busy');
       const r=await api('/api/import-url',{key:ky,url:c.url,attribution:c.attribution});
-      if(r.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:r.filename,attribution:c.attribution,query:cut.image_query,kind:cut.image_kind});
+      if(r.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:r.filename,attribution:c.attribution,query:(st.query!=null?st.query:cut.image_query),kind:cut.image_kind});
         candOpen.delete(ky); render(); }
       else { cell.classList.remove('busy'); alert(r.message||'採用失敗'); } };
     grid.appendChild(cell); });
@@ -1490,13 +1503,10 @@ function render(){
         kind.value=cut.image_kind||'ambient'; kind.onchange=()=>cut.image_kind=kind.value;
         const ja=document.createElement('input'); ja.type='text'; ja.className='ja'; ja.placeholder='日本語(意味)';
         ja.value=cut.image_query_ja||''; ja.onchange=()=>cut.image_query_ja=ja.value;
-        const refetch=document.createElement('button'); refetch.className='mini'; refetch.textContent=u?'候補から選ぶ':'取得';
-        refetch.title='検索語で候補画像を一覧表示して選ぶ'; refetch.onclick=()=>{
-          const ky=ci+'_'+k;
-          if(candOpen.has(ky)){ candOpen.delete(ky); render(); return; }
-          if(!cut.image_query){ alert('検索語を入れてください'); return; }
-          candOpen.add(ky); loadCand(ci,k,cut,null);
-        };
+        const enBtn=document.createElement('button'); enBtn.className='mini'; enBtn.textContent='取得'; enBtn.title='英語の検索語で候補を表示';
+        enBtn.onclick=()=>openCand(ci,k,cut,'en');
+        const jaBtn=document.createElement('button'); jaBtn.className='mini'; jaBtn.textContent='日本語で取得'; jaBtn.title='日本語の検索語で候補を表示（Pexels/Pixabay・自分で翻訳しなくてよい）';
+        jaBtn.onclick=()=>openCand(ci,k,cut,'ja');
         const adj=document.createElement('button'); adj.className='mini'; adj.textContent=adjustOpen.has(ci+'_'+k)?'調整を閉じる':'調整';
         adj.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); };
         const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
@@ -1512,12 +1522,17 @@ function render(){
         };
         // 画像の右にフィールドを縦積み：検索語 → 日本語 → [種別＋ボタン]（各ラベル付き）
         const fields=document.createElement('div'); fields.className='fields';
+        // 検索語の各箱の隣に取得ボタン（英語box→英語取得 / 日本語box→日本語取得）。
+        const enWrap=document.createElement('div'); enWrap.style.cssText='display:flex;gap:6px;align-items:center';
+        q.style.flex='1'; enWrap.appendChild(q); enWrap.appendChild(enBtn);
+        const jaWrap=document.createElement('div'); jaWrap.style.cssText='display:flex;gap:6px;align-items:center';
+        ja.style.flex='1'; jaWrap.appendChild(ja); jaWrap.appendChild(jaBtn);
         const row3=document.createElement('div'); row3.className='frow';
-        row3.appendChild(fl('取得の種別', kind)); row3.appendChild(refetch); row3.appendChild(adj); row3.appendChild(del);
+        row3.appendChild(fl('取得の種別', kind)); row3.appendChild(adj); row3.appendChild(del);
         const rc=cutMap[ci+'_'+k];
         const sz=document.createElement('div'); sz.className='szinfo';
         sz.textContent = (u&&rc&&rc.w) ? (rc.w+'×'+rc.h+'px・'+fmtKB(rc.bytes)) : (u?'サイズ不明':'');
-        fields.appendChild(fl('検索語（英語）', q)); fields.appendChild(fl('意味（日本語）', ja));
+        fields.appendChild(fl('検索語（英語）', enWrap)); fields.appendChild(fl('意味（日本語・取得可）', jaWrap));
         fields.appendChild(row3); fields.appendChild(sz);
         r.appendChild(fields);
         il.appendChild(r);
@@ -1706,11 +1721,11 @@ class Handler(BaseHTTPRequestHandler):
         review = load_review()
         if path == "/api/fetch":
             self._json(do_fetch_cut(body.get("ch"), body.get("ci"),
-                                    body.get("query"), body.get("kind")))
+                                    body.get("query"), body.get("kind"), body.get("lang")))
             return
         if path == "/api/candidates":
             self._json(do_candidates(body.get("query"), body.get("kind"),
-                                     body.get("source")))
+                                     body.get("source"), body.get("lang")))
             return
         if path == "/api/regenerate":
             self._json(do_regenerate_chapters(body.get("indices") or []))

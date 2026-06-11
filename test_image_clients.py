@@ -153,6 +153,8 @@ def test_fetch_one_search_error():
 def test_pexels_url_and_pick():
     u = px.build_search_url("server room", 8)
     assert "query=server+room" in u and "per_page=8" in u and "orientation=landscape" in u
+    assert "locale" not in u, "locale未指定なら付けない"
+    assert "locale=ja-JP" in px.build_search_url("server", 8, "ja-JP"), "locale指定で日本語検索"
     assert px.pick_photo([]) is None
     assert px.pick_photo([{"id": 1}, {"id": 2}])["id"] == 1, "先頭を選ぶ"
     assert px._image_url({"src": {"large2x": "a", "large": "b"}}) == "a", "large2x優先"
@@ -162,14 +164,14 @@ def test_pexels_url_and_pick():
 
 def test_pexels_fetch_one():
     tmp = tempfile.mkdtemp()
-    px.search = lambda q, k, pp, t: [{"src": {"large2x": "https://x/p.jpeg"}, "photographer": "Ann"}]
+    px.search = lambda q, k, pp, t, *a, **kw: [{"src": {"large2x": "https://x/p.jpeg"}, "photographer": "Ann"}]
     px._download = lambda url, path, t: open(path, "wb").write(b"x")
     fn, attr = px.fetch_one("q", tmp, "ch_00_01", "KEY")
     assert fn == "ch_00_01.jpeg" and attr == "Ann / Pexels"
     # APIキー無し → None
     assert px.fetch_one("q", tmp, "ch_00_02", "") == (None, None)
     # 該当なし → None
-    px.search = lambda q, k, pp, t: []
+    px.search = lambda q, k, pp, t, *a, **kw: []
     assert px.fetch_one("q", tmp, "ch_00_03", "KEY") == (None, None)
     print("  pexels: fetch_one 成功/キー無し/該当なし OK")
 
@@ -179,6 +181,8 @@ def test_pexels_fetch_one():
 def test_pixabay_url_and_pick():
     u = pb.build_search_url("network", "KEY", 5)
     assert "q=network" in u and "key=KEY" in u and "per_page=5" in u and "orientation=horizontal" in u
+    assert "lang" not in u, "lang未指定なら付けない（既定en）"
+    assert "lang=ja" in pb.build_search_url("network", "KEY", 5, "ja"), "lang指定で日本語検索"
     assert pb.pick_hit([]) is None
     assert pb.pick_hit([{"id": 1}])["id"] == 1
     assert pb._image_url({"largeImageURL": "L", "webformatURL": "W"}) == "L", "large優先"
@@ -188,7 +192,7 @@ def test_pixabay_url_and_pick():
 
 def test_pixabay_fetch_one():
     tmp = tempfile.mkdtemp()
-    pb.search = lambda q, k, pp, t: [{"largeImageURL": "https://x/i.png", "user": "Bob"}]
+    pb.search = lambda q, k, pp, t, *a, **kw: [{"largeImageURL": "https://x/i.png", "user": "Bob"}]
     pb._download = lambda url, path, t: open(path, "wb").write(b"x")
     fn, attr = pb.fetch_one("q", tmp, "ch_01_00", "KEY")
     assert fn == "ch_01_00.png" and attr == "Bob / Pixabay"
@@ -203,8 +207,8 @@ def test_fetch_images_routing():
     from src import image_fetch as fch
     calls = []
     w.fetch_one = lambda q, d, b, t=30: (calls.append(("wiki", q)), (b + ".jpg", "WikiAttr"))[1]
-    px.fetch_one = lambda q, d, b, k, t=30: (calls.append(("px", q)), (b + ".jpg", "PxAttr"))[1]
-    pb.fetch_one = lambda q, d, b, k, t=30: (calls.append(("pb", q)), (b + ".jpg", "PbAttr"))[1]
+    px.fetch_one = lambda q, d, b, k, t=30, **kw: (calls.append(("px", q)), (b + ".jpg", "PxAttr"))[1]
+    pb.fetch_one = lambda q, d, b, k, t=30, **kw: (calls.append(("pb", q)), (b + ".jpg", "PbAttr"))[1]
     os.environ["PEXELS_API_KEY"] = "K"
     os.environ["PIXABAY_API_KEY"] = "K2"
     config = {"images": {"wikimedia": {"enable": True},
@@ -246,8 +250,8 @@ def test_fetch_images_subject_no_stock_fallback():
 def test_fetch_images_ambient_fallback_to_pixabay():
     import os
     from src import image_fetch as fch
-    px.fetch_one = lambda q, d, b, k, t=30: (None, None)   # Pexelsは失敗
-    pb.fetch_one = lambda q, d, b, k, t=30: (b + ".png", "PbAttr")
+    px.fetch_one = lambda q, d, b, k, t=30, **kw: (None, None)   # Pexelsは失敗
+    pb.fetch_one = lambda q, d, b, k, t=30, **kw: (b + ".png", "PbAttr")
     os.environ["PEXELS_API_KEY"] = "K"
     os.environ["PIXABAY_API_KEY"] = "K2"
     config = {"images": {"wikimedia": {"enable": True},
@@ -263,8 +267,8 @@ def test_fetch_images_all_fail_is_placeholder():
     import os
     from src import image_fetch as fch
     w.fetch_one = lambda q, d, b, t=30: (None, None)
-    px.fetch_one = lambda q, d, b, k, t=30: (None, None)
-    pb.fetch_one = lambda q, d, b, k, t=30: (None, None)
+    px.fetch_one = lambda q, d, b, k, t=30, **kw: (None, None)
+    pb.fetch_one = lambda q, d, b, k, t=30, **kw: (None, None)
     os.environ["PEXELS_API_KEY"] = "K"
     os.environ["PIXABAY_API_KEY"] = "K2"
     config = {"images": {"wikimedia": {"enable": True},
@@ -275,6 +279,24 @@ def test_fetch_images_all_fail_is_placeholder():
     files, attrs = fch.fetch_images(chapters, "/tmp", config)
     assert files == {} and attrs == {}, "全失敗・空queryはimage_filesに入らない(プレースホルダ)"
     print("  fetch_images: 全失敗/空query→プレースホルダ OK")
+
+
+def test_provider_lang_and_routing_lang():
+    from src import image_fetch as fch
+    # 言語マッピング: ja→(ja-JP, ja) / それ以外→(None,None)
+    assert fch._provider_lang("ja") == ("ja-JP", "ja")
+    assert fch._provider_lang("ja-JP") == ("ja-JP", "ja")
+    assert fch._provider_lang("en") == (None, None)
+    assert fch._provider_lang(None) == (None, None)
+    # fetch_one_cut が lang を Pexels(locale)/Pixabay(lang) に渡す
+    seen = {}
+    px.fetch_one = lambda q, d, b, k, t=30, locale=None: (seen.update(px_locale=locale), (b + ".jpg", "A"))[1]
+    pb.fetch_one = lambda q, d, b, k, t=30, lang=None: (None, None)
+    os.environ["PEXELS_API_KEY"] = "K"
+    cfg = {"images": {"pexels": {"enable": True, "api_key_env": "PEXELS_API_KEY"}}}
+    fch.fetch_one_cut("猫", "ambient", "/tmp", "ch_00_00", cfg, lang="ja")
+    assert seen.get("px_locale") == "ja-JP", "日本語取得でPexelsにlocale=ja-JP"
+    print("  image_fetch: _provider_lang / lang配線 OK")
 
 
 if __name__ == "__main__":
@@ -296,4 +318,5 @@ if __name__ == "__main__":
     test_fetch_images_subject_no_stock_fallback()
     test_fetch_images_ambient_fallback_to_pixabay()
     test_fetch_images_all_fail_is_placeholder()
+    test_provider_lang_and_routing_lang()  # fetch_oneを差し替えるため最後に実行（他テストを汚さない）
     print("ALL PASS")

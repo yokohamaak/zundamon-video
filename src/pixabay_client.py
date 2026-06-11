@@ -21,12 +21,15 @@ UA = "zundamon-video/0.1 (educational; https://github.com/yokohamaak/zundamon-vi
 _IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
 
-def build_search_url(query, key, per_page=10):
-    qs = urllib.parse.urlencode({
+def build_search_url(query, key, per_page=10, lang=None):
+    """lang 指定時はその言語でクエリ語を解釈して検索する（例 "ja"＝日本語）。既定は en。"""
+    params = {
         "key": key, "q": query, "image_type": "photo",
         "orientation": "horizontal", "safesearch": "true", "per_page": per_page,
-    })
-    return f"{API}?{qs}"
+    }
+    if lang:
+        params["lang"] = lang
+    return f"{API}?{urllib.parse.urlencode(params)}"
 
 
 def pick_hit(hits):
@@ -59,11 +62,11 @@ def _download(url, out_path, timeout=30):
         f.write(data)
 
 
-def search(query, key, per_page=10, timeout=30):
-    return _get_json(build_search_url(query, key, per_page), timeout).get("hits", [])
+def search(query, key, per_page=10, timeout=30, lang=None):
+    return _get_json(build_search_url(query, key, per_page, lang), timeout).get("hits", [])
 
 
-def candidates(query, api_key, per_page=12, timeout=30):
+def candidates(query, api_key, per_page=12, timeout=30, lang=None):
     """検索結果を候補リストで返す（DLしない・サムネ表示用）。1検索=複数件で追加課金なし。
 
     Returns: [{"source","thumb","url","attribution"}]。キー無し/失敗時は []。
@@ -71,7 +74,7 @@ def candidates(query, api_key, per_page=12, timeout=30):
     if not api_key:
         return []
     try:
-        hits = search(query, api_key, per_page, timeout)
+        hits = search(query, api_key, per_page, timeout, lang)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Pixabay候補検索失敗 '{query}': {e}")
         return []
@@ -87,15 +90,16 @@ def candidates(query, api_key, per_page=12, timeout=30):
     return out
 
 
-def fetch_one(query, out_dir, base_name, api_key, timeout=30, per_page=10):
+def fetch_one(query, out_dir, base_name, api_key, timeout=30, per_page=10, lang=None):
     """query で検索し先頭画像を out_dir/base_name.<ext> に保存する。
 
+    lang 指定時はその言語でクエリを解釈して検索（例 "ja"）。
     Returns: (filename, attribution) 成功時 / (None, None) キー無し・該当なし・失敗時。
     """
     if not api_key:
         return None, None
     try:
-        hits = search(query, api_key, per_page, timeout)
+        hits = search(query, api_key, per_page, timeout, lang)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Pixabay検索失敗 '{query}': {e}")
         return None, None

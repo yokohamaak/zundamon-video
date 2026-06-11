@@ -23,12 +23,24 @@ def _key(cfg, name, env_default):
     return os.environ.get(cfg.get("api_key_env", env_default), "") or ""
 
 
-def fetch_one_cut(query, kind, out_dir, base, config):
+def _provider_lang(lang):
+    """汎用 lang('ja'/'en'/None) を provider 別パラメータへ変換する。
+
+    Returns: (pexels_locale, pixabay_lang)。日本語は ("ja-JP","ja")、それ以外は (None,None)＝既定の英語。
+    Wikimedia は多言語検索のためクエリをそのまま使う（変換不要）。
+    """
+    if (lang or "").lower().startswith("ja"):
+        return "ja-JP", "ja"
+    return None, None
+
+
+def fetch_one_cut(query, kind, out_dir, base, config, lang=None):
     """1カット分の画像を取得する（provider振り分け＋フォールバック）。
 
     - subject(実在の人物/製品/ロゴ)はWikimediaのみ。取れなければ stock の無関係画像に
       フォールバックせず None（呼び出し側でプレースホルダ＝別物の「嘘の絵」を防ぐ）。
     - ambient(雰囲気)は Pexels→Pixabay→Wikimedia の順でフォールバック可。
+    - lang='ja' で Pexels/Pixabay を日本語クエリ解釈にする（手動レビューの日本語取得用）。
     Returns: (filename|None, attribution|None)
     """
     query = (query or "").strip()
@@ -39,15 +51,16 @@ def fetch_one_cut(query, kind, out_dir, base, config):
     wiki_on = images_cfg.get("wikimedia", {}).get("enable", True)
     px_key = _key(images_cfg.get("pexels", {}), "pexels", "PEXELS_API_KEY")
     pb_key = _key(images_cfg.get("pixabay", {}), "pixabay", "PIXABAY_API_KEY")
+    px_locale, pb_lang = _provider_lang(lang)
 
     def fetch_wiki():
         return wikimedia_client.fetch_one(query, out_dir, base, timeout) if wiki_on else (None, None)
 
     def fetch_px():
-        return pexels_client.fetch_one(query, out_dir, base, px_key, timeout) if px_key else (None, None)
+        return pexels_client.fetch_one(query, out_dir, base, px_key, timeout, locale=px_locale) if px_key else (None, None)
 
     def fetch_pb():
-        return pixabay_client.fetch_one(query, out_dir, base, pb_key, timeout) if pb_key else (None, None)
+        return pixabay_client.fetch_one(query, out_dir, base, pb_key, timeout, lang=pb_lang) if pb_key else (None, None)
 
     order = [fetch_wiki] if kind == "subject" else [fetch_px, fetch_pb, fetch_wiki]
     for fetch in order:
@@ -75,9 +88,10 @@ def available_sources(kind, config):
     return [{"id": s, "label": _SOURCE_LABELS[s]} for s in order if avail[s]]
 
 
-def fetch_candidates(query, kind, source, config, per_source=12):
+def fetch_candidates(query, kind, source, config, per_source=12, lang=None):
     """指定 source の候補画像リストを返す（DLしない・サムネ表示用）。追加課金なし。
 
+    lang='ja' で Pexels/Pixabay を日本語クエリ解釈にする（手動の日本語取得ボタン用）。
     Returns: [{"source","thumb","url","attribution"}]。空クエリ/未対応sourceは []。
     """
     query = (query or "").strip()
@@ -85,14 +99,15 @@ def fetch_candidates(query, kind, source, config, per_source=12):
         return []
     images_cfg = config.get("images", {})
     timeout = int(images_cfg.get("timeout", 30))
+    px_locale, pb_lang = _provider_lang(lang)
     if source == "pexels":
         return pexels_client.candidates(
             query, _key(images_cfg.get("pexels", {}), "pexels", "PEXELS_API_KEY"),
-            per_source, timeout)
+            per_source, timeout, locale=px_locale)
     if source == "pixabay":
         return pixabay_client.candidates(
             query, _key(images_cfg.get("pixabay", {}), "pixabay", "PIXABAY_API_KEY"),
-            per_source, timeout)
+            per_source, timeout, lang=pb_lang)
     if source == "wikimedia":
         if not images_cfg.get("wikimedia", {}).get("enable", True):
             return []
