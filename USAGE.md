@@ -166,8 +166,24 @@ for t in test_*.py; do echo "== $t =="; python3 "$t" || break; done
 | `digest.mp3` | 掛け合い音声 |
 | `meta.json` | Remotion が読む最終構造（台本＋timing＋topics＋credits） |
 | `credits.txt` | 概要欄用クレジット（CC-BY帰属を充足） |
+| `topic_history/<genre>.json` | **避けるネタの永続履歴**（採用済み＋却下・動画をまたいで残る） |
 
 ---
+
+## 5-1. 台本を作り直す・履歴をリセット
+
+**台本は新規生成（Gemini呼び出し）のときだけ作り直される。** `--from-script` は既存 `script.json` を再利用＝作り直さない。
+
+| やりたいこと | 方法 |
+|---|---|
+| 台本を作り直す（短さ等の修正を効かせる） | `python main_story.py --stop-after-images`（常に新規生成）／レビュー画面「全体を作り直す」 |
+| 今の台本を確実に使わせない | `docs/story/script.json` を削除（`--from-script` で再利用されなくなる） |
+| 今のネタを“避けずに”引き直したい | `topic_history/<genre>.json` を削除 or 空に（`cat /dev/null >` でOK＝コードは空を「履歴なし」扱い）。⚠️過去の回避も全部消える |
+
+注意:
+- `topic_history/<genre>.json`：空ファイル/削除のどちらも安全（無し扱い）。
+- `script.json`：空にした後 `--from-script` を使うとエラー（新規生成なら問題なし）。
+- `review.json`：空にするとレビューツールがクラッシュ。消すなら丸ごと削除（どうせ再生成で上書き）。
 
 ## 6. 調整したいとき
 
