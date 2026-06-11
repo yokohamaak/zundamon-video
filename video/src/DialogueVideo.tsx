@@ -325,6 +325,23 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         extrapolateRight: "clamp",
       })
     : 1;
+  // 章切替のページめくり（CSS 3D flip）。前章の最後の画像を「ページ」として左ヒンジで回転させ、
+  // 下から新章の画像を現す。章内のカット切替は従来のフェードのまま（＝章が変わる時だけめくる）。
+  const FLIP_DUR = 0.55; // めくり時間（秒）
+  const prevTopic = activeTopicIndex > 0 ? topics[activeTopicIndex - 1] : null;
+  const isChapterFlip =
+    !!activeTopic && !!prevTopic && !!prevTopic.image &&
+    prevTopic.chapter !== activeTopic.chapter;
+  const flipStart = activeTopic?.start ?? 0;
+  const flipP = isChapterFlip
+    ? interpolate(t, [flipStart, flipStart + FLIP_DUR], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      })
+    : 1;
+  const flipping = isChapterFlip && flipP < 1;
+  // めくり中は新画像を即・全表示（前章ページが上を覆うのでフェード不要）。
+  const effectiveTopicFade = flipping ? 1 : topicFade;
   // Ken Burns: カット内の進捗(0→1)。カットのstart→endで線形。endが無ければ動かさない。
   const kbProgress = activeTopic
     ? interpolate(t, [activeTopic.start, activeTopic.end ?? activeTopic.start], [0, 1], {
@@ -458,7 +475,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
             style={{
               position: "absolute",
               inset: 0,
-              opacity: topicFade,
+              opacity: effectiveTopicFade,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -625,6 +642,46 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
 
         {/* クレジットは動画内に出さない（帰属は概要欄の credits.txt に集約＝CC-BY要件はそこで満たす）。 */}
 
+        {/* 章切替のページめくり：前章の画像を左ヒンジで回転させ、下の新章画像を現す。
+            ※回転の向き/ヒンジ位置は transformOrigin と rotateY の符号で調整可（renderで微調整）。 */}
+        {flipping && prevTopic?.image ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 6,
+              transformOrigin: "left center",
+              transform: `perspective(1800px) rotateY(${(-105 * flipP).toFixed(2)}deg)`,
+              backfaceVisibility: "hidden",
+              boxShadow: `${Math.round(28 * (1 - flipP))}px 0 ${Math.round(
+                48 * (1 - flipP)
+              )}px rgba(0,0,0,${(0.45 * (1 - flipP)).toFixed(3)})`,
+            }}
+          >
+            <Img
+              src={staticFile(prevTopic.image)}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: prevTopic.fit === "contain" ? "contain" : "cover",
+                background:
+                  prevTopic.fit === "contain" ? prevTopic.bg ?? "#1a2230" : undefined,
+              }}
+            />
+            {/* めくれる面の陰影（ヒンジ側→先端へ濃く＝紙が立ち上がる立体感） */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                background: `linear-gradient(to right, rgba(0,0,0,0) 55%, rgba(0,0,0,${(
+                  0.4 * flipP
+                ).toFixed(3)}) 100%)`,
+              }}
+            />
+          </div>
+        ) : null}
+
         {/* glow_pulse: 中央ビジュアルの内側に脈動する発光リング（神秘的な強調） */}
         {fx.glow > 0 ? (
           <div
@@ -638,18 +695,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           />
         ) : null}
 
-        {/* flash: 白フラッシュ転換（ネタが切り替わる瞬間など） */}
-        {fx.flash > 0 ? (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              pointerEvents: "none",
-              background: "#ffffff",
-              opacity: fx.flash,
-            }}
-          />
-        ) : null}
+        {/* 白フラッシュ転換は廃止（章切替はページめくりで表現）。 */}
       </div>
 
       {/* 章見出し（trivia章のみ）。画像枠の外＝画像の上に、フラットな見出しバーで「実は＋タイトル」。
