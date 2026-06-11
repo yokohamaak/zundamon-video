@@ -1208,9 +1208,10 @@ fetch('/api/script').then(r=>r.json()).then(d=>{
 """
 
 STORY_PAGE = """<!doctype html>
-<html lang="ja"><head><meta charset="utf-8">
+<html lang="ja" data-theme="light"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ストーリー編集</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 <style>__CSS__
   .theme { display:flex; gap:10px; align-items:center; margin-bottom:14px; }
   .theme input { flex:1; font-size:16px; font-weight:700; background:#0c0f15; color:var(--fg);
@@ -1321,6 +1322,55 @@ STORY_PAGE = """<!doctype html>
   .turn .acts { display:flex; flex-direction:column; gap:4px; }
   .turn .acts button { font-size:11px; padding:4px 8px; background:var(--line); color:#fff; border:none; border-radius:6px; cursor:pointer; }
   .turn .acts button.del { background:transparent; color:#c66; }
+
+  /* ===== ライト・モダン上書き（以降が後勝ちで優先・_BASE_CSSと上の暗色を置き換え）===== */
+  :root { --bg:#f3f5fa; --card:#ffffff; --line:#e1e6ee; --fg:#1e2630; --sub:#697384;
+          --ok:#2e9e4f; --accent:#3b6fe0; --inset:#eef1f7; }
+  body { background:var(--bg); color:var(--fg); }
+  header { background:#ffffffd9; border-bottom:1px solid var(--line); }
+  header h1 { color:var(--fg); } header a { color:var(--sub); } header a:hover { color:var(--accent); }
+  code { background:var(--inset); color:#2563a8; }
+  button { background:var(--inset); color:var(--fg); border:1px solid var(--line); box-shadow:0 1px 2px rgba(20,30,50,.05); }
+  button:hover { filter:brightness(.97); }
+  button.primary { background:var(--accent); color:#fff; border-color:transparent; }
+  button.ok { background:var(--ok); color:#fff; border-color:transparent; }
+  button.mini { background:var(--inset); color:var(--fg); border:1px solid var(--line); font-weight:600; }
+  #regenall { background:var(--accent); color:#fff; border-color:transparent; }
+  #regen:not(:disabled) { background:#ffd84d; color:#3a2c00; border-color:transparent; }
+  .cprevrow button { background:var(--inset); color:var(--fg); border:1px solid var(--line); }
+  .cprevrow button.primary { background:var(--accent); color:#fff; border-color:transparent; }
+  .turn .acts button { background:var(--inset); color:var(--fg); border:1px solid var(--line); }
+  .turn .acts button.del { background:transparent; color:#d6455d; border-color:transparent; }
+  input[type=text], textarea, select, .theme input, .adjust select {
+    background:#fff; color:var(--fg); border:1px solid var(--line); border-radius:8px; }
+  input[type=text]:focus, textarea:focus, select:focus {
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(59,111,224,.15); }
+  .sec { border-radius:14px; box-shadow:0 1px 3px rgba(25,35,60,.06); }
+  .sec.open { box-shadow:0 3px 14px rgba(59,111,224,.12); }
+  .sechead:hover { background:var(--inset); }
+  .sechead .selcb { accent-color:var(--accent); }
+  .badge { background:var(--inset); color:var(--sub); font-weight:600; }
+  #lockov { background:rgba(30,40,60,.45); }
+  .lockbox { background:#fff; box-shadow:0 12px 44px rgba(20,30,50,.2); }
+  .spin { border-top-color:var(--accent); }
+  .thumbs .th, .thumbs .ph { background:var(--inset); }
+  .imgrow { background:var(--inset); border:1px solid var(--line); border-radius:10px; padding:10px; gap:12px; }
+  .imgrow img, .imgrow .ph2, .imgrow .imgthumb { background:#fff; }
+  .candpanel { background:#fff; }
+  .ctab { background:#fff; }
+  .ctab:hover { border-color:var(--accent); color:var(--accent); }
+  .ctab.on { background:var(--accent); color:#fff; border-color:transparent; }
+  .ccell { background:#fff; border:2px solid var(--line); }
+  .ccell:hover { border-color:var(--accent); }
+  .cprev { background:rgba(20,28,45,.6); }
+  .cprevbox { background:#fff; border-radius:14px; box-shadow:0 16px 50px rgba(20,30,50,.25); }
+  .cprevbox img { background:var(--inset); }
+  .adjust { background:#fff; border:1px solid var(--accent); border-radius:12px; box-shadow:0 3px 12px rgba(59,111,224,.08); }
+  .adjust .crop { background:var(--inset); }
+  .adjust .croprect { border-color:var(--accent); background:rgba(59,111,224,.14); }
+  .adjust .filters input[type=range] { accent-color:var(--accent); }
+  .copt { background:#fff; border:2px solid var(--line); }
+  .copt.sel { border-color:var(--accent); }
 </style></head>
 <body>
 <header>
