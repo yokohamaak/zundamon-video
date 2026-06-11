@@ -205,8 +205,26 @@ def test_build_audio():
     print("  build_audio: SEを章境界の無音へ前出し/聞き手surprise限定/outro優先 OK")
 
 
+def test_append_closing_chorus():
+    sr = {"script": [{"speaker": "四国めたん", "text": "またね", "chapter": 2, "section": "outro", "cut": 0}]}
+    cfg = {"story": {"explainer": "四国めたん", "closing_chorus": "それじゃあまた見てね〜"}}
+    m.append_closing_chorus(sr, cfg)
+    last = sr["script"][-1]
+    assert last["chorus"] is True and last["text"] == "それじゃあまた見てね〜"
+    assert last["section"] == "outro" and last["chapter"] == 2, last
+    # 冪等: 再実行で二重に足さない
+    m.append_closing_chorus(sr, cfg)
+    assert sum(1 for t in sr["script"] if t.get("chorus")) == 1, "重複追加しない"
+    # 空設定なら何もしない
+    sr2 = {"script": [{"speaker": "x", "text": "y", "chapter": 0}]}
+    m.append_closing_chorus(sr2, {"story": {}})
+    assert len(sr2["script"]) == 1
+    print("  append_closing_chorus: ユニゾン締め追加/冪等/空無効 OK")
+
+
 if __name__ == "__main__":
     print("test_story_meta:")
+    test_append_closing_chorus()
     test_build_audio()
     test_build_chapter_topics_coverage()
     test_build_chapter_topics_placeholder()

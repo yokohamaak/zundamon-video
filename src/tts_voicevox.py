@@ -187,6 +187,33 @@ def _wav_params_and_frames(wav_bytes):
     return params, frames, duration
 
 
+def _mix_pcm(frames_list, width):
+    """複数の16bit PCM（モノ）を重ねて1本に混ぜる（ユニゾン＝二人同時発話用）。
+
+    長さは最長に合わせ（短い方は無音で埋め）、加算後に16bit範囲へクランプ。
+    16bit以外（width≠2）や1本のみのときは先頭をそのまま返す（安全側）。
+    """
+    frames_list = [f for f in frames_list if f]
+    if not frames_list:
+        return b""
+    if width != 2 or len(frames_list) == 1:
+        return frames_list[0]
+    import array
+
+    arrs = []
+    for f in frames_list:
+        a = array.array("h")
+        a.frombytes(f)
+        arrs.append(a)
+    n = max(len(a) for a in arrs)
+    out = array.array("h", bytes(2 * n))  # 無音(0)で初期化
+    for a in arrs:
+        for i in range(len(a)):
+            s = out[i] + a[i]
+            out[i] = 32767 if s > 32767 else -32768 if s < -32768 else s
+    return out.tobytes()
+
+
 def _resolve_speaker_id(turn_speaker, speakers_map):
     if turn_speaker not in speakers_map:
         raise KeyError(
@@ -306,30 +333,44 @@ def synthesize_dialogue(script, config):
     current = lead_in   # 先頭リードイン分だけ全発話を後ろへずらす
     ref_params = None
 
+    chorus_names = list(speakers_map.keys())  # ユニゾン時に声を重ねる話者（設定の全キャラ）
+
     for idx, turn in enumerate(script):
         speaker = turn["speaker"]
         speaker_id = _resolve_speaker_id(speaker, speakers_map)
         vp = _effective_voice(_resolve_voice_params(vc, speaker), turn)  # 話者＋台詞ごとの声上書き
+        # chorus=True のターンは設定の全話者で同じ文を合成して重ねる（二人同時発話＝締めの挨拶等）。
+        if turn.get("chorus"):
+            voices = [(_resolve_speaker_id(n, speakers_map),
+                       _effective_voice(_resolve_voice_params(vc, n), turn)) for n in chorus_names]
+        else:
+            voices = [(speaker_id, vp)]
         turn_start = current
         captions = []
 
         for sentence in _split_sentences(turn["text"]):
             # 音声に渡すのは読み仮名を畳んだテキスト（字幕＝sentenceは原文のまま）。
             spoken = _spoken_text(sentence)
-            query = audio_query(base_url, spoken, speaker_id)
-            query["speedScale"] = vp["speed"]
-            query["pitchScale"] = vp["pitch"]
-            query["intonationScale"] = vp["intonation"]
-            query["volumeScale"] = vp["volume"]
-            query["prePhonemeLength"] = pre_phoneme    # 文先頭の無音（境目のカクつき低減）
-            query["postPhonemeLength"] = post_phoneme   # 文末の余韻（文間の自然な間）
-            wav_bytes = synthesis(base_url, query, speaker_id)
-            params, frames, duration = _wav_params_and_frames(wav_bytes)
+            outs = []
+            for sid, vparams in voices:
+                query = audio_query(base_url, spoken, sid)
+                query["speedScale"] = vparams["speed"]
+                query["pitchScale"] = vparams["pitch"]
+                query["intonationScale"] = vparams["intonation"]
+                query["volumeScale"] = vparams["volume"]
+                query["prePhonemeLength"] = pre_phoneme    # 文先頭の無音（境目のカクつき低減）
+                query["postPhonemeLength"] = post_phoneme   # 文末の余韻（文間の自然な間）
+                wav_bytes = synthesis(base_url, query, sid)
+                outs.append(_wav_params_and_frames(wav_bytes))
 
+            params = outs[0][0]
             if ref_params is None:
                 ref_params = params
             elif params != ref_params:
                 raise ValueError(f"WAV形式が不一致: {params} != {ref_params}（話者で出力形式が違う？）")
+            # 単独はそのまま、chorusは重ねて混ぜる（尺は最長に合わせる）。
+            frames = _mix_pcm([o[1] for o in outs], params[1])
+            duration = max(o[2] for o in outs)
             pcm_chunks.append(frames)
 
             # この文の実尺を字幕単位へ文字数比で配分（端数は最後で吸収）。

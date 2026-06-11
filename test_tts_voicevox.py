@@ -150,6 +150,42 @@ def test_lead_in_silence():
     print("  lead-in: 先頭無音＋全時刻オフセット OK")
 
 
+def test_chorus_turn():
+    _install_fakes()
+    script = [{"speaker": "四国めたん", "text": "やあ。", "chorus": True}]
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2, "ずんだもん": 3}}}
+    pcm, turns, params = tv.synthesize_dialogue(script, cfg)
+    # chorus: 文ごとに全話者(2人)で合成 → synthesis 2回
+    assert len(_last_queries) == 2, f"2話者で重ねて合成: {len(_last_queries)}"
+    # 混ぜたPCM: 同サンプル(0x2211=8721)×2本 = 17442（16bit範囲内・クランプなし）
+    import array
+    a = array.array("h")
+    a.frombytes(pcm)
+    assert a[0] == 8721 * 2, a[0]
+    # 1ターン・尺は単独と同じ（同一テキスト）
+    assert len(turns) == 1 and abs(turns[0]["end"] - _dur("やあ。")) < 1e-3
+    print("  chorus: 全話者で重ねて混ぜる(ユニゾン) OK")
+
+
+def test_mix_pcm_clamp():
+    import array
+    # 大きい値同士はクランプ（オーバーフローしない）
+    big = array.array("h", [30000, -30000]).tobytes()
+    mixed = tv._mix_pcm([big, big], 2)
+    out = array.array("h")
+    out.frombytes(mixed)
+    assert list(out) == [32767, -32768], list(out)
+    # 長さ違いは短い方を無音で埋めて最長に合わせる
+    short = array.array("h", [100]).tobytes()
+    longer = array.array("h", [100, 200, 300]).tobytes()
+    out2 = array.array("h")
+    out2.frombytes(tv._mix_pcm([short, longer], 2))
+    assert list(out2) == [200, 200, 300], list(out2)
+    # 16bit以外/1本は先頭をそのまま返す
+    assert tv._mix_pcm([big], 2) == big
+    print("  _mix_pcm: 加算クランプ/長さ合わせ OK")
+
+
 def test_unknown_speaker():
     _install_fakes()
     script = [{"speaker": "謎", "text": "だれ？"}]
@@ -284,6 +320,8 @@ if __name__ == "__main__":
     test_inter_turn_pause()
     test_chapter_gap_pause()
     test_lead_in_silence()
+    test_chorus_turn()
+    test_mix_pcm_clamp()
     test_unknown_speaker()
     test_per_turn_voice_override()
     test_per_turn_pause()

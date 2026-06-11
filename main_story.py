@@ -358,6 +358,26 @@ def build_audio(config, script):
     }
 
 
+def append_closing_chorus(script_result, config):
+    """締めに「二人同時(ユニゾン)」の固定挨拶ターンを足す（config.story.closing_chorus）。
+
+    空なら何もしない。既に末尾が chorus なら二重に足さない（--from-script の再実行に安全）。
+    chorus=True のターンは tts が全話者で重ねて合成し、描画は両方の立ち絵の口を動かす。
+    """
+    text = (config.get("story", {}).get("closing_chorus") or "").strip()
+    script = script_result.get("script") or []
+    if not text or (script and script[-1].get("chorus")):
+        return
+    last = script[-1] if script else {}
+    explainer = config.get("story", {}).get("explainer", story_script.DEFAULT_EXPLAINER)
+    script.append({
+        "speaker": explainer, "text": text, "emotion": "happy",
+        "section": "outro", "chapter": last.get("chapter", 0),
+        "effect": "kenburns", "cut": last.get("cut", 0), "chorus": True,
+    })
+    script_result["script"] = script
+
+
 def build_meta(script_result, turns, config, now_iso, image_files=None, attributions=None, cut_opts=None):
     """動画(video/)が読む meta.json 構造を組み立てる（純関数・テスト可能）。
 
@@ -444,6 +464,9 @@ def main():
         if avoid:
             logger.info(f"既出ネタ {len(avoid)}件を避けて生成（ジャンル: {genre}）")
         script_result = story_script.generate_story_script(config, also_avoid=avoid)
+
+    # 締めに二人同時(ユニゾン)の固定挨拶を足す（生成・既存どちらの台本にも・空設定なら無効）。
+    append_closing_chorus(script_result, config)
 
     # --script-only はここまでで停止（音声/metaはskip）
     if args.script_only:

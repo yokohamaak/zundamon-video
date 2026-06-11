@@ -40,6 +40,8 @@ export type Turn = {
   voice?: { speed?: number; pitch?: number; intonation?: number; volume?: number };
   // この台詞の後の無音秒（任意・音声生成で使用）。「実は…」のタメ等。
   pause?: number;
+  // ユニゾン（二人同時発話）。trueなら音声を全話者で重ね、立ち絵も両方の口が動く（締めの挨拶等）。
+  chorus?: boolean;
 };
 
 // 中央ビジュアルのトピック。imageがあれば画像、無ければtitleでカード描画。

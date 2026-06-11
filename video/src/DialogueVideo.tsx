@@ -300,6 +300,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
 
   const activeTurn = pickActive(meta.script, t) as Turn | null;
   const activeSpeaker = activeTurn?.speaker ?? "";
+  const isChorus = !!activeTurn?.chorus; // ユニゾン時は両方の立ち絵をactive（両方の口を動かす）
   const activatedAtFrame = Math.round((activeTurn?.start ?? 0) * fps);
 
   // 字幕の名前タグ用：話者の配置側・立ち絵・色を解決（話している側にタグを出す）。
@@ -759,9 +760,9 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           dir={leftDir}
           manifest={leftDir ? manifest[leftDir] : undefined}
           fallbackGender={leftGender}
-          active={activeSpeaker === leftSpeaker}
+          active={activeSpeaker === leftSpeaker || isChorus}
           activatedAtFrame={activatedAtFrame}
-          amplitude={activeSpeaker === leftSpeaker ? amplitude : 0}
+          amplitude={activeSpeaker === leftSpeaker || isChorus ? amplitude : 0}
           emotion={leftEmotion}
           emotionAtFrame={emotionAtFrame}
           expressive={leftExpressive}
@@ -775,9 +776,9 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           dir={rightDir}
           manifest={rightDir ? manifest[rightDir] : undefined}
           fallbackGender={rightGender}
-          active={activeSpeaker === rightSpeaker}
+          active={activeSpeaker === rightSpeaker || isChorus}
           activatedAtFrame={activatedAtFrame}
-          amplitude={activeSpeaker === rightSpeaker ? amplitude : 0}
+          amplitude={activeSpeaker === rightSpeaker || isChorus ? amplitude : 0}
           emotion={rightEmotion}
           emotionAtFrame={emotionAtFrame}
           expressive={rightExpressive}
