@@ -182,25 +182,27 @@ def test_build_audio():
     assert m.build_audio({}, []) is None
     cfg = {"story": {"questioner": "ずんだもん"},
            "audio": {"bgm": {"file": "bgm.mp3", "volume": 0.07},
-                     "se_volume": 0.5, "se_min_gap": 0.8,
+                     "se_volume": 0.5, "se_min_gap": 0.8, "se_lead": 0.15,
                      "se": {"intro": "i.mp3", "outro": "o.mp3",
                             "flash": "f.mp3", "surprise": "s.mp3"}}}
+    # 章境界に約1秒の無音を挟んだ並び（start/end付き）。flash/outro SE は前発話末+se_lead に置く。
     script = [
-        {"speaker": "四国めたん", "text": "a", "section": "intro", "effect": "kenburns", "emotion": "happy", "start": 0.0},
-        {"speaker": "四国めたん", "text": "b", "section": "trivia", "effect": "flash", "emotion": "normal", "start": 5.0},
-        {"speaker": "四国めたん", "text": "実は", "section": "trivia", "effect": "zoom_punch", "emotion": "surprise", "start": 7.0},  # 解説役surprise→鳴らさない
-        {"speaker": "ずんだもん", "text": "ええー", "section": "trivia", "effect": "kenburns", "emotion": "surprise", "start": 9.0},  # 聞き手surprise→鳴る
-        {"speaker": "四国めたん", "text": "c", "section": "trivia", "effect": "flash", "emotion": "normal", "start": 20.0},
-        {"speaker": "ずんだもん", "text": "ええー", "section": "trivia", "effect": "kenburns", "emotion": "surprise", "start": 20.3},  # flash直後→min_gapで抑制
-        {"speaker": "四国めたん", "text": "z", "section": "outro", "effect": "flash", "emotion": "happy", "start": 30.0},
+        {"speaker": "四国めたん", "section": "intro", "effect": "kenburns", "emotion": "happy", "start": 0.0, "end": 4.0},
+        # 章1: 無音1.0後に声5.0。flash SE = 前末4.0+lead0.15 = 4.15（声より前・無音内）
+        {"speaker": "四国めたん", "section": "trivia", "effect": "flash", "emotion": "normal", "start": 5.0, "end": 6.0},
+        {"speaker": "四国めたん", "section": "trivia", "effect": "zoom_punch", "emotion": "surprise", "start": 6.0, "end": 6.8},  # 解説役surprise→除外
+        {"speaker": "ずんだもん", "section": "trivia", "effect": "kenburns", "emotion": "surprise", "start": 6.8, "end": 7.6},  # 聞き手surprise→発話頭6.8
+        # 章2: 無音1.0後に声8.6。flash SE = 前末7.6+0.15 = 7.75
+        {"speaker": "四国めたん", "section": "trivia", "effect": "flash", "emotion": "normal", "start": 8.6, "end": 9.6},
+        # outro: 無音1.0後。outro SE = 前末9.6+0.15 = 9.75（同時刻のflashより優先）
+        {"speaker": "四国めたん", "section": "outro", "effect": "flash", "emotion": "happy", "start": 10.6, "end": 11.2},
     ]
     a = m.build_audio(cfg, script)
     assert a["bgm"]["file"] == "bgm.mp3" and a["se_volume"] == 0.5
-    got = [(e["t"], e["se"]) for e in a["events"]]
-    # intro(0)、flash(5)、聞き手surprise(9)、flash(20)、outro(30)。
-    # 解説役surprise(7)は除外。flash直後のsurprise(20.3)はmin_gapで抑制。section=outro発言のflashはoutro優先。
-    assert got == [(0.0, "intro"), (5.0, "flash"), (9.0, "surprise"), (20.0, "flash"), (30.0, "outro")], got
-    print("  build_audio: SEイベント導出/聞き手surprise限定/連発抑制 OK")
+    got = [(round(e["t"], 2), e["se"]) for e in a["events"]]
+    # SEは発話頭でなく「章境界の無音内(前末+lead)」に前出し。解説役surprise除外。outro章頭はoutro優先。
+    assert got == [(0.0, "intro"), (4.15, "flash"), (6.8, "surprise"), (7.75, "flash"), (9.75, "outro")], got
+    print("  build_audio: SEを章境界の無音へ前出し/聞き手surprise限定/outro優先 OK")
 
 
 if __name__ == "__main__":

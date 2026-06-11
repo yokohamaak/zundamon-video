@@ -134,8 +134,11 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
             trivia_seen += 1
         cuts = meta_ch.get("image_cuts") or [{}]
         # 章区間の時間範囲 [seg_start, seg_end)。章間も連結（[0,total]被覆）。
-        seg_start = 0.0 if si == 0 else turns[idxs[0]]["start"]
-        seg_end = total if si == nseg - 1 else turns[segments[si + 1]["turns"][0]]["start"]
+        # 章(セグメント)の境目は「前章の最後の発話の終わり（＝章間の無音の始まり）」に置く。
+        # こうすると章切替の演出(ページめくり)とSEを無音の中で行え、新章の声はその後に始まる
+        # （切替が終わる前に声が出る唐突さを解消）。発話間に無音が無いとき(テスト等)は従来と同値。
+        seg_start = 0.0 if si == 0 else turns[segments[si - 1]["turns"][-1]]["end"]
+        seg_end = total if si == nseg - 1 else turns[idxs[-1]]["end"]
         # カット割り当て: ターンの cut アンカー（その章の何番目の画像か）があれば章内をそれで
         # 区切る（話の流れで切替）。無ければ均等割り（後方互換）。
         groups = _cut_groups(idxs, turns, len(cuts))
@@ -318,21 +321,27 @@ def build_audio(config, script):
     se_files = ac.get("se") or {}
     questioner = config.get("story", {}).get("questioner", "ずんだもん")
     min_gap = float(ac.get("se_min_gap", 0.8))
+    # ネタ切替/締めSEを「章境界の無音」に置く＝直前発話の終わり＋se_lead（発話頭は越えない）。
+    # 視覚のページめくり開始(FLIP_HOLD)と揃え、切替演出とSEを同時に・声の前に鳴らす。
+    se_lead = float(ac.get("se_lead", 0.15))
 
     raw = []  # (t, priority, se_type)。priorityが小さいほど衝突時に優先。
     if se_files.get("intro"):
         raw.append((0.0, 0, "intro"))
     outro_done = False
+    prev_end = 0.0
     for turn in script:
         t = float(turn.get("start", 0.0) or 0.0)
+        cue_t = min(t, prev_end + se_lead)  # 章境界の無音内（直前発話末＋lead・声は越えない）
         if se_files.get("flash") and turn.get("effect") == "flash":
-            raw.append((t, 1, "flash"))
+            raw.append((cue_t, 1, "flash"))
         if se_files.get("outro") and not outro_done and turn.get("section") == "outro":
-            raw.append((t, 0, "outro"))  # outro章頭はflashも持つが、締めSEを優先（prio小）
+            raw.append((cue_t, 0, "outro"))  # outro章頭はflashも持つが、締めSEを優先（prio小）
             outro_done = True
         if (se_files.get("surprise") and turn.get("speaker") == questioner
                 and turn.get("emotion") == "surprise"):
-            raw.append((t, 2, "surprise"))
+            raw.append((t, 2, "surprise"))  # 驚きは反応なので発話に同期
+        prev_end = float(turn.get("end", t) or t)
 
     raw.sort(key=lambda x: (x[0], x[1]))
     events = []

@@ -328,18 +328,22 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   // 章切替のページめくり（CSS 3D flip）。前章の最後の画像を「ページ」として左ヒンジで回転させ、
   // 下から新章の画像を現す。章内のカット切替は従来のフェードのまま（＝章が変わる時だけめくる）。
   const FLIP_DUR = 0.55; // めくり時間（秒）
+  const FLIP_HOLD = 0.15; // めくり前に前章画像を保持＝章終わりの余白（config.audio.se_lead と揃える）
   const prevTopic = activeTopicIndex > 0 ? topics[activeTopicIndex - 1] : null;
   const isChapterFlip =
     !!activeTopic && !!prevTopic && !!prevTopic.image &&
     prevTopic.chapter !== activeTopic.chapter;
+  // 章のtopic.startは「前章末＝章間の無音の始まり」（build_chapter_topics）。
+  // よって [start, start+HOLD] は前章画像を保持（章終わりの余白）、その後 FLIP_DUR でめくり、
+  // 残りの無音で新章画像を見せてから声が始まる。
   const flipStart = activeTopic?.start ?? 0;
   const flipP = isChapterFlip
-    ? interpolate(t, [flipStart, flipStart + FLIP_DUR], [0, 1], {
+    ? interpolate(t, [flipStart + FLIP_HOLD, flipStart + FLIP_HOLD + FLIP_DUR], [0, 1], {
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp",
       })
     : 1;
-  const flipping = isChapterFlip && flipP < 1;
+  const flipping = isChapterFlip && t < flipStart + FLIP_HOLD + FLIP_DUR;
   // めくり中は新画像を即・全表示（前章ページが上を覆うのでフェード不要）。
   const effectiveTopicFade = flipping ? 1 : topicFade;
   // Ken Burns: カット内の進捗(0→1)。カットのstart→endで線形。endが無ければ動かさない。
