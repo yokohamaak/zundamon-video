@@ -468,6 +468,17 @@ def main():
     # 締めに二人同時(ユニゾン)の固定挨拶を足す（生成・既存どちらの台本にも・空設定なら無効）。
     append_closing_chorus(script_result, config)
 
+    # 尺チェック：台本文字数が予算を大きく超えたら警告（Geminiが長く書きすぎた時に気づけるように）。
+    s_cfg = config.get("story", {})
+    budget = int(float(s_cfg.get("target_minutes", story_script.DEFAULT_MINUTES)) * story_script.CHARS_PER_MINUTE)
+    total_chars = sum(len(t.get("text") or "") for t in script_result.get("script", []))
+    est_min = total_chars / story_script.CHARS_PER_MINUTE if story_script.CHARS_PER_MINUTE else 0
+    if budget and total_chars > budget * 1.15:
+        logger.warning(f"台本が長すぎます: {total_chars}字（予算{budget}字・推定{est_min:.1f}分）。"
+                       f"レビューでネタ/ターンを削るか『全体を作り直す』で短く作り直すのを検討してください。")
+    else:
+        logger.info(f"台本 {total_chars}字（推定{est_min:.1f}分・予算{budget}字）")
+
     # --script-only はここまでで停止（音声/metaはskip）
     if args.script_only:
         out_path = out_dir / "script.json"

@@ -33,7 +33,7 @@ DEFAULT_TOPICS = 5  # 1本に束ねる「実は」ネタの目安数
 DEFAULT_MINUTES = 7
 
 # 読み上げ速度の実測換算（VOICEVOX・現行の話者speed設定下で約335字/分）。
-CHARS_PER_MINUTE = 335
+CHARS_PER_MINUTE = 390  # 実測較正（VOICEVOX掛け合いの実効レート≒389字/分）。分→文字数予算の換算に使用
 
 # 動画(video/src/types.ts)が解釈する感情enum。これ以外の値は normal に倒す。
 VALID_EMOTIONS = {"normal", "surprise", "happy", "sad", "angry"}
@@ -236,9 +236,11 @@ def build_prompt(config: dict, also_avoid=None) -> str:
 
 {_rules_block(questioner, explainer, topics)}
 
-## 構成・分量
-- **台本全体の合計文字数が約{total_chars}字（読み上げ約{minutes:.0f}分相当）を目安**。大きく超えない。
-- テンポよく。1ネタを長く語りすぎず、{topics}個を歯切れよく回す。
+## 構成・分量【厳守・超過厳禁＝長すぎると尺オーバー】
+- **台本全体（script の text 合計）を必ず {total_chars}字以内に収める**（読み上げ約{minutes:.0f}分）。これは目安でなく**上限**。超えそうなら各ネタを削って収める。
+- **1ネタ（trivia章）は最大3往復＝6ターン以内**。問い→外し→実はね→驚き→締め を簡潔に。冗長な追い打ち・脱線・繰り返しを入れない。
+- **intro は最大2往復＝4ターン以内、outro も最大2往復＝4ターン以内**。挨拶・前置き・まとめを長くしない。
+- **1ターンは最大2文・80字程度まで**。説明は要点だけに絞る。
 - 専門用語は{explainer}が一言で噛み砕く。
 
 {_output_block(explainer, questioner)}
@@ -689,8 +691,9 @@ def build_regen_prompt(config: dict, theme: str, existing_facts: list, n_targets
 
 {_rules_block(questioner, explainer, topics, regen=True)}
 
-## 分量
-- 各ネタはテンポよく簡潔に。1ネタあたり数往復で歯切れよく。
+## 分量【厳守】
+- **1ネタ（trivia章）は最大3往復＝6ターン以内**。問い→外し→実はね→驚き→締め を簡潔に。冗長な追い打ち・繰り返しを入れない。
+- **1ターンは最大2文・80字程度まで**。長く語りすぎない。
 
 {_regen_output_block(explainer, questioner, n_targets)}
 
