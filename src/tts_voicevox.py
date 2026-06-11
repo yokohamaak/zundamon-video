@@ -294,13 +294,16 @@ def synthesize_dialogue(script, config):
     # 値は config で耳調整可（pre=文先頭の無音 / post=文末の余韻＝文間の間）。
     pre_phoneme = float(vc.get("pre_phoneme_length", 0.0))
     post_phoneme = float(vc.get("post_phoneme_length", 0.1))
+    # 動画開始から声が始まるまでの無音（先頭リードイン）。digest.mp3 の頭に足し、
+    # 全発話/字幕の時刻もこの分ずらす。最初の画像は0秒から出る（topics[0].startは0のまま）。
+    lead_in = float(vc.get("lead_in_silence", 0.0))
 
     if not script:
         raise ValueError("空の台本です")
 
     pcm_chunks = []
     turns_out = []
-    current = 0.0
+    current = lead_in   # 先頭リードイン分だけ全発話を後ろへずらす
     ref_params = None
 
     for idx, turn in enumerate(script):
@@ -358,7 +361,12 @@ def synthesize_dialogue(script, config):
             pcm_chunks.append(b"\x00" * (int(sil * rate) * width * channels))
             current += sil
 
-    return b"".join(pcm_chunks), turns_out, ref_params
+    audio = b"".join(pcm_chunks)
+    # 先頭リードインの無音を digest の頭に付ける（turns_out は current=lead_in 起点で既にずれている）。
+    if lead_in > 0 and ref_params:
+        channels, width, rate = ref_params
+        audio = b"\x00" * (int(lead_in * rate) * width * channels) + audio
+    return audio, turns_out, ref_params
 
 
 def generate_audio(script, config, output_path):

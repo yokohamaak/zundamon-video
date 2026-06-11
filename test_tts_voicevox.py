@@ -132,6 +132,24 @@ def test_chapter_gap_pause():
     print("  chapter-gap: 章境界のみ追加の間 OK")
 
 
+def test_lead_in_silence():
+    _install_fakes()
+    script = [{"speaker": "四国めたん", "text": "あ。"}, {"speaker": "ずんだもん", "text": "い。"}]
+    spk = {"四国めたん": 2, "ずんだもん": 3}
+    base_audio, base_turns, params = tv.synthesize_dialogue(script, {"tts_voicevox": {"speakers": spk}})
+    lead = 0.5
+    audio, turns, _ = tv.synthesize_dialogue(
+        script, {"tts_voicevox": {"speakers": spk, "lead_in_silence": lead}})
+    # 1ターン目・字幕が lead 秒だけ後ろへ
+    assert abs(turns[0]["start"] - lead) < 1e-6, "先頭がlead_in秒ずれる"
+    assert abs((turns[0]["start"] - base_turns[0]["start"]) - lead) < 1e-6
+    assert abs(turns[0]["sentences"][0]["start"] - lead) < 1e-6, "字幕もずれる"
+    # digest の頭に lead 分の無音が付く
+    ch, w, rate = params
+    assert len(audio) - len(base_audio) == int(lead * rate) * w * ch, "先頭に無音が付く"
+    print("  lead-in: 先頭無音＋全時刻オフセット OK")
+
+
 def test_unknown_speaker():
     _install_fakes()
     script = [{"speaker": "謎", "text": "だれ？"}]
@@ -265,6 +283,7 @@ if __name__ == "__main__":
     test_per_speaker_voice_params()
     test_inter_turn_pause()
     test_chapter_gap_pause()
+    test_lead_in_silence()
     test_unknown_speaker()
     test_per_turn_voice_override()
     test_per_turn_pause()
