@@ -1,7 +1,8 @@
 """
-Gemini IT技術史台本生成モジュール
+Gemini 実は〇〇雑学 台本生成モジュール
 
-1テーマ（例「なぜGitは世界を変えたのか」）を題材に、章立て時系列の掛け合い台本を生成する。
+1つの小テーマ（例「実は知らないデジタルの名前の謎」）のもとに「実は」ネタを複数束ね、
+掛け合い台本（intro＋各ネタ＋outro）を生成する。
 役割: ずんだもん=聞き手/初心者 / 四国めたん=解説役（configで変更可）。
 出力は tts_voicevox・動画が使う script 形式 [{"speaker","text",...}] ＋ 章メタ chapters。
 
@@ -11,8 +12,8 @@ Gemini IT技術史台本生成モジュール
 
 config（例）:
     story:
-      theme: "なぜGitは世界を変えたのか"   # 空ならGeminiにテーマ選定させる
-      chapters: 5                          # 章数の目安
+      theme: "実は知らないデジタルの名前の謎"   # 空ならGeminiに小テーマ選定させる
+      topics: 5                            # 束ねる「実は」ネタの数
       questioner: ずんだもん               # 聞き手
       explainer: 四国めたん                # 解説役
       target_minutes: 7
@@ -157,7 +158,7 @@ def _avoid_block(also_avoid) -> str:
 
 
 def build_prompt(config: dict, also_avoid=None) -> str:
-    """configから日本語のIT技術史・章立て掛け合い台本生成プロンプトを作る（純関数）。
+    """configから日本語の「実は〇〇雑学」掛け合い台本生成プロンプトを作る（純関数）。
 
     also_avoid=過去に出した/却下したネタ[{title,summary}]。指定すると重複禁止セクションを足す。
     """
@@ -731,7 +732,7 @@ def splice_regenerated(script_result: dict, regen: dict) -> dict:
 
 def generate_story_script(config: dict, also_avoid=None) -> dict:
     """
-    configからIT技術史の章立て掛け合い台本を生成する。
+    configから「実は〇〇雑学」の掛け合い台本を生成する。
     also_avoid=過去動画で出した/却下したネタ[{title,summary}]。指定すると重複回避に渡す。
     Returns: {"theme": str|None, "chapters": [...], "script": [...]}
     """

@@ -1,4 +1,4 @@
-# IT技術史ストーリー動画パイプライン設定
+# 実は〇〇雑学 動画パイプライン設定
 # 秘密情報は書かない（APIキーは環境変数 GEMINI_API_KEY / PEXELS_API_KEY / PIXABAY_API_KEY）
 
 # 番組（実は〇〇雑学・掛け合い）の設定

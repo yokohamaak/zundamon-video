@@ -132,7 +132,7 @@ function kenBurnsTransform(index: number, p: number): string {
 }
 
 // 注目アノテーション（image_plan mode=focus）。
-// クロップで切り出す代わりに、APOD元画像を contain で全体表示し、該当領域(focus)に枠を重ねて
+// クロップで切り出す代わりに、元画像を contain で全体表示し、該当領域(focus)に枠を重ねて
 // その中心へゆっくり寄る（題材一致＋文脈保持）。画像アスペクトで枠を実被写体に正確に合わせる。
 const FocusVisual: React.FC<{
   image: string;
@@ -587,7 +587,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
           />
         ) : null}
 
-        {/* flash: 白フラッシュ転換（ifの世界に切り替わる瞬間など） */}
+        {/* flash: 白フラッシュ転換（ネタが切り替わる瞬間など） */}
         {fx.flash > 0 ? (
           <div
             style={{

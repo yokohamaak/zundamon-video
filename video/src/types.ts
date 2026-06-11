@@ -1,4 +1,4 @@
-// meta.json の構造（main.py: update_web が出力する形式）
+// meta.json の構造（main_story.py の build_meta が出力する形式）
 // 感情。立ち絵の目/効果の差分とオーバーアクションの種別に使う。
 // 任意：未指定なら caption テキストから簡易推定（DialogueVideo側）。
 export type Emotion = "normal" | "surprise" | "happy" | "sad" | "angry";
@@ -27,10 +27,11 @@ export type Turn = {
   end: number;
   sentences?: Sentence[];
   emotion?: Emotion;
-  // 進行フェーズ・画面演出（apod_script.py が付与）。Remotionが演出に使う。
+  // 画面演出 effect（story_script が付与）。Remotionが演出に使う。
+  // phase は旧APOD由来で「実は〇〇雑学」では未付与・未使用（型整合のため残置）。
   phase?: Phase;
   effect?: Effect;
-  // IT技術史ストーリー: 所属章とsection（story_script が付与）。描画では未使用だが型整合用。
+  // 実は〇〇雑学: 所属章とsection（intro/trivia/outro・story_script が付与）。描画では未使用だが型整合用。
   chapter?: number;
   section?: Section;
   // C-1: その発言中に映す画像が章の image_cuts の何番目か（0始まり）。timing算出に使う（描画では未使用）。
@@ -48,7 +49,7 @@ export type Topic = {
   image?: string;
   start: number;
   end: number;
-  // manual想像イラストが未用意のときのプレースホルダ表示用（apod側が付与）。
+  // 旧APOD由来：manual想像イラスト未用意時のプレースホルダ表示用（雑学では未使用・型整合のため残置）。
   // note=情景プロンプト / placeholder=差し替え先ファイル名（例 manual_01.png）。
   note?: string;
   placeholder?: string;

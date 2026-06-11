@@ -103,7 +103,7 @@ def test_build_credits():
 
 def test_build_meta():
     script_result = {
-        "theme": "なぜGitは世界を変えたのか",
+        "theme": "実は知らないデジタルの名前の謎",
         "chapters": CHAPTERS,
         "script": [
             {"speaker": "四国めたん", "text": "a", "chapter": 0, "section": "intro", "emotion": "normal", "effect": "kenburns"},
@@ -115,7 +115,7 @@ def test_build_meta():
     config = {"characters_gender": {"四国めたん": "female", "ずんだもん": "male"},
               "tts_voicevox": {"speakers": {"四国めたん": 2, "ずんだもん": 3}}}
     meta = m.build_meta(script_result, turns, config, "2026-06-08T12:00:00+09:00")
-    assert meta["title"] == "なぜGitは世界を変えたのか", "title=theme"
+    assert meta["title"] == "実は知らないデジタルの名前の謎", "title=theme"
     # speakers: 定義順=画面配置（左=四国めたん/右=ずんだもん）
     assert [s["name"] for s in meta["speakers"]] == ["四国めたん", "ずんだもん"]
     assert meta["speakers"][0]["gender"] == "female" and meta["speakers"][1]["gender"] == "male"

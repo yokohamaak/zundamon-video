@@ -25,9 +25,9 @@ for (const f of ["meta.json", "digest.mp3"]) {
   console.log(`[prep] copied ${f}  (from ${srcDir})`);
 }
 
-// 中央ビジュアル画像（APOD等）を srcDir → public/ にコピー。
-// meta.json の topics[].image がこれらを staticFile で参照する（例: "apod.jpg"）。
-// digest(docs/main)には画像が無いので no-op。
+// 中央ビジュアル画像（章カットの画像）を srcDir → public/ にコピー。
+// meta.json の topics[].image がこれらを staticFile で参照する（例: "ch_01_00.jpg"）。
+// 画像が無い場合は no-op（全プレースホルダ）。
 const IMG_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 const imgs = readdirSync(srcDir).filter((f) => IMG_EXTS.some((e) => f.toLowerCase().endsWith(e)));
 for (const f of imgs) copyFileSync(resolve(srcDir, f), resolve(pubDir, f));
@@ -89,7 +89,7 @@ for (const [sub, exts, label] of [
 }
 
 // topics（中央ビジュアルの切替）の確定。
-// 本番ではコンテンツ側(main.py等)が meta.json に topics を出力する想定。
+// 本番ではコンテンツ側(main_story.py)が meta.json に topics を出力する想定。
 // まだ出力していない間だけ、デモ用に均等割りで注入する（出力済みなら触らない）。
 const metaPath = resolve(pubDir, "meta.json");
 const meta = JSON.parse(readFileSync(metaPath, "utf-8"));
@@ -97,7 +97,7 @@ let metaChanged = false;
 
 // manual想像イラストのプレースホルダ昇格：
 // 差し替え先(placeholder=manual_NN.png)の画像が置かれていれば image へ昇格する。
-// これで「画像を置く→renderするだけ」で差し替わる（main_apod再実行は不要）。
+// これで「画像を置く→renderするだけ」で差し替わる（main_story再実行は不要）。
 for (const t of meta.topics ?? []) {
   if (t.placeholder && existsSync(resolve(pubDir, t.placeholder))) {
     t.image = t.placeholder;

@@ -1,8 +1,13 @@
-# IT技術史ストーリー動画パイプライン（APOD if動画からの作り替え）
+# 動画パイプライン 設計・経緯メモ（APOD if動画からの作り替え）
 
-> このファイルは新repo `zundamon-video` の設計・実装計画書。
+> **⚠️ コンセプトは現行と異なる（歴史記録）。** このファイルは APOD→ランキング→**IT技術史**ストーリー
+> までの設計・経緯の記録。その後さらに **「実は〇〇雑学」** へピボットしており（史実の誕生秘話は自動生成に
+> 不向きと判明）、**現行の仕様・実装は雑学版が最新**。下記の章立て（intro→background→turning_point→impact→outro）や
+> 「IT技術史」の記述は**旧設計**。現行は section=**intro / trivia / outro**。
+> - 現行コンセプト・実行方法 → [README.md](README.md) / [USAGE.md](USAGE.md) / [WORKFLOW.md](WORKFLOW.md)
+> - このファイルは**作り替えの判断履歴**として残す。
+>
 > APOD版は別repo digest-to-video / branch feat/voicevox-tts（commit 7723f1b）に保存済み＝このrepoの作業は影響しない。
-> 旧「ランキング動画」案からさらにピボット。経緯は下記Context参照。
 
 ## Context（なぜ作り替えるか）
 

@@ -1,7 +1,7 @@
 """
-IT技術史ストーリー動画パイプライン - メインスクリプト
+実は〇〇雑学 動画パイプライン - メインスクリプト
 
-テーマ → Geminiで章立て掛け合い台本 → VOICEVOX音声 → meta.json + digest.mp3 + 章画像
+小テーマ → Geminiで掛け合い台本（intro＋各ネタ＋outro） → VOICEVOX音声 → meta.json + digest.mp3 + 章画像
 を生成する。出力ディレクトリは video 側 prep が読む docs/<dir> 形式。
 
 VOICEVOXは自己ホストで課金なし、Gemini(text)・画像庫(Wikimedia/Pexels/Pixabay)は無料枠。
@@ -364,7 +364,7 @@ def main():
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.info("=== IT技術史ストーリー動画パイプライン開始 ===")
+    logger.info("=== 実は〇〇雑学 動画パイプライン開始 ===")
 
     # 1. 台本：既存scriptを使う（--from-script）か、Geminiで生成する
     if args.from_script:
