@@ -451,6 +451,13 @@ def download_image(url, timeout=20):
     return True, ext, data
 
 
+def _reset_adjust(cut):
+    """画像差し替え時、前画像用のクロップ/補正/フィット/余白/非表示をクリアする（純関数・破壊的）。"""
+    for k in ("crop", "filter", "fit", "pad", "bg"):
+        cut[k] = None
+    cut["hide"] = False
+
+
 def apply_import_url(review, key, url, attribution):
     """WebからD&DされたURLを取り込み、ch_NN_MM.<ext>で保存して review を更新。
 
@@ -478,6 +485,7 @@ def apply_import_url(review, key, url, attribution):
     cut["image"] = filename
     cut["attribution"] = (attribution or "").strip() or url  # 既定は出典URL（要ライセンス確認）
     cut["approved"] = True
+    _reset_adjust(cut)       # 旧画像用のクロップ/補正を持ち越さない
     return True, "ok", filename
 
 
@@ -500,6 +508,7 @@ def apply_replace(review, key, upload_name, data_b64, attribution):
     cut["image"] = filename
     cut["attribution"] = (attribution or "").strip() or None
     cut["approved"] = True  # 差し替え＝人が選んだ＝承認扱い
+    _reset_adjust(cut)       # 旧画像用のクロップ/補正を持ち越さない
     return True, "ok", filename
 
 
@@ -1528,7 +1537,7 @@ function buildAdjust(ci,k){
   const r3=document.createElement('div'); r3.className='row';
   const fileL=document.createElement('label'); fileL.className='mini'; fileL.style.cursor='pointer'; fileL.textContent='差し替え';
   const file=document.createElement('input'); file.type='file'; file.accept='image/*'; file.style.display='none'; fileL.appendChild(file);
-  const onNew=(fn)=>{ cutMap[key]=Object.assign({},cutMap[key],{image:fn}); cut.image=fn; render(); };
+  const onNew=(fn)=>{ cutMap[key]=Object.assign({},cutMap[key],{image:fn,crop:null,filter:null,fit:null,pad:null,bg:null,hide:false}); render(); };
   file.onchange=()=>{ const f=file.files[0]; if(!f)return; const rd=new FileReader();
     rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
     rd.readAsDataURL(f); };
@@ -1631,7 +1640,7 @@ function render(){
         preview.addEventListener('drop', async e=>{ e.preventDefault(); preview.style.outline='';
           const ky=ci+'_'+k;
           const res=await dropImport(ky, e.dataTransfer, (cutMap[ky]||{}).attribution||'');
-          if(res && res.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:res.filename}); render(); }
+          if(res && res.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:res.filename,crop:null,filter:null,fit:null,pad:null,bg:null,hide:false}); render(); }
           else if(res){ alert(res.message||'取り込み失敗'); } });
         const q=document.createElement('input'); q.type='text'; q.className='q'; q.placeholder='英語の検索語';
         q.value=cut.image_query||''; q.onchange=()=>cut.image_query=q.value;
