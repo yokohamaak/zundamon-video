@@ -36,14 +36,19 @@ cd video && node scripts/psd-export.mjs build zundamon && node scripts/psd-expor
 python main_story.py --stop-after-images                                  # [1] 台本+画像取得→停止
 python review_server.py --dir docs/story                                  # [2] ブラウザで確認/編集/承認
 python main_story.py --from-script docs/story/script.json --images-from-dir   # [3] 音声+meta
-cd video && SRC_DIR=../docs/story npm run render                          # [4] 動画化 → out/video.mp4
+cd video && npm run render                                                # [4] 横16:9 → out/video.mp4
+cd video && npm run render:short                                         # [4'] 縦9:16ショート(1ネタ) → out/short.mp4
 ```
+
+> 画像レビューだけ直した場合は [3] の代わりに `python main_story.py --from-script docs/story/script.json --meta-only`（音声を作り直さずmetaだけ再生成・VOICEVOX不要）。
 
 ### B. レビューなしで一気に通す（確認用）
 ```bash
 python main_story.py                          # 台本→画像→音声→meta を一括
-cd video && SRC_DIR=../docs/story npm run render
+cd video && npm run render
 ```
+
+> `npm run dev`/`render` の入力元は既定で `docs/story`（prepが自動でpublicへコピー）。別ディレクトリは `SRC_DIR=/path npm run dev`。
 
 ### C. 台本だけ先に見る（無料・VOICEVOX不要）
 ```bash
@@ -60,10 +65,12 @@ python main_story.py --script-only            # docs/story/script.json を出力
 | 台本＋画像を取得してレビューに回す | `python main_story.py --stop-after-images` |
 | ブラウザで台本・画像を確認/差し替え | `python review_server.py --dir docs/story` |
 | 承認後に音声＋metaを作る | `python main_story.py --from-script docs/story/script.json --images-from-dir` |
+| 画像レビューだけ直して反映（音声据置・速い） | `python main_story.py --from-script docs/story/script.json --meta-only` |
 | 画像なし（全プレースホルダ）で動作確認 | `python main_story.py --no-images` |
 | 既存台本を手編集して作り直す | `python main_story.py --from-script docs/story/script.json` |
-| 動画を反復確認（速い・HMR） | `cd video && SRC_DIR=../docs/story npm run dev` |
-| 最終mp4を書き出す | `cd video && SRC_DIR=../docs/story npm run render` |
+| 動画を反復確認（速い・HMR） | `cd video && npm run dev` |
+| 最終mp4を書き出す（横16:9） | `cd video && npm run render` |
+| ショート書き出し（縦9:16・1ネタ） | `cd video && npm run render:short` |
 | テストを回す | 下記「テスト」 |
 
 ---
@@ -82,12 +89,14 @@ python main_story.py [オプション]
 | `--stop-after-images` | off | 台本＋画像取得＋review.json/script.json を出力して停止（レビュー用） |
 | `--from-script PATH` | — | 既存 script.json を使い Gemini 生成をskip |
 | `--images-from-dir` | off | 画像取得をskipし review.json の承認結果から meta を生成（承認後の続行） |
+| `--meta-only` | off | 音声を作り直さず既存 digest.mp3 の尺を流用し meta.json だけ再生成（VOICEVOX不要・課金なし。画像レビュー微修正の反映用。`--from-script` 必須） |
 | `--no-images` | off | 画像取得を無効化し全プレースホルダで続行 |
 
 **よく使う組み合わせ**
 - 通常生成：`python main_story.py`
 - レビュー前停止：`python main_story.py --stop-after-images`
 - 承認後続行：`python main_story.py --from-script docs/story/script.json --images-from-dir`
+- 画像レビューだけ反映（音声据置・速い）：`python main_story.py --from-script docs/story/script.json --meta-only`
 - 台本手直し後に再生成：`python main_story.py --from-script docs/story/script.json`（画像は取り直す）
 
 ### `review_server.py` — 台本＋画像の中身レビュー（ローカルWeb）
