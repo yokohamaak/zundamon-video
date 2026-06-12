@@ -314,18 +314,23 @@ export const DialogueVideo: React.FC<{
   meta: Meta;
   portrait?: boolean;
   clipStartSec?: number;
+  // 章末尾の実時刻（秒）。ショートは末尾の余韻で映像を次章へ進めず最後のカットで固定する用。
+  clipEndSec?: number;
   // 切り抜く章番号（入力props用。実際の窓計算は Root の calculateMetadata 側。描画では未使用）。
   clipChapter?: number;
   // ショート冒頭に重ねるフック（掴み）テロップ。縦のみ・冒頭数秒だけ表示。
   hookText?: string;
   // ショート終盤に出すCTA（続きは本編で／登録誘導）。縦のみ・末尾数秒。空なら出さない。
   ctaText?: string;
-}> = ({ meta, portrait = false, clipStartSec = 0, hookText = "", ctaText = "" }) => {
+}> = ({ meta, portrait = false, clipStartSec = 0, clipEndSec = 0, hookText = "", ctaText = "" }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   // 切り抜き時：フレームは章先頭=0だが、台本/音声の時刻は実タイムライン基準。
   // tに clipStartSec を足して実時刻へ写像（横動画は clipStartSec=0 で従来どおり）。
-  const t = frame / fps + clipStartSec;
+  // ショートの末尾余韻（音声フェード中）は映像を次章へ進めず章末で固定（ブツ切り回避）。
+  // ※音声は別<Audio>で実再生のためここでの clamp の影響を受けない。
+  let t = frame / fps + clipStartSec;
+  if (portrait && clipEndSec) t = Math.min(t, clipEndSec - 0.05);
   const BOARD = portrait ? BOARD_PORTRAIT : BOARD_LANDSCAPE;
   const L = layoutFor(portrait);
 
@@ -508,8 +513,23 @@ export const DialogueVideo: React.FC<{
         fontFamily: `'${FONT_FAMILY}', 'Hiragino Sans', 'Yu Gothic', sans-serif`,
       }}
     >
-      {/* メインボイス。切り抜き時は trimBefore で章先頭へ頭出し（横は clipStartSec=0）。 */}
-      <Audio src={staticFile("digest.mp3")} trimBefore={Math.round(clipStartSec * fps)} />
+      {/* メインボイス。切り抜き時は trimBefore で章先頭へ頭出し（横は clipStartSec=0）。
+          ショートは末尾でフェードアウト（次章へ食い込んだ音声のブツ切りを防ぐ）。 */}
+      <Audio
+        src={staticFile("digest.mp3")}
+        trimBefore={Math.round(clipStartSec * fps)}
+        volume={
+          portrait
+            ? (f) =>
+                interpolate(
+                  f,
+                  [durationInFrames - Math.round(0.8 * fps), durationInFrames],
+                  [1, 0],
+                  { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+                )
+            : undefined
+        }
+      />
 
       {/* BGM（全体ループ・薄く）。フェードインは無し（冒頭から定常音量）・末尾のみフェードアウト。
           prep が未配置なら meta.audio.bgm=null で無音。 */}

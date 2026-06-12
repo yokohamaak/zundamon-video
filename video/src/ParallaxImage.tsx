@@ -64,6 +64,34 @@ type GL = {
   imgAspect: number;
 };
 
+// 1フレーム描画（progressでカメラを動かす）。init直後と毎フレームの両方から呼ぶ。
+function drawGL(ctx: GL, progress: number, boxW: number, boxH: number, intensity: number) {
+  const { gl, prog, imgTex, depthTex, imgAspect } = ctx;
+  gl.useProgram(prog);
+  // cover：枠アスペクトに対し、長い軸を切り取るUVスケール（<=1）。
+  const boxAspect = boxW / boxH;
+  const sx = imgAspect > boxAspect ? boxAspect / imgAspect : 1;
+  const sy = imgAspect > boxAspect ? 1 : imgAspect / boxAspect;
+  // カメラ：寄り＋ドリフト。p=0→1で push-in、左右に振る。
+  const p = progress;
+  const zoom = 1.08 + 0.22 * p;
+  const camX = (p - 0.5) * 0.13;
+  const camY = (p - 0.5) * 0.05;
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, imgTex);
+  gl.uniform1i(gl.getUniformLocation(prog, "uImage"), 0);
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, depthTex);
+  gl.uniform1i(gl.getUniformLocation(prog, "uDepth"), 1);
+  gl.uniform2f(gl.getUniformLocation(prog, "uImgScale"), sx, sy);
+  gl.uniform1f(gl.getUniformLocation(prog, "uZoom"), zoom);
+  gl.uniform2f(gl.getUniformLocation(prog, "uCam"), camX, camY);
+  gl.uniform1f(gl.getUniformLocation(prog, "uAmp"), 2.6 * intensity);
+  gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.finish();
+}
+
 export const ParallaxImage: React.FC<{
   image: string;       // staticFile相対パス
   depth: string;       // 深度マップ staticFile相対パス
@@ -114,6 +142,9 @@ export const ParallaxImage: React.FC<{
         depthTex: makeTexture(gl, dep)!,
         imgAspect: img.naturalWidth / img.naturalHeight,
       };
+      // ★読込直後にその場で初回描画する。これをしないと連続render時、
+      //   カット切替でマウントした最初のフレームが「描画前」に確定して空白になる。
+      drawGL(glRef.current, progress, boxW, boxH, intensity);
       setReady(true);
       continueRender(h);
     })().catch(() => continueRender(h));
@@ -127,34 +158,7 @@ export const ParallaxImage: React.FC<{
     if (!ready) return;
     const h = delayRender("parallax-draw");
     const ctx = glRef.current;
-    if (!ctx) {
-      continueRender(h);
-      return;
-    }
-    const { gl, prog, imgTex, depthTex, imgAspect } = ctx;
-    gl.useProgram(prog);
-    // cover：枠アスペクトに対し、長い軸を切り取るUVスケール（<=1）。
-    const boxAspect = boxW / boxH;
-    const sx = imgAspect > boxAspect ? boxAspect / imgAspect : 1;
-    const sy = imgAspect > boxAspect ? 1 : imgAspect / boxAspect;
-    // カメラ：寄り＋ドリフト。p=0→1で push-in、左右に振る。動きを強めに。
-    const p = progress;
-    const zoom = 1.08 + 0.22 * p;
-    const camX = (p - 0.5) * 0.13;
-    const camY = (p - 0.5) * 0.05;
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, imgTex);
-    gl.uniform1i(gl.getUniformLocation(prog, "uImage"), 0);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, depthTex);
-    gl.uniform1i(gl.getUniformLocation(prog, "uDepth"), 1);
-    gl.uniform2f(gl.getUniformLocation(prog, "uImgScale"), sx, sy);
-    gl.uniform1f(gl.getUniformLocation(prog, "uZoom"), zoom);
-    gl.uniform2f(gl.getUniformLocation(prog, "uCam"), camX, camY);
-    gl.uniform1f(gl.getUniformLocation(prog, "uAmp"), 2.6 * intensity);
-    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    gl.finish();
+    if (ctx) drawGL(ctx, progress, boxW, boxH, intensity);
     continueRender(h);
   }, [ready, progress, boxW, boxH, intensity]);
 
