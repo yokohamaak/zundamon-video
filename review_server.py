@@ -1244,7 +1244,7 @@ function buildAdjust(ci,k){
   bgState.textContent=cut.bg?('色 '+cut.bg):'透過';  // 今の状態を明示
   const hideL=document.createElement('label'); hideL.className='chk'; hideL.title='中央画像を出さない（背景＋立ち絵だけ）';
   const hide=document.createElement('input'); hide.type='checkbox'; hide.checked=!!cut.hide;
-  hide.onchange=()=>{ cut.hide=hide.checked; setOpt(key,{hide:hide.checked}); };
+  hide.onchange=()=>{ cut.hide=hide.checked; setOpt(key,{hide:hide.checked}); render(); };
   hideL.appendChild(hide); hideL.appendChild(document.createTextNode(' 画像なし'));
   r2.appendChild(pad); r2.appendChild(bg); r2.appendChild(bgc); r2.appendChild(bgState); r2.appendChild(hideL);
 
