@@ -19,8 +19,16 @@ story:
   explainer: 四国めたん                # 解説役・語り役
   target_minutes: 8                    # 狙う尺（分）。総量目安に使う（実測約335字/分換算）
   # 締めの固定エンディング（Geminiに生成させず固定＝入れ忘れ防止・毎回一貫）。
-  # 順番: 生成アウトロ → closing_lines(CTA) → closing_chorus(二人同時)
-  closing_lines:                           # 高評価/登録などの固定CTA（空[]で無効）
+  # 順番: 生成アウトロ → 締めCTA(下) → closing_chorus(二人同時)
+  # closing_lines_pool があれば動画ごとに巡回（A/C…）。空なら closing_lines を使う。
+  closing_lines_pool:
+    - # A: へぇ投票（コメント誘導＋高評価＋登録）
+      - { speaker: 四国めたん, text: "今日の中で、どの実はが一番へぇだった？高評価とコメントで教えてね。", emotion: happy }
+      - { speaker: ずんだもん, text: "気に入ったらチャンネル登録もよろしくなのだ！", emotion: happy }
+    - # C: リクエスト募集（次回ネタ集め＋高評価＋登録）
+      - { speaker: 四国めたん, text: "知りたいテーマがあったら、コメントで教えてね。採用するかも。高評価も嬉しいわ。", emotion: happy }
+      - { speaker: ずんだもん, text: "気に入ったらチャンネル登録もよろしくなのだ！", emotion: happy }
+  closing_lines:                           # 巡回プールが空のときの固定CTA（フォールバック）
     - { speaker: 四国めたん, text: "楽しんでもらえたら、高評価とチャンネル登録お願いするわ。", emotion: happy }
     - { speaker: ずんだもん, text: "登録してくれたら、ずんだもん跳ねて喜ぶのだ！", emotion: happy }
   closing_chorus: "それじゃあ、また見てね〜〜"   # 締めの二人同時(ユニゾン)。読点(、)でチャンクを区切り、各チャンクで二人の頭を揃える

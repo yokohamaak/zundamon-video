@@ -358,15 +358,30 @@ def build_audio(config, script):
     }
 
 
-def append_closing_chorus(script_result, config):
-    """締めに固定エンディングを足す：固定CTA(closing_lines・高評価/登録) → 二人同時(closing_chorus)。
+def select_closing_lines(config, rotation):
+    """締めCTAのセットを選ぶ（純関数）。closing_lines_pool があれば rotation で巡回、無ければ closing_lines。
 
-    定型の挨拶/CTAはGeminiに生成させず固定にする＝入れ忘れ防止・毎回一貫。
-    **既存の締め（過去に付けた closing/chorus ターン）を除去してから付け直す**＝重複防止
-    （--from-script の再実行や、旧マーカーの台本でも二重にならない）。closing/chorus は
-    このappendでしか付かないので除去して安全。chorus=True は tts が全話者で重ねて合成する。
+    rotation=これまでに作った動画数（0始まり）。pool=[A,C,…] なら 動画ごとに A→C→A… と交互。
     """
     s = config.get("story", {})
+    pool = [p for p in (s.get("closing_lines_pool") or []) if p]
+    if pool:
+        return pool[int(rotation) % len(pool)]
+    return s.get("closing_lines") or []
+
+
+def append_closing_chorus(script_result, config, rotation=None):
+    """締めに固定エンディングを足す：締めCTA(コメント誘導/高評価/登録) → 二人同時(closing_chorus)。
+
+    CTAはGeminiに生成させず固定＝入れ忘れ防止・毎回一貫。closing_lines_pool があれば動画ごとに巡回。
+    **既存の締め（過去に付けた closing/chorus ターン）を除去してから付け直す**＝重複防止
+    （--from-script の再実行や、旧マーカーの台本でも二重にならない）。chorus=True は tts が重ねて合成。
+    rotation 未指定なら topic_history の動画数から決める。
+    """
+    s = config.get("story", {})
+    if rotation is None:
+        from src import topic_history
+        rotation = len(topic_history.used_themes(topic_history.genre_of(config)))
 
     def _is_cta(t):
         # Geminiがoutroに書いてしまった定型CTA（高評価/チャンネル登録）も除去＝固定CTAと重複させない。
@@ -386,8 +401,8 @@ def append_closing_chorus(script_result, config):
             t["chorus"] = True
         return t
 
-    # ① 固定CTA（高評価・チャンネル登録など）
-    for line in (s.get("closing_lines") or []):
+    # ① 締めCTA（巡回プール or 固定。コメント誘導/高評価/登録）
+    for line in select_closing_lines(config, rotation):
         text = (line.get("text") or "").strip()
         if text:
             script.append(_line(line.get("speaker") or explainer, text, line.get("emotion") or "happy"))

@@ -211,7 +211,7 @@ def test_append_closing_chorus():
                      "closing_lines": [{"speaker": "四国めたん", "text": "高評価お願い", "emotion": "happy"},
                                        {"speaker": "ずんだもん", "text": "登録するのだ"}],
                      "closing_chorus": "それじゃあまた見てね〜"}}
-    m.append_closing_chorus(sr, cfg)
+    m.append_closing_chorus(sr, cfg, rotation=0)
     s = sr["script"]
     # 元1 + CTA2 + ユニゾン1 = 4。順序: まとめ→CTA→ユニゾン
     assert [t["text"] for t in s[1:]] == ["高評価お願い", "登録するのだ", "それじゃあまた見てね〜"], s
@@ -219,28 +219,28 @@ def test_append_closing_chorus():
     assert all(t.get("closing") for t in s[1:]), "追加分にclosingマーカー"
     assert s[1]["chapter"] == 2 and s[1]["cut"] == 1 and s[1]["section"] == "outro"
     # 冪等: 再実行で二重に足さない（closingマーカーで判定）
-    m.append_closing_chorus(sr, cfg)
+    m.append_closing_chorus(sr, cfg, rotation=0)
     assert len(sr["script"]) == 4, "重複追加しない"
     # chorus空・CTAのみでも閊えず、冪等
     sr2 = {"script": [{"speaker": "x", "text": "y", "chapter": 0, "cut": 0}]}
     cfg2 = {"story": {"closing_lines": [{"speaker": "x", "text": "z"}]}}
-    m.append_closing_chorus(sr2, cfg2); m.append_closing_chorus(sr2, cfg2)
+    m.append_closing_chorus(sr2, cfg2, rotation=0); m.append_closing_chorus(sr2, cfg2, rotation=0)
     assert len(sr2["script"]) == 2 and sr2["script"][-1].get("closing"), "CTAのみでもclosingで冪等"
     # 全部空なら何もしない
     sr3 = {"script": [{"speaker": "x", "text": "y", "chapter": 0}]}
-    m.append_closing_chorus(sr3, {"story": {}})
+    m.append_closing_chorus(sr3, {"story": {}}, rotation=0)
     assert len(sr3["script"]) == 1
     # 既存の締め(旧マーカー chorus のみ含む)があっても重複させず1つに付け直す
     sr4 = {"script": [{"speaker": "x", "text": "本編", "chapter": 0, "cut": 0},
                       {"speaker": "x", "text": "旧またね", "chapter": 0, "cut": 0, "chorus": True}]}
-    m.append_closing_chorus(sr4, cfg)
+    m.append_closing_chorus(sr4, cfg, rotation=0)
     assert sr4["script"][0]["text"] == "本編", "本編は残す"
     assert sum(1 for t in sr4["script"] if t.get("chorus")) == 1, "ユニゾンは1つだけ(旧締め除去)"
     assert sr4["script"][-1].get("chorus") and sr4["script"][-1]["text"] == "それじゃあまた見てね〜"
     # Geminiがoutroに書いた定型CTA(チャンネル登録/高評価)は除去し、固定CTAだけにする
     sr5 = {"script": [{"speaker": "x", "text": "まとめ", "chapter": 0, "section": "outro", "cut": 0},
                       {"speaker": "x", "text": "チャンネル登録と高評価よろしく！", "chapter": 0, "section": "outro", "cut": 0}]}
-    m.append_closing_chorus(sr5, cfg)
+    m.append_closing_chorus(sr5, cfg, rotation=0)
     texts = [t["text"] for t in sr5["script"]]
     assert "チャンネル登録と高評価よろしく！" not in texts, "Gemini生成CTAは除去"
     assert sum(1 for t in sr5["script"] if "登録" in t["text"]) == 1, "登録セリフは固定の1つだけ"
@@ -248,9 +248,28 @@ def test_append_closing_chorus():
     print("  append_closing_chorus: CTA＋ユニゾン/重複防止/Gemini-CTA除去/空無効 OK")
 
 
+def test_select_closing_lines_rotation():
+    cfg = {"story": {"closing_lines_pool": [
+        [{"speaker": "m", "text": "A1"}, {"speaker": "z", "text": "A2"}],
+        [{"speaker": "m", "text": "C1"}],
+    ], "closing_lines": [{"speaker": "m", "text": "FB"}]}}
+    # 動画ごとに A→C→A… と巡回（rotation=動画数）
+    assert [l["text"] for l in m.select_closing_lines(cfg, 0)] == ["A1", "A2"]
+    assert [l["text"] for l in m.select_closing_lines(cfg, 1)] == ["C1"]
+    assert [l["text"] for l in m.select_closing_lines(cfg, 2)] == ["A1", "A2"]
+    # poolが空なら closing_lines（フォールバック）
+    assert [l["text"] for l in m.select_closing_lines({"story": {"closing_lines": [{"text": "FB"}]}}, 5)] == ["FB"]
+    # append でも巡回が反映（rotation=1 → C）
+    sr = {"script": [{"speaker": "x", "text": "本編", "chapter": 0, "section": "outro", "cut": 0}]}
+    m.append_closing_chorus(sr, dict(cfg, story=dict(cfg["story"], closing_chorus="ね")), rotation=1)
+    assert any(t["text"] == "C1" for t in sr["script"]), "rotation=1でCが入る"
+    print("  select_closing_lines: A/C巡回/フォールバック OK")
+
+
 if __name__ == "__main__":
     print("test_story_meta:")
     test_append_closing_chorus()
+    test_select_closing_lines_rotation()
     test_build_audio()
     test_build_chapter_topics_coverage()
     test_build_chapter_topics_placeholder()
