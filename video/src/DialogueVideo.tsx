@@ -34,6 +34,8 @@ function layoutFor(portrait: boolean) {
         capBottom: 70,
         capFont: 60,
         capPad: "26px 38px",
+        badgeLeft: 40,
+        badgeTop: 244,   // 画像(BOARD_PORTRAIT.top=300)より上の黒板に置き、被らせない
       }
     : {
         avatarL: { left: -70, bottom: -70 } as const,
@@ -44,6 +46,8 @@ function layoutFor(portrait: boolean) {
         capBottom: 40,
         capFont: 50,
         capPad: "22px 44px",
+        badgeLeft: BOARD_LANDSCAPE.left + 1,
+        badgeTop: BOARD_LANDSCAPE.top - 6,
       };
 }
 
@@ -752,8 +756,8 @@ export const DialogueVideo: React.FC<{
           key={`chap-${activeTopicIndex}`}
           style={{
             position: "absolute",
-            left: BOARD.left + 1,
-            top: BOARD.top - 6,
+            left: L.badgeLeft,
+            top: L.badgeTop,
             maxWidth: boardW - 24,
             display: "flex",
             alignItems: "stretch",
