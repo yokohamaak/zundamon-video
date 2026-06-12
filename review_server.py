@@ -19,10 +19,12 @@ import base64
 import json
 import os
 import re
+import shlex
 import struct
+import subprocess
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 # レビュー対象ディレクトリ（既定 docs/story）。main()で上書き。
 DIR = "docs/story"
@@ -178,6 +180,136 @@ def load_script():
 def save_script(data):
     with open(os.path.join(DIR, "script.json"), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_meta():
+    path = os.path.join(DIR, "meta.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_meta(meta):
+    with open(os.path.join(DIR, "meta.json"), "w", encoding="utf-8") as f:
+        json.dump(meta, f, ensure_ascii=False, indent=2)
+
+
+# ---- ショート（縦9:16）：章を選んで切り抜き書き出し ----
+
+def shorts_chapters():
+    """ショート化できる trivia 章の一覧（純ロジック）。meta.json(尺)＋script.json(hook/title)から組む。
+
+    各章: {ch, title, hook, fallbackHook, duration}。meta が無ければ空。
+    """
+    meta = load_meta()
+    if not meta:
+        return []
+    script = load_script() or {}
+    chapters = script.get("chapters", [])
+    topics = meta.get("topics", [])
+    turns = meta.get("script", [])
+    chs = sorted({t.get("chapter") for t in turns
+                  if t.get("section") == "trivia" and t.get("chapter") is not None})
+    out = []
+    for ch in chs:
+        inch = [t for t in turns if t.get("chapter") == ch]
+        if not inch:
+            continue
+        start = min(t.get("start", 0) or 0 for t in inch)
+        end = max(t.get("end", 0) or 0 for t in inch)
+        title = chapters[ch].get("title", "") if 0 <= ch < len(chapters) else ""
+        hook = chapters[ch].get("hook", "") if 0 <= ch < len(chapters) else ""
+        if not hook:
+            hook = next((tp.get("hook") for tp in topics
+                         if tp.get("chapter") == ch and tp.get("hook")), "")
+        if not title:
+            title = next((tp.get("title") for tp in topics
+                          if tp.get("chapter") == ch and tp.get("title")), "")
+        out.append({
+            "ch": ch,
+            "title": title,
+            "hook": hook or "",
+            "fallbackHook": (title + "って、知ってる？") if title else "",
+            "duration": round(end - start, 1),
+        })
+    return out
+
+
+def set_short_hook(ch, hook):
+    """章のフック（ショート固定見出し）を script.json と meta.json の両方へ保存（純ロジック）。
+
+    script は将来の再生成でも残るよう、meta は prep→render が即拾えるよう更新する。
+    """
+    ch = int(ch)
+    hook = (hook or "").strip()
+    script = load_script()
+    if script and 0 <= ch < len(script.get("chapters", [])):
+        if hook:
+            script["chapters"][ch]["hook"] = hook
+        else:
+            script["chapters"][ch].pop("hook", None)
+        save_script(script)
+    meta = load_meta()
+    if meta:
+        for tp in meta.get("topics", []):
+            if tp.get("chapter") == ch and tp.get("section") == "trivia":
+                if hook:
+                    tp["hook"] = hook
+                else:
+                    tp.pop("hook", None)
+        save_meta(meta)
+    return {"ok": True, "ch": ch, "hook": hook}
+
+
+# 進行中のショート書き出しジョブ（章番号→{proc, log, out}）。
+SHORT_JOBS = {}
+
+
+def start_short_render(ch, cta=None):
+    """縦ショートを subprocess で書き出す（非同期）。Mac前提・前段で音声+meta生成済みが必要。
+
+    prep（meta/画像/深度を public へコピー）→ remotion render を video/ で実行。
+    """
+    ch = int(ch)
+    if not os.path.exists(os.path.join(DIR, "meta.json")):
+        return {"ok": False, "message": "meta.json がありません（先に音声+meta生成）"}
+    if not os.path.isdir("video"):
+        return {"ok": False, "message": "video/ が見つかりません（リポジトリ直下で起動してください）"}
+    props = {"clipChapter": ch}
+    if cta is not None:
+        props["ctaText"] = cta  # "" なら CTA 非表示
+    out = f"out/short_ch{ch}.mp4"
+    src = os.path.relpath(DIR, "video")  # video/ から見た docs/story
+    cmd = (f"SRC_DIR={shlex.quote(src)} npm run prep && "
+           f"npx remotion render DialogueVideoShort {out} "
+           f"--props={shlex.quote(json.dumps(props, ensure_ascii=False))}")
+    os.makedirs(os.path.join("video", "out"), exist_ok=True)
+    log_path = os.path.join("video", "out", f"short_ch{ch}.log")
+    logf = open(log_path, "w", encoding="utf-8")
+    proc = subprocess.Popen(["bash", "-lc", cmd], cwd="video",
+                            stdout=logf, stderr=subprocess.STDOUT)
+    SHORT_JOBS[ch] = {"proc": proc, "log": log_path, "out": os.path.join("video", out)}
+    return {"ok": True, "ch": ch, "out": out}
+
+
+def short_status(ch):
+    """書き出しジョブの状態（純ロジックに近いI/O）。state=idle|running|done|failed＋ログ末尾。"""
+    job = SHORT_JOBS.get(int(ch))
+    if not job:
+        return {"state": "idle"}
+    tail = ""
+    try:
+        with open(job["log"], encoding="utf-8", errors="replace") as f:
+            tail = "".join(f.readlines()[-14:])
+    except OSError:
+        pass
+    rc = job["proc"].poll()
+    if rc is None:
+        return {"state": "running", "log": tail}
+    if rc == 0:
+        return {"state": "done", "out": job["out"], "log": tail}
+    return {"state": "failed", "code": rc, "log": tail}
 
 
 def _load_image_config():
@@ -684,6 +816,8 @@ const STAGES = [
    cmd:'python main_story.py --from-script DIR/script.json --images-from-dir'},
   {key:'meta',   t:'④ 仕上げ', d:'Remotionで動画書き出し', link:null,
    cmd:'cd video && SRC_DIR=../DIR npm run render'},
+  {key:'meta',   t:'⑤ ショート（縦9:16）', d:'章を選んで1ネタずつ縦ショートに書き出し（見出し編集可）', link:'/shorts',
+   cmd:'cd video && npm run render:short'},
 ];
 fetch('/api/status').then(r=>r.json()).then(st=>{
   document.getElementById('dir').textContent = '対象: '+st.dir;
@@ -702,6 +836,108 @@ fetch('/api/status').then(r=>r.json()).then(st=>{
   note.style.color='var(--sub)'; note.style.fontSize='13px';
   note.innerHTML='※ 生成/書き出しは今はコマンドで実行（ボタン起動は今後対応）。台本・画像は「開く」で確認/編集。';
   m.appendChild(note);
+});
+</script>
+</body></html>
+"""
+
+SHORTS_PAGE = """<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ショート書き出し</title>
+<style>__CSS__
+  .card2 { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:14px 16px; margin-bottom:12px; }
+  .row2 { display:flex; align-items:center; gap:12px; }
+  .ttl { font-weight:700; }
+  .meta2 { color:var(--sub); font-size:12px; }
+  textarea.hook { width:100%; box-sizing:border-box; background:#0e131b; color:var(--fg);
+           border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:15px;
+           resize:vertical; margin-top:8px; }
+  .st { font-size:12px; color:var(--sub); margin-left:auto; }
+  .st.run { color:var(--accent); } .st.ok { color:var(--ok); } .st.ng { color:#ff6b6b; }
+  pre.log { background:#0b0f15; border:1px solid var(--line); border-radius:8px; color:#aeb9c7;
+            font-size:11px; padding:8px 10px; margin:8px 0 0; max-height:140px; overflow:auto;
+            white-space:pre-wrap; display:none; }
+  .ctabar { background:var(--card); border:1px solid var(--line); border-radius:12px;
+            padding:12px 16px; margin-bottom:14px; }
+</style></head>
+<body>
+<header><a href="/">← パネル</a><h1>ショート書き出し（縦9:16）</h1><span class="spacer"></span>
+  <span class="meta2" id="dir"></span></header>
+<main id="main">読み込み中…</main>
+<script>
+function api(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());}
+let DATA=[];
+function fmtState(s){
+  if(s.state==='running')return ['書き出し中…','st run'];
+  if(s.state==='done')return ['✓ 完成: '+(s.out||''),'st ok'];
+  if(s.state==='failed')return ['失敗(code '+s.code+')','st ng'];
+  return ['','st'];
+}
+function render(){
+  const m=document.getElementById('main'); m.innerHTML='';
+  // CTA（共通）
+  const cta=document.createElement('div'); cta.className='ctabar';
+  cta.innerHTML='<div class="meta2">終盤CTA（空欄=既定文／「CTAなし」で非表示）</div>';
+  const ci=document.createElement('input'); ci.id='cta'; ci.type='text'; ci.placeholder='続きは本編でも解説！…（空欄で既定）';
+  ci.style.cssText='width:70%;background:#0e131b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;';
+  const noc=document.createElement('label'); noc.className='meta2'; noc.style.marginLeft='12px';
+  noc.innerHTML='<input type="checkbox" id="nocta"> CTAなし';
+  cta.appendChild(ci); cta.appendChild(noc); m.appendChild(cta);
+
+  if(!DATA.length){ const p=document.createElement('p'); p.className='meta2';
+    p.textContent='trivia章が見つかりません。先に音声+metaを生成してください（meta.json必須）。'; m.appendChild(p); return; }
+
+  DATA.forEach(it=>{
+    const c=document.createElement('div'); c.className='card2';
+    const head=document.createElement('div'); head.className='row2';
+    head.innerHTML=`<span class="ttl">第${it.ch}章 ${it.title||'(無題)'}</span>
+      <span class="meta2">約${it.duration}秒</span>`;
+    const st=document.createElement('span'); st.className='st'; st.id='st'+it.ch; head.appendChild(st);
+    const btn=document.createElement('button'); btn.className='primary'; btn.textContent='ショート書き出し';
+    btn.style.marginLeft='10px'; head.appendChild(btn);
+    c.appendChild(head);
+
+    const ta=document.createElement('textarea'); ta.className='hook'; ta.rows=2;
+    ta.value=it.hook||''; ta.placeholder='固定見出し（空欄なら仮: '+(it.fallbackHook||'タイトルから')+'）';
+    ta.onchange=async()=>{ const r=await api('/api/shorts/hook',{ch:it.ch,hook:ta.value});
+      if(r.ok){ it.hook=r.hook; } else alert('保存失敗'); };
+    c.appendChild(ta);
+
+    const log=document.createElement('pre'); log.className='log'; log.id='log'+it.ch; c.appendChild(log);
+
+    btn.onclick=async()=>{
+      const nocta=document.getElementById('nocta').checked;
+      const ctaval=document.getElementById('cta').value;
+      const body={ch:it.ch};
+      if(nocta) body.cta=''; else if(ctaval) body.cta=ctaval;
+      btn.disabled=true;
+      const r=await api('/api/shorts/render',body);
+      if(!r.ok){ alert(r.message||'起動失敗'); btn.disabled=false; return; }
+      poll(it.ch,btn);
+    };
+    m.appendChild(c);
+  });
+}
+function poll(ch,btn){
+  fetch('/api/shorts/status?ch='+ch).then(r=>r.json()).then(s=>{
+    const [txt,cls]=fmtState(s);
+    const st=document.getElementById('st'+ch); if(st){st.textContent=txt; st.className=cls;}
+    const log=document.getElementById('log'+ch);
+    if(log && s.log){ log.style.display='block'; log.textContent=s.log; log.scrollTop=log.scrollHeight; }
+    if(s.state==='running'){ setTimeout(()=>poll(ch,btn),1500); }
+    else { if(btn) btn.disabled=false; }
+  });
+}
+Promise.all([
+  fetch('/api/status').then(r=>r.json()),
+  fetch('/api/shorts/list').then(r=>r.json())
+]).then(([st,list])=>{
+  document.getElementById('dir').textContent='対象: '+st.dir;
+  DATA=list.chapters||[]; render();
+  // 既に走っているジョブがあれば状態を拾う
+  DATA.forEach(it=>poll(it.ch,null));
 });
 </script>
 </body></html>
@@ -1705,6 +1941,20 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/story":
             self._html(STORY_PAGE.replace("__CSS__", _BASE_CSS))
             return
+        if path == "/shorts":
+            self._html(SHORTS_PAGE.replace("__CSS__", _BASE_CSS))
+            return
+        if path == "/api/shorts/list":
+            self._json({"chapters": shorts_chapters()})
+            return
+        if path == "/api/shorts/status":
+            qs = parse_qs(urlparse(self.path).query)
+            ch = (qs.get("ch") or ["0"])[0]
+            try:
+                self._json(short_status(int(ch)))
+            except ValueError:
+                self._json({"state": "idle"})
+            return
         if path == "/api/status":
             self._json({"dir": DIR, "status": pipeline_status()})
             return
@@ -1808,6 +2058,16 @@ class Handler(BaseHTTPRequestHandler):
             if ok:
                 save_review(review)
             self._json({"ok": ok, "message": msg, "filename": fn})
+            return
+        if path == "/api/shorts/hook":
+            try:
+                self._json(set_short_hook(body.get("ch"), body.get("hook")))
+            except (TypeError, ValueError):
+                self._json({"ok": False, "message": "ch が不正"})
+            return
+        if path == "/api/shorts/render":
+            cta = body.get("cta")  # None=既定 / ""=非表示 / 文字列=上書き
+            self._json(start_short_render(body.get("ch"), cta))
             return
         if path == "/api/continue":
             review["status"] = "approved"
