@@ -8,9 +8,11 @@ import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync, readd
 import { resolve, parse as parsePath } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
+// 既定の入力元は docs/story（実は〇〇雑学の出力先＝main_story.py の --output-dir 既定）。
+// 別コンテンツは SRC_DIR で差し替え可能。
 const srcDir = process.env.SRC_DIR
   ? resolve(process.env.SRC_DIR)
-  : resolve(root, "..", "docs", "main");
+  : resolve(root, "..", "docs", "story");
 const pubDir = resolve(root, "public");
 
 mkdirSync(pubDir, { recursive: true });

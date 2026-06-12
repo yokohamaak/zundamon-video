@@ -472,6 +472,9 @@ def main():
                         help="画像取得まで実行しreview.json/script.jsonを出力して停止（人手レビュー用）")
     parser.add_argument("--images-from-dir", action="store_true",
                         help="画像取得をskipしreview.jsonの承認結果から meta を生成（レビュー承認後の続行用）")
+    parser.add_argument("--meta-only", action="store_true",
+                        help="音声を作り直さず既存digest.mp3の尺を流用してmeta.jsonだけ再生成"
+                             "（VOICEVOX不要・課金なし。画像レビューの微修正反映用。--from-script必須）")
     args = parser.parse_args()
 
     load_dotenv()  # .env を自動読込（source忘れ対策・既存環境変数は優先）
@@ -503,6 +506,35 @@ def main():
 
     # 締めに二人同時(ユニゾン)の固定挨拶を足す（生成・既存どちらの台本にも・空設定なら無効）。
     append_closing_chorus(script_result, config)
+
+    # --meta-only: 音声を作り直さず、既存 meta.json の尺(start/end/sentences)を turns として流用し、
+    # review.json の人手結果（画像差し替え/hide/crop/bg等）だけ反映して meta.json を再生成する。
+    # 画像レビューの微修正をVOICEVOXなし・課金なしで素早く動画へ反映するための軽量ループ。
+    if args.meta_only:
+        if not args.from_script:
+            parser.error("--meta-only は --from-script が必須です（既存script.jsonの台本を使うため）")
+        meta_path = out_dir / "meta.json"
+        if not meta_path.exists():
+            parser.error(f"--meta-only には既存の {meta_path} が必要です（尺を流用するため）")
+        with open(meta_path, encoding="utf-8") as f:
+            old_meta = json.load(f)
+        # 既存 meta の script から尺(turns)を復元（順序は script.json と一致）。
+        turns = [
+            {"start": t.get("start", 0), "end": t.get("end", 0), "sentences": t.get("sentences", [])}
+            for t in old_meta.get("script", [])
+        ]
+        if len(turns) != len(script_result["script"]):
+            parser.error(
+                f"既存metaのターン数({len(turns)})とscript.json({len(script_result['script'])})が不一致。"
+                "台本が変わっている場合は通常の再生成（--images-from-dir）を使ってください。")
+        image_files, attributions, cut_opts = load_images_from_review(out_dir)
+        now_iso = datetime.now(JST).isoformat()
+        meta = build_meta(script_result, turns, config, now_iso, image_files, attributions, cut_opts)
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta, f, ensure_ascii=False, indent=2)
+        logger.info(f"=== --meta-only: 既存尺を流用して meta.json を再生成しました: {meta_path} "
+                    f"（画像{len(image_files)}件・オプション{len(cut_opts)}件）===")
+        return
 
     # 尺チェック：台本文字数が予算を大きく超えたら警告（Geminiが長く書きすぎた時に気づけるように）。
     s_cfg = config.get("story", {})
