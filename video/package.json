@@ -11,6 +11,7 @@
     "psd:build": "node scripts/psd-export.mjs build",
     "dev": "npm run prep && remotion studio",
     "render": "npm run prep && remotion render DialogueVideo out/video.mp4",
+    "render:short": "npm run prep && remotion render DialogueVideoShort out/short.mp4",
     "compositions": "remotion compositions",
     "typecheck": "tsc --noEmit"
   },

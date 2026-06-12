@@ -16,9 +16,36 @@ import type { Emotion, Gender, Meta, Topic, Turn } from "./types";
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。素材/音声に合わせて調整。
 const LIPSYNC_GAIN = 5;
 
-// 中央ビジュアル枠の配置(px・1920x1080基準)。背景 bg.png の黒板の内縁に合わせた目測値。
+// 中央ビジュアル枠の配置(px)。背景 bg.png の黒板の内縁に合わせた目測値。
 // 黒板の前に画像/立ち絵が乗る構図。背景を差し替えたら npm run dev で見ながらここを微調整する。
-const BOARD = { left: 252, right: 252, top: 70, bottom: 347 };
+// 横(1920x1080)＝黒板内縁。縦(1080x1920・ショート)＝上部に横幅いっぱいの16:9枠を置く。
+const BOARD_LANDSCAPE = { left: 252, right: 252, top: 70, bottom: 347 };
+const BOARD_PORTRAIT = { left: 40, right: 40, top: 150, bottom: 1208 };
+
+// 縦/横で変わるレイアウト値（立ち絵位置・字幕箱）。portrait時は縦積み構図に。
+function layoutFor(portrait: boolean) {
+  return portrait
+    ? {
+        avatarL: { left: -40, bottom: 360 } as const,
+        avatarR: { right: -40, bottom: 360 } as const,
+        avatarScale: 1.2,
+        capLeft: 30,
+        capRight: 30,
+        capBottom: 70,
+        capFont: 60,
+        capPad: "26px 38px",
+      }
+    : {
+        avatarL: { left: -70, bottom: -70 } as const,
+        avatarR: { right: -50, bottom: -70 } as const,
+        avatarScale: 1,
+        capLeft: 330,
+        capRight: 320,
+        capBottom: 40,
+        capFont: 50,
+        capPad: "22px 44px",
+      };
+}
 
 // 「実は」バッジのラベル。ネタ番号を丸数字で（1〜10は①②…、超えたら数字）。
 function triviaLabel(idx?: number): string {
@@ -253,10 +280,20 @@ function effectState(
   return fx;
 }
 
-export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
+export const DialogueVideo: React.FC<{
+  meta: Meta;
+  portrait?: boolean;
+  clipStartSec?: number;
+  // 切り抜く章番号（入力props用。実際の窓計算は Root の calculateMetadata 側。描画では未使用）。
+  clipChapter?: number;
+}> = ({ meta, portrait = false, clipStartSec = 0 }) => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-  const t = frame / fps;
+  const { fps, durationInFrames, width, height } = useVideoConfig();
+  // 切り抜き時：フレームは章先頭=0だが、台本/音声の時刻は実タイムライン基準。
+  // tに clipStartSec を足して実時刻へ写像（横動画は clipStartSec=0 で従来どおり）。
+  const t = frame / fps + clipStartSec;
+  const BOARD = portrait ? BOARD_PORTRAIT : BOARD_LANDSCAPE;
+  const L = layoutFor(portrait);
 
   // 左右の割当: meta.speakers の並び順を優先（[0]=左 / [1]=右）。
   // 無ければ台本の登場順にフォールバック（先に話す方が左）。
@@ -288,7 +325,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   if (audioData) {
     const wave = audioData.channelWaveforms[0];
     const sr = audioData.sampleRate;
-    const center = Math.floor((frame / fps) * sr);
+    const center = Math.floor(t * sr);
     const win = Math.floor(sr / fps); // 1フレーム分の窓
     let sum = 0;
     let n = 0;
@@ -305,7 +342,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   const activeTurn = pickActive(meta.script, t) as Turn | null;
   const activeSpeaker = activeTurn?.speaker ?? "";
   const isChorus = !!activeTurn?.chorus; // ユニゾン時は両方の立ち絵をactive（両方の口を動かす）
-  const activatedAtFrame = Math.round((activeTurn?.start ?? 0) * fps);
+  const activatedAtFrame = Math.round(((activeTurn?.start ?? 0) - clipStartSec) * fps);
 
   // 字幕の名前タグ用：話者の配置側・立ち絵・色を解決（話している側にタグを出す）。
   const activeIsLeft = !!activeSpeaker && activeSpeaker === leftSpeaker;
@@ -376,7 +413,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
     caption = cur?.text ?? activeTurn.text;
     emotion =
       cur?.emotion ?? activeTurn.emotion ?? inferEmotion(caption || activeTurn.text);
-    emotionAtFrame = Math.round((cur?.start ?? activeTurn.start ?? 0) * fps);
+    emotionAtFrame = Math.round(((cur?.start ?? activeTurn.start ?? 0) - clipStartSec) * fps);
   }
   // 解説役（expressive=false、例:めたん先生）は驚き/焦り顔を出さず落ち着かせる。
   // surprise→normal に落とす（happyの笑顔は許容）。
@@ -408,8 +445,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
   const containBg = activeTopic?.bg;
   // 中央ビジュアル枠の実寸（focusアノテーションの contain フィット計算用。styleのleft/right/top/bottomと一致）。
   // 黒板内縁(BOARD)に収まる最大の16:9枠を中央配置する（画像素材が16:9＝間延び/切れを防ぐ）。
-  const boardW = 1920 - BOARD.left - BOARD.right;
-  const boardH = 1080 - BOARD.top - BOARD.bottom;
+  const boardW = width - BOARD.left - BOARD.right;
+  const boardH = height - BOARD.top - BOARD.bottom;
   const VISUAL_AR = 16 / 9;
   const wide = boardW / boardH > VISUAL_AR; // 黒板が16:9より横長なら高さ基準
   const visualBoxW = wide ? boardH * VISUAL_AR : boardW;
@@ -425,7 +462,8 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         fontFamily: `'${FONT_FAMILY}', 'Hiragino Sans', 'Yu Gothic', sans-serif`,
       }}
     >
-      <Audio src={staticFile("digest.mp3")} />
+      {/* メインボイス。切り抜き時は trimBefore で章先頭へ頭出し（横は clipStartSec=0）。 */}
+      <Audio src={staticFile("digest.mp3")} trimBefore={Math.round(clipStartSec * fps)} />
 
       {/* BGM（全体ループ・薄く）。フェードインは無し（冒頭から定常音量）・末尾のみフェードアウト。
           prep が未配置なら meta.audio.bgm=null で無音。 */}
@@ -453,7 +491,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         return (
           <Sequence
             key={`se-${i}`}
-            from={Math.round(ev.t * fps)}
+            from={Math.round((ev.t - clipStartSec) * fps)}
             durationInFrames={Math.round(4 * fps)}
             name={`se:${ev.se}`}
           >
@@ -759,7 +797,14 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
       ) : null}
 
       {/* 左立ち絵（中央画像より前面・下端の左右コーナーに大きく配置。最下部が胸あたりになるよう下げる。字幕に被らない位置まで左へ） */}
-      <div style={{ position: "absolute", left: -70, bottom: -70 }}>
+      <div
+        style={{
+          position: "absolute",
+          ...L.avatarL,
+          transform: `scale(${L.avatarScale})`,
+          transformOrigin: "left bottom",
+        }}
+      >
         <Avatar
           dir={leftDir}
           manifest={leftDir ? manifest[leftDir] : undefined}
@@ -775,7 +820,14 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
       </div>
 
       {/* 右立ち絵（右に寄せる＝右見切れ許容） */}
-      <div style={{ position: "absolute", right: -50, bottom: -70 }}>
+      <div
+        style={{
+          position: "absolute",
+          ...L.avatarR,
+          transform: `scale(${L.avatarScale})`,
+          transformOrigin: "right bottom",
+        }}
+      >
         <Avatar
           dir={rightDir}
           manifest={rightDir ? manifest[rightDir] : undefined}
@@ -796,12 +848,12 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         <div
           style={{
             position: "absolute",
-            left: 330,   // 左端を10px右へ（めたんの髪と被るのを回避）。右端は据え置き
-            right: 320,
-            bottom: 40,
+            left: L.capLeft,   // 横:左端を右へ（髪と被り回避）/ 縦:ほぼ全幅
+            right: L.capRight,
+            bottom: L.capBottom,
             backdropFilter: "blur(10px)",
             borderRadius: 24,
-            padding: "22px 44px",
+            padding: L.capPad,
             boxSizing: "border-box",
             boxShadow: "0 6px 22px rgba(0,0,0,0.4)",
             // ユニゾン：角丸を保ったまま二色グラデ枠（padding-box/border-box の二重背景）。
@@ -818,7 +870,7 @@ export const DialogueVideo: React.FC<{ meta: Meta }> = ({ meta }) => {
         >
           <div
             style={{
-              fontSize: 50,
+              fontSize: L.capFont,
               fontWeight: 800,
               lineHeight: 1.34,
               textAlign: "center",
