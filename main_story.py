@@ -162,6 +162,9 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 # 「実は」ネタの通し番号（章バッジ「実は ①②③」用）。
                 topic["triviaIndex"] = trivia_seen
                 topic["triviaTotal"] = trivia_total
+                # ショート固定見出し用フック（Gemini生成・任意）。動画側が章の代表hookとして使う。
+                if meta_ch.get("hook"):
+                    topic["hook"] = meta_ch["hook"]
             key = (ch, ci)
             opt = (cut_opts or {}).get(key, {})
             fname = image_files.get(key)

@@ -71,6 +71,7 @@ python main_story.py --script-only            # docs/story/script.json を出力
 | 動画を反復確認（速い・HMR） | `cd video && npm run dev` |
 | 最終mp4を書き出す（横16:9） | `cd video && npm run render` |
 | ショート書き出し（縦9:16・1ネタ） | `cd video && npm run render:short` |
+| ショートの画像を“動画らしく”動かす深度生成 | `python make_depth.py --dir docs/story`（要 `pip install torch transformers pillow numpy`・ローカル/無料） |
 | テストを回す | 下記「テスト」 |
 
 ---

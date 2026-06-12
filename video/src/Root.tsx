@@ -74,6 +74,9 @@ function hookForChapter(meta: Meta, ch: number | undefined): string {
 // ショート尺の上限（秒）。長い章でもショート要件に収める安全策。
 const SHORT_MAX_SEC = 60;
 
+// ショート終盤CTA（既定）。--props で上書き可。空文字なら出さない。
+const DEFAULT_SHORT_CTA = "続きは本編でも解説！\nチャンネル登録もよろしく";
+
 export const RemotionRoot: React.FC = () => {
   return (
     <>
@@ -118,6 +121,7 @@ export const RemotionRoot: React.FC = () => {
           clipStartSec: 0,
           clipChapter: undefined as number | undefined,
           hookText: "",
+          ctaText: DEFAULT_SHORT_CTA,
         }}
         calculateMetadata={async ({ props }) => {
           const meta = await loadMeta();
@@ -129,7 +133,14 @@ export const RemotionRoot: React.FC = () => {
           const hookText = hookForChapter(meta, clip?.ch);
           return {
             durationInFrames: Math.max(1, Math.ceil((end - start) * FPS) + tailFrames(meta)),
-            props: { meta, portrait: true, clipStartSec: start, clipChapter: props.clipChapter, hookText },
+            props: {
+              meta,
+              portrait: true,
+              clipStartSec: start,
+              clipChapter: props.clipChapter,
+              hookText,
+              ctaText: props.ctaText ?? DEFAULT_SHORT_CTA,
+            },
           };
         }}
       />

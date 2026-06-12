@@ -318,7 +318,9 @@ export const DialogueVideo: React.FC<{
   clipChapter?: number;
   // ショート冒頭に重ねるフック（掴み）テロップ。縦のみ・冒頭数秒だけ表示。
   hookText?: string;
-}> = ({ meta, portrait = false, clipStartSec = 0, hookText = "" }) => {
+  // ショート終盤に出すCTA（続きは本編で／登録誘導）。縦のみ・末尾数秒。空なら出さない。
+  ctaText?: string;
+}> = ({ meta, portrait = false, clipStartSec = 0, hookText = "", ctaText = "" }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   // 切り抜き時：フレームは章先頭=0だが、台本/音声の時刻は実タイムライン基準。
@@ -996,6 +998,58 @@ export const DialogueVideo: React.FC<{
                 }}
               >
                 {hookText}
+              </div>
+            </div>
+          );
+        })()
+      ) : null}
+
+      {/* ショート終盤CTA：縦のみ・末尾約3.5秒にセーフゾーン内へ。離脱抑制＋本編/登録への送客。 */}
+      {portrait && ctaText ? (
+        (() => {
+          const start = durationInFrames - 3.5 * fps;
+          const op = interpolate(frame, [start, start + 0.4 * fps], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          if (op <= 0) return null;
+          const pop = interpolate(frame, [start, start + 0.4 * fps], [0.86, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          return (
+            <div
+              style={{
+                position: "absolute",
+                left: 40,
+                right: 40,
+                bottom: 540, // 字幕より上・セーフゾーン内（下のUIに被らない）
+                display: "flex",
+                justifyContent: "center",
+                pointerEvents: "none",
+                opacity: op,
+                transform: `scale(${pop.toFixed(3)})`,
+                transformOrigin: "center bottom",
+                zIndex: 25,
+              }}
+            >
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #ff3b6b, #ff8a3d)",
+                  borderRadius: 22,
+                  border: "4px solid #fff",
+                  padding: "26px 34px",
+                  boxShadow: "0 12px 34px rgba(0,0,0,0.55)",
+                  textAlign: "center",
+                  fontSize: 58,
+                  fontWeight: 900,
+                  lineHeight: 1.3,
+                  color: "#fff",
+                  textShadow: "2px 2px 0 rgba(0,0,0,0.45), 0 3px 10px rgba(0,0,0,0.5)",
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {ctaText}
               </div>
             </div>
           );

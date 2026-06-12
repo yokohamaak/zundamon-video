@@ -95,6 +95,10 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
 {structure}各章に次を出す（chapter番号の昇順）:
 - "section": intro / trivia / outro のいずれか。
 - "title": 画面に出す短い日本語の見出し（ネタの核を10〜18文字で。例「Wi-Fiは略語じゃない」）。
+- "hook": **ショート動画の固定見出し用**。スクロールを止める自己完結した1行（trivia章のみ・15〜26文字）。
+  - 単体で意味が通ること。**「さっきの」「前の」など前の話を参照する語は禁止**。
+  - 意外性・問い・断言で引く（例「Wi-Fiって、実は何の略でもない」「"私はロボットではありません"の正体」）。
+  - title より刺さる言い回しにする（titleは静かな見出し、hookは掴み）。
 - "summary": そのセクションの要点を1〜2文の日本語で（編集時の概要表示用。動画には出さない）。
   例「JPEGの正式名称は『Joint Photographic Experts Group』。画像圧縮規格ではなく開発したグループの名前。」
 - "image_cuts": その章で**順に映す画像を 2〜4個**。ネタの対象物が変わるよう別々の被写体にする。
@@ -130,7 +134,7 @@ def _output_block(explainer: str, questioner: str) -> str:
     {{{{"section": "intro", "title": "今日のテーマ", "image_cuts": [
       {{{{"image_query": "wifi router", "image_kind": "ambient"}}}}
     ]}}}},
-    {{{{"section": "trivia", "title": "Wi-Fiは略語じゃない", "summary": "Wi-Fiは何かの略ではなく、Hi-Fiの響きに似せて作られた造語。", "image_cuts": [
+    {{{{"section": "trivia", "title": "Wi-Fiは略語じゃない", "hook": "Wi-Fiって、実は何の略でもない", "summary": "Wi-Fiは何かの略ではなく、Hi-Fiの響きに似せて作られた造語。", "image_cuts": [
       {{{{"image_query": "wifi symbol", "image_kind": "subject", "image_query_ja": "Wi-Fiのマーク"}}}},
       {{{{"image_query": "vintage hifi audio system", "image_kind": "ambient", "image_query_ja": "昔のオーディオ機器"}}}}
     ]}}}},
@@ -357,12 +361,17 @@ def _clean_chapters(chapters, limit=12):
             q = (c.get("image_query") or "").strip()
             k = c.get("image_kind") if c.get("image_kind") in VALID_IMAGE_KINDS else DEFAULT_IMAGE_KIND
             cuts = [{"image_query": q, "image_kind": k}]
-        out.append({
+        chapter = {
             "section": section,
             "title": strip_markdown((c.get("title") or "").strip()),
             "summary": strip_markdown((c.get("summary") or "").strip()),
             "image_cuts": cuts,
-        })
+        }
+        # ショート固定見出し用フック（trivia章。任意・無ければ動画側がタイトルから仮生成）。
+        hook = strip_markdown((c.get("hook") or "").strip())
+        if hook:
+            chapter["hook"] = hook
+        out.append(chapter)
     return out[:limit]
 
 

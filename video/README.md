@@ -42,7 +42,14 @@ npx remotion render DialogueVideoShort out/short.mp4 --props='{"clipChapter":2}'
 SRC_DIR=/path/to/dir npm run render   # その配下の meta.json / digest.mp3 を使う
 ```
 
-縦レイアウトの数値調整は `src/DialogueVideo.tsx` の `BOARD_PORTRAIT`（中央ビジュアル枠）と `layoutFor()` の portrait 側（立ち絵位置・字幕サイズ）。保存すれば dev のStudioに即反映。
+縦レイアウトの数値調整は `src/DialogueVideo.tsx` の `BOARD_PORTRAIT`（中央ビジュアル枠）と `layoutFor()` の portrait 側（字幕サイズ等）。保存すれば dev のStudioに即反映。
+
+### ショート（縦9:16）の構成
+
+- 上＝固定見出し（hook・クリック率重視）／中＝画像（主役）／下＝ライブ字幕。キャラ立ち絵なし・章バッジなし。
+- 上下のセーフゾーン（iPhone Dynamic Island／YouTube ShortsのUI）を避けて配置。
+- 終盤CTA: 既定文を末尾約3.5秒に表示。`--props='{"ctaText":"自由文"}'`で上書き、`""`で非表示。
+- **2.5Dパララックス**（`ParallaxImage.tsx`・生WebGL）: 写真カットを深度マップで奥行き移動させ静止画を“動画らしく”。深度は `make_depth.py`（リポジトリ直下・ローカル/無料）で生成→prepが `depth-manifest.json` を作る。深度が無い画像やロゴ/スクショ(contain)は通常表示にフォールバック。
 
 ## メモ
 
