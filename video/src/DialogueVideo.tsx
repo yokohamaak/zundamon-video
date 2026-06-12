@@ -20,7 +20,7 @@ const LIPSYNC_GAIN = 5;
 // 黒板の前に画像/立ち絵が乗る構図。背景を差し替えたら npm run dev で見ながらここを微調整する。
 // 横(1920x1080)＝黒板内縁。縦(1080x1920・ショート)＝上部に横幅いっぱいの16:9枠を置く。
 const BOARD_LANDSCAPE = { left: 252, right: 252, top: 70, bottom: 347 };
-const BOARD_PORTRAIT = { left: 40, right: 40, top: 150, bottom: 1208 };
+const BOARD_PORTRAIT = { left: 40, right: 40, top: 300, bottom: 1058 };
 
 // 縦/横で変わるレイアウト値（立ち絵位置・字幕箱）。portrait時は縦積み構図に。
 function layoutFor(portrait: boolean) {
