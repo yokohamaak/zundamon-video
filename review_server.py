@@ -1900,6 +1900,7 @@ READ_PAGE = """<!doctype html>
   <h1>台本ファクトチェック</h1>
   <span class="spacer"></span>
   <div class="toggle"><button id="mFull" class="on">フル台本</button><button id="mSum">概要のみ</button></div>
+  <button id="copyBtn" title="表示中の内容をプレーンテキストでコピー（ファクトチェック貼り付け用）">📋 コピー</button>
   <a href="/story"><button class="primary">編集へ →</button></a>
 </header>
 <main><div id="doc" class="doc">読み込み中…</div></main>
@@ -1948,6 +1949,36 @@ function render(){
 }
 function setMode(m){ MODE=m; document.getElementById('mFull').className=m==='full'?'on':'';
   document.getElementById('mSum').className=m==='sum'?'on':''; render(); }
+// 表示中モードの内容をプレーンテキストで組み立ててコピー（ファクトチェック貼り付け用）。
+function buildPlain(){
+  if(!DATA) return '';
+  const ch=DATA.chapters||[], sc=DATA.script||[]; const out=[];
+  if(DATA.theme){ out.push('テーマ：'+DATA.theme, ''); }
+  if(MODE==='sum'){
+    ch.forEach((c,i)=>{ if(!c.summary && c.section!=='trivia') return;
+      out.push('【'+secLabel(c,i,ch)+'】'+(c.title||'')); if(c.summary) out.push(c.summary); out.push(''); });
+  } else {
+    ch.forEach((c,i)=>{ out.push('【'+secLabel(c,i,ch)+'】'+(c.title||''));
+      if(c.summary) out.push('（要点）'+c.summary);
+      sc.filter(t=>t.chapter===i).forEach(t=>out.push((t.speaker||'')+'：'+(t.text||''))); out.push(''); });
+  }
+  return out.join('\\n').replace(/\\n{3,}/g,'\\n\\n').trim();
+}
+function copyFeedback(){ const b=document.getElementById('copyBtn'); const o=b.textContent;
+  b.textContent='✓ コピー済'; setTimeout(()=>{ b.textContent=o; }, 1500); }
+function copyContent(){
+  const text=buildPlain(); if(!text){ alert('内容がありません'); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(copyFeedback).catch(fallbackCopy.bind(null,text));
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); copyFeedback(); }catch(e){ alert('コピーに失敗しました'); }
+  document.body.removeChild(ta);
+}
+document.getElementById('copyBtn').onclick=copyContent;
 document.getElementById('mFull').onclick=()=>setMode('full');
 document.getElementById('mSum').onclick=()=>setMode('sum');
 fetch('/api/script').then(r=>r.json()).then(d=>{ if(d.error){ document.getElementById('doc').textContent=d.error; return; } DATA=d; render(); });
