@@ -1960,7 +1960,7 @@ function buildPlain(){
   } else {
     ch.forEach((c,i)=>{ out.push('【'+secLabel(c,i,ch)+'】'+(c.title||''));
       if(c.summary) out.push('（要点）'+c.summary);
-      sc.filter(t=>t.chapter===i).forEach(t=>out.push((t.speaker||'')+'：'+(t.text||''))); out.push(''); });
+      sc.filter(t=>t.chapter===i).forEach(t=>out.push(t.text||'')); out.push(''); });
   }
   return out.join('\\n').replace(/\\n{3,}/g,'\\n\\n').trim();
 }
