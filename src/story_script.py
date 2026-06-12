@@ -800,6 +800,107 @@ def splice_regenerated(script_result: dict, regen: dict) -> dict:
     return script_result
 
 
+def _short_output_block(explainer: str, questioner: str) -> str:
+    """ショート(縦・1ネタ単体)の出力形式＋例。trivia章1つ・hook付き・自己完結。"""
+    return f"""## 出力形式
+マークダウンのコードブロックは使わず、以下のJSONだけを出力すること。
+**厳密に有効なJSONにすること**（"を文字列内で使わない＝引用は「」『』、末尾カンマ無し、生改行無し）:
+{{{{
+  "theme": "（このショートのテーマ＝ネタの核を日本語で短く）",
+  "chapters": [
+    {{{{"section": "trivia", "title": "QRコードのQの意味",
+      "hook": "QRコードの『Q』、実は意外な意味",
+      "summary": "QRのQはQuick（速い）。高速に読み取れることが名前の由来。",
+      "image_cuts": [
+        {{{{"image_query": "QR code", "image_kind": "subject", "image_query_ja": "QRコード"}}}},
+        {{{{"image_query": "smartphone scanning qr code", "image_kind": "ambient", "image_query_ja": "QRを読むスマホ"}}}}
+      ]}}}}
+  ],
+  "script": [
+    {{{{"speaker": "{explainer}", "text": "QRコード（キューアールコード）の『Q』が何の略か、実は知らない人が多いの。", "emotion": "normal", "section": "trivia", "chapter": 0, "effect": "flash", "cut": 0}}}},
+    {{{{"speaker": "{questioner}", "text": "えっ、言われてみると考えたことないのだ…", "emotion": "surprise", "section": "trivia", "chapter": 0, "effect": "kenburns", "cut": 0}}}},
+    {{{{"speaker": "{explainer}", "text": "答えはQuick（クイック）。Quick Response、つまり『素早い反応』の頭文字なのよ。", "emotion": "happy", "section": "trivia", "chapter": 0, "effect": "zoom_punch", "cut": 1}}}},
+    {{{{"speaker": "{questioner}", "text": "へぇー！一瞬で読み取れる速さがそのまま名前になってたのだ！", "emotion": "happy", "section": "trivia", "chapter": 0, "effect": "kenburns", "cut": 1}}}}
+  ]
+}}}}
+- chapters は **trivia を1つだけ**。"hook" は必須（縦ショートの固定見出し＝スクロールを止める自己完結の一行・15〜26字）。
+- script の "chapter" は全て 0、"section" は全て "trivia"。"""
+
+
+def build_short_prompt(config: dict, source: dict) -> str:
+    """本編のネタ1つを、縦ショート用の自己完結した短尺台本に書き直すプロンプト（純関数）。
+
+    source = {"title","summary","lines"}（元ネタの見出し・要点・元台詞）。
+    事実は source を真とし、新しい事実をでっち上げない。掴み先頭・30〜45秒・自己完結に再構成する。
+    """
+    s = config.get("story", {})
+    questioner = s.get("questioner", DEFAULT_QUESTIONER)
+    explainer = s.get("explainer", DEFAULT_EXPLAINER)
+    lines = (source.get("lines") or "").strip() or "（なし）"
+    return f"""
+あなたはテクノロジー雑学を扱う教養系YouTubeの掛け合い台本ライターです。
+既存動画の中の「実は」ネタ1つを、**縦のショート動画（単体で完結する30〜45秒）**用に書き直します。
+
+## 元ネタ（この事実だけを使う・新しい事実を足さない）
+- 見出し: {source.get('title', '')}
+- 要点: {source.get('summary', '')}
+- 元の台詞（参考・言い回しは作り直してよい）:
+{lines}
+
+## ショート台本の作り方【厳守】
+- **冒頭で掴む（コールドオープン）**：1ターン目でいきなり意外な問い／断言を出す。「ところでね」「さっきの」「今日は」等の前置き・参照は禁止。
+- **完全に自己完結**：本編や他のネタを前提にしない。順序を示す語（最初／次／ラスト／〇つ目）も使わない。単体で意味が通ること。
+- **テンポ重視・短く**：合計 **6〜8ターン・全体で200〜260字程度**。問い→素朴な外し→「実は」の明かし→驚き→軽い追い打ち、で完結。冗長な繰り返しを入れない。
+- **1ターンは最大2文・70字程度**まで。
+- 締めは唐突に切らず自然に（要約／感想／軽いツッコミ等）。CTAや「チャンネル登録」は**台詞に入れない**（動画側で出す）。
+- 事実は正確に。確実でない逸話は「諸説あるけれど」と限定。年号・前後関係も正確に。
+
+{_rules_block(questioner, explainer, 1, regen=True)}
+
+{_short_output_block(explainer, questioner)}
+
+## このショートでの出力（最重要）
+- chapters は trivia を1つだけ。script の chapter は全て 0、section は全て trivia。
+- "hook"（固定見出し）は必ず入れる。タイトルより刺さる自己完結の一行にする。
+- 挨拶・導入・締めの定型（「皆さんこんにちは」「また次の動画で」等）や順序語は一切入れない。""".strip()
+
+
+def shortify_chapter(config: dict, script_result: dict, chapter_index: int) -> dict:
+    """本編 script_result の指定 trivia 章を、縦ショート用の自己完結した短尺台本へ書き直す。
+
+    Gemini 1回。Returns: 単体で完結する {theme, chapters:[1 trivia(hook付)], script:[chapter=0...]}。
+    画像取得・音声・meta は本編と同じ下流で処理できる形。
+    """
+    chapters = script_result.get("chapters", [])
+    if not (0 <= chapter_index < len(chapters)):
+        raise ValueError(f"章index {chapter_index} が範囲外")
+    src_ch = chapters[chapter_index]
+    if src_ch.get("section") != "trivia":
+        raise ValueError("trivia 章を指定してください（intro/outro は不可）")
+    lines = "\n".join(
+        f"{t.get('speaker', '')}: {t.get('text', '')}"
+        for t in script_result.get("script", []) if t.get("chapter") == chapter_index
+    )
+    source = {"title": src_ch.get("title", ""), "summary": src_ch.get("summary", ""), "lines": lines}
+    data = _generate_parsed(config, build_short_prompt(config, source),
+                            log_label=f"ショート台本（{source['title']}）")
+    # trivia 1章だけに正規化（Geminiが余計な章を出しても先頭triviaを採用）。
+    trivia = [c for c in data.get("chapters", []) if c.get("section") == "trivia"]
+    if not trivia:
+        raise ValueError("ショート台本に trivia 章がありません")
+    data["chapters"] = trivia[:1]
+    # script は chapter==0 の発言のみ（先頭trivia）。section/chapterを 0/trivia に正規化。
+    turns = [t for t in data.get("script", []) if t.get("chapter") in (0, None)]
+    for t in turns:
+        t["chapter"] = 0
+        t["section"] = "trivia"
+    data["script"] = turns
+    normalize_turns(data["script"], data["chapters"])
+    if not data.get("theme"):
+        data["theme"] = source["title"]
+    return data
+
+
 def generate_story_script(config: dict, also_avoid=None) -> dict:
     """
     configから「実は〇〇雑学」の掛け合い台本を生成する。

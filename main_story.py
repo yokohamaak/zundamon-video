@@ -478,17 +478,31 @@ def main():
     parser.add_argument("--meta-only", action="store_true",
                         help="音声を作り直さず既存digest.mp3の尺を流用してmeta.jsonだけ再生成"
                              "（VOICEVOX不要・課金なし。画像レビューの微修正反映用。--from-script必須）")
+    parser.add_argument("--short-from", type=int, default=None,
+                        help="本編(--from-script)の指定trivia章を縦ショート用の自己完結短尺台本に書き直す")
+    parser.add_argument("--slug", default=None,
+                        help="ショートの出力名。指定時は出力先を docs/shorts/<slug>/ にする")
     args = parser.parse_args()
 
     load_dotenv()  # .env を自動読込（source忘れ対策・既存環境変数は優先）
     config = load_config(args.config)
-    out_dir = Path(args.output_dir)
+    # ショートは docs/shorts/<slug>/ へ独立出力（本編と混ざらない）。
+    out_dir = Path("docs/shorts") / args.slug if args.slug else Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("=== 実は〇〇雑学 動画パイプライン開始 ===")
 
-    # 1. 台本：既存scriptを使う（--from-script）か、Geminiで生成する
-    if args.from_script:
+    # 1. 台本：ショート化（--short-from）／既存script（--from-script）／Gemini新規生成
+    if args.short_from is not None:
+        if not args.from_script:
+            parser.error("--short-from は --from-script（本編 script.json）が必須です")
+        with open(args.from_script, encoding="utf-8") as f:
+            main_script = json.load(f)
+        main_script["chapters"] = story_script._clean_chapters(main_script.get("chapters"))
+        story_script.normalize_turns(main_script["script"], main_script["chapters"])
+        logger.info(f"ショート化: {args.from_script} の第{args.short_from}章を単体短尺台本へ")
+        script_result = story_script.shortify_chapter(config, main_script, args.short_from)
+    elif args.from_script:
         with open(args.from_script, encoding="utf-8") as f:
             script_result = json.load(f)
         # 旧/手書き台本でも image_cuts・enum を整える（旧 image_query 単数→1cut／sectionはchapters由来で補完）。
@@ -507,8 +521,9 @@ def main():
             logger.info(f"既出ネタ {len(avoid)}件を避けて生成（ジャンル: {genre}）")
         script_result = story_script.generate_story_script(config, also_avoid=avoid)
 
-    # 締めに二人同時(ユニゾン)の固定挨拶を足す（生成・既存どちらの台本にも・空設定なら無効）。
-    append_closing_chorus(script_result, config)
+    # 締めに二人同時(ユニゾン)の固定挨拶を足す（本編のみ。ショートは付けない＝CTAは動画側で出す）。
+    if args.short_from is None:
+        append_closing_chorus(script_result, config)
 
     # --meta-only: 音声を作り直さず、既存 meta.json の尺(start/end/sentences)を turns として流用し、
     # review.json の人手結果（画像差し替え/hide/crop/bg等）だけ反映して meta.json を再生成する。
