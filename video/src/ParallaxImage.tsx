@@ -137,11 +137,11 @@ export const ParallaxImage: React.FC<{
     const boxAspect = boxW / boxH;
     const sx = imgAspect > boxAspect ? boxAspect / imgAspect : 1;
     const sy = imgAspect > boxAspect ? 1 : imgAspect / boxAspect;
-    // カメラ：ゆっくり寄り＋横ドリフト。p=0→1で push-in、左右に小さく振る。
+    // カメラ：寄り＋ドリフト。p=0→1で push-in、左右に振る。動きを強めに。
     const p = progress;
-    const zoom = 1.06 + 0.14 * p;
-    const camX = (p - 0.5) * 0.07;
-    const camY = (p - 0.5) * 0.025;
+    const zoom = 1.08 + 0.22 * p;
+    const camX = (p - 0.5) * 0.13;
+    const camY = (p - 0.5) * 0.05;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, imgTex);
     gl.uniform1i(gl.getUniformLocation(prog, "uImage"), 0);
@@ -151,7 +151,7 @@ export const ParallaxImage: React.FC<{
     gl.uniform2f(gl.getUniformLocation(prog, "uImgScale"), sx, sy);
     gl.uniform1f(gl.getUniformLocation(prog, "uZoom"), zoom);
     gl.uniform2f(gl.getUniformLocation(prog, "uCam"), camX, camY);
-    gl.uniform1f(gl.getUniformLocation(prog, "uAmp"), 1.6 * intensity);
+    gl.uniform1f(gl.getUniformLocation(prog, "uAmp"), 2.6 * intensity);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.finish();
