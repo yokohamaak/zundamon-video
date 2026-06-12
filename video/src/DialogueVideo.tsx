@@ -76,22 +76,26 @@ function speakerCaptionBg(dir: string | null, gender: Gender): string {
 }
 
 // キーワード強調色＝黄色。話者色（ピンク/緑）より目を引く。
-// ※字幕箱はほぼ白地なので黄色のみだと埋もれる→黒の太い縁取り(全方向の影)で
-//   黄色を縁取り、白地でもはっきり浮かせる（ゆっくり系の縁取り文字と同じ手法）。
+// ※字幕箱はほぼ白地なので黄色のみだと埋もれる→太い黒縁(text-stroke)で輪郭を締め、
+//   白地でもはっきり浮かせる（ゆっくり系の縁取り文字と同じ手法）。
 const KEYWORD_HIGHLIGHT = "#ffd000";
-const KEYWORD_OUTLINE =
-  "1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000," +
-  " 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000," +
-  " 0 2px 6px rgba(0,0,0,0.45)";
+const KEYWORD_STROKE = "10px #000"; // 黄色文字の太い黒縁(輪郭をくっきり締める)
+const KEYWORD_OUTLINE = "0 2px 5px rgba(0,0,0,0.4)"; // 黒縁の下に僅かな影で浮かせる
 
-// 字幕テキスト：『』「」で囲まれた語を黄色＋縁取りで強調。それ以外は地の文色。
+// 字幕テキスト：『』「」で囲まれた語を黄色＋太黒縁で強調。それ以外は地の文色。
 function renderCaption(text: string): React.ReactNode {
   const parts = text.split(/(『[^』]*』|「[^」]*」)/g);
   return parts.map((p, i) =>
     /^[『「]/.test(p) ? (
       <span
         key={i}
-        style={{ color: KEYWORD_HIGHLIGHT, fontWeight: 900, textShadow: KEYWORD_OUTLINE }}
+        style={{
+          color: KEYWORD_HIGHLIGHT,
+          fontWeight: 900,
+          WebkitTextStroke: KEYWORD_STROKE,
+          paintOrder: "stroke fill", // 黒縁を先に描き黄色塗りを上に→黄色は満タン・縁は外側だけ
+          textShadow: KEYWORD_OUTLINE,
+        }}
       >
         {p}
       </span>
