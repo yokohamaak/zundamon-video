@@ -31,9 +31,22 @@ for (const f of ["meta.json", "digest.mp3"]) {
 // meta.json の topics[].image がこれらを staticFile で参照する（例: "ch_01_00.jpg"）。
 // 画像が無い場合は no-op（全プレースホルダ）。
 const IMG_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
-const imgs = readdirSync(srcDir).filter((f) => IMG_EXTS.some((e) => f.toLowerCase().endsWith(e)));
+const allFiles = readdirSync(srcDir);
+// 深度マップ(<base>.depth.png)は別管理。トピック画像一覧からは除外する。
+const depthFiles = allFiles.filter((f) => f.toLowerCase().endsWith(".depth.png"));
+const imgs = allFiles.filter(
+  (f) => IMG_EXTS.some((e) => f.toLowerCase().endsWith(e)) && !f.toLowerCase().endsWith(".depth.png")
+);
 for (const f of imgs) copyFileSync(resolve(srcDir, f), resolve(pubDir, f));
 if (imgs.length) console.log(`[prep] copied ${imgs.length} topic image(s)  (from ${srcDir})`);
+
+// 2.5Dパララックス用の深度マップをコピーし、深度のある画像一覧を depth-manifest.json に出力。
+for (const f of depthFiles) copyFileSync(resolve(srcDir, f), resolve(pubDir, f));
+const depthBase = new Set(depthFiles.map((f) => f.slice(0, -".depth.png".length)));
+const depthMaps = imgs.filter((f) => depthBase.has(f.replace(/\.[^.]+$/, "")));
+writeFileSync(resolve(pubDir, "depth-manifest.json"), JSON.stringify(depthMaps));
+if (depthFiles.length)
+  console.log(`[prep] copied ${depthFiles.length} depth map(s); ${depthMaps.length} image(s) have depth`);
 
 // 静的アセット（アバター立ち絵・フォント）を assets/ → public/ にコピー。
 // public/ は生成物扱い(gitignore)なので、ソースは assets/ で管理する。

@@ -10,6 +10,7 @@ import {
 } from "remotion";
 import { useAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
+import { ParallaxImage } from "./ParallaxImage";
 import { FONT_FAMILY } from "./fonts";
 import type { Emotion, Gender, Meta, Topic, Turn } from "./types";
 
@@ -20,7 +21,9 @@ const LIPSYNC_GAIN = 5;
 // 黒板の前に画像/立ち絵が乗る構図。背景を差し替えたら npm run dev で見ながらここを微調整する。
 // 横(1920x1080)＝黒板内縁。縦(1080x1920・ショート)＝上部に横幅いっぱいの16:9枠を置く。
 const BOARD_LANDSCAPE = { left: 252, right: 252, top: 70, bottom: 347 };
-const BOARD_PORTRAIT = { left: 40, right: 40, top: 300, bottom: 1058 };
+// 縦ショート：画像を主役に大きく（16:9縛りなし・写真はcoverで埋める）。キャラなし。
+// 下部はYouTube ShortsのUI(タイトル/説明/ボタン)に被るので字幕は上げ、画像下端も被り境界まで。
+const BOARD_PORTRAIT = { left: 24, right: 24, top: 410, bottom: 690 };
 
 // 縦/横で変わるレイアウト値（立ち絵位置・字幕箱）。portrait時は縦積み構図に。
 function layoutFor(portrait: boolean) {
@@ -29,13 +32,16 @@ function layoutFor(portrait: boolean) {
         avatarL: { left: -40, bottom: 360 } as const,
         avatarR: { right: -40, bottom: 360 } as const,
         avatarScale: 1.2,
-        capLeft: 30,
-        capRight: 30,
-        capBottom: 70,
-        capFont: 60,
-        capPad: "26px 38px",
-        badgeLeft: 40,
-        badgeTop: 244,   // 画像(BOARD_PORTRAIT.top=300)より上の黒板に置き、被らせない
+        capLeft: 40,
+        capRight: 40,
+        capBottom: 440,  // YouTube ShortsのUI(下20〜25%)を避けつつ、見出し下げに連動して下へ
+        capFont: 48,     // 固定見出しより一段弱く（視線を見出しへ誘導）
+        capPad: "20px 30px",
+        badgeLeft: 24,
+        badgeTop: 96,    // 画像(BOARD_PORTRAIT.top=150)より上に置き、被らせない
+        // キャラは出さない（画像主役・離脱率対策）。型整合のためダミー値。
+        soloAvatar: { right: -10, bottom: 300 } as const,
+        soloScale: 1,
       }
     : {
         avatarL: { left: -70, bottom: -70 } as const,
@@ -48,7 +54,17 @@ function layoutFor(portrait: boolean) {
         capPad: "22px 44px",
         badgeLeft: BOARD_LANDSCAPE.left + 1,
         badgeTop: BOARD_LANDSCAPE.top - 6,
+        soloAvatar: { right: -10, bottom: 300 } as const, // 横では未使用（型整合）
+        soloScale: 1,
       };
+}
+
+// 深度マップ（2.5Dパララックス用）。画像 ch_xx.jpg に対し ch_xx.depth.png を対応付ける。
+function depthPath(image: string): string {
+  return image.replace(/\.[^.]+$/, "") + ".depth.png";
+}
+function hasDepth(meta: Meta, image?: string): boolean {
+  return !!image && !!meta.depthMaps && meta.depthMaps.includes(image);
 }
 
 // 「実は」バッジのラベル。ネタ番号を丸数字で（1〜10は①②…、超えたら数字）。
@@ -170,9 +186,19 @@ const KEN_BURNS: KB[] = [
   { s0: 1.2, s1: 1.1, x0: 3, x1: -2, y0: 0, y1: 0 }, // 右→左に引く
 ];
 
-function kenBurnsTransform(index: number, p: number): string {
+// portrait=true（ショート）は動きを強める：cover画像は横に大きくはみ出すのでパン余地が広い。
+// 寄り基準(+0.10)で余白を確保しつつ、パン量を増幅して縦のスクロール上でも“動いてる”印象を出す。
+function kenBurnsTransform(index: number, p: number, portrait = false): string {
   const k = KEN_BURNS[((index % KEN_BURNS.length) + KEN_BURNS.length) % KEN_BURNS.length];
   const lerp = (a: number, b: number) => a + (b - a) * p;
+  if (portrait) {
+    // 平均まわりにズーム振幅を1.6倍、寄り基準を底上げ。パンは横2.4倍/縦1.6倍（縦は余地が狭い）。
+    const sMean = (k.s0 + k.s1) / 2;
+    const scale = sMean + (lerp(k.s0, k.s1) - sMean) * 1.6 + 0.1;
+    const x = lerp(k.x0, k.x1) * 2.4;
+    const y = lerp(k.y0, k.y1) * 1.6;
+    return `scale(${scale.toFixed(4)}) translate(${x.toFixed(3)}%, ${y.toFixed(3)}%)`;
+  }
   const scale = lerp(k.s0, k.s1);
   const x = lerp(k.x0, k.x1);
   const y = lerp(k.y0, k.y1);
@@ -290,7 +316,9 @@ export const DialogueVideo: React.FC<{
   clipStartSec?: number;
   // 切り抜く章番号（入力props用。実際の窓計算は Root の calculateMetadata 側。描画では未使用）。
   clipChapter?: number;
-}> = ({ meta, portrait = false, clipStartSec = 0 }) => {
+  // ショート冒頭に重ねるフック（掴み）テロップ。縦のみ・冒頭数秒だけ表示。
+  hookText?: string;
+}> = ({ meta, portrait = false, clipStartSec = 0, hookText = "" }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames, width, height } = useVideoConfig();
   // 切り抜き時：フレームは章先頭=0だが、台本/音声の時刻は実タイムライン基準。
@@ -432,11 +460,13 @@ export const DialogueVideo: React.FC<{
   const fx = effectState(activeTurn, t, frame);
   // zoom_punch/shake の合成分（先頭スペース付き）。Ken Burns版とfocus版で共用する。
   const fxTransform = ` scale(${(1 + fx.punchScale).toFixed(4)}) translate(${fx.shakeX.toFixed(3)}%, ${fx.shakeY.toFixed(3)}%)`;
-  // Ken Burns に zoom_punch/shake を合成（CSS transformは左→右に合成される）。
-  const imgTransform = kenBurnsTransform(activeTopicIndex, kbProgress) + fxTransform;
+  // Ken Burns に zoom_punch/shake を合成（CSS transformは左→右に合成される）。縦は動きを強める。
+  const imgTransform = kenBurnsTransform(activeTopicIndex, kbProgress, portrait) + fxTransform;
   // contain（ロゴ等の全体表示）はパンすると余白が露出するため、中央ゆっくりズームのみ。
+  // 縦ショートはズーム幅を少し広げて単調さを軽減（余白露出しない範囲）。
   const isContain = activeTopic?.fit === "contain";
-  const containTransform = `scale(${(1 + 0.04 * kbProgress).toFixed(4)})` + fxTransform;
+  const containZoom = portrait ? 0.08 : 0.04;
+  const containTransform = `scale(${(1 + containZoom * kbProgress).toFixed(4)})` + fxTransform;
   // 補正フィルタ（画像レビュー指定）→ CSS filter 文字列。
   const flt = activeTopic?.filter;
   const imgFilter = flt
@@ -452,11 +482,21 @@ export const DialogueVideo: React.FC<{
   const boardW = width - BOARD.left - BOARD.right;
   const boardH = height - BOARD.top - BOARD.bottom;
   const VISUAL_AR = 16 / 9;
-  const wide = boardW / boardH > VISUAL_AR; // 黒板が16:9より横長なら高さ基準
-  const visualBoxW = wide ? boardH * VISUAL_AR : boardW;
-  const visualBoxH = wide ? boardH : boardW / VISUAL_AR;
-  const visualLeft = BOARD.left + (boardW - visualBoxW) / 2;
-  const visualTop = BOARD.top + (boardH - visualBoxH) / 2;
+  // 横：黒板内縁に収まる最大の16:9枠を中央配置（横長素材を間延び/切れなく）。
+  // 縦ショート：16:9に縛らず枠いっぱい（写真は cover で大きく埋める／ロゴ等 contain は全体表示にフォールバック）。
+  let visualBoxW: number, visualBoxH: number, visualLeft: number, visualTop: number;
+  if (portrait) {
+    visualBoxW = boardW;
+    visualBoxH = boardH;
+    visualLeft = BOARD.left;
+    visualTop = BOARD.top;
+  } else {
+    const wide = boardW / boardH > VISUAL_AR; // 黒板が16:9より横長なら高さ基準
+    visualBoxW = wide ? boardH * VISUAL_AR : boardW;
+    visualBoxH = wide ? boardH : boardW / VISUAL_AR;
+    visualLeft = BOARD.left + (boardW - visualBoxW) / 2;
+    visualTop = BOARD.top + (boardH - visualBoxH) / 2;
+  }
 
   return (
     <AbsoluteFill
@@ -566,6 +606,16 @@ export const DialogueVideo: React.FC<{
                     filter: imgFilter,
                     willChange: "transform",
                   }}
+                />
+              ) : portrait && !isContain && hasDepth(meta, activeTopic.image) ? (
+                // 縦ショート：深度マップがある写真は 2.5Dパララックスで「動画らしく」動かす。
+                <ParallaxImage
+                  image={activeTopic.image}
+                  depth={depthPath(activeTopic.image)}
+                  progress={kbProgress}
+                  boxW={visualBoxW}
+                  boxH={visualBoxH}
+                  filter={imgFilter}
                 />
               ) : (
                 <Img
@@ -751,7 +801,7 @@ export const DialogueVideo: React.FC<{
 
       {/* 章見出し（trivia章のみ）。画像枠の外＝画像の上に、フラットな見出しバーで「実は＋タイトル」。
           画像に重ねない。切替でフェード＋わずかに下から出す。 */}
-      {activeTopic && activeTopic.section === "trivia" ? (
+      {!portrait && activeTopic && activeTopic.section === "trivia" ? (
         <div
           key={`chap-${activeTopicIndex}`}
           style={{
@@ -800,51 +850,58 @@ export const DialogueVideo: React.FC<{
         </div>
       ) : null}
 
-      {/* 左立ち絵（中央画像より前面・下端の左右コーナーに大きく配置。最下部が胸あたりになるよう下げる。字幕に被らない位置まで左へ） */}
-      <div
-        style={{
-          position: "absolute",
-          ...L.avatarL,
-          transform: `scale(${L.avatarScale})`,
-          transformOrigin: "left bottom",
-        }}
-      >
-        <Avatar
-          dir={leftDir}
-          manifest={leftDir ? manifest[leftDir] : undefined}
-          fallbackGender={leftGender}
-          active={activeSpeaker === leftSpeaker || isChorus}
-          activatedAtFrame={activatedAtFrame}
-          amplitude={activeSpeaker === leftSpeaker || isChorus ? amplitude : 0}
-          emotion={leftEmotion}
-          emotionAtFrame={emotionAtFrame}
-          expressive={leftExpressive}
-          flip={leftFlip}
-        />
-      </div>
+      {portrait ? (
+        // 縦ショート：キャラは出さない（画像主役・セーフゾーン確保・離脱率対策）。
+        null
+      ) : (
+        <>
+          {/* 左立ち絵（中央画像より前面・下端の左右コーナーに大きく配置。最下部が胸あたりになるよう下げる。字幕に被らない位置まで左へ） */}
+          <div
+            style={{
+              position: "absolute",
+              ...L.avatarL,
+              transform: `scale(${L.avatarScale})`,
+              transformOrigin: "left bottom",
+            }}
+          >
+            <Avatar
+              dir={leftDir}
+              manifest={leftDir ? manifest[leftDir] : undefined}
+              fallbackGender={leftGender}
+              active={activeSpeaker === leftSpeaker || isChorus}
+              activatedAtFrame={activatedAtFrame}
+              amplitude={activeSpeaker === leftSpeaker || isChorus ? amplitude : 0}
+              emotion={leftEmotion}
+              emotionAtFrame={emotionAtFrame}
+              expressive={leftExpressive}
+              flip={leftFlip}
+            />
+          </div>
 
-      {/* 右立ち絵（右に寄せる＝右見切れ許容） */}
-      <div
-        style={{
-          position: "absolute",
-          ...L.avatarR,
-          transform: `scale(${L.avatarScale})`,
-          transformOrigin: "right bottom",
-        }}
-      >
-        <Avatar
-          dir={rightDir}
-          manifest={rightDir ? manifest[rightDir] : undefined}
-          fallbackGender={rightGender}
-          active={activeSpeaker === rightSpeaker || isChorus}
-          activatedAtFrame={activatedAtFrame}
-          amplitude={activeSpeaker === rightSpeaker || isChorus ? amplitude : 0}
-          emotion={rightEmotion}
-          emotionAtFrame={emotionAtFrame}
-          expressive={rightExpressive}
-          flip={rightFlip}
-        />
-      </div>
+          {/* 右立ち絵（右に寄せる＝右見切れ許容） */}
+          <div
+            style={{
+              position: "absolute",
+              ...L.avatarR,
+              transform: `scale(${L.avatarScale})`,
+              transformOrigin: "right bottom",
+            }}
+          >
+            <Avatar
+              dir={rightDir}
+              manifest={rightDir ? manifest[rightDir] : undefined}
+              fallbackGender={rightGender}
+              active={activeSpeaker === rightSpeaker || isChorus}
+              activatedAtFrame={activatedAtFrame}
+              amplitude={activeSpeaker === rightSpeaker || isChorus ? amplitude : 0}
+              emotion={rightEmotion}
+              emotionAtFrame={emotionAtFrame}
+              expressive={rightExpressive}
+              flip={rightFlip}
+            />
+          </div>
+        </>
+      )}
 
       {/* 字幕（最前面）：ほぼ白の角丸ボックス＋枠＋濃色太字。キーワードは黄色強調。
           枠の色は通常＝話者色（誰が話しているか）。ユニゾン時＝両話者色のグラデ（二人を示す・別色）。 */}
@@ -884,6 +941,65 @@ export const DialogueVideo: React.FC<{
             {renderCaption(caption)}
           </div>
         </div>
+      ) : null}
+
+      {/* ショート用の固定見出し（サマリ/フック）：縦のみ・最初から最後まで上部に出し続ける。
+          「上に固定タイトル＋下にライブ字幕」のShorts王道。無音視聴でも内容が伝わりクリック率/離脱率に効く。
+          冒頭だけ軽くポップさせて注目を作る（以降は固定）。 */}
+      {portrait && hookText ? (
+        (() => {
+          // 登場ポップ＋以降は微パルス（視線を見出しへ引き続ける）。表示は出しっぱなし。
+          const intro = interpolate(frame, [0, 0.35 * fps], [0.86, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          const pulse = 1 + 0.018 * Math.sin((frame / fps) * Math.PI * 2 * 0.5); // 0.5Hzの呼吸
+          const op = interpolate(frame, [0, 0.25 * fps], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          return (
+            <div
+              style={{
+                position: "absolute",
+                left: 14,
+                right: 14,
+                top: 140,  // iPhoneのDynamic Island/ステータスバーに被らない位置まで下げる
+                display: "flex",
+                justifyContent: "center",
+                pointerEvents: "none",
+                opacity: op,
+                transform: `scale(${(intro * pulse).toFixed(3)})`,
+                transformOrigin: "center top",
+                zIndex: 20,
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  background: "rgba(8,12,24,0.96)",
+                  borderRadius: 22,
+                  border: "5px solid #ffd400",   // 全周の太い黄枠で字幕より圧倒的に目立たせる
+                  padding: "26px 30px",
+                  boxShadow: "0 12px 34px rgba(0,0,0,0.6), 0 0 0 3px rgba(0,0,0,0.35)",
+                  textAlign: "center",
+                  fontSize: 72,                  // 字幕(48)の1.5倍。視線を最優先で奪う
+                  fontWeight: 900,
+                  lineHeight: 1.22,
+                  letterSpacing: 0.5,
+                  color: "#ffe24d",              // 黄文字＝最も目を引く色
+                  // 太い黒縁で画像の上でも沈まない（ゆっくり系の縁取り）。
+                  WebkitTextStroke: "2px #000",
+                  paintOrder: "stroke fill",
+                  textShadow:
+                    "3px 3px 0 #000, -3px 3px 0 #000, 3px -3px 0 #000, -3px -3px 0 #000, 0 4px 14px rgba(0,0,0,0.7)",
+                }}
+              >
+                {hookText}
+              </div>
+            </div>
+          );
+        })()
       ) : null}
 
       {/* クレジットは動画内に出さない（帰属は概要欄の credits.txt に集約）。meta.credits はデータとして保持。 */}

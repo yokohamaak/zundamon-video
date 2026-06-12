@@ -78,6 +78,9 @@ export type Topic = {
   section?: Section;       // intro / trivia / outro
   triviaIndex?: number;   // 「実は」ネタの通し番号（1始まり・trivia章のみ。章バッジ「実は ①②③」用）
   triviaTotal?: number;   // ネタ総数
+  // ショート用フック（掴み）。スクロールを止める自己完結した問い/断言。
+  // Gemini生成（無ければタイトルから仮生成）。冒頭数秒だけ縦ショートに大テロップで重ねる。
+  hook?: string;
   credit?: string;        // この章の画像出典（CC-BY帰属など）。動画内には現状出さない。
 };
 
@@ -114,6 +117,9 @@ export type Meta = {
   // Root.tsx が public/avatars/manifest.json を読んで注入する。
   // 形: { "zundamon": { "base": "base.png", "mouth_open": "mouth_open.png", ... } }
   avatarManifest?: Record<string, Record<string, string>>;
+  // 2.5Dパララックス用：深度マップ(<base>.depth.png)が用意できている画像ファイル名の一覧。
+  // prep.mjs が public を走査して生成。縦ショートでこの画像は ParallaxImage で動かす。
+  depthMaps?: string[];
   // BGM / 効果音(SE)。main_story.build_audio が出力し、prep.mjs が未配置ファイルを除去（無ければ無音）。
   audio?: {
     bgm?: { file: string; volume?: number; fade?: number } | null;  // 全体ループBGM

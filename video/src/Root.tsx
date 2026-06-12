@@ -26,6 +26,12 @@ async function loadMeta(): Promise<Meta> {
   } catch {
     // manifest未生成でも描画は継続
   }
+  try {
+    const dres = await fetch(staticFile("depth-manifest.json"));
+    if (dres.ok) meta.depthMaps = await dres.json();
+  } catch {
+    // 深度マップ未生成でも描画は継続（通常のKen Burnsにフォールバック）
+  }
   return meta;
 }
 
@@ -38,7 +44,7 @@ function tailFrames(meta: Meta): number {
 
 // 章(chapter)単位の時間窓を算出。clipChapter未指定なら最初のtrivia章を採用。
 // 1ネタ切り抜き用：返り値 [start,end] 秒。該当章が無ければ null（=全編）。
-function computeClip(meta: Meta, clipChapter?: number): { start: number; end: number } | null {
+function computeClip(meta: Meta, clipChapter?: number): { start: number; end: number; ch: number } | null {
   const turns: Turn[] = meta.script ?? [];
   let ch = clipChapter;
   if (ch == null) {
@@ -52,8 +58,21 @@ function computeClip(meta: Meta, clipChapter?: number): { start: number; end: nu
   if (!inCh.length) return null;
   const start = Math.min(...inCh.map((t) => t.start ?? 0));
   const end = Math.max(...inCh.map((t) => t.end ?? 0));
-  return { start, end };
+  return { start, end, ch };
 }
+
+// ショート冒頭に重ねるフック文。①その章の topic.hook（Gemini生成）②無ければタイトルから仮生成。
+function hookForChapter(meta: Meta, ch: number | undefined): string {
+  const tops = meta.topics ?? [];
+  const inCh = tops.filter((t) => t.chapter === ch);
+  const authored = inCh.map((t) => t.hook).find((h) => h && h.trim());
+  if (authored) return authored.trim();
+  const title = inCh.find((t) => t.title)?.title;
+  return title ? `${title}って、知ってる？` : "";
+}
+
+// ショート尺の上限（秒）。長い章でもショート要件に収める安全策。
+const SHORT_MAX_SEC = 60;
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -98,16 +117,19 @@ export const RemotionRoot: React.FC = () => {
           portrait: true,
           clipStartSec: 0,
           clipChapter: undefined as number | undefined,
+          hookText: "",
         }}
         calculateMetadata={async ({ props }) => {
           const meta = await loadMeta();
           const clip = computeClip(meta, props.clipChapter);
           const scriptEnd = meta.script.reduce((max, t) => Math.max(max, t.end ?? 0), 0);
           const start = clip?.start ?? 0;
-          const end = clip?.end ?? scriptEnd;
+          // 60秒上限ガード：章が長くてもショート要件に収める（末尾を切る）。
+          const end = Math.min(clip?.end ?? scriptEnd, start + SHORT_MAX_SEC);
+          const hookText = hookForChapter(meta, clip?.ch);
           return {
             durationInFrames: Math.max(1, Math.ceil((end - start) * FPS) + tailFrames(meta)),
-            props: { meta, portrait: true, clipStartSec: start, clipChapter: props.clipChapter },
+            props: { meta, portrait: true, clipStartSec: start, clipChapter: props.clipChapter, hookText },
           };
         }}
       />
