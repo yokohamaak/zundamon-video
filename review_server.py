@@ -1265,6 +1265,11 @@ STORY_PAGE = """<!doctype html>
   .imgrow .imgthumb { width:320px; height:180px; position:relative; overflow:hidden; background:#11151c;
             border:1px solid var(--line); border-radius:6px; flex:none; }
   .imgrow .imgthumb img { border:none; border-radius:0; }
+  /* 透過余白の表現＝市松模様（背景は固定でないため特定色を出さない） */
+  .imgrow .imgthumb.transbg { background-color:#fff; background-image:
+    linear-gradient(45deg,#d6dae0 25%,transparent 0),linear-gradient(-45deg,#d6dae0 25%,transparent 0),
+    linear-gradient(45deg,transparent 75%,#d6dae0 0),linear-gradient(-45deg,transparent 75%,#d6dae0 0);
+    background-size:16px 16px; background-position:0 0,0 8px,8px -8px,-8px 0; }
   .imgrow .ph2 { display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:11px; }
   .imgrow .fields { flex:1; display:flex; flex-direction:column; gap:7px; min-width:0; }
   .imgrow .fields .frow { display:flex; gap:8px; align-items:center; }
@@ -1574,11 +1579,11 @@ function buildAdjust(ci,k){
   pad.title='contain時、画像の周りに空ける余白(px)'; pad.onchange=()=>{ const n=parseInt(pad.value)||0; cut.pad=n||null; setOpt(key,{pad:n}); render(); };
   const bg=document.createElement('input'); bg.type='color'; bg.value=cut.bg||'#eef1f5'; bg.title='余白の背景色';
   bg.onchange=()=>{ cut.bg=bg.value; setOpt(key,{bg:bg.value}); render(); };
-  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='余白色クリア'; bgc.title='余白の背景色を消す＝透過（動画では黒板が透けて見える）';
+  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='余白色クリア'; bgc.title='余白の背景色を消す＝透過（動画では背景が透けて見える）';
   bgc.onclick=()=>{ cut.bg=null; bg.value='#eef1f5'; setOpt(key,{bg:null}); render(); };
   const bgState=document.createElement('span'); bgState.className='hint';
-  bgState.textContent=cut.bg?('色 '+cut.bg):'透過(黒板)';  // 今の状態を明示
-  const hideL=document.createElement('label'); hideL.className='chk'; hideL.title='中央画像を出さない（黒板＋立ち絵だけ）';
+  bgState.textContent=cut.bg?('色 '+cut.bg):'透過';  // 今の状態を明示
+  const hideL=document.createElement('label'); hideL.className='chk'; hideL.title='中央画像を出さない（背景＋立ち絵だけ）';
   const hide=document.createElement('input'); hide.type='checkbox'; hide.checked=!!cut.hide;
   hide.onchange=()=>{ cut.hide=hide.checked; setOpt(key,{hide:hide.checked}); };
   hideL.appendChild(hide); hideL.appendChild(document.createTextNode(' 画像なし'));
@@ -1712,7 +1717,8 @@ function render(){
         if(u && cr){ const w=100/(cr.r-cr.l), h=100/(cr.b-cr.t);
           r.innerHTML = '<div class="imgthumb"><img src="'+u+'" style="position:absolute;width:'+w+'%;height:'+h+'%;left:'+(-cr.l*w)+'%;top:'+(-cr.t*h)+'%;object-fit:fill;'+(co.filter?'filter:'+cssFilter(co.filter):'')+'"></div>';
         } else if(u && (co.pad || co.bg)){ const padT=Math.round((co.pad||0)*320/1100);  // 余白px(動画≒1100幅)をサムネ320幅へ縮尺
-          r.innerHTML = '<div class="imgthumb" style="background:'+(co.bg||'#11151c')+';padding:'+padT+'px"><img src="'+u+'" style="width:100%;height:100%;object-fit:contain;'+(co.filter?'filter:'+cssFilter(co.filter):'')+'"></div>';
+          const tcls=co.bg?'imgthumb':'imgthumb transbg';  // 色指定=その色 / 透過=市松模様
+          r.innerHTML = '<div class="'+tcls+'" style="'+(co.bg?('background:'+co.bg):'')+';padding:'+padT+'px"><img src="'+u+'" style="width:100%;height:100%;object-fit:contain;'+(co.filter?'filter:'+cssFilter(co.filter):'')+'"></div>';
         } else if(u){ r.innerHTML = '<img src="'+u+'"'+flt+'>';
         } else { r.innerHTML = '<div class="ph2">#'+k+' 未取得</div>'; }
         // サムネクリックで調整パネルを開閉。サムネに直接D&Dで差し替えも可（調整を開かなくてよい）。
