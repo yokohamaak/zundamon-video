@@ -1574,13 +1574,15 @@ function buildAdjust(ci,k){
   pad.title='contain時、画像の周りに空ける余白(px)'; pad.onchange=()=>{ const n=parseInt(pad.value)||0; cut.pad=n||null; setOpt(key,{pad:n}); render(); };
   const bg=document.createElement('input'); bg.type='color'; bg.value=cut.bg||'#eef1f5'; bg.title='余白の背景色';
   bg.onchange=()=>{ cut.bg=bg.value; setOpt(key,{bg:bg.value}); render(); };
-  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='余白色クリア'; bgc.title='余白の背景色を既定(薄グレー)に戻す';
+  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='余白色クリア'; bgc.title='余白の背景色を消す＝透過（動画では黒板が透けて見える）';
   bgc.onclick=()=>{ cut.bg=null; bg.value='#eef1f5'; setOpt(key,{bg:null}); render(); };
+  const bgState=document.createElement('span'); bgState.className='hint';
+  bgState.textContent=cut.bg?('色 '+cut.bg):'透過(黒板)';  // 今の状態を明示
   const hideL=document.createElement('label'); hideL.className='chk'; hideL.title='中央画像を出さない（黒板＋立ち絵だけ）';
   const hide=document.createElement('input'); hide.type='checkbox'; hide.checked=!!cut.hide;
   hide.onchange=()=>{ cut.hide=hide.checked; setOpt(key,{hide:hide.checked}); };
   hideL.appendChild(hide); hideL.appendChild(document.createTextNode(' 画像なし'));
-  r2.appendChild(pad); r2.appendChild(bg); r2.appendChild(bgc); r2.appendChild(hideL);
+  r2.appendChild(pad); r2.appendChild(bg); r2.appendChild(bgc); r2.appendChild(bgState); r2.appendChild(hideL);
 
   // 出典・クレジット（ラベル付き・1行）
   const ar=document.createElement('div'); ar.className='row'; ar.innerHTML='<span class="hint">出典・クレジット</span>';
