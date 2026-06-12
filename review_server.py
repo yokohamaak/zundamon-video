@@ -1352,6 +1352,8 @@ function setOpt(key,patch){ return api('/api/options',{key,patch}); }
 function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん|メタン/.test(n))return '#d85a9c'; return '#90a0b5'; }
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
+// review.json からカット情報(画像/出典/調整)を取り直して cutMap を更新（差し替え後にクレジット等を反映）。
+async function refreshCuts(){ const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c); }
 function fmtKB(b){ if(b==null) return '?'; return b<1024? b+'B' : b<1048576? Math.round(b/1024)+'KB' : (b/1048576).toFixed(1)+'MB'; }
 // 入力/プルダウンに小さなラベルを上付けする（何の項目か分かるように）
 function fl(text, el){ const w=document.createElement('label'); w.className='fl';
@@ -1567,37 +1569,40 @@ function buildAdjust(ci,k){
   fclr.onclick=()=>{ fb.value=1; fc.value=1; fg.value=0; cut.filter=null; if(imgEl) imgEl.style.filter=''; setOpt(key,{filter:null}); };
 
   // 余白(contain) + 画像なし
-  const r2=document.createElement('div'); r2.className='row'; r2.innerHTML='<span class="hint">余白</span>';
+  const r2=document.createElement('div'); r2.className='row'; r2.innerHTML='<span class="hint">余白(px)</span>';
   const pad=document.createElement('input'); pad.type='number'; pad.min=0; pad.max=400; pad.step=4; pad.value=cut.pad||0; pad.style.width='62px';
-  pad.title='contain余白px'; pad.onchange=()=>{ const n=parseInt(pad.value)||0; cut.pad=n||null; setOpt(key,{pad:n}); };
-  const bg=document.createElement('input'); bg.type='color'; bg.value=cut.bg||'#eef1f5'; bg.title='余白色';
-  bg.onchange=()=>{ cut.bg=bg.value; setOpt(key,{bg:bg.value}); };
-  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='色既定';
-  bgc.onclick=()=>{ cut.bg=null; bg.value='#eef1f5'; setOpt(key,{bg:null}); };
-  const hideL=document.createElement('label'); hideL.className='chk';
+  pad.title='contain時、画像の周りに空ける余白(px)'; pad.onchange=()=>{ const n=parseInt(pad.value)||0; cut.pad=n||null; setOpt(key,{pad:n}); render(); };
+  const bg=document.createElement('input'); bg.type='color'; bg.value=cut.bg||'#eef1f5'; bg.title='余白の背景色';
+  bg.onchange=()=>{ cut.bg=bg.value; setOpt(key,{bg:bg.value}); render(); };
+  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='余白色クリア'; bgc.title='余白の背景色を既定(薄グレー)に戻す';
+  bgc.onclick=()=>{ cut.bg=null; bg.value='#eef1f5'; setOpt(key,{bg:null}); render(); };
+  const hideL=document.createElement('label'); hideL.className='chk'; hideL.title='中央画像を出さない（黒板＋立ち絵だけ）';
   const hide=document.createElement('input'); hide.type='checkbox'; hide.checked=!!cut.hide;
   hide.onchange=()=>{ cut.hide=hide.checked; setOpt(key,{hide:hide.checked}); };
   hideL.appendChild(hide); hideL.appendChild(document.createTextNode(' 画像なし'));
   r2.appendChild(pad); r2.appendChild(bg); r2.appendChild(bgc); r2.appendChild(hideL);
 
-  // 出典
-  const attr=document.createElement('input'); attr.type='text'; attr.placeholder='出典(任意・CC-BY等)'; attr.value=cut.attribution||'';
+  // 出典・クレジット（ラベル付き・1行）
+  const ar=document.createElement('div'); ar.className='row'; ar.innerHTML='<span class="hint">出典・クレジット</span>';
+  const attr=document.createElement('input'); attr.type='text'; attr.placeholder='例: 作者名 / CC-BY 4.0（CC-BYは必須）'; attr.value=cut.attribution||'';
+  attr.style.flex='1'; attr.style.height='34px';
   attr.onchange=()=>{ cut.attribution=attr.value; api('/api/attribution',{key,attribution:attr.value}); };
+  ar.appendChild(attr);
 
   // 差し替え / クロップ解除
   const r3=document.createElement('div'); r3.className='row';
   const fileL=document.createElement('label'); fileL.className='mini'; fileL.style.cursor='pointer'; fileL.textContent='差し替え';
   const file=document.createElement('input'); file.type='file'; file.accept='image/*'; file.style.display='none'; fileL.appendChild(file);
-  const onNew=(fn)=>{ cutMap[key]=Object.assign({},cutMap[key],{image:fn,crop:null,filter:null,fit:null,pad:null,bg:null,hide:false}); render(); };
+  const onNew=async(fn)=>{ await refreshCuts(); render(); };  // 差し替え後はサーバ値(出典/調整リセット)で更新
   file.onchange=()=>{ const f=file.files[0]; if(!f)return; const rd=new FileReader();
-    rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:attr.value}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
+    rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:''}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
     rd.readAsDataURL(f); };
   const cclr=document.createElement('button'); cclr.className='mini'; cclr.textContent='クロップ解除';
   cclr.onclick=()=>{ cut.crop=null; setOpt(key,{crop:null}); render(); };  // 行サムネのクロップも解除
   r3.appendChild(fileL); r3.appendChild(cclr); r3.appendChild(fclr);
 
   const hint=document.createElement('div'); hint.className='hint'; hint.textContent='画像をドラッグ＝クロップ / 画像をドロップ＝差し替え';
-  ctl.appendChild(fr); ctl.appendChild(filt); ctl.appendChild(r2); ctl.appendChild(attr); ctl.appendChild(r3); ctl.appendChild(hint);
+  ctl.appendChild(fr); ctl.appendChild(filt); ctl.appendChild(r2); ctl.appendChild(ar); ctl.appendChild(r3); ctl.appendChild(hint);
   wrap.appendChild(crop); wrap.appendChild(ctl);
 
   // クロップ枠描画＋ドラッグ
@@ -1619,7 +1624,7 @@ function buildAdjust(ci,k){
     crop.addEventListener('dragover',e=>{e.preventDefault(); crop.style.outline='2px dashed #ffd84d';});
     crop.addEventListener('dragleave',()=>crop.style.outline='');
     crop.addEventListener('drop',async(e)=>{ e.preventDefault(); crop.style.outline='';
-      const r=await dropImport(key, e.dataTransfer, attr.value);  // 共通の取り込みヘルパー
+      const r=await dropImport(key, e.dataTransfer, '');  // 差し替え＝クレジット引き継がない（URLは出典URLが入る）
       if(r) r.ok?onNew(r.filename):alert(r.message||'失敗'); });
   }
   return wrap;
@@ -1704,6 +1709,8 @@ function render(){
         const flt=co.filter?(' style="filter:'+cssFilter(co.filter)+'"'):'';
         if(u && cr){ const w=100/(cr.r-cr.l), h=100/(cr.b-cr.t);
           r.innerHTML = '<div class="imgthumb"><img src="'+u+'" style="position:absolute;width:'+w+'%;height:'+h+'%;left:'+(-cr.l*w)+'%;top:'+(-cr.t*h)+'%;object-fit:fill;'+(co.filter?'filter:'+cssFilter(co.filter):'')+'"></div>';
+        } else if(u && (co.pad || co.bg)){ const padT=Math.round((co.pad||0)*320/1100);  // 余白px(動画≒1100幅)をサムネ320幅へ縮尺
+          r.innerHTML = '<div class="imgthumb" style="background:'+(co.bg||'#11151c')+';padding:'+padT+'px"><img src="'+u+'" style="width:100%;height:100%;object-fit:contain;'+(co.filter?'filter:'+cssFilter(co.filter):'')+'"></div>';
         } else if(u){ r.innerHTML = '<img src="'+u+'"'+flt+'>';
         } else { r.innerHTML = '<div class="ph2">#'+k+' 未取得</div>'; }
         // サムネクリックで調整パネルを開閉。サムネに直接D&Dで差し替えも可（調整を開かなくてよい）。
@@ -1714,8 +1721,9 @@ function render(){
         preview.addEventListener('dragleave', ()=>{ preview.style.outline=''; });
         preview.addEventListener('drop', async e=>{ e.preventDefault(); preview.style.outline='';
           const ky=ci+'_'+k;
-          const res=await dropImport(ky, e.dataTransfer, (cutMap[ky]||{}).attribution||'');
-          if(res && res.ok){ cutMap[ky]=Object.assign({},cutMap[ky]||{ch:ci,ci:k},{image:res.filename,crop:null,filter:null,fit:null,pad:null,bg:null,hide:false}); render(); }
+          // 差し替えなのでクレジットは引き継がない（''）→ URL取り込みは出典URLが入る。差し替え後はサーバ値で更新。
+          const res=await dropImport(ky, e.dataTransfer, '');
+          if(res && res.ok){ await refreshCuts(); render(); }
           else if(res){ alert(res.message||'取り込み失敗'); } });
         const q=document.createElement('input'); q.type='text'; q.className='q'; q.placeholder='英語の検索語';
         q.value=cut.image_query||''; q.onchange=()=>cut.image_query=q.value;
