@@ -564,8 +564,12 @@ def main():
             logger.info(f"既出ネタ {len(avoid)}件を避けて生成（ジャンル: {genre}）")
         script_result = story_script.generate_story_script(config, also_avoid=avoid)
 
+    # ショート判定（締めユニゾンを付けない／文字数予算を約40秒に）。
+    # --short-from・docs/shorts 出力（compose取り込み短の --from-script 続行を含む）はショート扱い。
+    is_short = args.short_from is not None or str(out_dir).startswith("docs/shorts")
+
     # 締めに二人同時(ユニゾン)の固定挨拶を足す（本編のみ。ショートは付けない＝CTAは動画側で出す）。
-    if args.short_from is None:
+    if not is_short:
         append_closing_chorus(script_result, config)
 
     # --meta-only: 音声を作り直さず、既存 meta.json の尺(start/end/sentences)を turns として流用し、
@@ -598,9 +602,8 @@ def main():
         return
 
     # 尺チェック：台本文字数が予算を大きく超えたら警告（Geminiが長く書きすぎた時に気づけるように）。
-    # ショート（--short-from / docs/shorts 出力）は本編8分でなく約40秒の目標で判定する。
+    # ショート（is_short・上で算出）は本編8分でなく約40秒の目標で判定する。
     s_cfg = config.get("story", {})
-    is_short = args.short_from is not None or str(out_dir).startswith("docs/shorts")
     if is_short:
         budget = int(SHORT_TARGET_SECONDS / 60 * story_script.CHARS_PER_MINUTE)
     else:

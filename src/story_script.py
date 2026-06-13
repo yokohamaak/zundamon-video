@@ -963,45 +963,56 @@ def build_shorts_batch_prompt(config: dict, sources: list) -> str:
 - script の chapter は 0..{n - 1}、section は全て trivia。挨拶・導入・締めの定型や順序語は入れない。""".strip()
 
 
-def generate_shorts_batch(config: dict, script_result: dict, chapter_indices: list) -> list:
-    """選択した trivia 章群を、各自己完結ショート台本へ **Gemini 1回で** まとめて書き直す。
-
-    Returns: [{"source_chapter": 元章index, "script_result": {theme,chapters:[1 trivia(hook)],script}}]
-    各 script_result は単体ショートとして画像取得/音声/meta の下流にそのまま渡せる。
-    """
+def shorts_sources(script_result: dict, chapter_indices: list):
+    """選択章から、ショート化プロンプト用の sources [{title,summary,lines}] と対象index列を返す。"""
     chapters = script_result.get("chapters", [])
     targets = [i for i in chapter_indices
                if 0 <= i < len(chapters) and chapters[i].get("section") == "trivia"]
-    if not targets:
-        raise ValueError("ショート化できる trivia 章が選択されていません")
     sources = [{
         "title": chapters[i].get("title", ""),
         "summary": chapters[i].get("summary", ""),
         "lines": "\n".join(f"{t.get('speaker', '')}: {t.get('text', '')}"
                            for t in script_result.get("script", []) if t.get("chapter") == i),
     } for i in targets]
-    data = _generate_parsed(config, build_shorts_batch_prompt(config, sources),
-                            log_label=f"{len(targets)}本のショート台本")
+    return sources, targets
+
+
+def shorts_from_parsed(data: dict, n: int) -> list:
+    """{chapters:[n trivia(hook)], script} を n本の独立ショート script_result に分解（純関数）。
+
+    Gemini自動・ブラウザAI貼り付け取り込みの両方で共用。Returns: [script_result,...]（順番＝章順）。
+    """
     out_chapters = data.get("chapters", [])
     new_script = data.get("script", [])
     trivia_idx = [i for i, c in enumerate(out_chapters) if c.get("section") == "trivia"]
-    if len(trivia_idx) < len(targets):
-        raise ValueError(f"ショート生成結果の章が不足（要求{len(targets)}・取得{len(trivia_idx)}）")
-    shorts = []
-    for local, ci in enumerate(trivia_idx[:len(targets)]):
+    if len(trivia_idx) < n:
+        raise ValueError(f"ショート章が不足（要求{n}・取得{len(trivia_idx)}）")
+    results = []
+    for ci in trivia_idx[:n]:
         ch = out_chapters[ci]
         turns = [dict(t) for t in new_script if t.get("chapter") == ci]
         for t in turns:
             t["chapter"] = 0
             t["section"] = "trivia"
-        sr = {
-            "theme": ch.get("title") or sources[local]["title"],
-            "chapters": [{**ch, "section": "trivia"}],
-            "script": turns,
-        }
+        sr = {"theme": ch.get("title") or "ショート",
+              "chapters": [{**ch, "section": "trivia"}], "script": turns}
         normalize_turns(sr["script"], sr["chapters"])
-        shorts.append({"source_chapter": targets[local], "script_result": sr})
-    return shorts
+        results.append(sr)
+    return results
+
+
+def generate_shorts_batch(config: dict, script_result: dict, chapter_indices: list) -> list:
+    """選択した trivia 章群を、各自己完結ショート台本へ **Gemini 1回で** まとめて書き直す。
+
+    Returns: [{"source_chapter": 元章index, "script_result": {theme,chapters:[1 trivia(hook)],script}}]
+    """
+    sources, targets = shorts_sources(script_result, chapter_indices)
+    if not targets:
+        raise ValueError("ショート化できる trivia 章が選択されていません")
+    data = _generate_parsed(config, build_shorts_batch_prompt(config, sources),
+                            log_label=f"{len(targets)}本のショート台本")
+    results = shorts_from_parsed(data, len(targets))
+    return [{"source_chapter": targets[i], "script_result": results[i]} for i in range(len(targets))]
 
 
 def generate_story_script(config: dict, also_avoid=None) -> dict:

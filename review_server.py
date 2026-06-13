@@ -343,6 +343,94 @@ def start_short_render_dir(slug, cta=None):
     return _spawn(f"render:{slug}", cmd, cwd="video", out=os.path.join("video", out))
 
 
+# ---- ブラウザAIで台本を作る（compose）: プロンプト表示→結果貼り付け取り込み ----
+# Gemini自動の代わりに、ブラウザのAIにプロンプトを投げて作った台本JSONを貼り付けて取り込む。
+
+def _load_main_script():
+    path = os.path.join(BASE_DIR, "script.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def compose_main_prompt():
+    """本編台本のプロンプト（Geminiに投げているのと同じ build_prompt）＋選定テーマを返す。"""
+    from src import story_script, topic_history
+    cfg = _load_image_config() or {}
+    try:
+        genre = topic_history.genre_of(cfg)
+        theme = story_script.select_theme(cfg, topic_history.used_themes(genre))
+        cfg.setdefault("story", {})["theme"] = theme
+        avoid = topic_history.facts(genre)
+    except Exception:  # noqa: BLE001 - 履歴が無い等でも素のプロンプトは出す
+        theme, avoid = "", None
+    return {"prompt": story_script.build_prompt(cfg, also_avoid=avoid), "theme": theme or "(AIにおまかせ)"}
+
+
+def import_main_script(text):
+    """貼り付けた台本JSONを Geminiと同じパーサで検証し docs/story/script.json に保存。"""
+    from src import story_script
+    try:
+        data = story_script.parse_script_json(text or "")
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "message": f"取り込み失敗（JSONを確認）: {e}"}
+    if not data.get("script"):
+        return {"ok": False, "message": "script が空です"}
+    with open(os.path.join(BASE_DIR, "script.json"), "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    tri = sum(1 for c in data.get("chapters", []) if c.get("section") == "trivia")
+    return {"ok": True, "theme": data.get("theme"), "chapters": tri, "turns": len(data["script"])}
+
+
+def compose_shorts_prompt(chapters):
+    """選択ネタのショート一括プロンプト（build_shorts_batch_prompt）を返す。"""
+    from src import story_script
+    main = _load_main_script()
+    if not main:
+        return {"ok": False, "message": "本編 script.json がありません（先に本編台本を用意）"}
+    sources, targets = story_script.shorts_sources(main, [int(c) for c in (chapters or [])])
+    if not targets:
+        return {"ok": False, "message": "ネタを1つ以上選んでください"}
+    cfg = _load_image_config() or {}
+    return {"ok": True, "prompt": story_script.build_shorts_batch_prompt(cfg, sources), "chapters": targets}
+
+
+def import_shorts_script(text, chapters):
+    """貼り付けたショート一括JSONを分解し、各 docs/shorts/<slug>/script.json に保存。"""
+    from src import story_script
+    idxs = [int(c) for c in (chapters or [])]
+    try:
+        data = story_script.parse_script_json(text or "")
+        results = story_script.shorts_from_parsed(data, len(idxs))
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "message": f"取り込み失敗: {e}"}
+    slugs = []
+    for i, sr in enumerate(results):
+        title = (sr.get("chapters") or [{}])[0].get("title") or "short"
+        slug = f"ch{idxs[i]}_{_slugify(title)}" if i < len(idxs) else f"short{i}_{_slugify(title)}"
+        d = os.path.join(SHORTS_ROOT, slug)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "script.json"), "w", encoding="utf-8") as f:
+            json.dump(sr, f, ensure_ascii=False, indent=2)
+        slugs.append(slug)
+    return {"ok": True, "slugs": slugs}
+
+
+def start_fetch(target_dir):
+    """既存 script.json のディレクトリで画像取得まで実行（--from-script --stop-after-images）。
+
+    本編=docs/story / ショート=docs/shorts/<slug>。締めユニゾンは docs/shorts 出力では付かない。
+    """
+    sp = os.path.join(target_dir, "script.json")
+    if not os.path.exists(sp):
+        return {"ok": False, "message": f"{sp} がありません"}
+    py = shlex.quote(sys.executable)
+    cmd = (f"{py} main_story.py --from-script {shlex.quote(sp)} "
+           f"--stop-after-images --output-dir {shlex.quote(target_dir)}")
+    return _spawn(f"fetch:{target_dir}", cmd)
+
+
 def _load_image_config():
     """.env(Pexels/Pixabayキー)＋config をベストエフォートで読む。失敗時は空（Wikimediaのみ可）。"""
     try:
@@ -843,6 +931,8 @@ const STAGES = [
    cmd:'python main_story.py --stop-after-images'},
   {key:'script', t:'台本ファクトチェック', d:'フル台本／概要を読み取り専用で表示（事実確認用）', link:'/read',
    cmd:'(読むだけ・編集は /story から)'},
+  {key:'script', t:'ブラウザAIで台本を作る', d:'Geminiの代わりにプロンプトをコピー→他AIで生成→貼り付け取り込み', link:'/compose',
+   cmd:'(Gemini枠を使わず台本JSONを取り込む)'},
   {key:'audio',  t:'③ 音声+meta', d:'VOICEVOXで音声・字幕生成', link:null,
    cmd:'python main_story.py --from-script DIR/script.json --images-from-dir'},
   {key:'meta',   t:'④ 仕上げ', d:'Remotionで動画書き出し', link:null,
@@ -943,6 +1033,34 @@ function render(){
     poll(r.job,'gen-st','gen-log',[gen]); };
   m.appendChild(mk);
 
+  // ブラウザAIで作る（上のチェックを使う・Gemini枠を使わない）
+  const ai=document.createElement('div'); ai.className='card2';
+  ai.innerHTML='<h2 style="margin-top:0">ブラウザAIで作る（Gemini枠なし）</h2>'+
+    '<div class="meta2">上でネタにチェック→「プロンプトをコピー」→ブラウザのAIで生成→結果JSONを貼り付け→「取り込む」。各ショートが docs/shorts/ に作られます（画像は各カードの「画像取得」で）。</div>';
+  const arow=document.createElement('div'); arow.className='row2'; arow.style.marginTop='8px';
+  const pbtn=document.createElement('button'); pbtn.textContent='選択ネタのプロンプトをコピー';
+  const ast=document.createElement('span'); ast.className='st'; ast.id='ai-st';
+  arow.appendChild(pbtn); arow.appendChild(ast); ai.appendChild(arow);
+  const pta=document.createElement('textarea'); pta.id='ai-prompt'; pta.rows=6; pta.placeholder='（プロンプトをコピーするとここに表示）';
+  pta.style.cssText='width:100%;box-sizing:border-box;background:#0e131b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:8px;';
+  ai.appendChild(pta);
+  const xta=document.createElement('textarea'); xta.id='ai-paste'; xta.rows=6; xta.placeholder='AIの結果(JSON)を貼り付け';
+  xta.style.cssText=pta.style.cssText; ai.appendChild(xta);
+  const xrow=document.createElement('div'); xrow.className='row2'; xrow.style.marginTop='8px';
+  const ibtn=document.createElement('button'); ibtn.className='primary'; ibtn.textContent='取り込む';
+  const ist=document.createElement('span'); ist.className='st'; ist.id='ai-ist'; xrow.appendChild(ibtn); xrow.appendChild(ist); ai.appendChild(xrow);
+  const checkedChs=()=>[...document.querySelectorAll('.netachk:checked')].map(c=>parseInt(c.value));
+  pbtn.onclick=async()=>{ const chs=checkedChs(); if(!chs.length){alert('ネタを選んでください');return;}
+    const r=await api('/api/shorts/prompt',{chapters:chs});
+    if(!r.ok){ document.getElementById('ai-st').textContent='× '+(r.message||'失敗'); document.getElementById('ai-st').className='st ng'; return; }
+    pta.value=r.prompt; navigator.clipboard.writeText(r.prompt).then(()=>{ast.textContent='コピーした！';ast.className='st ok';}); };
+  ibtn.onclick=async()=>{ const chs=checkedChs(); if(!chs.length){alert('プロンプトに使ったネタにチェックを入れてください');return;}
+    ist.textContent='取り込み中…'; ist.className='st run';
+    const r=await api('/api/shorts/import',{text:xta.value,chapters:chs});
+    if(r.ok){ ist.textContent='✓ '+r.slugs.length+'本取り込み: '+r.slugs.join(', '); ist.className='st ok'; setTimeout(load,500); }
+    else { ist.textContent='× '+(r.message||'失敗'); ist.className='st ng'; } };
+  m.appendChild(ai);
+
   // 一覧
   const h=document.createElement('h2'); h.textContent='作成済みショート'; m.appendChild(h);
   if(!SHORTS.length){ const p=document.createElement('p'); p.className='meta2'; p.textContent='まだありません。上で作成してください。'; m.appendChild(p); }
@@ -960,10 +1078,13 @@ function render(){
     const row=document.createElement('div'); row.className='row2'; row.style.marginTop='10px';
     const rev=document.createElement('button'); rev.textContent='台本レビュー'; rev.disabled=!sh.hasScript;
     rev.onclick=async()=>{ const r=await api('/api/set-dir',{dir:sh.dir}); if(r.ok) location.href='/story'; else alert(r.message); };
+    const fch=document.createElement('button'); fch.textContent='画像取得'; fch.disabled=!sh.hasScript;
+    fch.onclick=async()=>{ fch.disabled=true; const r=await api('/api/shorts/fetch',{slug:sh.slug});
+      if(!r.ok){ alert(r.message||'起動失敗'); fch.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[fch]); };
     const rnd=document.createElement('button'); rnd.className='primary'; rnd.textContent='書き出し'; rnd.disabled=!sh.hasMeta;
     rnd.onclick=async()=>{ rnd.disabled=true; const r=await api('/api/shorts/render',{slug:sh.slug});
       if(!r.ok){ alert(r.message||'起動失敗'); rnd.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[rnd]); };
-    row.appendChild(rev); row.appendChild(rnd);
+    row.appendChild(rev); row.appendChild(fch); row.appendChild(rnd);
     const cmd=document.createElement('div'); cmd.className='meta2'; cmd.style.marginTop='8px';
     cmd.innerHTML='音声+meta（Mac/VOICEVOX）: <code class="cmd2">python main_story.py --from-script '+sh.dir+'/script.json --images-from-dir --output-dir '+sh.dir+'</code><br>'+
       '深度（任意・パララックス）: <code class="cmd2">python make_depth.py --dir '+sh.dir+'</code>';
@@ -979,6 +1100,69 @@ function load(){
     SHORTS.forEach(sh=>poll('render:'+sh.slug,'st-'+sh.slug,'log-'+sh.slug,null)); });
 }
 load();
+</script>
+</body></html>
+"""
+
+COMPOSE_PAGE = """<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>本編台本をブラウザAIで作る</title>
+<style>__CSS__
+  .card2 { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  .meta2 { color:var(--sub); font-size:12px; }
+  textarea.big { width:100%; box-sizing:border-box; background:#0e131b; color:var(--fg);
+    border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:13px; }
+  .st { font-size:12px; margin-left:auto; } .st.ok{color:var(--ok);} .st.ng{color:#ff6b6b;} .st.run{color:var(--accent);}
+  pre.log { background:#0b0f15;border:1px solid var(--line);border-radius:8px;color:#aeb9c7;font-size:11px;
+    padding:8px 10px;margin:8px 0 0;max-height:140px;overflow:auto;white-space:pre-wrap;display:none; }
+  h2{font-size:15px;margin:0 0 8px;}
+</style></head>
+<body>
+<header><a href="/">← パネル</a><h1>本編台本をブラウザAIで作る</h1><span class="spacer"></span></header>
+<main id="main">
+  <div class="card2">
+    <h2>① プロンプト（コピーしてブラウザのAIへ）</h2>
+    <div class="meta2">Geminに投げるのと同じ指示。編集してからコピーしてもOK。<span id="theme"></span></div>
+    <textarea class="big" id="prompt" rows="14" style="margin-top:8px">読み込み中…</textarea>
+    <div class="row" style="margin-top:8px"><button class="primary" id="copy">プロンプトをコピー</button>
+      <button id="reload">テーマ選び直し</button></div>
+  </div>
+  <div class="card2">
+    <h2>② AIの結果(JSON)を貼り付けて取り込む</h2>
+    <div class="meta2">AIが出力した台本JSONを貼付→「取り込む」で docs/story/script.json に保存。</div>
+    <textarea class="big" id="paste" rows="10" placeholder='{ "theme": "...", "chapters": [...], "script": [...] }' style="margin-top:8px"></textarea>
+    <div class="row" style="margin-top:8px"><button class="primary" id="imp">取り込む</button>
+      <span class="st" id="ist"></span></div>
+  </div>
+  <div class="card2">
+    <h2>③ 画像取得(任意・取り込み後)</h2>
+    <div class="meta2">取り込んだ台本で画像取得。完了後 /story でレビュー。</div>
+    <div class="row" style="margin-top:8px"><button id="fetch">画像取得</button><span class="st" id="fst"></span>
+      <a href="/story" style="margin-left:10px"><button>レビューへ(/story)</button></a></div>
+    <pre class="log" id="flog"></pre>
+  </div>
+</main>
+<script>
+function api(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.json());}
+function loadPrompt(){ fetch('/api/compose/prompt').then(r=>r.json()).then(d=>{
+  document.getElementById('prompt').value=d.prompt||''; document.getElementById('theme').textContent='  テーマ: '+(d.theme||''); }); }
+document.getElementById('copy').onclick=()=>{ const t=document.getElementById('prompt');
+  navigator.clipboard.writeText(t.value).then(()=>{const b=document.getElementById('copy');b.textContent='コピーした！';
+    setTimeout(()=>b.textContent='プロンプトをコピー',1200);}); };
+document.getElementById('reload').onclick=loadPrompt;
+document.getElementById('imp').onclick=async()=>{ const st=document.getElementById('ist');
+  st.textContent='取り込み中…'; st.className='st run';
+  const r=await api('/api/compose/import',{text:document.getElementById('paste').value});
+  if(r.ok){ st.textContent='✓ 取込完了: '+(r.theme||'')+' / trivia'+r.chapters+'章・'+r.turns+'ターン'; st.className='st ok'; }
+  else { st.textContent='× '+(r.message||'失敗'); st.className='st ng'; } };
+document.getElementById('fetch').onclick=async()=>{ const st=document.getElementById('fst'); const log=document.getElementById('flog');
+  const r=await api('/api/compose/fetch',{}); if(!r.ok){ st.textContent='× '+(r.message||'失敗'); st.className='st ng'; return; }
+  const poll=()=>fetch('/api/shorts/jobstatus?job='+encodeURIComponent(r.job)).then(x=>x.json()).then(s=>{
+    st.textContent=s.state==='running'?'取得中…':(s.state==='done'?'✓ 取得完了':'失敗'); st.className='st '+(s.state==='running'?'run':s.state==='done'?'ok':'ng');
+    if(s.log){log.style.display='block';log.textContent=s.log;log.scrollTop=log.scrollHeight;}
+    if(s.state==='running')setTimeout(poll,1500); }); poll(); };
+loadPrompt();
 </script>
 </body></html>
 """
@@ -1995,6 +2179,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/shorts":
             self._html(SHORTS_PAGE.replace("__CSS__", _BASE_CSS))
             return
+        if path == "/compose":
+            self._html(COMPOSE_PAGE.replace("__CSS__", _BASE_CSS))
+            return
+        if path == "/api/compose/prompt":
+            self._json(compose_main_prompt())
+            return
         if path == "/api/shorts/list":
             self._json({"netas": main_trivia_netas(), "shorts": list_shorts()})
             return
@@ -2110,6 +2300,22 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/set-dir":
             self._json(set_active_dir(body.get("dir") or ""))
+            return
+        if path == "/api/compose/import":
+            self._json(import_main_script(body.get("text")))
+            return
+        if path == "/api/compose/fetch":
+            self._json(start_fetch(BASE_DIR))
+            return
+        if path == "/api/shorts/prompt":
+            self._json(compose_shorts_prompt(body.get("chapters")))
+            return
+        if path == "/api/shorts/import":
+            self._json(import_shorts_script(body.get("text"), body.get("chapters")))
+            return
+        if path == "/api/shorts/fetch":
+            slug = _slugify(body.get("slug") or "")
+            self._json(start_fetch(os.path.join(SHORTS_ROOT, slug)))
             return
         if path == "/api/shorts/generate":
             try:
