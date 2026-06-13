@@ -29,12 +29,17 @@ const BOARD_PORTRAIT = { left: 24, right: 24, top: 410, bottom: 690 };
 function layoutFor(portrait: boolean) {
   return portrait
     ? {
-        avatarL: { left: -50, bottom: -30 } as const,  // 下のコーナーに立ち絵2人
+        avatarL: { left: -50, bottom: -30 } as const,  // (顔バブル時は未使用)
         avatarR: { right: -40, bottom: -30 } as const,
         avatarScale: 1.25,
+        // 顔バブル：今の立ち絵を頭部にズームして丸く切り抜き、下コーナーに2人。
+        faceSize: 300,    // バブル径(px)
+        faceScale: 2.1,   // 立ち絵(445px)を顔までズームする倍率
+        faceTop: -120,    // バブル内での立ち絵の上端オフセット(px・負で上へ＝顔を中心に持ってくる)
+        faceBottom: 40, faceLeft: 18, faceRight: 18,  // バブルの画面内位置
         capLeft: 40,
         capRight: 40,
-        capBottom: 620,  // 字幕を上げる（画像直下）。下は立ち絵＋YouTube UI領域に空ける
+        capBottom: 620,  // 字幕を上げる（画像直下）。下は顔バブル＋YouTube UI領域に空ける
         capFont: 48,     // 固定見出しより一段弱く（視線を見出しへ誘導）
         capPad: "20px 30px",
         badgeLeft: 24,
@@ -56,6 +61,7 @@ function layoutFor(portrait: boolean) {
         badgeTop: BOARD_LANDSCAPE.top - 6,
         soloAvatar: { right: -10, bottom: 300 } as const, // 横では未使用（型整合）
         soloScale: 1,
+        faceSize: 0, faceScale: 1, faceTop: 0, faceBottom: 0, faceLeft: 0, faceRight: 0, // 横では未使用
       };
 }
 
@@ -878,8 +884,67 @@ export const DialogueVideo: React.FC<{
         </div>
       ) : null}
 
-      {/* 立ち絵2人（縦・横とも表示。位置/大きさは layoutFor の avatarL/R/Scale で出し分け）。 */}
-      {(
+      {portrait ? (
+        // 縦ショート：今の立ち絵を頭部にズームして丸く切り抜いた「顔バブル」を下コーナーに2人。
+        // 同じパーツなので口パク・まばたきもそのまま効く（新素材不要）。
+        (() => {
+          const bubble = (
+            side: "left" | "right",
+            dir: string | null,
+            gender: Gender,
+            isActive: boolean,
+            emotion: Emotion,
+            expressive: boolean,
+            ringColor: string
+          ) => (
+            <div
+              style={{
+                position: "absolute",
+                bottom: L.faceBottom,
+                ...(side === "left" ? { left: L.faceLeft } : { right: L.faceRight }),
+                width: L.faceSize,
+                height: L.faceSize,
+                borderRadius: "50%",
+                overflow: "hidden",
+                border: `5px solid ${ringColor}`,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.45)",
+                background: "rgba(248,250,253,0.96)",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  top: L.faceTop,
+                  left: "50%",
+                  transform: `translateX(-50%) scale(${L.faceScale})`,
+                  transformOrigin: "top center",
+                }}
+              >
+                <Avatar
+                  dir={dir}
+                  manifest={dir ? manifest[dir] : undefined}
+                  fallbackGender={gender}
+                  active={isActive}
+                  activatedAtFrame={activatedAtFrame}
+                  amplitude={isActive ? amplitude : 0}
+                  emotion={emotion}
+                  emotionAtFrame={emotionAtFrame}
+                  expressive={expressive}
+                  flip={false}
+                />
+              </div>
+            </div>
+          );
+          return (
+            <>
+              {bubble("left", leftAvatarDir, leftGender,
+                activeSpeaker === leftSpeaker || isChorus, leftEmotion, leftExpressive, leftColor)}
+              {bubble("right", rightAvatarDir, rightGender,
+                activeSpeaker === rightSpeaker || isChorus, rightEmotion, rightExpressive, rightColor)}
+            </>
+          );
+        })()
+      ) : (
         <>
           {/* 左立ち絵（中央画像より前面・下端の左右コーナーに大きく配置。最下部が胸あたりになるよう下げる。字幕に被らない位置まで左へ） */}
           <div
