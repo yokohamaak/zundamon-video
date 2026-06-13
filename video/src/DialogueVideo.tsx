@@ -356,6 +356,12 @@ export const DialogueVideo: React.FC<{
   const leftFlip = resolveFlip(meta, leftSpeaker, "left");
   const rightFlip = resolveFlip(meta, rightSpeaker, "right");
   const manifest = meta.avatarManifest ?? {};
+  // 縦ショートは「顔だけ素材」を優先：assets/avatars/<dir>_face/ があればそれを使う（無ければ通常）。
+  // 立ち絵の identity/色は base の dir のまま（speakerColor は leftDir/rightDir を使う）。
+  const faceDir = (d: string | null) =>
+    portrait && d && manifest[`${d}_face`] ? `${d}_face` : d;
+  const leftAvatarDir = faceDir(leftDir);
+  const rightAvatarDir = faceDir(rightDir);
 
   // 音量ベースのリップシンク：digest.mp3 の現フレーム付近の波形RMS（実効音量）を口の開きにする。
   // visualizeAudio(スペクトル)は値が小さすぎて口が開かないため、波形RMSを直接使う。
@@ -885,8 +891,8 @@ export const DialogueVideo: React.FC<{
             }}
           >
             <Avatar
-              dir={leftDir}
-              manifest={leftDir ? manifest[leftDir] : undefined}
+              dir={leftAvatarDir}
+              manifest={leftAvatarDir ? manifest[leftAvatarDir] : undefined}
               fallbackGender={leftGender}
               active={activeSpeaker === leftSpeaker || isChorus}
               activatedAtFrame={activatedAtFrame}
@@ -908,8 +914,8 @@ export const DialogueVideo: React.FC<{
             }}
           >
             <Avatar
-              dir={rightDir}
-              manifest={rightDir ? manifest[rightDir] : undefined}
+              dir={rightAvatarDir}
+              manifest={rightAvatarDir ? manifest[rightAvatarDir] : undefined}
               fallbackGender={rightGender}
               active={activeSpeaker === rightSpeaker || isChorus}
               activatedAtFrame={activatedAtFrame}
