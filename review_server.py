@@ -996,6 +996,12 @@ SHORTS_PAGE = """<!doctype html>
 <main id="main">読み込み中…</main>
 <script>
 function api(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());}
+// ログをレベル別に色分け（ERROR=赤 / WARNING=黄 / INFO=青 / その他=既定）。HTMLエスケープ込み。
+function colorizeLog(s){ return (s||'').split('\\n').map(l=>{
+  const e=l.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  let col=''; if(/\\[(ERROR|CRITICAL)\\]|Traceback|Error:/.test(l))col='#ff6b6b';
+  else if(/\\[WARN(ING)?\\]/.test(l))col='#ffcc4d'; else if(/\\[INFO\\]/.test(l))col='#8fb7ff';
+  return col?('<span style="color:'+col+'">'+e+'</span>'):e; }).join('<br>'); }
 let NETAS=[], SHORTS=[];
 function fmt(s){ if(s.state==='running')return['実行中…','st run'];
   if(s.state==='done')return['✓ 完了'+(s.out?': '+s.out:''),'st ok'];
@@ -1003,7 +1009,7 @@ function fmt(s){ if(s.state==='running')return['実行中…','st run'];
 function poll(job, stId, logId, btns){
   fetch('/api/shorts/jobstatus?job='+encodeURIComponent(job)).then(r=>r.json()).then(s=>{
     const [t,c]=fmt(s); const st=document.getElementById(stId); if(st){st.textContent=t; st.className=c;}
-    const lg=document.getElementById(logId); if(lg&&s.log){lg.style.display='block'; lg.textContent=s.log; lg.scrollTop=lg.scrollHeight;}
+    const lg=document.getElementById(logId); if(lg&&s.log){lg.style.display='block'; lg.innerHTML=colorizeLog(s.log); lg.scrollTop=lg.scrollHeight;}
     if(s.state==='running') setTimeout(()=>poll(job,stId,logId,btns),1500);
     else { (btns||[]).forEach(b=>b.disabled=false); if(s.state==='done') setTimeout(load,400); }
   });
@@ -1014,7 +1020,11 @@ function render(){
   const mk=document.createElement('div'); mk.className='card2';
   mk.innerHTML='<h2 style="margin-top:0">本編ネタからショートを作る（まとめて生成）</h2>'+
     '<div class="meta2">作るネタにチェック→「選択ネタをまとめて生成」。選んだ分を Gemini 1回で各「自己完結・掴み先頭・約40秒」台本に書き直し、docs/shorts/&lt;自動名&gt;/ へ（台本→画像取得まで）。slugはネタ名から自動。</div>';
-  const list=document.createElement('div'); list.style.margin='10px 0';
+  if(NETAS.length){ const selrow=document.createElement('div'); selrow.className='row2'; selrow.style.margin='6px 0';
+    const ba=document.createElement('button'); ba.textContent='全選択'; ba.onclick=()=>document.querySelectorAll('.netachk').forEach(c=>c.checked=true);
+    const bn=document.createElement('button'); bn.textContent='全解除'; bn.onclick=()=>document.querySelectorAll('.netachk').forEach(c=>c.checked=false);
+    selrow.appendChild(ba); selrow.appendChild(bn); mk.appendChild(selrow); }
+  const list=document.createElement('div'); list.style.margin='6px 0 10px';
   if(!NETAS.length){ list.innerHTML='<div class="meta2">本編の台本がありません</div>'; }
   NETAS.forEach(n=>{ const lb=document.createElement('label'); lb.style.cssText='display:block;margin:4px 0;cursor:pointer;';
     lb.innerHTML='<input type="checkbox" class="netachk" value="'+n.ch+'"> 第'+n.ch+'章 '+(n.title||'');
@@ -1145,6 +1155,11 @@ COMPOSE_PAGE = """<!doctype html>
 </main>
 <script>
 function api(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.json());}
+function colorizeLog(s){ return (s||'').split('\\n').map(l=>{
+  const e=l.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  let col=''; if(/\\[(ERROR|CRITICAL)\\]|Traceback|Error:/.test(l))col='#ff6b6b';
+  else if(/\\[WARN(ING)?\\]/.test(l))col='#ffcc4d'; else if(/\\[INFO\\]/.test(l))col='#8fb7ff';
+  return col?('<span style="color:'+col+'">'+e+'</span>'):e; }).join('<br>'); }
 function loadPrompt(){ fetch('/api/compose/prompt').then(r=>r.json()).then(d=>{
   document.getElementById('prompt').value=d.prompt||''; document.getElementById('theme').textContent='  テーマ: '+(d.theme||''); }); }
 document.getElementById('copy').onclick=()=>{ const t=document.getElementById('prompt');
@@ -1160,7 +1175,7 @@ document.getElementById('fetch').onclick=async()=>{ const st=document.getElement
   const r=await api('/api/compose/fetch',{}); if(!r.ok){ st.textContent='× '+(r.message||'失敗'); st.className='st ng'; return; }
   const poll=()=>fetch('/api/shorts/jobstatus?job='+encodeURIComponent(r.job)).then(x=>x.json()).then(s=>{
     st.textContent=s.state==='running'?'取得中…':(s.state==='done'?'✓ 取得完了':'失敗'); st.className='st '+(s.state==='running'?'run':s.state==='done'?'ok':'ng');
-    if(s.log){log.style.display='block';log.textContent=s.log;log.scrollTop=log.scrollHeight;}
+    if(s.log){log.style.display='block';log.innerHTML=colorizeLog(s.log);log.scrollTop=log.scrollHeight;}
     if(s.state==='running')setTimeout(poll,1500); }); poll(); };
 loadPrompt();
 </script>
