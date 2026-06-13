@@ -7,6 +7,7 @@
 Gemini（掛け合い台本） → VOICEVOX（音声） → フリー素材画像（Wikimedia/Pexels/Pixabay） → Remotion（描画）
 ```
 
+- **いちばん簡単な実行** → `./run`（番号メニュー）/ `./run help`（一覧）。フラグを覚えず本編・ショートを回せる薄いラッパー
 - **実行方法・全オプション** → **[USAGE.md](USAGE.md)**（コマンド/オプションのチートシート）
 - 制作ワークフロー・データ構造 → **[WORKFLOW.md](WORKFLOW.md)**
 - 設計・実装計画 → **[PLAN.md](PLAN.md)**
