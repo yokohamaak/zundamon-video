@@ -1025,7 +1025,9 @@ function poll(job, stId, logId, btns){
     const [t,c]=fmt(s); const st=document.getElementById(stId); if(st){st.textContent=t; st.className=c;}
     const lg=document.getElementById(logId); if(lg&&s.log){lg.style.display='block'; lg.innerHTML=colorizeLog(s.log); lg.scrollTop=lg.scrollHeight;}
     if(s.state==='running') setTimeout(()=>poll(job,stId,logId,btns),1500);
-    else { (btns||[]).forEach(b=>b.disabled=false); if(s.state==='done') setTimeout(load,400); }
+    // ボタン起点のpoll(btnsあり)のみ完了時に1回だけ再読み込み（バッジ更新）。
+    // load時の受動poll(btns=null)は再読み込みしない＝完了済みジョブで無限リロード(ちらつき)を防ぐ。
+    else { (btns||[]).forEach(b=>b.disabled=false); if(btns && s.state==='done') setTimeout(load,400); }
   });
 }
 function render(){
