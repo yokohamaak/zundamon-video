@@ -32,11 +32,11 @@ function layoutFor(portrait: boolean) {
         avatarL: { left: -50, bottom: -30 } as const,  // (顔バブル時は未使用)
         avatarR: { right: -40, bottom: -30 } as const,
         avatarScale: 1.25,
-        // 顔（肩から上）：今の立ち絵を四角く切り抜き、字幕のすぐ下に小さめで2人。
-        faceW: 240, faceH: 215,  // 切り抜き枠(px・肩から上が入る縦横)
-        faceScale: 0.95,  // 立ち絵(445px)のズーム倍率（肩から上が収まる弱め）
-        faceTop: -45,     // 枠内での立ち絵の上端オフセット(px・負で上へ＝頭頂〜肩を表示)
-        faceGap: 14, faceLeft: 24, faceRight: 24,  // 字幕下端からの隙間・左右位置
+        // 肩から上：今の立ち絵をそのままの大きさで、肩から下だけ見えない高さに収める（枠・縁なし＝透明）。
+        faceW: 300, faceH: 250,  // 表示領域(px・肩から上が収まる。下端で胴を隠す)
+        faceScale: 1.0,   // 立ち絵(445px)は等倍（クロップ＝ズームしない）
+        faceTop: -18,     // 立ち絵の上端オフセット(px・髪が切れない程度に微調整)
+        faceGap: 10, faceLeft: 10, faceRight: 10,  // 字幕下端からの隙間・左右位置
         capLeft: 40,
         capRight: 40,
         capBottom: 620,  // 字幕を上げる（画像直下）。下は顔バブル＋YouTube UI領域に空ける
@@ -896,8 +896,9 @@ export const DialogueVideo: React.FC<{
             isActive: boolean,
             emotion: Emotion,
             expressive: boolean,
-            ringColor: string
+            flip: boolean
           ) => (
+            // 枠/縁/背景なしの透明クリップ。下端で胴を隠す＝肩から上だけ自然に見せる。
             <div
               style={{
                 position: "absolute",
@@ -905,11 +906,7 @@ export const DialogueVideo: React.FC<{
                 ...(side === "left" ? { left: L.faceLeft } : { right: L.faceRight }),
                 width: L.faceW,
                 height: L.faceH,
-                borderRadius: 16,
                 overflow: "hidden",
-                border: `4px solid ${ringColor}`,
-                boxShadow: "0 5px 16px rgba(0,0,0,0.4)",
-                background: "rgba(248,250,253,0.96)",
               }}
             >
               <div
@@ -931,7 +928,7 @@ export const DialogueVideo: React.FC<{
                   emotion={emotion}
                   emotionAtFrame={emotionAtFrame}
                   expressive={expressive}
-                  flip={false}
+                  flip={flip}
                 />
               </div>
             </div>
@@ -939,9 +936,9 @@ export const DialogueVideo: React.FC<{
           return (
             <>
               {bust("left", leftAvatarDir, leftGender,
-                activeSpeaker === leftSpeaker || isChorus, leftEmotion, leftExpressive, leftColor)}
+                activeSpeaker === leftSpeaker || isChorus, leftEmotion, leftExpressive, leftFlip)}
               {bust("right", rightAvatarDir, rightGender,
-                activeSpeaker === rightSpeaker || isChorus, rightEmotion, rightExpressive, rightColor)}
+                activeSpeaker === rightSpeaker || isChorus, rightEmotion, rightExpressive, rightFlip)}
             </>
           );
         })()
