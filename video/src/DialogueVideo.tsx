@@ -29,12 +29,12 @@ const BOARD_PORTRAIT = { left: 24, right: 24, top: 410, bottom: 690 };
 function layoutFor(portrait: boolean) {
   return portrait
     ? {
-        avatarL: { left: -40, bottom: 360 } as const,
-        avatarR: { right: -40, bottom: 360 } as const,
-        avatarScale: 1.2,
+        avatarL: { left: -50, bottom: -30 } as const,  // 下のコーナーに立ち絵2人
+        avatarR: { right: -40, bottom: -30 } as const,
+        avatarScale: 1.25,
         capLeft: 40,
         capRight: 40,
-        capBottom: 440,  // YouTube ShortsのUI(下20〜25%)を避けつつ、見出し下げに連動して下へ
+        capBottom: 620,  // 字幕を上げる（画像直下）。下は立ち絵＋YouTube UI領域に空ける
         capFont: 48,     // 固定見出しより一段弱く（視線を見出しへ誘導）
         capPad: "20px 30px",
         badgeLeft: 24,
@@ -872,10 +872,8 @@ export const DialogueVideo: React.FC<{
         </div>
       ) : null}
 
-      {portrait ? (
-        // 縦ショート：キャラは出さない（画像主役・セーフゾーン確保・離脱率対策）。
-        null
-      ) : (
+      {/* 立ち絵2人（縦・横とも表示。位置/大きさは layoutFor の avatarL/R/Scale で出し分け）。 */}
+      {(
         <>
           {/* 左立ち絵（中央画像より前面・下端の左右コーナーに大きく配置。最下部が胸あたりになるよう下げる。字幕に被らない位置まで左へ） */}
           <div
