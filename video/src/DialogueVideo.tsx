@@ -33,13 +33,13 @@ function layoutFor(portrait: boolean) {
         avatarR: { right: -40, bottom: -30 } as const,
         avatarScale: 1.25,
         // 肩から上：今の立ち絵をそのままの大きさで、肩から下だけ見えない高さに収める（枠・縁なし＝透明）。
-        faceW: 300, faceH: 250,  // 表示領域(px・肩から上が収まる。下端で胴を隠す)
-        faceScale: 1.0,   // 立ち絵(445px)は等倍（クロップ＝ズームしない）
+        faceW: 500, faceH: 325,  // 表示領域(px・肩から上が収まる。下端で胴を隠す)
+        faceScale: 0.85,   // 立ち絵(445px)は等倍（クロップ＝ズームしない）
         faceTop: -18,     // 立ち絵の上端オフセット(px・髪が切れない程度に微調整)
         faceGap: 10, faceLeft: 10, faceRight: 10,  // 字幕下端からの隙間・左右位置
         capLeft: 40,
         capRight: 40,
-        capBottom: 620,  // 字幕を上げる（画像直下）。下は顔バブル＋YouTube UI領域に空ける
+        capBottom: 550,  // 字幕を上げる（画像直下）。下は顔バブル＋YouTube UI領域に空ける
         capFont: 48,     // 固定見出しより一段弱く（視線を見出しへ誘導）
         capPad: "20px 30px",
         badgeLeft: 24,
@@ -1108,27 +1108,29 @@ export const DialogueVideo: React.FC<{
             <div
               style={{
                 position: "absolute",
-                left: 40,
-                right: 40,
-                bottom: 540, // 字幕より上・セーフゾーン内（下のUIに被らない）
+                left: 30,
+                right: 30,
+                top: visualTop,              // 中央ビジュアルの領域に重ねて
+                height: visualBoxH,          // その「ど真ん中」に置く
                 display: "flex",
+                alignItems: "center",
                 justifyContent: "center",
                 pointerEvents: "none",
                 opacity: op,
                 transform: `scale(${pop.toFixed(3)})`,
-                transformOrigin: "center bottom",
+                transformOrigin: "center center",
                 zIndex: 25,
               }}
             >
               <div
                 style={{
                   background: "linear-gradient(135deg, #ff3b6b, #ff8a3d)",
-                  borderRadius: 22,
-                  border: "4px solid #fff",
-                  padding: "26px 34px",
-                  boxShadow: "0 12px 34px rgba(0,0,0,0.55)",
+                  borderRadius: 24,
+                  border: "5px solid #fff",
+                  padding: "32px 40px",
+                  boxShadow: "0 14px 40px rgba(0,0,0,0.6)",
                   textAlign: "center",
-                  fontSize: 58,
+                  fontSize: 72,
                   fontWeight: 900,
                   lineHeight: 1.3,
                   color: "#fff",
