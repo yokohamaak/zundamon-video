@@ -202,6 +202,21 @@ def save_meta(meta):
 # script/review/meta/digest/画像 を作る。レビューは対象ディレクトリを切替えて既存 /story を使う。
 
 SHORTS_ROOT = "docs/shorts"
+SPOKEN_CPM = 305          # 喋り実測較正（/storyゲージと共通）
+SHORT_TARGET_SECONDS = 40  # ショートの目標尺（秒）
+
+
+def is_short_dir():
+    """現在の対象がショート（docs/shorts/配下）か。目標文字数の出し分けに使う。"""
+    d = os.path.normpath(DIR)
+    return d.startswith(os.path.normpath(SHORTS_ROOT) + os.sep)
+
+
+def target_for_dir():
+    """対象に応じた目標 {chars,label}。ショートは約40秒、本編は8分。"""
+    if is_short_dir():
+        return {"chars": round(SPOKEN_CPM * SHORT_TARGET_SECONDS / 60), "label": f"約{SHORT_TARGET_SECONDS}秒"}
+    return {"chars": 8 * SPOKEN_CPM, "label": "8分"}
 
 
 def _slugify(s):
@@ -1558,7 +1573,8 @@ function sectionLabel(ch, ci){
 }
 
 // 喋り文字数→推定分。英字（かな）は読み仮名だけ喋る＝畳んで数える（実測較正305字/分）。
-const SPOKEN_CPM=305, TARGET_MIN=8;
+// 目標(TARGET_CHARS/LABEL)は対象がショートか本編かで /api/status から切替（ショート=約40秒）。
+const SPOKEN_CPM=305; let TARGET_CHARS=8*305, TARGET_LABEL='8分';
 function spokenLen(text){
   if(!text) return 0;
   let s=String(text).replace(/[0-9A-Za-z][0-9A-Za-z._\\-]*（([^（）]+)）/g,'$1');
@@ -1570,11 +1586,11 @@ function secLbl(ch,i,all){ if(ch.section==='intro')return '導入'; if(ch.sectio
 function buildEstimate(){
   const sc=DATA.script||[], ch=DATA.chapters||[]; const per=ch.map(()=>0); let total=0;
   sc.forEach(t=>{ const n=spokenLen(t.text); total+=n; if(typeof t.chapter==='number'&&per[t.chapter]!=null) per[t.chapter]+=n; });
-  const minE=total/SPOKEN_CPM, tgtChars=Math.round(TARGET_MIN*SPOKEN_CPM), diff=tgtChars-total;
+  const minE=total/SPOKEN_CPM, tgtChars=TARGET_CHARS, diff=tgtChars-total;
   const w=document.createElement('div'); w.className='estbar'; w.id='estbar';
   const parts=ch.map((c,i)=>'<span class="es3">'+secLbl(c,i,ch)+' '+per[i]+'</span>').join('');
   w.innerHTML='<b>喋り '+total+'字 ≈ 推定 '+minE.toFixed(1)+'分</b>'
-    +' <span class="es">目標'+TARGET_MIN+'分≈'+tgtChars+'字（'+(diff>=0?'あと'+diff+'字':(-diff)+'字オーバー')+'）</span>'
+    +' <span class="es">目標'+TARGET_LABEL+'≈'+tgtChars+'字（'+(diff>=0?'あと'+diff+'字':(-diff)+'字オーバー')+'）</span>'
     +'<div class="es2">'+parts+'</div>';
   return w;
 }
@@ -1787,8 +1803,10 @@ document.getElementById('regen').onclick=async()=>{
   }
 };
 
-Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>r.json())])
-.then(([s,rev])=>{
+Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>r.json()),
+             fetch('/api/status').then(r=>r.json())])
+.then(([s,rev,st])=>{
+  if(st&&st.target){ TARGET_CHARS=st.target.chars; TARGET_LABEL=st.target.label; }  // ショート/本編で目標切替
   if(s.error){ document.getElementById('main').textContent=s.error; return; }
   DATA=s; CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
   if(DATA.chapters&&DATA.chapters.length) OPEN.add(0);  // 先頭は開いておく
@@ -1970,7 +1988,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(job_status(job))
             return
         if path == "/api/status":
-            self._json({"dir": DIR, "base": BASE_DIR, "status": pipeline_status()})
+            self._json({"dir": DIR, "base": BASE_DIR, "status": pipeline_status(),
+                        "target": target_for_dir()})
             return
         if path == "/api/script":
             data = load_script()

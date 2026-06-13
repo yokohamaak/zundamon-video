@@ -34,6 +34,9 @@ logger = logging.getLogger(__name__)
 
 JST = timezone(timedelta(hours=9))
 
+# ショートの目標尺（秒）。本編8分でなくこの尺で文字数予算/警告を判定する。
+SHORT_TARGET_SECONDS = 40
+
 
 def load_dotenv(path=None):
     """.env を読んで os.environ に流す（標準ライブラリのみ・依存追加なし）。
@@ -555,15 +558,22 @@ def main():
         return
 
     # 尺チェック：台本文字数が予算を大きく超えたら警告（Geminiが長く書きすぎた時に気づけるように）。
+    # ショート（--short-from / docs/shorts 出力）は本編8分でなく約40秒の目標で判定する。
     s_cfg = config.get("story", {})
-    budget = int(float(s_cfg.get("target_minutes", story_script.DEFAULT_MINUTES)) * story_script.CHARS_PER_MINUTE)
+    is_short = args.short_from is not None or str(out_dir).startswith("docs/shorts")
+    if is_short:
+        budget = int(SHORT_TARGET_SECONDS / 60 * story_script.CHARS_PER_MINUTE)
+    else:
+        budget = int(float(s_cfg.get("target_minutes", story_script.DEFAULT_MINUTES)) * story_script.CHARS_PER_MINUTE)
     total_chars = sum(len(t.get("text") or "") for t in script_result.get("script", []))
     est_min = total_chars / story_script.CHARS_PER_MINUTE if story_script.CHARS_PER_MINUTE else 0
-    if budget and total_chars > budget * 1.15:
-        logger.warning(f"台本が長すぎます: {total_chars}字（予算{budget}字・推定{est_min:.1f}分）。"
-                       f"レビューでネタ/ターンを削るか『全体を作り直す』で短く作り直すのを検討してください。")
+    unit = "秒" if is_short else "分"
+    est = est_min * 60 if is_short else est_min
+    if budget and total_chars > budget * 1.25:
+        logger.warning(f"台本が長すぎます: {total_chars}字（予算{budget}字・推定{est:.0f}{unit}）。"
+                       f"レビューでターンを削るか作り直しを検討してください。")
     else:
-        logger.info(f"台本 {total_chars}字（推定{est_min:.1f}分・予算{budget}字）")
+        logger.info(f"台本 {total_chars}字（推定{est:.0f}{unit}・予算{budget}字）")
 
     # --script-only はここまでで停止（音声/metaはskip）
     if args.script_only:
