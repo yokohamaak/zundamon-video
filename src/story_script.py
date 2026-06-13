@@ -896,6 +896,7 @@ def shortify_chapter(config: dict, script_result: dict, chapter_index: int) -> d
         t["chapter"] = 0
         t["section"] = "trivia"
     data["script"] = turns
+    append_short_closing(data, config)  # 本編誘導の固定締めを焼き込む
     normalize_turns(data["script"], data["chapters"])
     if not data.get("theme"):
         data["theme"] = source["title"]
@@ -964,6 +965,29 @@ def build_shorts_batch_prompt(config: dict, sources: list) -> str:
 - script の chapter は 0..{n - 1}、section は全て trivia。挨拶・導入・締めの定型や順序語は入れない。""".strip()
 
 
+def append_short_closing(script_result: dict, config: dict) -> None:
+    """ショート末尾に固定締め（config.story.short_closing・本編誘導）を普通の台詞として足す。
+
+    生成時に script.json へ焼き込む＝/storyで個別編集可・ショートは自動再付与しないので上書きされない。
+    """
+    lines = (config.get("story", {}) or {}).get("short_closing") or []
+    if not lines:
+        return
+    script = script_result.get("script") or []
+    last = script[-1] if script else {}
+    ch, cut = last.get("chapter", 0), last.get("cut", 0)
+    for line in lines:
+        text = (line.get("text") or "").strip()
+        if not text:
+            continue
+        script.append({
+            "speaker": line.get("speaker") or config.get("story", {}).get("explainer", DEFAULT_EXPLAINER),
+            "text": text, "emotion": line.get("emotion") or "happy",
+            "section": "trivia", "chapter": ch, "effect": "kenburns", "cut": cut,
+        })
+    script_result["script"] = script
+
+
 def shorts_sources(script_result: dict, chapter_indices: list):
     """選択章から、ショート化プロンプト用の sources [{title,summary,lines}] と対象index列を返す。"""
     chapters = script_result.get("chapters", [])
@@ -981,10 +1005,11 @@ def shorts_sources(script_result: dict, chapter_indices: list):
     return sources, targets
 
 
-def shorts_from_parsed(data: dict, n: int) -> list:
+def shorts_from_parsed(data: dict, n: int, config: dict = None) -> list:
     """{chapters:[n trivia(hook)], script} を n本の独立ショート script_result に分解（純関数）。
 
-    Gemini自動・ブラウザAI貼り付け取り込みの両方で共用。Returns: [script_result,...]（順番＝章順）。
+    Gemini自動・ブラウザAI貼り付け取り込みの両方で共用。config を渡すと末尾に固定締めを焼き込む。
+    Returns: [script_result,...]（順番＝章順）。
     """
     out_chapters = data.get("chapters", [])
     new_script = data.get("script", [])
@@ -1000,6 +1025,8 @@ def shorts_from_parsed(data: dict, n: int) -> list:
             t["section"] = "trivia"
         sr = {"theme": ch.get("title") or "ショート",
               "chapters": [{**ch, "section": "trivia"}], "script": turns}
+        if config is not None:
+            append_short_closing(sr, config)  # 本編誘導の固定締めを焼き込む
         normalize_turns(sr["script"], sr["chapters"])
         results.append(sr)
     return results
@@ -1015,7 +1042,7 @@ def generate_shorts_batch(config: dict, script_result: dict, chapter_indices: li
         raise ValueError("ショート化できる trivia 章が選択されていません")
     data = _generate_parsed(config, build_shorts_batch_prompt(config, sources),
                             log_label=f"{len(targets)}本のショート台本")
-    results = shorts_from_parsed(data, len(targets))
+    results = shorts_from_parsed(data, len(targets), config)
     return [{"source_chapter": targets[i], "script_result": results[i]} for i in range(len(targets))]
 
 

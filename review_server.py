@@ -402,7 +402,7 @@ def import_shorts_script(text, chapters):
     idxs = [int(c) for c in (chapters or [])]
     try:
         data = story_script.parse_script_json(text or "")
-        results = story_script.shorts_from_parsed(data, len(idxs))
+        results = story_script.shorts_from_parsed(data, len(idxs), _load_image_config() or {})
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "message": f"取り込み失敗: {e}"}
     slugs = []
