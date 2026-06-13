@@ -26,8 +26,10 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-# レビュー対象ディレクトリ（既定 docs/story）。main()で上書き。
+# レビュー対象ディレクトリ（既定 docs/story）。main()で上書き。/shorts から実行時に切替可能。
 DIR = "docs/story"
+# 基準（本編）ディレクトリ。ショートのネタ元・docs/shorts の親判定に使う（起動時に固定）。
+BASE_DIR = "docs/story"
 
 _CT = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
@@ -195,121 +197,130 @@ def save_meta(meta):
         json.dump(meta, f, ensure_ascii=False, indent=2)
 
 
-# ---- ショート（縦9:16）：章を選んで切り抜き書き出し ----
+# ---- ショート（縦9:16）：本編ネタから独立ショートを作る制作ハブ ----
+# 本編 docs/story の trivia ネタを選んで「ショート台本を別生成」→ docs/shorts/<slug>/ に独立した
+# script/review/meta/digest/画像 を作る。レビューは対象ディレクトリを切替えて既存 /story を使う。
 
-def shorts_chapters():
-    """ショート化できる trivia 章の一覧（純ロジック）。meta.json(尺)＋script.json(hook/title)から組む。
+SHORTS_ROOT = "docs/shorts"
 
-    各章: {ch, title, hook, fallbackHook, duration}。meta が無ければ空。
-    """
-    meta = load_meta()
-    if not meta:
+
+def _slugify(s):
+    s = re.sub(r"[^0-9A-Za-z_\-ぁ-んァ-ヶ一-龠]+", "-", (s or "").strip()).strip("-")
+    return s[:40] or "short"
+
+
+def set_active_dir(d):
+    """レビュー/編集の対象ディレクトリを実行時に切替（本編 or ショート）。docs/配下のみ許可。"""
+    global DIR
+    d = os.path.normpath(d)
+    if not (d == BASE_DIR or d.startswith(SHORTS_ROOT + os.sep) or d.startswith("docs" + os.sep)):
+        return {"ok": False, "message": "対象が不正です"}
+    if not os.path.isdir(d):
+        return {"ok": False, "message": f"{d} がありません"}
+    DIR = d
+    return {"ok": True, "dir": DIR}
+
+
+def main_trivia_netas():
+    """本編(BASE_DIR)の trivia ネタ一覧 [{ch,title,summary}]（ショート化の元・選択用）。"""
+    path = os.path.join(BASE_DIR, "script.json")
+    if not os.path.exists(path):
         return []
-    script = load_script() or {}
-    chapters = script.get("chapters", [])
-    topics = meta.get("topics", [])
-    turns = meta.get("script", [])
-    chs = sorted({t.get("chapter") for t in turns
-                  if t.get("section") == "trivia" and t.get("chapter") is not None})
+    with open(path, encoding="utf-8") as f:
+        script = json.load(f)
     out = []
-    for ch in chs:
-        inch = [t for t in turns if t.get("chapter") == ch]
-        if not inch:
-            continue
-        start = min(t.get("start", 0) or 0 for t in inch)
-        end = max(t.get("end", 0) or 0 for t in inch)
-        title = chapters[ch].get("title", "") if 0 <= ch < len(chapters) else ""
-        hook = chapters[ch].get("hook", "") if 0 <= ch < len(chapters) else ""
-        if not hook:
-            hook = next((tp.get("hook") for tp in topics
-                         if tp.get("chapter") == ch and tp.get("hook")), "")
-        if not title:
-            title = next((tp.get("title") for tp in topics
-                          if tp.get("chapter") == ch and tp.get("title")), "")
-        out.append({
-            "ch": ch,
-            "title": title,
-            "hook": hook or "",
-            "fallbackHook": (title + "って、知ってる？") if title else "",
-            "duration": round(end - start, 1),
-        })
+    for i, c in enumerate(script.get("chapters", [])):
+        if c.get("section") == "trivia":
+            out.append({"ch": i, "title": c.get("title", ""), "summary": c.get("summary", "")})
     return out
 
 
-def set_short_hook(ch, hook):
-    """章のフック（ショート固定見出し）を script.json と meta.json の両方へ保存（純ロジック）。
-
-    script は将来の再生成でも残るよう、meta は prep→render が即拾えるよう更新する。
-    """
-    ch = int(ch)
-    hook = (hook or "").strip()
-    script = load_script()
-    if script and 0 <= ch < len(script.get("chapters", [])):
-        if hook:
-            script["chapters"][ch]["hook"] = hook
-        else:
-            script["chapters"][ch].pop("hook", None)
-        save_script(script)
-    meta = load_meta()
-    if meta:
-        for tp in meta.get("topics", []):
-            if tp.get("chapter") == ch and tp.get("section") == "trivia":
-                if hook:
-                    tp["hook"] = hook
-                else:
-                    tp.pop("hook", None)
-        save_meta(meta)
-    return {"ok": True, "ch": ch, "hook": hook}
-
-
-# 進行中のショート書き出しジョブ（章番号→{proc, log, out}）。
-SHORT_JOBS = {}
+def list_shorts():
+    """docs/shorts/* の一覧 [{slug,hasScript,hasMeta,hasVideo,hook,title}]。"""
+    if not os.path.isdir(SHORTS_ROOT):
+        return []
+    out = []
+    for slug in sorted(os.listdir(SHORTS_ROOT)):
+        d = os.path.join(SHORTS_ROOT, slug)
+        if not os.path.isdir(d):
+            continue
+        has_script = os.path.exists(os.path.join(d, "script.json"))
+        has_meta = os.path.exists(os.path.join(d, "meta.json"))
+        has_video = os.path.exists(os.path.join("video", "out", f"short_{slug}.mp4"))
+        title = hook = ""
+        if has_script:
+            try:
+                with open(os.path.join(d, "script.json"), encoding="utf-8") as f:
+                    chs = json.load(f).get("chapters", [])
+                tri = next((c for c in chs if c.get("section") == "trivia"), {})
+                title, hook = tri.get("title", ""), tri.get("hook", "")
+            except (OSError, ValueError):
+                pass
+        out.append({"slug": slug, "dir": d, "hasScript": has_script, "hasMeta": has_meta,
+                    "hasVideo": has_video, "title": title, "hook": hook})
+    return out
 
 
-def start_short_render(ch, cta=None):
-    """縦ショートを subprocess で書き出す（非同期）。Mac前提・前段で音声+meta生成済みが必要。
+# 進行中ジョブ（id文字列→{proc,log,out?}）。生成/書き出しで共用。
+JOBS = {}
 
-    prep（meta/画像/深度を public へコピー）→ remotion render を video/ で実行。
-    """
-    ch = int(ch)
-    if not os.path.exists(os.path.join(DIR, "meta.json")):
-        return {"ok": False, "message": "meta.json がありません（先に音声+meta生成）"}
-    if not os.path.isdir("video"):
-        return {"ok": False, "message": "video/ が見つかりません（リポジトリ直下で起動してください）"}
-    props = {"clipChapter": ch}
-    if cta is not None:
-        props["ctaText"] = cta  # "" なら CTA 非表示
-    out = f"out/short_ch{ch}.mp4"
-    src = os.path.relpath(DIR, "video")  # video/ から見た docs/story
-    cmd = (f"SRC_DIR={shlex.quote(src)} npm run prep && "
-           f"npx remotion render DialogueVideoShort {out} "
-           f"--props={shlex.quote(json.dumps(props, ensure_ascii=False))}")
+
+def _spawn(job_id, cmd, cwd=None, out=None):
+    log_path = os.path.join("video", "out", f"job_{re.sub(r'[^0-9A-Za-z_-]', '_', job_id)}.log")
     os.makedirs(os.path.join("video", "out"), exist_ok=True)
-    log_path = os.path.join("video", "out", f"short_ch{ch}.log")
     logf = open(log_path, "w", encoding="utf-8")
-    proc = subprocess.Popen(["bash", "-lc", cmd], cwd="video",
-                            stdout=logf, stderr=subprocess.STDOUT)
-    SHORT_JOBS[ch] = {"proc": proc, "log": log_path, "out": os.path.join("video", out)}
-    return {"ok": True, "ch": ch, "out": out}
+    proc = subprocess.Popen(["bash", "-lc", cmd], cwd=cwd, stdout=logf, stderr=subprocess.STDOUT)
+    JOBS[job_id] = {"proc": proc, "log": log_path, "out": out}
+    return {"ok": True, "job": job_id, "out": out}
 
 
-def short_status(ch):
-    """書き出しジョブの状態（純ロジックに近いI/O）。state=idle|running|done|failed＋ログ末尾。"""
-    job = SHORT_JOBS.get(int(ch))
+def job_status(job_id):
+    job = JOBS.get(job_id)
     if not job:
         return {"state": "idle"}
     tail = ""
     try:
         with open(job["log"], encoding="utf-8", errors="replace") as f:
-            tail = "".join(f.readlines()[-14:])
+            tail = "".join(f.readlines()[-16:])
     except OSError:
         pass
     rc = job["proc"].poll()
     if rc is None:
         return {"state": "running", "log": tail}
     if rc == 0:
-        return {"state": "done", "out": job["out"], "log": tail}
+        return {"state": "done", "out": job.get("out"), "log": tail}
     return {"state": "failed", "code": rc, "log": tail}
+
+
+def start_short_generate(slug, ch):
+    """本編の第ch章を独立ショート台本へ生成し docs/shorts/<slug>/ に出力（画像取得まで→レビュー待ち）。
+
+    Gemini＋画像取得を伴う（Mac/.env前提）。完了後 /story を docs/shorts/<slug> に向けてレビュー。
+    """
+    slug, ch = _slugify(slug), int(ch)
+    src_script = os.path.join(BASE_DIR, "script.json")
+    if not os.path.exists(src_script):
+        return {"ok": False, "message": f"{src_script} がありません（本編の台本が必要）"}
+    cmd = (f"python main_story.py --from-script {shlex.quote(src_script)} "
+           f"--short-from {ch} --slug {shlex.quote(slug)} --stop-after-images")
+    return _spawn(f"gen:{slug}", cmd)
+
+
+def start_short_render_dir(slug, cta=None):
+    """docs/shorts/<slug> の独立metaから縦ショートを書き出す（1ネタ=全体）。"""
+    slug = _slugify(slug)
+    d = os.path.join(SHORTS_ROOT, slug)
+    if not os.path.exists(os.path.join(d, "meta.json")):
+        return {"ok": False, "message": "meta.json がありません（音声+meta生成が先）"}
+    props = {}
+    if cta is not None:
+        props["ctaText"] = cta
+    out = f"out/short_{slug}.mp4"
+    src = os.path.relpath(d, "video")
+    proparg = f" --props={shlex.quote(json.dumps(props, ensure_ascii=False))}" if props else ""
+    cmd = (f"SRC_DIR={shlex.quote(src)} npm run prep && "
+           f"npx remotion render DialogueVideoShort {out}{proparg}")
+    return _spawn(f"render:{slug}", cmd, cwd="video", out=os.path.join("video", out))
 
 
 def _load_image_config():
@@ -816,12 +827,20 @@ const STAGES = [
    cmd:'python main_story.py --from-script DIR/script.json --images-from-dir'},
   {key:'meta',   t:'④ 仕上げ', d:'Remotionで動画書き出し', link:null,
    cmd:'cd video && SRC_DIR=../DIR npm run render'},
-  {key:'meta',   t:'⑤ ショート（縦9:16）', d:'章を選んで1ネタずつ縦ショートに書き出し（見出し編集可）', link:'/shorts',
-   cmd:'cd video && npm run render:short'},
+  {key:'meta',   t:'⑤ ショート（縦9:16）', d:'本編ネタから独立ショートを生成→台本レビュー→書き出し', link:'/shorts',
+   cmd:'python main_story.py --from-script DIR/script.json --short-from N --slug NAME --stop-after-images'},
 ];
 fetch('/api/status').then(r=>r.json()).then(st=>{
   document.getElementById('dir').textContent = '対象: '+st.dir;
   const m = document.getElementById('main'); m.innerHTML='';
+  if(st.dir!==st.base){
+    const sw=document.createElement('div'); sw.className='stage';
+    sw.innerHTML='<span class="dot done"></span><div><div class="t">ショートを編集中: '+st.dir+'</div>'+
+      '<div class="d">レビュー対象がショートに切り替わっています</div></div>';
+    const b=document.createElement('button'); b.className='go'; b.textContent='本編に戻す';
+    b.onclick=async()=>{ await fetch('/api/set-dir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dir:st.base})}); location.reload(); };
+    sw.appendChild(b); m.appendChild(sw);
+  }
   for(const s of STAGES){
     const done = st.status[s.key];
     const el = document.createElement('div'); el.className='stage';
@@ -844,101 +863,99 @@ fetch('/api/status').then(r=>r.json()).then(st=>{
 SHORTS_PAGE = """<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ショート書き出し</title>
+<title>ショート制作</title>
 <style>__CSS__
   .card2 { background:var(--card); border:1px solid var(--line); border-radius:12px;
            padding:14px 16px; margin-bottom:12px; }
-  .row2 { display:flex; align-items:center; gap:12px; }
-  .ttl { font-weight:700; }
-  .meta2 { color:var(--sub); font-size:12px; }
-  textarea.hook { width:100%; box-sizing:border-box; background:#0e131b; color:var(--fg);
-           border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:15px;
-           resize:vertical; margin-top:8px; }
-  .st { font-size:12px; color:var(--sub); margin-left:auto; }
-  .st.run { color:var(--accent); } .st.ok { color:var(--ok); } .st.ng { color:#ff6b6b; }
+  .row2 { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .ttl { font-weight:700; } .meta2 { color:var(--sub); font-size:12px; }
+  select,input.txt { background:#0e131b; color:var(--fg); border:1px solid var(--line);
+           border-radius:8px; padding:8px 10px; font-size:14px; }
+  .badge { font-size:11px; border:1px solid var(--line); border-radius:6px; padding:2px 7px; color:var(--sub); }
+  .badge.on { color:var(--ok); border-color:var(--ok); }
+  .st { font-size:12px; margin-left:auto; color:var(--sub); }
+  .st.run{color:var(--accent);} .st.ok{color:var(--ok);} .st.ng{color:#ff6b6b;}
   pre.log { background:#0b0f15; border:1px solid var(--line); border-radius:8px; color:#aeb9c7;
-            font-size:11px; padding:8px 10px; margin:8px 0 0; max-height:140px; overflow:auto;
+            font-size:11px; padding:8px 10px; margin:8px 0 0; max-height:150px; overflow:auto;
             white-space:pre-wrap; display:none; }
-  .ctabar { background:var(--card); border:1px solid var(--line); border-radius:12px;
-            padding:12px 16px; margin-bottom:14px; }
+  h2 { font-size:15px; margin:18px 0 8px; } code.cmd2 { color:var(--sub); font-size:12px; }
 </style></head>
 <body>
-<header><a href="/">← パネル</a><h1>ショート書き出し（縦9:16）</h1><span class="spacer"></span>
+<header><a href="/">← パネル</a><h1>ショート制作（縦9:16）</h1><span class="spacer"></span>
   <span class="meta2" id="dir"></span></header>
 <main id="main">読み込み中…</main>
 <script>
 function api(p,b){return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json());}
-let DATA=[];
-function fmtState(s){
-  if(s.state==='running')return ['書き出し中…','st run'];
-  if(s.state==='done')return ['✓ 完成: '+(s.out||''),'st ok'];
-  if(s.state==='failed')return ['失敗(code '+s.code+')','st ng'];
-  return ['','st'];
+let NETAS=[], SHORTS=[];
+function fmt(s){ if(s.state==='running')return['実行中…','st run'];
+  if(s.state==='done')return['✓ 完了'+(s.out?': '+s.out:''),'st ok'];
+  if(s.state==='failed')return['失敗(code '+s.code+')','st ng']; return['','st']; }
+function poll(job, stId, logId, btns){
+  fetch('/api/shorts/jobstatus?job='+encodeURIComponent(job)).then(r=>r.json()).then(s=>{
+    const [t,c]=fmt(s); const st=document.getElementById(stId); if(st){st.textContent=t; st.className=c;}
+    const lg=document.getElementById(logId); if(lg&&s.log){lg.style.display='block'; lg.textContent=s.log; lg.scrollTop=lg.scrollHeight;}
+    if(s.state==='running') setTimeout(()=>poll(job,stId,logId,btns),1500);
+    else { (btns||[]).forEach(b=>b.disabled=false); if(s.state==='done') setTimeout(load,400); }
+  });
 }
 function render(){
   const m=document.getElementById('main'); m.innerHTML='';
-  // CTA（共通）
-  const cta=document.createElement('div'); cta.className='ctabar';
-  cta.innerHTML='<div class="meta2">終盤CTA（空欄=既定文／「CTAなし」で非表示）</div>';
-  const ci=document.createElement('input'); ci.id='cta'; ci.type='text'; ci.placeholder='続きは本編でも解説！…（空欄で既定）';
-  ci.style.cssText='width:70%;background:#0e131b;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;';
-  const noc=document.createElement('label'); noc.className='meta2'; noc.style.marginLeft='12px';
-  noc.innerHTML='<input type="checkbox" id="nocta"> CTAなし';
-  cta.appendChild(ci); cta.appendChild(noc); m.appendChild(cta);
+  // 新規作成
+  const mk=document.createElement('div'); mk.className='card2';
+  mk.innerHTML='<h2 style="margin-top:0">本編ネタから新しいショートを作る</h2>'+
+    '<div class="meta2">選んだネタを「自己完結・掴み先頭・30〜45秒」の単体台本に書き直し、docs/shorts/&lt;名前&gt;/ に作ります（台本→画像取得まで）。</div>';
+  const row=document.createElement('div'); row.className='row2'; row.style.marginTop='10px';
+  const sel=document.createElement('select');
+  if(!NETAS.length){ sel.innerHTML='<option>本編の台本がありません</option>'; sel.disabled=true; }
+  NETAS.forEach(n=>{ const o=document.createElement('option'); o.value=n.ch; o.textContent='第'+n.ch+'章 '+(n.title||''); sel.appendChild(o); });
+  const slug=document.createElement('input'); slug.className='txt'; slug.placeholder='出力名(slug 例: captcha)'; slug.style.width='180px';
+  const gen=document.createElement('button'); gen.className='primary'; gen.textContent='ショート台本を生成';
+  const gst=document.createElement('span'); gst.className='st'; gst.id='gen-st';
+  row.appendChild(sel); row.appendChild(slug); row.appendChild(gen); row.appendChild(gst);
+  mk.appendChild(row);
+  const glog=document.createElement('pre'); glog.className='log'; glog.id='gen-log'; mk.appendChild(glog);
+  gen.onclick=async()=>{ const s=slug.value.trim()|| (NETAS.find(n=>n.ch==sel.value)||{}).title || '';
+    gen.disabled=true; const r=await api('/api/shorts/generate',{ch:parseInt(sel.value),slug:s});
+    if(!r.ok){ alert(r.message||'起動失敗'); gen.disabled=false; return; }
+    poll(r.job,'gen-st','gen-log',[gen]); };
+  m.appendChild(mk);
 
-  if(!DATA.length){ const p=document.createElement('p'); p.className='meta2';
-    p.textContent='trivia章が見つかりません。先に音声+metaを生成してください（meta.json必須）。'; m.appendChild(p); return; }
-
-  DATA.forEach(it=>{
+  // 一覧
+  const h=document.createElement('h2'); h.textContent='作成済みショート'; m.appendChild(h);
+  if(!SHORTS.length){ const p=document.createElement('p'); p.className='meta2'; p.textContent='まだありません。上で作成してください。'; m.appendChild(p); }
+  SHORTS.forEach(sh=>{
     const c=document.createElement('div'); c.className='card2';
     const head=document.createElement('div'); head.className='row2';
-    head.innerHTML=`<span class="ttl">第${it.ch}章 ${it.title||'(無題)'}</span>
-      <span class="meta2">約${it.duration}秒</span>`;
-    const st=document.createElement('span'); st.className='st'; st.id='st'+it.ch; head.appendChild(st);
-    const btn=document.createElement('button'); btn.className='primary'; btn.textContent='ショート書き出し';
-    btn.style.marginLeft='10px'; head.appendChild(btn);
+    head.innerHTML='<span class="ttl">'+sh.slug+'</span>'+
+      '<span class="meta2">'+(sh.title||'')+'</span>'+
+      '<span class="badge '+(sh.hasScript?'on':'')+'">台本</span>'+
+      '<span class="badge '+(sh.hasMeta?'on':'')+'">音声/meta</span>'+
+      '<span class="badge '+(sh.hasVideo?'on':'')+'">動画</span>';
+    const st=document.createElement('span'); st.className='st'; st.id='st-'+sh.slug; head.appendChild(st);
     c.appendChild(head);
-
-    const ta=document.createElement('textarea'); ta.className='hook'; ta.rows=2;
-    ta.value=it.hook||''; ta.placeholder='固定見出し（空欄なら仮: '+(it.fallbackHook||'タイトルから')+'）';
-    ta.onchange=async()=>{ const r=await api('/api/shorts/hook',{ch:it.ch,hook:ta.value});
-      if(r.ok){ it.hook=r.hook; } else alert('保存失敗'); };
-    c.appendChild(ta);
-
-    const log=document.createElement('pre'); log.className='log'; log.id='log'+it.ch; c.appendChild(log);
-
-    btn.onclick=async()=>{
-      const nocta=document.getElementById('nocta').checked;
-      const ctaval=document.getElementById('cta').value;
-      const body={ch:it.ch};
-      if(nocta) body.cta=''; else if(ctaval) body.cta=ctaval;
-      btn.disabled=true;
-      const r=await api('/api/shorts/render',body);
-      if(!r.ok){ alert(r.message||'起動失敗'); btn.disabled=false; return; }
-      poll(it.ch,btn);
-    };
+    if(sh.hook){ const hk=document.createElement('div'); hk.className='meta2'; hk.style.marginTop='6px'; hk.textContent='見出し: '+sh.hook; c.appendChild(hk); }
+    const row=document.createElement('div'); row.className='row2'; row.style.marginTop='10px';
+    const rev=document.createElement('button'); rev.textContent='台本レビュー'; rev.disabled=!sh.hasScript;
+    rev.onclick=async()=>{ const r=await api('/api/set-dir',{dir:sh.dir}); if(r.ok) location.href='/story'; else alert(r.message); };
+    const rnd=document.createElement('button'); rnd.className='primary'; rnd.textContent='書き出し'; rnd.disabled=!sh.hasMeta;
+    rnd.onclick=async()=>{ rnd.disabled=true; const r=await api('/api/shorts/render',{slug:sh.slug});
+      if(!r.ok){ alert(r.message||'起動失敗'); rnd.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[rnd]); };
+    row.appendChild(rev); row.appendChild(rnd);
+    const cmd=document.createElement('div'); cmd.className='meta2'; cmd.style.marginTop='8px';
+    cmd.innerHTML='音声+meta（Mac/VOICEVOX）: <code class="cmd2">python main_story.py --from-script '+sh.dir+'/script.json --images-from-dir --output-dir '+sh.dir+'</code><br>'+
+      '深度（任意・パララックス）: <code class="cmd2">python make_depth.py --dir '+sh.dir+'</code>';
+    c.appendChild(row); c.appendChild(cmd);
+    const log=document.createElement('pre'); log.className='log'; log.id='log-'+sh.slug; c.appendChild(log);
     m.appendChild(c);
   });
 }
-function poll(ch,btn){
-  fetch('/api/shorts/status?ch='+ch).then(r=>r.json()).then(s=>{
-    const [txt,cls]=fmtState(s);
-    const st=document.getElementById('st'+ch); if(st){st.textContent=txt; st.className=cls;}
-    const log=document.getElementById('log'+ch);
-    if(log && s.log){ log.style.display='block'; log.textContent=s.log; log.scrollTop=log.scrollHeight; }
-    if(s.state==='running'){ setTimeout(()=>poll(ch,btn),1500); }
-    else { if(btn) btn.disabled=false; }
-  });
+function load(){
+  Promise.all([fetch('/api/status').then(r=>r.json()), fetch('/api/shorts/list').then(r=>r.json())])
+  .then(([st,d])=>{ document.getElementById('dir').textContent='対象: '+st.dir;
+    NETAS=d.netas||[]; SHORTS=d.shorts||[]; render();
+    SHORTS.forEach(sh=>poll('render:'+sh.slug,'st-'+sh.slug,'log-'+sh.slug,null)); });
 }
-Promise.all([
-  fetch('/api/status').then(r=>r.json()),
-  fetch('/api/shorts/list').then(r=>r.json())
-]).then(([st,list])=>{
-  document.getElementById('dir').textContent='対象: '+st.dir;
-  DATA=list.chapters||[]; render();
-  // 既に走っているジョブがあれば状態を拾う
-  DATA.forEach(it=>poll(it.ch,null));
-});
+load();
 </script>
 </body></html>
 """
@@ -1945,18 +1962,15 @@ class Handler(BaseHTTPRequestHandler):
             self._html(SHORTS_PAGE.replace("__CSS__", _BASE_CSS))
             return
         if path == "/api/shorts/list":
-            self._json({"chapters": shorts_chapters()})
+            self._json({"netas": main_trivia_netas(), "shorts": list_shorts()})
             return
-        if path == "/api/shorts/status":
+        if path == "/api/shorts/jobstatus":
             qs = parse_qs(urlparse(self.path).query)
-            ch = (qs.get("ch") or ["0"])[0]
-            try:
-                self._json(short_status(int(ch)))
-            except ValueError:
-                self._json({"state": "idle"})
+            job = (qs.get("job") or [""])[0]
+            self._json(job_status(job))
             return
         if path == "/api/status":
-            self._json({"dir": DIR, "status": pipeline_status()})
+            self._json({"dir": DIR, "base": BASE_DIR, "status": pipeline_status()})
             return
         if path == "/api/script":
             data = load_script()
@@ -2059,15 +2073,17 @@ class Handler(BaseHTTPRequestHandler):
                 save_review(review)
             self._json({"ok": ok, "message": msg, "filename": fn})
             return
-        if path == "/api/shorts/hook":
+        if path == "/api/set-dir":
+            self._json(set_active_dir(body.get("dir") or ""))
+            return
+        if path == "/api/shorts/generate":
             try:
-                self._json(set_short_hook(body.get("ch"), body.get("hook")))
+                self._json(start_short_generate(body.get("slug"), body.get("ch")))
             except (TypeError, ValueError):
-                self._json({"ok": False, "message": "ch が不正"})
+                self._json({"ok": False, "message": "slug/ch が不正"})
             return
         if path == "/api/shorts/render":
-            cta = body.get("cta")  # None=既定 / ""=非表示 / 文字列=上書き
-            self._json(start_short_render(body.get("ch"), cta))
+            self._json(start_short_render_dir(body.get("slug"), body.get("cta")))
             return
         if path == "/api/continue":
             review["status"] = "approved"
@@ -2082,12 +2098,13 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global DIR
+    global DIR, BASE_DIR
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", default="docs/story", help="レビュー対象（review.json/画像のあるディレクトリ）")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
     DIR = args.dir
+    BASE_DIR = args.dir  # 本編＝ショートのネタ元（起動時の対象を基準にする）
     if not os.path.exists(os.path.join(DIR, "review.json")):
         print(f"[review] {DIR}/review.json がありません。先に "
               f"`python main_story.py --stop-after-images` を実行してください。")
