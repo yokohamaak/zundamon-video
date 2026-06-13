@@ -879,7 +879,8 @@ def shortify_chapter(config: dict, script_result: dict, chapter_index: int) -> d
         raise ValueError("trivia 章を指定してください（intro/outro は不可）")
     lines = "\n".join(
         f"{t.get('speaker', '')}: {t.get('text', '')}"
-        for t in script_result.get("script", []) if t.get("chapter") == chapter_index
+        for t in script_result.get("script", [])
+        if t.get("chapter") == chapter_index and t.get("section") == "trivia" and not t.get("closing")
     )
     source = {"title": src_ch.get("title", ""), "summary": src_ch.get("summary", ""), "lines": lines}
     data = _generate_parsed(config, build_short_prompt(config, source),
@@ -971,8 +972,11 @@ def shorts_sources(script_result: dict, chapter_indices: list):
     sources = [{
         "title": chapters[i].get("title", ""),
         "summary": chapters[i].get("summary", ""),
+        # ネタ本体(trivia)の台詞だけ。末尾に付く締めCTA/ユニゾン(同じ章番号・section outro/closing)は除外。
         "lines": "\n".join(f"{t.get('speaker', '')}: {t.get('text', '')}"
-                           for t in script_result.get("script", []) if t.get("chapter") == i),
+                           for t in script_result.get("script", [])
+                           if t.get("chapter") == i and t.get("section") == "trivia"
+                           and not t.get("closing")),
     } for i in targets]
     return sources, targets
 
