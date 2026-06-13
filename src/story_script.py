@@ -595,8 +595,13 @@ def _generate_parsed(config: dict, prompt: str, log_label: str = "台本") -> di
     models_cfg = config.get("models", {})
     primary = models_cfg.get("text", "gemini-3.5-flash")
     # 503(高負荷)が続くモデルを見切って順に試すフォールバック（いずれも無料枠のStableモデル）。
+    # fallback_enabled=false なら primary 1本のみ（品質を固定したい時・失敗を早く知りたい時）。
     fallbacks = models_cfg.get("text_fallbacks", ["gemini-2.5-flash", "gemini-3.1-flash-lite"])
-    candidates = [primary] + [m for m in fallbacks if m != primary]
+    if models_cfg.get("fallback_enabled", True):
+        candidates = [primary] + [m for m in fallbacks if m != primary]
+    else:
+        candidates = [primary]
+        logger.info("フォールバック無効（primaryのみ使用）")
 
     data = None
     last_err = None

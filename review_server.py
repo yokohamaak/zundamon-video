@@ -456,6 +456,13 @@ def _load_image_config():
         return {}
 
 
+def _apply_fallback(config, fallback):
+    """レビュー画面のフォールバックON/OFFを config に反映（None=configの既定値のまま）。"""
+    if fallback is None:
+        return
+    config.setdefault("models", {})["fallback_enabled"] = bool(fallback)
+
+
 def do_fetch_cut(ch, ci, query, kind, lang=None):
     """1カットを取得して review.json を更新（upsert）。検索のみ・Geminiは使わない。
 
@@ -531,7 +538,7 @@ def _blank_review_cut(ch, ci, chapter, cut, image, attribution):
             "fit": None, "crop": None, "filter": None, "hide": False, "pad": None, "bg": None}
 
 
-def do_regenerate_chapters(indices):
+def do_regenerate_chapters(indices, fallback=None):
     """選択した trivia 章だけ、既出ネタと重複しない台本＋画像で再生成する（Gemini 1回）。
 
     台本(script.json)を差し替え、再生成章の画像を取り直して review.json を更新する。
@@ -549,6 +556,7 @@ def do_regenerate_chapters(indices):
         return {"ok": False, "message": "再生成する章が選択されていません"}
     from src import image_fetch, story_script, topic_history
     config = _load_image_config()
+    _apply_fallback(config, fallback)
     genre = topic_history.genre_of(config)
     avoid = topic_history.facts(genre)  # 過去動画の採用済み＋却下を避ける（永続・ジャンル別）
     # 置き換える前の対象 trivia 章の内容を控える（成功したら却下履歴に積む）。
@@ -590,7 +598,7 @@ def do_regenerate_chapters(indices):
     return {"ok": True, "regenerated": sorted(regen_chs), "titles": titles}
 
 
-def do_regenerate_all():
+def do_regenerate_all(fallback=None):
     """現在のテーマで台本を丸ごと作り直す（intro＋全trivia＋outro）。画像も全カット取り直す。
 
     章単位の再生成と違い intro/outro も新しくなるため整合性が保たれる（冒頭フックや締めが
@@ -599,6 +607,7 @@ def do_regenerate_all():
     """
     from src import image_fetch, story_script, topic_history
     config = _load_image_config()
+    _apply_fallback(config, fallback)
     genre = topic_history.genre_of(config)
     old = load_script() or {}
     old_facts = [{"title": c.get("title", ""), "summary": c.get("summary", "")}
@@ -1500,6 +1509,7 @@ STORY_PAGE = """<!doctype html>
   <a href="/read"><button title="フル台本/概要を読み取り専用で表示（事実確認）">台本を読む</button></a>
   <button id="regenall" title="テーマで台本を丸ごと作り直す（intro+全ネタ+outroを新規生成・整合性が保たれる）">全体を作り直す</button>
   <button id="regen" disabled title="チェックしたネタ章を、既存と重複しない内容で作り直す（Gemini1回）">選択章を再生成</button>
+  <label id="fblabel" title="ON=primaryモデルが503/枯渇なら別の無料モデルへ自動切替。OFF=primaryのみ（品質固定・失敗を即把握）" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#9fb0c5;cursor:pointer;"><input type="checkbox" id="fallback" checked> フォールバック</label>
   <button class="ok" id="save">保存</button>
 </header>
 <main id="main">読み込み中…</main>
@@ -2000,10 +2010,15 @@ function showLock(msg){
 }
 function hideLock(){ const o=document.getElementById('lockov'); if(o) o.style.display='none'; }
 
+const fbBox=document.getElementById('fallback');
+if(localStorage.getItem('fallbackEnabled')==='0') fbBox.checked=false;  // 前回のON/OFFを復元
+fbBox.onchange=()=>localStorage.setItem('fallbackEnabled', fbBox.checked?'1':'0');
+function fbEnabled(){ return fbBox.checked; }
+
 document.getElementById('regenall').onclick=async()=>{
   if(!confirm('現在のテーマで台本を丸ごと作り直します（intro＋全ネタ＋outro）。\\n\\n章単位の再生成と違い冒頭/締めも新しいネタに合わせて作り直すので整合性が保たれます。\\n既存の台本・画像はすべて破棄し、画像も全カット取り直します（Gemini＋画像API・1〜2分）。\\n※生成中はパネルを操作できません。よろしいですか？')) return;
   showLock('全体を生成中… Gemini＋画像取得のため操作できません（1〜2分）');
-  const r=await api('/api/regenerate-all', {});
+  const r=await api('/api/regenerate-all', {fallback: fbEnabled()});
   if(r.ok){
     selChs.clear(); OPEN.clear();
     const [s,rev]=await Promise.all([fetch('/api/script').then(x=>x.json()), fetch('/api/cuts').then(x=>x.json())]);
@@ -2025,7 +2040,7 @@ document.getElementById('regen').onclick=async()=>{
   const sv=await api('/api/script', DATA);
   if(!sv.ok){ hideLock(); alert('保存に失敗したため中止しました: '+(sv.message||'')); return; }
   showLock('再生成中… Gemini生成のため操作できません（20〜40秒）');
-  const r=await api('/api/regenerate', {indices: idx});
+  const r=await api('/api/regenerate', {indices: idx, fallback: fbEnabled()});
   if(r.ok){
     selChs.clear();
     const [s,rev]=await Promise.all([fetch('/api/script').then(x=>x.json()), fetch('/api/cuts').then(x=>x.json())]);
@@ -2283,10 +2298,11 @@ class Handler(BaseHTTPRequestHandler):
                                      body.get("source"), body.get("lang"), body.get("page")))
             return
         if path == "/api/regenerate":
-            self._json(do_regenerate_chapters(body.get("indices") or []))
+            self._json(do_regenerate_chapters(body.get("indices") or [],
+                                               fallback=body.get("fallback")))
             return
         if path == "/api/regenerate-all":
-            self._json(do_regenerate_all())
+            self._json(do_regenerate_all(fallback=body.get("fallback")))
             return
         if path == "/api/delete-cut":
             try:

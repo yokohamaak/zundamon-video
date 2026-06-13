@@ -47,6 +47,7 @@ characters_gender:
 
 models:
   text: gemini-3.5-flash     # 台本生成（無料枠・レート制限あり）。Stable・最新世代で台本品質が期待できる
+  fallback_enabled: true     # 台本生成の既定値。falseなら text のみ使用（レビュー画面のチェックで都度上書き可）
   # 503(高負荷)/クォータ枯渇時に順に試すフォールバック（いずれも無料枠のStableモデル）
   # ※ gemini-2.0-flash は廃止進行中のため除外した
   text_fallbacks:
