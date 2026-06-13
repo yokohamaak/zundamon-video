@@ -901,6 +901,109 @@ def shortify_chapter(config: dict, script_result: dict, chapter_index: int) -> d
     return data
 
 
+def _shorts_batch_output_block(explainer: str, questioner: str, n: int) -> str:
+    """ショート複数本を1回で出す出力形式。trivia章をn個（各=1ショート・hook必須・自己完結）。"""
+    return f"""## 出力形式
+マークダウンのコードブロックは使わず、以下のJSONだけを出力すること。
+**厳密に有効なJSON**（"を文字列内で使わない＝引用は「」『』、末尾カンマ無し、生改行無し）:
+- chapters は **trivia を {n} 個**（各章＝独立した1本のショート）。intro/outro は出さない。
+- script の "chapter" は 0..{n - 1}（その章＝そのショートの台詞）。"section" は全て "trivia"。
+- 各章に "hook"（縦ショート上部の固定見出し・自己完結の一行・15〜26字）を必ず付ける。
+{{{{
+  "chapters": [
+    {{{{"section": "trivia", "title": "QRコードのQの意味", "hook": "QRコードの『Q』、実は意外な意味",
+      "summary": "QのQはQuick。高速読み取りが名前の由来。",
+      "image_cuts": [
+        {{{{"image_query": "QR code", "image_kind": "subject", "image_query_ja": "QRコード"}}}},
+        {{{{"image_query": "smartphone scanning qr code", "image_kind": "ambient", "image_query_ja": "QRを読むスマホ"}}}}
+      ]}}}}
+  ],
+  "script": [
+    {{{{"speaker": "{explainer}", "text": "QRコード（キューアールコード）の『Q』、実は知らない人が多いの。", "emotion": "normal", "section": "trivia", "chapter": 0, "effect": "flash", "cut": 0}}}},
+    {{{{"speaker": "{questioner}", "text": "えっ、考えたことなかったのだ…", "emotion": "surprise", "section": "trivia", "chapter": 0, "effect": "kenburns", "cut": 0}}}},
+    {{{{"speaker": "{explainer}", "text": "答えはQuick。Quick Response、素早い反応の頭文字なのよ。", "emotion": "happy", "section": "trivia", "chapter": 0, "effect": "zoom_punch", "cut": 1}}}}
+  ]
+}}}}"""
+
+
+def build_shorts_batch_prompt(config: dict, sources: list) -> str:
+    """選択した本編ネタ群を、各「自己完結ショート（縦・約40秒）」へ1回でまとめて書き直すプロンプト。
+
+    sources=[{title,summary,lines}]（順番＝出力の章0..N-1に対応）。事実は各sourceを真とする。
+    """
+    s = config.get("story", {})
+    questioner = s.get("questioner", DEFAULT_QUESTIONER)
+    explainer = s.get("explainer", DEFAULT_EXPLAINER)
+    n = len(sources)
+    blocks = "\n".join(
+        f"### ショート{i}（出力の chapter {i}）\n- 見出し: {src.get('title', '')}\n"
+        f"- 要点: {src.get('summary', '')}\n- 元の台詞(参考・言い回しは作り直してよい):\n{(src.get('lines') or '（なし）')}"
+        for i, src in enumerate(sources)
+    )
+    return f"""
+あなたはテクノロジー雑学を扱う教養系YouTubeの掛け合い台本ライターです。
+既存動画の「実は」ネタ {n} 本を、それぞれ**縦のショート動画（単体で完結する30〜45秒）**用に書き直します。
+
+## 元ネタ（各ショートの事実。新しい事実を足さない・取り違えない）
+{blocks}
+
+## 各ショートの作り方【厳守】
+- **冒頭で掴む（コールドオープン）**：1ターン目でいきなり意外な問い／断言。「ところでね」「さっきの」「今日は」等の前置き・参照は禁止。
+- **完全に自己完結**：他のショートや本編を前提にしない。順序語（最初／次／ラスト／〇つ目）も使わない。
+- **短く**：1本あたり **6〜8ターン・合計200〜260字**。問い→素朴な外し→「実は」の明かし→驚き→軽い追い打ちで完結。
+- **1ターン最大2文・70字**まで。締めは自然に（CTAや登録誘導は台詞に入れない）。
+- 事実は正確に。確実でない逸話は「諸説あるけれど」と限定。
+
+{_rules_block(questioner, explainer, 1, regen=True)}
+
+{_shorts_batch_output_block(explainer, questioner, n)}
+
+## このバッチでの出力（最重要）
+- chapters は **trivia を {n} 個**（{sources and "ショート0.." + str(n - 1)}に対応・順番厳守）。各章に "hook" 必須。
+- script の chapter は 0..{n - 1}、section は全て trivia。挨拶・導入・締めの定型や順序語は入れない。""".strip()
+
+
+def generate_shorts_batch(config: dict, script_result: dict, chapter_indices: list) -> list:
+    """選択した trivia 章群を、各自己完結ショート台本へ **Gemini 1回で** まとめて書き直す。
+
+    Returns: [{"source_chapter": 元章index, "script_result": {theme,chapters:[1 trivia(hook)],script}}]
+    各 script_result は単体ショートとして画像取得/音声/meta の下流にそのまま渡せる。
+    """
+    chapters = script_result.get("chapters", [])
+    targets = [i for i in chapter_indices
+               if 0 <= i < len(chapters) and chapters[i].get("section") == "trivia"]
+    if not targets:
+        raise ValueError("ショート化できる trivia 章が選択されていません")
+    sources = [{
+        "title": chapters[i].get("title", ""),
+        "summary": chapters[i].get("summary", ""),
+        "lines": "\n".join(f"{t.get('speaker', '')}: {t.get('text', '')}"
+                           for t in script_result.get("script", []) if t.get("chapter") == i),
+    } for i in targets]
+    data = _generate_parsed(config, build_shorts_batch_prompt(config, sources),
+                            log_label=f"{len(targets)}本のショート台本")
+    out_chapters = data.get("chapters", [])
+    new_script = data.get("script", [])
+    trivia_idx = [i for i, c in enumerate(out_chapters) if c.get("section") == "trivia"]
+    if len(trivia_idx) < len(targets):
+        raise ValueError(f"ショート生成結果の章が不足（要求{len(targets)}・取得{len(trivia_idx)}）")
+    shorts = []
+    for local, ci in enumerate(trivia_idx[:len(targets)]):
+        ch = out_chapters[ci]
+        turns = [dict(t) for t in new_script if t.get("chapter") == ci]
+        for t in turns:
+            t["chapter"] = 0
+            t["section"] = "trivia"
+        sr = {
+            "theme": ch.get("title") or sources[local]["title"],
+            "chapters": [{**ch, "section": "trivia"}],
+            "script": turns,
+        }
+        normalize_turns(sr["script"], sr["chapters"])
+        shorts.append({"source_chapter": targets[local], "script_result": sr})
+    return shorts
+
+
 def generate_story_script(config: dict, also_avoid=None) -> dict:
     """
     configから「実は〇〇雑学」の掛け合い台本を生成する。

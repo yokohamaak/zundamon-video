@@ -38,6 +38,13 @@ JST = timezone(timedelta(hours=9))
 SHORT_TARGET_SECONDS = 40
 
 
+def _short_slug(title: str) -> str:
+    """ショートの自動slug（タイトルから安全な短い名前）。"""
+    import re
+    s = re.sub(r"[^0-9A-Za-zぁ-んァ-ヶ一-龠]+", "-", (title or "").strip()).strip("-")
+    return s[:20] or "short"
+
+
 def load_dotenv(path=None):
     """.env を読んで os.environ に流す（標準ライブラリのみ・依存追加なし）。
 
@@ -483,12 +490,45 @@ def main():
                              "（VOICEVOX不要・課金なし。画像レビューの微修正反映用。--from-script必須）")
     parser.add_argument("--short-from", type=int, default=None,
                         help="本編(--from-script)の指定trivia章を縦ショート用の自己完結短尺台本に書き直す")
+    parser.add_argument("--shorts-from", default=None,
+                        help="本編の複数trivia章をGemini1回でまとめてショート化（例 \"1,2,3\"）。各 docs/shorts/<slug>/ へ")
     parser.add_argument("--slug", default=None,
                         help="ショートの出力名。指定時は出力先を docs/shorts/<slug>/ にする")
     args = parser.parse_args()
 
     load_dotenv()  # .env を自動読込（source忘れ対策・既存環境変数は優先）
     config = load_config(args.config)
+
+    # --shorts-from: 本編の複数ネタを Gemini 1回でまとめてショート化（各 docs/shorts/<slug>/ へ）。
+    # 画像取得まで実行してレビュー待ち（各ショートを /story で確認→ --images-from-dir で続行）。
+    if args.shorts_from:
+        if not args.from_script:
+            parser.error("--shorts-from は --from-script（本編 script.json）が必須です")
+        from src import image_fetch
+        with open(args.from_script, encoding="utf-8") as f:
+            main_script = json.load(f)
+        main_script["chapters"] = story_script._clean_chapters(main_script.get("chapters"))
+        story_script.normalize_turns(main_script["script"], main_script["chapters"])
+        idxs = [int(x) for x in str(args.shorts_from).split(",") if x.strip()]
+        logger.info(f"=== ショート一括生成: 第{idxs}章 を Gemini 1回でショート化 ===")
+        shorts = story_script.generate_shorts_batch(config, main_script, idxs)
+        for s in shorts:
+            sr = s["script_result"]
+            title = (sr.get("chapters") or [{}])[0].get("title") or sr.get("theme") or "short"
+            slug = f"ch{s['source_chapter']}_{_short_slug(title)}"
+            d = Path("docs/shorts") / slug
+            d.mkdir(parents=True, exist_ok=True)
+            image_files, attributions = image_fetch.fetch_images(sr["chapters"], str(d), config)
+            review = build_review(sr["chapters"], image_files, attributions)
+            with open(d / "review.json", "w", encoding="utf-8") as f:
+                json.dump(review, f, ensure_ascii=False, indent=2)
+            with open(d / "script.json", "w", encoding="utf-8") as f:
+                json.dump(sr, f, ensure_ascii=False, indent=2)
+            logger.info(f"  → {d}（画像{len(image_files)}件取得・レビュー待ち）")
+        logger.info(f"=== ショート {len(shorts)}本の台本＋画像取得 完了。各 /story でレビュー後、"
+                    f"--from-script docs/shorts/<slug>/script.json --images-from-dir で続行 ===")
+        return
+
     # ショートは docs/shorts/<slug>/ へ独立出力（本編と混ざらない）。
     out_dir = Path("docs/shorts") / args.slug if args.slug else Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

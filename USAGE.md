@@ -70,7 +70,8 @@ python main_story.py --script-only            # docs/story/script.json を出力
 | 既存台本を手編集して作り直す | `python main_story.py --from-script docs/story/script.json` |
 | 動画を反復確認（速い・HMR） | `cd video && npm run dev` |
 | 最終mp4を書き出す（横16:9） | `cd video && npm run render` |
-| ショート台本を生成（本編ネタ→自己完結短尺・約40秒） | `python main_story.py --from-script docs/story/script.json --short-from N --slug NAME --stop-after-images` |
+| ショート台本をまとめて生成（複数ネタ・Gemini1回） | `python main_story.py --from-script docs/story/script.json --shorts-from "1,2"` |
+| ショート台本を1本だけ生成（名前指定） | `python main_story.py --from-script docs/story/script.json --short-from N --slug NAME --stop-after-images` |
 | ショートの音声+meta | `python main_story.py --from-script docs/shorts/NAME/script.json --images-from-dir --output-dir docs/shorts/NAME` |
 | ショート書き出し（縦9:16） | `cd video && SRC_DIR=../docs/shorts/NAME npm run render:short` |
 | ショートの画像を“動画らしく”動かす深度生成 | `python make_depth.py --dir docs/shorts/NAME`（要 `pip install torch transformers pillow numpy`・ローカル/無料） |
@@ -95,7 +96,8 @@ python main_story.py [オプション]
 | `--images-from-dir` | off | 画像取得をskipし review.json の承認結果から meta を生成（承認後の続行） |
 | `--meta-only` | off | 音声を作り直さず既存 digest.mp3 の尺を流用し meta.json だけ再生成（VOICEVOX不要・課金なし。画像レビュー微修正の反映用。`--from-script` 必須） |
 | `--short-from N` | — | 本編(`--from-script`)の第N章(trivia)を自己完結ショート台本に書き直す（縦9:16・約40秒） |
-| `--slug NAME` | — | ショートの出力名。指定時は出力先を `docs/shorts/NAME/` にする |
+| `--shorts-from "N,M"` | — | 本編の複数trivia章を Gemini 1回でまとめてショート化（各 `docs/shorts/<自動slug>/` へ）。Gemini枠節約 |
+| `--slug NAME` | — | ショートの出力名（単発 `--short-from` 用）。指定時 `docs/shorts/NAME/` |
 | `--no-images` | off | 画像取得を無効化し全プレースホルダで続行 |
 
 **よく使う組み合わせ**

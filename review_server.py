@@ -22,6 +22,7 @@ import re
 import shlex
 import struct
 import subprocess
+import sys
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -307,18 +308,22 @@ def job_status(job_id):
     return {"state": "failed", "code": rc, "log": tail}
 
 
-def start_short_generate(slug, ch):
-    """本編の第ch章を独立ショート台本へ生成し docs/shorts/<slug>/ に出力（画像取得まで→レビュー待ち）。
+def start_short_generate(chapters):
+    """選択した本編ネタ(複数)を Gemini 1回でまとめてショート化（各 docs/shorts/<slug>/ へ）。
 
-    Gemini＋画像取得を伴う（Mac/.env前提）。完了後 /story を docs/shorts/<slug> に向けてレビュー。
+    Gemini＋画像取得を伴う（Mac/.env前提）。完了後 /story を各ショートに向けてレビュー。
     """
-    slug, ch = _slugify(slug), int(ch)
     src_script = os.path.join(BASE_DIR, "script.json")
     if not os.path.exists(src_script):
         return {"ok": False, "message": f"{src_script} がありません（本編の台本が必要）"}
-    cmd = (f"python main_story.py --from-script {shlex.quote(src_script)} "
-           f"--short-from {ch} --slug {shlex.quote(slug)} --stop-after-images")
-    return _spawn(f"gen:{slug}", cmd)
+    idxs = [int(c) for c in (chapters or []) if str(c).strip() != ""]
+    if not idxs:
+        return {"ok": False, "message": "ネタを1つ以上選んでください"}
+    spec = ",".join(str(i) for i in idxs)
+    py = shlex.quote(sys.executable)  # 実行中のpython（環境差を回避）
+    cmd = (f"{py} main_story.py --from-script {shlex.quote(src_script)} "
+           f"--shorts-from {shlex.quote(spec)}")
+    return _spawn("gen:batch", cmd)
 
 
 def start_short_render_dir(slug, cta=None):
@@ -915,22 +920,25 @@ function poll(job, stId, logId, btns){
 }
 function render(){
   const m=document.getElementById('main'); m.innerHTML='';
-  // 新規作成
+  // 新規作成（複数ネタを選んで Gemini 1回でまとめて生成）
   const mk=document.createElement('div'); mk.className='card2';
-  mk.innerHTML='<h2 style="margin-top:0">本編ネタから新しいショートを作る</h2>'+
-    '<div class="meta2">選んだネタを「自己完結・掴み先頭・30〜45秒」の単体台本に書き直し、docs/shorts/&lt;名前&gt;/ に作ります（台本→画像取得まで）。</div>';
-  const row=document.createElement('div'); row.className='row2'; row.style.marginTop='10px';
-  const sel=document.createElement('select');
-  if(!NETAS.length){ sel.innerHTML='<option>本編の台本がありません</option>'; sel.disabled=true; }
-  NETAS.forEach(n=>{ const o=document.createElement('option'); o.value=n.ch; o.textContent='第'+n.ch+'章 '+(n.title||''); sel.appendChild(o); });
-  const slug=document.createElement('input'); slug.className='txt'; slug.placeholder='出力名(slug 例: captcha)'; slug.style.width='180px';
-  const gen=document.createElement('button'); gen.className='primary'; gen.textContent='ショート台本を生成';
+  mk.innerHTML='<h2 style="margin-top:0">本編ネタからショートを作る（まとめて生成）</h2>'+
+    '<div class="meta2">作るネタにチェック→「選択ネタをまとめて生成」。選んだ分を Gemini 1回で各「自己完結・掴み先頭・約40秒」台本に書き直し、docs/shorts/&lt;自動名&gt;/ へ（台本→画像取得まで）。slugはネタ名から自動。</div>';
+  const list=document.createElement('div'); list.style.margin='10px 0';
+  if(!NETAS.length){ list.innerHTML='<div class="meta2">本編の台本がありません</div>'; }
+  NETAS.forEach(n=>{ const lb=document.createElement('label'); lb.style.cssText='display:block;margin:4px 0;cursor:pointer;';
+    lb.innerHTML='<input type="checkbox" class="netachk" value="'+n.ch+'"> 第'+n.ch+'章 '+(n.title||'');
+    list.appendChild(lb); });
+  mk.appendChild(list);
+  const row=document.createElement('div'); row.className='row2';
+  const gen=document.createElement('button'); gen.className='primary'; gen.textContent='選択ネタをまとめて生成';
   const gst=document.createElement('span'); gst.className='st'; gst.id='gen-st';
-  row.appendChild(sel); row.appendChild(slug); row.appendChild(gen); row.appendChild(gst);
-  mk.appendChild(row);
+  row.appendChild(gen); row.appendChild(gst); mk.appendChild(row);
   const glog=document.createElement('pre'); glog.className='log'; glog.id='gen-log'; mk.appendChild(glog);
-  gen.onclick=async()=>{ const s=slug.value.trim()|| (NETAS.find(n=>n.ch==sel.value)||{}).title || '';
-    gen.disabled=true; const r=await api('/api/shorts/generate',{ch:parseInt(sel.value),slug:s});
+  gen.onclick=async()=>{
+    const chs=[...document.querySelectorAll('.netachk:checked')].map(c=>parseInt(c.value));
+    if(!chs.length){ alert('ネタを1つ以上選んでください'); return; }
+    gen.disabled=true; const r=await api('/api/shorts/generate',{chapters:chs});
     if(!r.ok){ alert(r.message||'起動失敗'); gen.disabled=false; return; }
     poll(r.job,'gen-st','gen-log',[gen]); };
   m.appendChild(mk);
@@ -2105,9 +2113,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/shorts/generate":
             try:
-                self._json(start_short_generate(body.get("slug"), body.get("ch")))
+                self._json(start_short_generate(body.get("chapters")))
             except (TypeError, ValueError):
-                self._json({"ok": False, "message": "slug/ch が不正"})
+                self._json({"ok": False, "message": "chapters が不正"})
             return
         if path == "/api/shorts/render":
             self._json(start_short_render_dir(body.get("slug"), body.get("cta")))
