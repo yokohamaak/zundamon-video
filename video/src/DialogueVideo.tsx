@@ -1037,16 +1037,7 @@ export const DialogueVideo: React.FC<{
           冒頭だけ軽くポップさせて注目を作る（以降は固定）。 */}
       {portrait && hookText ? (
         (() => {
-          // 登場ポップ＋以降は微パルス（視線を見出しへ引き続ける）。表示は出しっぱなし。
-          const intro = interpolate(frame, [0, 0.35 * fps], [0.86, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          });
-          const pulse = 1 + 0.018 * Math.sin((frame / fps) * Math.PI * 2 * 0.5); // 0.5Hzの呼吸
-          const op = interpolate(frame, [0, 0.25 * fps], [0, 1], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          });
+          // 0秒から最後まで完全固定（フェードイン/ポップ/パルスなし）。
           return (
             <div
               style={{
@@ -1057,9 +1048,6 @@ export const DialogueVideo: React.FC<{
                 display: "flex",
                 justifyContent: "center",
                 pointerEvents: "none",
-                opacity: op,
-                transform: `scale(${(intro * pulse).toFixed(3)})`,
-                transformOrigin: "center top",
                 zIndex: 20,
               }}
             >
