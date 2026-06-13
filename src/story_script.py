@@ -95,7 +95,7 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
    例: 驚き=intonation 1.4・volume 1.2 / 焦り=speed 1.3 / しみじみ=speed 0.9・intonation 0.8。
 7. "pause"（任意・間）: その台詞の**後に置く無音秒**（0〜2）。「実は…」のタメや、オチ前の溜めに少しだけ。**多用しない**。
 
-※ 運営者コメント枠（「## 運営者コメント枠」参照）のプレースホルダ発言にも他の発言と同じフィールドを付ける（emotion=normal・effect=kenburns・cut はその時点の番号でよい）。
+※ 運営者コメント枠（「## 運営者コメント枠」参照）のプレースホルダ発言にも他の発言と同じフィールドを付ける（emotion=normal・effect=kenburns・cut はその時点の番号でよい）。**枠の中身は代筆しない＝体言止めの切り口ヒントのみ**。
 
 ## 章メタ（chapters・各章に1つ）
 {structure}各章に次を出す（chapter番号の昇順）:
@@ -158,7 +158,7 @@ def _output_block(explainer: str, questioner: str) -> str:
     {{{{"speaker": "{explainer}", "text": "じゃあ最初。Wi-Fi（ワイファイ）って何の略か言える？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}}}},
     {{{{"speaker": "{questioner}", "text": "ワイヤレス…なんとかなのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 0}}}},
     {{{{"speaker": "{explainer}", "text": "実はね、何の略でもないの。Hi-Fi（ハイファイ）の響きに似せた造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch", "cut": 1}}}},
-    {{{{"speaker": "{explainer}", "text": "〔★運営者コメント：このネタの実体験・現場視点を1〜2文。例：仕事で〜したとき〜だった〕", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 1}}}}
+    {{{{"speaker": "{explainer}", "text": "〔★運営者コメント・未記入：実務で触った所感〕", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 1}}}}
   ]
 }}}}"""
 
@@ -253,8 +253,12 @@ def build_prompt(config: dict, also_avoid=None) -> str:
 AIだけで完結した台本は「量産型」と判定され、収益化の対象外になりやすい。これを避けるため、**運営者本人の一言を差し込む枠**を必ず作ること。
 - {topics}ネタのうち、運営者が実体験や現場の視点を語れそうな**1〜2ネタ**を選び、その trivia 章にコメントの差し込み点を作る。
 - 具体的には、{explainer}の追い打ち発言（リズム6）の直後に、speaker="{explainer}"・emotion="normal" で
-  text="〔★運営者コメント：ここに実体験・現場視点を1〜2文。例：実際に〜したとき〜だった〕" というプレースホルダ発言を**1つ**入れる。
-- **【厳守】AIはこのコメントの中身を創作・代筆しない。** 〔★…〕の空欄と、「何を書けばいいか」のヒントだけを残す。運営者が後から自分の言葉で埋める。
+  text="〔★運営者コメント・未記入：（このネタで運営者が語れる切り口を体言止め5〜15字で）〕" というプレースホルダ発言を**1つ**入れる。
+  例：text="〔★運営者コメント・未記入：実務で触った所感〕" / text="〔★運営者コメント・未記入：現場で見たトラブル例〕"
+- **【厳守・最重要】AIはこの枠の中身を絶対に創作・代筆しない。**
+  - 〔★…〕の中に**文を書かない**（。で終わる文・感想・体験談・「驚かされます」「興奮する」等の主観は禁止）。
+  - 入れてよいのは**体言止めの「切り口」ヒント1つだけ**（運営者が"何を書けばいいか"分かる名詞句）。一人称（わたし/ぼく）も使わない。
+  - 本文は空のまま。運営者が後から自分の実体験で埋める。代筆した時点でこの枠は無価値になる。
 - 差し込み先は、**技術の仕組み・トラブル・ビジネス構造**など、専門知識や実務経験が活きるネタを優先して選ぶ。
 - どの章にコメント枠を置いたか分かるよう、その章メタに "owner_comment": true を付ける。
 
