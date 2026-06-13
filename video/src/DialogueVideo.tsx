@@ -32,11 +32,11 @@ function layoutFor(portrait: boolean) {
         avatarL: { left: -50, bottom: -30 } as const,  // (顔バブル時は未使用)
         avatarR: { right: -40, bottom: -30 } as const,
         avatarScale: 1.25,
-        // 顔バブル：今の立ち絵を頭部にズームして丸く切り抜き、下コーナーに2人。
-        faceSize: 300,    // バブル径(px)
-        faceScale: 2.1,   // 立ち絵(445px)を顔までズームする倍率
-        faceTop: -120,    // バブル内での立ち絵の上端オフセット(px・負で上へ＝顔を中心に持ってくる)
-        faceBottom: 40, faceLeft: 18, faceRight: 18,  // バブルの画面内位置
+        // 顔（肩から上）：今の立ち絵を四角く切り抜き、字幕のすぐ下に小さめで2人。
+        faceW: 240, faceH: 215,  // 切り抜き枠(px・肩から上が入る縦横)
+        faceScale: 0.95,  // 立ち絵(445px)のズーム倍率（肩から上が収まる弱め）
+        faceTop: -45,     // 枠内での立ち絵の上端オフセット(px・負で上へ＝頭頂〜肩を表示)
+        faceGap: 14, faceLeft: 24, faceRight: 24,  // 字幕下端からの隙間・左右位置
         capLeft: 40,
         capRight: 40,
         capBottom: 620,  // 字幕を上げる（画像直下）。下は顔バブル＋YouTube UI領域に空ける
@@ -61,7 +61,7 @@ function layoutFor(portrait: boolean) {
         badgeTop: BOARD_LANDSCAPE.top - 6,
         soloAvatar: { right: -10, bottom: 300 } as const, // 横では未使用（型整合）
         soloScale: 1,
-        faceSize: 0, faceScale: 1, faceTop: 0, faceBottom: 0, faceLeft: 0, faceRight: 0, // 横では未使用
+        faceW: 0, faceH: 0, faceScale: 1, faceTop: 0, faceGap: 0, faceLeft: 0, faceRight: 0, // 横では未使用
       };
 }
 
@@ -885,10 +885,11 @@ export const DialogueVideo: React.FC<{
       ) : null}
 
       {portrait ? (
-        // 縦ショート：今の立ち絵を頭部にズームして丸く切り抜いた「顔バブル」を下コーナーに2人。
+        // 縦ショート：今の立ち絵を四角く切り抜いた「肩から上」を字幕のすぐ下に小さめで2人。
         // 同じパーツなので口パク・まばたきもそのまま効く（新素材不要）。
         (() => {
-          const bubble = (
+          const topPos = height - L.capBottom + L.faceGap; // 字幕箱の下端のすぐ下
+          const bust = (
             side: "left" | "right",
             dir: string | null,
             gender: Gender,
@@ -900,14 +901,14 @@ export const DialogueVideo: React.FC<{
             <div
               style={{
                 position: "absolute",
-                bottom: L.faceBottom,
+                top: topPos,
                 ...(side === "left" ? { left: L.faceLeft } : { right: L.faceRight }),
-                width: L.faceSize,
-                height: L.faceSize,
-                borderRadius: "50%",
+                width: L.faceW,
+                height: L.faceH,
+                borderRadius: 16,
                 overflow: "hidden",
-                border: `5px solid ${ringColor}`,
-                boxShadow: "0 6px 20px rgba(0,0,0,0.45)",
+                border: `4px solid ${ringColor}`,
+                boxShadow: "0 5px 16px rgba(0,0,0,0.4)",
                 background: "rgba(248,250,253,0.96)",
               }}
             >
@@ -937,9 +938,9 @@ export const DialogueVideo: React.FC<{
           );
           return (
             <>
-              {bubble("left", leftAvatarDir, leftGender,
+              {bust("left", leftAvatarDir, leftGender,
                 activeSpeaker === leftSpeaker || isChorus, leftEmotion, leftExpressive, leftColor)}
-              {bubble("right", rightAvatarDir, rightGender,
+              {bust("right", rightAvatarDir, rightGender,
                 activeSpeaker === rightSpeaker || isChorus, rightEmotion, rightExpressive, rightColor)}
             </>
           );
