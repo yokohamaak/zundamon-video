@@ -1091,7 +1091,8 @@ function render(){
     const fch=document.createElement('button'); fch.textContent='画像取得'; fch.disabled=!sh.hasScript;
     fch.onclick=async()=>{ fch.disabled=true; const r=await api('/api/shorts/fetch',{slug:sh.slug});
       if(!r.ok){ alert(r.message||'起動失敗'); fch.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[fch]); };
-    const rnd=document.createElement('button'); rnd.className='primary'; rnd.textContent='書き出し'; rnd.disabled=!sh.hasMeta;
+    const rnd=document.createElement('button'); rnd.className='primary'; rnd.textContent='書き出し';
+    rnd.title=sh.hasMeta?'':'先に「音声+meta」を生成してください';
     rnd.onclick=async()=>{ rnd.disabled=true; const r=await api('/api/shorts/render',{slug:sh.slug});
       if(!r.ok){ alert(r.message||'起動失敗'); rnd.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[rnd]); };
     row.appendChild(rev); row.appendChild(fch); row.appendChild(rnd);
