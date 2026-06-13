@@ -431,6 +431,20 @@ def start_fetch(target_dir):
     return _spawn(f"fetch:{target_dir}", cmd)
 
 
+def start_short_audio(slug):
+    """ショートの音声+meta を生成（VOICEVOX・--images-from-dir）。画像取得(review.json)済みが前提。"""
+    slug = _slugify(slug)
+    d = os.path.join(SHORTS_ROOT, slug)
+    if not os.path.exists(os.path.join(d, "script.json")):
+        return {"ok": False, "message": "script.json がありません"}
+    if not os.path.exists(os.path.join(d, "review.json")):
+        return {"ok": False, "message": "先に「画像取得」をしてください（review.json が必要）"}
+    py = shlex.quote(sys.executable)
+    cmd = (f"{py} main_story.py --from-script {shlex.quote(os.path.join(d, 'script.json'))} "
+           f"--images-from-dir --output-dir {shlex.quote(d)}")
+    return _spawn(f"audio:{slug}", cmd)
+
+
 def _load_image_config():
     """.env(Pexels/Pixabayキー)＋config をベストエフォートで読む。失敗時は空（Wikimediaのみ可）。"""
     try:
@@ -1091,14 +1105,17 @@ function render(){
     const fch=document.createElement('button'); fch.textContent='画像取得'; fch.disabled=!sh.hasScript;
     fch.onclick=async()=>{ fch.disabled=true; const r=await api('/api/shorts/fetch',{slug:sh.slug});
       if(!r.ok){ alert(r.message||'起動失敗'); fch.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[fch]); };
+    const aud=document.createElement('button'); aud.textContent='音声+meta'; aud.disabled=!sh.hasScript;
+    aud.title='VOICEVOXで音声と字幕タイミングを生成（画像取得後）';
+    aud.onclick=async()=>{ aud.disabled=true; const r=await api('/api/shorts/audio',{slug:sh.slug});
+      if(!r.ok){ alert(r.message||'起動失敗'); aud.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[aud]); };
     const rnd=document.createElement('button'); rnd.className='primary'; rnd.textContent='書き出し';
     rnd.title=sh.hasMeta?'':'先に「音声+meta」を生成してください';
     rnd.onclick=async()=>{ rnd.disabled=true; const r=await api('/api/shorts/render',{slug:sh.slug});
       if(!r.ok){ alert(r.message||'起動失敗'); rnd.disabled=false; return; } poll(r.job,'st-'+sh.slug,'log-'+sh.slug,[rnd]); };
-    row.appendChild(rev); row.appendChild(fch); row.appendChild(rnd);
+    row.appendChild(rev); row.appendChild(fch); row.appendChild(aud); row.appendChild(rnd);
     const cmd=document.createElement('div'); cmd.className='meta2'; cmd.style.marginTop='8px';
-    cmd.innerHTML='音声+meta（Mac/VOICEVOX）: <code class="cmd2">python main_story.py --from-script '+sh.dir+'/script.json --images-from-dir --output-dir '+sh.dir+'</code><br>'+
-      '深度（任意・パララックス）: <code class="cmd2">python make_depth.py --dir '+sh.dir+'</code>';
+    cmd.innerHTML='深度（任意・パララックス）: <code class="cmd2">python make_depth.py --dir '+sh.dir+'</code>';
     c.appendChild(row); c.appendChild(cmd);
     const log=document.createElement('pre'); log.className='log'; log.id='log-'+sh.slug; c.appendChild(log);
     m.appendChild(c);
@@ -2332,6 +2349,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/shorts/fetch":
             slug = _slugify(body.get("slug") or "")
             self._json(start_fetch(os.path.join(SHORTS_ROOT, slug)))
+            return
+        if path == "/api/shorts/audio":
+            self._json(start_short_audio(body.get("slug") or ""))
             return
         if path == "/api/shorts/generate":
             try:
