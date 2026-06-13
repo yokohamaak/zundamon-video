@@ -1634,6 +1634,14 @@ function render(){
       const sm=document.createElement('textarea'); sm.value=ch.summary||''; sm.placeholder='要約';
       sm.oninput=()=>{ch.summary=sm.value; autosize(sm);};
       body.innerHTML='<div class="lbl">タイトル / 要約</div>'; body.appendChild(tt); body.appendChild(sm);
+      // 固定見出し(hook)：縦ショートの上部に出し続ける掴み。trivia章のみ。
+      if(ch.section==='trivia'){
+        const hl=document.createElement('div'); hl.className='lbl'; hl.textContent='固定見出し（ショート上部・掴み）';
+        const hk=document.createElement('input'); hk.type='text'; hk.value=ch.hook||''; hk.style.width='100%';
+        hk.placeholder='例: その「ロボット認証」、実はAIを無料で鍛えてる（空欄ならタイトルから仮生成）';
+        hk.onchange=()=>{ ch.hook=hk.value; };
+        body.appendChild(hl); body.appendChild(hk);
+      }
       // images
       const il=document.createElement('div'); const lb=document.createElement('div'); lb.className='lbl'; lb.textContent='画像（台本に対応）'; body.appendChild(lb);
       cuts.forEach((cut,k)=>{
