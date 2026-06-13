@@ -1407,6 +1407,11 @@ STORY_PAGE = """<!doctype html>
   @keyframes spin { to { transform:rotate(360deg); } }
   .badge { font-size:12px; padding:2px 10px; border-radius:999px; background:var(--line);
            color:var(--sub); flex:none; }
+  .conf { font-size:11px; padding:2px 8px; border-radius:999px; flex:none; font-weight:700; }
+  .conf.high { background:#173a25; color:#5fd08a; }       /* 確度: 高=採用OK */
+  .conf.medium { background:#3a3217; color:#ffcc4d; }     /* 中=要裏取り・断定回避 */
+  .conf.low { background:#3a1d1d; color:#ff6b6b; }        /* 低=原則不採用 */
+  .ocm { font-size:11px; padding:2px 8px; border-radius:999px; flex:none; background:#1d2b3a; color:#7fb4ff; font-weight:700; }
   .sechead .ttl { font-weight:700; flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sechead .sum { color:var(--sub); font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .thumbs { display:flex; gap:4px; flex:none; }
@@ -1808,6 +1813,7 @@ function sectionLabel(ch, ci){
   let n=0; for(let i=0;i<=ci;i++){ if((DATA.chapters[i].section)==='trivia') n++; }
   return 'trivia'+n;
 }
+function confLabel(c){ return {high:'確度 高', medium:'確度 中', low:'確度 低'}[c]||c; }
 
 // 喋り文字数→推定分。英字（かな）は読み仮名だけ喋る＝畳んで数える（実測較正305字/分）。
 // 目標(TARGET_CHARS/LABEL)は対象がショートか本編かで /api/status から切替（ショート=約40秒）。
@@ -1850,7 +1856,10 @@ function render(){
     let thumbs='';
     cuts.forEach((c,k)=>{ const u=imgUrl(ci,k);
       thumbs += u?`<img class="th" src="${u}">`:`<span class="ph">#${k}</span>`; });
-    head.innerHTML=`<span class="badge">${sectionLabel(ch,ci)}</span>
+    const confTag = (ch.section==='trivia'&&ch.confidence)
+      ? `<span class="conf ${ch.confidence}" title="事実の確度（${confLabel(ch.confidence)}）">${confLabel(ch.confidence)}</span>` : '';
+    const ocmTag = ch.owner_comment ? `<span class="ocm" title="運営者コメント枠あり（自分の言葉で埋める）">★コメント</span>` : '';
+    head.innerHTML=`<span class="badge">${sectionLabel(ch,ci)}</span>${confTag}${ocmTag}
       <span class="ttl">${ch.title||'(無題)'}</span>
       <span class="sum">${ch.summary||''}</span>
       <span class="thumbs">${thumbs}</span>`;
@@ -1878,6 +1887,23 @@ function render(){
         hk.placeholder='例: その「ロボット認証」、実はAIを無料で鍛えてる（空欄ならタイトルから仮生成）';
         hk.onchange=()=>{ ch.hook=hk.value; };
         body.appendChild(hl); body.appendChild(hk);
+        // 事実の確度 / 裏取り手がかり / 運営者コメント枠（公開前チェック・収益化対策）。動画には出ない。
+        const cl=document.createElement('div'); cl.className='lbl'; cl.textContent='事実の確度 / 裏取り手がかり';
+        const crow=document.createElement('div'); crow.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+        const cs=document.createElement('select');
+        [['','(未設定)'],['high','high 公式/一次資料'],['medium','medium 要確認'],['low','low 諸説']].forEach(([v,t])=>{
+          const o=document.createElement('option'); o.value=v; o.textContent=t; if((ch.confidence||'')===v) o.selected=true; cs.appendChild(o); });
+        cs.onchange=()=>{ if(cs.value) ch.confidence=cs.value; else delete ch.confidence; render(); };
+        const sh=document.createElement('input'); sh.type='text'; sh.style.flex='1'; sh.style.minWidth='240px';
+        sh.value=ch.source_hint||''; sh.placeholder='裏取りの手がかり（公式発表・開発者発言・年・媒体名など）';
+        sh.onchange=()=>{ if(sh.value.trim()) ch.source_hint=sh.value.trim(); else delete ch.source_hint; };
+        crow.appendChild(cs); crow.appendChild(sh);
+        body.appendChild(cl); body.appendChild(crow);
+        const ol=document.createElement('label'); ol.style.cssText='display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;cursor:pointer;';
+        const ocb=document.createElement('input'); ocb.type='checkbox'; ocb.checked=!!ch.owner_comment;
+        ocb.onchange=()=>{ if(ocb.checked) ch.owner_comment=true; else delete ch.owner_comment; render(); };
+        ol.appendChild(ocb); ol.appendChild(document.createTextNode('運営者コメント枠あり（セリフ内の〔★…〕を自分の言葉で埋める）'));
+        body.appendChild(ol);
       }
       // images
       const il=document.createElement('div'); const lb=document.createElement('div'); lb.className='lbl'; lb.textContent='画像（台本に対応）'; body.appendChild(lb);
