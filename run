@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# 制作ラッパー（薄い）。main_story.py / review_server.py / npm render を覚えやすい名前で叩くだけ。
+# 使い方:
+#   ./run <コマンド> [引数]   … 直接実行
+#   ./run                     … 番号メニュー（引数なし）
+#   ./run help                … 一覧
+# Python側は無改変。RUN_DRY=1 を付けると実行せずコマンドだけ表示（確認用）。
+set -euo pipefail
+cd "$(dirname "$0")"
+
+PY="$(command -v python3 || command -v python || echo python3)"
+STORY="docs/story"
+
+# コマンド表示して実行（RUN_DRY=1 なら表示のみ）。
+run() { echo "▶ $*"; [ "${RUN_DRY:-}" = "1" ] || eval "$*"; }
+
+short_dir() {  # slug → docs/shorts/<slug>（存在チェック）
+  local d="docs/shorts/$1"
+  [ -d "$d" ] || { echo "× $d がありません（先に shorts で生成）" >&2; exit 1; }
+  echo "$d"
+}
+
+cmd_help() {
+  cat <<'EOF'
+制作ラッパー  ./run <コマンド> [引数]   （引数なしでメニュー）
+
+[本編]
+  script            台本＋画像を生成して停止（レビュー待ち）
+  review            レビュー画面を開く（/story・/shorts）
+  audio             音声＋meta を生成（VOICEVOX）
+  meta              画像/見出しだけ直した時：音声据置で meta だけ再生成
+  render            本編(横16:9)を書き出し → video/out/video.mp4
+
+[ショート]  ※ slug = docs/shorts/<slug>
+  shorts 1,2        本編ネタをまとめてショート化（Gemini1回）
+  s-audio <slug>    ショートの音声＋meta
+  depth  <slug>     ショートの深度生成（パララックス・任意）
+  s-render <slug>   ショートを書き出し → video/out/short.mp4
+  s-build <slug>    s-audio → depth → s-render を一気に
+
+  help              この一覧
+EOF
+}
+
+# ---- コマンド本体 ----
+cmd_script()  { run "$PY main_story.py --stop-after-images"; }
+cmd_review()  { run "$PY review_server.py --dir $STORY"; }
+cmd_audio()   { run "$PY main_story.py --from-script $STORY/script.json --images-from-dir"; }
+cmd_meta()    { run "$PY main_story.py --from-script $STORY/script.json --meta-only"; }
+cmd_render()  { run "cd video && npm run render"; }
+
+cmd_shorts()  {
+  local list="${1:-}"
+  [ -n "$list" ] || { read -rp "ショート化するネタ番号（例 1,2）: " list; }
+  run "$PY main_story.py --from-script $STORY/script.json --shorts-from \"$list\""
+}
+cmd_s_audio() { local d; d="$(short_dir "$1")"; run "$PY main_story.py --from-script $d/script.json --images-from-dir --output-dir $d"; }
+cmd_depth()   { local d; d="$(short_dir "$1")"; run "$PY make_depth.py --dir $d"; }
+cmd_s_render(){ local d; d="$(short_dir "$1")"; run "cd video && SRC_DIR=../$d npm run render:short"; }
+cmd_s_build() { cmd_s_audio "$1"; cmd_depth "$1"; cmd_s_render "$1"; }
+
+# 引数あり → 直接実行
+if [ $# -gt 0 ]; then
+  case "$1" in
+    script)   cmd_script ;;
+    review)   cmd_review ;;
+    audio)    cmd_audio ;;
+    meta)     cmd_meta ;;
+    render)   cmd_render ;;
+    shorts)   cmd_shorts "${2:-}" ;;
+    s-audio)  cmd_s_audio "${2:?slug を指定}" ;;
+    depth)    cmd_depth "${2:?slug を指定}" ;;
+    s-render) cmd_s_render "${2:?slug を指定}" ;;
+    s-build)  cmd_s_build "${2:?slug を指定}" ;;
+    help|-h|--help) cmd_help ;;
+    *) echo "不明なコマンド: $1"; echo; cmd_help; exit 1 ;;
+  esac
+  exit 0
+fi
+
+# 引数なし → 番号メニュー
+echo "=== 制作メニュー ==="
+echo " 1) script    本編 台本+画像生成"
+echo " 2) review    レビュー画面"
+echo " 3) audio     本編 音声+meta"
+echo " 4) render    本編 書き出し"
+echo " 5) shorts    ショート一括生成"
+echo " 6) s-audio   ショート 音声+meta"
+echo " 7) depth     ショート 深度"
+echo " 8) s-render  ショート 書き出し"
+echo " 9) s-build   ショート 音声+meta+深度+書き出し"
+echo " 0) help"
+read -rp "番号: " n
+case "$n" in
+  1) cmd_script ;;
+  2) cmd_review ;;
+  3) cmd_audio ;;
+  4) cmd_render ;;
+  5) cmd_shorts "" ;;
+  6) read -rp "slug: " s; cmd_s_audio "$s" ;;
+  7) read -rp "slug: " s; cmd_depth "$s" ;;
+  8) read -rp "slug: " s; cmd_s_render "$s" ;;
+  9) read -rp "slug: " s; cmd_s_build "$s" ;;
+  0|*) cmd_help ;;
+esac

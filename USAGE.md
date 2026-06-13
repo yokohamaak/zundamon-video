@@ -31,7 +31,17 @@ cd video && node scripts/psd-export.mjs build zundamon && node scripts/psd-expor
 
 ## 1. クイックスタート
 
-### A. レビューを挟んで作る（推奨・本番フロー）
+### ラッパー `./run`（覚えやすい簡単コマンド・推奨）
+フラグを覚えなくても、薄いラッパー `./run` で実行できる（中身は下記の python/npm を呼ぶだけ）。
+```bash
+./run            # 番号メニュー（引数なし）
+./run help       # コマンド一覧
+# 本編:   ./run script → ./run review → ./run audio → ./run render
+# ショート: ./run shorts 1,2 → ./run review → ./run s-audio <slug> → ./run depth <slug> → ./run s-render <slug>
+#          （s-audio→depth→s-render を一発: ./run s-build <slug>）
+```
+
+### A. レビューを挟んで作る（推奨・本番フロー／生コマンド）
 ```bash
 python main_story.py --stop-after-images                                  # [1] 台本+画像取得→停止
 python review_server.py --dir docs/story                                  # [2] ブラウザで確認/編集/承認
