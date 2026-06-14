@@ -1412,6 +1412,7 @@ STORY_PAGE = """<!doctype html>
   .conf.medium { background:#3a3217; color:#ffcc4d; }     /* 中=要裏取り・断定回避 */
   .conf.low { background:#3a1d1d; color:#ff6b6b; }        /* 低=原則不採用 */
   .ocm { font-size:11px; padding:2px 8px; border-radius:999px; flex:none; background:#1d2b3a; color:#7fb4ff; font-weight:700; }
+  .vizb { font-size:11px; padding:2px 8px; border-radius:999px; flex:none; background:#2a2440; color:#c4a8ff; font-weight:700; }
   .sechead .ttl { font-weight:700; flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sechead .sum { color:var(--sub); font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .thumbs { display:flex; gap:4px; flex:none; }
@@ -1815,6 +1816,116 @@ function sectionLabel(ch, ci){
 }
 function confLabel(c){ return {high:'確度 高', medium:'確度 中', low:'確度 低'}[c]||c; }
 
+// ===== 画像エリアの演出（panel/quiz/compare/stat/callouts）のレビュー編集 =====
+const VIZ_KEYS=['panel','quiz','compare','stat','callouts'];
+const VIZ_LABEL={panel:'解説パネル',quiz:'クイズ',compare:'比較',stat:'数字強調',callouts:'注釈'};
+function vizOf(ch){ return VIZ_KEYS.find(k=>ch[k]); }       // 章に付いている演出キー（無ければundefined）
+function chTurnList(ci){ const out=[]; (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter===ci) out.push({gi,t,
+  text:(t.speaker||'')+'：'+String(t.text||'').replace(/\\s+/g,' ').slice(0,26)}); }); return out; }
+function clearAllVizFlags(ci){ (DATA.script||[]).forEach(t=>{ if(t.chapter===ci){
+  delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; } }); }
+function clampItemFlags(ci,flag,n){ (DATA.script||[]).forEach(t=>{
+  if(t.chapter===ci && typeof t[flag]==='number' && t[flag]>=n) delete t[flag]; }); }
+// 小道具
+function vRow(labelText){ const r=document.createElement('div');
+  r.style.cssText='display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap;';
+  if(labelText){ const l=document.createElement('span'); l.style.cssText='font-size:12px;color:var(--sub);min-width:118px'; l.textContent=labelText; r.appendChild(l); } return r; }
+function vText(val,ph,oninput){ const i=document.createElement('input'); i.type='text'; i.value=val||''; i.placeholder=ph||'';
+  i.style.cssText='flex:1;min-width:160px'; i.oninput=()=>oninput(i.value); return i; }
+function vMini(txt,onclick){ const b=document.createElement('button'); b.className='mini'; b.textContent=txt; b.onclick=onclick; return b; }
+// タイミング選択：章内の発言から1つ選び flag=matchValue を付ける（他からは外す）。
+function timingSelect(ci,flag,matchValue,labelText){
+  const r=vRow(labelText); const sel=document.createElement('select'); sel.style.cssText='flex:1;min-width:200px';
+  const none=document.createElement('option'); none.value=''; none.textContent='（自動：実は/zoom_punch/中盤）'; sel.appendChild(none);
+  const turns=chTurnList(ci);
+  turns.forEach(({gi,text})=>{ const o=document.createElement('option'); o.value=String(gi); o.textContent=text; sel.appendChild(o); });
+  const cur=turns.find(({t})=>t[flag]===matchValue);
+  sel.value=cur!==undefined?String(cur.gi):'';
+  sel.onchange=()=>{ turns.forEach(({t})=>{ if(t[flag]===matchValue) delete t[flag]; });
+    if(sel.value!=='') DATA.script[+sel.value][flag]=matchValue; };
+  r.appendChild(sel); return r;
+}
+// 章の演出エディタ本体
+function vizEditor(body, ch, ci){
+  const sec=document.createElement('div');
+  sec.style.cssText='margin-top:10px;padding:10px;background:#0c0f15;border:1px solid var(--line);border-radius:8px;';
+  const lbl=document.createElement('div'); lbl.className='lbl'; lbl.style.marginTop='0'; lbl.textContent='画像エリアの演出';
+  sec.appendChild(lbl);
+  const cur=vizOf(ch)||'';
+  const tsel=document.createElement('select');
+  [['','なし（画像のみ）'],['panel','解説パネル（段階テキスト）'],['quiz','クイズ（？→答え）'],
+   ['compare','比較（2分割）'],['stat','数字強調'],['callouts','注釈（吹き出し）']].forEach(([v,t])=>{
+    const o=document.createElement('option'); o.value=v; o.textContent=t; if(v===cur)o.selected=true; tsel.appendChild(o); });
+  tsel.onchange=()=>{ VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci);
+    const v=tsel.value;
+    if(v==='panel') ch.panel={items:[{text:''}]};
+    else if(v==='quiz') ch.quiz={question:'',answer:''};
+    else if(v==='compare') ch.compare={left:{label:'',cut:0},right:{label:'',cut:1}};
+    else if(v==='stat') ch.stat={value:''};
+    else if(v==='callouts') ch.callouts=[{text:'',x:0.5,y:0.5}];
+    render(); };
+  sec.appendChild(tsel);
+  const box=document.createElement('div'); box.style.marginTop='8px'; sec.appendChild(box);
+  const ncuts=(ch.image_cuts||[]).length;
+
+  if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
+    p.items.forEach((it,i)=>{
+      const r=vRow('項目'+i);
+      r.appendChild(vText(it.text,'体言止め10字以内',v=>it.text=v));
+      if(i>0){ const al=document.createElement('label'); al.style.cssText='font-size:12px;display:inline-flex;gap:3px;align-items:center';
+        const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!it.arrow_from_prev;
+        ac.onchange=()=>{ if(ac.checked)it.arrow_from_prev=true; else delete it.arrow_from_prev; };
+        al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al); }
+      r.appendChild(vMini('削除',()=>{ p.items.splice(i,1); clampItemFlags(ci,'panel_item',p.items.length); render(); }));
+      box.appendChild(r);
+      box.appendChild(timingSelect(ci,'panel_item',i,'　↑を出す発言'));
+    });
+    box.appendChild(vMini('＋項目',()=>{ p.items.push({text:''}); render(); }));
+    box.appendChild(timingSelect(ci,'panel_event','shrink','画像を縮小する発言'));
+  }
+  else if(ch.quiz){ const q=ch.quiz;
+    const r1=vRow('問い'); r1.appendChild(vText(q.question,'画面に出す問い',v=>q.question=v)); box.appendChild(r1);
+    const r2=vRow('答え'); r2.appendChild(vText(q.answer,'リビールで出す答え',v=>q.answer=v)); box.appendChild(r2);
+    box.appendChild(timingSelect(ci,'reveal',true,'答えを出す発言'));
+  }
+  else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
+    const mkCut=(side,def)=>{ const s=document.createElement('select'); s.style.minWidth='70px';
+      for(let k=0;k<Math.max(ncuts,2);k++){ const o=document.createElement('option'); o.value=String(k); o.textContent='画像'+k; if((side.cut??def)===k)o.selected=true; s.appendChild(o); }
+      s.onchange=()=>side.cut=+s.value; return s; };
+    const rl=vRow('左'); rl.appendChild(vText(c.left.label,'左ラベル',v=>c.left.label=v)); rl.appendChild(mkCut(c.left,0)); box.appendChild(rl);
+    const rr=vRow('右'); rr.appendChild(vText(c.right.label,'右ラベル',v=>c.right.label=v)); rr.appendChild(mkCut(c.right,1)); box.appendChild(rr);
+    box.appendChild(timingSelect(ci,'compare_item',0,'左を出す発言'));
+    box.appendChild(timingSelect(ci,'compare_item',1,'右を出す＝分割する発言'));
+  }
+  else if(ch.stat){ const s=ch.stat;
+    const r=vRow('数字'); r.appendChild(vText(s.value,'例 8 / 50万 / 500000',v=>s.value=v));
+    const u=document.createElement('input'); u.type='text'; u.value=s.unit||''; u.placeholder='単位'; u.style.width='90px';
+    u.oninput=()=>{ if(u.value.trim())s.unit=u.value; else delete s.unit; }; r.appendChild(u); box.appendChild(r);
+    const r2=vRow('ラベル'); r2.appendChild(vText(s.label,'例 故障率（任意）',v=>{ if(v.trim())s.label=v; else delete s.label; })); box.appendChild(r2);
+    box.appendChild(timingSelect(ci,'reveal',true,'数字を出す発言'));
+  }
+  else if(ch.callouts){ let cs=ch.callouts; if(!Array.isArray(cs)){cs=ch.callouts=[];}
+    cs.forEach((c,i)=>{
+      const r=vRow('注釈'+i); r.appendChild(vText(c.text,'ラベル',v=>c.text=v));
+      const mkNum=(key)=>{ const n=document.createElement('input'); n.type='number'; n.step='0.05'; n.min='0'; n.max='1';
+        n.value=(c[key]!=null?c[key]:0.5); n.style.width='66px'; n.title=key+'（0..1）';
+        n.oninput=()=>{ const v=parseFloat(n.value); if(!isNaN(v)) c[key]=Math.max(0,Math.min(1,v)); }; return n; };
+      r.appendChild(document.createTextNode('x')); r.appendChild(mkNum('x'));
+      r.appendChild(document.createTextNode('y')); r.appendChild(mkNum('y'));
+      const al=document.createElement('label'); al.style.cssText='font-size:12px;display:inline-flex;gap:3px;align-items:center';
+      const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!c.arrow;
+      ac.onchange=()=>{ if(ac.checked)c.arrow=true; else delete c.arrow; }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al);
+      r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',cs.length); render(); }));
+      box.appendChild(r);
+      box.appendChild(timingSelect(ci,'callout_item',i,'　↑を出す発言'));
+    });
+    if(cs.length<4) box.appendChild(vMini('＋注釈',()=>{ cs.push({text:'',x:0.5,y:0.5}); render(); }));
+    box.appendChild(document.createElement('div')).style.cssText='font-size:11px;color:var(--sub);margin-top:4px';
+    box.lastChild.textContent='x,y は画像枠で 0..1（左上=0,0 / 右下=1,1）。注釈章は画像が静止します。';
+  }
+  body.appendChild(sec);
+}
+
 // 喋り文字数→推定分。英字（かな）は読み仮名だけ喋る＝畳んで数える（実測較正305字/分）。
 // 目標(TARGET_CHARS/LABEL)は対象がショートか本編かで /api/status から切替（ショート=約40秒）。
 const SPOKEN_CPM=305; let TARGET_CHARS=8*305, TARGET_LABEL='8分';
@@ -1859,7 +1970,9 @@ function render(){
     const confTag = (ch.section==='trivia'&&ch.confidence)
       ? `<span class="conf ${ch.confidence}" title="事実の確度（${confLabel(ch.confidence)}）">${confLabel(ch.confidence)}</span>` : '';
     const ocmTag = ch.owner_comment ? `<span class="ocm" title="運営者コメント枠あり（自分の言葉で埋める）">★コメント</span>` : '';
-    head.innerHTML=`<span class="badge">${sectionLabel(ch,ci)}</span>${confTag}${ocmTag}
+    const vk = vizOf(ch);
+    const vizTag = vk ? `<span class="vizb" title="画像演出: ${VIZ_LABEL[vk]}">▣ ${VIZ_LABEL[vk]}</span>` : '';
+    head.innerHTML=`<span class="badge">${sectionLabel(ch,ci)}</span>${confTag}${ocmTag}${vizTag}
       <span class="ttl">${ch.title||'(無題)'}</span>
       <span class="sum">${ch.summary||''}</span>
       <span class="thumbs">${thumbs}</span>`;
@@ -1904,6 +2017,8 @@ function render(){
         ocb.onchange=()=>{ if(ocb.checked) ch.owner_comment=true; else delete ch.owner_comment; render(); };
         ol.appendChild(ocb); ol.appendChild(document.createTextNode('運営者コメント枠あり（セリフ内の〔★…〕を自分の言葉で埋める）'));
         body.appendChild(ol);
+        // 画像エリアの演出（panel/quiz/compare/stat/callouts）の表示・編集・ON/OFF・タイミング。
+        vizEditor(body, ch, ci);
       }
       // images
       const il=document.createElement('div'); const lb=document.createElement('div'); lb.className='lbl'; lb.textContent='画像（台本に対応）'; body.appendChild(lb);
