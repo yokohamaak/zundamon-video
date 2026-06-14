@@ -113,7 +113,7 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
 - "confidence": （trivia章のみ）"high"（公式発表・一次資料がある）/ "medium"（広く語られるが要確認）/ "low"（諸説・逸話レベル）。「## 事実の確度」の基準に従う。
 - "source_hint": （trivia章のみ）裏取りの手がかり（公式発表・開発者の発言・出典になりそうな年や媒体名など）。
 - 画像演出（trivia章のみ・任意・**1章につき多くても1種類**）。詳細と使いどころは「## 画像エリアの演出」を参照：
-  - "panel": {{"items": [{{"text": "短い要点", "arrow_from_prev": true}}, ...]}}（縮小画像＋段階テキスト）
+  - "panel": {{"heading": "お題(任意)", "items": [{{"text": "短い要点", "arrow_from_prev": true}}, ...]}}（縮小画像＋段階テキスト。arrow無し=並列✔／有り=流れ▼）
   - "quiz": {{"question": "問い", "answer": "答え"}}（？で溜めて答えを出す）
   - "compare": {{"left": {{"label": "A", "cut": 0}}, "right": {{"label": "B", "cut": 1}}}}（2分割で対比）
   - "stat": {{"value": "8", "unit": "分の1", "label": "故障率"}}（大きな数字を重ねる）
@@ -268,9 +268,13 @@ def build_prompt(config: dict, also_avoid=None) -> str:
 - **quiz だけは控えめに＝1本に1ネタまで**（毎回クイズだと飽きる）。それ以外（panel/compare/stat/callouts）は**ネタに合えば積極的に**使ってよい。
 - 内容に合う型が無いネタだけ画像のみにする（無理に型を当てはめない）。
 - 型と使いどころ：
-  1. **panel（縮小＋段階テキスト）**：要点が「流れ・手順・段階」で表せるネタ。
-     章メタに "panel": {{"items": [{{"text": "短い要点"}}, {{"text": "次の要点", "arrow_from_prev": true}}]}}。text は**体言止め10字以内**。流れは2個目以降に "arrow_from_prev": true。
-     発言側: 説明に入る発言に "panel_event": "shrink"、各要点の発言に "panel_item": 0,1,2…（items個数と最大値を一致）。
+  1. **panel（縮小＋段階テキスト）**：複数の要点を順に積むネタ。「流れ・手順・段階」でも「並列の列挙」でも可。
+     章メタに "panel": {{"heading": "お題の見出し", "items": [{{"text": "短い要点"}}, {{"text": "次の要点", "arrow_from_prev": true}}]}}。
+     - text は**体言止め10字以内**。"heading" は任意のお題（並列の列挙ネタでは特に推奨）。
+     - **時系列/因果でつながる流れ**なら2個目以降に "arrow_from_prev": true（▼でつなぐ）。
+       **独立した並列の列挙**（例：複数の方法・種類）なら arrow_from_prev は付けない（✔の箇条書きになる）。
+     - 画像はセリフ毎に切り替わる（各発言の cut に追従）＝panelに画像は持たせない。
+     発言側: 画像を縮小し始める発言に "panel_event": "shrink"、各要点に触れる発言に "panel_item": 0,1,2…（items個数と最大値を一致）。
   2. **quiz（？で溜めて答え）**：問い→外し→実は、の掛け合いが効くネタ。
      章メタに "quiz": {{"question": "短い問い", "answer": "短い答え"}}。発言側: 答えを言う{explainer}の発言に "reveal": true。
   3. **compare（2分割で対比）**：A対B・before/after・対比で見せると分かるネタ。
