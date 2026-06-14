@@ -507,7 +507,7 @@ def test_panel_fields_preserved():
     # 章の panel と、発言の panel_event/panel_item がパース/正規化を生き残る。
     data = s.parse_script_json(
         '{"chapters":[{"section":"trivia","title":"A",'
-        '"panel":{"bg":"#102030","cut":2,"image":"x.jpg","items":['
+        '"panel":{"bg":"#102030","bgOpacity":0.6,"cut":2,"image":"x.jpg","items":['
         '{"text":"全保存"},{"text":"北極","arrow_from_prev":true}]},'
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
         '"script":[{"speaker":"四国めたん","text":"x","chapter":0,"panel_event":"shrink","panel_item":0},'
@@ -515,7 +515,7 @@ def test_panel_fields_preserved():
     pn = data["chapters"][0]["panel"]
     # 画像はセリフ毎＝panelはimage/cutを持たない（bgとitemsのみ）
     assert "image" not in pn and "cut" not in pn
-    assert pn["bg"] == "#102030" and len(pn["items"]) == 2
+    assert pn["bg"] == "#102030" and pn["bgOpacity"] == 0.6 and len(pn["items"]) == 2
     assert pn["items"][1]["arrow_from_prev"] is True
     assert data["script"][0]["panel_event"] == "shrink"
     assert data["script"][0]["panel_item"] == 0 and data["script"][1]["panel_item"] == 1
@@ -533,7 +533,7 @@ def test_viz_fields_preserved():
     # quiz/compare/stat/callouts と reveal/callout_item がパースを生き残る。
     data = s.parse_script_json(
         '{"chapters":['
-        '{"section":"trivia","title":"Q","quiz":{"question":"何の略?","answer":"造語"},'
+        '{"section":"trivia","title":"Q","quiz":{"question":"何の略?","answer":"造語","bg":"#1a2333","bgOpacity":0.55},'
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]},'
         '{"section":"trivia","title":"C","compare":{"left":{"label":"陸上"},"right":{"label":"海底","cut":1}},'
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"},{"image_query":"b","image_kind":"ambient"}]},'
@@ -545,7 +545,7 @@ def test_viz_fields_preserved():
         '{"speaker":"四国めたん","text":"a","chapter":0,"reveal":true},'
         '{"speaker":"四国めたん","text":"b","chapter":3,"callout_item":0}]}')
     ch = data["chapters"]
-    assert ch[0]["quiz"] == {"question": "何の略?", "answer": "造語"}
+    assert ch[0]["quiz"] == {"question": "何の略?", "answer": "造語", "bg": "#1a2333", "bgOpacity": 0.55}
     assert ch[1]["compare"]["left"]["cut"] == 0 and ch[1]["compare"]["right"]["cut"] == 1
     assert ch[2]["stat"] == {"value": "8", "unit": "分の1", "label": "故障率"}
     # x>1 の範囲外注釈は除去され、正しい1件だけ残る

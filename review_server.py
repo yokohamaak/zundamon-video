@@ -1916,6 +1916,23 @@ function turnVizControl(tn, gi, ch, ci){
   return ctrl;
 }
 // 演出の中身エディタ（章単位の内容）。セリフ行の下にインライン展開する。
+// 背景色＋不透明度の編集行（panel/quiz共用）。bgOpacity<1で裏(黒板/元画像)が透ける。
+function vBgRow(obj, label, defColor){
+  const br=vRow(label);
+  const cp=document.createElement('input'); cp.type='color'; cp.value=obj.bg||defColor; cp.title='背景色';
+  cp.oninput=()=>{ obj.bg=cp.value; if(obj.bgOpacity==null)obj.bgOpacity=1; };
+  br.appendChild(cp);
+  const op=document.createElement('input'); op.type='range'; op.min='0'; op.max='1'; op.step='0.05';
+  op.value=(obj.bgOpacity!=null?obj.bgOpacity:1); op.style.cssText='width:96px;vertical-align:middle'; op.title='不透明度（左ほど透ける）';
+  const ov=document.createElement('span'); ov.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
+  const showOv=()=>{ ov.textContent=Math.round((obj.bgOpacity!=null?obj.bgOpacity:1)*100)+'%'; };
+  showOv();
+  op.oninput=()=>{ obj.bgOpacity=parseFloat(op.value); showOv(); };
+  br.appendChild(document.createTextNode(' 透過')); br.appendChild(op); br.appendChild(ov);
+  br.appendChild(vMini('クリア',()=>{ delete obj.bg; delete obj.bgOpacity; render(); }));
+  return br;
+}
+
 function vizContent(box, ch, ci){
   const top=document.createElement('div'); top.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px';
   const tl=document.createElement('span'); tl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff'; tl.textContent='演出：'+(VIZ_LABEL[vizOf(ch)]||'');
@@ -1931,10 +1948,8 @@ function vizContent(box, ch, ci){
     box.appendChild(note);
     // 見出し（テキスト領域の上に出すお題。並列項目で特に有効）。
     const hr=vRow('見出し'); hr.appendChild(vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; })); box.appendChild(hr);
-    // テキスト領域（縮小画像の横）の背景色。クリアで透過（黒板が見える）。
-    const br=vRow('文字側の背景'); const cp=document.createElement('input'); cp.type='color'; cp.value=p.bg||'#1a2740';
-    cp.oninput=()=>{ p.bg=cp.value; }; br.appendChild(cp);
-    br.appendChild(vMini('クリア(透過)',()=>{ delete p.bg; render(); })); box.appendChild(br);
+    // テキスト領域（縮小画像の横）の背景色＋不透明度。クリアで透過（黒板が見える）。
+    box.appendChild(vBgRow(p,'文字側の背景','#1a2740'));
     p.items.forEach((it,i)=>{
       const r=vRow('項目'+i);
       r.appendChild(vText(it.text,'体言止め10字以内',v=>it.text=v));
@@ -1950,6 +1965,11 @@ function vizContent(box, ch, ci){
   else if(ch.quiz){ const q=ch.quiz;
     const r1=vRow('問い'); r1.appendChild(vText(q.question,'画面に出す問い',v=>q.question=v)); box.appendChild(r1);
     const r2=vRow('答え'); r2.appendChild(vText(q.answer,'リビールで出す答え',v=>q.answer=v)); box.appendChild(r2);
+    // 背景色＋不透明度。透過を下げると裏の黒板が透け、章頭の切替で元画像が一瞬覗いても馴染む。
+    box.appendChild(vBgRow(q,'背景','#1a2333'));
+    const nt=document.createElement('div'); nt.style.cssText='font-size:11px;color:var(--sub);margin:2px 0';
+    nt.textContent='透過を下げると裏の黒板が透ける（章頭の元画像チラ見え対策）。';
+    box.appendChild(nt);
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // 画像はサムネで選ぶ（台本のcut選択と統一）。

@@ -404,6 +404,26 @@ def test_viz_window_range():
     print("  _viz_window: 範囲内topicのみ演出・範囲外は通常画像 OK")
 
 
+def test_viz_window_boundary_snap():
+    # 章先頭セリフ起点ならseg_startへ・末尾セリフ起点ならseg_endへスナップ（章頭の元画像チラ見え対策）。
+    # 章間に無音があり seg_start(=10.0) < 先頭セリフのstart(=10.5)・seg_end(=20.0) > 末尾セリフのend(=19.5)。
+    turns = [
+        {"start": 10.5, "end": 13.0, "viz_start": True},
+        {"start": 13.0, "end": 16.0},
+        {"start": 16.0, "end": 19.5, "viz_end": True},
+    ]
+    # 先頭/末尾起点 → 章境界へスナップ
+    assert m._viz_window([0, 1, 2], turns, 10.0, 20.0) == (10.0, 20.0)
+    # 中間セリフ起点はスナップしない（従来どおりセリフ時刻）
+    turns2 = [
+        {"start": 10.5, "end": 13.0},
+        {"start": 13.0, "end": 16.0, "viz_start": True, "viz_end": True},
+        {"start": 16.0, "end": 19.5},
+    ]
+    assert m._viz_window([0, 1, 2], turns2, 10.0, 20.0) == (13.0, 16.0)
+    print("  _viz_window: 先頭/末尾起点は章境界へスナップ・中間はセリフ時刻 OK")
+
+
 def test_build_chapter_topics_viz_reveal_fallback():
     # reveal発言が無いと zoom_punch 発言→章60% の順で revealAt を決める。
     chapters = [{"section": "trivia", "title": "S", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}],
@@ -433,6 +453,7 @@ if __name__ == "__main__":
     test_build_chapter_topics_viz()
     test_build_chapter_topics_compare_split_timing()
     test_viz_window_range()
+    test_viz_window_boundary_snap()
     test_build_chapter_topics_viz_reveal_fallback()
     test_build_credits()
     test_build_meta()

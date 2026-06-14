@@ -62,6 +62,10 @@ export type Quiz = {
   answer: string;         // リビールで出す答え（短く）
   image?: string;         // 答え提示時に出す画像（public/相対・無ければ無し）
   revealAt?: number;      // 答えを出す絶対時刻（秒）。build が reveal発言/zoom_punch/章中盤から解決。
+  // 背景色＋不透明度（任意）。無指定なら既定の濃紺グラデ（不透明）。
+  // bgOpacity<1 にすると裏の黒板が透ける＝章頭の切替で元画像が一瞬覗いても馴染む。
+  bg?: string;            // CSS color（例 "#1a2333"）
+  bgOpacity?: number;     // 0..1（既定 1）
 };
 
 // 比較（2分割）：左右（縦は上下）にA対Bを並べる。before/after・対比ネタ向き。
@@ -111,6 +115,8 @@ export type Panel = {
   cut?: number;
   // テキスト領域（縮小画像の横）の背景色（CSS color）。無指定なら透過（黒板が見える）。
   bg?: string;
+  // 背景色の不透明度 0..1（任意・既定 1）。bg 指定時に裏を透かす量を調整する。
+  bgOpacity?: number;
   // テキスト領域上部の見出し（任意・お題）。並列項目のときに特に有効。
   heading?: string;
   items: PanelItem[];

@@ -235,16 +235,21 @@ def _viz_window(idxs, turns, seg_start, seg_end):
     """演出の表示範囲 [start, end] を発言の viz_start/viz_end から決める（純関数）。
 
     viz_start の発言の開始〜 viz_end の発言の終了。未指定側は章の境界（seg_start/seg_end）。
+    起点が章の先頭セリフ（終点が末尾セリフ）のときは章境界まで広げる。topicは章境界
+    [seg_start, seg_end) を被覆するため、先頭セリフのstartで窓を切ると章頭の無音/ページ
+    めくり区間が窓の外になり、そこで一瞬だけ元画像が見える（「ここから」より手前で演出が
+    始まる/終わるのと同種の境界ズレ）。先頭/末尾起点なら境界へスナップして隙間を無くす。
     """
     start = seg_start
-    for j in idxs:
+    for pos, j in enumerate(idxs):
         if turns[j].get("viz_start"):
-            start = float(turns[j].get("start", seg_start))
+            start = seg_start if pos == 0 else float(turns[j].get("start", seg_start))
             break
     end = seg_end
-    for j in idxs:
+    for pos, j in enumerate(idxs):
         if turns[j].get("viz_end"):
-            end = float(turns[j].get("end", seg_end))  # 終了セリフの「終わり」まで表示
+            # 終了セリフの「終わり」まで表示。末尾セリフ起点なら章末（無音含む）まで広げる。
+            end = seg_end if pos == len(idxs) - 1 else float(turns[j].get("end", seg_end))
             break
     if end <= start:  # 不整合（終了が開始より前）なら章末まで
         end = seg_end
@@ -375,6 +380,8 @@ def _resolve_panel(panel, idxs, turns, seg_start, seg_end, image_files=None, ch=
     resolved = {"items": out_items, "shrinkAt": round(float(shrink_at), 3)}
     if panel.get("bg"):
         resolved["bg"] = panel["bg"]
+    if isinstance(panel.get("bgOpacity"), (int, float)) and not isinstance(panel.get("bgOpacity"), bool):
+        resolved["bgOpacity"] = panel["bgOpacity"]
     if panel.get("heading"):
         resolved["heading"] = panel["heading"]
     return resolved

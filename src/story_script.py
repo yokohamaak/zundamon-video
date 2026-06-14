@@ -391,6 +391,18 @@ def _clean_image_cuts(cuts, limit=4):
     return out[:limit]
 
 
+def _clean_opacity(v):
+    """背景の不透明度を 0..1 に正規化（純関数）。不正/未指定は None。"""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    f = float(v)
+    if f < 0:
+        f = 0.0
+    elif f > 1:
+        f = 1.0
+    return round(f, 3)
+
+
 def _clean_panel(panel):
     """章の解説パネル定義を正規化（純関数）。不正/空なら None。
 
@@ -420,6 +432,9 @@ def _clean_panel(panel):
     bg = (panel.get("bg") or "").strip()
     if bg:
         out["bg"] = bg
+    op = _clean_opacity(panel.get("bgOpacity"))
+    if op is not None:
+        out["bgOpacity"] = op
     heading = strip_markdown((panel.get("heading") or "").strip())
     if heading:
         out["heading"] = heading
@@ -438,6 +453,12 @@ def _clean_quiz(quiz):
     img = (quiz.get("image") or "").strip()
     if img:
         out["image"] = img
+    bg = (quiz.get("bg") or "").strip()
+    if bg:
+        out["bg"] = bg
+    op = _clean_opacity(quiz.get("bgOpacity"))
+    if op is not None:
+        out["bgOpacity"] = op
     return out
 
 

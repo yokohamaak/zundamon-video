@@ -343,6 +343,22 @@ const DialoguePanel: React.FC<{
           />
         ) : null}
       </div>
+      {/* テキスト領域の背景（任意・別レイヤー）。bgOpacity<1 で裏の黒板を透かす。
+          テキストは上の層で不透明のまま＝背景だけ透ける。無指定なら背景なし（黒板が見える）。 */}
+      {panel.bg ? (
+        <div
+          style={{
+            position: "absolute",
+            left: textLeft,
+            top: textTop,
+            width: textW,
+            height: textH,
+            background: panel.bg,
+            opacity: (panel.bgOpacity ?? 1) * sp,
+            borderRadius: 12,
+          }}
+        />
+      ) : null}
       {/* テキスト領域（縮小で開いた側）。items を at 時刻で順に出現させ、出たものは残す。 */}
       <div
         style={{
@@ -358,9 +374,6 @@ const DialoguePanel: React.FC<{
           opacity: sp,
           padding: portrait ? "0 24px" : "0 18px",
           boxSizing: "border-box",
-          // テキスト領域の背景色（任意）。無指定なら透過（黒板が見える）。
-          background: panel.bg || undefined,
-          borderRadius: panel.bg ? 12 : 0,
         }}
       >
         {/* 見出し（任意）。左にアクセント帯。 */}
@@ -465,14 +478,14 @@ const QuizVisual: React.FC<{
     extrapolateRight: "clamp",
   });
   const barPad = portrait ? "10px 18px" : "12px 26px";
+  // 背景は別レイヤーに分離（テキスト/答えは不透明のまま、背景だけ透ける）。
+  // bg 指定が無ければ既定の濃紺グラデ。bgOpacity<1 で裏の黒板が透ける。
+  const bgFill = quiz.bg || "linear-gradient(135deg, #243049 0%, #1a2333 100%)";
+  const bgOpacity = quiz.bgOpacity ?? 1;
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        background: "linear-gradient(135deg, #243049 0%, #1a2333 100%)",
-      }}
-    >
+    <div style={{ position: "absolute", inset: 0 }}>
+      {/* 背景レイヤー（色＋不透明度） */}
+      <div style={{ position: "absolute", inset: 0, background: bgFill, opacity: bgOpacity }} />
       {/* 画像：答えと同時に全面クリア表示（中央が主役・上下のバーはこの上に重なる）。 */}
       {quiz.image ? (
         <Img
