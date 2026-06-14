@@ -1914,9 +1914,15 @@ function vizContent(box, ch, ci){
     const r2=vRow('答え'); r2.appendChild(vText(q.answer,'リビールで出す答え',v=>q.answer=v)); box.appendChild(r2);
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
-    const mkCut=(side,def)=>{ const s=document.createElement('select'); s.style.minWidth='70px';
-      for(let k=0;k<Math.max(ncuts,2);k++){ const o=document.createElement('option'); o.value=String(k); o.textContent='画像'+k; if((side.cut??def)===k)o.selected=true; s.appendChild(o); }
-      s.onchange=()=>side.cut=+s.value; return s; };
+    // 画像はサムネで選ぶ（台本のcut選択と統一）。
+    const mkCut=(side,def)=>{ const cur=(side.cut??def); const pick=document.createElement('div'); pick.className='cutpick';
+      const n=Math.max(ncuts,2);
+      for(let k=0;k<n;k++){ const u=imgUrl(ci,k);
+        const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
+        o.innerHTML=(u?'<img src="'+u+'">':'<span class="ph3">#'+k+'</span>')+'<span class="num">'+k+'</span>';
+        o.onclick=()=>{ side.cut=k; pick.querySelectorAll('.copt').forEach((e,j)=>e.classList.toggle('sel',j===k)); };
+        pick.appendChild(o); }
+      return pick; };
     const rl=vRow('左'); rl.appendChild(vText(c.left.label,'左ラベル',v=>c.left.label=v)); rl.appendChild(mkCut(c.left,0)); box.appendChild(rl);
     const rr=vRow('右'); rr.appendChild(vText(c.right.label,'右ラベル',v=>c.right.label=v)); rr.appendChild(mkCut(c.right,1)); box.appendChild(rr);
   }
