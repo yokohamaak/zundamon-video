@@ -362,22 +362,30 @@ def test_replace_interjection():
     print("  replace_interjection: 文頭/単独の相づちを置換・文中/置換済みは不変 OK")
 
 
-def test_revoice_if_all_unvoiced():
+def test_fix_devoiced_moras():
     import src.tts_voicevox as tv
-    # 全母音が無声(pitch=0・大文字母音)＝「ふふ」相当 → 有声化される
+    # 全母音が無声(pitch=0・大文字母音)＝単独「ふふ」相当 → 参照ピッチで全体有声化
     q = {"accent_phrases": [{"moras": [
         {"text": "フ", "vowel": "U", "pitch": 0.0},
         {"text": "フ", "vowel": "U", "pitch": 0.0}]}]}
-    assert tv.revoice_if_all_unvoiced(q) is True
+    assert tv.fix_devoiced_moras(q, pitch_provider=lambda: 6.0) is True
     ms = q["accent_phrases"][0]["moras"]
-    assert all(m["pitch"] > 0 for m in ms) and all(m["vowel"] == "u" for m in ms)
-    # 有声モーラを含む通常文 → 触らない（自然な無声化を保つ）
+    assert all(m["pitch"] == 6.0 for m in ms) and all(m["vowel"] == "u" for m in ms)
+    # 文頭の無声ラン（「ふふ、実は…」相当）→ 隣の有声ピッチで有声化、文中の無声は保持
     q2 = {"accent_phrases": [{"moras": [
-        {"text": "デ", "vowel": "e", "pitch": 5.5},
-        {"text": "ス", "vowel": "U", "pitch": 0.0}]}]}
-    assert tv.revoice_if_all_unvoiced(q2) is False
-    assert q2["accent_phrases"][0]["moras"][1]["pitch"] == 0.0  # 「す」の無声化は維持
-    print("  revoice_if_all_unvoiced: 全無声のみ有声化・通常文は不変 OK")
+        {"text": "フ", "vowel": "U", "pitch": 0.0},   # 相づち（先頭・無声）
+        {"text": "フ", "vowel": "U", "pitch": 0.0},
+        {"text": "ジ", "vowel": "i", "pitch": 5.6},   # 本文（有声）
+        {"text": "ツ", "vowel": "U", "pitch": 0.0},   # 文中の自然な無声化→保持
+        {"text": "ワ", "vowel": "a", "pitch": 5.5}]}]}
+    assert tv.fix_devoiced_moras(q2) is True
+    ms2 = q2["accent_phrases"][0]["moras"]
+    assert ms2[0]["pitch"] == 5.6 and ms2[1]["pitch"] == 5.6 and ms2[0]["vowel"] == "u"  # 先頭は有声化
+    assert ms2[3]["pitch"] == 0.0 and ms2[3]["vowel"] == "U"  # 文中の「ツ」無声化は保持
+    # 完全に有声な文 → 不変
+    q3 = {"accent_phrases": [{"moras": [{"text": "ワ", "vowel": "a", "pitch": 5.5}]}]}
+    assert tv.fix_devoiced_moras(q3) is False
+    print("  fix_devoiced_moras: 先頭/末尾の無声ランを有声化・文中は保持 OK")
 
 
 if __name__ == "__main__":
@@ -399,6 +407,6 @@ if __name__ == "__main__":
     test_reading_gloss_pure()
     test_reading_gloss_in_synthesis()
     test_generate_audio_end_to_end()
-    test_revoice_if_all_unvoiced()
+    test_fix_devoiced_moras()
     test_replace_interjection()
     print("ALL PASS")

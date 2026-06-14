@@ -166,16 +166,22 @@ def audio_query(base_url, text, speaker, timeout=60):
     return json.loads(raw)
 
 
-def revoice_if_all_unvoiced(query, pitch=None, pitch_provider=None, fallback=5.8):
-    """全母音が無声化されている query を有声化する（in-place）。
+def _voice_mora(m, pitch):
+    """1モーラを有声化（pitch付与＋無声母音の大文字表記を小文字へ戻す）。in-place。"""
+    m["pitch"] = pitch
+    v = m.get("vowel")
+    if isinstance(v, str):
+        m["vowel"] = v.lower()
 
-    「ええ」「ふふ」等の短い相づち/笑いは VOICEVOX が全モーラを無声化(pitch=0)し、
-    囁き声になってしまう。utterance 全体が無声のときだけ有声ピッチを与えて戻す。
-    通常の文は有声モーラを含むので対象外＝自然な無声化（「です」等）はそのまま保つ。
 
-    pitch=固定値 / pitch_provider=遅延取得の関数（全無声と判明した時だけ呼ぶ＝
-    話者の自然な高さを実測する用。通常発話では呼ばれず無駄な問い合わせをしない）。
-    Returns: 有声化した場合 True。
+def fix_devoiced_moras(query, pitch_provider=None, fallback=5.8):
+    """囁きになる無声化モーラを有声化する（in-place）。
+
+    囁きの実体は無声化(pitch=0)。「ふふ、〜」「ええ、〜」のような相づち/笑いは
+    文頭(や文末)で連続無声化して囁きになる。先頭・末尾の連続無声モーラを、隣の有声
+    モーラの高さで有声化する。文中の自然な無声化（「です」「した」等）は保持する。
+    全モーラ無声のとき(単独の「ふふ」等)は話者の実測高さ(pitch_provider)で全体を有声化。
+    Returns: 変更したら True。
     """
     moras = []
     for ap in query.get("accent_phrases", []):
@@ -183,16 +189,28 @@ def revoice_if_all_unvoiced(query, pitch=None, pitch_provider=None, fallback=5.8
     vowels = [m for m in moras if m.get("vowel") and m.get("vowel") != "pau"]
     if not vowels:
         return False
-    if any((m.get("pitch") or 0) > 0 for m in vowels):
-        return False  # 有声モーラがある＝通常発話。無声化は自然なので触らない
-    if pitch is None:
+    voiced = [m for m in vowels if (m.get("pitch") or 0) > 0]
+    if not voiced:  # 全無声＝囁き確定 → 話者の自然な高さで全体を有声化
         pitch = pitch_provider() if pitch_provider else fallback
+        for m in vowels:
+            _voice_mora(m, pitch)
+        return True
+    changed = False
+    # 先頭の連続無声ラン（＝文頭の相づち）を、最初の有声モーラの高さで有声化。
+    head_pitch = voiced[0].get("pitch")
     for m in vowels:
-        m["pitch"] = pitch
-        v = m.get("vowel")
-        if isinstance(v, str):  # 無声母音は大文字表記の場合がある→小文字へ戻し有声扱いに
-            m["vowel"] = v.lower()
-    return True
+        if (m.get("pitch") or 0) > 0:
+            break
+        _voice_mora(m, head_pitch)
+        changed = True
+    # 末尾の連続無声ランも同様（末尾の相づち/笑い対策）。
+    tail_pitch = voiced[-1].get("pitch")
+    for m in reversed(vowels):
+        if (m.get("pitch") or 0) > 0:
+            break
+        _voice_mora(m, tail_pitch)
+        changed = True
+    return changed
 
 
 _INTERJECTION_BOUNDARY = r"。、，,．.！!？?〜～ーｰ…‥・「」『』（）()\s"
@@ -453,8 +471,8 @@ def synthesize_dialogue(script, config):
                 outs = []
                 for sid, vparams in voices:
                     query = audio_query(base_url, spoken, sid)
-                    # 「ええ」「ふふ」等が全無声＝囁きになるのを防ぐ。基準は話者の実測高さ（全無声時のみ取得）。
-                    revoice_if_all_unvoiced(
+                    # 「ふふ、」「ええ、」等の相づちが無声化で囁きになるのを防ぐ（先頭/末尾の無声ランを有声化）。
+                    fix_devoiced_moras(
                         query, pitch_provider=lambda: _reference_pitch(base_url, sid, ref_pitch_cache))
                     query["speedScale"] = vparams["speed"]
                     query["pitchScale"] = vparams["pitch"]
