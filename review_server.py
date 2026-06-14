@@ -1896,6 +1896,19 @@ function vizContent(box, ch, ci){
   const ncuts=(ch.image_cuts||[]).length;
 
   if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
+    // 画像：縮小画像に使うcutをサムネで選択（既定0）。
+    const ir=vRow('画像'); const cur=(p.cut??0); const pick=document.createElement('div'); pick.className='cutpick';
+    const n=Math.max(ncuts,1);
+    for(let k=0;k<n;k++){ const u=imgUrl(ci,k);
+      const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
+      o.innerHTML=(u?'<img src="'+u+'">':'<span class="ph3">#'+k+'</span>')+'<span class="num">'+k+'</span>';
+      o.onclick=()=>{ p.cut=k; pick.querySelectorAll('.copt').forEach((e,j)=>e.classList.toggle('sel',j===k)); };
+      pick.appendChild(o); }
+    ir.appendChild(pick); box.appendChild(ir);
+    // テキスト領域（右半分）の背景色。クリアで透過（黒板が見える）。
+    const br=vRow('文字側の背景'); const cp=document.createElement('input'); cp.type='color'; cp.value=p.bg||'#1a2740';
+    cp.oninput=()=>{ p.bg=cp.value; }; br.appendChild(cp);
+    br.appendChild(vMini('クリア(透過)',()=>{ delete p.bg; render(); })); box.appendChild(br);
     p.items.forEach((it,i)=>{
       const r=vRow('項目'+i);
       r.appendChild(vText(it.text,'体言止め10字以内',v=>it.text=v));

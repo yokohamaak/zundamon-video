@@ -159,7 +159,7 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
         # 解説パネル（任意）。章に panel があれば、出現時刻を発言timingから解決して
         # この章の全カットtopicに同じパネルを載せる（描画は固定のpanel.imageを使う）。
         panel_resolved = _resolve_panel(meta_ch.get("panel"), idxs, turns,
-                                        seg_start, seg_end, image_files.get((ch, 0)))
+                                        seg_start, seg_end, image_files, ch)
         # 画像演出（任意）。出現時刻を発言timingから解決し、章の全カットtopicに載せる。
         viz = _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch)
         for gi, (ci, lo, hi) in enumerate(groups):
@@ -303,14 +303,16 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
     return out
 
 
-def _resolve_panel(panel, idxs, turns, seg_start, seg_end, main_image=None):
-    """章の panel 定義（{image?,items}）を時刻解決して topic.panel 形へ（純関数）。
+def _resolve_panel(panel, idxs, turns, seg_start, seg_end, image_files=None, ch=0):
+    """章の panel 定義（{image?,cut?,bg?,items}）を時刻解決して topic.panel 形へ（純関数）。
 
     - shrinkAt: idxs 内で panel_event=="shrink" の最初の発言の start。無ければ seg_start（章頭）。
     - items[k].at: panel_item==k の発言の start。指定が無い項目は shrink後〜章末を均等割り。
-    - image: panel.image があればそれ、無ければ章の主画像(cut0)。どちらも無ければ省略（テキストのみ）。
-    Returns: {image?, items:[{text,arrow_from_prev?,at}], shrinkAt} または None
+    - image: panel.image があればそれ、無ければ panel.cut（既定0）の取得済画像。
+    - bg: テキスト領域の背景色（任意）。
+    Returns: {image?, bg?, items:[{text,arrow_from_prev?,at}], shrinkAt} または None
     """
+    image_files = image_files or {}
     if not panel or not panel.get("items"):
         return None
     items = panel["items"]
@@ -336,9 +338,11 @@ def _resolve_panel(panel, idxs, turns, seg_start, seg_end, main_image=None):
             ri["arrow_from_prev"] = True
         out_items.append(ri)
     resolved = {"items": out_items, "shrinkAt": round(float(shrink_at), 3)}
-    img = panel.get("image") or main_image
+    img = panel.get("image") or image_files.get((ch, panel.get("cut", 0) or 0))
     if img:
         resolved["image"] = img
+    if panel.get("bg"):
+        resolved["bg"] = panel["bg"]
     return resolved
 
 

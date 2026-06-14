@@ -354,8 +354,11 @@ const DialoguePanel: React.FC<{
           justifyContent: "center",
           gap: portrait ? 8 : 14,
           opacity: sp,
-          padding: portrait ? "0 24px" : "0 8px",
+          padding: portrait ? "0 24px" : "0 18px",
           boxSizing: "border-box",
+          // テキスト領域の背景色（任意）。無指定なら透過（黒板が見える）。
+          background: panel.bg || undefined,
+          borderRadius: panel.bg ? 12 : 0,
         }}
       >
         {items.map((it, i) => {

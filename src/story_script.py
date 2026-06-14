@@ -415,6 +415,12 @@ def _clean_panel(panel):
     img = (panel.get("image") or "").strip()
     if img:
         out["image"] = img
+    cut = panel.get("cut")
+    if isinstance(cut, int) and not isinstance(cut, bool) and cut >= 0:
+        out["cut"] = cut
+    bg = (panel.get("bg") or "").strip()
+    if bg:
+        out["bg"] = bg
     return out
 
 

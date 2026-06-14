@@ -105,8 +105,12 @@ export type PanelItem = {
 
 // 章の解説パネル定義（縮小画像＋段階表示テキスト）。build_chapter_topics が解決して topic に載せる。
 export type Panel = {
-  // パネルに出すメイン画像のファイル名（public/相対）。無ければテキストのみ。
+  // パネルに出すメイン画像のファイル名（public/相対）。build が cut から解決。無ければテキストのみ。
   image?: string;
+  // 画像に使う image_cut の番号（レビューで選択）。build が image へ解決。
+  cut?: number;
+  // テキスト領域（縮小画像の横）の背景色（CSS color）。無指定なら透過（黒板が見える）。
+  bg?: string;
   items: PanelItem[];
   // 画像を縮小しテキスト領域を開く絶対時刻（秒）。無指定時は章頭。
   shrinkAt?: number;
