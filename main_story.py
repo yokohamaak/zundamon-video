@@ -375,6 +375,8 @@ def _resolve_panel(panel, idxs, turns, seg_start, seg_end, image_files=None, ch=
     resolved = {"items": out_items, "shrinkAt": round(float(shrink_at), 3)}
     if panel.get("bg"):
         resolved["bg"] = panel["bg"]
+    if panel.get("heading"):
+        resolved["heading"] = panel["heading"]
     return resolved
 
 
