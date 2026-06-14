@@ -808,13 +808,16 @@ export const DialogueVideo: React.FC<{
   const fx = effectState(activeTurn, t, frame);
   // zoom_punch/shake の合成分（先頭スペース付き）。Ken Burns版とfocus版で共用する。
   const fxTransform = ` scale(${(1 + fx.punchScale).toFixed(4)}) translate(${fx.shakeX.toFixed(3)}%, ${fx.shakeY.toFixed(3)}%)`;
+  // 注釈(callouts)がある章は画像を静止させる。マーカーは画像枠座標(0..1)に固定で置くため、
+  // Ken Burnsでパン/ズームすると指し示す位置が被写体からズレる。整合のため動きを止める。
+  const freezeImage = !!activeTopic?.callouts;
   // Ken Burns に zoom_punch/shake を合成（CSS transformは左→右に合成される）。縦は動きを強める。
-  const imgTransform = kenBurnsTransform(activeTopicIndex, kbProgress, portrait) + fxTransform;
+  const imgTransform = freezeImage ? "none" : kenBurnsTransform(activeTopicIndex, kbProgress, portrait) + fxTransform;
   // contain（ロゴ等の全体表示）はパンすると余白が露出するため、中央ゆっくりズームのみ。
   // 縦ショートはズーム幅を少し広げて単調さを軽減（余白露出しない範囲）。
   const isContain = activeTopic?.fit === "contain";
   const containZoom = portrait ? 0.08 : 0.04;
-  const containTransform = `scale(${(1 + containZoom * kbProgress).toFixed(4)})` + fxTransform;
+  const containTransform = freezeImage ? "none" : `scale(${(1 + containZoom * kbProgress).toFixed(4)})` + fxTransform;
   // 補正フィルタ（画像レビュー指定）→ CSS filter 文字列。
   const flt = activeTopic?.filter;
   const imgFilter = flt
