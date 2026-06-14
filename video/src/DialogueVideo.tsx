@@ -412,10 +412,16 @@ const QuizVisual: React.FC<{
   portrait: boolean;
 }> = ({ quiz, t, portrait }) => {
   const revealAt = quiz.revealAt ?? 0;
-  const rev = interpolate(t, [revealAt, revealAt + 0.45], [0, 1], {
+  // 「考え中の画面」→「答えの画面」をクロスフェード。答えは少し遅れてせり上がる。
+  const rev = interpolate(t, [revealAt, revealAt + 0.35], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+  const ansPop = interpolate(t, [revealAt + 0.12, revealAt + 0.5], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const barPad = portrait ? "10px 18px" : "12px 26px";
   return (
     <div
       style={{
@@ -424,13 +430,15 @@ const QuizVisual: React.FC<{
         background: "linear-gradient(135deg, #243049 0%, #1a2333 100%)",
       }}
     >
+      {/* 画像：答えと同時に全面クリア表示（中央が主役・上下のバーはこの上に重なる）。 */}
       {quiz.image ? (
         <Img
           src={staticFile(quiz.image)}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: rev }}
         />
       ) : null}
-      {/* 問い＋？（リビールで薄れる）。画像があるときは可読性のため暗幕を敷く。 */}
+
+      {/* リビール前：？＋問題を中央に大きく（画像があれば暗幕で可読性確保）。答えと入れ替わりで消える。 */}
       <div
         style={{
           position: "absolute",
@@ -440,14 +448,35 @@ const QuizVisual: React.FC<{
           alignItems: "center",
           justifyContent: "center",
           gap: 14,
-          opacity: 1 - rev * 0.85,
-          background: quiz.image ? "rgba(15,20,30,0.5)" : "transparent",
+          opacity: 1 - rev,
+          background: quiz.image ? "rgba(15,20,30,0.55)" : "transparent",
         }}
       >
         <div style={{ fontSize: portrait ? 140 : 200, fontWeight: 900, color: "#ffd84d", lineHeight: 1, textShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>？</div>
         <div style={{ fontSize: portrait ? 44 : 56, fontWeight: 800, color: "#fff", textAlign: "center", padding: "0 40px", textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>{quiz.question}</div>
       </div>
-      {/* 答え（リビールでせり上がる） */}
+
+      {/* リビール後・上：問題を細バーに縮小して文脈を残す（画像・答えと重ならない）。 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          opacity: rev,
+          background: "rgba(15,20,30,0.82)",
+          padding: barPad,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
+      >
+        <span style={{ color: "#ffd84d", fontWeight: 900, fontSize: portrait ? 24 : 30 }}>Q.</span>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: portrait ? 24 : 30, textAlign: "center", lineHeight: 1.25 }}>{quiz.question}</span>
+      </div>
+
+      {/* リビール後・下：答えを大きく（黄バナー・せり上がる）。 */}
       <div
         style={{
           position: "absolute",
@@ -456,11 +485,12 @@ const QuizVisual: React.FC<{
           bottom: portrait ? 40 : 36,
           display: "flex",
           justifyContent: "center",
-          opacity: rev,
-          transform: `translateY(${((1 - rev) * 20).toFixed(1)}px)`,
+          padding: "0 24px",
+          opacity: ansPop,
+          transform: `translateY(${((1 - ansPop) * 20).toFixed(1)}px)`,
         }}
       >
-        <div style={{ background: "rgba(255,216,77,0.95)", color: "#1a1f2b", fontWeight: 900, fontSize: portrait ? 50 : 66, padding: portrait ? "10px 26px" : "12px 34px", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.4)" }}>{quiz.answer}</div>
+        <div style={{ background: "rgba(255,216,77,0.96)", color: "#1a1f2b", fontWeight: 900, fontSize: portrait ? 50 : 66, padding: portrait ? "10px 26px" : "12px 34px", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.45)", textAlign: "center", lineHeight: 1.2 }}>{quiz.answer}</div>
       </div>
     </div>
   );
