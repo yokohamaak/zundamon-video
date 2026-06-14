@@ -341,6 +341,24 @@ def test_generate_audio_end_to_end():
         print(f"  e2e: mp3生成 {os.path.getsize(out)}B・総尺{turns[-1]['end']:.2f}s OK")
 
 
+def test_revoice_if_all_unvoiced():
+    import src.tts_voicevox as tv
+    # 全母音が無声(pitch=0・大文字母音)＝「ふふ」相当 → 有声化される
+    q = {"accent_phrases": [{"moras": [
+        {"text": "フ", "vowel": "U", "pitch": 0.0},
+        {"text": "フ", "vowel": "U", "pitch": 0.0}]}]}
+    assert tv.revoice_if_all_unvoiced(q) is True
+    ms = q["accent_phrases"][0]["moras"]
+    assert all(m["pitch"] > 0 for m in ms) and all(m["vowel"] == "u" for m in ms)
+    # 有声モーラを含む通常文 → 触らない（自然な無声化を保つ）
+    q2 = {"accent_phrases": [{"moras": [
+        {"text": "デ", "vowel": "e", "pitch": 5.5},
+        {"text": "ス", "vowel": "U", "pitch": 0.0}]}]}
+    assert tv.revoice_if_all_unvoiced(q2) is False
+    assert q2["accent_phrases"][0]["moras"][1]["pitch"] == 0.0  # 「す」の無声化は維持
+    print("  revoice_if_all_unvoiced: 全無声のみ有声化・通常文は不変 OK")
+
+
 if __name__ == "__main__":
     print("test_tts_voicevox:")
     test_sentence_level_captions()
@@ -360,4 +378,5 @@ if __name__ == "__main__":
     test_reading_gloss_pure()
     test_reading_gloss_in_synthesis()
     test_generate_audio_end_to_end()
+    test_revoice_if_all_unvoiced()
     print("ALL PASS")

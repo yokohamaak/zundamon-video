@@ -166,6 +166,30 @@ def audio_query(base_url, text, speaker, timeout=60):
     return json.loads(raw)
 
 
+def revoice_if_all_unvoiced(query, default_pitch=5.6):
+    """全母音が無声化されている query を有声化する（純関数・in-place）。
+
+    「ええ」「ふふ」等の短い相づち/笑いは VOICEVOX が全モーラを無声化(pitch=0)し、
+    囁き声になってしまう。utterance 全体が無声のときだけ既定ピッチを与えて有声に戻す。
+    通常の文は有声モーラを含むので対象外＝自然な無声化（「です」等）はそのまま保つ。
+    Returns: 有声化した場合 True。
+    """
+    moras = []
+    for ap in query.get("accent_phrases", []):
+        moras.extend(ap.get("moras") or [])
+    vowels = [m for m in moras if m.get("vowel") and m.get("vowel") != "pau"]
+    if not vowels:
+        return False
+    if any((m.get("pitch") or 0) > 0 for m in vowels):
+        return False  # 有声モーラがある＝通常発話。無声化は自然なので触らない
+    for m in vowels:
+        m["pitch"] = default_pitch
+        v = m.get("vowel")
+        if isinstance(v, str):  # 無声母音は大文字表記の場合がある→小文字へ戻し有声扱いに
+            m["vowel"] = v.lower()
+    return True
+
+
 def synthesis(base_url, query, speaker, timeout=120):
     """VOICEVOX /synthesis。queryからWAV（24kHz/16bit/mono既定）を生成する。"""
     q = urllib.parse.urlencode({"speaker": speaker})
@@ -378,6 +402,7 @@ def synthesize_dialogue(script, config):
                 outs = []
                 for sid, vparams in voices:
                     query = audio_query(base_url, spoken, sid)
+                    revoice_if_all_unvoiced(query)  # 「ええ」「ふふ」等が全無声＝囁きになるのを防ぐ
                     query["speedScale"] = vparams["speed"]
                     query["pitchScale"] = vparams["pitch"]
                     query["intonationScale"] = vparams["intonation"]
