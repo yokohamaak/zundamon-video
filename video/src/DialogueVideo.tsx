@@ -456,25 +456,28 @@ const QuizVisual: React.FC<{
         <div style={{ fontSize: portrait ? 44 : 56, fontWeight: 800, color: "#fff", textAlign: "center", padding: "0 40px", textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>{quiz.question}</div>
       </div>
 
-      {/* リビール後・上：問題を細バーに縮小して文脈を残す（画像・答えと重ならない）。 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          opacity: rev,
-          background: "rgba(15,20,30,0.82)",
-          padding: barPad,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-      >
-        <span style={{ color: "#ffd84d", fontWeight: 900, fontSize: portrait ? 24 : 30 }}>Q.</span>
-        <span style={{ color: "#fff", fontWeight: 700, fontSize: portrait ? 24 : 30, textAlign: "center", lineHeight: 1.25 }}>{quiz.question}</span>
-      </div>
+      {/* リビール後・上：問題を細バーに縮小して残す。横は章バッジ枠へ移すのでportraitのみ
+          （ショートには章バッジ枠が無いため、ここで問題を保持する）。 */}
+      {portrait ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            opacity: rev,
+            background: "rgba(15,20,30,0.82)",
+            padding: barPad,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <span style={{ color: "#ffd84d", fontWeight: 900, fontSize: 24 }}>Q.</span>
+          <span style={{ color: "#fff", fontWeight: 700, fontSize: 24, textAlign: "center", lineHeight: 1.25 }}>{quiz.question}</span>
+        </div>
+      ) : null}
 
       {/* リビール後・下：答えを大きく（黄バナー・せり上がる）。 */}
       <div
@@ -1190,54 +1193,69 @@ export const DialogueVideo: React.FC<{
 
       {/* 章見出し（trivia章のみ）。画像枠の外＝画像の上に、フラットな見出しバーで「実は＋タイトル」。
           画像に重ねない。切替でフェード＋わずかに下から出す。 */}
-      {!portrait && activeTopic && activeTopic.section === "trivia" ? (
-        <div
-          key={`chap-${activeTopicIndex}`}
-          style={{
-            position: "absolute",
-            left: L.badgeLeft,
-            top: L.badgeTop,
-            maxWidth: boardW - 24,
-            display: "flex",
-            alignItems: "stretch",
-            pointerEvents: "none",
-            opacity: topicFade,
-            transform: `translateY(${((1 - topicFade) * 8).toFixed(1)}px)`,
-            borderRadius: 6,
-            overflow: "hidden",
-            boxShadow: "0 3px 14px rgba(0,0,0,0.5)",
-            zIndex: 8,
-          }}
-        >
-          {/* 左アクセント帯（フラット） */}
-          <div style={{ width: 8, background: "#ffd84d" }} />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              background: "rgba(18,30,58,0.88)",
-              padding: "7px 22px",
-            }}
-          >
-            <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>
-              {triviaLabel(activeTopic.triviaIndex)}
-            </span>
-            {activeTopic.title ? (
-              <span
+      {!portrait && activeTopic && activeTopic.section === "trivia"
+        ? (() => {
+            // quiz章はタイトルがネタバレ＆クイズ表示と被るので、通常バッジを出さない。
+            // 代わりに「実は番号＋問題」をリビール後にバッジ枠へフェードインさせる（問題が見出しへ昇格）。
+            const isQuiz = !!activeTopic.quiz;
+            const qRevealAt = activeTopic.quiz?.revealAt ?? 0;
+            const badgeText = isQuiz ? activeTopic.quiz?.question : activeTopic.title;
+            const badgeOpacity = isQuiz
+              ? interpolate(t, [qRevealAt, qRevealAt + 0.4], [0, 1], {
+                  extrapolateLeft: "clamp",
+                  extrapolateRight: "clamp",
+                })
+              : topicFade;
+            return (
+              <div
+                key={`chap-${activeTopicIndex}`}
                 style={{
-                  color: "#fff",
-                  fontSize: 30,
-                  fontWeight: 800,
-                  textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+                  position: "absolute",
+                  left: L.badgeLeft,
+                  top: L.badgeTop,
+                  maxWidth: boardW - 24,
+                  display: "flex",
+                  alignItems: "stretch",
+                  pointerEvents: "none",
+                  opacity: badgeOpacity,
+                  transform: `translateY(${((1 - badgeOpacity) * 8).toFixed(1)}px)`,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  boxShadow: "0 3px 14px rgba(0,0,0,0.5)",
+                  zIndex: 8,
                 }}
               >
-                {activeTopic.title}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+                {/* 左アクセント帯（フラット） */}
+                <div style={{ width: 8, background: "#ffd84d" }} />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    background: "rgba(18,30,58,0.88)",
+                    padding: "7px 22px",
+                  }}
+                >
+                  <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>
+                    {triviaLabel(activeTopic.triviaIndex)}
+                  </span>
+                  {badgeText ? (
+                    <span
+                      style={{
+                        color: "#fff",
+                        fontSize: 30,
+                        fontWeight: 800,
+                        textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+                      }}
+                    >
+                      {badgeText}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })()
+        : null}
 
       {portrait ? (
         // 縦ショート：今の立ち絵を四角く切り抜いた「肩から上」を字幕のすぐ下に小さめで2人。
