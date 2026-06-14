@@ -266,6 +266,63 @@ def test_select_closing_lines_rotation():
     print("  select_closing_lines: A/C巡回/フォールバック OK")
 
 
+def test_build_chapter_topics_panel():
+    # 解説パネル：章に panel があると、出現時刻を発言timingから解決し各カットtopicに載る。
+    chapters = [
+        {"section": "intro", "title": "i", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}]},
+        {"section": "trivia", "title": "GitHub北極", "image_cuts": [
+            {"image_query": "github", "image_kind": "subject"}],
+         "panel": {"items": [
+             {"text": "全保存"},
+             {"text": "北極に埋める", "arrow_from_prev": True},
+             {"text": "1000年", "arrow_from_prev": True}]}},
+        {"section": "outro", "title": "o", "image_cuts": [{"image_query": "z", "image_kind": "ambient"}]},
+    ]
+    # 章1のターン: 問い / shrink+item0 / item1 / item2
+    script = [
+        {"chapter": 0},
+        {"chapter": 1, "cut": 0},
+        {"chapter": 1, "cut": 0, "panel_event": "shrink", "panel_item": 0},
+        {"chapter": 1, "cut": 0, "panel_item": 1},
+        {"chapter": 1, "cut": 0, "panel_item": 2},
+        {"chapter": 2},
+    ]
+    # build_meta と同様、台本フィールド(panel_event/panel_item)＋timingを合流して渡す。
+    timing = _turns(len(script))  # 2.0秒/ターン
+    turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
+    segs = story_script.assign_sections_to_turns(script)
+    imgfiles = {(1, 0): "ch_01_00.jpg"}
+    topics = m.build_chapter_topics(segs, turns, chapters, image_files=imgfiles)
+    pts = [t for t in topics if t.get("chapter") == 1 and "panel" in t]
+    assert pts, "trivia章にpanel付きtopicがある"
+    p = pts[0]["panel"]
+    assert p["shrinkAt"] == 4.0, f"shrink=ターン2のstart: {p['shrinkAt']}"
+    ats = [it["at"] for it in p["items"]]
+    assert ats == [4.0, 6.0, 8.0], f"item出現=各panel_item発言のstart: {ats}"
+    assert p["items"][1]["arrow_from_prev"] is True
+    assert p["image"] == "ch_01_00.jpg", "panel画像=章主画像に解決"
+    # 後方互換: panel無し章には panel を付けない
+    assert all("panel" not in t for t in topics if t.get("chapter") != 1)
+    print("  build_chapter_topics: panel時刻解決/画像解決/非panel章は無印 OK")
+
+
+def test_build_chapter_topics_panel_fallback():
+    # panel_item 指定が無い場合、shrink後〜章末を均等割りで出現させる（フォールバック）。
+    chapters = [
+        {"section": "trivia", "title": "T", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}],
+         "panel": {"items": [{"text": "x"}, {"text": "y"}]}},
+    ]
+    script = [{"chapter": 0}, {"chapter": 0}, {"chapter": 0}]
+    turns = _turns(3)  # total=6.0、shrink指定なし→章頭(0.0)
+    segs = story_script.assign_sections_to_turns(script)
+    topics = m.build_chapter_topics(segs, turns, chapters)
+    p = topics[0]["panel"]
+    assert p["shrinkAt"] == 0.0, "shrink指定なし→章頭"
+    ats = [it["at"] for it in p["items"]]
+    assert ats == [2.0, 4.0], f"shrink後〜章末を均等割り: {ats}"
+    print("  build_chapter_topics: panel itemフォールバック均等割り OK")
+
+
 if __name__ == "__main__":
     print("test_story_meta:")
     test_append_closing_chorus()
@@ -274,6 +331,8 @@ if __name__ == "__main__":
     test_build_chapter_topics_coverage()
     test_build_chapter_topics_placeholder()
     test_build_chapter_topics_ready_image_and_credit()
+    test_build_chapter_topics_panel()
+    test_build_chapter_topics_panel_fallback()
     test_build_credits()
     test_build_meta()
     test_build_meta_cut_anchors()

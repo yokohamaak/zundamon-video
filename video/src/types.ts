@@ -42,6 +42,29 @@ export type Turn = {
   pause?: number;
   // ユニゾン（二人同時発話）。trueなら音声を全話者で重ね、立ち絵も両方の口が動く（締めの挨拶等）。
   chorus?: boolean;
+  // 解説パネル演出（任意・案A）。この発言の再生時にパネルを操作する。
+  // panel_event="shrink"=画像を縮小しテキスト領域を開く / panel_item=n=items[n]を出現させる。
+  // build_chapter_topics が時刻に解決して topic.panel へ載せるため、描画では未使用（型整合・デバッグ用）。
+  panel_event?: "shrink";
+  panel_item?: number;
+};
+
+// 解説パネルの1項目（縮小画像の横/下に段階表示する要点テキスト）。
+export type PanelItem = {
+  text: string;
+  // 直前の項目から矢印でつなぐ（簡易フロー表現）。
+  arrow_from_prev?: boolean;
+  // 出現する絶対時刻（秒）。build_chapter_topics が panel_item の発言timing or 均等割りで算出。
+  at?: number;
+};
+
+// 章の解説パネル定義（縮小画像＋段階表示テキスト）。build_chapter_topics が解決して topic に載せる。
+export type Panel = {
+  // パネルに出すメイン画像のファイル名（public/相対）。無ければテキストのみ。
+  image?: string;
+  items: PanelItem[];
+  // 画像を縮小しテキスト領域を開く絶対時刻（秒）。無指定時は章頭。
+  shrinkAt?: number;
 };
 
 // 中央ビジュアルのトピック。imageがあれば画像、無ければtitleでカード描画。
@@ -82,6 +105,9 @@ export type Topic = {
   // Gemini生成（無ければタイトルから仮生成）。冒頭数秒だけ縦ショートに大テロップで重ねる。
   hook?: string;
   credit?: string;        // この章の画像出典（CC-BY帰属など）。動画内には現状出さない。
+  // 解説パネル（任意）。build_chapter_topics が章の panel 定義を時刻解決して載せる。
+  // これがある章は中央ビジュアルをパネルレイアウト（縮小画像＋段階テキスト）で描画する。
+  panel?: Panel;
 };
 
 export type Gender = "male" | "female";

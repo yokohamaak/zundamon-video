@@ -156,6 +156,10 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
             ncut = max(1, min(len(cuts), len(idxs)))
             groups = [(ci, ci * len(idxs) // ncut, (ci + 1) * len(idxs) // ncut)
                       for ci in range(ncut)]
+        # 解説パネル（任意）。章に panel があれば、出現時刻を発言timingから解決して
+        # この章の全カットtopicに同じパネルを載せる（描画は固定のpanel.imageを使う）。
+        panel_resolved = _resolve_panel(meta_ch.get("panel"), idxs, turns,
+                                        seg_start, seg_end, image_files.get((ch, 0)))
         for gi, (ci, lo, hi) in enumerate(groups):
             cstart = seg_start if gi == 0 else turns[idxs[lo]]["start"]
             cend = seg_end if gi == len(groups) - 1 else turns[idxs[hi]]["start"]
@@ -203,8 +207,49 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
                 topic["note"] = cut.get("image_query") or meta_ch.get("title")
                 topic["placeholder"] = chapter_image_name(ch, ci)
+            if panel_resolved:
+                topic["panel"] = panel_resolved
             topics.append(topic)
     return topics
+
+
+def _resolve_panel(panel, idxs, turns, seg_start, seg_end, main_image=None):
+    """章の panel 定義（{image?,items}）を時刻解決して topic.panel 形へ（純関数）。
+
+    - shrinkAt: idxs 内で panel_event=="shrink" の最初の発言の start。無ければ seg_start（章頭）。
+    - items[k].at: panel_item==k の発言の start。指定が無い項目は shrink後〜章末を均等割り。
+    - image: panel.image があればそれ、無ければ章の主画像(cut0)。どちらも無ければ省略（テキストのみ）。
+    Returns: {image?, items:[{text,arrow_from_prev?,at}], shrinkAt} または None
+    """
+    if not panel or not panel.get("items"):
+        return None
+    items = panel["items"]
+    shrink_at = float(seg_start)
+    for j in idxs:
+        if turns[j].get("panel_event") == "shrink":
+            shrink_at = float(turns[j].get("start", seg_start))
+            break
+    at_by_idx = {}
+    for j in idxs:
+        pi = turns[j].get("panel_item")
+        if isinstance(pi, int) and not isinstance(pi, bool) and 0 <= pi < len(items) and pi not in at_by_idx:
+            at_by_idx[pi] = float(turns[j].get("start", seg_start))
+    n = len(items)
+    out_items = []
+    for k, it in enumerate(items):
+        if k in at_by_idx:
+            at = at_by_idx[k]
+        else:  # 指定なし＝shrink後から章末まで均等に出現（フォールバック）
+            at = shrink_at + (seg_end - shrink_at) * (k + 1) / (n + 1)
+        ri = {"text": it["text"], "at": round(float(at), 3)}
+        if it.get("arrow_from_prev"):
+            ri["arrow_from_prev"] = True
+        out_items.append(ri)
+    resolved = {"items": out_items, "shrinkAt": round(float(shrink_at), 3)}
+    img = panel.get("image") or main_image
+    if img:
+        resolved["image"] = img
+    return resolved
 
 
 def build_review(chapters, image_files=None, attributions=None):

@@ -492,6 +492,30 @@ def test_confidence_owner_comment():
     print("  confidence/source_hint/owner_comment: 指示と保持 OK")
 
 
+def test_panel_fields_preserved():
+    # 章の panel と、発言の panel_event/panel_item がパース/正規化を生き残る。
+    data = s.parse_script_json(
+        '{"chapters":[{"section":"trivia","title":"A",'
+        '"panel":{"image":"ch_00_00.jpg","items":['
+        '{"text":"全保存"},{"text":"北極","arrow_from_prev":true}]},'
+        '"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
+        '"script":[{"speaker":"四国めたん","text":"x","chapter":0,"panel_event":"shrink","panel_item":0},'
+        '{"speaker":"ずんだもん","text":"y","chapter":0,"panel_item":1}]}')
+    pn = data["chapters"][0]["panel"]
+    assert pn["image"] == "ch_00_00.jpg" and len(pn["items"]) == 2
+    assert pn["items"][1]["arrow_from_prev"] is True
+    assert data["script"][0]["panel_event"] == "shrink"
+    assert data["script"][0]["panel_item"] == 0 and data["script"][1]["panel_item"] == 1
+    # 不正値は落とす: panel_event非shrink・panel_item非整数・items空panel
+    d2 = s.parse_script_json(
+        '{"chapters":[{"section":"trivia","title":"A","panel":{"items":[]},'
+        '"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
+        '"script":[{"speaker":"x","text":"y","panel_event":"wiggle","panel_item":"NaN"}]}')
+    assert "panel" not in d2["chapters"][0], "items空のpanelは付けない"
+    assert "panel_event" not in d2["script"][0] and "panel_item" not in d2["script"][0]
+    print("  panel / panel_event / panel_item: 保持と不正値除去 OK")
+
+
 if __name__ == "__main__":
     print("test_story_script:")
     test_select_theme()
@@ -524,4 +548,5 @@ if __name__ == "__main__":
     test_regenerate_uses_also_avoid()
     test_splice_regenerated()
     test_confidence_owner_comment()
+    test_panel_fields_preserved()
     print("ALL PASS")

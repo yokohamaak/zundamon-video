@@ -12,7 +12,7 @@ import { useAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
 import { ParallaxImage } from "./ParallaxImage";
 import { FONT_FAMILY } from "./fonts";
-import type { Emotion, Gender, Meta, Topic, Turn } from "./types";
+import type { Emotion, Gender, Meta, Panel, Topic, Turn } from "./types";
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。素材/音声に合わせて調整。
 const LIPSYNC_GAIN = 5;
@@ -33,10 +33,10 @@ function layoutFor(portrait: boolean) {
         avatarR: { right: -40, bottom: -30 } as const,
         avatarScale: 1.25,
         // 肩から上：今の立ち絵をそのままの大きさで、肩から下だけ見えない高さに収める（枠・縁なし＝透明）。
-        faceW: 500, faceH: 325,  // 表示領域(px・肩から上が収まる。下端で胴を隠す)
-        faceScale: 0.85,   // 立ち絵(445px)は等倍（クロップ＝ズームしない）
-        faceTop: -18,     // 立ち絵の上端オフセット(px・髪が切れない程度に微調整)
-        faceGap: 10, faceLeft: 10, faceRight: 10,  // 字幕下端からの隙間・左右位置
+        faceW: 500, faceH: 400,  // 表示領域(px・肩から上が収まる。下端で胴を隠す)
+        faceScale: 0.9,   // 立ち絵(445px)は等倍（クロップ＝ズームしない）
+        faceTop: 10,     // 立ち絵の上端オフセット(px・髪が切れない程度に微調整)
+        faceGap: 30, faceLeft: 10, faceRight: 10,  // 字幕下端からの隙間・左右位置
         capLeft: 40,
         capRight: 40,
         capBottom: 550,  // 字幕を上げる（画像直下）。下は顔バブル＋YouTube UI領域に空ける
@@ -272,6 +272,122 @@ const FocusVisual: React.FC<{
             pointerEvents: "none",
           }}
         />
+      </div>
+    </div>
+  );
+};
+
+// 解説パネル（案A）：画像を縮小して定位置へ寄せ、空いた領域に要点テキストを段階表示する。
+// ゆっくり解説系の土台レイアウト。横=画像を左へ縮小しテキストを右へ / 縦=画像を上・テキストを下。
+// 出現時刻(panel.shrinkAt / item.at)は build_chapter_topics が発言timingから解決済（描画は時刻参照のみ）。
+const DialoguePanel: React.FC<{
+  panel: Panel;
+  t: number; // 現在時刻(秒・clip補正後)
+  boxW: number;
+  boxH: number;
+  portrait: boolean;
+}> = ({ panel, t, boxW, boxH, portrait }) => {
+  const items = panel.items ?? [];
+  const shrinkAt = panel.shrinkAt ?? 0;
+  // 縮小進捗 0(全体表示)→1(縮小・テキスト領域オープン)。0.5秒でイージング。
+  const sp = interpolate(t, [shrinkAt, shrinkAt + 0.5], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const GAP = portrait ? 24 : 36;
+  // 縮小後の画像比率（横=幅46% / 縦=高さ50%）。残りがテキスト領域。
+  const imgFrac = portrait ? 0.5 : 0.46;
+  const imgW = portrait ? boxW : boxW * (1 - (1 - imgFrac) * sp);
+  const imgH = portrait ? boxH * (1 - (1 - imgFrac) * sp) : boxH;
+  const textLeft = portrait ? 0 : imgW + GAP;
+  const textTop = portrait ? imgH + GAP : 0;
+  const textW = portrait ? boxW : boxW - imgW - GAP;
+  const textH = portrait ? boxH - imgH - GAP : boxH;
+  const fontSize = portrait ? 40 : 46;
+  return (
+    <div style={{ position: "absolute", inset: 0 }}>
+      {/* 縮小画像（panel.image・無ければ淡い枠だけ）。cover で枠を埋める。 */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: imgW,
+          height: imgH,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 14,
+          overflow: "hidden",
+          background: "rgba(255,255,255,0.04)",
+        }}
+      >
+        {panel.image ? (
+          <Img
+            src={staticFile(panel.image)}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : null}
+      </div>
+      {/* テキスト領域（縮小で開いた側）。items を at 時刻で順に出現させ、出たものは残す。 */}
+      <div
+        style={{
+          position: "absolute",
+          left: textLeft,
+          top: textTop,
+          width: textW,
+          height: textH,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          gap: portrait ? 8 : 14,
+          opacity: sp,
+          padding: portrait ? "0 24px" : "0 8px",
+          boxSizing: "border-box",
+        }}
+      >
+        {items.map((it, i) => {
+          const at = it.at ?? shrinkAt;
+          const appear = interpolate(t, [at, at + 0.35], [0, 1], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          if (appear <= 0) return null; // 到達前は表示しない
+          return (
+            <div
+              key={i}
+              style={{ opacity: appear, transform: `translateY(${((1 - appear) * 14).toFixed(2)}px)` }}
+            >
+              {it.arrow_from_prev ? (
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.5)",
+                    fontSize: Math.round(fontSize * 0.7),
+                    lineHeight: 1,
+                    margin: portrait ? "1px 0" : "3px 0",
+                  }}
+                >
+                  ▼
+                </div>
+              ) : null}
+              <div
+                style={{
+                  display: "inline-block",
+                  background: "rgba(20,26,38,0.85)",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize,
+                  padding: portrait ? "8px 16px" : "10px 22px",
+                  borderRadius: 12,
+                  lineHeight: 1.3,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
+                }}
+              >
+                {it.text}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -612,7 +728,16 @@ export const DialogueVideo: React.FC<{
               padding: isContain ? containPad : 0,
             }}
           >
-            {activeTopic.image ? (
+            {activeTopic.panel ? (
+              // 解説パネル（任意・案A）：画像を縮小し、空いた領域に要点テキストを段階表示。
+              <DialoguePanel
+                panel={activeTopic.panel}
+                t={t}
+                boxW={visualBoxW}
+                boxH={visualBoxH}
+                portrait={portrait}
+              />
+            ) : activeTopic.image ? (
               activeTopic.focus ? (
                 // 注目アノテーション（切り出さず元画像＋枠＋焦点へ寄る）。
                 <FocusVisual

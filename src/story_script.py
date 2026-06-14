@@ -370,6 +370,37 @@ def _clean_image_cuts(cuts, limit=4):
     return out[:limit]
 
 
+def _clean_panel(panel):
+    """章の解説パネル定義を正規化（純関数）。不正/空なら None。
+
+    残すのは {image?:str, items:[{text:str, arrow_from_prev?:bool}]} のみ。
+    items が無い/空なら None（パネル無し扱い＝後方互換）。
+    """
+    if not isinstance(panel, dict):
+        return None
+    raw = panel.get("items")
+    if not isinstance(raw, list):
+        return None
+    items = []
+    for it in raw:
+        if not isinstance(it, dict):
+            continue
+        text = strip_markdown((it.get("text") or "").strip())
+        if not text:
+            continue
+        item = {"text": text}
+        if it.get("arrow_from_prev"):
+            item["arrow_from_prev"] = True
+        items.append(item)
+    if not items:
+        return None
+    out = {"items": items[:6]}  # 段階表示は最大6項目に制限（画面が破綻しない範囲）
+    img = (panel.get("image") or "").strip()
+    if img:
+        out["image"] = img
+    return out
+
+
 def _clean_chapters(chapters, limit=12):
     """chapters を {section,title,image_cuts:[{image_query,image_kind}]} へ正規化（純関数）。
 
@@ -412,6 +443,10 @@ def _clean_chapters(chapters, limit=12):
             chapter["source_hint"] = src_hint
         if c.get("owner_comment"):
             chapter["owner_comment"] = True
+        # 解説パネル（任意・案A）。あれば保持＝この章は縮小画像＋段階テキストで描画。
+        panel = _clean_panel(c.get("panel"))
+        if panel:
+            chapter["panel"] = panel
         out.append(chapter)
     return out[:limit]
 
@@ -528,6 +563,25 @@ def _normalize_cut(turn, chapters, n):
         turn["cut"] = max(0, min(c, ncuts - 1))
 
 
+def _normalize_panel_fields(turn):
+    """turn の解説パネル操作 panel_event / panel_item を正規化（in-place）。
+
+    panel_event は "shrink" のみ許可（他は削除）。panel_item は整数化（不正は削除）。
+    どちらも任意＝無ければ何もしない（後方互換）。
+    """
+    if turn.get("panel_event") != "shrink":
+        turn.pop("panel_event", None)
+    if "panel_item" in turn:
+        pi = turn["panel_item"]
+        if isinstance(pi, bool):
+            turn.pop("panel_item", None)
+        else:
+            try:
+                turn["panel_item"] = int(pi)
+            except (TypeError, ValueError):
+                turn.pop("panel_item", None)
+
+
 def normalize_turns(script: list, chapters: list = None) -> list:
     """各ターンの emotion / effect / section / chapter をenum・整数固定する（破壊的・in-place）。
 
@@ -555,6 +609,7 @@ def normalize_turns(script: list, chapters: list = None) -> list:
         _normalize_cut(turn, chapters, n)
         _normalize_voice(turn)  # 声の上書き（任意）をクランプ
         _normalize_pause(turn)  # 台詞後の間（任意）をクランプ
+        _normalize_panel_fields(turn)  # 解説パネル操作（任意・shrink/item）を正規化
         if n:
             turn["section"] = chapters[ch].get("section", DEFAULT_SECTION)
         elif turn.get("section") not in VALID_SECTIONS:
