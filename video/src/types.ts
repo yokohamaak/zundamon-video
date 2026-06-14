@@ -111,6 +111,8 @@ export type Panel = {
   cut?: number;
   // テキスト領域（縮小画像の横）の背景色（CSS color）。無指定なら透過（黒板が見える）。
   bg?: string;
+  // テキスト領域上部の見出し（任意・お題）。並列項目のときに特に有効。
+  heading?: string;
   items: PanelItem[];
   // 画像を縮小しテキスト領域を開く絶対時刻（秒）。無指定時は章頭。
   shrinkAt?: number;

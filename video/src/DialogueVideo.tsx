@@ -300,6 +300,8 @@ const DialoguePanel: React.FC<{
   portrait: boolean;
 }> = ({ panel, t, boxW, boxH, portrait }) => {
   const items = panel.items ?? [];
+  // 矢印が1つも無ければ並列（時系列でない）＝▼でつながず✔の箇条書きにする。
+  const isParallel = !items.some((it) => it.arrow_from_prev);
   const shrinkAt = panel.shrinkAt ?? 0;
   // 縮小進捗 0(全体表示)→1(縮小・テキスト領域オープン)。0.5秒でイージング。
   const sp = interpolate(t, [shrinkAt, shrinkAt + 0.5], [0, 1], {
@@ -361,6 +363,21 @@ const DialoguePanel: React.FC<{
           borderRadius: panel.bg ? 12 : 0,
         }}
       >
+        {/* 見出し（任意）。左にアクセント帯。 */}
+        {panel.heading ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: portrait ? 6 : 12,
+              opacity: sp,
+            }}
+          >
+            <span style={{ width: portrait ? 6 : 8, height: portrait ? 24 : 32, background: "#ffd84d", borderRadius: 3 }} />
+            <span style={{ color: "#fff", fontWeight: 900, fontSize: portrait ? 30 : 38 }}>{panel.heading}</span>
+          </div>
+        ) : null}
         {items.map((it, i) => {
           const at = it.at ?? shrinkAt;
           const appear = interpolate(t, [at, at + 0.35], [0, 1], {
@@ -368,12 +385,35 @@ const DialoguePanel: React.FC<{
             extrapolateRight: "clamp",
           });
           if (appear <= 0) return null; // 到達前は表示しない
+          // 出現時だけ一瞬強調（0→1→0の山）＝ポップ＋発光。
+          const emph = interpolate(t, [at, at + 0.18, at + 0.75], [0, 1, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
+          const chip = (
+            <div
+              style={{
+                display: "inline-block",
+                background: "rgba(20,26,38,0.85)",
+                color: "#fff",
+                fontWeight: 800,
+                fontSize,
+                padding: portrait ? "8px 16px" : "10px 22px",
+                borderRadius: 12,
+                lineHeight: 1.3,
+                boxShadow: `0 2px 10px rgba(0,0,0,0.35), 0 0 ${Math.round(20 * emph)}px rgba(255,216,77,${(0.75 * emph).toFixed(2)})`,
+              }}
+            >
+              {it.text}
+            </div>
+          );
           return (
             <div
               key={i}
               style={{ opacity: appear, transform: `translateY(${((1 - appear) * 14).toFixed(2)}px)` }}
             >
-              {it.arrow_from_prev ? (
+              {/* フロー（時系列）のときだけ前項目から▼でつなぐ。並列は▼を出さない。 */}
+              {!isParallel && it.arrow_from_prev ? (
                 <div
                   style={{
                     color: "rgba(255,255,255,0.5)",
@@ -387,18 +427,18 @@ const DialoguePanel: React.FC<{
               ) : null}
               <div
                 style={{
-                  display: "inline-block",
-                  background: "rgba(20,26,38,0.85)",
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize,
-                  padding: portrait ? "8px 16px" : "10px 22px",
-                  borderRadius: 12,
-                  lineHeight: 1.3,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: portrait ? 8 : 12,
+                  transform: `scale(${(1 + 0.06 * emph).toFixed(3)})`,
+                  transformOrigin: "left center",
                 }}
               >
-                {it.text}
+                {/* 並列のときは各項目にチェックマーカー（▼の代わり）。 */}
+                {isParallel ? (
+                  <span style={{ color: "#ffd84d", fontWeight: 900, fontSize, lineHeight: 1 }}>✔</span>
+                ) : null}
+                {chip}
               </div>
             </div>
           );

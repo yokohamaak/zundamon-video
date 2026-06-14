@@ -412,10 +412,13 @@ def _clean_panel(panel):
     if not items:
         return None
     out = {"items": items[:6]}  # 段階表示は最大6項目に制限（画面が破綻しない範囲）
-    # 画像はセリフ(カット)毎に選ぶ＝panel固定の画像/cutは持たない。背景色のみ保持。
+    # 画像はセリフ(カット)毎に選ぶ＝panel固定の画像/cutは持たない。背景色・見出しのみ保持。
     bg = (panel.get("bg") or "").strip()
     if bg:
         out["bg"] = bg
+    heading = strip_markdown((panel.get("heading") or "").strip())
+    if heading:
+        out["heading"] = heading
     return out
 
 

@@ -1927,8 +1927,10 @@ function vizContent(box, ch, ci){
   if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
     // 画像はセリフ毎に変わる（各行のcutで選択）＝ここでは画像を固定しない。
     const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 4px';
-    note.textContent='画像はセリフ毎に切り替わります（各行のcutで選択）。';
+    note.textContent='画像はセリフ毎に切替（各行のcutで選択）。矢印を付けると時系列フロー(▼)・付けなければ並列(✔)。';
     box.appendChild(note);
+    // 見出し（テキスト領域の上に出すお題。並列項目で特に有効）。
+    const hr=vRow('見出し'); hr.appendChild(vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; })); box.appendChild(hr);
     // テキスト領域（縮小画像の横）の背景色。クリアで透過（黒板が見える）。
     const br=vRow('文字側の背景'); const cp=document.createElement('input'); cp.type='color'; cp.value=p.bg||'#1a2740';
     cp.oninput=()=>{ p.bg=cp.value; }; br.appendChild(cp);
