@@ -47,6 +47,45 @@ export type Turn = {
   // build_chapter_topics が時刻に解決して topic.panel へ載せるため、描画では未使用（型整合・デバッグ用）。
   panel_event?: "shrink";
   panel_item?: number;
+  // 画像演出のタイミング合図（任意）。build_chapter_topics が時刻解決に使う（描画では未使用）。
+  // reveal=この発言で「実は」の答え/数字を出す（quiz/stat の出現時刻）。
+  // callout_item=この発言で callouts[n] を出す。
+  reveal?: boolean;
+  callout_item?: number;
+};
+
+// クイズ・リビール：「？」で溜めて答えを出す（掛け合いの問い→外し→実はと相性◎）。
+export type Quiz = {
+  question: string;       // 溜めの間に出す問い（短く）
+  answer: string;         // リビールで出す答え（短く）
+  image?: string;         // 答え提示時に出す画像（public/相対・無ければ無し）
+  revealAt?: number;      // 答えを出す絶対時刻（秒）。build が reveal発言/zoom_punch/章中盤から解決。
+};
+
+// 比較（2分割）：左右（縦は上下）にA対Bを並べる。before/after・対比ネタ向き。
+export type CompareSide = { label: string; image?: string };
+export type Compare = {
+  left: CompareSide;
+  right: CompareSide;
+  showAt?: number;        // 出現する絶対時刻（秒）。無指定は章頭。
+};
+
+// 数字強調：大きな数字＋単位を画像に重ねる。インパクト重視の瞬間に。
+export type Stat = {
+  value: string;          // 表示する数字/文字（例 "1/8" "50万" "500000"）
+  unit?: string;          // 単位（例 "時間" "倍"）
+  label?: string;         // 補足ラベル（例 "故障率"）
+  showAt?: number;        // 出現する絶対時刻（秒）。build が reveal発言/zoom_punch/章中盤から解決。
+  countTo?: number;       // value が整数のときカウントアップの到達値（build が推定）。
+};
+
+// 注釈・吹き出し：画像上の位置(0..1正規化)を指して短いラベルを出す。
+export type Callout = {
+  text: string;
+  x: number;              // 指し示す点の x（0..1・画像枠基準）
+  y: number;              // 同 y
+  arrow?: boolean;        // ラベルから点へ線/矢印を引く
+  at?: number;            // 出現する絶対時刻（秒）。build が callout_item発言/均等割りで解決。
 };
 
 // 解説パネルの1項目（縮小画像の横/下に段階表示する要点テキスト）。
@@ -108,6 +147,12 @@ export type Topic = {
   // 解説パネル（任意）。build_chapter_topics が章の panel 定義を時刻解決して載せる。
   // これがある章は中央ビジュアルをパネルレイアウト（縮小画像＋段階テキスト）で描画する。
   panel?: Panel;
+  // 画像演出（任意・すべて build_chapter_topics が時刻解決して載せる）。
+  // quiz / compare は中央ビジュアルを置き換える主モード。stat / callouts は画像に重ねる層。
+  quiz?: Quiz;
+  compare?: Compare;
+  stat?: Stat;
+  callouts?: Callout[];
 };
 
 export type Gender = "male" | "female";

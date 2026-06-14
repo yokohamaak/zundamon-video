@@ -160,6 +160,8 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
         # この章の全カットtopicに同じパネルを載せる（描画は固定のpanel.imageを使う）。
         panel_resolved = _resolve_panel(meta_ch.get("panel"), idxs, turns,
                                         seg_start, seg_end, image_files.get((ch, 0)))
+        # 画像演出（任意）。出現時刻を発言timingから解決し、章の全カットtopicに載せる。
+        viz = _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch)
         for gi, (ci, lo, hi) in enumerate(groups):
             cstart = seg_start if gi == 0 else turns[idxs[lo]]["start"]
             cend = seg_end if gi == len(groups) - 1 else turns[idxs[hi]]["start"]
@@ -209,8 +211,80 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 topic["placeholder"] = chapter_image_name(ch, ci)
             if panel_resolved:
                 topic["panel"] = panel_resolved
+            for k, v in viz.items():  # quiz/compare/stat/callouts（あるものだけ）
+                topic[k] = v
             topics.append(topic)
     return topics
+
+
+def _reveal_time(idxs, turns, seg_start, seg_end):
+    """「実は」の答え/数字を出す時刻を発言timingから推定（純関数）。
+
+    優先: reveal==True の発言 → effect=="zoom_punch" の発言 → 章の約60%地点。
+    どれも無ければ seg の中盤を返す。
+    """
+    for j in idxs:
+        if turns[j].get("reveal"):
+            return float(turns[j].get("start", seg_start))
+    for j in idxs:
+        if turns[j].get("effect") == "zoom_punch":
+            return float(turns[j].get("start", seg_start))
+    return round(seg_start + (seg_end - seg_start) * 0.6, 3)
+
+
+def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
+    """章の画像演出(quiz/compare/stat/callouts)を時刻・画像へ解決（純関数）。
+
+    Returns: topicに載せる {quiz?,compare?,stat?,callouts?}（あるものだけ）。
+    """
+    out = {}
+    quiz = meta_ch.get("quiz")
+    if quiz:
+        q = dict(quiz)
+        q["revealAt"] = _reveal_time(idxs, turns, seg_start, seg_end)
+        if not q.get("image"):
+            img = image_files.get((ch, 0))
+            if img:
+                q["image"] = img
+        out["quiz"] = q
+    compare = meta_ch.get("compare")
+    if compare:
+        def side(s):
+            r = {"label": s["label"]}
+            img = image_files.get((ch, s.get("cut", 0)))
+            if img:
+                r["image"] = img
+            return r
+        out["compare"] = {
+            "left": side(compare["left"]),
+            "right": side(compare["right"]),
+            "showAt": round(float(seg_start), 3),
+        }
+    stat = meta_ch.get("stat")
+    if stat:
+        st = dict(stat)
+        st["showAt"] = _reveal_time(idxs, turns, seg_start, seg_end)
+        # value が整数のときカウントアップの到達値を持たせる（描画が0→countToへ）。
+        digits = st["value"].replace(",", "")
+        if digits.isdigit():
+            st["countTo"] = int(digits)
+        out["stat"] = st
+    callouts = meta_ch.get("callouts")
+    if callouts:
+        at_by_idx = {}
+        for j in idxs:
+            ci = turns[j].get("callout_item")
+            if isinstance(ci, int) and not isinstance(ci, bool) and 0 <= ci < len(callouts) and ci not in at_by_idx:
+                at_by_idx[ci] = float(turns[j].get("start", seg_start))
+        n = len(callouts)
+        resolved = []
+        for k, co in enumerate(callouts):
+            at = at_by_idx[k] if k in at_by_idx else seg_start + (seg_end - seg_start) * (k + 1) / (n + 1)
+            item = dict(co)
+            item["at"] = round(float(at), 3)
+            resolved.append(item)
+        out["callouts"] = resolved
+    return out
 
 
 def _resolve_panel(panel, idxs, turns, seg_start, seg_end, main_image=None):

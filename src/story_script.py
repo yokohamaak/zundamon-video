@@ -94,9 +94,11 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
    既定は全部1.0（pitchは0.0）。範囲 speed/intonation/volume=0.5〜2.0、pitch=-0.15〜0.15。**多用しない**。
    例: 驚き=intonation 1.4・volume 1.2 / 焦り=speed 1.3 / しみじみ=speed 0.9・intonation 0.8。
 7. "pause"（任意・間）: その台詞の**後に置く無音秒**（0〜2）。「実は…」のタメや、オチ前の溜めに少しだけ。**多用しない**。
-8. "panel_event" / "panel_item"（任意・解説パネル操作）: その章に panel を置いた場合だけ使う（「## 解説パネル」参照）。
-   - "panel_event": "shrink" … この発言で画像を縮小しテキスト領域を開く。要点の説明に入る発言（多くは{explainer}の「実は」の発言）に**1つだけ**。
-   - "panel_item": n（整数・0始まり）… この発言で panel.items の n 番目を画面に出す。説明が各要点に触れる発言に順に付ける（0,1,2…）。
+8. 画像演出の合図（任意・「## 画像エリアの演出」で章に演出を置いた時だけ使う）:
+   - "panel_event": "shrink" … この発言で画像を縮小しテキスト領域を開く（panel用・要点説明に入る発言に1つ）。
+   - "panel_item": n（整数0始まり）… この発言で panel.items の n 番目を出す（0,1,2…順）。
+   - "reveal": true … この発言で「実は」の答え/数字を出す（quiz の答え・stat の数字の出現タイミング。各章1つ）。
+   - "callout_item": n（整数0始まり）… この発言で callouts[n] を出す（0,1,2…順）。
 
 ※ 運営者コメント枠（「## 運営者コメント枠」参照）のプレースホルダ発言にも他の発言と同じフィールドを付ける（emotion=normal・effect=kenburns・cut はその時点の番号でよい）。**枠の中身は代筆しない＝体言止めの切り口ヒントのみ**。
 
@@ -113,8 +115,12 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
 - "confidence": （trivia章のみ）"high"（公式発表・一次資料がある）/ "medium"（広く語られるが要確認）/ "low"（諸説・逸話レベル）。「## 事実の確度」の基準に従う。
 - "source_hint": （trivia章のみ）裏取りの手がかり（公式発表・開発者の発言・出典になりそうな年や媒体名など）。
 - "owner_comment": （trivia章のみ・任意）その章に運営者コメント枠を置いた場合だけ true。置かない章は省略する。
-- "panel": （trivia章のみ・任意）解説パネルを置く章だけ。{{"items": [{{"text": "短い要点", "arrow_from_prev": true}}, ...]}}。
-  詳細と使いどころは「## 解説パネル」を参照。置かない章は省略する。
+- 画像演出（trivia章のみ・任意・**1章につき多くても1種類**）。詳細と使いどころは「## 画像エリアの演出」を参照：
+  - "panel": {{"items": [{{"text": "短い要点", "arrow_from_prev": true}}, ...]}}（縮小画像＋段階テキスト）
+  - "quiz": {{"question": "問い", "answer": "答え"}}（？で溜めて答えを出す）
+  - "compare": {{"left": {{"label": "A", "cut": 0}}, "right": {{"label": "B", "cut": 1}}}}（2分割で対比）
+  - "stat": {{"value": "8", "unit": "分の1", "label": "故障率"}}（大きな数字を重ねる）
+  - "callouts": [{{"text": "ラベル", "x": 0.3, "y": 0.5, "arrow": true}}, ...]（画像の位置を指す注釈・最大4個）
 - "image_cuts": その章で**順に映す画像を 2〜4個**。ネタの対象物が変わるよう別々の被写体にする。
   各要素に:
   - "image_kind": "subject"（実在の人物・製品・ロゴ・記号など特定物。例 "Bluetooth logo", "Larry Tesler"）
@@ -274,20 +280,26 @@ AIだけで完結した台本は「量産型」と判定され、収益化の対
 - **"medium" のネタは、セリフ側でも『〜と言われているわ』『諸説あるけれど』と断定を避ける。**
 - 年号・前後関係・固有名詞・金額が曖昧なときは、盛らずに断定を避け、confidence を下げる。
 
-## 解説パネル（画面の動きを作る・任意）
-画像を縮小して空いた所に要点テキストを順に積む「ゆっくり解説」の定番レイアウト。単調なズームだけの画面に変化を付ける。
-- **使うのは {topics}ネタのうち 1〜2ネタだけ**。**全ネタに付けない**（毎回同じ動きは逆に飽きる）。
-- **向いているネタ**：要点が「流れ・手順・段階・対比・数字の積み上げ」で表せるもの
-  （例：原因→結果、A→B→C の変遷、数字が積み上がる話）。1つの意外な事実を述べるだけのネタには付けない。
-- 付け方は次の3点をセットで：
-  1. その trivia 章のメタに "panel" を置く。"items" は**画面に出す短い要点を2〜4個**。各 text は**体言止め10字以内**
-     （セリフの要約＝画面ラベル。長い文を入れない）。流れを示すなら2個目以降に "arrow_from_prev": true。
-  2. 説明に入る発言（多くは{explainer}の「実は」の発言）に "panel_event": "shrink" を**1つだけ**付ける。
-  3. 各要点に触れる発言に "panel_item": 0,1,2… を順に付ける（items の番号と対応）。**items の個数と panel_item の最大値を一致**させる。
-- セリフは普通に書く（パネルはセリフの内容を視覚化するだけ）。panel を置かない章はこれまで通り画像だけでよい。
-- 形の例（この章だけ panel を持つ。他の章には付けない）：
-  章メタ側: {{"section": "trivia", "title": "...", "panel": {{"items": [{{"text": "全コードを保存"}}, {{"text": "北極の炭鉱に埋める", "arrow_from_prev": true}}, {{"text": "1000年保つ", "arrow_from_prev": true}}]}}, "image_cuts": [ ... ]}}
-  発言側: 説明開始の発言に "panel_event": "shrink" と "panel_item": 0、続く要点の発言に "panel_item": 1、その次に "panel_item": 2 を付ける。
+## 画像エリアの演出（画面に変化を付ける・任意）
+単調なズームだけの画面に動きを足す。**ネタの内容に最も合う型を選ぶ**。
+- **使うのは {topics}ネタのうち 2〜3ネタまで**。**全ネタには付けない**（毎回同じ動きは逆に飽きる）。**1章につき多くても1種類**。
+- 内容に合わない型を無理に付けない。普通に画像だけで見せる章があってよい。
+- 型と使いどころ：
+  1. **panel（縮小＋段階テキスト）**：要点が「流れ・手順・段階」で表せるネタ。
+     章メタに "panel": {{"items": [{{"text": "短い要点"}}, {{"text": "次の要点", "arrow_from_prev": true}}]}}。text は**体言止め10字以内**。流れは2個目以降に "arrow_from_prev": true。
+     発言側: 説明に入る発言に "panel_event": "shrink"、各要点の発言に "panel_item": 0,1,2…（items個数と最大値を一致）。
+  2. **quiz（？で溜めて答え）**：問い→外し→実は、の掛け合いが効くネタ。
+     章メタに "quiz": {{"question": "短い問い", "answer": "短い答え"}}。発言側: 答えを言う{explainer}の発言に "reveal": true。
+  3. **compare（2分割で対比）**：A対B・before/after・対比で見せると分かるネタ。
+     章メタに "compare": {{"left": {{"label": "ラベルA", "cut": 0}}, "right": {{"label": "ラベルB", "cut": 1}}}}。
+     cut は image_cuts の番号（左右で別々の画像）。**この章は image_cuts を2個以上**にする。
+  4. **stat（数字を大きく）**：インパクトのある数字が核のネタ（割合・倍率・件数など）。
+     章メタに "stat": {{"value": "8", "unit": "分の1", "label": "故障率"}}。value が整数だけならカウントアップ表示になる。
+     発言側: その数字を言う発言に "reveal": true。
+  5. **callouts（画像の位置を指す注釈）**：1枚の画像の複数箇所を順に指して説明するネタ。
+     章メタに "callouts": [{{"text": "ラベル", "x": 0.3, "y": 0.5, "arrow": true}}, ...]（x,yは画像枠で0..1・最大4個）。
+     発言側: 各注釈に触れる発言に "callout_item": 0,1,2…。
+- セリフは普通に書く（演出はセリフの内容を視覚化するだけ）。演出を置かない章はこれまで通り画像だけでよい。
 
 {_rules_block(questioner, explainer, topics)}
 
@@ -421,6 +433,90 @@ def _clean_panel(panel):
     return out
 
 
+def _clean_quiz(quiz):
+    """章のクイズ定義を正規化（純関数）。question/answer 必須・不正なら None。"""
+    if not isinstance(quiz, dict):
+        return None
+    q = strip_markdown((quiz.get("question") or "").strip())
+    a = strip_markdown((quiz.get("answer") or "").strip())
+    if not q or not a:
+        return None
+    out = {"question": q, "answer": a}
+    img = (quiz.get("image") or "").strip()
+    if img:
+        out["image"] = img
+    return out
+
+
+def _clean_compare(compare):
+    """章の比較(2分割)定義を正規化（純関数）。left/right に label 必須・不正なら None。
+
+    各サイドは {label:str, cut?:int}（cut=参照する image_cuts 番号・build で画像へ解決）。
+    """
+    if not isinstance(compare, dict):
+        return None
+
+    def side(s, default_cut):
+        if not isinstance(s, dict):
+            return None
+        label = strip_markdown((s.get("label") or "").strip())
+        if not label:
+            return None
+        out = {"label": label}
+        cut = s.get("cut")
+        if isinstance(cut, int) and not isinstance(cut, bool) and cut >= 0:
+            out["cut"] = cut
+        else:
+            out["cut"] = default_cut
+        return out
+
+    left = side(compare.get("left"), 0)
+    right = side(compare.get("right"), 1)
+    if not left or not right:
+        return None
+    return {"left": left, "right": right}
+
+
+def _clean_stat(stat):
+    """章の数字強調定義を正規化（純関数）。value 必須・不正なら None。"""
+    if not isinstance(stat, dict):
+        return None
+    value = strip_markdown((str(stat.get("value")) if stat.get("value") is not None else "").strip())
+    if not value:
+        return None
+    out = {"value": value}
+    unit = strip_markdown((stat.get("unit") or "").strip())
+    if unit:
+        out["unit"] = unit
+    label = strip_markdown((stat.get("label") or "").strip())
+    if label:
+        out["label"] = label
+    return out
+
+
+def _clean_callouts(callouts):
+    """章の注釈(吹き出し)定義を正規化（純関数）。text と 0..1 の x,y 必須。空なら None。"""
+    if not isinstance(callouts, list):
+        return None
+    out = []
+    for c in callouts:
+        if not isinstance(c, dict):
+            continue
+        text = strip_markdown((c.get("text") or "").strip())
+        try:
+            x = float(c.get("x"))
+            y = float(c.get("y"))
+        except (TypeError, ValueError):
+            continue
+        if not text or not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
+            continue
+        item = {"text": text, "x": round(x, 3), "y": round(y, 3)}
+        if c.get("arrow"):
+            item["arrow"] = True
+        out.append(item)
+    return out[:4] or None  # 注釈は最大4個（画面が煩雑にならない範囲）
+
+
 def _clean_chapters(chapters, limit=12):
     """chapters を {section,title,image_cuts:[{image_query,image_kind}]} へ正規化（純関数）。
 
@@ -467,6 +563,19 @@ def _clean_chapters(chapters, limit=12):
         panel = _clean_panel(c.get("panel"))
         if panel:
             chapter["panel"] = panel
+        # 画像演出（任意・すべて後方互換）。quiz/compare=主モード、stat/callouts=重ね層。
+        quiz = _clean_quiz(c.get("quiz"))
+        if quiz:
+            chapter["quiz"] = quiz
+        compare = _clean_compare(c.get("compare"))
+        if compare:
+            chapter["compare"] = compare
+        stat = _clean_stat(c.get("stat"))
+        if stat:
+            chapter["stat"] = stat
+        callouts = _clean_callouts(c.get("callouts"))
+        if callouts:
+            chapter["callouts"] = callouts
         out.append(chapter)
     return out[:limit]
 
@@ -591,15 +700,21 @@ def _normalize_panel_fields(turn):
     """
     if turn.get("panel_event") != "shrink":
         turn.pop("panel_event", None)
-    if "panel_item" in turn:
-        pi = turn["panel_item"]
-        if isinstance(pi, bool):
-            turn.pop("panel_item", None)
-        else:
-            try:
-                turn["panel_item"] = int(pi)
-            except (TypeError, ValueError):
-                turn.pop("panel_item", None)
+    for key in ("panel_item", "callout_item"):
+        if key in turn:
+            v = turn[key]
+            if isinstance(v, bool):
+                turn.pop(key, None)
+            else:
+                try:
+                    turn[key] = int(v)
+                except (TypeError, ValueError):
+                    turn.pop(key, None)
+    # reveal: 「実は」の答え/数字を出す合図（bool）。真のときだけ残す。
+    if turn.get("reveal"):
+        turn["reveal"] = True
+    else:
+        turn.pop("reveal", None)
 
 
 def normalize_turns(script: list, chapters: list = None) -> list:

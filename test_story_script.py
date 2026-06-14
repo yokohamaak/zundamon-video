@@ -493,13 +493,14 @@ def test_confidence_owner_comment():
 
 
 def test_build_prompt_panel_guidance():
-    # 台本生成プロンプトに解説パネルの指示（使いどころ・フィールド・例）が入る。
+    # 台本生成プロンプトに画像エリア演出の指示（5種・使いどころ・フィールド）が入る。
     p = s.build_prompt({"story": {"theme": "T", "topics": 6,
                                   "questioner": "ずんだもん", "explainer": "四国めたん"}})
-    for kw in ["## 解説パネル", "panel_event", "panel_item", "arrow_from_prev",
-               "1〜2ネタだけ", "体言止め"]:
-        assert kw in p, f"panel指示に {kw} が入る"
-    print("  build_prompt: 解説パネルの指示 OK")
+    for kw in ["## 画像エリアの演出", "panel_event", "panel_item", "arrow_from_prev",
+               "体言止め", "quiz", "compare", "stat", "callouts", "reveal", "callout_item",
+               "1章につき多くても1種類"]:
+        assert kw in p, f"演出指示に {kw} が入る"
+    print("  build_prompt: 画像エリア演出の指示 OK")
 
 
 def test_panel_fields_preserved():
@@ -524,6 +525,39 @@ def test_panel_fields_preserved():
     assert "panel" not in d2["chapters"][0], "items空のpanelは付けない"
     assert "panel_event" not in d2["script"][0] and "panel_item" not in d2["script"][0]
     print("  panel / panel_event / panel_item: 保持と不正値除去 OK")
+
+
+def test_viz_fields_preserved():
+    # quiz/compare/stat/callouts と reveal/callout_item がパースを生き残る。
+    data = s.parse_script_json(
+        '{"chapters":['
+        '{"section":"trivia","title":"Q","quiz":{"question":"何の略?","answer":"造語"},'
+        '"image_cuts":[{"image_query":"q","image_kind":"subject"}]},'
+        '{"section":"trivia","title":"C","compare":{"left":{"label":"陸上"},"right":{"label":"海底","cut":1}},'
+        '"image_cuts":[{"image_query":"a","image_kind":"ambient"},{"image_query":"b","image_kind":"ambient"}]},'
+        '{"section":"trivia","title":"S","stat":{"value":"8","unit":"分の1","label":"故障率"},'
+        '"image_cuts":[{"image_query":"a","image_kind":"ambient"}]},'
+        '{"section":"trivia","title":"O","callouts":[{"text":"ここ","x":0.3,"y":0.4,"arrow":true},{"text":"範囲外","x":2,"y":0.5}],'
+        '"image_cuts":[{"image_query":"a","image_kind":"subject"}]}'
+        '],"script":['
+        '{"speaker":"四国めたん","text":"a","chapter":0,"reveal":true},'
+        '{"speaker":"四国めたん","text":"b","chapter":3,"callout_item":0}]}')
+    ch = data["chapters"]
+    assert ch[0]["quiz"] == {"question": "何の略?", "answer": "造語"}
+    assert ch[1]["compare"]["left"]["cut"] == 0 and ch[1]["compare"]["right"]["cut"] == 1
+    assert ch[2]["stat"] == {"value": "8", "unit": "分の1", "label": "故障率"}
+    # x>1 の範囲外注釈は除去され、正しい1件だけ残る
+    assert len(ch[3]["callouts"]) == 1 and ch[3]["callouts"][0]["arrow"] is True
+    assert data["script"][0]["reveal"] is True and data["script"][1]["callout_item"] == 0
+    # 必須欠落は None 化（quiz answer 無し / compare label 無し / stat value 無し）
+    d2 = s.parse_script_json(
+        '{"chapters":[{"section":"trivia","title":"X","quiz":{"question":"q"},'
+        '"compare":{"left":{"label":"A"}},"stat":{"unit":"倍"},'
+        '"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
+        '"script":[{"speaker":"x","text":"y"}]}')
+    assert "quiz" not in d2["chapters"][0] and "compare" not in d2["chapters"][0]
+    assert "stat" not in d2["chapters"][0]
+    print("  quiz / compare / stat / callouts / reveal / callout_item: 保持と不正値除去 OK")
 
 
 if __name__ == "__main__":
@@ -560,4 +594,5 @@ if __name__ == "__main__":
     test_confidence_owner_comment()
     test_build_prompt_panel_guidance()
     test_panel_fields_preserved()
+    test_viz_fields_preserved()
     print("ALL PASS")

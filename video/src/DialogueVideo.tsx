@@ -12,7 +12,19 @@ import { useAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
 import { ParallaxImage } from "./ParallaxImage";
 import { FONT_FAMILY } from "./fonts";
-import type { Emotion, Gender, Meta, Panel, Topic, Turn } from "./types";
+import type {
+  Callout,
+  Compare,
+  CompareSide,
+  Emotion,
+  Gender,
+  Meta,
+  Panel,
+  Quiz,
+  Stat,
+  Topic,
+  Turn,
+} from "./types";
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。素材/音声に合わせて調整。
 const LIPSYNC_GAIN = 5;
@@ -393,6 +405,160 @@ const DialoguePanel: React.FC<{
   );
 };
 
+// クイズ・リビール：「？」＋問いで溜め、revealAt で答え（＋画像）へ切り替える。
+const QuizVisual: React.FC<{
+  quiz: Quiz;
+  t: number;
+  portrait: boolean;
+}> = ({ quiz, t, portrait }) => {
+  const revealAt = quiz.revealAt ?? 0;
+  const rev = interpolate(t, [revealAt, revealAt + 0.45], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        background: "linear-gradient(135deg, #243049 0%, #1a2333 100%)",
+      }}
+    >
+      {quiz.image ? (
+        <Img
+          src={staticFile(quiz.image)}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: rev }}
+        />
+      ) : null}
+      {/* 問い＋？（リビールで薄れる）。画像があるときは可読性のため暗幕を敷く。 */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 14,
+          opacity: 1 - rev * 0.85,
+          background: quiz.image ? "rgba(15,20,30,0.5)" : "transparent",
+        }}
+      >
+        <div style={{ fontSize: portrait ? 140 : 200, fontWeight: 900, color: "#ffd84d", lineHeight: 1, textShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>？</div>
+        <div style={{ fontSize: portrait ? 44 : 56, fontWeight: 800, color: "#fff", textAlign: "center", padding: "0 40px", textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>{quiz.question}</div>
+      </div>
+      {/* 答え（リビールでせり上がる） */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: portrait ? 40 : 36,
+          display: "flex",
+          justifyContent: "center",
+          opacity: rev,
+          transform: `translateY(${((1 - rev) * 20).toFixed(1)}px)`,
+        }}
+      >
+        <div style={{ background: "rgba(255,216,77,0.95)", color: "#1a1f2b", fontWeight: 900, fontSize: portrait ? 50 : 66, padding: portrait ? "10px 26px" : "12px 34px", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.4)" }}>{quiz.answer}</div>
+      </div>
+    </div>
+  );
+};
+
+// 比較（2分割）：横=左右 / 縦=上下。各サイドに画像＋ラベル。2つ目は少し遅れて出る。
+const CompareVisual: React.FC<{
+  compare: Compare;
+  t: number;
+  portrait: boolean;
+}> = ({ compare, t, portrait }) => {
+  const showAt = compare.showAt ?? 0;
+  const a = interpolate(t, [showAt, showAt + 0.4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const b = interpolate(t, [showAt + 0.25, showAt + 0.65], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const side = (s: CompareSide, appear: number, key: string) => (
+    <div key={key} style={{ position: "relative", flex: 1, overflow: "hidden", borderRadius: 10, opacity: appear, transform: `scale(${(0.96 + 0.04 * appear).toFixed(3)})` }}>
+      {s.image ? (
+        <Img src={staticFile(s.image)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #324a5f 0%, #25323f 100%)" }} />
+      )}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "rgba(20,26,38,0.82)", color: "#fff", fontWeight: 800, fontSize: portrait ? 34 : 40, textAlign: "center", padding: portrait ? "8px 6px" : "10px 8px" }}>{s.label}</div>
+    </div>
+  );
+  return (
+    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: portrait ? "column" : "row", gap: portrait ? 8 : 10 }}>
+      {side(compare.left, a, "l")}
+      {side(compare.right, b, "r")}
+    </div>
+  );
+};
+
+// 数字強調（重ね層）：大きな数字＋単位を画像中央に出す。countTo があればカウントアップ。
+const StatOverlay: React.FC<{
+  stat: Stat;
+  t: number;
+  portrait: boolean;
+}> = ({ stat, t, portrait }) => {
+  const showAt = stat.showAt ?? 0;
+  const p = interpolate(t, [showAt, showAt + 0.4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  if (p <= 0) return null;
+  let valueText = stat.value;
+  if (stat.countTo != null) {
+    const cu = interpolate(t, [showAt, showAt + 0.8], [0, stat.countTo], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    valueText = Math.round(cu).toLocaleString();
+  }
+  const scale = 0.7 + 0.3 * Math.min(1, p * 1.2);
+  return (
+    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", opacity: p }}>
+      <div style={{ background: "rgba(15,20,30,0.5)", borderRadius: 20, padding: portrait ? "14px 28px" : "18px 40px", display: "flex", flexDirection: "column", alignItems: "center", transform: `scale(${scale.toFixed(3)})` }}>
+        {stat.label ? <div style={{ color: "rgba(255,255,255,0.85)", fontSize: portrait ? 28 : 34, fontWeight: 700, marginBottom: 4 }}>{stat.label}</div> : null}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, color: "#ffd84d", fontWeight: 900, lineHeight: 1, textShadow: "0 4px 14px rgba(0,0,0,0.55)" }}>
+          <span style={{ fontSize: portrait ? 96 : 140 }}>{valueText}</span>
+          {stat.unit ? <span style={{ fontSize: portrait ? 44 : 60, color: "#fff" }}>{stat.unit}</span> : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 注釈・吹き出し（重ね層）：画像上の点(0..1)を指してラベルを出す。
+const CalloutOverlay: React.FC<{
+  callouts: Callout[];
+  t: number;
+  portrait: boolean;
+}> = ({ callouts, t, portrait }) => {
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {callouts.map((c, i) => {
+        const at = c.at ?? 0;
+        const ap = interpolate(t, [at, at + 0.3], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        if (ap <= 0) return null;
+        const below = c.y < 0.25; // 点が上端寄りならラベルを下に出す
+        const labelStyle: React.CSSProperties = {
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%)",
+          whiteSpace: "nowrap",
+          background: "rgba(20,26,38,0.9)",
+          color: "#fff",
+          fontWeight: 800,
+          fontSize: portrait ? 26 : 32,
+          padding: "6px 14px",
+          borderRadius: 10,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+        };
+        if (below) labelStyle.top = 20; else labelStyle.bottom = 20;
+        return (
+          <div key={i} style={{ position: "absolute", left: `${c.x * 100}%`, top: `${c.y * 100}%`, opacity: ap }}>
+            <div style={{ position: "absolute", left: -9, top: -9, width: 18, height: 18, borderRadius: "50%", background: "#ff5a6a", border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)" }} />
+            <div style={labelStyle}>{c.text}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 // 重ねエフェクト（台本 turn.effect）。kenburns は基準（追加なし）。
 // zoom_punch/shake は中央画像 transform に合成、flash/glow_pulse は重ねレイヤーで表現。
 // ターン開始(turn.start)からの経過で発火・減衰させ、決定論的に（sin/cosで）算出する。
@@ -737,6 +903,12 @@ export const DialogueVideo: React.FC<{
                 boxH={visualBoxH}
                 portrait={portrait}
               />
+            ) : activeTopic.quiz ? (
+              // クイズ・リビール：？で溜めて答えを出す。
+              <QuizVisual quiz={activeTopic.quiz} t={t} portrait={portrait} />
+            ) : activeTopic.compare ? (
+              // 比較（2分割）：A対Bを並べる。
+              <CompareVisual compare={activeTopic.compare} t={t} portrait={portrait} />
             ) : activeTopic.image ? (
               activeTopic.focus ? (
                 // 注目アノテーション（切り出さず元画像＋枠＋焦点へ寄る）。
@@ -899,6 +1071,14 @@ export const DialogueVideo: React.FC<{
             中央ビジュアル（topics未設定）
           </div>
         )}
+
+        {/* 重ね層（任意）：主モード(画像/パネル/クイズ/比較)の上に数字強調・注釈を出す。 */}
+        {activeTopic && !activeTopic.blank && activeTopic.stat ? (
+          <StatOverlay stat={activeTopic.stat} t={t} portrait={portrait} />
+        ) : null}
+        {activeTopic && !activeTopic.blank && activeTopic.callouts ? (
+          <CalloutOverlay callouts={activeTopic.callouts} t={t} portrait={portrait} />
+        ) : null}
 
         {/* クレジットは動画内に出さない（帰属は概要欄の credits.txt に集約＝CC-BY要件はそこで満たす）。 */}
 

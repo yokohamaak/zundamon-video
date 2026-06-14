@@ -323,6 +323,60 @@ def test_build_chapter_topics_panel_fallback():
     print("  build_chapter_topics: panel itemフォールバック均等割り OK")
 
 
+def test_build_chapter_topics_viz():
+    # quiz/compare/stat/callouts が発言timing・画像へ解決されtopicに載る。
+    chapters = [
+        {"section": "trivia", "title": "Q", "image_cuts": [{"image_query": "a", "image_kind": "subject"}],
+         "quiz": {"question": "何の略?", "answer": "造語"}},
+        {"section": "trivia", "title": "C", "image_cuts": [
+            {"image_query": "a", "image_kind": "ambient"}, {"image_query": "b", "image_kind": "ambient"}],
+         "compare": {"left": {"label": "陸上", "cut": 0}, "right": {"label": "海底", "cut": 1}}},
+        {"section": "trivia", "title": "S", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}],
+         "stat": {"value": "500000", "unit": "時間"}},
+        {"section": "trivia", "title": "O", "image_cuts": [{"image_query": "a", "image_kind": "subject"}],
+         "callouts": [{"text": "ここ", "x": 0.3, "y": 0.4}, {"text": "そこ", "x": 0.7, "y": 0.6}]},
+    ]
+    script = [
+        {"chapter": 0}, {"chapter": 0, "reveal": True},      # quiz: reveal発言でrevealAt
+        {"chapter": 1},                                       # compare: 章頭
+        {"chapter": 2, "reveal": True},                       # stat: reveal発言
+        {"chapter": 3, "callout_item": 0}, {"chapter": 3, "callout_item": 1},
+    ]
+    timing = _turns(len(script))  # 2.0秒/ターン
+    turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
+    segs = story_script.assign_sections_to_turns(script)
+    imgfiles = {(0, 0): "q.jpg", (1, 0): "l.jpg", (1, 1): "r.jpg", (2, 0): "s.jpg", (3, 0): "c.jpg"}
+    topics = m.build_chapter_topics(segs, turns, chapters, image_files=imgfiles)
+
+    def grab(chn, key):
+        return next(t[key] for t in topics if t.get("chapter") == chn and key in t)
+    q = grab(0, "quiz")
+    assert q["revealAt"] == 2.0 and q["image"] == "q.jpg", q
+    cmp = grab(1, "compare")
+    assert cmp["left"]["image"] == "l.jpg" and cmp["right"]["image"] == "r.jpg"
+    st = grab(2, "stat")
+    assert st["showAt"] == 6.0 and st["countTo"] == 500000, st
+    co = grab(3, "callouts")
+    assert [c["at"] for c in co] == [8.0, 10.0], co
+    print("  build_chapter_topics: quiz/compare/stat/callouts 解決 OK")
+
+
+def test_build_chapter_topics_viz_reveal_fallback():
+    # reveal発言が無いと zoom_punch 発言→章60% の順で revealAt を決める。
+    chapters = [{"section": "trivia", "title": "S", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}],
+                 "stat": {"value": "8", "unit": "倍"}}]
+    # zoom_punch を2番目に置く（reveal指定なし）
+    script = [{"chapter": 0}, {"chapter": 0, "effect": "zoom_punch"}, {"chapter": 0}]
+    timing = _turns(3)
+    turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
+    segs = story_script.assign_sections_to_turns(script)
+    topics = m.build_chapter_topics(segs, turns, chapters)
+    st = next(t["stat"] for t in topics if "stat" in t)
+    assert st["showAt"] == 2.0, f"zoom_punch発言のstart: {st['showAt']}"
+    assert st["countTo"] == 8, "value=8 は整数なのでカウントアップ到達値が付く"
+    print("  build_chapter_topics: reveal無し→zoom_punchで解決 OK")
+
+
 if __name__ == "__main__":
     print("test_story_meta:")
     test_append_closing_chorus()
@@ -333,6 +387,8 @@ if __name__ == "__main__":
     test_build_chapter_topics_ready_image_and_credit()
     test_build_chapter_topics_panel()
     test_build_chapter_topics_panel_fallback()
+    test_build_chapter_topics_viz()
+    test_build_chapter_topics_viz_reveal_fallback()
     test_build_credits()
     test_build_meta()
     test_build_meta_cut_anchors()
