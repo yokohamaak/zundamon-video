@@ -1510,6 +1510,8 @@ STORY_PAGE = """<!doctype html>
   .vchip { font-size:11px; padding:2px 10px; border-radius:999px; border:1px solid var(--line);
            background:transparent; color:var(--sub); cursor:pointer; }
   .vchip.on { background:#2a2440; color:#c4a8ff; border-color:#5a4a8a; font-weight:700; }
+  .vchip.edit { border-color:#5a4a8a; color:#c4a8ff; }
+  .vizcontent { margin:0 0 10px 30px; padding:10px; background:#0c0f15; border:1px solid #5a4a8a; border-radius:8px; }
 </style></head>
 <body>
 <header>
@@ -1835,48 +1837,63 @@ function vRow(labelText){ const r=document.createElement('div');
 function vText(val,ph,oninput){ const i=document.createElement('input'); i.type='text'; i.value=val||''; i.placeholder=ph||'';
   i.style.cssText='flex:1;min-width:160px'; i.oninput=()=>oninput(i.value); return i; }
 function vMini(txt,onclick){ const b=document.createElement('button'); b.className='mini'; b.textContent=txt; b.onclick=onclick; return b; }
-function vizHint(box){ const h=document.createElement('div'); h.style.cssText='font-size:11px;color:var(--sub);margin-top:6px';
-  h.textContent='▶ 出すタイミングは下の「台本」で各セリフのボタンで指定（自動＝指定なし）'; box.appendChild(h); }
 // 演出のタイミングflagをセリフ単位で付け外し（同一値は章内で1発言に限定＝重複を外す）。
 function setUniqueFlag(ci,flag,value,tn,turnOn){
   (DATA.script||[]).forEach(t=>{ if(t.chapter===ci && t[flag]===value) delete t[flag]; });
   if(turnOn) tn[flag]=value;
 }
-// セリフ行に出す演出トグル（章の演出種別に応じて）。無ければ null。
-function turnVizChips(tn, ch, ci){
-  const wrap=document.createElement('div'); wrap.className='vchips';
-  const add=(label,flag,value,title)=>{ const on=tn[flag]===value;
-    const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=label; if(title)b.title=title;
-    b.onclick=()=>{ setUniqueFlag(ci,flag,value,tn,!on); render(); }; wrap.appendChild(b); };
-  if(ch.panel){ add('縮小','panel_event','shrink','この発言で画像を縮小');
-    (ch.panel.items||[]).forEach((it,k)=>add('項目'+k,'panel_item',k,it.text||'')); }
-  else if(ch.quiz){ add('答えを出す','reveal',true); }
-  else if(ch.compare){ add('左','compare_item',0); add('右(分割)','compare_item',1); }
-  else if(ch.stat){ add('数字を出す','reveal',true); }
-  else if(ch.callouts){ (ch.callouts||[]).forEach((c,k)=>add('注'+k,'callout_item',k,c.text||'')); }
-  return wrap.children.length?wrap:null;
+let vizOpenGi=null;  // 中身エディタを開いている発言の通し番号（章単位の演出内容を編集）
+// この発言が章の演出イベントを担っているか（✎中身ボタンを出す判定）。
+function turnHasViz(tn, ch){
+  if(ch.panel) return tn.panel_event==='shrink'||typeof tn.panel_item==='number';
+  if(ch.quiz||ch.stat) return tn.reveal===true;
+  if(ch.compare) return tn.compare_item===0||tn.compare_item===1;
+  if(ch.callouts) return typeof tn.callout_item==='number';
+  return false;
 }
-// 章の演出エディタ本体
-function vizEditor(body, ch, ci){
-  const sec=document.createElement('div');
-  sec.style.cssText='margin-top:10px;padding:10px;background:#0c0f15;border:1px solid var(--line);border-radius:8px;';
-  const lbl=document.createElement('div'); lbl.className='lbl'; lbl.style.marginTop='0'; lbl.textContent='画像エリアの演出';
-  sec.appendChild(lbl);
-  const cur=vizOf(ch)||'';
-  const tsel=document.createElement('select');
-  [['','なし（画像のみ）'],['panel','解説パネル（段階テキスト）'],['quiz','クイズ（？→答え）'],
-   ['compare','比較（2分割）'],['stat','数字強調'],['callouts','注釈（吹き出し）']].forEach(([v,t])=>{
-    const o=document.createElement('option'); o.value=v; o.textContent=t; if(v===cur)o.selected=true; tsel.appendChild(o); });
-  tsel.onchange=()=>{ VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci);
-    const v=tsel.value;
-    if(v==='panel') ch.panel={items:[{text:''}]};
-    else if(v==='quiz') ch.quiz={question:'',answer:''};
-    else if(v==='compare') ch.compare={left:{label:'',cut:0},right:{label:'',cut:1}};
-    else if(v==='stat') ch.stat={value:''};
-    else if(v==='callouts') ch.callouts=[{text:'',x:0.5,y:0.5}];
-    render(); };
-  sec.appendChild(tsel);
-  const box=document.createElement('div'); box.style.marginTop='8px'; sec.appendChild(box);
+// 演出が無い章で、この発言を起点に演出を追加するメニュー。
+function vizAddMenu(ctrl, tn, ci){
+  const sel=document.createElement('select'); sel.className='vchip'; sel.style.cursor='pointer';
+  const o0=document.createElement('option'); o0.value=''; o0.textContent='＋演出'; sel.appendChild(o0);
+  [['panel','パネル'],['quiz','クイズ'],['compare','比較'],['stat','数字'],['callouts','注釈']].forEach(([v,t])=>{
+    const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); });
+  sel.onchange=()=>{ const ch=DATA.chapters[ci], v=sel.value; if(!v) return;
+    VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci);
+    if(v==='panel'){ ch.panel={items:[{text:''}]}; tn.panel_event='shrink'; }
+    else if(v==='quiz'){ ch.quiz={question:'',answer:''}; tn.reveal=true; }
+    else if(v==='compare'){ ch.compare={left:{label:'',cut:0},right:{label:'',cut:1}}; tn.compare_item=0; }
+    else if(v==='stat'){ ch.stat={value:''}; tn.reveal=true; }
+    else if(v==='callouts'){ ch.callouts=[{text:'',x:0.5,y:0.5}]; tn.callout_item=0; }
+    vizOpenGi=DATA.script.indexOf(tn); render(); };
+  ctrl.appendChild(sel);
+}
+// セリフ行下の演出操作ライン（チップ=タイミング / ✎中身 / ＋演出）。無ければ null。
+function turnVizControl(tn, gi, ch, ci){
+  const ctrl=document.createElement('div'); ctrl.className='vchips';
+  if(!vizOf(ch)){ vizAddMenu(ctrl, tn, ci); return ctrl; }
+  const chip=(label,flag,value,title)=>{ const on=tn[flag]===value;
+    const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=label; if(title)b.title=title;
+    b.onclick=()=>{ setUniqueFlag(ci,flag,value,tn,!on); render(); }; ctrl.appendChild(b); };
+  if(ch.panel){ chip('縮小','panel_event','shrink','この発言で画像を縮小');
+    (ch.panel.items||[]).forEach((it,k)=>chip('項目'+k,'panel_item',k,it.text||'')); }
+  else if(ch.quiz){ chip('答えを出す','reveal',true); }
+  else if(ch.compare){ chip('左','compare_item',0); chip('右(分割)','compare_item',1); }
+  else if(ch.stat){ chip('数字を出す','reveal',true); }
+  else if(ch.callouts){ (ch.callouts||[]).forEach((c,k)=>chip('注'+k,'callout_item',k,c.text||'')); }
+  if(turnHasViz(tn, ch)){  // この発言が演出を担う＝そこから中身を編集できる
+    const e=document.createElement('button'); e.type='button'; e.className='vchip edit'+(vizOpenGi===gi?' on':'');
+    e.textContent=vizOpenGi===gi?'✎閉じる':'✎中身';
+    e.onclick=()=>{ vizOpenGi=(vizOpenGi===gi?null:gi); render(); }; ctrl.appendChild(e);
+  }
+  return ctrl;
+}
+// 演出の中身エディタ（章単位の内容）。セリフ行の下にインライン展開する。
+function vizContent(box, ch, ci){
+  const top=document.createElement('div'); top.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px';
+  const tl=document.createElement('span'); tl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff'; tl.textContent='演出：'+(VIZ_LABEL[vizOf(ch)]||'');
+  const del=document.createElement('button'); del.className='mini'; del.textContent='演出を削除';
+  del.onclick=()=>{ VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci); vizOpenGi=null; render(); };
+  top.appendChild(tl); top.appendChild(del); box.appendChild(top);
   const ncuts=(ch.image_cuts||[]).length;
 
   if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
@@ -1891,12 +1908,10 @@ function vizEditor(body, ch, ci){
       box.appendChild(r);
     });
     box.appendChild(vMini('＋項目',()=>{ p.items.push({text:''}); render(); }));
-    vizHint(box);
   }
   else if(ch.quiz){ const q=ch.quiz;
     const r1=vRow('問い'); r1.appendChild(vText(q.question,'画面に出す問い',v=>q.question=v)); box.appendChild(r1);
     const r2=vRow('答え'); r2.appendChild(vText(q.answer,'リビールで出す答え',v=>q.answer=v)); box.appendChild(r2);
-    vizHint(box);
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     const mkCut=(side,def)=>{ const s=document.createElement('select'); s.style.minWidth='70px';
@@ -1904,14 +1919,12 @@ function vizEditor(body, ch, ci){
       s.onchange=()=>side.cut=+s.value; return s; };
     const rl=vRow('左'); rl.appendChild(vText(c.left.label,'左ラベル',v=>c.left.label=v)); rl.appendChild(mkCut(c.left,0)); box.appendChild(rl);
     const rr=vRow('右'); rr.appendChild(vText(c.right.label,'右ラベル',v=>c.right.label=v)); rr.appendChild(mkCut(c.right,1)); box.appendChild(rr);
-    vizHint(box);
   }
   else if(ch.stat){ const s=ch.stat;
     const r=vRow('数字'); r.appendChild(vText(s.value,'例 8 / 50万 / 500000',v=>s.value=v));
     const u=document.createElement('input'); u.type='text'; u.value=s.unit||''; u.placeholder='単位'; u.style.width='90px';
     u.oninput=()=>{ if(u.value.trim())s.unit=u.value; else delete s.unit; }; r.appendChild(u); box.appendChild(r);
     const r2=vRow('ラベル'); r2.appendChild(vText(s.label,'例 故障率（任意）',v=>{ if(v.trim())s.label=v; else delete s.label; })); box.appendChild(r2);
-    vizHint(box);
   }
   else if(ch.callouts){ let cs=ch.callouts; if(!Array.isArray(cs)){cs=ch.callouts=[];}
     cs.forEach((c,i)=>{
@@ -1928,11 +1941,9 @@ function vizEditor(body, ch, ci){
       box.appendChild(r);
     });
     if(cs.length<4) box.appendChild(vMini('＋注釈',()=>{ cs.push({text:'',x:0.5,y:0.5}); render(); }));
-    vizHint(box);
     box.appendChild(document.createElement('div')).style.cssText='font-size:11px;color:var(--sub);margin-top:4px';
     box.lastChild.textContent='x,y は画像枠で 0..1（左上=0,0 / 右下=1,1）。注釈章は画像が静止します。';
   }
-  body.appendChild(sec);
 }
 
 // 喋り文字数→推定分。英字（かな）は読み仮名だけ喋る＝畳んで数える（実測較正305字/分）。
@@ -2026,8 +2037,6 @@ function render(){
         ocb.onchange=()=>{ if(ocb.checked) ch.owner_comment=true; else delete ch.owner_comment; render(); };
         ol.appendChild(ocb); ol.appendChild(document.createTextNode('運営者コメント枠あり（セリフ内の〔★…〕を自分の言葉で埋める）'));
         body.appendChild(ol);
-        // 画像エリアの演出（panel/quiz/compare/stat/callouts）の表示・編集・ON/OFF・タイミング。
-        vizEditor(body, ch, ci);
       }
       // images
       const il=document.createElement('div'); const lb=document.createElement('div'); lb.className='lbl'; lb.textContent='画像（台本に対応）'; body.appendChild(lb);
@@ -2108,7 +2117,7 @@ function render(){
       il.appendChild(add); body.appendChild(il);
       // dialogue
       const dl=document.createElement('div'); const lb2=document.createElement('div'); lb2.className='lbl'; lb2.textContent='台本'; body.appendChild(lb2);
-      DATA.script.forEach((tn)=>{ if(tn.chapter!==ci) return;
+      DATA.script.forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
         const row=document.createElement('div'); row.className='turn';
         const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
         const sp=document.createElement('div'); sp.className='sp'; sp.style.color=col;
@@ -2130,9 +2139,11 @@ function render(){
         acts.appendChild(bs); acts.appendChild(bd);
         row.appendChild(sp); row.appendChild(ta); row.appendChild(pick); row.appendChild(acts);
         dl.appendChild(row);
-        // 演出タイミング：この発言で出す演出をトグル（章に演出があるときだけ）。
-        const chips=turnVizChips(tn, ch, ci);
-        if(chips) dl.appendChild(chips);
+        // 演出操作ライン（チップ=タイミング / ✎中身 / 演出なし章は＋演出）。
+        if(ch.section==='trivia') dl.appendChild(turnVizControl(tn, gi, ch, ci));
+        // 中身エディタ：この発言の✎中身が開いていればインライン展開。
+        if(vizOpenGi===gi && vizOf(ch)){ const ce=document.createElement('div'); ce.className='vizcontent';
+          vizContent(ce, ch, ci); dl.appendChild(ce); }
       });
       body.appendChild(dl);
       sec.appendChild(body);
