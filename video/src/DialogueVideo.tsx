@@ -787,6 +787,9 @@ export const DialogueVideo: React.FC<{
   const flipping = isChapterFlip && t < flipStart + FLIP_HOLD + FLIP_DUR;
   // めくり中は新画像を即・全表示（前章ページが上を覆うのでフェード不要）。
   const effectiveTopicFade = flipping ? 1 : topicFade;
+  // 画像エリアを置き換える演出(パネル/クイズ/比較)は、章内でカットが変わっても再マウントしない
+  // ＝同じ章の間はkeyを固定。パネルは画像だけ差し替わり、縮小/項目の進行(絶対時刻)が途切れない。
+  const replaceViz = !!(activeTopic && (activeTopic.panel || activeTopic.quiz || activeTopic.compare));
   // Ken Burns: カット内の進捗(0→1)。カットのstart→endで線形。endが無ければ動かさない。
   const kbProgress = activeTopic
     ? interpolate(t, [activeTopic.start, activeTopic.end ?? activeTopic.start], [0, 1], {
@@ -943,12 +946,12 @@ export const DialogueVideo: React.FC<{
       >
         {activeTopic && activeTopic.blank ? null : activeTopic ? (
           <div
-            // トピック切替でフェードをやり直すためkeyを付与
-            key={activeTopicIndex}
+            // トピック切替でフェードをやり直すためkeyを付与。ただし置換系演出の章内では固定（再マウント防止）。
+            key={replaceViz ? `viz-${activeTopic.chapter}` : activeTopicIndex}
             style={{
               position: "absolute",
               inset: 0,
-              opacity: effectiveTopicFade,
+              opacity: replaceViz ? 1 : effectiveTopicFade,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

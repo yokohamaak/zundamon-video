@@ -216,7 +216,11 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
             in_window = topic["end"] > vw_start + 1e-6 and topic["start"] < vw_end - 1e-6
             if in_window:
                 if panel_resolved:
-                    topic["panel"] = panel_resolved
+                    # パネル画像はカット毎に変わる＝このtopicの画像をパネルに載せる。
+                    pr = dict(panel_resolved)
+                    if topic.get("image"):
+                        pr["image"] = topic["image"]
+                    topic["panel"] = pr
                 for k, v in viz.items():  # quiz/compare/stat/callouts（あるものだけ）
                     topic[k] = v
             topics.append(topic)
@@ -363,10 +367,8 @@ def _resolve_panel(panel, idxs, turns, seg_start, seg_end, image_files=None, ch=
         if it.get("arrow_from_prev"):
             ri["arrow_from_prev"] = True
         out_items.append(ri)
+    # 画像はカット(セリフ)毎に変わるため、ここでは固定しない（attach時に各topicの画像を載せる）。
     resolved = {"items": out_items, "shrinkAt": round(float(shrink_at), 3)}
-    img = panel.get("image") or image_files.get((ch, panel.get("cut", 0) or 0))
-    if img:
-        resolved["image"] = img
     if panel.get("bg"):
         resolved["bg"] = panel["bg"]
     return resolved

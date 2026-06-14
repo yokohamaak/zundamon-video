@@ -1925,16 +1925,11 @@ function vizContent(box, ch, ci){
   const ncuts=(ch.image_cuts||[]).length;
 
   if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
-    // 画像：縮小画像に使うcutをサムネで選択（既定0）。
-    const ir=vRow('画像'); const cur=(p.cut??0); const pick=document.createElement('div'); pick.className='cutpick';
-    const n=Math.max(ncuts,1);
-    for(let k=0;k<n;k++){ const u=imgUrl(ci,k);
-      const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
-      o.innerHTML=(u?'<img src="'+u+'">':'<span class="ph3">#'+k+'</span>')+'<span class="num">'+k+'</span>';
-      o.onclick=()=>{ p.cut=k; render(); };  // 再描画＝セリフ行の「演出で表示」サムネも更新
-      pick.appendChild(o); }
-    ir.appendChild(pick); box.appendChild(ir);
-    // テキスト領域（右半分）の背景色。クリアで透過（黒板が見える）。
+    // 画像はセリフ毎に変わる（各行のcutで選択）＝ここでは画像を固定しない。
+    const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 4px';
+    note.textContent='画像はセリフ毎に切り替わります（各行のcutで選択）。';
+    box.appendChild(note);
+    // テキスト領域（縮小画像の横）の背景色。クリアで透過（黒板が見える）。
     const br=vRow('文字側の背景'); const cp=document.createElement('input'); cp.type='color'; cp.value=p.bg||'#1a2740';
     cp.oninput=()=>{ p.bg=cp.value; }; br.appendChild(cp);
     br.appendChild(vMini('クリア(透過)',()=>{ delete p.bg; render(); })); box.appendChild(br);
@@ -2173,11 +2168,12 @@ function render(){
         const pick=document.createElement('div'); pick.className='cutpick';
         const roThumb=(k)=>{ const u=imgUrl(ci,k); const o=document.createElement('div'); o.className='copt sel'; o.title='画像'+k;
           o.innerHTML=(u?`<img src="${u}">`:`<span class="ph3">#${k}</span>`)+`<span class="num">${k}</span>`; return o; };
-        if(inViz && (ch.panel||ch.quiz||ch.compare)){
+        // クイズ/比較は固定画像で上書き→範囲内は読み取りサムネ。パネルはセリフ毎に画像が変わる→
+        // 通常のcut選択を残す（stat/注釈も画像に重ねるだけなので選択を残す）。
+        if(inViz && (ch.quiz||ch.compare)){
           pick.classList.add('vizmuted');
           const lab=document.createElement('span'); lab.textContent='演出で表示'; lab.style.marginRight='4px'; pick.appendChild(lab);
-          if(ch.panel) pick.appendChild(roThumb(ch.panel.cut??0));
-          else if(ch.quiz) pick.appendChild(roThumb(0));
+          if(ch.quiz) pick.appendChild(roThumb(0));
           else if(ch.compare){ pick.appendChild(roThumb(ch.compare.left?.cut??0)); pick.appendChild(roThumb(ch.compare.right?.cut??1)); }
         } else {
           const cur=(typeof tn.cut==='number'?tn.cut:0);
