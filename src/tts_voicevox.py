@@ -195,18 +195,24 @@ def revoice_if_all_unvoiced(query, pitch=None, pitch_provider=None, fallback=5.8
     return True
 
 
-def replace_interjection(text, mapping):
-    """文が丸ごと相づち/笑い（mappingのキー）に一致する時だけ別語へ置換（純関数）。
+_INTERJECTION_BOUNDARY = r"。、，,．.！!？?〜～ーｰ…‥・「」『』（）()\s"
 
-    「ふふ」「ええ」等は VOICEVOX が全無声化して囁きになるため、有声で読まれる語に差し替える。
-    文末の記号(。！？〜ー…等)は保持し、核が完全一致した時のみ置換＝文中の語は触らない（誤爆防止）。
+
+def replace_interjection(text, mapping):
+    """相づち/笑い（mappingのキー）を、区切り（文頭/文末・句読点・空白）で挟まれた箇所で置換。
+
+    「ふふ」「ええ」等は VOICEVOX が無声化して囁きになるため有声化する語へ差し替える。
+    「ふふ、〜」「ええ、〜」のような文頭相づちも対象。文中の語（「ええと」）や既に
+    置換済み（「ええっ」）は前後が区切りでないので誤爆しない（純関数）。
     """
     if not mapping or not text:
         return text
-    m = re.match(r"^(.*?)([。、，,．.！!？?〜～ー…・\s]*)$", text)
-    core, tail = m.group(1), m.group(2)
-    if core in mapping:
-        return mapping[core] + tail
+    b = _INTERJECTION_BOUNDARY
+    for key, repl in mapping.items():
+        if not key:
+            continue
+        pat = r"(^|[" + b + r"])" + re.escape(key) + r"(?=[" + b + r"]|$)"
+        text = re.sub(pat, lambda m, r=repl: m.group(1) + r, text)
     return text
 
 

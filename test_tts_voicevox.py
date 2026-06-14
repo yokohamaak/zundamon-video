@@ -343,18 +343,23 @@ def test_generate_audio_end_to_end():
 
 def test_replace_interjection():
     import src.tts_voicevox as tv
-    mp = {"ふふ": "ふふん", "ええ": "へえ"}
-    # 文が丸ごと一致＝置換（文末記号は保持）
-    assert tv.replace_interjection("ふふ", mp) == "ふふん"
-    assert tv.replace_interjection("ふふ。", mp) == "ふふん。"
-    assert tv.replace_interjection("ええ！？", mp) == "へえ！？"
-    # 文中・別語は触らない（誤爆防止）
-    assert tv.replace_interjection("ふふ、面白い", mp) == "ふふ、面白い"
+    mp = {"ふふ": "ふふっ", "ふふふ": "ふふふっ", "ええ": "ええっ"}
+    # 文頭の相づち（「ふふ、〜」「ええ、〜」）＝実際の台本の形を置換
+    assert tv.replace_interjection("ふふ、実は違うのよ。", mp) == "ふふっ、実は違うのよ。"
+    assert tv.replace_interjection("ええ、作品をクリック。", mp) == "ええっ、作品をクリック。"
+    # 単独・文末記号も対象
+    assert tv.replace_interjection("ふふ", mp) == "ふふっ"
+    assert tv.replace_interjection("ふふ。", mp) == "ふふっ。"
+    assert tv.replace_interjection("ええ！？", mp) == "ええっ！？"
+    # より長い一致を尊重（ふふふ→ふふふっ。ふふが先食いしない）
+    assert tv.replace_interjection("ふふふ、なるほど。", mp) == "ふふふっ、なるほど。"
+    # 誤爆しない：文中の語・既に置換済み
     assert tv.replace_interjection("ええと、それは", mp) == "ええと、それは"
+    assert tv.replace_interjection("ええっ！？", mp) == "ええっ！？"
     assert tv.replace_interjection("そうね", mp) == "そうね"
     # マップ空なら不変
     assert tv.replace_interjection("ふふ", {}) == "ふふ"
-    print("  replace_interjection: 丸ごと一致のみ置換・文中は不変 OK")
+    print("  replace_interjection: 文頭/単独の相づちを置換・文中/置換済みは不変 OK")
 
 
 def test_revoice_if_all_unvoiced():
