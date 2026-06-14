@@ -86,30 +86,34 @@ fi
 
 # 引数なし → 番号メニュー
 echo "=== 制作メニュー ==="
-echo " 1) script    本編 台本+画像生成"
-echo " 2) review    レビュー画面"
-echo " 3) audio     本編 音声+meta"
-echo " 4) dev       Studioでプレビュー(HMR)"
-echo " 5) render    本編 書き出し"
-echo " 6) build     本編 音声+meta+書き出し"
-echo " 7) shorts    ショート一括生成"
-echo " 8) s-audio   ショート 音声+meta"
-echo " 9) depth     ショート 深度"
-echo "10) s-render  ショート 書き出し"
-echo "11) s-build   ショート 音声+meta+深度+書き出し"
-echo " 0) help"
+echo "[本編]"
+echo "  1) script    台本+画像生成 → レビュー待ち"
+echo "  2) review    レビュー画面"
+echo "  3) audio     音声+meta（セリフを変えた時）"
+echo "  4) meta      metaだけ再生成（画像/見出しだけ直した時・音声据置）"
+echo "  5) dev       Studioでプレビュー(HMR)"
+echo "  6) render    書き出し"
+echo "  7) build     音声+meta+書き出し（本番出力）"
+echo "[ショート]"
+echo "  8) shorts    一括生成"
+echo "  9) s-audio   音声+meta"
+echo " 10) depth     深度（パララックス）"
+echo " 11) s-render  書き出し"
+echo " 12) s-build   音声+meta+深度+書き出し"
+echo "  0) help"
 read -rp "番号: " n
 case "$n" in
   1) cmd_script ;;
   2) cmd_review ;;
   3) cmd_audio ;;
-  4) cmd_dev ;;
-  5) cmd_render ;;
-  6) cmd_build ;;
-  7) cmd_shorts "" ;;
-  8) read -rp "slug: " s; cmd_s_audio "$s" ;;
-  9) read -rp "slug: " s; cmd_depth "$s" ;;
-  10) read -rp "slug: " s; cmd_s_render "$s" ;;
-  11) read -rp "slug: " s; cmd_s_build "$s" ;;
+  4) cmd_meta ;;
+  5) cmd_dev ;;
+  6) cmd_render ;;
+  7) cmd_build ;;
+  8) cmd_shorts "" ;;
+  9) read -rp "slug: " s; cmd_s_audio "$s" ;;
+  10) read -rp "slug: " s; cmd_depth "$s" ;;
+  11) read -rp "slug: " s; cmd_s_render "$s" ;;
+  12) read -rp "slug: " s; cmd_s_build "$s" ;;
   0|*) cmd_help ;;
 esac
