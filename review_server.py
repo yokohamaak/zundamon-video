@@ -1517,6 +1517,7 @@ STORY_PAGE = """<!doctype html>
   .vizhdr { display:flex; align-items:center; gap:8px; margin:8px 0 0; padding:5px 12px;
             border-left:5px solid #7a5cff; background:rgba(122,92,255,0.12); border-radius:0 6px 6px 0; }
   .vizhdr-t { font-size:13px; font-weight:800; color:#c4a8ff; }
+  .cutpick.vizmuted { color:var(--sub); font-size:11px; font-style:italic; align-items:center; }
 </style></head>
 <body>
 <header>
@@ -2167,16 +2168,22 @@ function render(){
         const sp=document.createElement('div'); sp.className='sp'; sp.style.color=col;
         sp.innerHTML=`<span class="dot" style="background:${col}"></span>${tn.speaker}`;
         const ta=document.createElement('textarea'); ta.value=tn.text; ta.oninput=()=>{tn.text=ta.value; autosize(ta); refreshEst();};
-        // cut選択＝サムネをクリックして選ぶ（どの画像が出るか一目で分かる）
-        const pick=document.createElement('div'); pick.className='cutpick';
-        const cur=(typeof tn.cut==='number'?tn.cut:0);
-        (cuts.length?cuts:[{}]).forEach((c,k)=>{
-          const u=imgUrl(ci,k);
-          const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
-          o.innerHTML=(u?`<img src="${u}">`:`<span class="ph3">#${k} 未取得</span>`)+`<span class="num">${k}</span>`;
-          o.onclick=()=>{ tn.cut=k; pick.querySelectorAll('.copt').forEach((e,j)=>e.classList.toggle('sel',j===k)); };
-          pick.appendChild(o);
-        });
+        // cut選択＝サムネをクリックして選ぶ。ただし演出範囲内は演出が画像を上書きするので非表示。
+        let pick;
+        if(inViz){
+          pick=document.createElement('div'); pick.className='cutpick vizmuted';
+          pick.textContent='演出で表示（画像は演出側で選択）';
+        } else {
+          pick=document.createElement('div'); pick.className='cutpick';
+          const cur=(typeof tn.cut==='number'?tn.cut:0);
+          (cuts.length?cuts:[{}]).forEach((c,k)=>{
+            const u=imgUrl(ci,k);
+            const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
+            o.innerHTML=(u?`<img src="${u}">`:`<span class="ph3">#${k} 未取得</span>`)+`<span class="num">${k}</span>`;
+            o.onclick=()=>{ tn.cut=k; pick.querySelectorAll('.copt').forEach((e,j)=>e.classList.toggle('sel',j===k)); };
+            pick.appendChild(o);
+          });
+        }
         const acts=document.createElement('div'); acts.className='acts';
         const bs=document.createElement('button'); bs.textContent='分割'; bs.onclick=()=>splitTurn(tn,ta);
         const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除'; bd.onclick=()=>delTurn(tn);
