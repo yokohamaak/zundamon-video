@@ -492,6 +492,16 @@ def test_confidence_owner_comment():
     print("  confidence/source_hint/owner_comment: 指示と保持 OK")
 
 
+def test_build_prompt_panel_guidance():
+    # 台本生成プロンプトに解説パネルの指示（使いどころ・フィールド・例）が入る。
+    p = s.build_prompt({"story": {"theme": "T", "topics": 6,
+                                  "questioner": "ずんだもん", "explainer": "四国めたん"}})
+    for kw in ["## 解説パネル", "panel_event", "panel_item", "arrow_from_prev",
+               "1〜2ネタだけ", "体言止め"]:
+        assert kw in p, f"panel指示に {kw} が入る"
+    print("  build_prompt: 解説パネルの指示 OK")
+
+
 def test_panel_fields_preserved():
     # 章の panel と、発言の panel_event/panel_item がパース/正規化を生き残る。
     data = s.parse_script_json(
@@ -548,5 +558,6 @@ if __name__ == "__main__":
     test_regenerate_uses_also_avoid()
     test_splice_regenerated()
     test_confidence_owner_comment()
+    test_build_prompt_panel_guidance()
     test_panel_fields_preserved()
     print("ALL PASS")

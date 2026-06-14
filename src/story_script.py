@@ -94,6 +94,9 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
    既定は全部1.0（pitchは0.0）。範囲 speed/intonation/volume=0.5〜2.0、pitch=-0.15〜0.15。**多用しない**。
    例: 驚き=intonation 1.4・volume 1.2 / 焦り=speed 1.3 / しみじみ=speed 0.9・intonation 0.8。
 7. "pause"（任意・間）: その台詞の**後に置く無音秒**（0〜2）。「実は…」のタメや、オチ前の溜めに少しだけ。**多用しない**。
+8. "panel_event" / "panel_item"（任意・解説パネル操作）: その章に panel を置いた場合だけ使う（「## 解説パネル」参照）。
+   - "panel_event": "shrink" … この発言で画像を縮小しテキスト領域を開く。要点の説明に入る発言（多くは{explainer}の「実は」の発言）に**1つだけ**。
+   - "panel_item": n（整数・0始まり）… この発言で panel.items の n 番目を画面に出す。説明が各要点に触れる発言に順に付ける（0,1,2…）。
 
 ※ 運営者コメント枠（「## 運営者コメント枠」参照）のプレースホルダ発言にも他の発言と同じフィールドを付ける（emotion=normal・effect=kenburns・cut はその時点の番号でよい）。**枠の中身は代筆しない＝体言止めの切り口ヒントのみ**。
 
@@ -110,6 +113,8 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
 - "confidence": （trivia章のみ）"high"（公式発表・一次資料がある）/ "medium"（広く語られるが要確認）/ "low"（諸説・逸話レベル）。「## 事実の確度」の基準に従う。
 - "source_hint": （trivia章のみ）裏取りの手がかり（公式発表・開発者の発言・出典になりそうな年や媒体名など）。
 - "owner_comment": （trivia章のみ・任意）その章に運営者コメント枠を置いた場合だけ true。置かない章は省略する。
+- "panel": （trivia章のみ・任意）解説パネルを置く章だけ。{{"items": [{{"text": "短い要点", "arrow_from_prev": true}}, ...]}}。
+  詳細と使いどころは「## 解説パネル」を参照。置かない章は省略する。
 - "image_cuts": その章で**順に映す画像を 2〜4個**。ネタの対象物が変わるよう別々の被写体にする。
   各要素に:
   - "image_kind": "subject"（実在の人物・製品・ロゴ・記号など特定物。例 "Bluetooth logo", "Larry Tesler"）
@@ -268,6 +273,21 @@ AIだけで完結した台本は「量産型」と判定され、収益化の対
 - **"low" のネタは原則採用しない。** 不正確さは信頼を一発で壊す。確証が持てないネタは別の確実なネタに差し替える。
 - **"medium" のネタは、セリフ側でも『〜と言われているわ』『諸説あるけれど』と断定を避ける。**
 - 年号・前後関係・固有名詞・金額が曖昧なときは、盛らずに断定を避け、confidence を下げる。
+
+## 解説パネル（画面の動きを作る・任意）
+画像を縮小して空いた所に要点テキストを順に積む「ゆっくり解説」の定番レイアウト。単調なズームだけの画面に変化を付ける。
+- **使うのは {topics}ネタのうち 1〜2ネタだけ**。**全ネタに付けない**（毎回同じ動きは逆に飽きる）。
+- **向いているネタ**：要点が「流れ・手順・段階・対比・数字の積み上げ」で表せるもの
+  （例：原因→結果、A→B→C の変遷、数字が積み上がる話）。1つの意外な事実を述べるだけのネタには付けない。
+- 付け方は次の3点をセットで：
+  1. その trivia 章のメタに "panel" を置く。"items" は**画面に出す短い要点を2〜4個**。各 text は**体言止め10字以内**
+     （セリフの要約＝画面ラベル。長い文を入れない）。流れを示すなら2個目以降に "arrow_from_prev": true。
+  2. 説明に入る発言（多くは{explainer}の「実は」の発言）に "panel_event": "shrink" を**1つだけ**付ける。
+  3. 各要点に触れる発言に "panel_item": 0,1,2… を順に付ける（items の番号と対応）。**items の個数と panel_item の最大値を一致**させる。
+- セリフは普通に書く（パネルはセリフの内容を視覚化するだけ）。panel を置かない章はこれまで通り画像だけでよい。
+- 形の例（この章だけ panel を持つ。他の章には付けない）：
+  章メタ側: {{"section": "trivia", "title": "...", "panel": {{"items": [{{"text": "全コードを保存"}}, {{"text": "北極の炭鉱に埋める", "arrow_from_prev": true}}, {{"text": "1000年保つ", "arrow_from_prev": true}}]}}, "image_cuts": [ ... ]}}
+  発言側: 説明開始の発言に "panel_event": "shrink" と "panel_item": 0、続く要点の発言に "panel_item": 1、その次に "panel_item": 2 を付ける。
 
 {_rules_block(questioner, explainer, topics)}
 
