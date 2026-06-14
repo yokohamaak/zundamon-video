@@ -1917,6 +1917,8 @@ function turnVizControl(tn, gi, ch, ci){
 }
 // 演出の中身エディタ（章単位の内容）。セリフ行の下にインライン展開する。
 // 背景色＋不透明度の編集行（panel/quiz共用）。bgOpacity<1で裏(黒板/元画像)が透ける。
+// 暗幕は bg(色)が指定された時だけ描画される。色未指定で透明度だけ動かしても効かないため、
+// スライダー操作時は色が無ければ既定色を補う（＝透明度＝暗幕の濃さとして直感的に効く）。
 function vBgRow(obj, label, defColor){
   const br=vRow(label);
   const cp=document.createElement('input'); cp.type='color'; cp.value=obj.bg||defColor; cp.title='背景色';
@@ -1927,7 +1929,7 @@ function vBgRow(obj, label, defColor){
   const ov=document.createElement('span'); ov.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
   const showOv=()=>{ ov.textContent=Math.round((obj.bgOpacity!=null?obj.bgOpacity:1)*100)+'%'; };
   showOv();
-  op.oninput=()=>{ obj.bgOpacity=parseFloat(op.value); showOv(); };
+  op.oninput=()=>{ obj.bgOpacity=parseFloat(op.value); if(obj.bg==null){ obj.bg=cp.value||defColor; } showOv(); };
   br.appendChild(document.createTextNode(' 透過')); br.appendChild(op); br.appendChild(ov);
   br.appendChild(vMini('クリア',()=>{ delete obj.bg; delete obj.bgOpacity; render(); }));
   return br;
