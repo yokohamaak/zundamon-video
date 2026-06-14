@@ -294,6 +294,8 @@ AIだけで完結した台本は「量産型」と判定され、収益化の対
   3. **compare（2分割で対比）**：A対B・before/after・対比で見せると分かるネタ。
      章メタに "compare": {{"left": {{"label": "ラベルA", "cut": 0}}, "right": {{"label": "ラベルB", "cut": 1}}}}。
      cut は image_cuts の番号（左右で別々の画像）。**この章は image_cuts を2個以上**にする。
+     発言側で分割タイミングを指定できる: セリフが**片方ずつ順に紹介する流れ**なら、左を見せ始める発言に "compare_item": 0、
+     右を見せ始める（＝画面が分割する）発言に "compare_item": 1。**最初から両方**見せるなら compare_item は付けない。
   4. **stat（数字を大きく）**：インパクトのある数字が核のネタ（割合・倍率・件数など）。
      章メタに "stat": {{"value": "8", "unit": "分の1", "label": "故障率"}}。value が整数だけならカウントアップ表示になる。
      発言側: その数字を言う発言に "reveal": true。
@@ -701,7 +703,7 @@ def _normalize_panel_fields(turn):
     """
     if turn.get("panel_event") != "shrink":
         turn.pop("panel_event", None)
-    for key in ("panel_item", "callout_item"):
+    for key in ("panel_item", "callout_item", "compare_item"):
         if key in turn:
             v = turn[key]
             if isinstance(v, bool):

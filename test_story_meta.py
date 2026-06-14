@@ -354,11 +354,33 @@ def test_build_chapter_topics_viz():
     assert q["revealAt"] == 2.0 and q["image"] == "q.jpg", q
     cmp = grab(1, "compare")
     assert cmp["left"]["image"] == "l.jpg" and cmp["right"]["image"] == "r.jpg"
+    # compare_item 指定なし → 最初から2分割（at0==at1==章頭）
+    assert cmp["at0"] == cmp["at1"], cmp
     st = grab(2, "stat")
     assert st["showAt"] == 6.0 and st["countTo"] == 500000, st
     co = grab(3, "callouts")
     assert [c["at"] for c in co] == [8.0, 10.0], co
     print("  build_chapter_topics: quiz/compare/stat/callouts 解決 OK")
+
+
+def test_build_chapter_topics_compare_split_timing():
+    # compare_item 0/1 で左右の出現（分割）時刻を制御できる。
+    chapters = [{"section": "trivia", "title": "C", "image_cuts": [
+        {"image_query": "a", "image_kind": "ambient"}, {"image_query": "b", "image_kind": "ambient"}],
+        "compare": {"left": {"label": "俗説", "cut": 0}, "right": {"label": "事実", "cut": 1}}}]
+    # ターン0で左、ターン2で右（分割）
+    script = [
+        {"chapter": 0, "compare_item": 0},
+        {"chapter": 0},
+        {"chapter": 0, "compare_item": 1},
+    ]
+    timing = _turns(3)  # 2.0秒/ターン
+    turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
+    segs = story_script.assign_sections_to_turns(script)
+    topics = m.build_chapter_topics(segs, turns, chapters, image_files={(0, 0): "l.jpg", (0, 1): "r.jpg"})
+    cmp = next(t["compare"] for t in topics if "compare" in t)
+    assert cmp["at0"] == 0.0 and cmp["at1"] == 4.0, cmp  # 左=章頭, 右=ターン2のstart
+    print("  build_chapter_topics: compare 分割タイミング制御 OK")
 
 
 def test_build_chapter_topics_viz_reveal_fallback():
@@ -388,6 +410,7 @@ if __name__ == "__main__":
     test_build_chapter_topics_panel()
     test_build_chapter_topics_panel_fallback()
     test_build_chapter_topics_viz()
+    test_build_chapter_topics_compare_split_timing()
     test_build_chapter_topics_viz_reveal_fallback()
     test_build_credits()
     test_build_meta()

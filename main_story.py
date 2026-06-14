@@ -255,10 +255,26 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
             if img:
                 r["image"] = img
             return r
+        # 出現時刻: compare_item==0→左(at0) / ==1→右(at1)。
+        # at0未指定は章頭、at1未指定は at0 と同時（＝最初から2分割）。
+        at0 = at1 = None
+        for j in idxs:
+            ci = turns[j].get("compare_item")
+            if not isinstance(ci, int) or isinstance(ci, bool):
+                continue
+            if ci == 0 and at0 is None:
+                at0 = float(turns[j].get("start", seg_start))
+            elif ci == 1 and at1 is None:
+                at1 = float(turns[j].get("start", seg_start))
+        if at0 is None:
+            at0 = float(seg_start)
+        if at1 is None:
+            at1 = at0
         out["compare"] = {
             "left": side(compare["left"]),
             "right": side(compare["right"]),
-            "showAt": round(float(seg_start), 3),
+            "at0": round(at0, 3),
+            "at1": round(at1, 3),
         }
     stat = meta_ch.get("stat")
     if stat:

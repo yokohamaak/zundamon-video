@@ -50,8 +50,10 @@ export type Turn = {
   // 画像演出のタイミング合図（任意）。build_chapter_topics が時刻解決に使う（描画では未使用）。
   // reveal=この発言で「実は」の答え/数字を出す（quiz/stat の出現時刻）。
   // callout_item=この発言で callouts[n] を出す。
+  // compare_item=この発言で比較の n 番目(0=左/1=右)を出す（右で分割）。
   reveal?: boolean;
   callout_item?: number;
+  compare_item?: number;
 };
 
 // クイズ・リビール：「？」で溜めて答えを出す（掛け合いの問い→外し→実はと相性◎）。
@@ -67,7 +69,11 @@ export type CompareSide = { label: string; image?: string };
 export type Compare = {
   left: CompareSide;
   right: CompareSide;
-  showAt?: number;        // 出現する絶対時刻（秒）。無指定は章頭。
+  showAt?: number;        // 後方互換（旧データ）。新規は at0/at1 を使う。
+  // 出現の絶対時刻（秒）。build が発言の compare_item から解決。
+  // at0=左が出る / at1=右が出る＝分割する。at0==at1 なら最初から2分割。
+  at0?: number;
+  at1?: number;
 };
 
 // 数字強調：大きな数字＋単位を画像に重ねる。インパクト重視の瞬間に。

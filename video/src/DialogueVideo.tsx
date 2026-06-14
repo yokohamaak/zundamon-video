@@ -496,29 +496,46 @@ const QuizVisual: React.FC<{
   );
 };
 
-// 比較（2分割）：横=左右 / 縦=上下。各サイドに画像＋ラベル。2つ目は少し遅れて出る。
+// 比較（2分割）：横=左右 / 縦=上下。セリフに合わせて分割タイミングを制御する。
+// at0=左が出る（無指定は章頭）/ at1=右が出る＝分割する（at0と同じなら最初から2分割）。
+// at0<at1 のときは「左が1枚フル表示 → at1で左が縮み右がスライドイン」になる。
 const CompareVisual: React.FC<{
   compare: Compare;
   t: number;
   portrait: boolean;
 }> = ({ compare, t, portrait }) => {
-  const showAt = compare.showAt ?? 0;
-  const a = interpolate(t, [showAt, showAt + 0.4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const b = interpolate(t, [showAt + 0.25, showAt + 0.65], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const side = (s: CompareSide, appear: number, key: string) => (
-    <div key={key} style={{ position: "relative", flex: 1, overflow: "hidden", borderRadius: 10, opacity: appear, transform: `scale(${(0.96 + 0.04 * appear).toFixed(3)})` }}>
+  const at0 = compare.at0 ?? compare.showAt ?? 0;
+  const at1 = compare.at1 ?? at0;
+  const lAppear = interpolate(t, [at0, at0 + 0.4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const split = interpolate(t, [at1, at1 + 0.45], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }); // 0=左フル / 1=2分割
+  const firstPct = (100 - 50 * split).toFixed(2); // 1つ目が占める割合：100→50
+  const secondPct = (50 * split).toFixed(2);      // 2つ目：0→50
+  const inner = (s: CompareSide) => (
+    <>
       {s.image ? (
         <Img src={staticFile(s.image)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
         <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #324a5f 0%, #25323f 100%)" }} />
       )}
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "rgba(20,26,38,0.82)", color: "#fff", fontWeight: 800, fontSize: portrait ? 34 : 40, textAlign: "center", padding: portrait ? "8px 6px" : "10px 8px" }}>{s.label}</div>
-    </div>
+    </>
   );
+  // 1つ目=左(横)/上(縦)。フル幅から半分へ縮む。2つ目=右/下。0から半分へ広がる。
+  const firstStyle: React.CSSProperties = portrait
+    ? { position: "absolute", left: 0, right: 0, top: 0, height: `${firstPct}%`, overflow: "hidden", opacity: lAppear }
+    : { position: "absolute", top: 0, bottom: 0, left: 0, width: `${firstPct}%`, overflow: "hidden", opacity: lAppear };
+  const secondStyle: React.CSSProperties = portrait
+    ? { position: "absolute", left: 0, right: 0, bottom: 0, height: `${secondPct}%`, overflow: "hidden", opacity: split }
+    : { position: "absolute", top: 0, bottom: 0, right: 0, width: `${secondPct}%`, overflow: "hidden", opacity: split };
+  // 分割線（境目）。split で現れる。
+  const dividerStyle: React.CSSProperties = portrait
+    ? { position: "absolute", left: 0, right: 0, top: `${firstPct}%`, height: 3, transform: "translateY(-1.5px)", background: "rgba(255,255,255,0.85)", opacity: split }
+    : { position: "absolute", top: 0, bottom: 0, left: `${firstPct}%`, width: 3, transform: "translateX(-1.5px)", background: "rgba(255,255,255,0.85)", opacity: split };
   return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: portrait ? "column" : "row", gap: portrait ? 8 : 10 }}>
-      {side(compare.left, a, "l")}
-      {side(compare.right, b, "r")}
+    <div style={{ position: "absolute", inset: 0 }}>
+      <div style={firstStyle}>{inner(compare.left)}</div>
+      <div style={secondStyle}>{inner(compare.right)}</div>
+      <div style={dividerStyle} />
     </div>
   );
 };
