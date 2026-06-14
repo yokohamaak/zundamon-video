@@ -2168,13 +2168,18 @@ function render(){
         const sp=document.createElement('div'); sp.className='sp'; sp.style.color=col;
         sp.innerHTML=`<span class="dot" style="background:${col}"></span>${tn.speaker}`;
         const ta=document.createElement('textarea'); ta.value=tn.text; ta.oninput=()=>{tn.text=ta.value; autosize(ta); refreshEst();};
-        // cut選択＝サムネをクリックして選ぶ。ただし演出範囲内は演出が画像を上書きするので非表示。
-        let pick;
-        if(inViz){
-          pick=document.createElement('div'); pick.className='cutpick vizmuted';
-          pick.textContent='演出で表示（画像は演出側で選択）';
+        // cut選択＝サムネをクリックして選ぶ。パネル/クイズ/比較は画像を上書きするので、範囲内では
+        // 選択を畳み「演出で表示」＋演出が使う画像サムネを出す（stat/注釈は画像に重ねるだけ＝選択は残す）。
+        const pick=document.createElement('div'); pick.className='cutpick';
+        const roThumb=(k)=>{ const u=imgUrl(ci,k); const o=document.createElement('div'); o.className='copt sel'; o.title='画像'+k;
+          o.innerHTML=(u?`<img src="${u}">`:`<span class="ph3">#${k}</span>`)+`<span class="num">${k}</span>`; return o; };
+        if(inViz && (ch.panel||ch.quiz||ch.compare)){
+          pick.classList.add('vizmuted');
+          const lab=document.createElement('span'); lab.textContent='演出で表示'; lab.style.marginRight='4px'; pick.appendChild(lab);
+          if(ch.panel) pick.appendChild(roThumb(ch.panel.cut??0));
+          else if(ch.quiz) pick.appendChild(roThumb(0));
+          else if(ch.compare){ pick.appendChild(roThumb(ch.compare.left?.cut??0)); pick.appendChild(roThumb(ch.compare.right?.cut??1)); }
         } else {
-          pick=document.createElement('div'); pick.className='cutpick';
           const cur=(typeof tn.cut==='number'?tn.cut:0);
           (cuts.length?cuts:[{}]).forEach((c,k)=>{
             const u=imgUrl(ci,k);
