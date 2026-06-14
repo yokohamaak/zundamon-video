@@ -166,12 +166,15 @@ def audio_query(base_url, text, speaker, timeout=60):
     return json.loads(raw)
 
 
-def revoice_if_all_unvoiced(query, default_pitch=5.6):
-    """全母音が無声化されている query を有声化する（純関数・in-place）。
+def revoice_if_all_unvoiced(query, pitch=None, pitch_provider=None, fallback=5.8):
+    """全母音が無声化されている query を有声化する（in-place）。
 
     「ええ」「ふふ」等の短い相づち/笑いは VOICEVOX が全モーラを無声化(pitch=0)し、
-    囁き声になってしまう。utterance 全体が無声のときだけ既定ピッチを与えて有声に戻す。
+    囁き声になってしまう。utterance 全体が無声のときだけ有声ピッチを与えて戻す。
     通常の文は有声モーラを含むので対象外＝自然な無声化（「です」等）はそのまま保つ。
+
+    pitch=固定値 / pitch_provider=遅延取得の関数（全無声と判明した時だけ呼ぶ＝
+    話者の自然な高さを実測する用。通常発話では呼ばれず無駄な問い合わせをしない）。
     Returns: 有声化した場合 True。
     """
     moras = []
@@ -182,12 +185,34 @@ def revoice_if_all_unvoiced(query, default_pitch=5.6):
         return False
     if any((m.get("pitch") or 0) > 0 for m in vowels):
         return False  # 有声モーラがある＝通常発話。無声化は自然なので触らない
+    if pitch is None:
+        pitch = pitch_provider() if pitch_provider else fallback
     for m in vowels:
-        m["pitch"] = default_pitch
+        m["pitch"] = pitch
         v = m.get("vowel")
         if isinstance(v, str):  # 無声母音は大文字表記の場合がある→小文字へ戻し有声扱いに
             m["vowel"] = v.lower()
     return True
+
+
+def _reference_pitch(base_url, speaker, cache, fallback=5.8):
+    """話者の自然な声の高さ（有声モーラの平均 pitch）を1度だけ実測しキャッシュ。
+
+    全無声の相づちを有声化する基準に使う＝話者ごとに自動で高さが合う（固定値の推測を避ける）。
+    """
+    if speaker in cache:
+        return cache[speaker]
+    val = fallback
+    try:
+        q = audio_query(base_url, "アー", speaker)  # 確実に有声な参照音
+        ps = [m["pitch"] for ap in q.get("accent_phrases", [])
+              for m in (ap.get("moras") or []) if (m.get("pitch") or 0) > 0]
+        if ps:
+            val = sum(ps) / len(ps)
+    except Exception:  # noqa: BLE001 - 取得失敗時は fallback
+        pass
+    cache[speaker] = val
+    return val
 
 
 def synthesis(base_url, query, speaker, timeout=120):
@@ -366,6 +391,7 @@ def synthesize_dialogue(script, config):
     turns_out = []
     current = lead_in   # 先頭リードイン分だけ全発話を後ろへずらす
     ref_params = None
+    ref_pitch_cache = {}  # 話者→自然な声の高さ（全無声の相づちを有声化する基準・実測キャッシュ）
 
     chorus_names = list(speakers_map.keys())  # ユニゾン時に声を重ねる話者（設定の全キャラ）
 
@@ -402,7 +428,9 @@ def synthesize_dialogue(script, config):
                 outs = []
                 for sid, vparams in voices:
                     query = audio_query(base_url, spoken, sid)
-                    revoice_if_all_unvoiced(query)  # 「ええ」「ふふ」等が全無声＝囁きになるのを防ぐ
+                    # 「ええ」「ふふ」等が全無声＝囁きになるのを防ぐ。基準は話者の実測高さ（全無声時のみ取得）。
+                    revoice_if_all_unvoiced(
+                        query, pitch_provider=lambda: _reference_pitch(base_url, sid, ref_pitch_cache))
                     query["speedScale"] = vparams["speed"]
                     query["pitchScale"] = vparams["pitch"]
                     query["intonationScale"] = vparams["intonation"]
