@@ -2190,13 +2190,13 @@ function render(){
         const pick=document.createElement('div'); pick.className='cutpick';
         const roThumb=(k)=>{ const u=imgUrl(ci,k); const o=document.createElement('div'); o.className='copt sel'; o.title='画像'+k;
           o.innerHTML=(u?`<img src="${u}">`:`<span class="ph3">#${k}</span>`)+`<span class="num">${k}</span>`; return o; };
-        // クイズ/比較は固定画像で上書き→範囲内は読み取りサムネ。パネルはセリフ毎に画像が変わる→
-        // 通常のcut選択を残す（stat/注釈も画像に重ねるだけなので選択を残す）。
-        if(inViz && (ch.quiz||ch.compare)){
+        // 比較は左右固定画像で上書き→範囲内は読み取りサムネ。クイズは画像を通常扱い（背後に
+        // そのまま表示）＝セリフ毎にcut選択を残す。パネルもセリフ毎に画像が変わる→選択を残す
+        // （stat/注釈も画像に重ねるだけなので選択を残す）。
+        if(inViz && ch.compare){
           pick.classList.add('vizmuted');
           const lab=document.createElement('span'); lab.textContent='演出で表示'; lab.style.marginRight='4px'; pick.appendChild(lab);
-          if(ch.quiz) pick.appendChild(roThumb(0));
-          else if(ch.compare){ pick.appendChild(roThumb(ch.compare.left?.cut??0)); pick.appendChild(roThumb(ch.compare.right?.cut??1)); }
+          pick.appendChild(roThumb(ch.compare.left?.cut??0)); pick.appendChild(roThumb(ch.compare.right?.cut??1));
         } else {
           const cur=(typeof tn.cut==='number'?tn.cut:0);
           (cuts.length?cuts:[{}]).forEach((c,k)=>{
