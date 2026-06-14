@@ -1965,11 +1965,11 @@ function vizContent(box, ch, ci){
   else if(ch.quiz){ const q=ch.quiz;
     const r1=vRow('問い'); r1.appendChild(vText(q.question,'画面に出す問い',v=>q.question=v)); box.appendChild(r1);
     const r2=vRow('答え'); r2.appendChild(vText(q.answer,'リビールで出す答え',v=>q.answer=v)); box.appendChild(r2);
-    // 背景色＋不透明度。透過を下げると裏の黒板が透け、章頭の切替で元画像が一瞬覗いても馴染む。
-    box.appendChild(vBgRow(q,'背景','#1a2333'));
+    // 既定は背景なし＝背後の通常画像/黒板がそのまま見える。見にくい時だけ任意で暗幕を敷く。
     const nt=document.createElement('div'); nt.style.cssText='font-size:11px;color:var(--sub);margin:2px 0';
-    nt.textContent='透過を下げると裏の黒板が透ける（章頭の元画像チラ見え対策）。';
+    nt.textContent='背景は通常画像（あればそのまま）／無ければ黒板。背後が見にくい時だけ下で暗幕を指定。';
     box.appendChild(nt);
+    box.appendChild(vBgRow(q,'暗幕(任意)','#1a2333'));
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // 画像はサムネで選ぶ（台本のcut選択と統一）。

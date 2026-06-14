@@ -279,12 +279,10 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
     out = {}
     quiz = meta_ch.get("quiz")
     if quiz:
+        # クイズは画像を使わない演出＝背後の通常画像/黒板をそのまま見せる。
+        # 専用画像(quiz.image)は割り当てない（手書きで明示指定された分だけ後方互換で残る）。
         q = dict(quiz)
         q["revealAt"] = _reveal_time(idxs, turns, seg_start, seg_end)
-        if not q.get("image"):
-            img = image_files.get((ch, 0))
-            if img:
-                q["image"] = img
         out["quiz"] = q
     compare = meta_ch.get("compare")
     if compare:

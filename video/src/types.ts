@@ -60,10 +60,12 @@ export type Turn = {
 export type Quiz = {
   question: string;       // 溜めの間に出す問い（短く）
   answer: string;         // リビールで出す答え（短く）
-  image?: string;         // 答え提示時に出す画像（public/相対・無ければ無し）
+  // 画像を使わない演出＝背後の通常画像(あればそのまま)/黒板の上に「？・問い・答え」を重ねる。
+  // image は基本未使用（手書きで明示指定された旧データのみ後方互換で残置・現状の描画では参照しない）。
+  image?: string;
   revealAt?: number;      // 答えを出す絶対時刻（秒）。build が reveal発言/zoom_punch/章中盤から解決。
-  // 背景色＋不透明度（任意）。無指定なら既定の濃紺グラデ（不透明）。
-  // bgOpacity<1 にすると裏の黒板が透ける＝章頭の切替で元画像が一瞬覗いても馴染む。
+  // 任意の暗幕（色＋不透明度）。無指定なら背景なし＝背後の画像/黒板がそのまま見える。
+  // 背後が見にくい時だけ指定する（bgOpacity<1 で透ける）。
   bg?: string;            // CSS color（例 "#1a2333"）
   bgOpacity?: number;     // 0..1（既定 1）
 };

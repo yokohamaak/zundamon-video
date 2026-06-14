@@ -478,23 +478,17 @@ const QuizVisual: React.FC<{
     extrapolateRight: "clamp",
   });
   const barPad = portrait ? "10px 18px" : "12px 26px";
-  // 背景は別レイヤーに分離（テキスト/答えは不透明のまま、背景だけ透ける）。
-  // bg 指定が無ければ既定の濃紺グラデ。bgOpacity<1 で裏の黒板が透ける。
-  const bgFill = quiz.bg || "linear-gradient(135deg, #243049 0%, #1a2333 100%)";
-  const bgOpacity = quiz.bgOpacity ?? 1;
+  // クイズは画像を使わない演出＝背後の通常画像/黒板をそのまま見せ、その上に重ねる。
+  // 既定は背景なし（透明）。bg を指定した時だけ任意の暗幕（色＋不透明度）を敷く。
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      {/* 背景レイヤー（色＋不透明度） */}
-      <div style={{ position: "absolute", inset: 0, background: bgFill, opacity: bgOpacity }} />
-      {/* 画像：答えと同時に全面クリア表示（中央が主役・上下のバーはこの上に重なる）。 */}
-      {quiz.image ? (
-        <Img
-          src={staticFile(quiz.image)}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: rev }}
-        />
+      {/* 任意の暗幕（bg 指定時のみ）。無指定なら背後の画像/黒板がそのまま見える。 */}
+      {quiz.bg ? (
+        <div style={{ position: "absolute", inset: 0, background: quiz.bg, opacity: quiz.bgOpacity ?? 1 }} />
       ) : null}
 
-      {/* リビール前：？＋問題を中央に大きく（画像があれば暗幕で可読性確保）。答えと入れ替わりで消える。 */}
+      {/* リビール前：？＋問題を中央に。背後が写真でも黒板でも読めるよう半透明の角丸パネルに収める
+          （全面暗幕にせず背後画像を活かす）。答えと入れ替わりで消える。 */}
       <div
         style={{
           position: "absolute",
@@ -503,13 +497,25 @@ const QuizVisual: React.FC<{
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: 14,
+          padding: "0 40px",
           opacity: 1 - rev,
-          background: quiz.image ? "rgba(15,20,30,0.55)" : "transparent",
         }}
       >
-        <div style={{ fontSize: portrait ? 140 : 200, fontWeight: 900, color: "#ffd84d", lineHeight: 1, textShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>？</div>
-        <div style={{ fontSize: portrait ? 44 : 56, fontWeight: 800, color: "#fff", textAlign: "center", padding: "0 40px", textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>{quiz.question}</div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: portrait ? 10 : 16,
+            background: "rgba(15,20,30,0.62)",
+            borderRadius: 24,
+            padding: portrait ? "24px 32px" : "30px 52px",
+            maxWidth: "92%",
+          }}
+        >
+          <div style={{ fontSize: portrait ? 130 : 180, fontWeight: 900, color: "#ffd84d", lineHeight: 1, textShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>？</div>
+          <div style={{ fontSize: portrait ? 44 : 56, fontWeight: 800, color: "#fff", textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>{quiz.question}</div>
+        </div>
       </div>
 
       {/* リビール後・上：問題を細バーに縮小して残す。横は章バッジ枠へ移すのでportraitのみ
@@ -848,7 +854,9 @@ export const DialogueVideo: React.FC<{
       (t >= activeTopic.vizFrom && t < (activeTopic.vizUntil ?? Infinity)));
   // 画像エリアを置き換える演出(パネル/クイズ/比較)は、章内でカットが変わっても再マウントしない
   // ＝同じ章の間はkeyを固定。パネルは画像だけ差し替わり、縮小/項目の進行(絶対時刻)が途切れない。
-  const replaceViz = !!(activeTopic && vizOn && (activeTopic.panel || activeTopic.quiz || activeTopic.compare));
+  // 置換系＝中央ビジュアルを丸ごと差し替える演出（panel/compare）。
+  // quiz は画像を使わない演出なので置換しない＝背後の通常画像/黒板をそのまま見せ、その上に重ねる。
+  const replaceViz = !!(activeTopic && vizOn && (activeTopic.panel || activeTopic.compare));
   // Ken Burns: カット内の進捗(0→1)。カットのstart→endで線形。endが無ければ動かさない。
   const kbProgress = activeTopic
     ? interpolate(t, [activeTopic.start, activeTopic.end ?? activeTopic.start], [0, 1], {
@@ -1031,9 +1039,6 @@ export const DialogueVideo: React.FC<{
                 boxH={visualBoxH}
                 portrait={portrait}
               />
-            ) : activeTopic.quiz && vizOn ? (
-              // クイズ・リビール：？で溜めて答えを出す。
-              <QuizVisual quiz={activeTopic.quiz} t={t} portrait={portrait} />
             ) : activeTopic.compare && vizOn ? (
               // 比較（2分割）：A対Bを並べる。
               <CompareVisual compare={activeTopic.compare} t={t} portrait={portrait} />
@@ -1206,6 +1211,11 @@ export const DialogueVideo: React.FC<{
         ) : null}
         {activeTopic && !activeTopic.blank && vizOn && activeTopic.callouts ? (
           <CalloutOverlay callouts={activeTopic.callouts} t={t} portrait={portrait} />
+        ) : null}
+        {/* クイズは画像を使わない演出＝背後の通常画像/黒板の上に「？・問い・答え」を重ねる。
+            blank(画像なし＝黒板)でも出す。 */}
+        {activeTopic && vizOn && activeTopic.quiz ? (
+          <QuizVisual quiz={activeTopic.quiz} t={t} portrait={portrait} />
         ) : null}
 
         {/* クレジットは動画内に出さない（帰属は概要欄の credits.txt に集約＝CC-BY要件はそこで満たす）。 */}

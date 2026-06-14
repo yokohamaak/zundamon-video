@@ -351,7 +351,10 @@ def test_build_chapter_topics_viz():
     def grab(chn, key):
         return next(t[key] for t in topics if t.get("chapter") == chn and key in t)
     q = grab(0, "quiz")
-    assert q["revealAt"] == 2.0 and q["image"] == "q.jpg", q
+    # クイズは画像を使わない演出＝quizに専用画像は載せない。背後の通常画像(topic.image)をそのまま使う。
+    assert q["revealAt"] == 2.0 and "image" not in q, q
+    qtopic = next(t for t in topics if t.get("chapter") == 0)
+    assert qtopic["image"] == "q.jpg", qtopic  # 通常画像が背景としてそのまま残る
     cmp = grab(1, "compare")
     assert cmp["left"]["image"] == "l.jpg" and cmp["right"]["image"] == "r.jpg"
     # compare_item 指定なし → 最初から2分割（at0==at1==章頭）
