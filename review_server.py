@@ -1931,7 +1931,7 @@ function vizContent(box, ch, ci){
     for(let k=0;k<n;k++){ const u=imgUrl(ci,k);
       const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
       o.innerHTML=(u?'<img src="'+u+'">':'<span class="ph3">#'+k+'</span>')+'<span class="num">'+k+'</span>';
-      o.onclick=()=>{ p.cut=k; pick.querySelectorAll('.copt').forEach((e,j)=>e.classList.toggle('sel',j===k)); };
+      o.onclick=()=>{ p.cut=k; render(); };  // 再描画＝セリフ行の「演出で表示」サムネも更新
       pick.appendChild(o); }
     ir.appendChild(pick); box.appendChild(ir);
     // テキスト領域（右半分）の背景色。クリアで透過（黒板が見える）。
@@ -1961,7 +1961,7 @@ function vizContent(box, ch, ci){
       for(let k=0;k<n;k++){ const u=imgUrl(ci,k);
         const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':''); o.title='画像'+k;
         o.innerHTML=(u?'<img src="'+u+'">':'<span class="ph3">#'+k+'</span>')+'<span class="num">'+k+'</span>';
-        o.onclick=()=>{ side.cut=k; pick.querySelectorAll('.copt').forEach((e,j)=>e.classList.toggle('sel',j===k)); };
+        o.onclick=()=>{ side.cut=k; render(); };  // 再描画＝セリフ行の「演出で表示」サムネも更新
         pick.appendChild(o); }
       return pick; };
     const rl=vRow('左'); rl.appendChild(vText(c.left.label,'左ラベル',v=>c.left.label=v)); rl.appendChild(mkCut(c.left,0)); box.appendChild(rl);
