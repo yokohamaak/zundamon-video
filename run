@@ -30,6 +30,7 @@ cmd_help() {
   audio             音声＋meta を生成（VOICEVOX）
   meta              画像/見出しだけ直した時：音声据置で meta だけ再生成
   render            本編(横16:9)を書き出し → video/out/video.mp4
+  build             音声＋meta → 書き出し を一気に（レビュー後の本番出力）
 
 [ショート]  ※ slug = docs/shorts/<slug>
   shorts 1,2        本編ネタをまとめてショート化（Gemini1回）
@@ -48,6 +49,7 @@ cmd_review()  { run "$PY review_server.py --dir $STORY"; }
 cmd_audio()   { run "$PY main_story.py --from-script $STORY/script.json --images-from-dir"; }
 cmd_meta()    { run "$PY main_story.py --from-script $STORY/script.json --meta-only"; }
 cmd_render()  { run "cd video && npm run render"; }
+cmd_build()   { cmd_audio; cmd_render; }  # 音声+meta → 書き出し（本編の本番出力を一気に）
 
 cmd_shorts()  {
   local list="${1:-}"
@@ -67,6 +69,7 @@ if [ $# -gt 0 ]; then
     audio)    cmd_audio ;;
     meta)     cmd_meta ;;
     render)   cmd_render ;;
+    build)    cmd_build ;;
     shorts)   cmd_shorts "${2:-}" ;;
     s-audio)  cmd_s_audio "${2:?slug を指定}" ;;
     depth)    cmd_depth "${2:?slug を指定}" ;;
@@ -84,11 +87,12 @@ echo " 1) script    本編 台本+画像生成"
 echo " 2) review    レビュー画面"
 echo " 3) audio     本編 音声+meta"
 echo " 4) render    本編 書き出し"
-echo " 5) shorts    ショート一括生成"
-echo " 6) s-audio   ショート 音声+meta"
-echo " 7) depth     ショート 深度"
-echo " 8) s-render  ショート 書き出し"
-echo " 9) s-build   ショート 音声+meta+深度+書き出し"
+echo " 5) build     本編 音声+meta+書き出し"
+echo " 6) shorts    ショート一括生成"
+echo " 7) s-audio   ショート 音声+meta"
+echo " 8) depth     ショート 深度"
+echo " 9) s-render  ショート 書き出し"
+echo "10) s-build   ショート 音声+meta+深度+書き出し"
 echo " 0) help"
 read -rp "番号: " n
 case "$n" in
@@ -96,10 +100,11 @@ case "$n" in
   2) cmd_review ;;
   3) cmd_audio ;;
   4) cmd_render ;;
-  5) cmd_shorts "" ;;
-  6) read -rp "slug: " s; cmd_s_audio "$s" ;;
-  7) read -rp "slug: " s; cmd_depth "$s" ;;
-  8) read -rp "slug: " s; cmd_s_render "$s" ;;
-  9) read -rp "slug: " s; cmd_s_build "$s" ;;
+  5) cmd_build ;;
+  6) cmd_shorts "" ;;
+  7) read -rp "slug: " s; cmd_s_audio "$s" ;;
+  8) read -rp "slug: " s; cmd_depth "$s" ;;
+  9) read -rp "slug: " s; cmd_s_render "$s" ;;
+  10) read -rp "slug: " s; cmd_s_build "$s" ;;
   0|*) cmd_help ;;
 esac
