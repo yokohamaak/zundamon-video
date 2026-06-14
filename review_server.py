@@ -1510,7 +1510,13 @@ STORY_PAGE = """<!doctype html>
            background:transparent; color:var(--sub); cursor:pointer; }
   .vchip.on { background:#2a2440; color:#c4a8ff; border-color:#5a4a8a; font-weight:700; }
   .vchip.edit { border-color:#5a4a8a; color:#c4a8ff; }
+  .vchip.range { font-size:10px; padding:1px 7px; }
   .vizcontent { margin:0 0 10px 30px; padding:10px; background:#0c0f15; border:1px solid #5a4a8a; border-radius:8px; }
+  /* 演出の表示範囲バー：開始カード＋範囲内の行を紫の左帯でつなぐ */
+  .vizrow { border-left:5px solid #7a5cff !important; }
+  .vizhdr { display:flex; align-items:center; gap:8px; margin:8px 0 0; padding:5px 12px;
+            border-left:5px solid #7a5cff; background:rgba(122,92,255,0.12); border-radius:0 6px 6px 0; }
+  .vizhdr-t { font-size:13px; font-weight:800; color:#c4a8ff; }
 </style></head>
 <body>
 <header>
@@ -1826,7 +1832,14 @@ const VIZ_KEYS=['panel','quiz','compare','stat','callouts'];
 const VIZ_LABEL={panel:'解説パネル',quiz:'クイズ',compare:'比較',stat:'数字強調',callouts:'注釈'};
 function vizOf(ch){ return VIZ_KEYS.find(k=>ch[k]); }       // 章に付いている演出キー（無ければundefined）
 function clearAllVizFlags(ci){ (DATA.script||[]).forEach(t=>{ if(t.chapter===ci){
-  delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; } }); }
+  delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item;
+  delete t.viz_start; delete t.viz_end; } }); }
+// 章の演出表示範囲（viz_start/viz_endの発言・無ければ章の最初/最後の発言）の通し番号。
+function vizRange(ci){ let first=-1,last=-1,sGi=-1,eGi=-1;
+  (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci) return;
+    if(first<0)first=gi; last=gi; if(t.viz_start)sGi=gi; if(t.viz_end)eGi=gi; });
+  if(sGi<0)sGi=first; if(eGi<0||eGi<sGi)eGi=last;
+  return {startGi:sGi, endGi:eGi, first, last}; }
 function clampItemFlags(ci,flag,n){ (DATA.script||[]).forEach(t=>{
   if(t.chapter===ci && typeof t[flag]==='number' && t[flag]>=n) delete t[flag]; }); }
 // 小道具
@@ -1863,27 +1876,42 @@ function vizAddMenu(ctrl, tn, ci){
     else if(v==='compare'){ ch.compare={left:{label:'',cut:0},right:{label:'',cut:1}}; tn.compare_item=0; }
     else if(v==='stat'){ ch.stat={value:''}; tn.reveal=true; }
     else if(v==='callouts'){ ch.callouts=[{text:'',x:0.5,y:0.5}]; tn.callout_item=0; }
+    tn.viz_start=true;  // この発言を演出の開始＝範囲の起点に
     vizOpenGi=DATA.script.indexOf(tn); render(); };
   ctrl.appendChild(sel);
 }
-// セリフ行下の演出操作ライン（チップ=タイミング / ✎中身 / ＋演出）。無ければ null。
+// 演出の開始行に出すカード（種類・✎中身・削除）。範囲バーの先頭ラベル。
+function vizHeaderCard(ch, ci, startGi){
+  const h=document.createElement('div'); h.className='vizhdr';
+  const t=document.createElement('span'); t.className='vizhdr-t'; t.textContent='▣ '+(VIZ_LABEL[vizOf(ch)]||'');
+  const e=document.createElement('button'); e.type='button'; e.className='vchip edit'+(vizOpenGi===startGi?' on':'');
+  e.textContent=vizOpenGi===startGi?'✎閉じる':'✎中身'; e.onclick=()=>{ vizOpenGi=(vizOpenGi===startGi?null:startGi); render(); };
+  const x=document.createElement('button'); x.type='button'; x.className='vchip'; x.textContent='✕削除';
+  x.onclick=()=>{ VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci); vizOpenGi=null; render(); };
+  h.appendChild(t); h.appendChild(e); h.appendChild(x); return h;
+}
+// セリフ行下の演出操作ライン。演出なし=＋演出 / 演出あり=範囲内はタイミングchip＋範囲の開始/終了。
 function turnVizControl(tn, gi, ch, ci){
   const ctrl=document.createElement('div'); ctrl.className='vchips';
   if(!vizOf(ch)){ vizAddMenu(ctrl, tn, ci); return ctrl; }
-  const chip=(label,flag,value,title)=>{ const on=tn[flag]===value;
-    const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=label; if(title)b.title=title;
-    b.onclick=()=>{ setUniqueFlag(ci,flag,value,tn,!on); render(); }; ctrl.appendChild(b); };
-  if(ch.panel){ chip('縮小','panel_event','shrink','この発言で画像を縮小');
-    (ch.panel.items||[]).forEach((it,k)=>chip('項目'+k,'panel_item',k,it.text||'')); }
-  else if(ch.quiz){ chip('答えを出す','reveal',true); }
-  else if(ch.compare){ chip('左','compare_item',0); chip('右(分割)','compare_item',1); }
-  else if(ch.stat){ chip('数字を出す','reveal',true); }
-  else if(ch.callouts){ (ch.callouts||[]).forEach((c,k)=>chip('注'+k,'callout_item',k,c.text||'')); }
-  if(turnHasViz(tn, ch)){  // この発言が演出を担う＝そこから中身を編集できる
-    const e=document.createElement('button'); e.type='button'; e.className='vchip edit'+(vizOpenGi===gi?' on':'');
-    e.textContent=vizOpenGi===gi?'✎閉じる':'✎中身';
-    e.onclick=()=>{ vizOpenGi=(vizOpenGi===gi?null:gi); render(); }; ctrl.appendChild(e);
+  const rng=vizRange(ci); const inRange = gi>=rng.startGi && gi<=rng.endGi;
+  if(inRange){  // タイミングchip（この発言で何を出すか）
+    const chip=(label,flag,value,title)=>{ const on=tn[flag]===value;
+      const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=label; if(title)b.title=title;
+      b.onclick=()=>{ setUniqueFlag(ci,flag,value,tn,!on); render(); }; ctrl.appendChild(b); };
+    if(ch.panel){ chip('縮小','panel_event','shrink','この発言で画像を縮小');
+      (ch.panel.items||[]).forEach((it,k)=>chip('項目'+k,'panel_item',k,it.text||'')); }
+    else if(ch.quiz){ chip('答えを出す','reveal',true); }
+    else if(ch.compare){ chip('左','compare_item',0); chip('右(分割)','compare_item',1); }
+    else if(ch.stat){ chip('数字を出す','reveal',true); }
+    else if(ch.callouts){ (ch.callouts||[]).forEach((c,k)=>chip('注'+k,'callout_item',k,c.text||'')); }
   }
+  // 範囲の開始/終了をこの発言に設定（章内のどの行でも可・章末で自動終了なら終了不要）。
+  const rb=(label,flag,active,title)=>{ const b=document.createElement('button'); b.type='button';
+    b.className='vchip range'+(active?' on':''); b.textContent=label; b.title=title;
+    b.onclick=()=>{ setUniqueFlag(ci,flag,true,tn,true); render(); }; ctrl.appendChild(b); };
+  rb('▶ここから','viz_start',gi===rng.startGi,'ここから演出を表示');
+  rb('■ここまで','viz_end',gi===rng.endGi,'ここまで演出を表示（章末で自動終了なら不要）');
   return ctrl;
 }
 // 演出の中身エディタ（章単位の内容）。セリフ行の下にインライン展開する。
@@ -2129,9 +2157,13 @@ function render(){
       il.appendChild(add); body.appendChild(il);
       // dialogue
       const dl=document.createElement('div'); const lb2=document.createElement('div'); lb2.className='lbl'; lb2.textContent='台本'; body.appendChild(lb2);
+      const vrng = vizOf(ch) ? vizRange(ci) : null;  // 演出の表示範囲（バー表示用）
       DATA.script.forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
-        const row=document.createElement('div'); row.className='turn';
-        const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
+        // 演出の開始行の直前に範囲バーの先頭カードを出す。
+        if(vrng && gi===vrng.startGi) dl.appendChild(vizHeaderCard(ch, ci, gi));
+        const inViz = vrng && gi>=vrng.startGi && gi<=vrng.endGi;
+        const row=document.createElement('div'); row.className='turn'+(inViz?' vizrow':'');
+        const col=speakerColor(tn.speaker); if(!inViz) row.style.borderLeftColor=col;  // 範囲内は紫バー優先
         const sp=document.createElement('div'); sp.className='sp'; sp.style.color=col;
         sp.innerHTML=`<span class="dot" style="background:${col}"></span>${tn.speaker}`;
         const ta=document.createElement('textarea'); ta.value=tn.text; ta.oninput=()=>{tn.text=ta.value; autosize(ta); refreshEst();};
