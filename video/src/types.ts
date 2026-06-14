@@ -163,6 +163,10 @@ export type Topic = {
   compare?: Compare;
   stat?: Stat;
   callouts?: Callout[];
+  // 演出の表示窓（絶対秒）。topicがこの窓をまたぐ時、窓内だけ演出を出し手前/後は通常画像にする。
+  // （「ここから」のセリフ時刻より前から演出が始まる、カット境界への丸め込みを防ぐ）
+  vizFrom?: number;
+  vizUntil?: number;
 };
 
 export type Gender = "male" | "female";

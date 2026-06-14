@@ -787,9 +787,15 @@ export const DialogueVideo: React.FC<{
   const flipping = isChapterFlip && t < flipStart + FLIP_HOLD + FLIP_DUR;
   // めくり中は新画像を即・全表示（前章ページが上を覆うのでフェード不要）。
   const effectiveTopicFade = flipping ? 1 : topicFade;
+  // 演出の表示窓ゲート：topicが窓(vizFrom..vizUntil)をまたぐ時、窓内だけ演出を出す
+  // （「ここから」のセリフより前から演出が始まる丸め込みを防ぐ）。窓未指定なら常時ON。
+  const vizOn =
+    !!activeTopic &&
+    (activeTopic.vizFrom == null ||
+      (t >= activeTopic.vizFrom && t < (activeTopic.vizUntil ?? Infinity)));
   // 画像エリアを置き換える演出(パネル/クイズ/比較)は、章内でカットが変わっても再マウントしない
   // ＝同じ章の間はkeyを固定。パネルは画像だけ差し替わり、縮小/項目の進行(絶対時刻)が途切れない。
-  const replaceViz = !!(activeTopic && (activeTopic.panel || activeTopic.quiz || activeTopic.compare));
+  const replaceViz = !!(activeTopic && vizOn && (activeTopic.panel || activeTopic.quiz || activeTopic.compare));
   // Ken Burns: カット内の進捗(0→1)。カットのstart→endで線形。endが無ければ動かさない。
   const kbProgress = activeTopic
     ? interpolate(t, [activeTopic.start, activeTopic.end ?? activeTopic.start], [0, 1], {
@@ -963,7 +969,7 @@ export const DialogueVideo: React.FC<{
               padding: isContain ? containPad : 0,
             }}
           >
-            {activeTopic.panel ? (
+            {activeTopic.panel && vizOn ? (
               // 解説パネル（任意・案A）：画像を縮小し、空いた領域に要点テキストを段階表示。
               <DialoguePanel
                 panel={activeTopic.panel}
@@ -972,10 +978,10 @@ export const DialogueVideo: React.FC<{
                 boxH={visualBoxH}
                 portrait={portrait}
               />
-            ) : activeTopic.quiz ? (
+            ) : activeTopic.quiz && vizOn ? (
               // クイズ・リビール：？で溜めて答えを出す。
               <QuizVisual quiz={activeTopic.quiz} t={t} portrait={portrait} />
-            ) : activeTopic.compare ? (
+            ) : activeTopic.compare && vizOn ? (
               // 比較（2分割）：A対Bを並べる。
               <CompareVisual compare={activeTopic.compare} t={t} portrait={portrait} />
             ) : activeTopic.image ? (
@@ -1142,10 +1148,10 @@ export const DialogueVideo: React.FC<{
         )}
 
         {/* 重ね層（任意）：主モード(画像/パネル/クイズ/比較)の上に数字強調・注釈を出す。 */}
-        {activeTopic && !activeTopic.blank && activeTopic.stat ? (
+        {activeTopic && !activeTopic.blank && vizOn && activeTopic.stat ? (
           <StatOverlay stat={activeTopic.stat} t={t} portrait={portrait} />
         ) : null}
-        {activeTopic && !activeTopic.blank && activeTopic.callouts ? (
+        {activeTopic && !activeTopic.blank && vizOn && activeTopic.callouts ? (
           <CalloutOverlay callouts={activeTopic.callouts} t={t} portrait={portrait} />
         ) : null}
 

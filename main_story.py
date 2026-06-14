@@ -212,9 +212,13 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
                 topic["note"] = cut.get("image_query") or meta_ch.get("title")
                 topic["placeholder"] = chapter_image_name(ch, ci)
-            # 演出は表示範囲(vw_start..vw_end)に重なるtopicにだけ載せる（範囲外は通常画像）。
+            # 演出は表示範囲(vw_start..vw_end)に重なるtopicに載せる。境界をまたぐtopicは
+            # 描画側で時刻ゲート（vizFrom/vizUntil）し、窓の手前/後は通常画像にする
+            # ＝「ここから」のセリフより前から演出が始まる丸め込みを防ぐ。
             in_window = topic["end"] > vw_start + 1e-6 and topic["start"] < vw_end - 1e-6
             if in_window:
+                topic["vizFrom"] = round(float(vw_start), 3)
+                topic["vizUntil"] = round(float(vw_end), 3)
                 if panel_resolved:
                     # パネル画像はカット毎に変わる＝このtopicの画像をパネルに載せる。
                     pr = dict(panel_resolved)
