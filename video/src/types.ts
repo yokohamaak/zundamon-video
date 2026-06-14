@@ -64,10 +64,10 @@ export type Quiz = {
   // image は基本未使用（手書きで明示指定された旧データのみ後方互換で残置・現状の描画では参照しない）。
   image?: string;
   revealAt?: number;      // 答えを出す絶対時刻（秒）。build が reveal発言/zoom_punch/章中盤から解決。
-  // 任意の暗幕（色＋不透明度）。無指定なら背景なし＝背後の画像/黒板がそのまま見える。
-  // 背後が見にくい時だけ指定する（bgOpacity<1 で透ける）。
-  bg?: string;            // CSS color（例 "#1a2333"）
-  bgOpacity?: number;     // 0..1（既定 1）
+  // 「？・問い」を囲む土台パネルの背景色＋不透明度（任意）。無指定なら濃紺の半透明（既定）。
+  // 背後の画像/黒板は暗転させない。bgOpacity=0 で土台なし（文字だけ・影で可読）。
+  bg?: string;            // CSS color（例 "#0f141e"）
+  bgOpacity?: number;     // 0..1（既定 0.62）
 };
 
 // 比較（2分割）：左右（縦は上下）にA対Bを並べる。before/after・対比ネタ向き。

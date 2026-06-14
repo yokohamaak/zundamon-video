@@ -1916,22 +1916,24 @@ function turnVizControl(tn, gi, ch, ci){
   return ctrl;
 }
 // 演出の中身エディタ（章単位の内容）。セリフ行の下にインライン展開する。
-// 背景色＋不透明度の編集行（panel/quiz共用）。bgOpacity<1で裏(黒板/元画像)が透ける。
-// 暗幕は bg(色)が指定された時だけ描画される。色未指定で透明度だけ動かしても効かないため、
-// スライダー操作時は色が無ければ既定色を補う（＝透明度＝暗幕の濃さとして直感的に効く）。
-function vBgRow(obj, label, defColor){
+// 背景色＋不透明度の編集行（panel/quiz共用）。bgOpacity<1で裏(黒板/画像)が透ける。
+// 背景は bg(色)が指定された時だけ上書きされる。色未指定で透明度だけ動かしても効かないため、
+// スライダー操作時は色が無ければ既定色を補う（＝透明度＝背景の濃さとして直感的に効く）。
+// defOp=未指定時のスライダー表示値（描画側の既定不透明度に合わせる）。
+function vBgRow(obj, label, defColor, defOp){
+  defOp=(defOp!=null?defOp:1);
   const br=vRow(label);
   const cp=document.createElement('input'); cp.type='color'; cp.value=obj.bg||defColor; cp.title='背景色';
-  cp.oninput=()=>{ obj.bg=cp.value; if(obj.bgOpacity==null)obj.bgOpacity=1; };
+  cp.oninput=()=>{ obj.bg=cp.value; if(obj.bgOpacity==null)obj.bgOpacity=defOp; };
   br.appendChild(cp);
   const op=document.createElement('input'); op.type='range'; op.min='0'; op.max='1'; op.step='0.05';
-  op.value=(obj.bgOpacity!=null?obj.bgOpacity:1); op.style.cssText='width:96px;vertical-align:middle'; op.title='不透明度（左ほど透ける）';
+  op.value=(obj.bgOpacity!=null?obj.bgOpacity:defOp); op.style.cssText='width:96px;vertical-align:middle'; op.title='不透明度（左ほど透ける）';
   const ov=document.createElement('span'); ov.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
-  const showOv=()=>{ ov.textContent=Math.round((obj.bgOpacity!=null?obj.bgOpacity:1)*100)+'%'; };
+  const showOv=()=>{ ov.textContent=Math.round((obj.bgOpacity!=null?obj.bgOpacity:defOp)*100)+'%'; };
   showOv();
   op.oninput=()=>{ obj.bgOpacity=parseFloat(op.value); if(obj.bg==null){ obj.bg=cp.value||defColor; } showOv(); };
   br.appendChild(document.createTextNode(' 透過')); br.appendChild(op); br.appendChild(ov);
-  br.appendChild(vMini('クリア',()=>{ delete obj.bg; delete obj.bgOpacity; render(); }));
+  br.appendChild(vMini('既定に戻す',()=>{ delete obj.bg; delete obj.bgOpacity; render(); }));
   return br;
 }
 
@@ -1967,11 +1969,11 @@ function vizContent(box, ch, ci){
   else if(ch.quiz){ const q=ch.quiz;
     const r1=vRow('問い'); r1.appendChild(vText(q.question,'画面に出す問い',v=>q.question=v)); box.appendChild(r1);
     const r2=vRow('答え'); r2.appendChild(vText(q.answer,'リビールで出す答え',v=>q.answer=v)); box.appendChild(r2);
-    // 既定は背景なし＝背後の通常画像/黒板がそのまま見える。見にくい時だけ任意で暗幕を敷く。
+    // 画像は通常扱い（背後にそのまま）。調整できるのは「？・問い」を囲む土台パネルの背景だけ。
     const nt=document.createElement('div'); nt.style.cssText='font-size:11px;color:var(--sub);margin:2px 0';
-    nt.textContent='背景は通常画像（あればそのまま）／無ければ黒板。背後が見にくい時だけ下で暗幕を指定。';
+    nt.textContent='画像は通常どおり背後に表示（暗転しない）。下は「？・問い」の文字を囲む土台の背景（透過0%で土台なし）。';
     box.appendChild(nt);
-    box.appendChild(vBgRow(q,'暗幕(任意)','#1a2333'));
+    box.appendChild(vBgRow(q,'文字の背景','#0f141e',0.62));
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // 画像はサムネで選ぶ（台本のcut選択と統一）。

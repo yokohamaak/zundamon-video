@@ -479,16 +479,14 @@ const QuizVisual: React.FC<{
   });
   const barPad = portrait ? "10px 18px" : "12px 26px";
   // クイズは画像を使わない演出＝背後の通常画像/黒板をそのまま見せ、その上に重ねる。
-  // 既定は背景なし（透明）。bg を指定した時だけ任意の暗幕（色＋不透明度）を敷く。
+  // bg/bgOpacity は「？・問い」を囲む土台パネルの背景色＋不透明度（既定＝濃紺の半透明）。
+  // 文字を不透明に保つため背景は別レイヤー。0%にすれば土台なし（文字だけ・影で可読）。
+  const panelBg = quiz.bg || "#0f141e";
+  const panelOp = quiz.bgOpacity ?? 0.62;
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      {/* 任意の暗幕（bg 指定時のみ）。無指定なら背後の画像/黒板がそのまま見える。 */}
-      {quiz.bg ? (
-        <div style={{ position: "absolute", inset: 0, background: quiz.bg, opacity: quiz.bgOpacity ?? 1 }} />
-      ) : null}
-
       {/* リビール前：？＋問題を中央に。背後が写真でも黒板でも読めるよう半透明の角丸パネルに収める
-          （全面暗幕にせず背後画像を活かす）。答えと入れ替わりで消える。 */}
+          （背後画像は暗転させず活かす）。答えと入れ替わりで消える。 */}
       <div
         style={{
           position: "absolute",
@@ -503,18 +501,21 @@ const QuizVisual: React.FC<{
       >
         <div
           style={{
+            position: "relative",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             gap: portrait ? 10 : 16,
-            background: "rgba(15,20,30,0.62)",
             borderRadius: 24,
             padding: portrait ? "24px 32px" : "30px 52px",
             maxWidth: "92%",
+            overflow: "hidden",
           }}
         >
-          <div style={{ fontSize: portrait ? 130 : 180, fontWeight: 900, color: "#ffd84d", lineHeight: 1, textShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>？</div>
-          <div style={{ fontSize: portrait ? 44 : 56, fontWeight: 800, color: "#fff", textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>{quiz.question}</div>
+          {/* 土台パネルの背景（色＋不透明度・別レイヤー）。 */}
+          <div style={{ position: "absolute", inset: 0, background: panelBg, opacity: panelOp, borderRadius: 24 }} />
+          <div style={{ position: "relative", fontSize: portrait ? 130 : 180, fontWeight: 900, color: "#ffd84d", lineHeight: 1, textShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>？</div>
+          <div style={{ position: "relative", fontSize: portrait ? 44 : 56, fontWeight: 800, color: "#fff", textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>{quiz.question}</div>
         </div>
       </div>
 
