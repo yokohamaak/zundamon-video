@@ -1411,7 +1411,6 @@ STORY_PAGE = """<!doctype html>
   .conf.high { background:#173a25; color:#5fd08a; }       /* 確度: 高=採用OK */
   .conf.medium { background:#3a3217; color:#ffcc4d; }     /* 中=要裏取り・断定回避 */
   .conf.low { background:#3a1d1d; color:#ff6b6b; }        /* 低=原則不採用 */
-  .ocm { font-size:11px; padding:2px 8px; border-radius:999px; flex:none; background:#1d2b3a; color:#7fb4ff; font-weight:700; }
   .vizb { font-size:11px; padding:2px 8px; border-radius:999px; flex:none; background:#2a2440; color:#c4a8ff; font-weight:700; }
   .sechead .ttl { font-weight:700; flex:none; max-width:34%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sechead .sum { color:var(--sub); font-size:13px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1995,10 +1994,9 @@ function render(){
       thumbs += u?`<img class="th" src="${u}">`:`<span class="ph">#${k}</span>`; });
     const confTag = (ch.section==='trivia'&&ch.confidence)
       ? `<span class="conf ${ch.confidence}" title="事実の確度（${confLabel(ch.confidence)}）">${confLabel(ch.confidence)}</span>` : '';
-    const ocmTag = ch.owner_comment ? `<span class="ocm" title="運営者コメント枠あり（自分の言葉で埋める）">★コメント</span>` : '';
     const vk = vizOf(ch);
     const vizTag = vk ? `<span class="vizb" title="画像演出: ${VIZ_LABEL[vk]}">▣ ${VIZ_LABEL[vk]}</span>` : '';
-    head.innerHTML=`<span class="badge">${sectionLabel(ch,ci)}</span>${confTag}${ocmTag}${vizTag}
+    head.innerHTML=`<span class="badge">${sectionLabel(ch,ci)}</span>${confTag}${vizTag}
       <span class="ttl">${ch.title||'(無題)'}</span>
       <span class="sum">${ch.summary||''}</span>
       <span class="thumbs">${thumbs}</span>`;
@@ -2026,7 +2024,7 @@ function render(){
         hk.placeholder='例: その「ロボット認証」、実はAIを無料で鍛えてる（空欄ならタイトルから仮生成）';
         hk.onchange=()=>{ ch.hook=hk.value; };
         body.appendChild(hl); body.appendChild(hk);
-        // 事実の確度 / 裏取り手がかり / 運営者コメント枠（公開前チェック・収益化対策）。動画には出ない。
+        // 事実の確度 / 裏取り手がかり（公開前チェック）。動画には出ない。
         const cl=document.createElement('div'); cl.className='lbl'; cl.textContent='事実の確度 / 裏取り手がかり';
         const crow=document.createElement('div'); crow.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
         const cs=document.createElement('select');
@@ -2038,11 +2036,6 @@ function render(){
         sh.onchange=()=>{ if(sh.value.trim()) ch.source_hint=sh.value.trim(); else delete ch.source_hint; };
         crow.appendChild(cs); crow.appendChild(sh);
         body.appendChild(cl); body.appendChild(crow);
-        const ol=document.createElement('label'); ol.style.cssText='display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;cursor:pointer;';
-        const ocb=document.createElement('input'); ocb.type='checkbox'; ocb.checked=!!ch.owner_comment;
-        ocb.onchange=()=>{ if(ocb.checked) ch.owner_comment=true; else delete ch.owner_comment; render(); };
-        ol.appendChild(ocb); ol.appendChild(document.createTextNode('運営者コメント枠あり（セリフ内の〔★…〕を自分の言葉で埋める）'));
-        body.appendChild(ol);
       }
       // images
       const il=document.createElement('div'); const lb=document.createElement('div'); lb.className='lbl'; lb.textContent='画像（台本に対応）'; body.appendChild(lb);

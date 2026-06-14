@@ -100,8 +100,6 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
    - "reveal": true … この発言で「実は」の答え/数字を出す（quiz の答え・stat の数字の出現タイミング。各章1つ）。
    - "callout_item": n（整数0始まり）… この発言で callouts[n] を出す（0,1,2…順）。
 
-※ 運営者コメント枠（「## 運営者コメント枠」参照）のプレースホルダ発言にも他の発言と同じフィールドを付ける（emotion=normal・effect=kenburns・cut はその時点の番号でよい）。**枠の中身は代筆しない＝体言止めの切り口ヒントのみ**。
-
 ## 章メタ（chapters・各章に1つ）
 {structure}各章に次を出す（chapter番号の昇順）:
 - "section": intro / trivia / outro のいずれか。
@@ -114,7 +112,6 @@ def _rules_block(questioner: str, explainer: str, topics: int, regen: bool = Fal
   例「JPEGの正式名称は『Joint Photographic Experts Group』。画像圧縮規格ではなく開発したグループの名前。」
 - "confidence": （trivia章のみ）"high"（公式発表・一次資料がある）/ "medium"（広く語られるが要確認）/ "low"（諸説・逸話レベル）。「## 事実の確度」の基準に従う。
 - "source_hint": （trivia章のみ）裏取りの手がかり（公式発表・開発者の発言・出典になりそうな年や媒体名など）。
-- "owner_comment": （trivia章のみ・任意）その章に運営者コメント枠を置いた場合だけ true。置かない章は省略する。
 - 画像演出（trivia章のみ・任意・**1章につき多くても1種類**）。詳細と使いどころは「## 画像エリアの演出」を参照：
   - "panel": {{"items": [{{"text": "短い要点", "arrow_from_prev": true}}, ...]}}（縮小画像＋段階テキスト）
   - "quiz": {{"question": "問い", "answer": "答え"}}（？で溜めて答えを出す）
@@ -148,14 +145,13 @@ def _output_block(explainer: str, questioner: str) -> str:
 - 末尾カンマを付けない。各要素の区切りカンマを忘れない。
 - 文字列内に生の改行を入れない（1つのtextは1行）。
 - バックスラッシュや制御文字を入れない。
-- 運営者コメント枠の 〔★…〕 はそのまま文字列として出力する（中身は埋めない）。
 {{{{
   "theme": "動画のテーマ（日本語・meta.titleに使う。例「実は知らないデジタルの名前の謎」）",
   "chapters": [
     {{{{"section": "intro", "title": "今日のテーマ", "image_cuts": [
       {{{{"image_query": "wifi router", "image_kind": "ambient"}}}}
     ]}}}},
-    {{{{"section": "trivia", "title": "Wi-Fiは略語じゃない", "hook": "Wi-Fiって、実は何の略でもない", "summary": "Wi-Fiは何かの略ではなく、Hi-Fiの響きに似せて作られた造語。", "confidence": "high", "source_hint": "Wi-Fi Allianceの公式見解・命名の経緯", "owner_comment": true, "image_cuts": [
+    {{{{"section": "trivia", "title": "Wi-Fiは略語じゃない", "hook": "Wi-Fiって、実は何の略でもない", "summary": "Wi-Fiは何かの略ではなく、Hi-Fiの響きに似せて作られた造語。", "confidence": "high", "source_hint": "Wi-Fi Allianceの公式見解・命名の経緯", "image_cuts": [
       {{{{"image_query": "wifi symbol", "image_kind": "subject", "image_query_ja": "Wi-Fiのマーク"}}}},
       {{{{"image_query": "vintage hifi audio system", "image_kind": "ambient", "image_query_ja": "昔のオーディオ機器"}}}}
     ]}}}},
@@ -168,8 +164,7 @@ def _output_block(explainer: str, questioner: str) -> str:
     {{{{"speaker": "{questioner}", "text": "へぇを連発させてやるのだ！望むところなのだ！", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}}}},
     {{{{"speaker": "{explainer}", "text": "じゃあ最初。Wi-Fi（ワイファイ）って何の略か言える？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}}}},
     {{{{"speaker": "{questioner}", "text": "ワイヤレス…なんとかなのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 0}}}},
-    {{{{"speaker": "{explainer}", "text": "実はね、何の略でもないの。Hi-Fi（ハイファイ）の響きに似せた造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch", "cut": 1}}}},
-    {{{{"speaker": "{explainer}", "text": "〔★運営者コメント・未記入：実務で触った所感〕", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 1}}}}
+    {{{{"speaker": "{explainer}", "text": "実はね、何の略でもないの。Hi-Fi（ハイファイ）の響きに似せた造語なのよ。", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch", "cut": 1}}}}
   ]
 }}}}"""
 
@@ -260,19 +255,6 @@ def build_prompt(config: dict, also_avoid=None) -> str:
   確実でない逸話は「諸説あるけれど」「と言われている」と限定する。年号・前後関係も正確に。（確度の扱いは「## 事実の確度」を厳守）
 - ネタの順序は、軽いもの→意外性の強いものへ。最後のネタを一番の山場にすると締まる。
 
-## 運営者コメント枠（最重要・差別化の核）
-AIだけで完結した台本は「量産型」と判定され、収益化の対象外になりやすい。これを避けるため、**運営者本人の一言を差し込む枠**を必ず作ること。
-- {topics}ネタのうち、運営者が実体験や現場の視点を語れそうな**1〜2ネタ**を選び、その trivia 章にコメントの差し込み点を作る。
-- 具体的には、{explainer}の追い打ち発言（リズム6）の直後に、speaker="{explainer}"・emotion="normal" で
-  text="〔★運営者コメント・未記入：（このネタで運営者が語れる切り口を体言止め5〜15字で）〕" というプレースホルダ発言を**1つ**入れる。
-  例：text="〔★運営者コメント・未記入：実務で触った所感〕" / text="〔★運営者コメント・未記入：現場で見たトラブル例〕"
-- **【厳守・最重要】AIはこの枠の中身を絶対に創作・代筆しない。**
-  - 〔★…〕の中に**文を書かない**（。で終わる文・感想・体験談・「驚かされます」「興奮する」等の主観は禁止）。
-  - 入れてよいのは**体言止めの「切り口」ヒント1つだけ**（運営者が"何を書けばいいか"分かる名詞句）。一人称（わたし/ぼく）も使わない。
-  - 本文は空のまま。運営者が後から自分の実体験で埋める。代筆した時点でこの枠は無価値になる。
-- 差し込み先は、**技術の仕組み・トラブル・ビジネス構造**など、専門知識や実務経験が活きるネタを優先して選ぶ。
-- どの章にコメント枠を置いたか分かるよう、その章メタに "owner_comment": true を付ける。
-
 ## 事実の確度（収益化に直結・厳守）
 テック雑学は誤情報ひとつで信頼を失う。各ネタの確からしさを明示し、運営者が公開前に裏取りできるようにする。
 - 各 trivia 章のメタに "confidence" と "source_hint" を付ける（書式は「## 章メタ」参照）。
@@ -307,8 +289,8 @@ AIだけで完結した台本は「量産型」と判定され、収益化の対
 {_rules_block(questioner, explainer, topics)}
 
 ## 構成・分量【厳守・超過厳禁＝長すぎると尺オーバー】
-- **台本全体（script の text 合計）を必ず {total_chars}字以内に収める**（読み上げ約{minutes:.0f}分）。これは目安でなく**上限**。超えそうなら各ネタを削って収める。運営者コメント枠（埋めた後の想定1〜2文）もこの上限に含めて見積もる。
-- **1ネタ（trivia章）は最大3往復＝6ターン以内**（運営者コメント枠を置く章はそれを含めて+1ターンまで可）。問い→外し→実はね→驚き→締め を簡潔に。冗長な追い打ち・脱線・繰り返しを入れない。
+- **台本全体（script の text 合計）を必ず {total_chars}字以内に収める**（読み上げ約{minutes:.0f}分）。これは目安でなく**上限**。超えそうなら各ネタを削って収める。
+- **1ネタ（trivia章）は最大3往復＝6ターン以内**。問い→外し→実はね→驚き→締め を簡潔に。冗長な追い打ち・脱線・繰り返しを入れない。
 - **intro は最大2往復＝4ターン以内、outro も最大2往復＝4ターン以内**。挨拶・前置き・まとめを長くしない。
 - **outro は今日のネタの軽いまとめだけ**にする。**「高評価」「チャンネル登録」「また見てね/また次回/さようなら」等の
   定型CTA・別れの挨拶は書かない**（これらは固定で自動付与するので、書くと重複する）。
@@ -552,7 +534,7 @@ def _clean_chapters(chapters, limit=12):
         hook = strip_markdown((c.get("hook") or "").strip())
         if hook:
             chapter["hook"] = hook
-        # 事実の確度・裏取り手がかり・運営者コメント枠（収益化/誤情報対策の編集用メタ。trivia章）。
+        # 事実の確度・裏取り手がかり（誤情報対策の編集用メタ。trivia章）。
         # 動画には出ない。レビュー画面で公開前の裏取りに使う。任意・あれば保持する。
         conf = (c.get("confidence") or "").strip().lower()
         if conf in VALID_CONFIDENCE:
@@ -560,8 +542,6 @@ def _clean_chapters(chapters, limit=12):
         src_hint = strip_markdown((c.get("source_hint") or "").strip())
         if src_hint:
             chapter["source_hint"] = src_hint
-        if c.get("owner_comment"):
-            chapter["owner_comment"] = True
         # 解説パネル（任意・案A）。あれば保持＝この章は縮小画像＋段階テキストで描画。
         panel = _clean_panel(c.get("panel"))
         if panel:

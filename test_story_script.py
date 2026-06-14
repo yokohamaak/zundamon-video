@@ -465,31 +465,31 @@ def test_strip_redundant_kana_gloss():
     print("  strip_redundant_kana_gloss: 冗長カナ読み除去/グロス温存 OK")
 
 
-def test_confidence_owner_comment():
-    # build_prompt に収益化メタ（確度・運営者コメント枠）の指示が入る
+def test_confidence_source_hint():
+    # build_prompt に事実の確度の指示が入る
     config = {"story": {"theme": "T", "topics": 6,
                         "questioner": "ずんだもん", "explainer": "四国めたん"}}
     p = s.build_prompt(config)
-    for kw in ["運営者コメント枠", "事実の確度", "confidence", "source_hint",
-               "owner_comment", "〔★運営者コメント"]:
+    for kw in ["事実の確度", "confidence", "source_hint"]:
         assert kw in p, f"build_prompt に {kw} が入る"
-    # _clean_chapters が confidence/source_hint/owner_comment を保持する
+    # 運営者コメント機能は削除済み（プロンプトに出ない）
+    assert "運営者コメント" not in p and "owner_comment" not in p
+    # _clean_chapters が confidence/source_hint を保持する
     data = s.parse_script_json(
         '{"chapters":[{"section":"trivia","title":"A","summary":"s",'
-        '"confidence":"medium","source_hint":"hint","owner_comment":true,'
+        '"confidence":"medium","source_hint":"hint",'
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
         '"script":[{"speaker":"四国めたん","text":"hi","chapter":0}]}')
     ch = data["chapters"][0]
     assert ch["confidence"] == "medium" and ch["source_hint"] == "hint"
-    assert ch["owner_comment"] is True
-    # 不正な confidence は捨てる・owner_comment 偽は付けない
+    # owner_comment は保持しない（機能削除）
     data2 = s.parse_script_json(
         '{"chapters":[{"section":"trivia","title":"A","confidence":"bogus",'
-        '"owner_comment":false,"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
+        '"owner_comment":true,"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
         '"script":[{"speaker":"x","text":"hi"}]}')
     assert "confidence" not in data2["chapters"][0]
     assert "owner_comment" not in data2["chapters"][0]
-    print("  confidence/source_hint/owner_comment: 指示と保持 OK")
+    print("  confidence/source_hint: 指示と保持（owner_comment削除）OK")
 
 
 def test_build_prompt_panel_guidance():
@@ -591,7 +591,7 @@ if __name__ == "__main__":
     test_regenerate_ignores_intro_outro()
     test_regenerate_uses_also_avoid()
     test_splice_regenerated()
-    test_confidence_owner_comment()
+    test_confidence_source_hint()
     test_build_prompt_panel_guidance()
     test_panel_fields_preserved()
     test_viz_fields_preserved()
