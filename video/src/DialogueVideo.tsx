@@ -761,8 +761,18 @@ export const DialogueVideo: React.FC<{
   const FLIP_DUR = 0.55; // めくり時間（秒）
   const FLIP_HOLD = 0.15; // めくり前に前章画像を保持＝章終わりの余白（config.audio.se_lead と揃える）
   const prevTopic = activeTopicIndex > 0 ? topics[activeTopicIndex - 1] : null;
+  // めくる画像＝前章末で「実際に表示されていた」画像。演出(パネル/クイズ/比較)が画像エリアを
+  // 上書きしている章はその演出の画像をめくる（裏の素の画像ではなく）。stat/calloutsは素の画像に重ねるだけ。
+  const prevVizImage =
+    prevTopic?.panel?.image ??
+    prevTopic?.quiz?.image ??
+    prevTopic?.compare?.left?.image ??
+    null;
+  const prevReplaceViz = !!(prevTopic?.panel || prevTopic?.quiz || prevTopic?.compare);
+  const flipImage = prevReplaceViz ? prevVizImage : prevTopic?.image ?? null;
+  const flipContain = !prevReplaceViz && prevTopic?.fit === "contain"; // 演出画像はcoverでめくる
   const isChapterFlip =
-    !!activeTopic && !!prevTopic && !!prevTopic.image &&
+    !!activeTopic && !!prevTopic && !!flipImage &&
     prevTopic.chapter !== activeTopic.chapter;
   // 章のtopic.startは「前章末＝章間の無音の始まり」（build_chapter_topics）。
   // よって [start, start+HOLD] は前章画像を保持（章終わりの余白）、その後 FLIP_DUR でめくり、
@@ -1140,7 +1150,7 @@ export const DialogueVideo: React.FC<{
 
         {/* 章切替のページめくり：前章の画像を左ヒンジで回転させ、下の新章画像を現す。
             ※回転の向き/ヒンジ位置は transformOrigin と rotateY の符号で調整可（renderで微調整）。 */}
-        {flipping && prevTopic?.image ? (
+        {flipping && flipImage ? (
           <div
             style={{
               position: "absolute",
@@ -1155,13 +1165,12 @@ export const DialogueVideo: React.FC<{
             }}
           >
             <Img
-              src={staticFile(prevTopic.image)}
+              src={staticFile(flipImage)}
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: prevTopic.fit === "contain" ? "contain" : "cover",
-                background:
-                  prevTopic.fit === "contain" ? prevTopic.bg ?? "#1a2230" : undefined,
+                objectFit: flipContain ? "contain" : "cover",
+                background: flipContain ? prevTopic?.bg ?? "#1a2230" : undefined,
               }}
             />
             {/* めくれる面の陰影（ヒンジ側→先端へ濃く＝紙が立ち上がる立体感） */}
