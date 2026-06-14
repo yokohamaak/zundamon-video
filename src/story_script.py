@@ -699,11 +699,12 @@ def _normalize_panel_fields(turn):
                     turn[key] = int(v)
                 except (TypeError, ValueError):
                     turn.pop(key, None)
-    # reveal: 「実は」の答え/数字を出す合図（bool）。真のときだけ残す。
-    if turn.get("reveal"):
-        turn["reveal"] = True
-    else:
-        turn.pop("reveal", None)
+    # bool合図（真のときだけ残す）。reveal=答え/数字を出す / viz_start=演出開始 / viz_end=演出終了。
+    for flag in ("reveal", "viz_start", "viz_end"):
+        if turn.get(flag):
+            turn[flag] = True
+        else:
+            turn.pop(flag, None)
 
 
 def normalize_turns(script: list, chapters: list = None) -> list:

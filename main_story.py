@@ -160,8 +160,11 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
         # この章の全カットtopicに同じパネルを載せる（描画は固定のpanel.imageを使う）。
         panel_resolved = _resolve_panel(meta_ch.get("panel"), idxs, turns,
                                         seg_start, seg_end, image_files, ch)
-        # 画像演出（任意）。出現時刻を発言timingから解決し、章の全カットtopicに載せる。
+        # 画像演出（任意）。出現時刻を発言timingから解決し、章のtopicに載せる。
         viz = _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch)
+        # 演出の表示範囲（開始〜終了セリフ）。viz_start/viz_end 指定が無ければ章全体。
+        # この窓に重なるtopicにだけ演出を載せる＝範囲外のセリフは通常画像のまま。
+        vw_start, vw_end = _viz_window(idxs, turns, seg_start, seg_end)
         for gi, (ci, lo, hi) in enumerate(groups):
             cstart = seg_start if gi == 0 else turns[idxs[lo]]["start"]
             cend = seg_end if gi == len(groups) - 1 else turns[idxs[hi]]["start"]
@@ -209,12 +212,35 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
                 topic["note"] = cut.get("image_query") or meta_ch.get("title")
                 topic["placeholder"] = chapter_image_name(ch, ci)
-            if panel_resolved:
-                topic["panel"] = panel_resolved
-            for k, v in viz.items():  # quiz/compare/stat/callouts（あるものだけ）
-                topic[k] = v
+            # 演出は表示範囲(vw_start..vw_end)に重なるtopicにだけ載せる（範囲外は通常画像）。
+            in_window = topic["end"] > vw_start + 1e-6 and topic["start"] < vw_end - 1e-6
+            if in_window:
+                if panel_resolved:
+                    topic["panel"] = panel_resolved
+                for k, v in viz.items():  # quiz/compare/stat/callouts（あるものだけ）
+                    topic[k] = v
             topics.append(topic)
     return topics
+
+
+def _viz_window(idxs, turns, seg_start, seg_end):
+    """演出の表示範囲 [start, end] を発言の viz_start/viz_end から決める（純関数）。
+
+    viz_start の発言の開始〜 viz_end の発言の終了。未指定側は章の境界（seg_start/seg_end）。
+    """
+    start = seg_start
+    for j in idxs:
+        if turns[j].get("viz_start"):
+            start = float(turns[j].get("start", seg_start))
+            break
+    end = seg_end
+    for j in idxs:
+        if turns[j].get("viz_end"):
+            end = float(turns[j].get("end", seg_end))  # 終了セリフの「終わり」まで表示
+            break
+    if end <= start:  # 不整合（終了が開始より前）なら章末まで
+        end = seg_end
+    return start, end
 
 
 def _reveal_time(idxs, turns, seg_start, seg_end):

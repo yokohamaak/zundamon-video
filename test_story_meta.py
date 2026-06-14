@@ -383,6 +383,27 @@ def test_build_chapter_topics_compare_split_timing():
     print("  build_chapter_topics: compare 分割タイミング制御 OK")
 
 
+def test_viz_window_range():
+    # viz_start/viz_end で演出の表示範囲を限定。範囲外topicには演出を付けない。
+    chapters = [{"section": "trivia", "title": "P", "image_cuts": [
+        {"image_query": "a", "image_kind": "ambient"}, {"image_query": "b", "image_kind": "ambient"}],
+        "panel": {"items": [{"text": "x"}]}}]
+    # cut0=turn0,1 / cut1=turn2,3。viz_startをturn0・viz_endをturn0(end=2.0)→窓[0,2]はcut0のみ
+    script = [
+        {"chapter": 0, "cut": 0, "viz_start": True, "panel_event": "shrink", "viz_end": True},
+        {"chapter": 0, "cut": 0},
+        {"chapter": 0, "cut": 1},
+        {"chapter": 0, "cut": 1}]
+    timing = _turns(4)  # 2.0秒/ターン
+    turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
+    segs = story_script.assign_sections_to_turns(script)
+    topics = m.build_chapter_topics(segs, turns, chapters, image_files={(0, 0): "c0.jpg", (0, 1): "c1.jpg"})
+    assert m._viz_window([0, 1, 2, 3], turns, 0.0, 8.0) == (0.0, 2.0)
+    has = [("panel" in t) for t in topics]
+    assert has[0] is True and has[1] is False, has  # cut0のみ演出・cut1は通常画像
+    print("  _viz_window: 範囲内topicのみ演出・範囲外は通常画像 OK")
+
+
 def test_build_chapter_topics_viz_reveal_fallback():
     # reveal発言が無いと zoom_punch 発言→章60% の順で revealAt を決める。
     chapters = [{"section": "trivia", "title": "S", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}],
@@ -411,6 +432,7 @@ if __name__ == "__main__":
     test_build_chapter_topics_panel_fallback()
     test_build_chapter_topics_viz()
     test_build_chapter_topics_compare_split_timing()
+    test_viz_window_range()
     test_build_chapter_topics_viz_reveal_fallback()
     test_build_credits()
     test_build_meta()
