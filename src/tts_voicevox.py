@@ -195,6 +195,21 @@ def revoice_if_all_unvoiced(query, pitch=None, pitch_provider=None, fallback=5.8
     return True
 
 
+def replace_interjection(text, mapping):
+    """文が丸ごと相づち/笑い（mappingのキー）に一致する時だけ別語へ置換（純関数）。
+
+    「ふふ」「ええ」等は VOICEVOX が全無声化して囁きになるため、有声で読まれる語に差し替える。
+    文末の記号(。！？〜ー…等)は保持し、核が完全一致した時のみ置換＝文中の語は触らない（誤爆防止）。
+    """
+    if not mapping or not text:
+        return text
+    m = re.match(r"^(.*?)([。、，,．.！!？?〜～ー…・\s]*)$", text)
+    core, tail = m.group(1), m.group(2)
+    if core in mapping:
+        return mapping[core] + tail
+    return text
+
+
 def _reference_pitch(base_url, speaker, cache, fallback=5.8):
     """話者の自然な声の高さ（有声モーラの平均 pitch）を1度だけ実測しキャッシュ。
 
@@ -383,6 +398,8 @@ def synthesize_dialogue(script, config):
     # 動画開始から声が始まるまでの無音（先頭リードイン）。digest.mp3 の頭に足し、
     # 全発話/字幕の時刻もこの分ずらす。最初の画像は0秒から出る（topics[0].startは0のまま）。
     lead_in = float(vc.get("lead_in_silence", 0.0))
+    # 全無声化で囁きになる相づち/笑いを有声な語へ置換（config.tts_voicevox.interjection_replace）。
+    interjection_replace = vc.get("interjection_replace") or {}
 
     if not script:
         raise ValueError("空の台本です")
@@ -416,6 +433,8 @@ def synthesize_dialogue(script, config):
         captions = []
 
         for sentence in _split_sentences(turn["text"]):
+            # 囁きになる相づち/笑いは有声な語へ差し替え（字幕＝この置換後テキストに揃う）。
+            sentence = replace_interjection(sentence, interjection_replace)
             # ユニゾンは読点(、)でさらに細かく分け、チャンクごとに二人の頭を揃え直す
             # （1フレーズ丸ごと混ぜると途中でズレが蓄積するため・字幕は文単位のまま）。
             chunks = (_split_chorus_chunks(sentence)

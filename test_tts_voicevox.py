@@ -341,6 +341,22 @@ def test_generate_audio_end_to_end():
         print(f"  e2e: mp3生成 {os.path.getsize(out)}B・総尺{turns[-1]['end']:.2f}s OK")
 
 
+def test_replace_interjection():
+    import src.tts_voicevox as tv
+    mp = {"ふふ": "ふふん", "ええ": "へえ"}
+    # 文が丸ごと一致＝置換（文末記号は保持）
+    assert tv.replace_interjection("ふふ", mp) == "ふふん"
+    assert tv.replace_interjection("ふふ。", mp) == "ふふん。"
+    assert tv.replace_interjection("ええ！？", mp) == "へえ！？"
+    # 文中・別語は触らない（誤爆防止）
+    assert tv.replace_interjection("ふふ、面白い", mp) == "ふふ、面白い"
+    assert tv.replace_interjection("ええと、それは", mp) == "ええと、それは"
+    assert tv.replace_interjection("そうね", mp) == "そうね"
+    # マップ空なら不変
+    assert tv.replace_interjection("ふふ", {}) == "ふふ"
+    print("  replace_interjection: 丸ごと一致のみ置換・文中は不変 OK")
+
+
 def test_revoice_if_all_unvoiced():
     import src.tts_voicevox as tv
     # 全母音が無声(pitch=0・大文字母音)＝「ふふ」相当 → 有声化される
@@ -379,4 +395,5 @@ if __name__ == "__main__":
     test_reading_gloss_in_synthesis()
     test_generate_audio_end_to_end()
     test_revoice_if_all_unvoiced()
+    test_replace_interjection()
     print("ALL PASS")
