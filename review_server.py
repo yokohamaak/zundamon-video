@@ -1567,6 +1567,17 @@ STORY_PAGE = """<!doctype html>
   .line.sel .lacts { display:flex; }
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
+  /* 演出範囲レール：S(ここから)/E(ここまで)＋範囲の縦帯。viz章のみ */
+  .line .rail { width:30px; flex:none; align-self:stretch; position:relative; }
+  .line .rail .seg { position:absolute; left:13px; width:4px; background:#6f5bd6; top:-5px; bottom:-15px; }
+  .line .rail .seg.s { top:26px; border-radius:2px 2px 0 0; }
+  .line .rail .seg.e { bottom:26px; border-radius:0 0 2px 2px; }
+  .line .rail .hbtn { position:absolute; left:3px; width:22px; height:18px; font-size:10px; font-weight:800; border:none;
+                      border-radius:5px; background:#262d39; color:var(--sub); cursor:pointer; z-index:1; opacity:0; }
+  .line:hover .rail .hbtn, .line .rail .hbtn.on { opacity:1; }
+  .line .rail .hbtn.s { top:8px; }
+  .line .rail .hbtn.e { bottom:8px; }
+  .line .rail .hbtn.on { background:#6f5bd6; color:#fff; }
   .rtabs { display:flex; gap:6px; margin-bottom:10px; }
   .rtab { font-size:13px; font-weight:700; padding:7px 13px; border-radius:8px; border:none;
           background:#1a212c; color:var(--sub); cursor:pointer; }
@@ -2654,6 +2665,18 @@ function chapterDivider(ch,ci){
 function lineRow(tn,gi,ch,ci,inViz){
   const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(inViz?' vizrow':''); row.dataset.gi=gi;
   const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
+  // 演出範囲レール（S=ここから / E=ここまで ＋ 範囲の縦帯）。viz章のみ。
+  const hasViz=(ch.section==='trivia')&&vizOf(ch);
+  if(hasViz){
+    const rng=vizRange(ci); const isS=(gi===rng.startGi), isE=(gi===rng.endGi);
+    const rail=document.createElement('div'); rail.className='rail';
+    if(inViz){ const seg=document.createElement('div'); seg.className='seg'+(isS?' s':'')+(isE?' e':''); rail.appendChild(seg); }
+    const hs=document.createElement('button'); hs.className='hbtn s'+(isS?' on':''); hs.textContent='S'; hs.title='ここから（この行から演出）';
+    hs.onclick=(e)=>{ e.stopPropagation(); setUniqueFlag(ci,'viz_start',true,tn,true); render(); };
+    const he=document.createElement('button'); he.className='hbtn e'+(isE?' on':''); he.textContent='E'; he.title='ここまで（この行まで演出）';
+    he.onclick=(e)=>{ e.stopPropagation(); setUniqueFlag(ci,'viz_end',true,tn,true); render(); };
+    rail.appendChild(hs); rail.appendChild(he); row.appendChild(rail);
+  }
   // アイコン（話者色の丸＋頭文字）
   const av=document.createElement('div'); av.className='av'; av.style.background=col; av.textContent=(tn.speaker||'?').slice(0,1);
   // 名前＋本文（縦並び）
@@ -2794,24 +2817,10 @@ function renderImageTab(r,tn,ch,ci){
   if(candOpen.has(ky)) r.appendChild(buildCand(ci,cur,cut));
 }
 
-// 演出範囲の行選択（ここから/ここまで）。章のセリフ一覧から選ぶだけで境界を設定。
-function rangeSelect(ci, flag){
-  const rng=vizRange(ci); const cur = (flag==='viz_start')?rng.startGi:rng.endGi;
-  const sel=document.createElement('select'); sel.style.cssText='max-width:230px';
-  (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci) return;
-    const o=document.createElement('option'); o.value=gi;
-    o.textContent=(t.speaker||'')+': '+((t.text||'').slice(0,18)); if(gi===cur)o.selected=true; sel.appendChild(o); });
-  sel.onchange=()=>{ const gi=+sel.value; setUniqueFlag(ci,flag,true,DATA.script[gi],true); render(); };
-  return sel;
-}
 function renderVizTab(r,tn,ch,ci){
-  if(vizOf(ch)){
-    // まず「演出する範囲」を行選択で（ここから/ここまで）。一番分かりやすい所＝先頭に。
-    r.appendChild(lblDiv('演出する範囲（どのセリフからどのセリフまで）'));
-    const rr=vRow('ここから'); rr.appendChild(rangeSelect(ci,'viz_start')); r.appendChild(rr);
-    const re=vRow('ここまで'); re.appendChild(rangeSelect(ci,'viz_end')); r.appendChild(re);
-  }
-  // この行で何を出すか（タイミングchip）。範囲ボタンは上のドロップダウンに統一するので抑制。
+  if(vizOf(ch)){ const n=document.createElement('div'); n.style.cssText='font-size:11px;color:var(--sub);margin-bottom:6px';
+    n.textContent='演出する範囲は左の台本でS（ここから）/E（ここまで）を押して指定。'; r.appendChild(n); }
+  // この行で何を出すか（タイミングchip）。範囲は左の帯で指定するので抑制。
   r.appendChild(turnVizControl(tn, selGi, ch, ci, true));
   if(vizOf(ch)){ const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;'; vizContent(ce,ch,ci); r.appendChild(ce); }
 }
