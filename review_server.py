@@ -2600,8 +2600,15 @@ function lineRow(tn,gi,ch,ci,inViz){
 function startEditLine(row,tn,tx){
   const ta=document.createElement('textarea'); ta.value=tn.text||'';
   tx.replaceWith(ta); autosize(ta); ta.focus();
+  // カーソルを末尾へ
+  const n=ta.value.length; try{ ta.setSelectionRange(n,n); }catch(e){}
   ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); };
-  ta.onblur=()=>{ render(); };
+  // 抜ける時は全再描画せず、その行だけ表示へ戻す（全DOM作り直しによるスクロール/フォーカス飛びを防ぐ）。
+  ta.onblur=()=>{
+    const nd=document.createElement('div'); nd.className='tx'; nd.textContent=tn.text||'(空)';
+    nd.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,nd); };
+    ta.replaceWith(nd);
+  };
 }
 
 function renderRight(){
