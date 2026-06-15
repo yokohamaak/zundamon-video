@@ -34,7 +34,8 @@ cmd_help() {
 制作ラッパー  ./run <コマンド> [引数]   （引数なしでメニュー）
 
 [本編]
-  script            台本＋画像を生成して停止（レビュー待ち）
+  script            台本＋画像を生成して停止（Gemini新規生成・レビュー待ち）
+  images            既存の台本(script.json)のまま画像だけ取得（Gemini不使用・台本を上書きしない）
   review            レビュー画面を開く（/story・/shorts）
   audio             音声＋meta を生成（VOICEVOX）
   meta              画像/見出しだけ直した時：音声据置で meta だけ再生成
@@ -55,6 +56,7 @@ EOF
 
 # ---- コマンド本体 ----
 cmd_script()  { run "$PY main_story.py --stop-after-images"; }
+cmd_images()  { run "$PY main_story.py --from-script $STORY/script.json --stop-after-images"; }  # 既存台本のまま画像取得
 cmd_review()  { run "$PY review_server.py --dir $STORY"; }
 cmd_audio()   { run "$PY main_story.py --from-script $STORY/script.json --images-from-dir"; }
 cmd_meta()    { run "$PY main_story.py --from-script $STORY/script.json --meta-only"; }
@@ -77,6 +79,7 @@ cmd_s_build() { cmd_s_audio "$1"; cmd_depth "$1"; cmd_s_render "$1"; }
 if [ $# -gt 0 ]; then
   case "$1" in
     script)   cmd_script ;;
+    images)   cmd_images ;;
     review)   cmd_review ;;
     audio)    cmd_audio ;;
     meta)     cmd_meta ;;
@@ -97,34 +100,36 @@ fi
 # 引数なし → 番号メニュー
 echo "=== 制作メニュー ==="
 echo "[本編]"
-echo "  1) script    台本+画像生成 → レビュー待ち"
-echo "  2) review    レビュー画面"
-echo "  3) audio     音声+meta（セリフを変えた時）"
-echo "  4) meta      metaだけ再生成（画像/見出しだけ直した時・音声据置）"
-echo "  5) dev       Studioでプレビュー(HMR)"
-echo "  6) render    書き出し"
-echo "  7) build     音声+meta+書き出し（本番出力）"
+echo "  1) script    台本+画像生成 → レビュー待ち（Gemini新規）"
+echo "  2) images    既存台本のまま画像だけ取得（上書きしない）"
+echo "  3) review    レビュー画面"
+echo "  4) audio     音声+meta（セリフを変えた時）"
+echo "  5) meta      metaだけ再生成（画像/見出しだけ直した時・音声据置）"
+echo "  6) dev       Studioでプレビュー(HMR)"
+echo "  7) render    書き出し"
+echo "  8) build     音声+meta+書き出し（本番出力）"
 echo "[ショート]"
-echo "  8) shorts    一括生成"
-echo "  9) s-audio   音声+meta"
-echo " 10) depth     深度（パララックス）"
-echo " 11) s-render  書き出し"
-echo " 12) s-build   音声+meta+深度+書き出し"
+echo "  9) shorts    一括生成"
+echo " 10) s-audio   音声+meta"
+echo " 11) depth     深度（パララックス）"
+echo " 12) s-render  書き出し"
+echo " 13) s-build   音声+meta+深度+書き出し"
 echo "  0) help"
 read -rp "番号: " n
 n="$(z2h "$n")"
 case "$n" in
   1) cmd_script ;;
-  2) cmd_review ;;
-  3) cmd_audio ;;
-  4) cmd_meta ;;
-  5) cmd_dev ;;
-  6) cmd_render ;;
-  7) cmd_build ;;
-  8) cmd_shorts "" ;;
-  9) read -rp "slug: " s; cmd_s_audio "$s" ;;
-  10) read -rp "slug: " s; cmd_depth "$s" ;;
-  11) read -rp "slug: " s; cmd_s_render "$s" ;;
-  12) read -rp "slug: " s; cmd_s_build "$s" ;;
+  2) cmd_images ;;
+  3) cmd_review ;;
+  4) cmd_audio ;;
+  5) cmd_meta ;;
+  6) cmd_dev ;;
+  7) cmd_render ;;
+  8) cmd_build ;;
+  9) cmd_shorts "" ;;
+  10) read -rp "slug: " s; cmd_s_audio "$s" ;;
+  11) read -rp "slug: " s; cmd_depth "$s" ;;
+  12) read -rp "slug: " s; cmd_s_render "$s" ;;
+  13) read -rp "slug: " s; cmd_s_build "$s" ;;
   0|*) cmd_help ;;
 esac
