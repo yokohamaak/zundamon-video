@@ -1509,6 +1509,7 @@ STORY_PAGE = """<!doctype html>
   .vchip { font-size:11px; padding:2px 10px; border-radius:999px; border:1px solid var(--line);
            background:transparent; color:var(--sub); cursor:pointer; }
   .vchip.on { background:#2a2440; color:#c4a8ff; border-color:#5a4a8a; font-weight:700; }
+  .vchip.dis { opacity:.38; cursor:not-allowed; }
   .vchip.edit { border-color:#5a4a8a; color:#c4a8ff; }
   .vchip.range { font-size:10px; padding:1px 7px; }
   .vizcontent { margin:0 0 10px 30px; padding:10px; background:#0c0f15; border:1px solid #5a4a8a; border-radius:8px; }
@@ -2002,8 +2003,21 @@ function turnVizControl(tn, gi, ch, ci, noRange){
     const chip=(label,flag,value,title)=>{ const on=tn[flag]===value;
       const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=label; if(title)b.title=title;
       b.onclick=()=>{ setUniqueFlag(ci,flag,value,tn,!on); render(); }; ctrl.appendChild(b); };
-    if(ch.panel){ chip('縮小','panel_event','shrink','この発言で画像を縮小');
-      (ch.panel.items||[]).forEach((it,k)=>chip('項目'+k,'panel_item',k,it.text||'')); }
+    if(ch.panel){
+      const ov=!!ch.panel.overlay;
+      // 縮小チップ（縮小モードのみ）。設定時、その行より前のpanel_itemは無効になるので除去（順序制約）。
+      if(!ov){ const son=tn.panel_event==='shrink';
+        const sb=document.createElement('button'); sb.type='button'; sb.className='vchip'+(son?' on':''); sb.textContent='縮小'; sb.title='この発言で画像を縮小（パネルを開く）';
+        sb.onclick=()=>{ setUniqueFlag(ci,'panel_event','shrink',tn,!son);
+          if(!son){ (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci && g<gi && typeof t.panel_item==='number') delete t.panel_item; }); }
+          render(); }; ctrl.appendChild(sb); }
+      // 項目チップ：縮小モードでは縮小より前の行は無効（縮小→項目の順を強制）。
+      let shrinkGi=null; (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci && t.panel_event==='shrink' && shrinkGi==null) shrinkGi=g; });
+      (ch.panel.items||[]).forEach((it,k)=>{ const on=tn.panel_item===k; const dis=(!ov && shrinkGi!=null && gi<shrinkGi);
+        const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':'')+(dis?' dis':''); b.textContent='項目'+k;
+        b.title=dis?'縮小より前には置けません（先に縮小を設定）':(it.text||'');
+        b.onclick=()=>{ if(dis) return; setUniqueFlag(ci,'panel_item',k,tn,!on); render(); }; ctrl.appendChild(b); });
+    }
     else if(ch.quiz){ chip('答えを出す','reveal',true); }
     else if(ch.compare){ chip('左','compare_item',0); chip('右(分割)','compare_item',1); }
     else if(ch.stat){ chip('数字を出す','reveal',true); }
