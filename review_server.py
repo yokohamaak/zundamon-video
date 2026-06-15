@@ -1980,6 +1980,9 @@ function vizContent(box, ch, ci){
   if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
     // ライブプレビュー（最終の縮小レイアウトを再現＝render(DialoguePanel)に合わせたHTMLモック）。
     const isPar=!p.items.some(it=>it.arrow_from_prev);
+    const pmType=(p.markerType||'check'), pmSym=(pmType==='square'?'■':pmType==='dot'?'●':'✔');
+    const pmColor=p.markerColor||'#ffd84d', pmSize=(p.markerSize!=null?p.markerSize:1);
+    const ptColor=p.textColor||'#ffffff', ptSize=(p.textSize!=null?p.textSize:1);
     const u=imgUrl(ci,0);
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px;display:flex;padding:10px;box-sizing:border-box;gap:14px';
     const iw=document.createElement('div'); iw.style.cssText='width:44%;height:100%;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.04);flex:none;display:flex;align-items:center;justify-content:center';
@@ -1996,8 +1999,8 @@ function vizContent(box, ch, ci){
       const w=document.createElement('div'); w.style.cssText='position:relative;margin:2px 0';
       if(!isPar && it.arrow_from_prev && i>0){ const ar=document.createElement('div'); ar.style.cssText='color:rgba(255,255,255,.5);font-size:11px;line-height:1;margin:1px 0'; ar.textContent='▼'; w.appendChild(ar); }
       const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px';
-      if(isPar){ const ck=document.createElement('span'); ck.style.cssText='color:#ffd84d;font-weight:900;font-size:13px;flex:none'; ck.textContent='✔'; row.appendChild(ck); }
-      const chip=document.createElement('span'); chip.style.cssText='display:inline-block;background:rgba(20,26,38,.85);color:#fff;font-weight:800;font-size:13px;padding:4px 9px;border-radius:7px;line-height:1.3'; chip.textContent=it.text; row.appendChild(chip);
+      if(isPar){ const ck=document.createElement('span'); ck.style.cssText='color:'+pmColor+';font-weight:900;font-size:'+Math.round(13*pmSize)+'px;flex:none'; ck.textContent=pmSym; row.appendChild(ck); }
+      const chip=document.createElement('span'); chip.style.cssText='display:inline-block;background:rgba(20,26,38,.85);color:'+ptColor+';font-weight:800;font-size:'+Math.round(13*ptSize)+'px;padding:4px 9px;border-radius:7px;line-height:1.3'; chip.textContent=it.text; row.appendChild(chip);
       w.appendChild(row); txt.appendChild(w); });
     prev.appendChild(txt); box.appendChild(prev);
     const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 4px';
@@ -2007,6 +2010,25 @@ function vizContent(box, ch, ci){
     const hr=vRow('見出し'); const hi=vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; }); hi.onchange=()=>render(); hr.appendChild(hi); box.appendChild(hr);
     // テキスト領域（縮小画像の横）の背景色＋不透明度。クリアで透過（黒板が見える）。
     box.appendChild(vBgRow(p,'文字側の背景','#1a2740'));
+    // 色＋大きさ倍率の編集行ヘルパー（マーカー/テキスト共用）。
+    const csRow=(label,colorKey,defColor,sizeKey)=>{ const r=vRow(label);
+      const cp=document.createElement('input'); cp.type='color'; cp.value=p[colorKey]||defColor; cp.title='色';
+      cp.oninput=()=>{ p[colorKey]=cp.value; }; cp.onchange=()=>render(); r.appendChild(document.createTextNode('色')); r.appendChild(cp);
+      const sl=document.createElement('input'); sl.type='range'; sl.min='0.3'; sl.max='2'; sl.step='0.1';
+      sl.value=(p[sizeKey]!=null?p[sizeKey]:1); sl.style.cssText='width:90px;vertical-align:middle'; sl.title='大きさ倍率';
+      const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
+      const show=()=>{ sv.textContent=(p[sizeKey]!=null?p[sizeKey]:1).toFixed(1)+'倍'; }; show();
+      sl.oninput=()=>{ p[sizeKey]=parseFloat(sl.value); show(); }; sl.onchange=()=>render();
+      r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(stepWrap(sl)); r.appendChild(sv);
+      r.appendChild(vMini('既定',()=>{ delete p[colorKey]; delete p[sizeKey]; render(); })); return r; };
+    // マーカー：記号(✔/■/●)＋色＋大きさ（並列項目のとき表示）。
+    const mr=vRow('マーカー');
+    [['check','✔'],['square','■'],['dot','●']].forEach(([v,sym])=>{ const b=document.createElement('button'); b.type='button';
+      b.className='vchip'+((p.markerType||'check')===v?' on':''); b.textContent=sym; b.style.fontSize='14px';
+      b.onclick=()=>{ if(v==='check') delete p.markerType; else p.markerType=v; render(); }; mr.appendChild(b); });
+    box.appendChild(mr);
+    box.appendChild(csRow('マーカー色/大','markerColor','#ffd84d','markerSize'));
+    box.appendChild(csRow('テキスト色/大','textColor','#ffffff','textSize'));
     p.items.forEach((it,i)=>{
       const r=vRow('項目'+i);
       const ti=vText(it.text,'体言止め10字以内',v=>it.text=v); ti.onchange=()=>render(); r.appendChild(ti);

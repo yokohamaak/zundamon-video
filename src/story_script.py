@@ -450,6 +450,21 @@ def _clean_panel(panel):
     op = _clean_opacity(panel.get("bgOpacity"))
     if op is not None:
         out["bgOpacity"] = op
+    mtype = panel.get("markerType")
+    if mtype in ("check", "square", "dot"):
+        out["markerType"] = mtype
+    mcolor = (panel.get("markerColor") or "").strip()
+    if mcolor:
+        out["markerColor"] = mcolor
+    msize = _clean_size(panel.get("markerSize"))
+    if msize is not None:
+        out["markerSize"] = msize
+    tcolor = (panel.get("textColor") or "").strip()
+    if tcolor:
+        out["textColor"] = tcolor
+    tsize = _clean_size(panel.get("textSize"))
+    if tsize is not None:
+        out["textSize"] = tsize
     heading = strip_markdown((panel.get("heading") or "").strip())
     if heading:
         out["heading"] = heading

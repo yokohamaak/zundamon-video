@@ -149,6 +149,12 @@ export type Panel = {
   // テキスト領域上部の見出し（任意・お題）。並列項目のときに特に有効。
   heading?: string;
   items: PanelItem[];
+  // 項目マーカー（並列時の記号）と、マーク/テキストの見た目（章共通・任意）。
+  markerType?: "check" | "square" | "dot"; // ✔ / ■ / ●（既定 check）
+  markerColor?: string;   // マーカーの色（既定 #ffd84d）
+  markerSize?: number;    // マーカーの大きさ倍率（既定 1）
+  textColor?: string;     // 項目テキストの色（既定 #fff）
+  textSize?: number;      // 項目テキストの大きさ倍率（既定 1）
   // 画像を縮小しテキスト領域を開く絶対時刻（秒）。無指定時は章頭。
   shrinkAt?: number;
 };

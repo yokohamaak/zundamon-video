@@ -319,6 +319,13 @@ const DialoguePanel: React.FC<{
   const textW = portrait ? boxW : boxW - imgW - GAP;
   const textH = portrait ? boxH - imgH - GAP : boxH;
   const fontSize = portrait ? 40 : 46;
+  // 項目マーカー（並列時の記号）と、マーク/テキストの色・大きさ（任意・章共通）。
+  const mType = panel.markerType || "check";
+  const mSym = mType === "square" ? "■" : mType === "dot" ? "●" : "✔";
+  const mColor = panel.markerColor || "#ffd84d";
+  const tColor = panel.textColor || "#fff";
+  const itemFont = Math.round(fontSize * (panel.textSize ?? 1));
+  const markFont = Math.round(fontSize * (panel.markerSize ?? 1));
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       {/* 縮小画像（panel.image・無ければ淡い枠だけ）。cover で枠を埋める。 */}
@@ -409,9 +416,9 @@ const DialoguePanel: React.FC<{
               style={{
                 display: "inline-block",
                 background: "rgba(20,26,38,0.85)",
-                color: "#fff",
+                color: tColor,
                 fontWeight: 800,
-                fontSize,
+                fontSize: itemFont,
                 padding: portrait ? "8px 16px" : "10px 22px",
                 borderRadius: 12,
                 lineHeight: 1.3,
@@ -448,9 +455,9 @@ const DialoguePanel: React.FC<{
                   transformOrigin: "left center",
                 }}
               >
-                {/* 並列のときは各項目にチェックマーカー（▼の代わり）。 */}
+                {/* 並列のときは各項目にマーカー（✔/■/●・▼の代わり）。 */}
                 {isParallel ? (
-                  <span style={{ color: "#ffd84d", fontWeight: 900, fontSize, lineHeight: 1 }}>✔</span>
+                  <span style={{ color: mColor, fontWeight: 900, fontSize: markFont, lineHeight: 1 }}>{mSym}</span>
                 ) : null}
                 {chip}
               </div>
