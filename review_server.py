@@ -1712,11 +1712,26 @@ function contentRect(img,box){ const nw=img.naturalWidth,nh=img.naturalHeight; i
 function mkrange(min,max,step,val){ const s=document.createElement('input'); s.type='range'; s.min=min; s.max=max; s.step=step; s.value=val; return s; }
 
 function splitTurn(tn,ta){
-  const text=tn.text||''; let pos=ta.selectionStart;
-  if(!(pos>0&&pos<text.length)){ const m=text.slice(1).search(/[。！？]/); pos=m>=0?m+2:Math.floor(text.length/2); }
+  const text=tn.text||'';
+  let pos=(ta&&ta.selectionStart)||0;
+  if(!(pos>0&&pos<text.length)){
+    // カーソル未指定：中央に最も近い句読点(、。！？)で割る。無ければ中央。
+    // （句点が末尾だけのセリフでも空にならないよう「、」も区切り候補にする）
+    const mid=text.length/2; let best=-1,bestD=1e9;
+    for(let i=1;i<text.length;i++){ if('、。！？'.includes(text[i-1])){ const d=Math.abs(i-mid); if(d<bestD){bestD=d;best=i;} } }
+    pos = best>0 ? best : Math.floor(text.length/2);
+  }
   const a=text.slice(0,pos).trim(), b=text.slice(pos).trim();
   if(!a||!b){ alert('分割位置が不正'); return; }
-  tn.text=a; const nt=Object.assign({},tn,{text:b}); ['start','end','sentences'].forEach(k=>delete nt[k]);
+  // 後半の新ターン。継続属性(話者/章/画像/感情等)のみ引き継ぎ、一点を指すflag(compare_item等)や
+  // 尺(start/end/sentences)は引き継がない＝タイミングが二重にならないようにする。
+  const nt={speaker:tn.speaker, text:b};
+  ['chapter','section','cut','emotion','effect','voice'].forEach(k=>{ if(tn[k]!=null) nt[k]=tn[k]; });
+  // 末尾に属する属性(後の無音/締め/範囲の終了)は後半へ移す（先頭からは外す）。
+  ['pause','closing','chorus','viz_end'].forEach(k=>{ if(tn[k]!=null){ nt[k]=tn[k]; delete tn[k]; } });
+  // 一点flag(compare_item/panel_item/panel_event/reveal/callout_item)とviz_startは先頭に残す。
+  // 後半に何を出すかは下のタイミングchip（左/右(分割)など）で指定する。
+  tn.text=a; ['start','end','sentences'].forEach(k=>delete tn[k]);
   DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
 }
 function delTurn(tn){ const i=DATA.script.indexOf(tn); if(i>=0&&confirm('この発言を削除？')){ DATA.script.splice(i,1); render(); } }
