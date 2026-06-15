@@ -2185,6 +2185,13 @@ function vizContent(box, vh, ch, ci, onDel){
     const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
     const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+pv(16)+'px;text-align:center'; at.textContent=q.answer||'答え'; ans.appendChild(at);
     if(revealed) prev.appendChild(ans);   // 答え以降＝答えバナー
+    // リビール後：問いは消えず上部の章バッジ枠へ昇格（本番=「実はN＋問題」）。プレビューも上バーで再現。
+    if(revealed){ const qb=document.createElement('div'); qb.style.cssText='position:absolute;left:3%;top:5%;display:flex;align-items:stretch;border-radius:5px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5);max-width:86%';
+      const acc=document.createElement('div'); acc.style.cssText='width:4px;background:#ffd84d;flex:none'; qb.appendChild(acc);
+      const qbody=document.createElement('div'); qbody.style.cssText='display:flex;align-items:center;gap:6px;background:rgba(18,30,58,.9);padding:'+pv(4)+'px '+pv(9)+'px';
+      const lab=document.createElement('span'); lab.style.cssText='color:#ffd84d;font-weight:800;font-size:'+pv(12)+'px;flex:none'; lab.textContent='Q.'; qbody.appendChild(lab);
+      const qtx=document.createElement('span'); qtx.style.cssText='color:#fff;font-weight:800;font-size:'+pv(12)+'px;line-height:1.2'; qtx.textContent=q.question||'問い'; qbody.appendChild(qtx);
+      qb.appendChild(qbody); prev.appendChild(qb); }
     box.appendChild(prev);
     const r1=vRow('問い'); const qi=vText(q.question,'画面に出す問い',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); box.appendChild(r1);
     const r2=vRow('答え'); const ai=vText(q.answer,'リビールで出す答え',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
@@ -2193,7 +2200,7 @@ function vizContent(box, vh, ch, ci, onDel){
       cp.oninput=()=>{ q[key]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
       r.appendChild(vMini('既定',()=>{ delete q[key]; render(); })); return r; };
     const nt=document.createElement('div'); nt.style.cssText='font-size:11px;color:var(--sub);margin:2px 0';
-    nt.textContent='プレビューは選択行を再現：「答えを出す」行より前＝問い／以降＝答え。画像は背後にそのまま（暗転しない）。';
+    nt.textContent='プレビューは選択行を再現：「答えを出す」行より前＝中央に問い／以降＝問いは上部バー(Q.)へ縮小＋答えバナー。画像は背後にそのまま（暗転しない）。';
     box.appendChild(nt);
     box.appendChild(vBgRow(q,'文字の背景','#0f141e',0.62));
     box.appendChild(colRow('問いの文字色','textColor','#ffffff'));
