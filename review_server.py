@@ -1566,19 +1566,20 @@ STORY_PAGE = """<!doctype html>
   .line.sel .lacts { display:flex; }
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
-  /* 演出範囲レール：開始(行の上端)/終了(行の下端)＋範囲の縦帯。viz章のみ・Linear的に控えめ */
-  .line .rail { width:50px; flex:none; align-self:stretch; position:relative; margin:-13px 0; }  /* カード上下padding(13px)を打ち消し枠に揃える */
-  .line .rail .seg { position:absolute; left:23px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
+  /* 演出範囲レール：各セグメントが自分の開始/終了行にハンドルを常時持つ＋範囲の縦帯。viz章のみ */
+  .line .rail { width:62px; flex:none; align-self:stretch; position:relative; margin:-13px 0; }  /* カード上下padding(13px)を打ち消し枠に揃える */
+  .line .rail .seg { position:absolute; left:29px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
   .line .rail .seg.s { top:21px; border-radius:3px 3px 0 0; }
   .line .rail .seg.e { bottom:21px; border-radius:0 0 3px 3px; }
-  .line .rail .hbtn { position:absolute; left:1px; width:46px; height:19px; display:flex; align-items:center; justify-content:center;
-                      white-space:nowrap; font-size:10px; font-weight:700; border:1px solid #313a47; border-radius:6px; background:#141a23;
-                      color:#9aa6ba; cursor:pointer; z-index:1; opacity:.6; transition:opacity .12s; box-sizing:border-box; }
-  .line:hover .rail .hbtn { opacity:1; }
-  .line .rail .hbtn:hover { border-color:#6b6ae0; color:#dbe1ec; }
-  .line .rail .hbtn.on { opacity:1; background:#6b6ae0; border-color:#6b6ae0; color:#fff; }
-  .line .rail .hbtn.s { top:0; }       /* 開始＝行の上端にライン合わせ */
-  .line .rail .hbtn.e { bottom:0; }    /* 終了＝行の下端にライン合わせ */
+  /* 境界ハンドル：ラベル(開始/終了)＋1行ずつ動かす ↑↓ ボタン。常時表示。 */
+  .line .rail .bh { position:absolute; left:1px; width:58px; display:flex; align-items:center; gap:2px; z-index:1; }
+  .line .rail .bh.s { top:1px; }      /* 開始＝行の上端 */
+  .line .rail .bh.e { bottom:1px; }   /* 終了＝行の下端 */
+  .line .rail .bh .lab { font-size:9px; font-weight:800; color:#fff; border-radius:4px; padding:1px 3px; line-height:1.3; }
+  .line .rail .bh button { width:15px; height:16px; border:1px solid #313a47; border-radius:4px; background:#141a23;
+                           color:#9aa6ba; cursor:pointer; font-size:10px; line-height:1; padding:0; box-sizing:border-box; }
+  .line .rail .bh button:hover:not(:disabled) { border-color:#6b6ae0; color:#dbe1ec; }
+  .line .rail .bh button:disabled { opacity:.2; cursor:default; }
   .rtabs { display:flex; gap:6px; margin-bottom:10px; }
   .rtab { font-size:13px; font-weight:700; padding:7px 13px; border-radius:8px; border:none;
           background:#1a212c; color:var(--sub); cursor:pointer; }
@@ -2785,20 +2786,30 @@ function chapterDivider(ch,ci){
 function lineRow(tn,gi,ch,ci,inViz){
   const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(inViz?' vizrow':''); row.dataset.gi=gi;
   const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
-  // 演出セグメントのレール（所属＝色帯／選択中セグメントは開始・終了で範囲調整）。trivia章のみ。
+  // 演出セグメントのレール（所属＝色帯＋各演出が自分の開始/終了行に常時ハンドル）。trivia章のみ。
   const seg=segOf(tn,ch); const segIdx=seg?chSegs(ch).indexOf(seg):-1;
   if(ch.section==='trivia'){
     const rail=document.createElement('div'); rail.className='rail';
-    if(seg){ const c2=SEGCOL[segIdx%SEGCOL.length]; const rng=segRange(ci,seg.id);
-      const sg=document.createElement('div'); sg.className='seg'+(gi===rng.s?' s':'')+(gi===rng.e?' e':''); sg.style.background=c2; rail.appendChild(sg); }
-    // 選択中セグメントの範囲を、この行を開始/終了として設定（空き行のみ取り込み・重複防止）。
-    if(selSeg && chSegs(ch).some(s=>s.id===selSeg)){
-      const cur=segRange(ci,selSeg);
-      const hs=document.createElement('button'); hs.className='hbtn s'+(gi===cur.s?' on':''); hs.textContent='開始'; hs.title='この演出をここから';
-      hs.onclick=(e)=>{ e.stopPropagation(); retagSeg(ci,selSeg,gi,cur.e<0?gi:cur.e); render(); };
-      const he=document.createElement('button'); he.className='hbtn e'+(gi===cur.e?' on':''); he.textContent='終了'; he.title='この演出をここまで';
-      he.onclick=(e)=>{ e.stopPropagation(); retagSeg(ci,selSeg,cur.s<0?gi:cur.s,gi); render(); };
-      rail.appendChild(hs); rail.appendChild(he);
+    if(seg){
+      const c2=SEGCOL[segIdx%SEGCOL.length]; const rng=segRange(ci,seg.id);
+      const sg=document.createElement('div'); sg.className='seg'+(gi===rng.s?' s':'')+(gi===rng.e?' e':''); sg.style.background=c2; rail.appendChild(sg);
+      const prevSame=(gi>0 && DATA.script[gi-1] && DATA.script[gi-1].chapter===ci);
+      const nextSame=(gi<DATA.script.length-1 && DATA.script[gi+1] && DATA.script[gi+1].chapter===ci);
+      const multi=(rng.e>rng.s);  // 2行以上なら縮められる
+      // 1行ずつ動かすハンドル（↑↓）。↑↓の向き=範囲を広げる/狭める。広げる時は隣の演出から1行奪う。
+      const mkBh=(cls,label,btns)=>{ const bh=document.createElement('div'); bh.className='bh '+cls;
+        const lab=document.createElement('span'); lab.className='lab'; lab.style.background=c2; lab.textContent=label; bh.appendChild(lab);
+        btns.forEach(([sym,title,enabled,fn])=>{ const b=document.createElement('button'); b.textContent=sym; b.title=title; b.disabled=!enabled;
+          b.onclick=(e)=>{ e.stopPropagation(); if(!enabled)return; fn(); render(); }; bh.appendChild(b); });
+        rail.appendChild(bh); };
+      if(gi===rng.s) mkBh('s','開始',[
+        ['↑','1行上へ広げる（前の演出から奪う）', prevSame, ()=>retagSeg(ci,seg.id,gi-1,rng.e)],
+        ['↓','1行下へ狭める',                  multi,    ()=>retagSeg(ci,seg.id,gi+1,rng.e)],
+      ]);
+      if(gi===rng.e) mkBh('e','終了',[
+        ['↑','1行上へ狭める',                  multi,    ()=>retagSeg(ci,seg.id,rng.s,gi-1)],
+        ['↓','1行下へ広げる（次の演出から奪う）', nextSame, ()=>retagSeg(ci,seg.id,rng.s,gi+1)],
+      ]);
     }
     row.appendChild(rail);
   }
@@ -2970,7 +2981,7 @@ function renderVizTab(r,tn,ch,ci){
   let cur=segs.find(s=>s.id===selSeg); if(!cur){ const ls=segOf(tn,ch); if(ls){ cur=ls; selSeg=ls.id; } }
   if(cur){
     const n=document.createElement('div'); n.style.cssText='font-size:11px;color:var(--sub);margin:6px 0';
-    n.textContent='範囲は左の「開始/終了」で調整（'+(VIZ_LABEL[cur.type]||'')+'）。タイミングはこのセグメント内のセリフを選んで設定。';
+    n.textContent='範囲は左レールの「開始/終了」の↑↓で1行ずつ調整（'+(VIZ_LABEL[cur.type]||'')+'）。広げると隣の演出から奪う。タイミングはこのセグメント内のセリフを選んで設定。';
     r.appendChild(n);
     if(tn.vizSeg===cur.id) r.appendChild(turnVizControl(tn, selGi, cur, ci));
     const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;';
