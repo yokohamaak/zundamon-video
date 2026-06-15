@@ -1956,14 +1956,14 @@ function vBgRow(obj, label, defColor, defOp, bgKey, opKey){
   defOp=(defOp!=null?defOp:1); bgKey=bgKey||'bg'; opKey=opKey||'bgOpacity';
   const br=vRow(label);
   const cp=document.createElement('input'); cp.type='color'; cp.value=obj[bgKey]||defColor; cp.title='背景色';
-  cp.oninput=()=>{ obj[bgKey]=cp.value; if(obj[opKey]==null)obj[opKey]=defOp; };
+  cp.oninput=()=>{ obj[bgKey]=cp.value; if(obj[opKey]==null)obj[opKey]=defOp; }; cp.onchange=()=>render();
   br.appendChild(cp);
   const op=document.createElement('input'); op.type='range'; op.min='0'; op.max='1'; op.step='0.05';
   op.value=(obj[opKey]!=null?obj[opKey]:defOp); op.style.cssText='width:96px;vertical-align:middle'; op.title='不透明度（左ほど透ける）';
   const ov=document.createElement('span'); ov.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
   const showOv=()=>{ ov.textContent=Math.round((obj[opKey]!=null?obj[opKey]:defOp)*100)+'%'; };
   showOv();
-  op.oninput=()=>{ obj[opKey]=parseFloat(op.value); if(obj[bgKey]==null){ obj[bgKey]=cp.value||defColor; } showOv(); };
+  op.oninput=()=>{ obj[opKey]=parseFloat(op.value); if(obj[bgKey]==null){ obj[bgKey]=cp.value||defColor; } showOv(); }; op.onchange=()=>render();
   br.appendChild(document.createTextNode(' 透過')); br.appendChild(stepWrap(op)); br.appendChild(ov);
   br.appendChild(vMini('既定に戻す',()=>{ delete obj[bgKey]; delete obj[opKey]; render(); }));
   return br;
@@ -1978,20 +1978,41 @@ function vizContent(box, ch, ci){
   const ncuts=(ch.image_cuts||[]).length;
 
   if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
-    // 画像はセリフ毎に変わる（各行のcutで選択）＝ここでは画像を固定しない。
+    // ライブプレビュー（最終の縮小レイアウトを再現＝render(DialoguePanel)に合わせたHTMLモック）。
+    const isPar=!p.items.some(it=>it.arrow_from_prev);
+    const u=imgUrl(ci,0);
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px;display:flex;padding:10px;box-sizing:border-box;gap:14px';
+    const iw=document.createElement('div'); iw.style.cssText='width:44%;height:100%;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.04);flex:none;display:flex;align-items:center;justify-content:center';
+    if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; iw.appendChild(im); }
+    else { const ph=document.createElement('span'); ph.style.cssText='color:var(--sub);font-size:11px'; ph.textContent='画像(各行のcut)'; iw.appendChild(ph); }
+    prev.appendChild(iw);
+    const txt=document.createElement('div'); txt.style.cssText='position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:8px 6px;border-radius:8px;overflow:hidden';
+    if(p.bg){ const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:8px;background:'+p.bg+';opacity:'+(p.bgOpacity!=null?p.bgOpacity:1); txt.appendChild(bgl); }
+    if(p.heading){ const hd=document.createElement('div'); hd.style.cssText='position:relative;display:flex;align-items:center;gap:6px;margin-bottom:6px';
+      const bar=document.createElement('span'); bar.style.cssText='width:5px;height:16px;background:#ffd84d;border-radius:2px;display:inline-block;flex:none';
+      const ht=document.createElement('span'); ht.style.cssText='color:#fff;font-weight:900;font-size:14px'; ht.textContent=p.heading;
+      hd.appendChild(bar); hd.appendChild(ht); txt.appendChild(hd); }
+    p.items.forEach((it,i)=>{ if(!it.text) return;
+      const w=document.createElement('div'); w.style.cssText='position:relative;margin:2px 0';
+      if(!isPar && it.arrow_from_prev && i>0){ const ar=document.createElement('div'); ar.style.cssText='color:rgba(255,255,255,.5);font-size:11px;line-height:1;margin:1px 0'; ar.textContent='▼'; w.appendChild(ar); }
+      const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px';
+      if(isPar){ const ck=document.createElement('span'); ck.style.cssText='color:#ffd84d;font-weight:900;font-size:13px;flex:none'; ck.textContent='✔'; row.appendChild(ck); }
+      const chip=document.createElement('span'); chip.style.cssText='display:inline-block;background:rgba(20,26,38,.85);color:#fff;font-weight:800;font-size:13px;padding:4px 9px;border-radius:7px;line-height:1.3'; chip.textContent=it.text; row.appendChild(chip);
+      w.appendChild(row); txt.appendChild(w); });
+    prev.appendChild(txt); box.appendChild(prev);
     const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 4px';
-    note.textContent='画像はセリフ毎に切替（各行のcutで選択）。矢印を付けると時系列フロー(▼)・付けなければ並列(✔)。';
+    note.textContent='画像はセリフ毎に切替（各行のcutで選択・上は代表）。矢印で時系列フロー(▼)／無しは並列(✔)。';
     box.appendChild(note);
     // 見出し（テキスト領域の上に出すお題。並列項目で特に有効）。
-    const hr=vRow('見出し'); hr.appendChild(vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; })); box.appendChild(hr);
+    const hr=vRow('見出し'); const hi=vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; }); hi.onchange=()=>render(); hr.appendChild(hi); box.appendChild(hr);
     // テキスト領域（縮小画像の横）の背景色＋不透明度。クリアで透過（黒板が見える）。
     box.appendChild(vBgRow(p,'文字側の背景','#1a2740'));
     p.items.forEach((it,i)=>{
       const r=vRow('項目'+i);
-      r.appendChild(vText(it.text,'体言止め10字以内',v=>it.text=v));
+      const ti=vText(it.text,'体言止め10字以内',v=>it.text=v); ti.onchange=()=>render(); r.appendChild(ti);
       if(i>0){ const al=document.createElement('label'); al.style.cssText='font-size:12px;display:inline-flex;gap:3px;align-items:center';
         const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!it.arrow_from_prev;
-        ac.onchange=()=>{ if(ac.checked)it.arrow_from_prev=true; else delete it.arrow_from_prev; };
+        ac.onchange=()=>{ if(ac.checked)it.arrow_from_prev=true; else delete it.arrow_from_prev; render(); };
         al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al); }
       r.appendChild(vMini('削除',()=>{ p.items.splice(i,1); clampItemFlags(ci,'panel_item',p.items.length); render(); }));
       box.appendChild(r);

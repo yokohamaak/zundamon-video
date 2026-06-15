@@ -2,7 +2,7 @@
   "script": [
     {
       "speaker": "四国めたん",
-      "text": "次はね、Web（ウェブ）サイトでよく見る「私はロボットではありません」ってチェックボックスあるでしょう。",
+      "text": "お次は、おなじみのGoogle（グーグル）マップのストリートビュー撮影の裏側ね。",
       "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
@@ -11,7 +11,7 @@
     },
     {
       "speaker": "ずんだもん",
-      "text": "あるのだ！あれをクリックするだけで、なんで人間だって判定できるのか不思議なのだ。",
+      "text": "ストリートビューは、あのカメラを載せた車が道路を走りまくって撮影しているのだ！",
       "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
@@ -20,74 +20,93 @@
     },
     {
       "speaker": "四国めたん",
-      "text": "実は、チェックを入れた瞬間ではなく、チェックボックスに「カーソルを動かすまでの手ブレ」をAI（エーアイ）が分析しているのよ。",
-      "emotion": "surprise",
+      "text": "基本はそうだけど、車が入れない砂漠や山の中、細い路地はどうしていると思う？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "panel_item": 0,
+      "panel_event": "shrink"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実はね、車以外にも信じられない方法で撮影しているのよ。",
+      "emotion": "happy",
       "section": "trivia",
       "chapter": 0,
       "effect": "zoom_punch",
-      "cut": 0,
-      "callout_item": 0
+      "cut": 1,
+      "panel_item": 1
     },
     {
       "speaker": "四国めたん",
-      "text": "ロボットは直線的に動くけれど、人間はビミョーに震えながら不規則に動くの。それを見ているのよ。",
+      "text": "山の上や観光地は、人間がカメラ付きのバックパックを背負って歩いて撮影しているの。",
       "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
       "effect": "kenburns",
-      "cut": 0,
-      "callout_item": 1
-    },
-    {
-      "speaker": "ずんだもん",
-      "text": "クリックする前から、ぼくたちの不器用な手の動きは完全に観察されていたのだね…！",
-      "emotion": "surprise",
-      "section": "trivia",
-      "chapter": 0,
-      "effect": "kenburns",
-      "cut": 0
+      "cut": 1
     },
     {
       "speaker": "四国めたん",
-      "text": "怪しいと判断された時だけ、あの「消火栓の画像を選んで」っていうテストが出る仕組みなのよ。",
+      "text": "さらに、砂漠ではラクダの背中にカメラを載せて撮影したこともあるわ。",
       "emotion": "happy",
       "section": "trivia",
       "chapter": 0,
       "effect": "kenburns",
-      "cut": 0
+      "cut": 2,
+      "panel_item": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ラクダまで動員しているなんて、最先端の地図サービスの裏側はめちゃくちゃ泥臭かったのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
     }
   ],
   "theme": "実は知らないIT企業・サービスの裏側",
   "chapters": [
     {
       "section": "trivia",
-      "title": "私はロボットではありませんの謎",
-      "summary": "「私はロボットではありません」の認証は、チェックを入れる前のマウスの手ブレやブラウザ情報をAIが解析して人間かどうかを判定している。",
+      "title": "マップ撮影の泥臭い裏側",
+      "summary": "Googleマップのストリートビューは、車が入れない僻地では人がバックパックを背負ったり、ラクダやヒツジなどの動物にカメラを載せて撮影している。",
       "image_cuts": [
         {
-          "image_query": "recaptcha check box",
+          "image_query": "google street view car",
           "image_kind": "subject",
-          "image_query_ja": "私はロボットではありませんのチェックボックス"
-        }
-      ],
-      "hook": "あのチェック、クリック前から判定されている",
-      "confidence": "high",
-      "source_hint": "Google reCAPTCHA（リキャプチャ）の開発仕様書",
-      "owner_comment": true,
-      "callouts": [
-        {
-          "text": "チェックボックス",
-          "x": 0.15,
-          "y": 0.5,
-          "arrow": true
+          "image_query_ja": "ストリートビューの撮影車"
         },
         {
-          "text": "マウスの手ブレ軌跡",
-          "x": 0.6,
-          "y": 0.3,
-          "arrow": true
+          "image_query": "street view trekker backpack",
+          "image_kind": "subject",
+          "image_query_ja": "背負うカメラ"
+        },
+        {
+          "image_query": "camel with camera desert",
+          "image_kind": "ambient",
+          "image_query_ja": "ラクダに載せたカメラ"
         }
-      ]
+      ],
+      "hook": "ストリートビューはラクダも撮影している",
+      "confidence": "high",
+      "source_hint": "Google公式ブログおよびStreet View Trekkerの公開情報",
+      "panel": {
+        "items": [
+          {
+            "text": "ストリートビュー車"
+          },
+          {
+            "text": "人間が背負うカメラ"
+          },
+          {
+            "text": "ラクダでの砂漠撮影"
+          }
+        ]
+      }
     }
   ]
 }
