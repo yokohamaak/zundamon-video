@@ -2,7 +2,7 @@
   "script": [
     {
       "speaker": "四国めたん",
-      "text": "最後は、冒頭で言ったスマホのGPS（ジーピーエス）の仕組みの裏側よ。",
+      "text": "最初は、みんな見てる動画配信のNetflix（ネットフリックス）の裏側よ。実は画面の作品画像が人によって違うの。",
       "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
@@ -11,8 +11,8 @@
     },
     {
       "speaker": "ずんだもん",
-      "text": "スマホが「ここにいるよ！」って宇宙の衛星に電波を送っているとしか思えないのだ！",
-      "emotion": "normal",
+      "text": "えっ？同じ映画なら、みんな同じポスターみたいな画像が表示されているんじゃないのだ？",
+      "emotion": "surprise",
       "section": "trivia",
       "chapter": 0,
       "effect": "kenburns",
@@ -20,45 +20,37 @@
     },
     {
       "speaker": "四国めたん",
-      "text": "実はね、スマホのGPS（ジーピーエス）は、宇宙からの電波をひたすら「受信」しているだけ。スマホから電波は一ミリも送信していないの。",
-      "emotion": "surprise",
+      "text": "それが違うのよ。Netflix（ネットフリックス）のAI（エーアイ）が、あなたの好みに合わせて画像を自動で変えているの。",
+      "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
       "effect": "zoom_punch",
-      "cut": 0
-    },
-    {
-      "speaker": "ずんだもん",
-      "text": "ええっ！？送信していないのに、なんでスマホに現在地が表示できるのだ！？",
-      "emotion": "surprise",
-      "section": "trivia",
-      "chapter": 0,
-      "effect": "shake",
-      "cut": 1
+      "cut": 0,
+      "compare_item": 0
     },
     {
       "speaker": "四国めたん",
-      "text": "宇宙のGPS（ジーピーエス）衛星は、超精密な時計の「現在の時刻」をひたすらラジオのように放送しているだけなの。",
-      "emotion": "normal",
-      "section": "trivia",
-      "chapter": 0,
-      "effect": "kenburns",
-      "cut": 1,
-      "reveal": true
-    },
-    {
-      "speaker": "四国めたん",
-      "text": "スマホは、複数の衛星から届いた電波のビミョーな時間差を計算して、自分で現在地を割り出しているのよ。",
+      "text": "たとえば、恋愛ものをよく見る人にはロマンチックなサムネイル、アクション好きには爆破シーンを見せるのよ。",
       "emotion": "happy",
       "section": "trivia",
       "chapter": 0,
       "effect": "kenburns",
-      "cut": 1
+      "cut": 1,
+      "compare_item": 1
     },
     {
       "speaker": "ずんだもん",
-      "text": "だから飛行機モードにして携帯の電波を遮断しても、地図上の現在地だけは正確に動くのだね！",
+      "text": "ぼくが見ている画面は、ぼく専用にカスタマイズされていたのだね！",
       "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ええ、作品をクリックしてもらうための、徹底的な個別最適化の裏側なのよ。",
+      "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
       "effect": "kenburns",
@@ -69,26 +61,32 @@
   "chapters": [
     {
       "section": "trivia",
-      "title": "GPSは電波を送信していない",
-      "summary": "スマホのGPSは宇宙の衛星から発信される時刻電波を一方的に受信しているだけで、スマホ側から宇宙へ電波を送信することは一切ない。",
+      "title": "サムネイルは人によって違う",
+      "summary": "Netflixはユーザーの過去の視聴傾向をAIが分析し、最もクリックされやすいサムネイル画像を個別に自動生成して表示している。",
       "image_cuts": [
         {
-          "image_query": "gps satellite orbit",
+          "image_query": "netflix  thumbnail",
           "image_kind": "ambient",
-          "image_query_ja": "GPS衛星"
+          "image_query_ja": "アクション風のサムネイル"
         },
         {
-          "image_query": "smartphone map navigation",
+          "image_query": "netflix romance movie thumbnail",
           "image_kind": "ambient",
-          "image_query_ja": "スマホのナビ画面"
+          "image_query_ja": "恋愛風のサムネイル"
         }
       ],
-      "hook": "スマホのGPSは電波を一ミリも送信していない",
+      "hook": "Netflixのサムネはあなた専用に作られている",
       "confidence": "high",
-      "source_hint": "GPS（全地球測位システム）の通信仕様と仕組み",
-      "quiz": {
-        "question": "スマホのGPSは電波を送信している？",
-        "answer": "一切送信せず、受信しているだけ"
+      "source_hint": "Netflix Tech Blog公式発表「Artwork Personalization」",
+      "compare": {
+        "left": {
+          "label": "アクション好き用",
+          "cut": 0
+        },
+        "right": {
+          "label": "恋愛映画好き用",
+          "cut": 1
+        }
       }
     }
   ]

@@ -313,6 +313,10 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
             "at0": round(at0, 3),
             "at1": round(at1, 3),
         }
+        # ラベル/分割線の見た目（あれば素通し）。
+        for k in ("labelColor", "labelTextColor", "labelSize", "dividerColor"):
+            if compare.get(k) is not None:
+                out["compare"][k] = compare[k]
     stat = meta_ch.get("stat")
     if stat:
         st = dict(stat)

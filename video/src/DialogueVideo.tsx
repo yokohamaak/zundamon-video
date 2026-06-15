@@ -590,6 +590,11 @@ const CompareVisual: React.FC<{
   const split = interpolate(t, [at1, at1 + 0.45], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }); // 0=左フル / 1=2分割
   const firstPct = (100 - 50 * split).toFixed(2); // 1つ目が占める割合：100→50
   const secondPct = (50 * split).toFixed(2);      // 2つ目：0→50
+  // ラベル/分割線の見た目（任意・章共通）。
+  const labelColor = compare.labelColor || "rgba(20,26,38,0.82)";
+  const labelTextColor = compare.labelTextColor || "#fff";
+  const labelFont = Math.round((portrait ? 34 : 40) * (compare.labelSize ?? 1));
+  const dividerColor = compare.dividerColor || "rgba(255,255,255,0.85)";
   const inner = (s: CompareSide) => (
     <>
       {s.image ? (
@@ -597,7 +602,7 @@ const CompareVisual: React.FC<{
       ) : (
         <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #324a5f 0%, #25323f 100%)" }} />
       )}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "rgba(20,26,38,0.82)", color: "#fff", fontWeight: 800, fontSize: portrait ? 34 : 40, textAlign: "center", padding: portrait ? "8px 6px" : "10px 8px" }}>{s.label}</div>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: labelColor, color: labelTextColor, fontWeight: 800, fontSize: labelFont, textAlign: "center", padding: portrait ? "8px 6px" : "10px 8px" }}>{s.label}</div>
     </>
   );
   // 1つ目=左(横)/上(縦)。フル幅から半分へ縮む。2つ目=右/下。0から半分へ広がる。
@@ -609,8 +614,8 @@ const CompareVisual: React.FC<{
     : { position: "absolute", top: 0, bottom: 0, right: 0, width: `${secondPct}%`, overflow: "hidden", opacity: split };
   // 分割線（境目）。split で現れる。
   const dividerStyle: React.CSSProperties = portrait
-    ? { position: "absolute", left: 0, right: 0, top: `${firstPct}%`, height: 3, transform: "translateY(-1.5px)", background: "rgba(255,255,255,0.85)", opacity: split }
-    : { position: "absolute", top: 0, bottom: 0, left: `${firstPct}%`, width: 3, transform: "translateX(-1.5px)", background: "rgba(255,255,255,0.85)", opacity: split };
+    ? { position: "absolute", left: 0, right: 0, top: `${firstPct}%`, height: 3, transform: "translateY(-1.5px)", background: dividerColor, opacity: split }
+    : { position: "absolute", top: 0, bottom: 0, left: `${firstPct}%`, width: 3, transform: "translateX(-1.5px)", background: dividerColor, opacity: split };
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <div style={firstStyle}>{inner(compare.left)}</div>

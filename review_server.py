@@ -2073,6 +2073,18 @@ function vizContent(box, ch, ci){
     box.appendChild(colRow('答えの文字色','answerTextColor','#1a1f2b'));
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
+    // ライブプレビュー（左右2分割の最終分割状態＝render(CompareVisual)に合わせたモック）。
+    const lblBg=c.labelColor||'rgba(20,26,38,.82)', lblTx=c.labelTextColor||'#ffffff';
+    const lblSz=(c.labelSize!=null?c.labelSize:1), divC=c.dividerColor||'rgba(255,255,255,.85)';
+    const half=(side,def)=>{ const u=imgUrl(ci,(side.cut!=null?side.cut:def));
+      const h=document.createElement('div'); h.style.cssText='position:relative;width:50%;height:100%;overflow:hidden;background:linear-gradient(135deg,#324a5f,#25323f)';
+      if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; h.appendChild(im); }
+      const lb=document.createElement('div'); lb.style.cssText='position:absolute;left:0;right:0;bottom:0;background:'+lblBg+';color:'+lblTx+';font-weight:800;font-size:'+Math.round(13*lblSz)+'px;text-align:center;padding:4px 4px'; lb.textContent=side.label||''; h.appendChild(lb);
+      return h; };
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;margin-bottom:6px;display:flex';
+    prev.appendChild(half(c.left,0)); prev.appendChild(half(c.right,1));
+    const dv=document.createElement('div'); dv.style.cssText='position:absolute;top:0;bottom:0;left:50%;width:3px;transform:translateX(-1.5px);background:'+divC; prev.appendChild(dv);
+    box.appendChild(prev);
     // 画像はサムネで選ぶ（台本のcut選択と統一）。
     const mkCut=(side,def)=>{ const cur=(side.cut??def); const pick=document.createElement('div'); pick.className='cutpick';
       const n=Math.max(ncuts,2);
@@ -2082,8 +2094,23 @@ function vizContent(box, ch, ci){
         o.onclick=()=>{ side.cut=k; render(); };  // 再描画＝セリフ行の「演出で表示」サムネも更新
         pick.appendChild(o); }
       return pick; };
-    const rl=vRow('左'); rl.appendChild(vText(c.left.label,'左ラベル',v=>c.left.label=v)); rl.appendChild(mkCut(c.left,0)); box.appendChild(rl);
-    const rr=vRow('右'); rr.appendChild(vText(c.right.label,'右ラベル',v=>c.right.label=v)); rr.appendChild(mkCut(c.right,1)); box.appendChild(rr);
+    const rl=vRow('左'); const li=vText(c.left.label,'左ラベル',v=>c.left.label=v); li.onchange=()=>render(); rl.appendChild(li); rl.appendChild(mkCut(c.left,0)); box.appendChild(rl);
+    const rr=vRow('右'); const ri=vText(c.right.label,'右ラベル',v=>c.right.label=v); ri.onchange=()=>render(); rr.appendChild(ri); rr.appendChild(mkCut(c.right,1)); box.appendChild(rr);
+    // ラベル/分割線の見た目。色の編集行ヘルパー。
+    const colRow=(label,key,defColor,extra)=>{ const r=vRow(label); const cp=document.createElement('input'); cp.type='color'; cp.value=c[key]||defColor; cp.title='色';
+      cp.oninput=()=>{ c[key]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
+      if(extra) extra(r);
+      r.appendChild(vMini('既定',()=>{ delete c[key]; render(); })); return r; };
+    box.appendChild(colRow('ラベル背景','labelColor','#141a26'));
+    box.appendChild(colRow('ラベル文字','labelTextColor','#ffffff',(r)=>{
+      // ラベル大きさスライダーも同じ行に。
+      const sl=document.createElement('input'); sl.type='range'; sl.min='0.3'; sl.max='2'; sl.step='0.1';
+      sl.value=(c.labelSize!=null?c.labelSize:1); sl.style.cssText='width:90px;vertical-align:middle'; sl.title='ラベル大きさ倍率';
+      const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
+      const show=()=>{ sv.textContent=(c.labelSize!=null?c.labelSize:1).toFixed(1)+'倍'; }; show();
+      sl.oninput=()=>{ c.labelSize=parseFloat(sl.value); show(); }; sl.onchange=()=>render();
+      r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(stepWrap(sl)); r.appendChild(sv); }));
+    box.appendChild(colRow('分割線','dividerColor','#ffffff'));
   }
   else if(ch.stat){ const s=ch.stat;
     // ライブプレビュー（画像の上に数字カードを重ねる＝render(StatOverlay)に合わせたモック）。

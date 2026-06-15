@@ -85,6 +85,11 @@ export type Compare = {
   // at0=左が出る / at1=右が出る＝分割する。at0==at1 なら最初から2分割。
   at0?: number;
   at1?: number;
+  // ラベル/分割線の見た目（任意・章共通）。
+  labelColor?: string;     // ラベル帯の背景色（既定 半透明の濃紺）
+  labelTextColor?: string; // ラベルの文字色（既定 #fff）
+  labelSize?: number;      // ラベル文字の大きさ倍率（既定 1）
+  dividerColor?: string;   // 分割線の色（既定 白）
 };
 
 // 数字強調：大きな数字＋単位を画像に重ねる。インパクト重視の瞬間に。

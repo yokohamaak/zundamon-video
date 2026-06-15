@@ -538,7 +538,7 @@ def test_viz_fields_preserved():
         '{"chapters":['
         '{"section":"trivia","title":"Q","quiz":{"question":"何の略?","answer":"造語","bg":"#1a2333","bgOpacity":0.55,"textColor":"#eeeeff","answerBg":"#ffcc00","answerBgOpacity":0.8,"answerTextColor":"#222222"},'
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]},'
-        '{"section":"trivia","title":"C","compare":{"left":{"label":"陸上"},"right":{"label":"海底","cut":1}},'
+        '{"section":"trivia","title":"C","compare":{"left":{"label":"陸上"},"right":{"label":"海底","cut":1},"labelColor":"#101820","labelTextColor":"#ffff00","labelSize":1.2,"dividerColor":"#ff0000"},'
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"},{"image_query":"b","image_kind":"ambient"}]},'
         '{"section":"trivia","title":"S","stat":{"value":"8","unit":"分の1","label":"故障率","color":"#ff5050","size":1.4,"bg":"#101820","bgOpacity":0.3,"countSpeed":"slow"},'
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"}]},'
@@ -553,6 +553,8 @@ def test_viz_fields_preserved():
                              "textColor": "#eeeeff", "answerBg": "#ffcc00", "answerBgOpacity": 0.8,
                              "answerTextColor": "#222222"}
     assert ch[1]["compare"]["left"]["cut"] == 0 and ch[1]["compare"]["right"]["cut"] == 1
+    assert ch[1]["compare"]["labelColor"] == "#101820" and ch[1]["compare"]["labelTextColor"] == "#ffff00"
+    assert ch[1]["compare"]["labelSize"] == 1.2 and ch[1]["compare"]["dividerColor"] == "#ff0000"
     assert ch[2]["stat"] == {"value": "8", "unit": "分の1", "label": "故障率",
                              "color": "#ff5050", "size": 1.4, "bg": "#101820", "bgOpacity": 0.3,
                              "countSpeed": "slow"}

@@ -530,7 +530,20 @@ def _clean_compare(compare):
     right = side(compare.get("right"), 1)
     if not left or not right:
         return None
-    return {"left": left, "right": right}
+    out = {"left": left, "right": right}
+    lc = (compare.get("labelColor") or "").strip()
+    if lc:
+        out["labelColor"] = lc
+    ltc = (compare.get("labelTextColor") or "").strip()
+    if ltc:
+        out["labelTextColor"] = ltc
+    lsz = _clean_size(compare.get("labelSize"))
+    if lsz is not None:
+        out["labelSize"] = lsz
+    dc = (compare.get("dividerColor") or "").strip()
+    if dc:
+        out["dividerColor"] = dc
+    return out
 
 
 def _clean_stat(stat):
