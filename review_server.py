@@ -1983,7 +1983,7 @@ function vizHeaderCard(ch, ci, startGi){
   h.appendChild(t); h.appendChild(e); h.appendChild(x); return h;
 }
 // セリフ行下の演出操作ライン。演出なし=＋演出 / 演出あり=範囲内はタイミングchip＋範囲の開始/終了。
-function turnVizControl(tn, gi, ch, ci){
+function turnVizControl(tn, gi, ch, ci, noRange){
   const ctrl=document.createElement('div'); ctrl.className='vchips';
   if(!vizOf(ch)){ vizAddMenu(ctrl, tn, ci); return ctrl; }
   const rng=vizRange(ci); const inRange = gi>=rng.startGi && gi<=rng.endGi;
@@ -1998,12 +1998,14 @@ function turnVizControl(tn, gi, ch, ci){
     else if(ch.stat){ chip('数字を出す','reveal',true); }
     else if(ch.callouts){ (ch.callouts||[]).forEach((c,k)=>chip('注'+k,'callout_item',k,c.text||'')); }
   }
-  // 範囲の開始/終了をこの発言に設定（章内のどの行でも可・章末で自動終了なら終了不要）。
-  const rb=(label,flag,active,title)=>{ const b=document.createElement('button'); b.type='button';
-    b.className='vchip range'+(active?' on':''); b.textContent=label; b.title=title;
-    b.onclick=()=>{ setUniqueFlag(ci,flag,true,tn,true); render(); }; ctrl.appendChild(b); };
-  rb('▶ここから','viz_start',gi===rng.startGi,'ここから演出を表示');
-  rb('■ここまで','viz_end',gi===rng.endGi,'ここまで演出を表示（章末で自動終了なら不要）');
+  // 範囲の開始/終了をこの発言に設定（行ボタン。二画面ではドロップダウン版を使うので noRange で抑制）。
+  if(!noRange){
+    const rb=(label,flag,active,title)=>{ const b=document.createElement('button'); b.type='button';
+      b.className='vchip range'+(active?' on':''); b.textContent=label; b.title=title;
+      b.onclick=()=>{ setUniqueFlag(ci,flag,true,tn,true); render(); }; ctrl.appendChild(b); };
+    rb('▶ここから','viz_start',gi===rng.startGi,'ここから演出を表示');
+    rb('■ここまで','viz_end',gi===rng.endGi,'ここまで演出を表示（章末で自動終了なら不要）');
+  }
   return ctrl;
 }
 // 演出の中身エディタ（章単位の内容）。セリフ行の下にインライン展開する。
@@ -2785,8 +2787,25 @@ function renderImageTab(r,tn,ch,ci){
   if(candOpen.has(ky)) r.appendChild(buildCand(ci,cur,cut));
 }
 
+// 演出範囲の行選択（ここから/ここまで）。章のセリフ一覧から選ぶだけで境界を設定。
+function rangeSelect(ci, flag){
+  const rng=vizRange(ci); const cur = (flag==='viz_start')?rng.startGi:rng.endGi;
+  const sel=document.createElement('select'); sel.style.cssText='max-width:230px';
+  (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci) return;
+    const o=document.createElement('option'); o.value=gi;
+    o.textContent=(t.speaker||'')+': '+((t.text||'').slice(0,18)); if(gi===cur)o.selected=true; sel.appendChild(o); });
+  sel.onchange=()=>{ const gi=+sel.value; setUniqueFlag(ci,flag,true,DATA.script[gi],true); render(); };
+  return sel;
+}
 function renderVizTab(r,tn,ch,ci){
-  r.appendChild(turnVizControl(tn, selGi, ch, ci));
+  if(vizOf(ch)){
+    // まず「演出する範囲」を行選択で（ここから/ここまで）。一番分かりやすい所＝先頭に。
+    r.appendChild(lblDiv('演出する範囲（どのセリフからどのセリフまで）'));
+    const rr=vRow('ここから'); rr.appendChild(rangeSelect(ci,'viz_start')); r.appendChild(rr);
+    const re=vRow('ここまで'); re.appendChild(rangeSelect(ci,'viz_end')); r.appendChild(re);
+  }
+  // この行で何を出すか（タイミングchip）。範囲ボタンは上のドロップダウンに統一するので抑制。
+  r.appendChild(turnVizControl(tn, selGi, ch, ci, true));
   if(vizOf(ch)){ const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;'; vizContent(ce,ch,ci); r.appendChild(ce); }
 }
 
