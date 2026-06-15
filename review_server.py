@@ -1538,6 +1538,10 @@ STORY_PAGE = """<!doctype html>
   .line .mk { flex:none; display:flex; gap:3px; align-items:center; padding-top:3px; }
   .line .mk img { width:34px; height:20px; object-fit:cover; border-radius:3px; border:1px solid var(--line); }
   .line .mk .vz { font-size:10px; color:#c4a8ff; }
+  .line .lacts { display:none; gap:4px; flex:none; padding-top:2px; }
+  .line.sel .lacts { display:flex; }
+  .line .lacts button { font-size:11px; padding:3px 8px; background:var(--line); color:#fff; border:none; border-radius:6px; cursor:pointer; }
+  .line .lacts button.del { background:transparent; color:#c66; }
   .line textarea { flex:1; min-height:46px; }
   .rtabs { display:flex; gap:6px; margin-bottom:8px; }
   .rtab { font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid var(--line);
@@ -2596,7 +2600,14 @@ function lineRow(tn,gi,ch,ci,inViz){
   const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
   row.onclick=()=>{ if(selGi!==gi){ selGi=gi; rtab=null; renderRight(); markSel(); } };
   tx.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,tx); };
-  row.appendChild(nm); row.appendChild(tx); row.appendChild(mk);
+  // 選択行に出る操作（分割・削除）。分割は編集中ならカーソル位置、読み表示なら文中の句読点で割る。
+  const la=document.createElement('div'); la.className='lacts';
+  const bs=document.createElement('button'); bs.textContent='分割'; bs.title='セリフを2つに分ける（編集中はカーソル位置）';
+  bs.onclick=(e)=>{ e.stopPropagation(); splitTurn(tn, row.querySelector('textarea')); };
+  const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除';
+  bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
+  la.appendChild(bs); la.appendChild(bd);
+  row.appendChild(nm); row.appendChild(tx); row.appendChild(mk); row.appendChild(la);
   return row;
 }
 
@@ -2679,6 +2690,21 @@ function renderImageTab(r,tn,ch,ci){
   const kr=vRow('種別'); const ks=document.createElement('select');
   [['ambient','ambient（写真・風景）'],['subject','subject（ロゴ・製品・記号）']].forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; if((cut.image_kind||'ambient')===v)o.selected=true; ks.appendChild(o); });
   ks.onchange=()=>{ cut.image_kind=ks.value; markDirty(); render(); }; kr.appendChild(ks); r.appendChild(kr);
+  // サイズ表示＋クリップボード貼付＋カット削除
+  const orow=document.createElement('div'); orow.style.cssText='display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+  const rc=cutMap[ky]; const sz=document.createElement('span'); sz.style.cssText='font-size:11px;color:var(--sub);font-variant-numeric:tabular-nums';
+  sz.textContent=(rc&&rc.w)?(rc.w+'×'+rc.h+'px・'+fmtKB(rc.bytes)):'';
+  orow.appendChild(sz); const sp=document.createElement('span'); sp.style.flex='1'; orow.appendChild(sp);
+  orow.appendChild(vMini('📋貼付',()=>pasteClipboard(ky,ci,cur)));
+  const delc=vMini('× カット削除',async()=>{
+    if(!confirm('この画像カットを削除しますか？（以降のカットは前に詰まり、画像も整列します）')) return;
+    cuts.splice(cur,1); const newLen=cuts.length;
+    DATA.script.forEach(t=>{ if(t.chapter!==ci||typeof t.cut!=='number') return;
+      if(t.cut>cur) t.cut--; else if(t.cut===cur) t.cut=Math.min(cur,Math.max(0,newLen-1)); });
+    await api('/api/script', DATA); await api('/api/delete-cut',{ch:ci,ci:cur});
+    await refreshCuts(); render();
+  }); delc.style.color='#c66'; orow.appendChild(delc);
+  r.appendChild(orow);
   // 調整（クロップ/補正/差し替え/D&D）はトグル
   const adj=document.createElement('button'); adj.className='mini'; adj.style.marginTop='6px';
   adj.textContent=adjustOpen.has(ky)?'調整を閉じる':'🔧 クロップ/補正/差し替え（D&Dも）';
