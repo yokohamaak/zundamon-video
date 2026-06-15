@@ -2554,6 +2554,9 @@ function render(){
   const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
   ti.onchange=()=>{ DATA.theme=ti.value; }; th.innerHTML='<span class="badge">テーマ</span>'; th.appendChild(ti);
   left.appendChild(th); left.appendChild(buildEstimate());
+  const hint=document.createElement('div'); hint.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 8px';
+  hint.textContent='行をクリック→右で画像/演出を編集　｜　本文をダブルクリック→セリフを編集';
+  left.appendChild(hint);
   // 章区切り＋セリフ行（intro→ネタ→outro 連続表示）
   (DATA.chapters||[]).forEach((ch,ci)=>{
     left.appendChild(chapterDivider(ch,ci));
@@ -2647,8 +2650,10 @@ function framePrev(ci,k,cut){
 function renderImageTab(r,tn,ch,ci){
   const cuts=ch.image_cuts||(ch.image_cuts=[]);
   const cur=(typeof tn.cut==='number'?tn.cut:0);
+  if(!cuts[cur]) cuts[cur]={image_query:'',image_kind:'ambient'};
+  const cut=cuts[cur]; const ky=ci+'_'+cur;
   // フレームプレビュー（この行で視聴者が見る画像）。クロップ精密反映は下の調整パネルで確認。
-  r.appendChild(framePrev(ci,cur,cuts[cur]));
+  r.appendChild(framePrev(ci,cur,cut));
   r.appendChild(lblDiv('この行で出す画像（クリックで選択）'));
   const pick=document.createElement('div'); pick.className='cutpick';
   (cuts.length?cuts:[{}]).forEach((c,k)=>{ const u=imgUrl(ci,k);
@@ -2658,17 +2663,29 @@ function renderImageTab(r,tn,ch,ci){
   const add=document.createElement('button'); add.className='mini'; add.textContent='＋画像追加'; add.style.marginLeft='4px';
   add.onclick=()=>{ cuts.push({image_query:'',image_kind:'ambient'}); render(); }; pick.appendChild(add);
   r.appendChild(pick);
-  const ky=ci+'_'+cur;
-  const row=document.createElement('div'); row.style.cssText='display:flex;gap:6px;margin-top:8px';
-  const adj=document.createElement('button'); adj.className='mini';
-  adj.textContent=adjustOpen.has(ky)?'調整を閉じる':'🔧 クロップ/補正/差し替え';
+  // 画像を探す：検索語(英/日)→取得ボタンで候補表示。差し替え/クロップは🔧へ。
+  r.appendChild(lblDiv('画像を探す（検索語を入れて「取得」）'));
+  const enRow=document.createElement('div'); enRow.style.cssText='display:flex;gap:6px;margin:2px 0';
+  const en=document.createElement('input'); en.type='text'; en.placeholder='英語の検索語（例: street view car）'; en.value=cut.image_query||''; en.style.flex='1';
+  en.onchange=()=>{ cut.image_query=en.value; markDirty(); };
+  enRow.appendChild(en); enRow.appendChild(vMini('取得',()=>{ cut.image_query=en.value; openCand(ci,cur,cut,'en'); }));
+  r.appendChild(enRow);
+  const jaRow=document.createElement('div'); jaRow.style.cssText='display:flex;gap:6px;margin:2px 0';
+  const ja=document.createElement('input'); ja.type='text'; ja.placeholder='日本語(意味)＝自分で英訳しなくてよい'; ja.value=cut.image_query_ja||''; ja.style.flex='1';
+  ja.onchange=()=>{ cut.image_query_ja=ja.value; markDirty(); };
+  jaRow.appendChild(ja); jaRow.appendChild(vMini('日本語で取得',()=>{ cut.image_query_ja=ja.value; openCand(ci,cur,cut,'ja'); }));
+  r.appendChild(jaRow);
+  // 種別（cover/contain の既定や検索の傾向に影響）
+  const kr=vRow('種別'); const ks=document.createElement('select');
+  [['ambient','ambient（写真・風景）'],['subject','subject（ロゴ・製品・記号）']].forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; if((cut.image_kind||'ambient')===v)o.selected=true; ks.appendChild(o); });
+  ks.onchange=()=>{ cut.image_kind=ks.value; markDirty(); render(); }; kr.appendChild(ks); r.appendChild(kr);
+  // 調整（クロップ/補正/差し替え/D&D）はトグル
+  const adj=document.createElement('button'); adj.className='mini'; adj.style.marginTop='6px';
+  adj.textContent=adjustOpen.has(ky)?'調整を閉じる':'🔧 クロップ/補正/差し替え（D&Dも）';
   adj.onclick=()=>{ adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); renderRight(); };
-  const cb=document.createElement('button'); cb.className='mini';
-  cb.textContent=candOpen.has(ky)?'候補を閉じる':'画像候補から選ぶ';
-  cb.onclick=()=>{ candOpen.has(ky)?candOpen.delete(ky):candOpen.add(ky); renderRight(); };
-  row.appendChild(adj); row.appendChild(cb); r.appendChild(row);
+  r.appendChild(adj);
   if(adjustOpen.has(ky)) r.appendChild(buildAdjust(ci,cur));
-  if(candOpen.has(ky)) r.appendChild(buildCand(ci,cur,cuts[cur]||{}));
+  if(candOpen.has(ky)) r.appendChild(buildCand(ci,cur,cut));
 }
 
 function renderVizTab(r,tn,ch,ci){
