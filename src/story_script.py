@@ -538,6 +538,9 @@ def _clean_stat(stat):
     op = _clean_opacity(stat.get("bgOpacity"))
     if op is not None:
         out["bgOpacity"] = op
+    spd = stat.get("countSpeed")
+    if spd in ("fast", "normal", "slow"):
+        out["countSpeed"] = spd
     return out
 
 

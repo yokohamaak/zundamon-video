@@ -98,6 +98,8 @@ export type Stat = {
   size?: number;
   bg?: string;
   bgOpacity?: number;
+  // カウントアップの速さ（任意）。fast=0.5s / normal=0.8s（既定）/ slow=1.5s。
+  countSpeed?: "fast" | "normal" | "slow";
 };
 
 // 注釈・吹き出し：画像上の位置(0..1正規化)を指して短いラベルを出す。

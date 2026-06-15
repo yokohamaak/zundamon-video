@@ -2023,6 +2023,14 @@ function vizContent(box, ch, ci){
     rs.appendChild(sl); rs.appendChild(sv); rs.appendChild(vMini('既定に戻す',()=>{ delete s.size; render(); })); box.appendChild(rs);
     // 背景色＋透過（土台）
     box.appendChild(vBgRow(s,'背景','#0f141e',0.5));
+    // カウントアップ速度（数字が整数のとき有効）。3段階＝速い/標準(既定)/ゆっくり。
+    const rsp=vRow('カウント速度');
+    [['fast','速い'],['normal','標準'],['slow','ゆっくり']].forEach(([v,t])=>{
+      const cur=(s.countSpeed||'normal');
+      const b=document.createElement('button'); b.type='button'; b.className='vchip'+(cur===v?' on':''); b.textContent=t;
+      b.onclick=()=>{ if(v==='normal') delete s.countSpeed; else s.countSpeed=v; render(); }; rsp.appendChild(b);
+    });
+    box.appendChild(rsp);
   }
   else if(ch.callouts){ let cs=ch.callouts; if(!Array.isArray(cs)){cs=ch.callouts=[];}
     cs.forEach((c,i)=>{

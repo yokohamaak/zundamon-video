@@ -621,7 +621,9 @@ const StatOverlay: React.FC<{
   if (p <= 0) return null;
   let valueText = stat.value;
   if (stat.countTo != null) {
-    const cu = interpolate(t, [showAt, showAt + 0.8], [0, stat.countTo], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    // カウントアップの所要秒（3段階）。既定 normal=0.8s。
+    const countDur = stat.countSpeed === "fast" ? 0.5 : stat.countSpeed === "slow" ? 1.5 : 0.8;
+    const cu = interpolate(t, [showAt, showAt + countDur], [0, stat.countTo], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
     valueText = Math.round(cu).toLocaleString();
   }
   // 大きさ倍率（既定1）と出現アニメのスケールを合成。色/背景は調整可（背景は別レイヤー）。
