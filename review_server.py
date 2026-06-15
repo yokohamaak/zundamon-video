@@ -1916,8 +1916,12 @@ function vizAddMenu(ctrl, tn, ci){
 function vizHeaderCard(ch, ci, startGi){
   const h=document.createElement('div'); h.className='vizhdr';
   const t=document.createElement('span'); t.className='vizhdr-t'; t.textContent='▣ '+(VIZ_LABEL[vizOf(ch)]||'');
-  const e=document.createElement('button'); e.type='button'; e.className='vchip edit'+(vizOpenGi===startGi?' on':'');
-  e.textContent=vizOpenGi===startGi?'✎閉じる':'✎中身'; e.onclick=()=>{ vizOpenGi=(vizOpenGi===startGi?null:startGi); render(); };
+  const e=document.createElement('button'); e.type='button'; const eopen=(vizOpenGi===startGi);
+  // 目立つ黄色ボタン（開いている時は枠線スタイルに切替＝閉じるトグルと分かるように）。
+  e.style.cssText=eopen
+    ? 'font-size:12px;font-weight:800;padding:4px 12px;border-radius:6px;border:2px solid #ffd84d;background:transparent;color:#ffd84d;cursor:pointer'
+    : 'font-size:12px;font-weight:800;padding:5px 13px;border-radius:6px;border:none;background:#ffd84d;color:#1a1f2b;cursor:pointer;box-shadow:0 1px 6px rgba(255,216,77,.35)';
+  e.textContent=eopen?'✕ 閉じる':'🎨 演出を編集'; e.onclick=()=>{ vizOpenGi=(eopen?null:startGi); render(); };
   const x=document.createElement('button'); x.type='button'; x.className='vchip'; x.textContent='✕削除';
   x.onclick=()=>{ VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci); vizOpenGi=null; render(); };
   h.appendChild(t); h.appendChild(e); h.appendChild(x); return h;
