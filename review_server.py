@@ -1871,6 +1871,7 @@ function setUniqueFlag(ci,flag,value,tn,turnOn){
   if(turnOn) tn[flag]=value;
 }
 let vizOpenGi=null;  // 中身エディタを開いている発言の通し番号（章単位の演出内容を編集）
+let calloutSel=0;    // 注釈の「クリック配置」で動かす対象の注釈index
 // この発言が章の演出イベントを担っているか（✎中身ボタンを出す判定）。
 function turnHasViz(tn, ch){
   if(ch.panel) return tn.panel_event==='shrink'||typeof tn.panel_item==='number';
@@ -2033,22 +2034,56 @@ function vizContent(box, ch, ci){
     box.appendChild(rsp);
   }
   else if(ch.callouts){ let cs=ch.callouts; if(!Array.isArray(cs)){cs=ch.callouts=[];}
+    if(calloutSel>=cs.length) calloutSel=0;
+    const st=ch.calloutStyle||(ch.calloutStyle={});
+    const mColor=st.markerColor||'#ff5a6a', lColor=st.labelColor||'#14233a';
+    // クリック配置プレビュー：章の画像(cut0)を出し、クリックで選択中の注釈のx/yを設定。
+    const u=imgUrl(ci,0);
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;cursor:crosshair;margin-bottom:6px;user-select:none';
+    if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none'; prev.appendChild(im); }
+    else { const ph=document.createElement('div'); ph.style.cssText='display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px'; ph.textContent='画像なし（cut0を取得してください）'; prev.appendChild(ph); }
+    cs.forEach((c,i)=>{ const m=document.createElement('div'); const sel=(i===calloutSel);
+      m.style.cssText='position:absolute;width:'+(sel?16:12)+'px;height:'+(sel?16:12)+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(sel?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'：'+(c.text||''); prev.appendChild(m); });
+    prev.onclick=(e)=>{ if(!cs.length) return; const r=prev.getBoundingClientRect();
+      const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)), y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+      cs[calloutSel].x=Math.round(x*1000)/1000; cs[calloutSel].y=Math.round(y*1000)/1000; render(); };
+    box.appendChild(prev);
+    const hint=document.createElement('div'); hint.style.cssText='font-size:11px;color:var(--sub);margin-bottom:4px';
+    hint.textContent='画像をクリックすると「選択中(黄枠)」の注釈をそこへ配置。行の◉で選択切替。注釈章は画像が静止します。';
+    box.appendChild(hint);
     cs.forEach((c,i)=>{
-      const r=vRow('注釈'+i); r.appendChild(vText(c.text,'ラベル',v=>c.text=v));
+      const r=vRow('注釈'+i);
+      // 選択（クリック配置の対象）
+      const selb=document.createElement('button'); selb.type='button'; selb.className='vchip'+(i===calloutSel?' on':''); selb.textContent=(i===calloutSel?'◉':'○'); selb.title='クリック配置の対象にする';
+      selb.onclick=()=>{ calloutSel=i; render(); }; r.appendChild(selb);
+      r.appendChild(vText(c.text,'ラベル',v=>c.text=v));
       const mkNum=(key)=>{ const n=document.createElement('input'); n.type='number'; n.step='0.05'; n.min='0'; n.max='1';
-        n.value=(c[key]!=null?c[key]:0.5); n.style.width='66px'; n.title=key+'（0..1）';
-        n.oninput=()=>{ const v=parseFloat(n.value); if(!isNaN(v)) c[key]=Math.max(0,Math.min(1,v)); }; return n; };
+        n.value=(c[key]!=null?c[key]:0.5); n.style.width='62px'; n.title=key+'（0..1）';
+        n.oninput=()=>{ const v=parseFloat(n.value); if(!isNaN(v)){ c[key]=Math.max(0,Math.min(1,v)); } };
+        n.onchange=()=>render(); return n; };
       r.appendChild(document.createTextNode('x')); r.appendChild(mkNum('x'));
       r.appendChild(document.createTextNode('y')); r.appendChild(mkNum('y'));
       const al=document.createElement('label'); al.style.cssText='font-size:12px;display:inline-flex;gap:3px;align-items:center';
       const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!c.arrow;
       ac.onchange=()=>{ if(ac.checked)c.arrow=true; else delete c.arrow; }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al);
-      r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',cs.length); render(); }));
+      r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',cs.length); if(calloutSel>=cs.length)calloutSel=Math.max(0,cs.length-1); render(); }));
       box.appendChild(r);
     });
-    if(cs.length<4) box.appendChild(vMini('＋注釈',()=>{ cs.push({text:'',x:0.5,y:0.5}); render(); }));
-    box.appendChild(document.createElement('div')).style.cssText='font-size:11px;color:var(--sub);margin-top:4px';
-    box.lastChild.textContent='x,y は画像枠で 0..1（左上=0,0 / 右下=1,1）。注釈章は画像が静止します。';
+    if(cs.length<4) box.appendChild(vMini('＋注釈',()=>{ cs.push({text:'',x:0.5,y:0.5}); calloutSel=cs.length-1; render(); }));
+    // 見た目（章共通）：マーカー/ラベルの色・大きさ。
+    const styRow=(label,colorKey,defColor,sizeKey)=>{ const r=vRow(label);
+      const cp=document.createElement('input'); cp.type='color'; cp.value=st[colorKey]||defColor; cp.title='色';
+      cp.oninput=()=>{ st[colorKey]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
+      const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
+      sl.value=(st[sizeKey]!=null?st[sizeKey]:1); sl.style.cssText='width:96px;vertical-align:middle'; sl.title='大きさ倍率';
+      const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
+      const show=()=>{ sv.textContent=(st[sizeKey]!=null?st[sizeKey]:1).toFixed(1)+'倍'; }; show();
+      sl.oninput=()=>{ st[sizeKey]=parseFloat(sl.value); show(); };
+      r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(sl); r.appendChild(sv);
+      r.appendChild(vMini('既定',()=>{ delete st[colorKey]; delete st[sizeKey]; render(); })); return r; };
+    box.appendChild(styRow('マーカー','markerColor','#ff5a6a','markerSize'));
+    box.appendChild(styRow('ラベル','labelColor','#14233a','labelSize'));
   }
 }
 

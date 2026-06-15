@@ -111,6 +111,14 @@ export type Callout = {
   at?: number;            // 出現する絶対時刻（秒）。build が callout_item発言/均等割りで解決。
 };
 
+// 注釈の見た目（章共通・任意）。色＝CSS文字列 / 大きさ＝倍率（既定1）。
+export type CalloutStyle = {
+  markerColor?: string;   // マーカー(丸)の色（既定 #ff5a6a）
+  markerSize?: number;    // マーカーの大きさ倍率（既定 1）
+  labelColor?: string;    // ラベルの背景色（既定 #14233a）
+  labelSize?: number;     // ラベル文字の大きさ倍率（既定 1）
+};
+
 // 解説パネルの1項目（縮小画像の横/下に段階表示する要点テキスト）。
 export type PanelItem = {
   text: string;
@@ -184,6 +192,7 @@ export type Topic = {
   compare?: Compare;
   stat?: Stat;
   callouts?: Callout[];
+  calloutStyle?: CalloutStyle;
   // 演出の表示窓（絶対秒）。topicがこの窓をまたぐ時、窓内だけ演出を出し手前/後は通常画像にする。
   // （「ここから」のセリフ時刻より前から演出が始まる、カット境界への丸め込みを防ぐ）
   vizFrom?: number;

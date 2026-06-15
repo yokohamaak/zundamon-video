@@ -1,0 +1,93 @@
+{
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "次はね、Web（ウェブ）サイトでよく見る「私はロボットではありません」ってチェックボックスあるでしょう。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "あるのだ！あれをクリックするだけで、なんで人間だって判定できるのか不思議なのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実は、チェックを入れた瞬間ではなく、チェックボックスに「カーソルを動かすまでの手ブレ」をAI（エーアイ）が分析しているのよ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "callout_item": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ロボットは直線的に動くけれど、人間はビミョーに震えながら不規則に動くの。それを見ているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "callout_item": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "クリックする前から、ぼくたちの不器用な手の動きは完全に観察されていたのだね…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "怪しいと判断された時だけ、あの「消火栓の画像を選んで」っていうテストが出る仕組みなのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    }
+  ],
+  "theme": "実は知らないIT企業・サービスの裏側",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "私はロボットではありませんの謎",
+      "summary": "「私はロボットではありません」の認証は、チェックを入れる前のマウスの手ブレやブラウザ情報をAIが解析して人間かどうかを判定している。",
+      "image_cuts": [
+        {
+          "image_query": "recaptcha check box",
+          "image_kind": "subject",
+          "image_query_ja": "私はロボットではありませんのチェックボックス"
+        }
+      ],
+      "hook": "あのチェック、クリック前から判定されている",
+      "confidence": "high",
+      "source_hint": "Google reCAPTCHA（リキャプチャ）の開発仕様書",
+      "owner_comment": true,
+      "callouts": [
+        {
+          "text": "チェックボックス",
+          "x": 0.15,
+          "y": 0.5,
+          "arrow": true
+        },
+        {
+          "text": "マウスの手ブレ軌跡",
+          "x": 0.6,
+          "y": 0.3,
+          "arrow": true
+        }
+      ]
+    }
+  ]
+}

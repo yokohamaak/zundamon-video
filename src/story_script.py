@@ -567,6 +567,26 @@ def _clean_callouts(callouts):
     return out[:4] or None  # 注釈は最大4個（画面が煩雑にならない範囲）
 
 
+def _clean_callout_style(style):
+    """注釈の見た目（章共通）を正規化（純関数）。色＝CSS文字列 / 大きさ＝倍率。空なら None。"""
+    if not isinstance(style, dict):
+        return None
+    out = {}
+    mc = (style.get("markerColor") or "").strip()
+    if mc:
+        out["markerColor"] = mc
+    ms = _clean_size(style.get("markerSize"))
+    if ms is not None:
+        out["markerSize"] = ms
+    lc = (style.get("labelColor") or "").strip()
+    if lc:
+        out["labelColor"] = lc
+    ls = _clean_size(style.get("labelSize"))
+    if ls is not None:
+        out["labelSize"] = ls
+    return out or None
+
+
 def _clean_chapters(chapters, limit=12):
     """chapters を {section,title,image_cuts:[{image_query,image_kind}]} へ正規化（純関数）。
 
@@ -624,6 +644,9 @@ def _clean_chapters(chapters, limit=12):
         callouts = _clean_callouts(c.get("callouts"))
         if callouts:
             chapter["callouts"] = callouts
+            cstyle = _clean_callout_style(c.get("calloutStyle"))
+            if cstyle:
+                chapter["calloutStyle"] = cstyle
         out.append(chapter)
     return out[:limit]
 

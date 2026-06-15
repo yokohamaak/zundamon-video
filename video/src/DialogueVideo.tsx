@@ -14,6 +14,7 @@ import { ParallaxImage } from "./ParallaxImage";
 import { FONT_FAMILY } from "./fonts";
 import type {
   Callout,
+  CalloutStyle,
   Compare,
   CompareSide,
   Emotion,
@@ -648,11 +649,19 @@ const StatOverlay: React.FC<{
 };
 
 // 注釈・吹き出し（重ね層）：画像上の点(0..1)を指してラベルを出す。
+// style（章共通）でマーカー/ラベルの色・大きさを調整。arrow:true でラベル⇔点を線でつなぐ。
 const CalloutOverlay: React.FC<{
   callouts: Callout[];
   t: number;
   portrait: boolean;
-}> = ({ callouts, t, portrait }) => {
+  style?: CalloutStyle;
+}> = ({ callouts, t, portrait, style }) => {
+  const markerColor = style?.markerColor || "#ff5a6a";
+  const markerSize = style?.markerSize ?? 1;
+  const labelColor = style?.labelColor || "#14233a";
+  const labelSize = style?.labelSize ?? 1;
+  const dot = Math.round(18 * markerSize); // マーカー径(px)
+  const gap = 20; // 点とラベルの隙間(px)
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
       {callouts.map((c, i) => {
@@ -665,18 +674,28 @@ const CalloutOverlay: React.FC<{
           left: "50%",
           transform: "translateX(-50%)",
           whiteSpace: "nowrap",
-          background: "rgba(20,26,38,0.9)",
+          background: labelColor,
           color: "#fff",
           fontWeight: 800,
-          fontSize: portrait ? 26 : 32,
+          fontSize: Math.round((portrait ? 26 : 32) * labelSize),
           padding: "6px 14px",
           borderRadius: 10,
           boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
         };
-        if (below) labelStyle.top = 20; else labelStyle.bottom = 20;
+        if (below) labelStyle.top = gap; else labelStyle.bottom = gap;
+        // ラベル⇔点をつなぐ線（arrow:true のとき）。点から隙間ぶんだけ伸ばす。
+        const lineStyle: React.CSSProperties = {
+          position: "absolute",
+          left: -1,
+          width: 2,
+          height: gap,
+          background: markerColor,
+        };
+        if (below) lineStyle.top = 0; else lineStyle.bottom = 0;
         return (
           <div key={i} style={{ position: "absolute", left: `${c.x * 100}%`, top: `${c.y * 100}%`, opacity: ap }}>
-            <div style={{ position: "absolute", left: -9, top: -9, width: 18, height: 18, borderRadius: "50%", background: "#ff5a6a", border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)" }} />
+            {c.arrow ? <div style={lineStyle} /> : null}
+            <div style={{ position: "absolute", left: -dot / 2, top: -dot / 2, width: dot, height: dot, borderRadius: "50%", background: markerColor, border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)" }} />
             <div style={labelStyle}>{c.text}</div>
           </div>
         );
@@ -1226,7 +1245,7 @@ export const DialogueVideo: React.FC<{
           <StatOverlay stat={activeTopic.stat} t={t} portrait={portrait} />
         ) : null}
         {activeTopic && !activeTopic.blank && vizOn && activeTopic.callouts ? (
-          <CalloutOverlay callouts={activeTopic.callouts} t={t} portrait={portrait} />
+          <CalloutOverlay callouts={activeTopic.callouts} t={t} portrait={portrait} style={activeTopic.calloutStyle} />
         ) : null}
         {/* クイズは画像を使わない演出＝背後の通常画像/黒板の上に「？・問い・答え」を重ねる。
             blank(画像なし＝黒板)でも出す。 */}

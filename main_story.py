@@ -337,6 +337,8 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
             item["at"] = round(float(at), 3)
             resolved.append(item)
         out["callouts"] = resolved
+        if meta_ch.get("calloutStyle"):
+            out["calloutStyle"] = meta_ch["calloutStyle"]
     return out
 
 
