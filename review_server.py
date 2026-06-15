@@ -1573,8 +1573,8 @@ STORY_PAGE = """<!doctype html>
   .line .rail .seg.e { bottom:21px; border-radius:0 0 3px 3px; }
   .line .rail .hbtn { position:absolute; left:1px; width:46px; height:19px; display:flex; align-items:center; justify-content:center;
                       white-space:nowrap; font-size:10px; font-weight:700; border:1px solid #313a47; border-radius:6px; background:#141a23;
-                      color:#7e8aa0; cursor:pointer; z-index:1; opacity:0; transition:opacity .12s; box-sizing:border-box; }
-  .line:hover .rail .hbtn { opacity:.9; }
+                      color:#9aa6ba; cursor:pointer; z-index:1; opacity:.6; transition:opacity .12s; box-sizing:border-box; }
+  .line:hover .rail .hbtn { opacity:1; }
   .line .rail .hbtn:hover { border-color:#6b6ae0; color:#dbe1ec; }
   .line .rail .hbtn.on { opacity:1; background:#6b6ae0; border-color:#6b6ae0; color:#fff; }
   .line .rail .hbtn.s { top:0; }       /* 開始＝行の上端にライン合わせ */
@@ -2678,12 +2678,23 @@ function migrateViz(ch,ci){
   (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci) return; if(gi>=rs&&gi<=re) t.vizSeg=id; delete t.viz_start; delete t.viz_end; });
   VIZ_KEYS.forEach(x=>delete ch[x]); delete ch.calloutStyle;
 }
-// セグメントの範囲を s..e の連続行に再タグ（他セグメントの行は奪わない＝重複防止）。空になったら削除。
+// セグメントの範囲を s..e の連続行に再タグ。隣の演出の行も境界で奪える（1行1演出）。
+// 奪われて空になった演出は自動削除（pruneEmptySegs）。
 function retagSeg(ci,id,s,e){
   if(s>e){ const t=s; s=e; e=t; }
   (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci) return;
-    if(gi>=s&&gi<=e){ if(!t.vizSeg||t.vizSeg===id) t.vizSeg=id; }   // 空き行のみ取り込む
+    if(gi>=s&&gi<=e){ if(t.vizSeg && t.vizSeg!==id){
+        // 別演出から奪う＝その演出のタイミングflagは外す（別演出のものなので）。
+        delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; }
+      t.vizSeg=id; }
     else if(t.vizSeg===id) delete t.vizSeg; });
+  pruneEmptySegs(ci);
+}
+function pruneEmptySegs(ci){
+  const ch=(DATA.chapters||[])[ci]; if(!ch) return; const vl=chSegs(ch);
+  for(let i=vl.length-1;i>=0;i--){ const id=vl[i].id;
+    const has=(DATA.script||[]).some(t=>t.chapter===ci && t.vizSeg===id);
+    if(!has){ if(selSeg===id) selSeg=null; vl.splice(i,1); } }
 }
 function removeSeg(ch,ci,id){ const vl=chSegs(ch); const i=vl.findIndex(s=>s.id===id); if(i>=0)vl.splice(i,1);
   (DATA.script||[]).forEach(t=>{ if(t.chapter===ci&&t.vizSeg===id){ delete t.vizSeg; delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; } });
