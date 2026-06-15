@@ -2665,7 +2665,12 @@ function lineRow(tn,gi,ch,ci,inViz){
   const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除';
   bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
   la.appendChild(bs); la.appendChild(bd);
-  row.onclick=()=>{ if(selGi!==gi){ selGi=gi; rtab=null; renderRight(); markSel(); } };
+  row.onclick=()=>{
+    const ch=(selGi!==gi);
+    if(ch){ selGi=gi; rtab=null; markSel(); }
+    if(rwide){ setWide(false); }   // 左の行を押したら拡大を解除（setWideがrenderRightも実行）
+    else if(ch){ renderRight(); }
+  };
   row.appendChild(av); row.appendChild(lc); row.appendChild(mk); row.appendChild(la);
   return row;
 }
