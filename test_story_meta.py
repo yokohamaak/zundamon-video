@@ -412,14 +412,14 @@ def test_viz_list_multiple_segments():
     chapters = [{"section": "trivia", "title": "M", "image_cuts": [
         {"image_query": "a", "image_kind": "ambient"}, {"image_query": "b", "image_kind": "ambient"}],
         "vizList": [
-            {"type": "panel", "panel": {"items": [{"text": "x"}]}},
-            {"type": "stat", "stat": {"value": "5", "unit": "個"}}]}]
-    # cut0=turn0,1 / cut1=turn2,3。範囲1=turn0..turn1 / 範囲2=turn2..turn3。
+            {"type": "panel", "id": "s1", "panel": {"items": [{"text": "x"}]}},
+            {"type": "stat", "id": "s2", "stat": {"value": "5", "unit": "個"}}]}]
+    # cut0=turn0,1（seg s1）/ cut1=turn2,3（seg s2）。所属は vizSeg タグで指定。
     script = [
-        {"chapter": 0, "cut": 0, "viz_start": True, "panel_event": "shrink"},
-        {"chapter": 0, "cut": 0, "viz_end": True},
-        {"chapter": 0, "cut": 1, "viz_start": True, "reveal": True},
-        {"chapter": 0, "cut": 1, "viz_end": True}]
+        {"chapter": 0, "cut": 0, "vizSeg": "s1", "panel_event": "shrink"},
+        {"chapter": 0, "cut": 0, "vizSeg": "s1"},
+        {"chapter": 0, "cut": 1, "vizSeg": "s2", "reveal": True},
+        {"chapter": 0, "cut": 1, "vizSeg": "s2"}]
     timing = _turns(4)
     turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
     segs = story_script.assign_sections_to_turns(script)

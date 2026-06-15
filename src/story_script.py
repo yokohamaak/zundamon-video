@@ -657,7 +657,7 @@ def _clean_viz_list(vl):
     if not isinstance(vl, list):
         return None
     out = []
-    for e in vl:
+    for i, e in enumerate(vl):
         if not isinstance(e, dict):
             continue
         seg = {}
@@ -676,6 +676,9 @@ def _clean_viz_list(vl):
             if cs:
                 seg["calloutStyle"] = cs
         if seg:
+            # 所属タグ用のid（発言の vizSeg と対応）。無ければ採番。
+            sid = e.get("id")
+            seg["id"] = sid if (isinstance(sid, str) and sid.strip()) else "s" + str(i)
             out.append(seg)
     return out or None
 
@@ -884,6 +887,10 @@ def _normalize_panel_fields(turn):
             turn[flag] = True
         else:
             turn.pop(flag, None)
+    # 複数演出の所属タグ（新形式）。空でない文字列のみ保持。
+    seg = turn.get("vizSeg")
+    if not (isinstance(seg, str) and seg.strip()):
+        turn.pop("vizSeg", None)
 
 
 def normalize_turns(script: list, chapters: list = None) -> list:

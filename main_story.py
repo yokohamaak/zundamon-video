@@ -283,13 +283,16 @@ def _resolve_viz_segments(meta_ch, idxs, turns, seg_start, seg_end, image_files,
     """
     vl = meta_ch.get("vizList")
     if vl:
-        wins = _viz_windows(idxs, turns, seg_start, seg_end, len(vl))
         segs = []
-        for i, entry in enumerate(vl):
-            ws, we = wins[i] if i < len(wins) else (seg_start, seg_end)
-            # この窓に入る発言だけを対象にタイミングflagを解決（範囲が重ならない＝曖昧さ無し）。
-            sub = [j for j in idxs if turns[j].get("start", seg_start) < we - 1e-6
-                   and turns[j].get("end", seg_end) > ws + 1e-6]
+        for entry in vl:
+            sid = entry.get("id")
+            # この演出に属する発言＝turn.vizSeg==id（1行1演出・split/deleteに強い）。
+            sub = [j for j in idxs if turns[j].get("vizSeg") == sid]
+            if not sub:
+                continue
+            # 範囲＝所属発言の最初のstart〜最後のend。章の先頭/末尾ならその境界へスナップ。
+            ws = seg_start if sub[0] == idxs[0] else float(turns[sub[0]].get("start", seg_start))
+            we = seg_end if sub[-1] == idxs[-1] else float(turns[sub[-1]].get("end", seg_end))
             seg = {"start": ws, "end": we}
             pr = _resolve_panel(entry.get("panel"), sub, turns, ws, we, image_files, ch)
             if pr:
