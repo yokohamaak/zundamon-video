@@ -1528,9 +1528,12 @@ STORY_PAGE = """<!doctype html>
   .chsec { margin:30px 0 0; padding:2px 0; border-radius:14px; border-left:3px solid transparent; }
   .chsec.active { background:#12171f; border-left-color:#39424f; padding:2px 10px 6px; }
   .chsec:first-child { margin-top:8px; }
-  .chdiv { display:flex; align-items:center; gap:10px; margin:0 0 10px; padding:6px 2px; }
-  .chdiv .ttl { font-weight:700; font-size:15px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chdiv { display:flex; align-items:center; gap:9px; margin:0 0 10px; padding:6px 2px; }
+  .chdiv .ttl { font-weight:700; font-size:14.5px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .chdiv .selcb { width:16px; height:16px; flex:none; accent-color:#ffd84d; }
+  .chdiv .chev { background:transparent; border:none; color:var(--sub); font-size:13px; padding:2px 4px; cursor:pointer; flex:none; border-radius:5px; }
+  .chdiv .chev:hover { background:#1c232e; color:var(--fg); }
+  .chdiv .chcnt { font-size:11px; color:var(--sub); flex:none; }
   /* セリフカード＝Discord風（アイコン＋名前＋本文）。余白広め・罫線なし・6px左カラー */
   .line { display:flex; gap:12px; align-items:flex-start; padding:13px 15px; margin-bottom:10px; border-radius:10px;
           cursor:pointer; background:#161b24; border-left:6px solid transparent; }
@@ -1541,10 +1544,10 @@ STORY_PAGE = """<!doctype html>
   .line .av { width:30px; height:30px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
               font-size:14px; font-weight:800; color:#fff; }
   .line .lc { flex:1; min-width:0; }
-  .line .nm { font-weight:700; font-size:13px; margin-bottom:3px; }
-  .line .tx { font-size:16px; line-height:1.8; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
+  .line .nm { font-weight:700; font-size:12.5px; margin-bottom:3px; }
+  .line .tx { font-size:14.5px; line-height:1.8; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
   .line .tx.empty { color:var(--sub); }
-  .line textarea { width:100%; font-size:16px; line-height:1.7; min-height:48px; }
+  .line textarea { width:100%; font-size:14.5px; line-height:1.7; min-height:46px; }
   .line .mk { flex:none; display:flex; gap:4px; align-items:center; }
   .line .mk img { width:40px; height:24px; object-fit:cover; border-radius:4px; }
   .line .mk .vz { font-size:11px; color:#a99adf; }
@@ -1573,7 +1576,7 @@ STORY_PAGE = """<!doctype html>
 <main id="main">読み込み中…</main>
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
-let selGi=-1, rtab=null, dirty=false;  // 二画面：選択行 / 右タブ(null=自動) / 未保存フラグ
+let selGi=-1, rtab=null, dirty=false, collapsed=new Set();  // 二画面：選択行 / 右タブ / 未保存 / 畳んだ章
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -2579,11 +2582,13 @@ function render(){
   (DATA.chapters||[]).forEach((ch,ci)=>{
     const sec=document.createElement('div'); sec.className='chsec'+(ci===selCi?' active':''); sec.dataset.ci=ci;
     sec.appendChild(chapterDivider(ch,ci));
-    const vk=vizOf(ch); const vr=vk?vizRange(ci):null;
-    (DATA.script||[]).forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
-      const inViz=vr&&gi>=vr.startGi&&gi<=vr.endGi;
-      sec.appendChild(lineRow(tn,gi,ch,ci,inViz));
-    });
+    if(!collapsed.has(ci)){
+      const vk=vizOf(ch); const vr=vk?vizRange(ci):null;
+      (DATA.script||[]).forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
+        const inViz=vr&&gi>=vr.startGi&&gi<=vr.endGi;
+        sec.appendChild(lineRow(tn,gi,ch,ci,inViz));
+      });
+    }
     left.appendChild(sec);
   });
   renderRight();
@@ -2593,6 +2598,11 @@ function render(){
 
 function chapterDivider(ch,ci){
   const d=document.createElement('div'); d.className='chdiv';
+  const isCol=collapsed.has(ci);
+  // 折りたたみ▸/▾（タイトルクリックでも開閉）
+  const cv=document.createElement('button'); cv.className='chev'; cv.textContent=isCol?'▸':'▾'; cv.title=isCol?'開く':'畳む';
+  const toggle=(e)=>{ e.stopPropagation(); isCol?collapsed.delete(ci):collapsed.add(ci); render(); };
+  cv.onclick=toggle; d.appendChild(cv);
   if((ch.section||'')==='trivia'){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='selcb';
     cb.checked=selChs.has(ci); cb.title='再生成の対象に選ぶ';
     cb.onclick=(e)=>{ e.stopPropagation(); selChs.has(ci)?selChs.delete(ci):selChs.add(ci); cb.checked=selChs.has(ci); updateRegenBtn(); };
@@ -2600,7 +2610,9 @@ function chapterDivider(ch,ci){
   const badge=document.createElement('span'); badge.className='badge'; badge.textContent=sectionLabel(ch,ci); d.appendChild(badge);
   if(ch.section==='trivia'&&ch.confidence){ const c=document.createElement('span'); c.className='conf '+ch.confidence; c.textContent=confLabel(ch.confidence); d.appendChild(c); }
   const vk=vizOf(ch); if(vk){ const v=document.createElement('span'); v.className='vizb'; v.textContent='▣ '+VIZ_LABEL[vk]; d.appendChild(v); }
-  const t=document.createElement('span'); t.className='ttl'; t.textContent=ch.title||'(無題)'; d.appendChild(t);
+  const t=document.createElement('span'); t.className='ttl'; t.textContent=ch.title||'(無題)'; t.style.cursor='pointer'; t.onclick=toggle; d.appendChild(t);
+  if(isCol){ const n=(DATA.script||[]).filter(x=>x.chapter===ci).length;
+    const cnt=document.createElement('span'); cnt.className='chcnt'; cnt.textContent=n+'行'; d.appendChild(cnt); }
   const e=document.createElement('button'); e.className='mini'; e.textContent='章を編集'; e.style.marginLeft='auto';
   e.onclick=()=>{ selGi=firstGiOfChapter(ci); rtab='chapter'; renderRight(); markSel(); }; d.appendChild(e);
   return d;
