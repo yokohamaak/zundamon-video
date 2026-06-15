@@ -597,7 +597,7 @@ def _clean_callout_style(style):
     if asz is not None:
         out["arrowSize"] = asz
     ashape = style.get("arrowShape")
-    if ashape in ("normal", "sharp", "thick"):
+    if ashape in ("normal", "sharp", "thick", "dot"):
         out["arrowShape"] = ashape
     return out or None
 

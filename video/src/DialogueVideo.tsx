@@ -669,6 +669,7 @@ const CalloutOverlay: React.FC<{
   const aShape = style?.arrowShape || "normal";
   const aBase = aShape === "sharp" ? { len: 26, half: 9, shaft: 4 }
     : aShape === "thick" ? { len: 20, half: 18, shaft: 8 }
+    : aShape === "dot" ? { len: 13, half: 13, shaft: 5 } // dot=矢じりの代わりに丸で指す（half=半径）
     : { len: 22, half: 13, shaft: 6 };
   const HEAD = Math.round(aBase.len * aSize);  // 矢じりの長さ(px)
   const HALF = Math.round(aBase.half * aSize); // 矢じりの半幅(px)
@@ -686,6 +687,15 @@ const CalloutOverlay: React.FC<{
           const lx = (c.lx != null ? c.lx : c.x) * boxW;
           const ly = (c.ly != null ? c.ly : (c.y < 0.25 ? c.y + gapNorm : c.y - gapNorm)) * boxH;
           const ang = Math.atan2(py - ly, px - lx);
+          if (aShape === "dot") {
+            // 丸で指す：線は点まで引き、先端に丸を置く（白縁で見やすく）。
+            return (
+              <g key={i} opacity={ap}>
+                <line x1={lx} y1={ly} x2={px} y2={py} stroke={markerColor} strokeWidth={SHAFT} strokeLinecap="round" />
+                <circle cx={px} cy={py} r={HALF} fill={markerColor} stroke="#fff" strokeWidth={Math.max(2, Math.round(2 * aSize))} />
+              </g>
+            );
+          }
           const baseX = px - HEAD * Math.cos(ang), baseY = py - HEAD * Math.sin(ang);
           const pX = -Math.sin(ang), pY = Math.cos(ang); // 垂直方向
           const h1x = baseX + HALF * pX, h1y = baseY + HALF * pY;

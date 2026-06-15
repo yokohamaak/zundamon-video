@@ -2040,8 +2040,10 @@ function vizContent(box, ch, ci){
     const mColor=st.markerColor||'#ff5a6a', lColor=st.labelColor||'#14233a';
     const mSize=(st.markerSize!=null?st.markerSize:1), lSize=(st.labelSize!=null?st.labelSize:1);
     const aSize=(st.arrowSize!=null?st.arrowSize:1), aShape=(st.arrowShape||'normal');
-    const aBase=(aShape==='sharp'?{len:26,half:9,shaft:4}:aShape==='thick'?{len:20,half:18,shaft:8}:{len:22,half:13,shaft:6});
+    const aDot=(aShape==='dot');
+    const aBase=(aShape==='sharp'?{len:26,half:9,shaft:4}:aShape==='thick'?{len:20,half:18,shaft:8}:aDot?{len:13,half:13,shaft:5}:{len:22,half:13,shaft:6});
     const aHL=Math.round(aBase.len*aSize), aHW=Math.round(aBase.half*aSize*2), aSH=Math.max(2,Math.round(aBase.shaft*aSize));
+    const aR=Math.round(aBase.half*aSize); // dot半径
     // 自動ラベル位置（lx/ly未指定時）：点の上/下に少しずらす。
     const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+0.1:c.y-0.1))});
     // 配置モード切替（点 / 文字）。
@@ -2060,11 +2062,17 @@ function vizContent(box, ch, ci){
     const svg=document.createElementNS(svgns,'svg'); svg.setAttribute('style','position:absolute;inset:0;width:100%;height:100%;pointer-events:none');
     // 矢じりマーカー（userSpaceOnUse＝px指定／orient=auto で向き自動）。
     const defs=document.createElementNS(svgns,'defs'); const mk=document.createElementNS(svgns,'marker');
-    mk.setAttribute('id','cah'); mk.setAttribute('markerUnits','userSpaceOnUse');
-    mk.setAttribute('markerWidth',String(aHL)); mk.setAttribute('markerHeight',String(aHW));
-    mk.setAttribute('refX',String(aHL)); mk.setAttribute('refY',String(aHW/2)); mk.setAttribute('orient','auto');
-    const tri=document.createElementNS(svgns,'path'); tri.setAttribute('d','M0,0 L'+aHL+','+(aHW/2)+' L0,'+aHW+' Z'); tri.setAttribute('fill',mColor);
-    mk.appendChild(tri); defs.appendChild(mk); svg.appendChild(defs);
+    mk.setAttribute('id','cah'); mk.setAttribute('markerUnits','userSpaceOnUse'); mk.setAttribute('orient','auto');
+    if(aDot){ const d=aR*2+4;
+      mk.setAttribute('markerWidth',String(d)); mk.setAttribute('markerHeight',String(d)); mk.setAttribute('refX',String(d/2)); mk.setAttribute('refY',String(d/2));
+      const ci2=document.createElementNS(svgns,'circle'); ci2.setAttribute('cx',String(d/2)); ci2.setAttribute('cy',String(d/2)); ci2.setAttribute('r',String(aR)); ci2.setAttribute('fill',mColor); ci2.setAttribute('stroke','#fff'); ci2.setAttribute('stroke-width','2');
+      mk.appendChild(ci2);
+    } else {
+      mk.setAttribute('markerWidth',String(aHL)); mk.setAttribute('markerHeight',String(aHW)); mk.setAttribute('refX',String(aHL)); mk.setAttribute('refY',String(aHW/2));
+      const tri=document.createElementNS(svgns,'path'); tri.setAttribute('d','M0,0 L'+aHL+','+(aHW/2)+' L0,'+aHW+' Z'); tri.setAttribute('fill',mColor);
+      mk.appendChild(tri);
+    }
+    defs.appendChild(mk); svg.appendChild(defs);
     cs.forEach((c)=>{ if(!c.arrow) return; const L=lpos(c);
       const ln=document.createElementNS(svgns,'line'); ln.setAttribute('x1',(L.x*100)+'%'); ln.setAttribute('y1',(L.y*100)+'%');
       ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width',String(aSH)); ln.setAttribute('marker-end','url(#cah)'); svg.appendChild(ln); });
@@ -2129,7 +2137,7 @@ function vizContent(box, ch, ci){
     const ashow=()=>{ asv.textContent=(st.arrowSize!=null?st.arrowSize:1).toFixed(1)+'倍'; }; ashow();
     asl.oninput=()=>{ st.arrowSize=parseFloat(asl.value); ashow(); }; asl.onchange=()=>render();
     ar.appendChild(document.createTextNode('大きさ')); ar.appendChild(asl); ar.appendChild(asv);
-    [['normal','標準'],['sharp','シャープ'],['thick','太め']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
+    [['normal','標準'],['sharp','シャープ'],['thick','太め'],['dot','ドット']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
       b.className='vchip'+((st.arrowShape||'normal')===v?' on':''); b.textContent=t;
       b.onclick=()=>{ if(v==='normal') delete st.arrowShape; else st.arrowShape=v; render(); }; ar.appendChild(b); });
     ar.appendChild(vMini('既定',()=>{ delete st.arrowSize; delete st.arrowShape; render(); }));
