@@ -2101,7 +2101,7 @@ function vizContent(box, ch, ci){
       r.appendChild(document.createTextNode('y')); r.appendChild(mkNum('y'));
       const al=document.createElement('label'); al.style.cssText='font-size:12px;display:inline-flex;gap:3px;align-items:center';
       const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!c.arrow;
-      ac.onchange=()=>{ if(ac.checked)c.arrow=true; else delete c.arrow; }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al);
+      ac.onchange=()=>{ if(ac.checked)c.arrow=true; else delete c.arrow; render(); }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al);
       if(c.lx!=null||c.ly!=null) r.appendChild(vMini('文字自動',()=>{ delete c.lx; delete c.ly; render(); }));
       r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',cs.length); if(calloutSel>=cs.length)calloutSel=Math.max(0,cs.length-1); render(); }));
       box.appendChild(r);
