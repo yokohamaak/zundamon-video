@@ -2158,16 +2158,17 @@ function vizContent(box, ch, ci){
     const _qst=DATA.script[selGi]; const qSel=_qst&&_qst.chapter===ci; let revGi=null;
     (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci&&t.reveal===true&&revGi==null) revGi=g; });
     const revealed = !qSel ? true : (revGi==null ? true : selGi>=revGi);
+    const qbw=q.boxWidth?(Math.round(q.boxWidth*100)+'%'):null;  // 枠幅（任意）
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
     // ？・問い 土台パネル（中央）
-    const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:10px 18px;max-width:86%';
+    const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:10px 18px;box-sizing:border-box;'+(qbw?('width:'+qbw+';max-width:96%'):'max-width:86%');
     const pbgl=document.createElement('div'); pbgl.style.cssText='position:absolute;inset:0;border-radius:12px;background:'+(q.bg||'#0f141e')+';opacity:'+(q.bgOpacity!=null?q.bgOpacity:0.62); pnl.appendChild(pbgl);
     const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:'+pv(34)+'px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
     const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+pv(14)+'px;text-align:center'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
     if(!revealed) prev.appendChild(pnl);   // 答え前＝問いだけ
     // 答えバナー（下部）
-    const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:5px 14px;max-width:90%;box-shadow:0 3px 10px rgba(0,0,0,.4)';
+    const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:5px 14px;box-sizing:border-box;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4);'+(qbw?('width:'+qbw+';max-width:96%'):'max-width:90%');
     const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
     const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+pv(16)+'px;text-align:center'; at.textContent=q.answer||'答え'; ans.appendChild(at);
     if(revealed) prev.appendChild(ans);   // 答え以降＝答えバナー
@@ -2185,6 +2186,13 @@ function vizContent(box, ch, ci){
     box.appendChild(colRow('問いの文字色','textColor','#ffffff'));
     box.appendChild(vBgRow(q,'答えの背景','#ffd84d',0.96,'answerBg','answerBgOpacity'));
     box.appendChild(colRow('答えの文字色','answerTextColor','#1a1f2b'));
+    // ボックス幅（問い土台/答えバナーの横幅・画面比）。未指定=内容に応じ自動。
+    const wr=vRow('ボックス幅'); const wsl=document.createElement('input'); wsl.type='range'; wsl.min='0.3'; wsl.max='1'; wsl.step='0.05';
+    wsl.value=(q.boxWidth!=null?q.boxWidth:0.8); wsl.style.cssText='width:120px;vertical-align:middle'; wsl.title='問い土台/答えバナーの横幅（画面比）';
+    const wsv=document.createElement('span'); wsv.style.cssText='font-size:11px;color:var(--sub);min-width:40px;display:inline-block;text-align:right';
+    const wshow=()=>{ wsv.textContent=(q.boxWidth!=null?Math.round(q.boxWidth*100)+'%':'自動'); }; wshow();
+    wsl.oninput=()=>{ q.boxWidth=parseFloat(wsl.value); wshow(); }; wsl.onchange=()=>render();
+    wr.appendChild(stepWrap(wsl)); wr.appendChild(wsv); wr.appendChild(vMini('自動',()=>{ delete q.boxWidth; render(); })); box.appendChild(wr);
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // ライブプレビュー（左右2分割の最終分割状態＝render(CompareVisual)に合わせたモック）。

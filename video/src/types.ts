@@ -73,6 +73,7 @@ export type Quiz = {
   answerBg?: string;      // CSS color（例 "#ffd84d"）
   answerBgOpacity?: number; // 0..1（既定 0.96）
   answerTextColor?: string; // 答えの文字色（既定 #1a1f2b）
+  boxWidth?: number;      // 問い土台/答えバナーの横幅（画面比 0.3..1・任意・無指定=内容に応じ自動）
 };
 
 // 比較（2分割）：左右（縦は上下）にA対Bを並べる。before/after・対比ネタ向き。

@@ -503,6 +503,9 @@ def _clean_quiz(quiz):
     atc = (quiz.get("answerTextColor") or "").strip()
     if atc:
         out["answerTextColor"] = atc
+    bw = quiz.get("boxWidth")
+    if isinstance(bw, (int, float)) and not isinstance(bw, bool) and 0.2 <= float(bw) <= 1.0:
+        out["boxWidth"] = round(float(bw), 3)
     return out
 
 
