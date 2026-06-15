@@ -1540,7 +1540,9 @@ STORY_PAGE = """<!doctype html>
   .chdiv .selcb { width:16px; height:16px; flex:none; accent-color:#ffd84d; }
   .chdiv .chev { background:transparent; border:none; color:var(--sub); font-size:13px; padding:2px 4px; cursor:pointer; flex:none; border-radius:5px; }
   .chdiv .chev:hover { background:#1c232e; color:var(--fg); }
-  .chdiv .chcnt { font-size:11px; color:var(--sub); flex:none; }
+  .chdiv .chcnt { font-size:11px; color:var(--sub); flex:none; display:none; }
+  .chsec.collapsed .chcnt { display:inline-block; }
+  .chsec.collapsed .line { display:none; }
   /* セリフカード＝Discord風（アイコン＋名前＋本文）。余白広め・罫線なし・6px左カラー */
   .line { display:flex; gap:12px; align-items:flex-start; padding:13px 15px; margin-bottom:10px; border-radius:10px;
           cursor:pointer; background:#161b24; border-left:6px solid transparent; }
@@ -2562,6 +2564,14 @@ function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter=
 function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
 function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存':'保存'; }
 function setWide(on){ rwide=on; const r=document.getElementById('rpane'); if(r) r.classList.toggle('wide',on); }
+// 折りたたみをCSSクラスで反映（全再描画しない＝スクロール位置を保つ）。
+function applyCollapse(){
+  document.querySelectorAll('.chsec').forEach(sec=>{
+    const ci=+sec.dataset.ci; const col=collapsed.has(ci);
+    sec.classList.toggle('collapsed',col);
+    const cv=sec.querySelector('.chev'); if(cv){ cv.textContent=col?'▸':'▾'; cv.title=col?'開く':'畳む'; }
+  });
+}
 function markSel(){
   const ci=(DATA.script[selGi]||{}).chapter;
   document.querySelectorAll('.line').forEach(el=>el.classList.toggle('sel', +el.dataset.gi===selGi));
@@ -2586,21 +2596,20 @@ function render(){
   const hint=document.createElement('div'); hint.style.cssText='font-size:11px;color:var(--sub);flex:1;min-width:160px';
   hint.textContent='行をクリック→右で画像/演出を編集　｜　本文をダブルクリック→セリフを編集';
   bar.appendChild(hint);
-  bar.appendChild(vMini('全て展開',()=>{ collapsed.clear(); render(); }));
-  bar.appendChild(vMini('全て畳む',()=>{ collapsed=new Set((DATA.chapters||[]).map((_,i)=>i)); render(); }));
+  bar.appendChild(vMini('全て展開',()=>{ collapsed.clear(); applyCollapse(); }));
+  bar.appendChild(vMini('全て畳む',()=>{ collapsed=new Set((DATA.chapters||[]).map((_,i)=>i)); applyCollapse(); }));
   left.appendChild(bar);
   // 章＝セクション。選択行のある章を active 表示。intro→ネタ→outro 連続。
   const selCi=(DATA.script[selGi]||{}).chapter;
   (DATA.chapters||[]).forEach((ch,ci)=>{
-    const sec=document.createElement('div'); sec.className='chsec'+(ci===selCi?' active':''); sec.dataset.ci=ci;
+    const sec=document.createElement('div'); sec.className='chsec'+(ci===selCi?' active':'')+(collapsed.has(ci)?' collapsed':''); sec.dataset.ci=ci;
     sec.appendChild(chapterDivider(ch,ci));
-    if(!collapsed.has(ci)){
-      const vk=vizOf(ch); const vr=vk?vizRange(ci):null;
-      (DATA.script||[]).forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
-        const inViz=vr&&gi>=vr.startGi&&gi<=vr.endGi;
-        sec.appendChild(lineRow(tn,gi,ch,ci,inViz));
-      });
-    }
+    // 行は常に生成し、折りたたみはCSSで隠す（全再描画せずスクロール位置を保つため）。
+    const vk=vizOf(ch); const vr=vk?vizRange(ci):null;
+    (DATA.script||[]).forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
+      const inViz=vr&&gi>=vr.startGi&&gi<=vr.endGi;
+      sec.appendChild(lineRow(tn,gi,ch,ci,inViz));
+    });
     left.appendChild(sec);
   });
   renderRight();
@@ -2611,9 +2620,9 @@ function render(){
 function chapterDivider(ch,ci){
   const d=document.createElement('div'); d.className='chdiv';
   const isCol=collapsed.has(ci);
-  // 折りたたみ▸/▾（タイトルクリックでも開閉）
+  // 折りたたみ▸/▾（タイトルクリックでも開閉）。全再描画せずCSSクラスで開閉＝スクロール維持。
   const cv=document.createElement('button'); cv.className='chev'; cv.textContent=isCol?'▸':'▾'; cv.title=isCol?'開く':'畳む';
-  const toggle=(e)=>{ e.stopPropagation(); isCol?collapsed.delete(ci):collapsed.add(ci); render(); };
+  const toggle=(e)=>{ e.stopPropagation(); collapsed.has(ci)?collapsed.delete(ci):collapsed.add(ci); applyCollapse(); };
   cv.onclick=toggle; d.appendChild(cv);
   if((ch.section||'')==='trivia'){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='selcb';
     cb.checked=selChs.has(ci); cb.title='再生成の対象に選ぶ';
@@ -2623,8 +2632,9 @@ function chapterDivider(ch,ci){
   if(ch.section==='trivia'&&ch.confidence){ const c=document.createElement('span'); c.className='conf '+ch.confidence; c.textContent=confLabel(ch.confidence); d.appendChild(c); }
   const vk=vizOf(ch); if(vk){ const v=document.createElement('span'); v.className='vizb'; v.textContent='▣ '+VIZ_LABEL[vk]; d.appendChild(v); }
   const t=document.createElement('span'); t.className='ttl'; t.textContent=ch.title||'(無題)'; t.style.cursor='pointer'; t.onclick=toggle; d.appendChild(t);
-  if(isCol){ const n=(DATA.script||[]).filter(x=>x.chapter===ci).length;
-    const cnt=document.createElement('span'); cnt.className='chcnt'; cnt.textContent=n+'行'; d.appendChild(cnt); }
+  // 行数（畳んだ時だけCSSで表示）。常に生成しておく。
+  const n=(DATA.script||[]).filter(x=>x.chapter===ci).length;
+  const cnt=document.createElement('span'); cnt.className='chcnt'; cnt.textContent=n+'行'; d.appendChild(cnt);
   const e=document.createElement('button'); e.className='mini'; e.textContent='章を編集'; e.style.marginLeft='auto';
   e.onclick=()=>{ selGi=firstGiOfChapter(ci); rtab='chapter'; renderRight(); markSel(); }; d.appendChild(e);
   return d;
