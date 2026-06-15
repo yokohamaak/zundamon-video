@@ -2041,7 +2041,7 @@ function vizContent(box, ch, ci){
     const pmColor=p.markerColor||'#ffd84d', pmSize=(p.markerSize!=null?p.markerSize:1);
     const ptColor=p.textColor||'#ffffff', ptSize=(p.textSize!=null?p.textSize:1);
     const u=imgUrl(ci,0);
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px;display:flex;padding:10px;box-sizing:border-box;gap:14px';
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px;display:flex;padding:10px;box-sizing:border-box;gap:14px';
     const iw=document.createElement('div'); iw.style.cssText='width:44%;height:100%;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.04);flex:none;display:flex;align-items:center;justify-content:center';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; iw.appendChild(im); }
     else { const ph=document.createElement('span'); ph.style.cssText='color:var(--sub);font-size:11px'; ph.textContent='画像(各行のcut)'; iw.appendChild(ph); }
@@ -2102,7 +2102,7 @@ function vizContent(box, ch, ci){
     // ライブプレビュー（背後の画像＋「？・問い」土台＋答えバナー。動画では問い→答えに切替）。
     const u=imgUrl(ci,0); const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
     const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover'); const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px';
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
     // ？・問い 土台パネル（中央）
     const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:10px 18px;max-width:86%';
@@ -2138,7 +2138,7 @@ function vizContent(box, ch, ci){
       if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; h.appendChild(im); }
       const lb=document.createElement('div'); lb.style.cssText='position:absolute;left:0;right:0;bottom:0;background:'+lblBg+';color:'+lblTx+';font-weight:800;font-size:'+Math.round(13*lblSz)+'px;text-align:center;padding:4px 4px'; lb.textContent=side.label||''; h.appendChild(lb);
       return h; };
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;margin-bottom:6px;display:flex';
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;margin-bottom:6px;display:flex';
     prev.appendChild(half(c.left,0)); prev.appendChild(half(c.right,1));
     const dv=document.createElement('div'); dv.style.cssText='position:absolute;top:0;bottom:0;left:50%;width:3px;transform:translateX(-1.5px);background:'+divC; prev.appendChild(dv);
     box.appendChild(prev);
@@ -2174,7 +2174,7 @@ function vizContent(box, ch, ci){
     const sz=(s.size!=null?s.size:1);
     const u=imgUrl(ci,0); const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
     const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover'); const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px;display:flex;align-items:center;justify-content:center';
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px;display:flex;align-items:center;justify-content:center';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
     const card=document.createElement('div'); card.style.cssText='position:relative;display:flex;flex-direction:column;align-items:center;border-radius:'+Math.round(14*sz)+'px;padding:'+Math.round(8*sz)+'px '+Math.round(18*sz)+'px';
     const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:'+Math.round(14*sz)+'px;background:'+(s.bg||'#0f141e')+';opacity:'+(s.bgOpacity!=null?s.bgOpacity:0.5); card.appendChild(bgl);
@@ -2236,7 +2236,7 @@ function vizContent(box, ch, ci){
     const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
     const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover');
     const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';cursor:crosshair;margin-bottom:6px;user-select:none';
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';cursor:crosshair;margin-bottom:6px;user-select:none';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:'+pfit+';pointer-events:none'; prev.appendChild(im); }
     else { const ph=document.createElement('div'); ph.style.cssText='display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px'; ph.textContent='画像なし（cut0を取得してください）'; prev.appendChild(ph); }
     // 矢印（SVG・arrowのみ）。文字位置→点へ・先端に矢じり(marker)。
