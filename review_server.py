@@ -2043,7 +2043,9 @@ function vizContent(box, ch, ci){
     const pmType=(p.markerType||'check'), pmSym=(pmType==='square'?'■':pmType==='dot'?'●':'✔');
     const pmColor=p.markerColor||'#ffd84d', pmSize=(p.markerSize!=null?p.markerSize:1);
     const ptColor=p.textColor||'#ffffff', ptSize=(p.textSize!=null?p.textSize:1);
-    const u=imgUrl(ci,0);
+    // パネル画像はセリフ毎(cut追従)。プレビューは選択中の行のcutを代表表示（cut0固定をやめる）。
+    const _st=DATA.script[selGi]; const pcut=(_st&&_st.chapter===ci&&typeof _st.cut==='number')?_st.cut:0;
+    const u=imgUrl(ci,pcut);
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px;display:flex;padding:10px;box-sizing:border-box;gap:14px';
     const iw=document.createElement('div'); iw.style.cssText='width:44%;height:100%;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.04);flex:none;display:flex;align-items:center;justify-content:center';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; iw.appendChild(im); }
@@ -2064,7 +2066,7 @@ function vizContent(box, ch, ci){
       w.appendChild(row); txt.appendChild(w); });
     prev.appendChild(txt); box.appendChild(prev);
     const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 4px';
-    note.textContent='画像はセリフ毎に切替（各行のcutで選択・上は代表）。矢印で時系列フロー(▼)／無しは並列(✔)。';
+    note.textContent='画像はセリフ毎に切替（各行のcutで選択・上は選択行の画像）。矢印で時系列フロー(▼)／無しは並列(✔)。';
     box.appendChild(note);
     // 見出し（テキスト領域の上に出すお題。並列項目で特に有効）。
     const hr=vRow('見出し'); const hi=vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; }); hi.onchange=()=>render(); hr.appendChild(hi); box.appendChild(hr);
