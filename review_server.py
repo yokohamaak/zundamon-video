@@ -362,7 +362,7 @@ def compose_main_prompt():
         genre = topic_history.genre_of(cfg)
         theme = story_script.select_theme(cfg, topic_history.used_themes(genre))
         cfg.setdefault("story", {})["theme"] = theme
-        avoid = topic_history.facts(genre)
+        avoid = [{"title": t} for t in topic_history.used_themes(genre)]  # 主題単位で重複回避
     except Exception:  # noqa: BLE001 - 履歴が無い等でも素のプロンプトは出す
         theme, avoid = "", None
     return {"prompt": story_script.build_prompt(cfg, also_avoid=avoid), "theme": theme or "(AIにおまかせ)"}
@@ -609,17 +609,13 @@ def do_regenerate_all(fallback=None):
     config = _load_image_config()
     _apply_fallback(config, fallback)
     genre = topic_history.genre_of(config)
-    old = load_script() or {}
-    old_facts = [{"title": c.get("title", ""), "summary": c.get("summary", "")}
-                 for c in old.get("chapters", []) if c.get("section") == "trivia"]
-    avoid = topic_history.facts(genre)
+    # 深掘りストーリーは主題単位で重複回避（過去に扱った主題と被らせない）。
+    avoid = [{"title": t} for t in topic_history.used_themes(genre)]
     try:
         script_result = story_script.generate_story_script(config, also_avoid=avoid)
     except Exception as e:  # noqa: BLE001 - 生成失敗はメッセージで返す
         return {"ok": False, "message": f"台本生成に失敗: {e}"}
     save_script(script_result)
-    if old_facts:
-        topic_history.add(genre, old_facts, "rejected")  # 旧ネタは却下＝今後の生成で避ける
 
     # 旧画像を掃除し、新カットで全取得＋review.json を再構築。
     for c in load_review().get("cuts", []):
@@ -1594,7 +1590,7 @@ STORY_PAGE = """<!doctype html>
   <span class="spacer"></span>
   <a href="/read"><button title="フル台本/概要を読み取り専用で表示（事実確認）">台本を読む</button></a>
   <button id="regenall" title="テーマで台本を丸ごと作り直す（intro+全ネタ+outroを新規生成・整合性が保たれる）">全体を作り直す</button>
-  <button id="regen" disabled title="チェックしたネタ章を、既存と重複しない内容で作り直す（Gemini1回）">選択章を再生成</button>
+  <button id="regen" disabled style="display:none" title="（深掘りストーリーでは無効：章は物語が連続するため章単位の作り直しは不可。全体を作り直すを使う）">選択章を再生成</button>
   <label id="fblabel" title="ON=primaryモデルが503/枯渇なら別の無料モデルへ自動切替。OFF=primaryのみ（品質固定・失敗を即把握）" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#9fb0c5;cursor:pointer;"><input type="checkbox" id="fallback" checked> フォールバック</label>
   <button class="ok" id="save">保存</button>
 </header>
@@ -1918,11 +1914,11 @@ function buildAdjust(ci,k){
 }
 
 function sectionLabel(ch, ci){
-  if(ch.section==='intro') return 'intro';
-  if(ch.section==='outro') return 'outro';
-  // trivia通し番号
+  if(ch.section==='intro') return '導入';
+  if(ch.section==='outro') return '締め';
+  // 本編ビート通し番号（内部キーはtrivia流用）
   let n=0; for(let i=0;i<=ci;i++){ if((DATA.chapters[i].section)==='trivia') n++; }
-  return 'trivia'+n;
+  return 'ビート'+n;
 }
 function confLabel(c){ return {high:'確度 高', medium:'確度 中', low:'確度 低'}[c]||c; }
 
@@ -2774,10 +2770,7 @@ function chapterDivider(ch,ci){
   const cv=document.createElement('button'); cv.className='chev'; cv.textContent=isCol?'▸':'▾'; cv.title=isCol?'開く':'畳む';
   const toggle=(e)=>{ e.stopPropagation(); collapsed.has(ci)?collapsed.delete(ci):collapsed.add(ci); applyCollapse(); };
   cv.onclick=toggle; d.appendChild(cv);
-  if((ch.section||'')==='trivia'){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='selcb';
-    cb.checked=selChs.has(ci); cb.title='再生成の対象に選ぶ';
-    cb.onclick=(e)=>{ e.stopPropagation(); selChs.has(ci)?selChs.delete(ci):selChs.add(ci); cb.checked=selChs.has(ci); updateRegenBtn(); };
-    d.appendChild(cb); }
+  // 章単位の再生成は廃止（深掘りストーリーは章＝物語ビートが連続し前後依存するため）。作り直しは「全体を作り直す」のみ。
   const badge=document.createElement('span'); badge.className='badge'; badge.textContent=sectionLabel(ch,ci); d.appendChild(badge);
   if(ch.section==='trivia'&&ch.confidence){ const c=document.createElement('span'); c.className='conf '+ch.confidence; c.textContent=confLabel(ch.confidence); d.appendChild(c); }
   const ns=chSegs(ch).length; if(ns){ const v=document.createElement('span'); v.className='vizb'; v.textContent='▣ 演出'+(ns>1?('×'+ns):''); d.appendChild(v); }

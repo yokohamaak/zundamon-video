@@ -9,18 +9,19 @@ from src import story_script as s
 
 
 def test_build_prompt_contains_essentials():
-    config = {"story": {"theme": "デジタルの名前の謎", "topics": 5,
+    config = {"story": {"theme": "なぜノキアは転落したのか", "topics": 5,
                         "questioner": "ずんだもん", "explainer": "四国めたん"}}
     p = s.build_prompt(config)
-    assert "デジタルの名前の謎" in p, "テーマが埋め込まれる"
+    assert "なぜノキアは転落したのか" in p, "主題が埋め込まれる"
     assert "ずんだもん" in p and "四国めたん" in p, "両キャラ名が入る"
-    assert "5" in p and "ネタ" in p, "ネタ数が反映される"
+    assert "5" in p and "本編ビート" in p, "ビート数が反映される"
     assert "intro" in p and "trivia" in p and "outro" in p, "section種別が入る"
-    assert "実は" in p, "実は雑学の型が入る"
+    assert "なぜ" in p and "物語" in p, "なぜ型・物語深掘りの方針が入る"
+    assert "1つの問い" in p, "中心の問いに答える方針が入る"
     assert "image_cuts" in p and "image_query" in p and "image_kind" in p, "章の画像cut指示が入る"
     assert "subject" in p and "ambient" in p, "image_kindの値が入る"
     assert "chapters" in p and "script" in p, "出力JSON形式の指定が入る"
-    assert "切り口" in p and "由来" in p, "テーマの切り口厳守・名前由来ネタ逃げ禁止の指示が入る"
+    assert "核心" in p and "転換点" in p, "物語ビートの骨格（核心・転換点）が入る"
     print("  build_prompt: 必須要素OK")
 
 
@@ -379,12 +380,12 @@ def test_daily_quota_immediate_fallback():
 
 def test_build_prompt_also_avoid():
     cfg = {"story": {"theme": "X", "topics": 5, "questioner": "ずんだもん", "explainer": "四国めたん"}}
-    # 指定なし＝既出ネタ節は出ない（従来通り）
-    assert "既出ネタ（重複禁止" not in s.build_prompt(cfg)
-    # 指定あり＝過去ネタが重複禁止に入る
+    # 指定なし＝既出主題節は出ない（従来通り）
+    assert "既出の主題（重複禁止" not in s.build_prompt(cfg)
+    # 指定あり＝過去主題が重複禁止に入る
     p = s.build_prompt(cfg, also_avoid=[{"title": "過去ネタZ", "summary": "z"}])
-    assert "既出ネタ（重複禁止" in p and "過去ネタZ" in p
-    print("  build_prompt: also_avoid指定時のみ既出ネタ節 OK")
+    assert "既出の主題（重複禁止" in p and "過去ネタZ" in p
+    print("  build_prompt: also_avoid指定時のみ既出主題節 OK")
 
 
 def test_regenerate_uses_also_avoid():

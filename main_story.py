@@ -801,9 +801,10 @@ def main():
         chosen_theme = story_script.select_theme(config, topic_history.used_themes(genre))
         config.setdefault("story", {})["theme"] = chosen_theme  # build_prompt がこの値を使う
         logger.info(f"テーマ: 「{chosen_theme}」" if chosen_theme else "テーマ: Gemini自動選定")
-        avoid = topic_history.facts(genre)  # 過去動画の採用済み＋却下を避ける
+        # 深掘りストーリーは「主題」単位で重複回避（過去に扱った主題と被らせない）。
+        avoid = [{"title": t} for t in topic_history.used_themes(genre)]
         if avoid:
-            logger.info(f"既出ネタ {len(avoid)}件を避けて生成（ジャンル: {genre}）")
+            logger.info(f"既出の主題 {len(avoid)}件を避けて生成（ジャンル: {genre}）")
         script_result = story_script.generate_story_script(config, also_avoid=avoid)
 
     # ショート判定（締めユニゾンを付けない／文字数予算を約40秒に）。
@@ -912,16 +913,12 @@ def main():
     with open(out_dir / "meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 
-    # 動画を確定（meta生成＝採用）した時点で、この動画のネタを永続履歴に「採用済み」で記録。
-    # 以降の動画生成・再生成で重複回避に使う（ジャンル別・動画をまたいで残る）。
+    # 動画を確定（meta生成＝採用）した時点で、この動画の主題を永続履歴に記録。
+    # 深掘りストーリーは主題単位で重複回避する（章＝物語ビートは主題に従属するので facts は記録しない）。
     from src import topic_history
     genre = topic_history.genre_of(config)
-    used = topic_history.trivia_facts(script_result.get("chapters", []))
-    n_added = topic_history.add(genre, used, "used")
-    logger.info(f"採用ネタ {n_added}件を履歴に記録（ジャンル: {genre}・累計回避対象に追加）")
-    # 採用テーマも記録（theme_pool 巡回用。Geminiが選んだ場合も実テーマを残す）。
     if topic_history.add_theme(genre, script_result.get("theme")):
-        logger.info(f"採用テーマを履歴に記録: 「{script_result.get('theme')}」")
+        logger.info(f"採用主題を履歴に記録: 「{script_result.get('theme')}」（ジャンル: {genre}・以降の重複回避対象）")
 
     # 概要欄用クレジット（動画内には出さない。CC-BY帰属はここで要件を満たす）。
     write_credits_txt(out_dir, config, attributions)
