@@ -167,6 +167,11 @@ export type Panel = {
   textSize?: number;      // 項目テキストの大きさ倍率（既定 1）
   // 画像を縮小しテキスト領域を開く絶対時刻（秒）。無指定時は章頭。
   shrinkAt?: number;
+  // テキスト領域(パネル)の配置プリセット。無指定=既定。
+  //  縮小モード横: "right"(既定/画像左) | "left"(画像右)
+  //  縮小モード縦: "bottom"(既定/画像上) | "top"(画像下)
+  //  overlayモード: "bottom"(既定) | "top" | "center"
+  pos?: "right" | "left" | "top" | "bottom" | "center";
 };
 
 // 中央ビジュアルのトピック。imageがあれば画像、無ければtitleでカード描画。

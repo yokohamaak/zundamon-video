@@ -508,7 +508,7 @@ def test_panel_fields_preserved():
     data = s.parse_script_json(
         '{"chapters":[{"section":"trivia","title":"A",'
         '"panel":{"bg":"#102030","bgOpacity":0.6,"cut":2,"image":"x.jpg",'
-        '"overlay":true,"markerType":"square","markerColor":"#00ff00","markerSize":1.3,"textColor":"#ffeeaa","textSize":0.9,"items":['
+        '"overlay":true,"pos":"left","markerType":"square","markerColor":"#00ff00","markerSize":1.3,"textColor":"#ffeeaa","textSize":0.9,"items":['
         '{"text":"全保存"},{"text":"北極","arrow_from_prev":true}]},'
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
         '"script":[{"speaker":"四国めたん","text":"x","chapter":0,"panel_event":"shrink","panel_item":0},'
@@ -519,6 +519,7 @@ def test_panel_fields_preserved():
     assert pn["bg"] == "#102030" and pn["bgOpacity"] == 0.6 and len(pn["items"]) == 2
     assert pn["items"][1]["arrow_from_prev"] is True
     assert pn["overlay"] is True
+    assert pn["pos"] == "left"
     assert pn["markerType"] == "square" and pn["markerColor"] == "#00ff00" and pn["markerSize"] == 1.3
     assert pn["textColor"] == "#ffeeaa" and pn["textSize"] == 0.9
     assert data["script"][0]["panel_event"] == "shrink"

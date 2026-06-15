@@ -470,6 +470,9 @@ def _clean_panel(panel):
     heading = strip_markdown((panel.get("heading") or "").strip())
     if heading:
         out["heading"] = heading
+    pos = (panel.get("pos") or "").strip()
+    if pos in ("right", "left", "top", "bottom", "center"):
+        out["pos"] = pos
     return out
 
 

@@ -2074,18 +2074,26 @@ function vizContent(box, vh, ch, ci, onDel){
       if(typeof t.panel_item==='number'&&!(t.panel_item in itemGi)) itemGi[t.panel_item]=gi; });
     const opened = overlay ? true : (!selInCh ? true : (shrinkGi==null ? true : selGi>=shrinkGi));
     const itemShown=(k)=>{ if(!selInCh) return true; if(!overlay&&!opened) return false; return (k in itemGi)? selGi>=itemGi[k] : true; };
+    const ppos=p.pos||'';            // 配置プリセット
+    const onLeft=(ppos==='left');    // 縮小モードでテキストを左に開く（画像は右）
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px';
     const imgSide=(!overlay&&opened);  // 横に縮小して開く
     const iw=document.createElement('div');
-    iw.style.cssText='position:absolute;top:0;bottom:0;left:0;'+(imgSide?'width:44%;margin:10px;border-radius:8px;':'right:0;')+'overflow:hidden;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center';
+    // 画像位置：縮小時はテキストの逆側（既定=左/onLeft=右）。未縮小は全面。
+    const iwAnchor=imgSide ? (onLeft?'right:0;':'left:0;')+'width:44%;margin:10px;border-radius:8px;' : 'left:0;right:0;';
+    iw.style.cssText='position:absolute;top:0;bottom:0;'+iwAnchor+'overflow:hidden;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; iw.appendChild(im); }
     else { const ph=document.createElement('span'); ph.style.cssText='color:var(--sub);font-size:11px'; ph.textContent='画像(各行のcut)'; iw.appendChild(ph); }
     prev.appendChild(iw);
     if(overlay || opened){
       const txt=document.createElement('div');
+      // overlay帯の縦位置：上/中央/下(既定)。縮小モードは左右(既定=右)。
+      const ovPos = ppos==='top' ? 'top:0;justify-content:flex-start;padding:10px 12px 8px'
+                  : ppos==='center' ? 'top:28%;justify-content:center;padding:8px 12px'
+                  : 'bottom:0;justify-content:flex-end;padding:8px 12px 10px';
       txt.style.cssText=overlay
-        ? 'position:absolute;left:0;right:0;bottom:0;height:44%;display:flex;flex-direction:column;justify-content:flex-end;padding:8px 12px 10px;box-sizing:border-box;overflow:hidden'
-        : 'position:absolute;left:46%;right:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:8px 10px;box-sizing:border-box;overflow:hidden';
+        ? 'position:absolute;left:0;right:0;height:44%;display:flex;flex-direction:column;'+ovPos+';box-sizing:border-box;overflow:hidden'
+        : 'position:absolute;'+(onLeft?'left:0;right:54%;':'left:46%;right:0;')+'top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:8px 10px;box-sizing:border-box;overflow:hidden';
       if(p.bg){ const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:8px;background:'+p.bg+';opacity:'+(p.bgOpacity!=null?p.bgOpacity:1); txt.appendChild(bgl); }
       if(p.heading){ const hd=document.createElement('div'); hd.style.cssText='position:relative;display:flex;align-items:center;gap:6px;margin-bottom:6px';
         const bar=document.createElement('span'); bar.style.cssText='width:5px;height:16px;background:#ffd84d;border-radius:2px;display:inline-block;flex:none';
@@ -2108,8 +2116,17 @@ function vizContent(box, vh, ch, ci, onDel){
     const mdr=vRow('表示');
     [['shrink','縮小して横に開く'],['overlay','縮小なし（テロップ）']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
       const on=(v==='overlay')===(!!p.overlay); b.className='vchip'+(on?' on':''); b.textContent=t;
-      b.onclick=()=>{ if(v==='overlay')p.overlay=true; else delete p.overlay; render(); }; mdr.appendChild(b); });
+      b.onclick=()=>{ if(v==='overlay')p.overlay=true; else delete p.overlay; delete p.pos; render(); }; mdr.appendChild(b); });
     box.appendChild(mdr);
+    // パネル位置プリセット。overlay=帯の縦位置(下/上/中央)、縮小=開く側(右/左)。既定はクリアで戻す。
+    const por=vRow('位置');
+    const popts = (!!p.overlay)
+      ? [['','下(既定)'],['top','上'],['center','中央']]
+      : [['','右(既定)'],['left','左']];
+    popts.forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
+      const on=(p.pos||'')===v; b.className='vchip'+(on?' on':''); b.textContent=t;
+      b.onclick=()=>{ if(v)p.pos=v; else delete p.pos; render(); }; por.appendChild(b); });
+    box.appendChild(por);
     // 見出し（テキスト領域の上に出すお題。並列項目で特に有効）。
     const hr=vRow('見出し'); const hi=vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; }); hi.onchange=()=>render(); hr.appendChild(hi); box.appendChild(hr);
     // テキスト領域（縮小画像の横）の背景色＋不透明度。クリアで透過（黒板が見える）。

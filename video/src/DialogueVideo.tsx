@@ -316,11 +316,27 @@ const DialoguePanel: React.FC<{
   const imgFrac = portrait ? 0.5 : 0.46;
   const imgW = overlay ? boxW : (portrait ? boxW : boxW * (1 - (1 - imgFrac) * sp));
   const imgH = overlay ? boxH : (portrait ? boxH * (1 - (1 - imgFrac) * sp) : boxH);
-  // テキスト領域：通常=画像の横(縦は下)。overlay=下部のテロップ帯。
+  // テキスト領域：通常=画像の横(縦は下)。overlay=テロップ帯。
   const textH = overlay ? Math.round(boxH * (portrait ? 0.4 : 0.44)) : (portrait ? boxH - imgH - GAP : boxH);
-  const textLeft = overlay ? 0 : (portrait ? 0 : imgW + GAP);
-  const textTop = overlay ? (boxH - textH) : (portrait ? imgH + GAP : 0);
   const textW = overlay ? boxW : (portrait ? boxW : boxW - imgW - GAP);
+  // 配置プリセット(pos)。縮小モードは画像とテキストの「どちら側」かを切替、画像も追従して移動。
+  const pos = panel.pos || "";
+  let imgLeft = 0, imgTop = 0, textLeft = 0, textTop = 0;
+  if (overlay) {
+    // 帯の縦位置：上/中央/下(既定)。
+    textTop = pos === "top" ? 0 : pos === "center" ? Math.round((boxH - textH) / 2) : (boxH - textH);
+    textLeft = 0;
+  } else if (portrait) {
+    // 縦：text を上/下(既定)。画像は逆側。
+    if (pos === "top") { textTop = 0; imgTop = textH + GAP; }
+    else { imgTop = 0; textTop = imgH + GAP; }
+    textLeft = 0;
+  } else {
+    // 横：text を左/右(既定)。画像は逆側。
+    if (pos === "left") { textLeft = 0; imgLeft = textW + GAP; }
+    else { imgLeft = 0; textLeft = imgW + GAP; }
+    textTop = 0;
+  }
   const fontSize = portrait ? 40 : 46;
   // 項目マーカー（並列時の記号）と、マーク/テキストの色・大きさ（任意・章共通）。
   const mType = panel.markerType || "check";
@@ -335,8 +351,8 @@ const DialoguePanel: React.FC<{
       <div
         style={{
           position: "absolute",
-          left: 0,
-          top: 0,
+          left: imgLeft,
+          top: imgTop,
           width: imgW,
           height: imgH,
           display: "flex",
@@ -380,7 +396,7 @@ const DialoguePanel: React.FC<{
           height: textH,
           display: "flex",
           flexDirection: "column",
-          justifyContent: overlay ? "flex-end" : "center",
+          justifyContent: overlay ? (pos === "top" ? "flex-start" : "flex-end") : "center",
           gap: portrait ? 8 : 14,
           opacity: overlay ? 1 : sp,
           padding: overlay ? (portrait ? "0 24px 18px" : "0 22px 16px") : (portrait ? "0 24px" : "0 18px"),
