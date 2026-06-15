@@ -2054,9 +2054,14 @@ function vizContent(box, ch, ci){
       b.className='vchip'+(calloutMode===v?' on':''); b.textContent=t; b.onclick=()=>{ calloutMode=v; render(); }; mrow.appendChild(b); });
     box.appendChild(mrow);
     // クリック配置プレビュー：章の画像(cut0)を出し、クリックで選択中注釈の点/文字位置を設定。
+    // render と座標を合わせるため、画像の収め方(fit)を build と同じに揃える
+    // （subject=contain / それ以外=cover。レビューでfit上書きがあれば優先）。
     const u=imgUrl(ci,0);
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;cursor:crosshair;margin-bottom:6px;user-select:none';
-    if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none'; prev.appendChild(im); }
+    const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
+    const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover');
+    const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';cursor:crosshair;margin-bottom:6px;user-select:none';
+    if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:'+pfit+';pointer-events:none'; prev.appendChild(im); }
     else { const ph=document.createElement('div'); ph.style.cssText='display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px'; ph.textContent='画像なし（cut0を取得してください）'; prev.appendChild(ph); }
     // 矢印（SVG・arrowのみ）。文字位置→点へ・先端に矢じり(marker)。
     const svgns='http://www.w3.org/2000/svg';
