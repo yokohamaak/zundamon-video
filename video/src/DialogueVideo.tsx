@@ -624,12 +624,19 @@ const StatOverlay: React.FC<{
     const cu = interpolate(t, [showAt, showAt + 0.8], [0, stat.countTo], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
     valueText = Math.round(cu).toLocaleString();
   }
-  const scale = 0.7 + 0.3 * Math.min(1, p * 1.2);
+  // 大きさ倍率（既定1）と出現アニメのスケールを合成。色/背景は調整可（背景は別レイヤー）。
+  const sizeMul = stat.size ?? 1;
+  const scale = (0.7 + 0.3 * Math.min(1, p * 1.2)) * sizeMul;
+  const accent = stat.color || "#ffd84d";
+  const bgColor = stat.bg || "#0f141e";
+  const bgOp = stat.bgOpacity ?? 0.5;
   return (
     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", opacity: p }}>
-      <div style={{ background: "rgba(15,20,30,0.5)", borderRadius: 20, padding: portrait ? "14px 28px" : "18px 40px", display: "flex", flexDirection: "column", alignItems: "center", transform: `scale(${scale.toFixed(3)})` }}>
-        {stat.label ? <div style={{ color: "rgba(255,255,255,0.85)", fontSize: portrait ? 28 : 34, fontWeight: 700, marginBottom: 4 }}>{stat.label}</div> : null}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, color: "#ffd84d", fontWeight: 900, lineHeight: 1, textShadow: "0 4px 14px rgba(0,0,0,0.55)" }}>
+      <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", padding: portrait ? "14px 28px" : "18px 40px", display: "flex", flexDirection: "column", alignItems: "center", transform: `scale(${scale.toFixed(3)})` }}>
+        {/* 土台の背景（色＋不透明度・別レイヤー）。文字は不透明のまま。0で土台なし。 */}
+        <div style={{ position: "absolute", inset: 0, background: bgColor, opacity: bgOp, borderRadius: 20 }} />
+        {stat.label ? <div style={{ position: "relative", color: "rgba(255,255,255,0.85)", fontSize: portrait ? 28 : 34, fontWeight: 700, marginBottom: 4 }}>{stat.label}</div> : null}
+        <div style={{ position: "relative", display: "flex", alignItems: "baseline", gap: 8, color: accent, fontWeight: 900, lineHeight: 1, textShadow: "0 4px 14px rgba(0,0,0,0.55)" }}>
           <span style={{ fontSize: portrait ? 96 : 140 }}>{valueText}</span>
           {stat.unit ? <span style={{ fontSize: portrait ? 44 : 60, color: "#fff" }}>{stat.unit}</span> : null}
         </div>

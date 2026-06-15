@@ -406,6 +406,18 @@ def _clean_opacity(v):
     return round(f, 3)
 
 
+def _clean_size(v, lo=0.3, hi=3.0):
+    """演出の大きさ倍率を lo..hi に正規化（純関数）。不正/未指定は None。"""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    f = float(v)
+    if f < lo:
+        f = lo
+    elif f > hi:
+        f = hi
+    return round(f, 3)
+
+
 def _clean_panel(panel):
     """章の解説パネル定義を正規化（純関数）。不正/空なら None。
 
@@ -514,6 +526,18 @@ def _clean_stat(stat):
     label = strip_markdown((stat.get("label") or "").strip())
     if label:
         out["label"] = label
+    color = (stat.get("color") or "").strip()
+    if color:
+        out["color"] = color
+    size = _clean_size(stat.get("size"))
+    if size is not None:
+        out["size"] = size
+    bg = (stat.get("bg") or "").strip()
+    if bg:
+        out["bg"] = bg
+    op = _clean_opacity(stat.get("bgOpacity"))
+    if op is not None:
+        out["bgOpacity"] = op
     return out
 
 

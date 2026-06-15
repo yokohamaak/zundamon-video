@@ -92,6 +92,12 @@ export type Stat = {
   label?: string;         // 補足ラベル（例 "故障率"）
   showAt?: number;        // 出現する絶対時刻（秒）。build が reveal発言/zoom_punch/章中盤から解決。
   countTo?: number;       // value が整数のときカウントアップの到達値（build が推定）。
+  // 見た目調整（任意）。color=数字の強調色（既定 #ffd84d）/ size=全体の大きさ倍率（既定 1）/
+  // bg=土台の背景色（既定 #0f141e）/ bgOpacity=その不透明度（既定 0.5・0で土台なし）。
+  color?: string;
+  size?: number;
+  bg?: string;
+  bgOpacity?: number;
 };
 
 // 注釈・吹き出し：画像上の位置(0..1正規化)を指して短いラベルを出す。

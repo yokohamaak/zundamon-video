@@ -537,7 +537,7 @@ def test_viz_fields_preserved():
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]},'
         '{"section":"trivia","title":"C","compare":{"left":{"label":"陸上"},"right":{"label":"海底","cut":1}},'
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"},{"image_query":"b","image_kind":"ambient"}]},'
-        '{"section":"trivia","title":"S","stat":{"value":"8","unit":"分の1","label":"故障率"},'
+        '{"section":"trivia","title":"S","stat":{"value":"8","unit":"分の1","label":"故障率","color":"#ff5050","size":1.4,"bg":"#101820","bgOpacity":0.3},'
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"}]},'
         '{"section":"trivia","title":"O","callouts":[{"text":"ここ","x":0.3,"y":0.4,"arrow":true},{"text":"範囲外","x":2,"y":0.5}],'
         '"image_cuts":[{"image_query":"a","image_kind":"subject"}]}'
@@ -548,7 +548,8 @@ def test_viz_fields_preserved():
     assert ch[0]["quiz"] == {"question": "何の略?", "answer": "造語", "bg": "#1a2333", "bgOpacity": 0.55,
                              "answerBg": "#ffcc00", "answerBgOpacity": 0.8}
     assert ch[1]["compare"]["left"]["cut"] == 0 and ch[1]["compare"]["right"]["cut"] == 1
-    assert ch[2]["stat"] == {"value": "8", "unit": "分の1", "label": "故障率"}
+    assert ch[2]["stat"] == {"value": "8", "unit": "分の1", "label": "故障率",
+                             "color": "#ff5050", "size": 1.4, "bg": "#101820", "bgOpacity": 0.3}
     # x>1 の範囲外注釈は除去され、正しい1件だけ残る
     assert len(ch[3]["callouts"]) == 1 and ch[3]["callouts"][0]["arrow"] is True
     assert data["script"][0]["reveal"] is True and data["script"][1]["callout_item"] == 0

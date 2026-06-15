@@ -2010,6 +2010,19 @@ function vizContent(box, ch, ci){
     const u=document.createElement('input'); u.type='text'; u.value=s.unit||''; u.placeholder='単位'; u.style.width='90px';
     u.oninput=()=>{ if(u.value.trim())s.unit=u.value; else delete s.unit; }; r.appendChild(u); box.appendChild(r);
     const r2=vRow('ラベル'); r2.appendChild(vText(s.label,'例 故障率（任意）',v=>{ if(v.trim())s.label=v; else delete s.label; })); box.appendChild(r2);
+    // 強調色（数字の色）
+    const rc=vRow('強調色'); const cp=document.createElement('input'); cp.type='color'; cp.value=s.color||'#ffd84d'; cp.title='数字の色';
+    cp.oninput=()=>{ s.color=cp.value; }; rc.appendChild(cp);
+    rc.appendChild(vMini('既定に戻す',()=>{ delete s.color; render(); })); box.appendChild(rc);
+    // 大きさ（全体の倍率）
+    const rs=vRow('大きさ'); const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
+    sl.value=(s.size!=null?s.size:1); sl.style.cssText='width:120px;vertical-align:middle'; sl.title='数字演出の大きさ倍率';
+    const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
+    const showSv=()=>{ sv.textContent=(s.size!=null?s.size:1).toFixed(1)+'倍'; }; showSv();
+    sl.oninput=()=>{ s.size=parseFloat(sl.value); showSv(); };
+    rs.appendChild(sl); rs.appendChild(sv); rs.appendChild(vMini('既定に戻す',()=>{ delete s.size; render(); })); box.appendChild(rs);
+    // 背景色＋透過（土台）
+    box.appendChild(vBgRow(s,'背景','#0f141e',0.5));
   }
   else if(ch.callouts){ let cs=ch.callouts; if(!Array.isArray(cs)){cs=ch.callouts=[];}
     cs.forEach((c,i)=>{
