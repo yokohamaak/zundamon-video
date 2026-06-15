@@ -156,15 +156,9 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
             ncut = max(1, min(len(cuts), len(idxs)))
             groups = [(ci, ci * len(idxs) // ncut, (ci + 1) * len(idxs) // ncut)
                       for ci in range(ncut)]
-        # 解説パネル（任意）。章に panel があれば、出現時刻を発言timingから解決して
-        # この章の全カットtopicに同じパネルを載せる（描画は固定のpanel.imageを使う）。
-        panel_resolved = _resolve_panel(meta_ch.get("panel"), idxs, turns,
-                                        seg_start, seg_end, image_files, ch)
-        # 画像演出（任意）。出現時刻を発言timingから解決し、章のtopicに載せる。
-        viz = _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch)
-        # 演出の表示範囲（開始〜終了セリフ）。viz_start/viz_end 指定が無ければ章全体。
-        # この窓に重なるtopicにだけ演出を載せる＝範囲外のセリフは通常画像のまま。
-        vw_start, vw_end = _viz_window(idxs, turns, seg_start, seg_end)
+        # 演出セグメント（範囲ごとに種類＋設定。1章に複数可・重ならない前提）。
+        # 新形式 vizList があればそれ、無ければ旧単一形式(章直下の panel/quiz/…)を1セグメントへ。
+        viz_segments = _resolve_viz_segments(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch)
         for gi, (ci, lo, hi) in enumerate(groups):
             cstart = seg_start if gi == 0 else turns[idxs[lo]]["start"]
             cend = seg_end if gi == len(groups) - 1 else turns[idxs[hi]]["start"]
@@ -212,21 +206,22 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
                 topic["note"] = cut.get("image_query") or meta_ch.get("title")
                 topic["placeholder"] = chapter_image_name(ch, ci)
-            # 演出は表示範囲(vw_start..vw_end)に重なるtopicに載せる。境界をまたぐtopicは
-            # 描画側で時刻ゲート（vizFrom/vizUntil）し、窓の手前/後は通常画像にする
-            # ＝「ここから」のセリフより前から演出が始まる丸め込みを防ぐ。
-            in_window = topic["end"] > vw_start + 1e-6 and topic["start"] < vw_end - 1e-6
-            if in_window:
-                topic["vizFrom"] = round(float(vw_start), 3)
-                topic["vizUntil"] = round(float(vw_end), 3)
-                if panel_resolved:
-                    # パネル画像はカット毎に変わる＝このtopicの画像をパネルに載せる。
-                    pr = dict(panel_resolved)
-                    if topic.get("image"):
-                        pr["image"] = topic["image"]
-                    topic["panel"] = pr
-                for k, v in viz.items():  # quiz/compare/stat/callouts（あるものだけ）
-                    topic[k] = v
+            # 演出セグメントのうち、このtopicの時間帯に重なるものを載せる（範囲は重ならない前提＝最初の1つ）。
+            # 描画側で vizFrom/vizUntil の時刻ゲートをするので、窓の手前/後は通常画像になる。
+            for seg in viz_segments:
+                if topic["end"] > seg["start"] + 1e-6 and topic["start"] < seg["end"] - 1e-6:
+                    topic["vizFrom"] = round(float(seg["start"]), 3)
+                    topic["vizUntil"] = round(float(seg["end"]), 3)
+                    if seg.get("panel"):
+                        # パネル画像はカット毎に変わる＝このtopicの画像をパネルに載せる。
+                        pr = dict(seg["panel"])
+                        if topic.get("image"):
+                            pr["image"] = topic["image"]
+                        topic["panel"] = pr
+                    for k in ("quiz", "compare", "stat", "callouts", "calloutStyle"):
+                        if seg.get(k) is not None:
+                            topic[k] = seg[k]
+                    break
             topics.append(topic)
     return topics
 
@@ -254,6 +249,62 @@ def _viz_window(idxs, turns, seg_start, seg_end):
     if end <= start:  # 不整合（終了が開始より前）なら章末まで
         end = seg_end
     return start, end
+
+
+def _viz_windows(idxs, turns, seg_start, seg_end, n):
+    """複数演出の表示範囲リストを viz_start/viz_end の出現順ペアで決める（純関数）。
+
+    範囲は重ならない前提＝出現順に viz_start[i] と viz_end[i] を対にする。
+    片側が無い時は章境界で補完。先頭startは章頭・末尾endは章末へスナップ（_viz_windowと同趣旨）。
+    n=vizListの個数（最低この数の窓を返す）。
+    """
+    starts, ends = [], []
+    for pos, j in enumerate(idxs):
+        if turns[j].get("viz_start"):
+            starts.append(seg_start if pos == 0 else float(turns[j].get("start", seg_start)))
+        if turns[j].get("viz_end"):
+            ends.append(seg_end if pos == len(idxs) - 1 else float(turns[j].get("end", seg_end)))
+    wins = []
+    for i in range(max(n, 1)):
+        s = starts[i] if i < len(starts) else seg_start
+        e = ends[i] if i < len(ends) else seg_end
+        if e <= s:
+            e = seg_end
+        wins.append((float(s), float(e)))
+    return wins
+
+
+def _resolve_viz_segments(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
+    """章の演出を「範囲＋種類＋設定」のセグメント列へ解決（純関数）。
+
+    新形式: meta_ch["vizList"]=[{"panel":..}|{"quiz":..}|... ]（範囲はviz_start/viz_endの順ペア）。
+    旧形式: 章直下の panel/quiz/compare/stat/callouts（範囲は単一の_viz_window）＝1セグメント。
+    各セグメントは {"start","end", panel?/quiz?/compare?/stat?/callouts?/calloutStyle?}。
+    """
+    vl = meta_ch.get("vizList")
+    if vl:
+        wins = _viz_windows(idxs, turns, seg_start, seg_end, len(vl))
+        segs = []
+        for i, entry in enumerate(vl):
+            ws, we = wins[i] if i < len(wins) else (seg_start, seg_end)
+            # この窓に入る発言だけを対象にタイミングflagを解決（範囲が重ならない＝曖昧さ無し）。
+            sub = [j for j in idxs if turns[j].get("start", seg_start) < we - 1e-6
+                   and turns[j].get("end", seg_end) > ws + 1e-6]
+            seg = {"start": ws, "end": we}
+            pr = _resolve_panel(entry.get("panel"), sub, turns, ws, we, image_files, ch)
+            if pr:
+                seg["panel"] = pr
+            seg.update(_resolve_viz(entry, sub, turns, ws, we, image_files, ch))
+            segs.append(seg)
+        return segs
+    # 旧・単一形式
+    vw = _viz_window(idxs, turns, seg_start, seg_end)
+    seg = {"start": vw[0], "end": vw[1]}
+    pr = _resolve_panel(meta_ch.get("panel"), idxs, turns, seg_start, seg_end, image_files, ch)
+    if pr:
+        seg["panel"] = pr
+    seg.update(_resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch))
+    return [seg] if (len(seg) > 2) else []
 
 
 def _reveal_time(idxs, turns, seg_start, seg_end):

@@ -407,6 +407,31 @@ def test_viz_window_range():
     print("  _viz_window: 範囲内topicのみ演出・範囲外は通常画像 OK")
 
 
+def test_viz_list_multiple_segments():
+    # 1章に複数演出（範囲別・重ならない）：前半パネル・後半stat。vizList＋viz_start/viz_endの順ペア。
+    chapters = [{"section": "trivia", "title": "M", "image_cuts": [
+        {"image_query": "a", "image_kind": "ambient"}, {"image_query": "b", "image_kind": "ambient"}],
+        "vizList": [
+            {"type": "panel", "panel": {"items": [{"text": "x"}]}},
+            {"type": "stat", "stat": {"value": "5", "unit": "個"}}]}]
+    # cut0=turn0,1 / cut1=turn2,3。範囲1=turn0..turn1 / 範囲2=turn2..turn3。
+    script = [
+        {"chapter": 0, "cut": 0, "viz_start": True, "panel_event": "shrink"},
+        {"chapter": 0, "cut": 0, "viz_end": True},
+        {"chapter": 0, "cut": 1, "viz_start": True, "reveal": True},
+        {"chapter": 0, "cut": 1, "viz_end": True}]
+    timing = _turns(4)
+    turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
+    segs = story_script.assign_sections_to_turns(script)
+    topics = m.build_chapter_topics(segs, turns, chapters, image_files={(0, 0): "c0.jpg", (0, 1): "c1.jpg"})
+    # 前半topicにpanel・後半topicにstat。範囲が分かれて別演出が載る。
+    t0 = next(t for t in topics if "panel" in t)
+    t1 = next(t for t in topics if "stat" in t)
+    assert t0["vizUntil"] <= t1["vizFrom"] + 1e-6, (t0, t1)  # 範囲が重ならない
+    assert "stat" not in t0 and "panel" not in t1
+    print("  vizList: 1章に複数演出（範囲別）が別topicに載る OK")
+
+
 def test_viz_window_boundary_snap():
     # 章先頭セリフ起点ならseg_startへ・末尾セリフ起点ならseg_endへスナップ（章頭の元画像チラ見え対策）。
     # 章間に無音があり seg_start(=10.0) < 先頭セリフのstart(=10.5)・seg_end(=20.0) > 末尾セリフのend(=19.5)。
@@ -457,6 +482,7 @@ if __name__ == "__main__":
     test_build_chapter_topics_compare_split_timing()
     test_viz_window_range()
     test_viz_window_boundary_snap()
+    test_viz_list_multiple_segments()
     test_build_chapter_topics_viz_reveal_fallback()
     test_build_credits()
     test_build_meta()

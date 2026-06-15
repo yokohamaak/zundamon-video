@@ -647,6 +647,39 @@ def _clean_callout_style(style):
     return out or None
 
 
+def _clean_viz_list(vl):
+    """複数演出（新形式）を正規化（純関数）。各要素は1種類の演出設定。空なら None。
+
+    要素例: {"panel":{...}} / {"quiz":{...}} / {"compare":{...}} /
+            {"stat":{...}} / {"callouts":[...], "calloutStyle":{...}}。
+    範囲は発言の viz_start/viz_end（出現順ペア）で別途対応づける。
+    """
+    if not isinstance(vl, list):
+        return None
+    out = []
+    for e in vl:
+        if not isinstance(e, dict):
+            continue
+        seg = {}
+        p = _clean_panel(e.get("panel"))
+        if p:
+            seg = {"type": "panel", "panel": p}
+        elif _clean_quiz(e.get("quiz")):
+            seg = {"type": "quiz", "quiz": _clean_quiz(e.get("quiz"))}
+        elif _clean_compare(e.get("compare")):
+            seg = {"type": "compare", "compare": _clean_compare(e.get("compare"))}
+        elif _clean_stat(e.get("stat")):
+            seg = {"type": "stat", "stat": _clean_stat(e.get("stat"))}
+        elif _clean_callouts(e.get("callouts")):
+            seg = {"type": "callouts", "callouts": _clean_callouts(e.get("callouts"))}
+            cs = _clean_callout_style(e.get("calloutStyle"))
+            if cs:
+                seg["calloutStyle"] = cs
+        if seg:
+            out.append(seg)
+    return out or None
+
+
 def _clean_chapters(chapters, limit=12):
     """chapters を {section,title,image_cuts:[{image_query,image_kind}]} へ正規化（純関数）。
 
@@ -707,6 +740,10 @@ def _clean_chapters(chapters, limit=12):
             cstyle = _clean_callout_style(c.get("calloutStyle"))
             if cstyle:
                 chapter["calloutStyle"] = cstyle
+        # 複数演出（新形式）。あれば保持（範囲はviz_start/viz_endの順ペアで対応・1章複数可）。
+        vlist = _clean_viz_list(c.get("vizList"))
+        if vlist:
+            chapter["vizList"] = vlist
         out.append(chapter)
     return out[:limit]
 
