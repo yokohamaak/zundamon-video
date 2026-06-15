@@ -835,6 +835,8 @@ export const DialogueVideo: React.FC<{
   const prevReplaceViz = !!(prevTopic?.panel || prevTopic?.quiz || prevTopic?.compare);
   const flipImage = prevReplaceViz ? prevVizImage : prevTopic?.image ?? null;
   const flipContain = !prevReplaceViz && prevTopic?.fit === "contain"; // 演出画像はcoverでめくる
+  // 比較(分割)章からめくる時は、めくれる面も分割表示にする（1枚絵に化けて一瞬チラつくのを防ぐ）。
+  const flipCompare = prevTopic?.compare ?? null;
   const isChapterFlip =
     !!activeTopic && !!prevTopic && !!flipImage &&
     prevTopic.chapter !== activeTopic.chapter;
@@ -1241,15 +1243,20 @@ export const DialogueVideo: React.FC<{
               )}px rgba(0,0,0,${(0.45 * (1 - flipP)).toFixed(3)})`,
             }}
           >
-            <Img
-              src={staticFile(flipImage)}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: flipContain ? "contain" : "cover",
-                background: flipContain ? prevTopic?.bg ?? "#1a2230" : undefined,
-              }}
-            />
+            {flipCompare ? (
+              // 比較章：めくれる面も最終の分割表示（大きなtを渡すと split=1 の確定状態になる）。
+              <CompareVisual compare={flipCompare} t={t} portrait={portrait} />
+            ) : (
+              <Img
+                src={staticFile(flipImage)}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: flipContain ? "contain" : "cover",
+                  background: flipContain ? prevTopic?.bg ?? "#1a2230" : undefined,
+                }}
+              />
+            )}
             {/* めくれる面の陰影（ヒンジ側→先端へ濃く＝紙が立ち上がる立体感） */}
             <div
               style={{
