@@ -662,6 +662,8 @@ const CalloutOverlay: React.FC<{
   const markerColor = style?.markerColor || "#ff5a6a";
   const markerSize = style?.markerSize ?? 1;
   const labelColor = style?.labelColor || "#14233a";
+  const labelTextColor = style?.labelTextColor || "#fff";
+  const labelBorderColor = style?.labelBorderColor; // 未指定なら枠なし
   const labelSize = style?.labelSize ?? 1;
   const dot = Math.round(11 * markerSize); // マーカー径(px)
   // 矢印の大きさ・形（markerSize とは独立）。shape で矢じりの長さ/幅/軸の比率を変える。
@@ -722,12 +724,13 @@ const CalloutOverlay: React.FC<{
           transform: "translate(-50%,-50%)",
           whiteSpace: "nowrap",
           background: labelColor,
-          color: "#fff",
+          color: labelTextColor,
           fontWeight: 800,
           fontSize: Math.round((portrait ? 26 : 32) * labelSize),
           padding: "6px 14px",
           borderRadius: 10,
           boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+          border: labelBorderColor ? `2px solid ${labelBorderColor}` : undefined,
         };
         return (
           <div key={i} style={{ position: "absolute", inset: 0 }}>

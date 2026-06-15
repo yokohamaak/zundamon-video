@@ -2052,6 +2052,7 @@ function vizContent(box, ch, ci){
     if(calloutSel>=cs.length) calloutSel=0;
     const st=ch.calloutStyle||(ch.calloutStyle={});
     const mColor=st.markerColor||'#ff5a6a', lColor=st.labelColor||'#14233a';
+    const lText=st.labelTextColor||'#ffffff', lBorder=st.labelBorderColor||'';
     const mSize=(st.markerSize!=null?st.markerSize:1), lSize=(st.labelSize!=null?st.labelSize:1);
     const aSize=(st.arrowSize!=null?st.arrowSize:1), aShape=(st.arrowShape||'normal');
     const aDot=(aShape==='dot');
@@ -2107,7 +2108,7 @@ function vizContent(box, ch, ci){
       }
       // 文字ラベル（プレビュー・大きさ＝labelSize連動）
       const L=lpos(c); const lab=document.createElement('div');
-      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:#fff;font-weight:800;font-size:'+Math.round(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:'+lText+';font-weight:800;font-size:'+Math.round(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(lBorder?';border:2px solid '+lBorder:'')+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
       lab.style.left=(L.x*100)+'%'; lab.style.top=(L.y*100)+'%'; lab.textContent=c.text||('注釈'+i); prev.appendChild(lab); });
     prev.onclick=(e)=>{ if(!cs.length) return; const r=prev.getBoundingClientRect();
       const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)), y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
@@ -2152,6 +2153,17 @@ function vizContent(box, ch, ci){
       r.appendChild(vMini('既定',()=>{ delete st[colorKey]; delete st[sizeKey]; render(); })); return r; };
     box.appendChild(styRow('マーカー','markerColor','#ff5a6a','markerSize'));
     box.appendChild(styRow('ラベル','labelColor','#14233a','labelSize'));
+    // ラベルの文字色・外枠色（背景と同化して見づらい時に）。
+    const lcr=vRow('ラベル文字/枠');
+    const tcp=document.createElement('input'); tcp.type='color'; tcp.value=lText; tcp.title='文字色';
+    tcp.oninput=()=>{ st.labelTextColor=tcp.value; }; tcp.onchange=()=>render();
+    lcr.appendChild(document.createTextNode('文字')); lcr.appendChild(tcp);
+    const bcp=document.createElement('input'); bcp.type='color'; bcp.value=lBorder||'#ffffff'; bcp.title='外枠色';
+    bcp.oninput=()=>{ st.labelBorderColor=bcp.value; }; bcp.onchange=()=>render();
+    lcr.appendChild(document.createTextNode(' 外枠')); lcr.appendChild(bcp);
+    lcr.appendChild(vMini('枠なし',()=>{ delete st.labelBorderColor; render(); }));
+    lcr.appendChild(vMini('既定',()=>{ delete st.labelTextColor; delete st.labelBorderColor; render(); }));
+    box.appendChild(lcr);
     // 矢印：大きさ（スライダー）＋形（プリセット）。色はマーカー色を流用。
     const ar=vRow('矢印');
     const asl=document.createElement('input'); asl.type='range'; asl.min='0.3'; asl.max='3'; asl.step='0.1';

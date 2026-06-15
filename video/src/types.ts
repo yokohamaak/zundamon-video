@@ -120,6 +120,8 @@ export type CalloutStyle = {
   markerColor?: string;   // マーカー(丸)の色（既定 #ff5a6a）
   markerSize?: number;    // マーカーの大きさ倍率（既定 1）
   labelColor?: string;    // ラベルの背景色（既定 #14233a）
+  labelTextColor?: string; // ラベルの文字色（既定 #fff）
+  labelBorderColor?: string; // ラベルの外枠色（既定 なし）。指定すると枠線を描く。
   labelSize?: number;     // ラベル文字の大きさ倍率（既定 1）
   arrowSize?: number;     // 矢印の大きさ倍率（既定 1・markerSizeとは独立）
   arrowShape?: "normal" | "sharp" | "thick" | "dot"; // 矢じりの形（既定 normal・dot=丸で指す）

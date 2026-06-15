@@ -590,6 +590,12 @@ def _clean_callout_style(style):
     lc = (style.get("labelColor") or "").strip()
     if lc:
         out["labelColor"] = lc
+    ltc = (style.get("labelTextColor") or "").strip()
+    if ltc:
+        out["labelTextColor"] = ltc
+    lbc = (style.get("labelBorderColor") or "").strip()
+    if lbc:
+        out["labelBorderColor"] = lbc
     ls = _clean_size(style.get("labelSize"))
     if ls is not None:
         out["labelSize"] = ls
