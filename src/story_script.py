@@ -593,6 +593,12 @@ def _clean_callout_style(style):
     ls = _clean_size(style.get("labelSize"))
     if ls is not None:
         out["labelSize"] = ls
+    asz = _clean_size(style.get("arrowSize"))
+    if asz is not None:
+        out["arrowSize"] = asz
+    ashape = style.get("arrowShape")
+    if ashape in ("normal", "sharp", "thick"):
+        out["arrowShape"] = ashape
     return out or None
 
 

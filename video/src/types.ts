@@ -121,6 +121,8 @@ export type CalloutStyle = {
   markerSize?: number;    // マーカーの大きさ倍率（既定 1）
   labelColor?: string;    // ラベルの背景色（既定 #14233a）
   labelSize?: number;     // ラベル文字の大きさ倍率（既定 1）
+  arrowSize?: number;     // 矢印の大きさ倍率（既定 1・markerSizeとは独立）
+  arrowShape?: "normal" | "sharp" | "thick"; // 矢じりの形（既定 normal）
 };
 
 // 解説パネルの1項目（縮小画像の横/下に段階表示する要点テキスト）。

@@ -2039,6 +2039,9 @@ function vizContent(box, ch, ci){
     const st=ch.calloutStyle||(ch.calloutStyle={});
     const mColor=st.markerColor||'#ff5a6a', lColor=st.labelColor||'#14233a';
     const mSize=(st.markerSize!=null?st.markerSize:1), lSize=(st.labelSize!=null?st.labelSize:1);
+    const aSize=(st.arrowSize!=null?st.arrowSize:1), aShape=(st.arrowShape||'normal');
+    const aBase=(aShape==='sharp'?{len:26,half:9,shaft:4}:aShape==='thick'?{len:20,half:18,shaft:8}:{len:22,half:13,shaft:6});
+    const aHL=Math.round(aBase.len*aSize), aHW=Math.round(aBase.half*aSize*2), aSH=Math.max(2,Math.round(aBase.shaft*aSize));
     // 自動ラベル位置（lx/ly未指定時）：点の上/下に少しずらす。
     const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+0.1:c.y-0.1))});
     // 配置モード切替（点 / 文字）。
@@ -2052,12 +2055,19 @@ function vizContent(box, ch, ci){
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;cursor:crosshair;margin-bottom:6px;user-select:none';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none'; prev.appendChild(im); }
     else { const ph=document.createElement('div'); ph.style.cssText='display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px'; ph.textContent='画像なし（cut0を取得してください）'; prev.appendChild(ph); }
-    // 矢印線（SVG・arrowのみ）。文字位置→点へ。
+    // 矢印（SVG・arrowのみ）。文字位置→点へ・先端に矢じり(marker)。
     const svgns='http://www.w3.org/2000/svg';
     const svg=document.createElementNS(svgns,'svg'); svg.setAttribute('style','position:absolute;inset:0;width:100%;height:100%;pointer-events:none');
+    // 矢じりマーカー（userSpaceOnUse＝px指定／orient=auto で向き自動）。
+    const defs=document.createElementNS(svgns,'defs'); const mk=document.createElementNS(svgns,'marker');
+    mk.setAttribute('id','cah'); mk.setAttribute('markerUnits','userSpaceOnUse');
+    mk.setAttribute('markerWidth',String(aHL)); mk.setAttribute('markerHeight',String(aHW));
+    mk.setAttribute('refX',String(aHL)); mk.setAttribute('refY',String(aHW/2)); mk.setAttribute('orient','auto');
+    const tri=document.createElementNS(svgns,'path'); tri.setAttribute('d','M0,0 L'+aHL+','+(aHW/2)+' L0,'+aHW+' Z'); tri.setAttribute('fill',mColor);
+    mk.appendChild(tri); defs.appendChild(mk); svg.appendChild(defs);
     cs.forEach((c)=>{ if(!c.arrow) return; const L=lpos(c);
       const ln=document.createElementNS(svgns,'line'); ln.setAttribute('x1',(L.x*100)+'%'); ln.setAttribute('y1',(L.y*100)+'%');
-      ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width',String(Math.max(2,Math.round(3*mSize)))); svg.appendChild(ln); });
+      ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width',String(aSH)); ln.setAttribute('marker-end','url(#cah)'); svg.appendChild(ln); });
     prev.appendChild(svg);
     cs.forEach((c,i)=>{ const sel=(i===calloutSel);
       // 点マーカー（大きさ＝markerSize連動）
@@ -2111,6 +2121,19 @@ function vizContent(box, ch, ci){
       r.appendChild(vMini('既定',()=>{ delete st[colorKey]; delete st[sizeKey]; render(); })); return r; };
     box.appendChild(styRow('マーカー','markerColor','#ff5a6a','markerSize'));
     box.appendChild(styRow('ラベル','labelColor','#14233a','labelSize'));
+    // 矢印：大きさ（スライダー）＋形（プリセット）。色はマーカー色を流用。
+    const ar=vRow('矢印');
+    const asl=document.createElement('input'); asl.type='range'; asl.min='0.5'; asl.max='3'; asl.step='0.1';
+    asl.value=aSize; asl.style.cssText='width:96px;vertical-align:middle'; asl.title='矢印の大きさ倍率';
+    const asv=document.createElement('span'); asv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
+    const ashow=()=>{ asv.textContent=(st.arrowSize!=null?st.arrowSize:1).toFixed(1)+'倍'; }; ashow();
+    asl.oninput=()=>{ st.arrowSize=parseFloat(asl.value); ashow(); }; asl.onchange=()=>render();
+    ar.appendChild(document.createTextNode('大きさ')); ar.appendChild(asl); ar.appendChild(asv);
+    [['normal','標準'],['sharp','シャープ'],['thick','太め']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
+      b.className='vchip'+((st.arrowShape||'normal')===v?' on':''); b.textContent=t;
+      b.onclick=()=>{ if(v==='normal') delete st.arrowShape; else st.arrowShape=v; render(); }; ar.appendChild(b); });
+    ar.appendChild(vMini('既定',()=>{ delete st.arrowSize; delete st.arrowShape; render(); }));
+    box.appendChild(ar);
   }
 }
 

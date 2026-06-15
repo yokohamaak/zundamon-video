@@ -664,10 +664,16 @@ const CalloutOverlay: React.FC<{
   const labelColor = style?.labelColor || "#14233a";
   const labelSize = style?.labelSize ?? 1;
   const dot = Math.round(18 * markerSize); // マーカー径(px)
-  const HEAD = Math.round(18 * markerSize); // 矢じりの長さ(px)
-  const HALF = Math.round(11 * markerSize); // 矢じりの半幅(px)
-  const SHAFT = Math.round(5 * markerSize);  // 矢の軸の太さ(px)
-  const gapNorm = (44 * markerSize) / boxH;  // 自動配置時の点⇔ラベル距離(正規化)
+  // 矢印の大きさ・形（markerSize とは独立）。shape で矢じりの長さ/幅/軸の比率を変える。
+  const aSize = style?.arrowSize ?? 1;
+  const aShape = style?.arrowShape || "normal";
+  const aBase = aShape === "sharp" ? { len: 26, half: 9, shaft: 4 }
+    : aShape === "thick" ? { len: 20, half: 18, shaft: 8 }
+    : { len: 22, half: 13, shaft: 6 };
+  const HEAD = Math.round(aBase.len * aSize);  // 矢じりの長さ(px)
+  const HALF = Math.round(aBase.half * aSize); // 矢じりの半幅(px)
+  const SHAFT = Math.round(aBase.shaft * aSize); // 矢の軸の太さ(px)
+  const gapNorm = (44 * aSize) / boxH;  // 自動配置時の点⇔ラベル距離(正規化)
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
       {/* 矢印はSVGで任意方向に引く（ラベル中心→点・先端に矢じり）。線はラベルの下に隠れる。 */}
