@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_QUESTIONER = "ずんだもん"
 DEFAULT_EXPLAINER = "四国めたん"
-DEFAULT_TOPICS = 4  # 1本の物語の本編ビート（章）の目安数
-DEFAULT_MINUTES = 7
+DEFAULT_TOPICS = 6  # 1本の物語の本編ビート（章）の目安数
+DEFAULT_MINUTES = 11
 
 # 読み上げ速度の実測換算（VOICEVOX・現行の話者speed設定下で約335字/分）。
 CHARS_PER_MINUTE = 390  # 実測較正（VOICEVOX掛け合いの実効レート≒389字/分）。分→文字数予算の換算に使用
@@ -221,7 +221,11 @@ def build_prompt(config: dict, also_avoid=None) -> str:
     explainer = s.get("explainer", DEFAULT_EXPLAINER)
     topics = int(s.get("topics", s.get("chapters", DEFAULT_TOPICS)))
     minutes = float(s.get("target_minutes", DEFAULT_MINUTES))
-    total_chars = int(minutes * CHARS_PER_MINUTE)  # 実測約335字/分換算の総量目安
+    total_chars = int(minutes * CHARS_PER_MINUTE)        # 狙う尺の総文字数（上限）
+    min_chars = int(total_chars * 0.85)                  # 下限（これを下回ると薄い動画＝尺不足）
+    # 本編ビート数の許容レンジ（主題に応じ可変・短すぎ長すぎを防ぐ目安）。
+    beat_lo = max(3, topics - 1)
+    beat_hi = topics + 2
     theme = (s.get("theme") or "").strip()
     avoid_block = _avoid_block(also_avoid)
 
@@ -246,7 +250,7 @@ def build_prompt(config: dict, also_avoid=None) -> str:
 {avoid_block}
 ## 物語の骨子（1つの主題を順に深掘り）
 - 動画全体で**1つの問いに答える**。独立した雑学を並べない。各章は前章から地続きの**物語の段階**にする。
-- 次の骨格を基本に、主題に応じて **{topics} 個前後（4〜6）** の本編ビート（章）で構成する（型は目安・主題に合わせて自然に増減してよい）:
+- 次の骨格を基本に、主題に応じて **{topics} 個前後（{beat_lo}〜{beat_hi}）** の本編ビート（章）で構成する（型は目安・主題に合わせて自然に増減してよい）。**狙う尺が長いほどビートを増やし、各段階を具体例で厚く**する:
   1. **背景/前提** … その対象がどんな存在だったか（全盛期・前提・状況）。後の展開がなぜ意外なのかの土台を作る。
   2. **転換点** … 風向きが変わった瞬間・最初の兆候・きっかけ。
   3. **核心（なぜ）** … 中心の問いの答え。本質的な理由を解き明かす（ここが山場）。複数要因があれば2章に分けてよい。
@@ -284,9 +288,12 @@ def build_prompt(config: dict, also_avoid=None) -> str:
 
 {_rules_block(questioner, explainer, topics)}
 
-## 構成・分量【厳守・超過厳禁＝長すぎると尺オーバー】
-- **台本全体（script の text 合計）を必ず {total_chars}字以内に収める**（読み上げ約{minutes:.0f}分）。これは目安でなく**上限**。超えそうなら各ビートを削って収める。
-- **1本編ビート（章）は最大3〜4往復**。長い講義にせず、物語を前へ進める要点に絞る。
+## 構成・分量【厳守＝狙った尺に収める。短すぎ厳禁・超過も厳禁】
+- **台本全体（script の text 合計）を {min_chars}〜{total_chars}字（読み上げ約{minutes:.0f}分）にする。**
+  **{min_chars}字を下回らないこと**＝内容を端折って薄い動画にしない。同時に{total_chars}字は超えない。
+- 尺が足りないときは、各ビートに**具体例・背景・数字・関係者の動き・エピソード**を足して深掘りする
+  （同じ話の言い換えや無意味な脱線で水増ししない。あくまで中身を厚くして問いの解像度を上げる）。
+- **1本編ビート（章）は3〜5往復程度**。物語を前へ進めつつ、要点を具体で支える。
 - **intro は最大3往復、outro は最大2往復以内**。
 - **outro は物語の教訓・余韻だけ**にする。**「高評価」「チャンネル登録」「また見てね/また次回/さようなら」等の
   定型CTA・別れの挨拶は書かない**（これらは固定で自動付与するので、書くと重複する）。
