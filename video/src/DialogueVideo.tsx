@@ -663,14 +663,14 @@ const CalloutOverlay: React.FC<{
   const markerSize = style?.markerSize ?? 1;
   const labelColor = style?.labelColor || "#14233a";
   const labelSize = style?.labelSize ?? 1;
-  const dot = Math.round(18 * markerSize); // マーカー径(px)
+  const dot = Math.round(11 * markerSize); // マーカー径(px)
   // 矢印の大きさ・形（markerSize とは独立）。shape で矢じりの長さ/幅/軸の比率を変える。
   const aSize = style?.arrowSize ?? 1;
   const aShape = style?.arrowShape || "normal";
-  const aBase = aShape === "sharp" ? { len: 26, half: 9, shaft: 4 }
-    : aShape === "thick" ? { len: 20, half: 18, shaft: 8 }
-    : aShape === "dot" ? { len: 13, half: 13, shaft: 5 } // dot=矢じりの代わりに丸で指す（half=半径）
-    : { len: 22, half: 13, shaft: 6 };
+  const aBase = aShape === "sharp" ? { len: 16, half: 6, shaft: 3 }
+    : aShape === "thick" ? { len: 13, half: 11, shaft: 5 }
+    : aShape === "dot" ? { len: 8, half: 8, shaft: 3 } // dot=矢じりの代わりに丸で指す（half=半径）
+    : { len: 14, half: 8, shaft: 4 };
   const HEAD = Math.round(aBase.len * aSize);  // 矢じりの長さ(px)
   const HALF = Math.round(aBase.half * aSize); // 矢じりの半幅(px)
   const SHAFT = Math.round(aBase.shaft * aSize); // 矢の軸の太さ(px)

@@ -2041,7 +2041,7 @@ function vizContent(box, ch, ci){
     const mSize=(st.markerSize!=null?st.markerSize:1), lSize=(st.labelSize!=null?st.labelSize:1);
     const aSize=(st.arrowSize!=null?st.arrowSize:1), aShape=(st.arrowShape||'normal');
     const aDot=(aShape==='dot');
-    const aBase=(aShape==='sharp'?{len:26,half:9,shaft:4}:aShape==='thick'?{len:20,half:18,shaft:8}:aDot?{len:13,half:13,shaft:5}:{len:22,half:13,shaft:6});
+    const aBase=(aShape==='sharp'?{len:16,half:6,shaft:3}:aShape==='thick'?{len:13,half:11,shaft:5}:aDot?{len:8,half:8,shaft:3}:{len:14,half:8,shaft:4});
     const aHL=Math.round(aBase.len*aSize), aHW=Math.round(aBase.half*aSize*2), aSH=Math.max(2,Math.round(aBase.shaft*aSize));
     const aR=Math.round(aBase.half*aSize); // dot半径
     // 自動ラベル位置（lx/ly未指定時）：点の上/下に正規化0.1*aSizeずらす（renderと共通）。
@@ -2087,7 +2087,7 @@ function vizContent(box, ch, ci){
       // 点マーカー（矢印OFFのときだけ。ON時は矢じり/ドットが点を示す＝renderと一致）。
       // ただし配置中は点の位置が見えるよう、選択中＆pointモードのときは薄く出す。
       if(!c.arrow || (sel&&calloutMode==='point')){
-        const m=document.createElement('div'); const md=Math.round((sel?14:12)*mSize); const ghost=(c.arrow&&sel);
+        const m=document.createElement('div'); const md=Math.round((sel?9:8)*mSize); const ghost=(c.arrow&&sel);
         m.style.cssText='position:absolute;width:'+md+'px;height:'+md+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(ghost?';opacity:.4':'')+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
         m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'の点'; prev.appendChild(m);
       }
@@ -2128,7 +2128,7 @@ function vizContent(box, ch, ci){
     const styRow=(label,colorKey,defColor,sizeKey)=>{ const r=vRow(label);
       const cp=document.createElement('input'); cp.type='color'; cp.value=st[colorKey]||defColor; cp.title='色';
       cp.oninput=()=>{ st[colorKey]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
-      const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
+      const sl=document.createElement('input'); sl.type='range'; sl.min='0.3'; sl.max='2'; sl.step='0.1';
       sl.value=(st[sizeKey]!=null?st[sizeKey]:1); sl.style.cssText='width:96px;vertical-align:middle'; sl.title='大きさ倍率';
       const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
       const show=()=>{ sv.textContent=(st[sizeKey]!=null?st[sizeKey]:1).toFixed(1)+'倍'; }; show();
@@ -2140,7 +2140,7 @@ function vizContent(box, ch, ci){
     box.appendChild(styRow('ラベル','labelColor','#14233a','labelSize'));
     // 矢印：大きさ（スライダー）＋形（プリセット）。色はマーカー色を流用。
     const ar=vRow('矢印');
-    const asl=document.createElement('input'); asl.type='range'; asl.min='0.5'; asl.max='3'; asl.step='0.1';
+    const asl=document.createElement('input'); asl.type='range'; asl.min='0.3'; asl.max='3'; asl.step='0.1';
     asl.value=aSize; asl.style.cssText='width:96px;vertical-align:middle'; asl.title='矢印の大きさ倍率';
     const asv=document.createElement('span'); asv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
     const ashow=()=>{ asv.textContent=(st.arrowSize!=null?st.arrowSize:1).toFixed(1)+'倍'; }; ashow();
