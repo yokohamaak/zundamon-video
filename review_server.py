@@ -2574,9 +2574,13 @@ function render(){
   const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
   ti.onchange=()=>{ DATA.theme=ti.value; }; th.innerHTML='<span class="badge">テーマ</span>'; th.appendChild(ti);
   left.appendChild(th); left.appendChild(buildEstimate());
-  const hint=document.createElement('div'); hint.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 8px';
+  const bar=document.createElement('div'); bar.style.cssText='display:flex;align-items:center;gap:8px;margin:2px 0 8px;flex-wrap:wrap';
+  const hint=document.createElement('div'); hint.style.cssText='font-size:11px;color:var(--sub);flex:1;min-width:160px';
   hint.textContent='行をクリック→右で画像/演出を編集　｜　本文をダブルクリック→セリフを編集';
-  left.appendChild(hint);
+  bar.appendChild(hint);
+  bar.appendChild(vMini('全て展開',()=>{ collapsed.clear(); render(); }));
+  bar.appendChild(vMini('全て畳む',()=>{ collapsed=new Set((DATA.chapters||[]).map((_,i)=>i)); render(); }));
+  left.appendChild(bar);
   // 章＝セクション。選択行のある章を active 表示。intro→ネタ→outro 連続。
   const selCi=(DATA.script[selGi]||{}).chapter;
   (DATA.chapters||[]).forEach((ch,ci)=>{
