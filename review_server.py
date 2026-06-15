@@ -2566,7 +2566,7 @@ function lblDiv(t){ const d=document.createElement('div'); d.className='lbl'; d.
 function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter===ci); return i<0?selGi:i; }
 function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
 function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存':'保存'; }
-function setWide(on){ rwide=on; const r=document.getElementById('rpane'); if(r) r.classList.toggle('wide',on); }
+function setWide(on){ rwide=on; const r=document.getElementById('rpane'); if(r){ r.classList.toggle('wide',on); renderRight(); } }
 // 折りたたみをCSSクラスで反映（全再描画しない＝スクロール位置を保つ）。
 function applyCollapse(){
   document.querySelectorAll('.chsec').forEach(sec=>{
