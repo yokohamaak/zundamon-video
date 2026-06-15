@@ -1,8 +1,9 @@
 """
 Gemini 深掘りストーリー台本生成モジュール
 
-1つの主題（例「なぜノキアは携帯王者から転落したのか」）を、中心の問い「なぜそうなったのか」から
+1つの主題（例「なぜ横浜は港町になったのか」）を、中心の問い「なぜそうなったのか」から
 順を追って解き明かす掛け合い台本（intro＝問題提起 ＋ 本編ビート ＋ outro＝教訓）を生成する。
+分野は問わない（歴史・地理・地域・社会・文化・自然・科学・技術・ビジネスなど何でも）。
 役割: ずんだもん=聞き手/初心者 / 四国めたん=語り役・解説役（configで変更可）。
 出力は tts_voicevox・動画が使う script 形式 [{"speaker","text",...}] ＋ 章メタ chapters。
 
@@ -12,7 +13,7 @@ Gemini 深掘りストーリー台本生成モジュール
 
 config（例）:
     story:
-      theme: "なぜノキアは携帯王者から転落したのか"  # 空ならGeminiに主題選定させる
+      theme: "なぜ横浜は港町になったのか"  # 空ならGeminiに主題選定させる（分野不問）
       topics: 4                            # 本編ビート（章）の目安数
       questioner: ずんだもん               # 聞き手
       explainer: 四国めたん                # 語り役・解説役
@@ -143,30 +144,33 @@ def _output_block(explainer: str, questioner: str) -> str:
 - 文字列内に生の改行を入れない（1つのtextは1行）。
 - バックスラッシュや制御文字を入れない。
 {{
-  "theme": "動画の主題（日本語・なぜ〜のか型・meta.titleに使う。例「なぜノキアは携帯王者から転落したのか」）",
+  "theme": "動画の主題（日本語・なぜ〜のか型・meta.titleに使う。例「なぜ横浜は港町になったのか」）",
   "chapters": [
-    {{"section": "intro", "title": "携帯王者の転落", "summary": "かつて世界一だったノキアがなぜ転落したのかを問う導入。", "image_cuts": [
-      {{"image_query": "Nokia phone", "image_kind": "subject", "image_query_ja": "ノキアの携帯"}}
+    {{"section": "intro", "title": "なぜ横浜は港町に", "summary": "今や日本有数の港町・横浜が、なぜ港として発展したのかを問う導入。", "image_cuts": [
+      {{"image_query": "Yokohama port", "image_kind": "subject", "image_query_ja": "横浜港"}}
     ]}},
-    {{"section": "trivia", "title": "世界シェア4割の絶頂", "summary": "最盛期のノキアは携帯電話の世界シェア4割超で圧倒的だった。", "confidence": "high", "source_hint": "2007年前後の携帯市場シェア統計", "image_cuts": [
-      {{"image_query": "Nokia 3310", "image_kind": "subject", "image_query_ja": "ノキア3310"}},
-      {{"image_query": "mobile phone market crowd", "image_kind": "ambient", "image_query_ja": "携帯を使う人々"}}
+    {{"section": "trivia", "title": "開港前は小さな村", "summary": "開港前の横浜は戸数100戸ほどの半農半漁の小さな村だった。", "confidence": "high", "source_hint": "横浜開港資料・幕末の横浜村の記録", "image_cuts": [
+      {{"image_query": "Edo period fishing village", "image_kind": "ambient", "image_query_ja": "江戸時代の漁村"}},
+      {{"image_query": "Tokaido Kanagawa-juku ukiyoe", "image_kind": "subject", "image_query_ja": "東海道・神奈川宿の浮世絵"}}
     ]}},
-    {{"section": "trivia", "title": "スマホ転換の見落とし", "summary": "iPhone登場後もタッチ操作とソフトへの転換に乗り遅れたのが核心。", "confidence": "high", "source_hint": "2007年iPhone発表・ノキア社内の証言", "image_cuts": [
-      {{"image_query": "smartphone touchscreen", "image_kind": "ambient", "image_query_ja": "スマホのタッチ画面"}}
+    {{"section": "trivia", "title": "1859年の開港", "summary": "1859年、日米修好通商条約で開かれた港の一つに横浜が選ばれた。", "confidence": "high", "source_hint": "1858年日米修好通商条約・1859年横浜開港", "image_cuts": [
+      {{"image_query": "Yokohama 1859 foreign settlement", "image_kind": "ambient", "image_query_ja": "開港期の横浜居留地"}}
     ]}},
-    {{"section": "outro", "title": "まとめ", "summary": "強すぎた成功体験が転換を遅らせたという教訓。", "image_cuts": [
-      {{"image_query": "old and new mobile phones", "image_kind": "ambient"}}
+    {{"section": "trivia", "title": "江戸に近い良港", "summary": "江戸に近く水深のある良港で、生糸輸出の拠点となり急成長したのが核心。", "confidence": "medium", "source_hint": "幕末の生糸輸出・横浜の港湾条件", "image_cuts": [
+      {{"image_query": "silk trade Yokohama Meiji", "image_kind": "ambient", "image_query_ja": "横浜の生糸貿易"}}
+    ]}},
+    {{"section": "outro", "title": "まとめ", "summary": "小さな村が立地と時代の必要から国際港都へ育ったという話。", "image_cuts": [
+      {{"image_query": "Yokohama Red Brick Warehouse", "image_kind": "subject", "image_query_ja": "横浜赤レンガ倉庫"}}
     ]}}
   ],
   "script": [
-    {{"speaker": "{explainer}", "text": "かつて携帯電話の世界一だった会社が、数年で消えたって知ってる？", "emotion": "normal", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
-    {{"speaker": "{questioner}", "text": "ええっ、世界一なのに消えるなんてあり得るのだ！？", "emotion": "surprise", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
-    {{"speaker": "{explainer}", "text": "今日は『なぜノキア（ノキア）は転落したのか』を順に解き明かすわ。", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
-    {{"speaker": "{explainer}", "text": "まず2000年代、ノキア（ノキア）は携帯の世界シェア4割超で圧倒的だったの。", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}},
-    {{"speaker": "{questioner}", "text": "4割！？街中みんなノキアだったってことなのだ！", "emotion": "surprise", "section": "trivia", "chapter": 1, "effect": "zoom_punch", "cut": 1}},
-    {{"speaker": "{explainer}", "text": "ところが2007年、iPhone（アイフォン）が出てから風向きが変わるの。", "emotion": "normal", "section": "trivia", "chapter": 2, "effect": "flash", "cut": 0}},
-    {{"speaker": "{questioner}", "text": "なんで王者なのに乗り遅れちゃったのだ？", "emotion": "normal", "section": "trivia", "chapter": 2, "effect": "kenburns", "cut": 0}}
+    {{"speaker": "{explainer}", "text": "今や日本を代表する港町の横浜。でも昔は小さな村だったって知ってる？", "emotion": "normal", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
+    {{"speaker": "{questioner}", "text": "ええっ、あの大きな港が村だったなんて信じられないのだ！", "emotion": "surprise", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
+    {{"speaker": "{explainer}", "text": "今日は『なぜ横浜は港町になったのか』を順に解き明かすわ。", "emotion": "happy", "section": "intro", "chapter": 0, "effect": "kenburns", "cut": 0}},
+    {{"speaker": "{explainer}", "text": "開港前の横浜は、戸数100戸ほどの半農半漁の小さな村だったの。", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "flash", "cut": 0}},
+    {{"speaker": "{questioner}", "text": "そんな小さな村が、どうして港になったのだ？", "emotion": "normal", "section": "trivia", "chapter": 1, "effect": "kenburns", "cut": 1}},
+    {{"speaker": "{explainer}", "text": "ところが1859年、外国に開く港の一つに横浜が選ばれたの。", "emotion": "normal", "section": "trivia", "chapter": 2, "effect": "flash", "cut": 0}},
+    {{"speaker": "{questioner}", "text": "なんで、わざわざその小さな村が選ばれたのだ？", "emotion": "surprise", "section": "trivia", "chapter": 2, "effect": "zoom_punch", "cut": 0}}
   ]
 }}"""
 
@@ -225,20 +229,20 @@ def build_prompt(config: dict, also_avoid=None) -> str:
         theme_line = f'今回の主題は「{theme}」。この1つの主題を、物語として深掘りしてください。'
     else:
         theme_line = (
-            "今回の主題はあなたが選んでください。テクノロジー・IT・科学・ものづくりの分野から、"
+            "今回の主題はあなたが選んでください。分野は問わない（歴史・地理・地域・社会・文化・自然・科学・技術など）。"
             "1つの対象を深掘りできる『なぜ〜のか』型の主題を1つ選ぶ"
-            "（例:「なぜ〇〇は失敗したのか」「なぜ〇〇は世界一になれたのか」「なぜ〇〇は消えたのか」）。"
+            "（例:「なぜ横浜は港町になったのか」「なぜ〇〇は世界一になれたのか」「なぜ〇〇は消えたのか」）。"
         )
 
     return f"""
-あなたはテクノロジー史・ビジネス史を扱う教養系YouTubeの掛け合い台本ライターです。
-1つの主題を「なぜそうなったのか」という問いから、{questioner}と{explainer}の掛け合いで
-順を追って解き明かす、日本語の深掘りストーリー台本を作ってください。
+あなたは「なぜ〇〇は〇〇なのか」という1つの問いを深掘りする教養系YouTubeの掛け合い台本ライターです。
+**分野は問いません**（歴史・地理・地域・社会・文化・自然・科学・技術・ビジネスなど何でもよい）。
+1つの主題を {questioner} と {explainer} の掛け合いで順を追って解き明かす、日本語の深掘りストーリー台本を作ってください。
 視聴者が「そういうことだったのか」と腑に落ち、誰かに話したくなる動画にします。
 
 ## 主題
 {theme_line}
-中心には必ず**1つの問い**（例「なぜ〇〇は失敗したのか」）を置き、動画全体はその答えに向かって進む。
+中心には必ず**1つの問い**（例「なぜ横浜は港町になったのか」「なぜ〇〇は〇〇なのか」）を置き、動画全体はその答えに向かって進む。
 {avoid_block}
 ## 物語の骨子（1つの主題を順に深掘り）
 - 動画全体で**1つの問いに答える**。独立した雑学を並べない。各章は前章から地続きの**物語の段階**にする。
