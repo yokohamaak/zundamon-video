@@ -1565,19 +1565,19 @@ STORY_PAGE = """<!doctype html>
   .line.sel .lacts { display:flex; }
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
-  /* 演出範囲レール：S(ここから)/E(ここまで)＋範囲の縦帯。viz章のみ・Linear的に控えめ */
-  .line .rail { width:26px; flex:none; align-self:stretch; position:relative; }
-  .line .rail .seg { position:absolute; left:11px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
-  .line .rail .seg.s { top:25px; border-radius:3px 3px 0 0; }
-  .line .rail .seg.e { bottom:25px; border-radius:0 0 3px 3px; }
-  .line .rail .hbtn { position:absolute; left:1px; width:21px; height:16px; font-size:9px; font-weight:700; letter-spacing:.5px;
-                      border:1px solid #313a47; border-radius:6px; background:#141a23; color:#7e8aa0; cursor:pointer;
-                      z-index:1; opacity:0; transition:opacity .12s; }
+  /* 演出範囲レール：開始(行の上端)/終了(行の下端)＋範囲の縦帯。viz章のみ・Linear的に控えめ */
+  .line .rail { width:46px; flex:none; align-self:stretch; position:relative; margin:-13px 0; }  /* カード上下padding(13px)を打ち消し枠に揃える */
+  .line .rail .seg { position:absolute; left:21px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
+  .line .rail .seg.s { top:21px; border-radius:3px 3px 0 0; }
+  .line .rail .seg.e { bottom:21px; border-radius:0 0 3px 3px; }
+  .line .rail .hbtn { position:absolute; left:1px; width:42px; height:19px; display:flex; align-items:center; justify-content:center;
+                      font-size:10px; font-weight:700; border:1px solid #313a47; border-radius:6px; background:#141a23;
+                      color:#7e8aa0; cursor:pointer; z-index:1; opacity:0; transition:opacity .12s; }
   .line:hover .rail .hbtn { opacity:.9; }
   .line .rail .hbtn:hover { border-color:#6b6ae0; color:#dbe1ec; }
   .line .rail .hbtn.on { opacity:1; background:#6b6ae0; border-color:#6b6ae0; color:#fff; }
-  .line .rail .hbtn.s { top:6px; }
-  .line .rail .hbtn.e { bottom:6px; }
+  .line .rail .hbtn.s { top:0; }       /* 開始＝行の上端にライン合わせ */
+  .line .rail .hbtn.e { bottom:0; }    /* 終了＝行の下端にライン合わせ */
   .rtabs { display:flex; gap:6px; margin-bottom:10px; }
   .rtab { font-size:13px; font-weight:700; padding:7px 13px; border-radius:8px; border:none;
           background:#1a212c; color:var(--sub); cursor:pointer; }
@@ -2671,9 +2671,9 @@ function lineRow(tn,gi,ch,ci,inViz){
     const rng=vizRange(ci); const isS=(gi===rng.startGi), isE=(gi===rng.endGi);
     const rail=document.createElement('div'); rail.className='rail';
     if(inViz){ const seg=document.createElement('div'); seg.className='seg'+(isS?' s':'')+(isE?' e':''); rail.appendChild(seg); }
-    const hs=document.createElement('button'); hs.className='hbtn s'+(isS?' on':''); hs.textContent='S'; hs.title='ここから（この行から演出）';
+    const hs=document.createElement('button'); hs.className='hbtn s'+(isS?' on':''); hs.textContent='開始'; hs.title='ここから（この行から演出）';
     hs.onclick=(e)=>{ e.stopPropagation(); setUniqueFlag(ci,'viz_start',true,tn,true); render(); };
-    const he=document.createElement('button'); he.className='hbtn e'+(isE?' on':''); he.textContent='E'; he.title='ここまで（この行まで演出）';
+    const he=document.createElement('button'); he.className='hbtn e'+(isE?' on':''); he.textContent='終了'; he.title='ここまで（この行まで演出）';
     he.onclick=(e)=>{ e.stopPropagation(); setUniqueFlag(ci,'viz_end',true,tn,true); render(); };
     rail.appendChild(hs); rail.appendChild(he); row.appendChild(rail);
   }
