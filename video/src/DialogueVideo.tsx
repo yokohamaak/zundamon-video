@@ -556,7 +556,11 @@ const QuizVisual: React.FC<{
           transform: `translateY(${((1 - ansPop) * 20).toFixed(1)}px)`,
         }}
       >
-        <div style={{ background: "rgba(255,216,77,0.96)", color: "#1a1f2b", fontWeight: 900, fontSize: portrait ? 50 : 66, padding: portrait ? "10px 26px" : "12px 34px", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.45)", textAlign: "center", lineHeight: 1.2 }}>{quiz.answer}</div>
+        <div style={{ position: "relative", overflow: "hidden", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.45)", padding: portrait ? "10px 26px" : "12px 34px" }}>
+          {/* 答えバナーの背景（色＋不透明度・別レイヤー）。既定＝黄色のほぼ不透明。 */}
+          <div style={{ position: "absolute", inset: 0, background: quiz.answerBg || "#ffd84d", opacity: quiz.answerBgOpacity ?? 0.96, borderRadius: 14 }} />
+          <div style={{ position: "relative", color: "#1a1f2b", fontWeight: 900, fontSize: portrait ? 50 : 66, textAlign: "center", lineHeight: 1.2 }}>{quiz.answer}</div>
+        </div>
       </div>
     </div>
   );

@@ -1920,20 +1920,21 @@ function turnVizControl(tn, gi, ch, ci){
 // 背景は bg(色)が指定された時だけ上書きされる。色未指定で透明度だけ動かしても効かないため、
 // スライダー操作時は色が無ければ既定色を補う（＝透明度＝背景の濃さとして直感的に効く）。
 // defOp=未指定時のスライダー表示値（描画側の既定不透明度に合わせる）。
-function vBgRow(obj, label, defColor, defOp){
-  defOp=(defOp!=null?defOp:1);
+// bgKey/opKey=編集するフィールド名（既定 bg/bgOpacity。答えバナー等は別キーを渡す）。
+function vBgRow(obj, label, defColor, defOp, bgKey, opKey){
+  defOp=(defOp!=null?defOp:1); bgKey=bgKey||'bg'; opKey=opKey||'bgOpacity';
   const br=vRow(label);
-  const cp=document.createElement('input'); cp.type='color'; cp.value=obj.bg||defColor; cp.title='背景色';
-  cp.oninput=()=>{ obj.bg=cp.value; if(obj.bgOpacity==null)obj.bgOpacity=defOp; };
+  const cp=document.createElement('input'); cp.type='color'; cp.value=obj[bgKey]||defColor; cp.title='背景色';
+  cp.oninput=()=>{ obj[bgKey]=cp.value; if(obj[opKey]==null)obj[opKey]=defOp; };
   br.appendChild(cp);
   const op=document.createElement('input'); op.type='range'; op.min='0'; op.max='1'; op.step='0.05';
-  op.value=(obj.bgOpacity!=null?obj.bgOpacity:defOp); op.style.cssText='width:96px;vertical-align:middle'; op.title='不透明度（左ほど透ける）';
+  op.value=(obj[opKey]!=null?obj[opKey]:defOp); op.style.cssText='width:96px;vertical-align:middle'; op.title='不透明度（左ほど透ける）';
   const ov=document.createElement('span'); ov.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
-  const showOv=()=>{ ov.textContent=Math.round((obj.bgOpacity!=null?obj.bgOpacity:defOp)*100)+'%'; };
+  const showOv=()=>{ ov.textContent=Math.round((obj[opKey]!=null?obj[opKey]:defOp)*100)+'%'; };
   showOv();
-  op.oninput=()=>{ obj.bgOpacity=parseFloat(op.value); if(obj.bg==null){ obj.bg=cp.value||defColor; } showOv(); };
+  op.oninput=()=>{ obj[opKey]=parseFloat(op.value); if(obj[bgKey]==null){ obj[bgKey]=cp.value||defColor; } showOv(); };
   br.appendChild(document.createTextNode(' 透過')); br.appendChild(op); br.appendChild(ov);
-  br.appendChild(vMini('既定に戻す',()=>{ delete obj.bg; delete obj.bgOpacity; render(); }));
+  br.appendChild(vMini('既定に戻す',()=>{ delete obj[bgKey]; delete obj[opKey]; render(); }));
   return br;
 }
 
@@ -1974,6 +1975,7 @@ function vizContent(box, ch, ci){
     nt.textContent='画像は通常どおり背後に表示（暗転しない）。下は「？・問い」の文字を囲む土台の背景（透過0%で土台なし）。';
     box.appendChild(nt);
     box.appendChild(vBgRow(q,'文字の背景','#0f141e',0.62));
+    box.appendChild(vBgRow(q,'答えの背景','#ffd84d',0.96,'answerBg','answerBgOpacity'));
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // 画像はサムネで選ぶ（台本のcut選択と統一）。
