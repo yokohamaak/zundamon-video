@@ -1710,6 +1710,20 @@ function cssFilter(f){ return f?`brightness(${f.brightness??1}) contrast(${f.con
 function contentRect(img,box){ const nw=img.naturalWidth,nh=img.naturalHeight; if(!nw||!nh) return {x:0,y:0,w:box.width,h:box.height};
   const s=Math.min(box.width/nw,box.height/nh),w=nw*s,h=nh*s; return {x:(box.width-w)/2,y:(box.height-h)/2,w,h}; }
 function mkrange(min,max,step,val){ const s=document.createElement('input'); s.type='range'; s.min=min; s.max=max; s.step=step; s.value=val; return s; }
+// スライダーに −/＋ ボタンを付けて返す（ボタンは input/change を発火＝既存ハンドラを流用）。
+function stepWrap(slider){
+  const w=document.createElement('span'); w.style.cssText='display:inline-flex;align-items:center;gap:3px;vertical-align:middle';
+  const mk=(txt,dir)=>{ const b=document.createElement('button'); b.type='button'; b.className='mini'; b.textContent=txt; b.tabIndex=-1;
+    b.style.cssText='padding:2px 7px;font-size:14px;line-height:1';
+    b.onclick=()=>{ const step=parseFloat(slider.step)||1, mn=parseFloat(slider.min), mx=parseFloat(slider.max);
+      let v=(parseFloat(slider.value)||0)+dir*step;
+      if(!isNaN(mn)) v=Math.max(mn,v); if(!isNaN(mx)) v=Math.min(mx,v);
+      v=Math.round(v/step)*step; v=Math.round(v*1000)/1000;
+      slider.value=v; slider.dispatchEvent(new Event('input')); slider.dispatchEvent(new Event('change')); };
+    return b; };
+  w.appendChild(mk('−',-1)); w.appendChild(slider); w.appendChild(mk('＋',1));
+  return w;
+}
 
 function splitTurn(tn,ta){
   const text=tn.text||'';
@@ -1760,9 +1774,9 @@ function buildAdjust(ci,k){
   const fb=mkrange(0.3,1.5,0.05,(cut.filter&&cut.filter.brightness)||1);
   const fc=mkrange(0.5,1.5,0.05,(cut.filter&&cut.filter.contrast)||1);
   const fg=mkrange(0,1,0.05,(cut.filter&&cut.filter.grayscale)||0);
-  filt.innerHTML='<span>明るさ</span>'; filt.appendChild(fb);
-  filt.insertAdjacentHTML('beforeend','<span>コントラスト</span>'); filt.appendChild(fc);
-  filt.insertAdjacentHTML('beforeend','<span>白黒</span>'); filt.appendChild(fg);
+  filt.innerHTML='<span>明るさ</span>'; filt.appendChild(stepWrap(fb));
+  filt.insertAdjacentHTML('beforeend','<span>コントラスト</span>'); filt.appendChild(stepWrap(fc));
+  filt.insertAdjacentHTML('beforeend','<span>白黒</span>'); filt.appendChild(stepWrap(fg));
   const curFilter=()=>({brightness:+fb.value,contrast:+fc.value,grayscale:+fg.value});
   const liveFilter=()=>{ if(imgEl) imgEl.style.filter=cssFilter(curFilter()); };
   [fb,fc,fg].forEach(s=>{ s.oninput=liveFilter; s.onchange=()=>{ cut.filter=curFilter(); setOpt(key,{filter:curFilter()}); }; });
@@ -1950,7 +1964,7 @@ function vBgRow(obj, label, defColor, defOp, bgKey, opKey){
   const showOv=()=>{ ov.textContent=Math.round((obj[opKey]!=null?obj[opKey]:defOp)*100)+'%'; };
   showOv();
   op.oninput=()=>{ obj[opKey]=parseFloat(op.value); if(obj[bgKey]==null){ obj[bgKey]=cp.value||defColor; } showOv(); };
-  br.appendChild(document.createTextNode(' 透過')); br.appendChild(op); br.appendChild(ov);
+  br.appendChild(document.createTextNode(' 透過')); br.appendChild(stepWrap(op)); br.appendChild(ov);
   br.appendChild(vMini('既定に戻す',()=>{ delete obj[bgKey]; delete obj[opKey]; render(); }));
   return br;
 }
@@ -2022,7 +2036,7 @@ function vizContent(box, ch, ci){
     const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
     const showSv=()=>{ sv.textContent=(s.size!=null?s.size:1).toFixed(1)+'倍'; }; showSv();
     sl.oninput=()=>{ s.size=parseFloat(sl.value); showSv(); };
-    rs.appendChild(sl); rs.appendChild(sv); rs.appendChild(vMini('既定に戻す',()=>{ delete s.size; render(); })); box.appendChild(rs);
+    rs.appendChild(stepWrap(sl)); rs.appendChild(sv); rs.appendChild(vMini('既定に戻す',()=>{ delete s.size; render(); })); box.appendChild(rs);
     // 背景色＋透過（土台）
     box.appendChild(vBgRow(s,'背景','#0f141e',0.5));
     // カウントアップ速度（数字が整数のとき有効）。3段階＝速い/標準(既定)/ゆっくり。
@@ -2134,7 +2148,7 @@ function vizContent(box, ch, ci){
       const show=()=>{ sv.textContent=(st[sizeKey]!=null?st[sizeKey]:1).toFixed(1)+'倍'; }; show();
       sl.oninput=()=>{ st[sizeKey]=parseFloat(sl.value); show(); };
       sl.onchange=()=>render();  // 離したらプレビューに反映
-      r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(sl); r.appendChild(sv);
+      r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(stepWrap(sl)); r.appendChild(sv);
       r.appendChild(vMini('既定',()=>{ delete st[colorKey]; delete st[sizeKey]; render(); })); return r; };
     box.appendChild(styRow('マーカー','markerColor','#ff5a6a','markerSize'));
     box.appendChild(styRow('ラベル','labelColor','#14233a','labelSize'));
@@ -2145,7 +2159,7 @@ function vizContent(box, ch, ci){
     const asv=document.createElement('span'); asv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
     const ashow=()=>{ asv.textContent=(st.arrowSize!=null?st.arrowSize:1).toFixed(1)+'倍'; }; ashow();
     asl.oninput=()=>{ st.arrowSize=parseFloat(asl.value); ashow(); }; asl.onchange=()=>render();
-    ar.appendChild(document.createTextNode('大きさ')); ar.appendChild(asl); ar.appendChild(asv);
+    ar.appendChild(document.createTextNode('大きさ')); ar.appendChild(stepWrap(asl)); ar.appendChild(asv);
     [['normal','標準'],['sharp','シャープ'],['thick','太め'],['dot','ドット']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
       b.className='vchip'+((st.arrowShape||'normal')===v?' on':''); b.textContent=t;
       b.onclick=()=>{ if(v==='normal') delete st.arrowShape; else st.arrowShape=v; render(); }; ar.appendChild(b); });
