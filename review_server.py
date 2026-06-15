@@ -2586,10 +2586,13 @@ function markSel(){
 }
 
 function render(){
-  const m=document.getElementById('main'); m.innerHTML='';
+  const m=document.getElementById('main');
+  // スクロール保持：左=window / 右ペイン=内部scrollTop（操作で最上部へ飛ぶのを防ぐ）。
+  const sy=window.scrollY;
+  const _oldrp=document.getElementById('rpane'); const rsy=_oldrp?_oldrp.scrollTop:0;
+  m.innerHTML='';
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
-  const sy=window.scrollY;
   const tp=document.createElement('div'); tp.className='tp';
   const left=document.createElement('div'); left.className='tp-left';
   const right=document.createElement('div'); right.className='tp-right'+(rwide?' wide':''); right.id='rpane';
@@ -2620,6 +2623,7 @@ function render(){
     left.appendChild(sec);
   });
   renderRight();
+  const _newrp=document.getElementById('rpane'); if(_newrp) _newrp.scrollTop=rsy;
   document.querySelectorAll('#main textarea').forEach(autosize);
   window.scrollTo(0,sy);
 }
@@ -2694,7 +2698,9 @@ function startEditLine(row,tn,tx){
 }
 
 function renderRight(){
-  const r=document.getElementById('rpane'); if(!r) return; r.innerHTML='';
+  const r=document.getElementById('rpane'); if(!r) return;
+  const _rsy=r.scrollTop;  // 右ペインのスクロール位置を保持（編集で最上部へ飛ぶのを防ぐ）
+  r.innerHTML='';
   // 拡大トグル（左に被さる大きいパネルへ）
   const wbar=document.createElement('div'); wbar.className='rwbar';
   const wb=document.createElement('button'); wb.className='rwbtn'+(rwide?' wide':'');
@@ -2710,7 +2716,7 @@ function renderRight(){
   const tb=document.createElement('div'); tb.className='rtabs';
   tabs.forEach(([k,label])=>{ const b=document.createElement('button');
     b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):''); b.textContent=label;
-    b.onclick=()=>{ rtab=k; renderRight(); }; tb.appendChild(b); });
+    b.onclick=()=>{ rtab=k; renderRight(); const rp=document.getElementById('rpane'); if(rp) rp.scrollTop=0; }; tb.appendChild(b); });
   r.appendChild(tb);
   const info=document.createElement('div'); info.style.cssText='font-size:11px;color:var(--sub);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
   info.textContent=(ch.title||'')+'｜'+(tn.speaker||'')+': '+(tn.text||'');
@@ -2718,6 +2724,7 @@ function renderRight(){
   if(cur==='image') renderImageTab(r,tn,ch,ci);
   else if(cur==='viz') renderVizTab(r,tn,ch,ci);
   else renderChapterTab(r,ch,ci);
+  r.scrollTop=_rsy;  // スクロール位置を復元
 }
 
 function framePrev(ci,k,cut){
