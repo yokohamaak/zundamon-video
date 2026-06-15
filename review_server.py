@@ -1518,6 +1518,33 @@ STORY_PAGE = """<!doctype html>
             border-left:5px solid #7a5cff; background:rgba(122,92,255,0.12); border-radius:0 6px 6px 0; }
   .vizhdr-t { font-size:13px; font-weight:800; color:#c4a8ff; }
   .cutpick.vizmuted { color:var(--sub); font-size:11px; font-style:italic; align-items:center; }
+  /* === 二画面（台本左＋プレビュー右） === */
+  .tp { display:grid; grid-template-columns:1fr 480px; gap:16px; align-items:start; }
+  .tp-left { min-width:0; }
+  .tp-right { position:sticky; top:74px; max-height:calc(100vh - 90px); overflow:auto;
+              background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .chdiv { display:flex; align-items:center; gap:8px; margin:18px 0 6px; padding:7px 11px;
+           background:#0c0f15; border:1px solid var(--line); border-radius:8px; }
+  .chdiv .ttl { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chdiv .selcb { width:16px; height:16px; flex:none; accent-color:#ffd84d; }
+  .line { display:flex; gap:8px; align-items:flex-start; padding:6px 10px; border-radius:8px; cursor:pointer;
+          border-left:3px solid transparent; }
+  .line:hover { background:#1b212c; }
+  .line.sel { background:#202a3a; border-left-color:#ffd84d; }
+  .line.vizrow { border-left-color:#7a5cff; }
+  .line .nm { font-size:12px; font-weight:700; flex:none; width:84px; padding-top:3px; display:flex; align-items:center; gap:5px; }
+  .line .nm .dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .line .tx { flex:1; font-size:14px; line-height:1.55; color:var(--fg); white-space:pre-wrap; word-break:break-word; min-width:0; }
+  .line .mk { flex:none; display:flex; gap:3px; align-items:center; padding-top:3px; }
+  .line .mk img { width:34px; height:20px; object-fit:cover; border-radius:3px; border:1px solid var(--line); }
+  .line .mk .vz { font-size:10px; color:#c4a8ff; }
+  .line textarea { flex:1; min-height:46px; }
+  .rtabs { display:flex; gap:6px; margin-bottom:8px; }
+  .rtab { font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid var(--line);
+          background:transparent; color:var(--sub); cursor:pointer; }
+  .rtab.on { background:#2a2440; color:#c4a8ff; border-color:#5a4a8a; }
+  .rtab.imgon { background:var(--accent); color:#fff; border-color:var(--accent); }
+  @media (max-width:920px){ .tp { grid-template-columns:1fr; } .tp-right { position:static; max-height:none; } }
 </style></head>
 <body>
 <header>
@@ -1533,6 +1560,7 @@ STORY_PAGE = """<!doctype html>
 <main id="main">読み込み中…</main>
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
+let selGi=-1, rtab=null, dirty=false;  // 二画面：選択行 / 右タブ(null=自動) / 未保存フラグ
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -2312,7 +2340,7 @@ function buildEstimate(){
 }
 function refreshEst(){ const o=document.getElementById('estbar'); if(o) o.replaceWith(buildEstimate()); }
 
-function render(){
+function renderLegacy(){  // 旧アコーディオン版（未使用・参考保存）。実体は下の二画面render()。
   const m=document.getElementById('main'); m.innerHTML='';
   // theme
   const th=document.createElement('div'); th.className='theme';
@@ -2505,10 +2533,174 @@ function render(){
   document.querySelectorAll('#main textarea').forEach(autosize);
 }
 
+// ===== 二画面（台本左＋プレビュー右）。hoistで後勝ち＝こちらが実体 =====
+function lblDiv(t){ const d=document.createElement('div'); d.className='lbl'; d.textContent=t; return d; }
+function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter===ci); return i<0?selGi:i; }
+function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
+function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存':'保存'; }
+function markSel(){ document.querySelectorAll('.line').forEach(el=>el.classList.toggle('sel', +el.dataset.gi===selGi)); }
+
+function render(){
+  const m=document.getElementById('main'); m.innerHTML='';
+  if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
+  if(selGi<0||selGi>=DATA.script.length) selGi=0;
+  const sy=window.scrollY;
+  const tp=document.createElement('div'); tp.className='tp';
+  const left=document.createElement('div'); left.className='tp-left';
+  const right=document.createElement('div'); right.className='tp-right'; right.id='rpane';
+  tp.appendChild(left); tp.appendChild(right); m.appendChild(tp);
+  // 左上：テーマ＋推定ゲージ
+  const th=document.createElement('div'); th.className='theme';
+  const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
+  ti.onchange=()=>{ DATA.theme=ti.value; }; th.innerHTML='<span class="badge">テーマ</span>'; th.appendChild(ti);
+  left.appendChild(th); left.appendChild(buildEstimate());
+  // 章区切り＋セリフ行（intro→ネタ→outro 連続表示）
+  (DATA.chapters||[]).forEach((ch,ci)=>{
+    left.appendChild(chapterDivider(ch,ci));
+    const vk=vizOf(ch); const vr=vk?vizRange(ci):null;
+    (DATA.script||[]).forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
+      const inViz=vr&&gi>=vr.startGi&&gi<=vr.endGi;
+      left.appendChild(lineRow(tn,gi,ch,ci,inViz));
+    });
+  });
+  renderRight();
+  document.querySelectorAll('#main textarea').forEach(autosize);
+  window.scrollTo(0,sy);
+}
+
+function chapterDivider(ch,ci){
+  const d=document.createElement('div'); d.className='chdiv';
+  if((ch.section||'')==='trivia'){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='selcb';
+    cb.checked=selChs.has(ci); cb.title='再生成の対象に選ぶ';
+    cb.onclick=(e)=>{ e.stopPropagation(); selChs.has(ci)?selChs.delete(ci):selChs.add(ci); cb.checked=selChs.has(ci); updateRegenBtn(); };
+    d.appendChild(cb); }
+  const badge=document.createElement('span'); badge.className='badge'; badge.textContent=sectionLabel(ch,ci); d.appendChild(badge);
+  if(ch.section==='trivia'&&ch.confidence){ const c=document.createElement('span'); c.className='conf '+ch.confidence; c.textContent=confLabel(ch.confidence); d.appendChild(c); }
+  const vk=vizOf(ch); if(vk){ const v=document.createElement('span'); v.className='vizb'; v.textContent='▣ '+VIZ_LABEL[vk]; d.appendChild(v); }
+  const t=document.createElement('span'); t.className='ttl'; t.textContent=ch.title||'(無題)'; d.appendChild(t);
+  const e=document.createElement('button'); e.className='mini'; e.textContent='章を編集'; e.style.marginLeft='auto';
+  e.onclick=()=>{ selGi=firstGiOfChapter(ci); rtab='chapter'; renderRight(); markSel(); }; d.appendChild(e);
+  return d;
+}
+
+function lineRow(tn,gi,ch,ci,inViz){
+  const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(inViz?' vizrow':''); row.dataset.gi=gi;
+  const col=speakerColor(tn.speaker);
+  const nm=document.createElement('div'); nm.className='nm'; nm.style.color=col;
+  nm.innerHTML='<span class="dot" style="background:'+col+'"></span>'+tn.speaker;
+  const tx=document.createElement('div'); tx.className='tx'; tx.textContent=tn.text||'(空)';
+  const mk=document.createElement('div'); mk.className='mk';
+  const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
+  row.onclick=()=>{ if(selGi!==gi){ selGi=gi; rtab=null; renderRight(); markSel(); } };
+  tx.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,tx); };
+  row.appendChild(nm); row.appendChild(tx); row.appendChild(mk);
+  return row;
+}
+
+function startEditLine(row,tn,tx){
+  const ta=document.createElement('textarea'); ta.value=tn.text||'';
+  tx.replaceWith(ta); autosize(ta); ta.focus();
+  ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); };
+  ta.onblur=()=>{ render(); };
+}
+
+function renderRight(){
+  const r=document.getElementById('rpane'); if(!r) return; r.innerHTML='';
+  const tn=DATA.script[selGi]; if(!tn){ r.textContent='左で行を選択してください'; return; }
+  const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
+  const vk=vizOf(ch); const vr=vk?vizRange(ci):null; const inViz=vr&&selGi>=vr.startGi&&selGi<=vr.endGi;
+  const tabs=[['image','画像']];
+  if(ch.section==='trivia') tabs.push(['viz', vk?('演出: '+VIZ_LABEL[vk]):'＋演出']);
+  tabs.push(['chapter','章']);
+  let cur=rtab; if(!cur||!tabs.some(t=>t[0]===cur)) cur=(inViz&&vk)?'viz':'image';
+  const tb=document.createElement('div'); tb.className='rtabs';
+  tabs.forEach(([k,label])=>{ const b=document.createElement('button');
+    b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):''); b.textContent=label;
+    b.onclick=()=>{ rtab=k; renderRight(); }; tb.appendChild(b); });
+  r.appendChild(tb);
+  const info=document.createElement('div'); info.style.cssText='font-size:11px;color:var(--sub);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+  info.textContent=(ch.title||'')+'｜'+(tn.speaker||'')+': '+(tn.text||'');
+  r.appendChild(info);
+  if(cur==='image') renderImageTab(r,tn,ch,ci);
+  else if(cur==='viz') renderVizTab(r,tn,ch,ci);
+  else renderChapterTab(r,ch,ci);
+}
+
+function framePrev(ci,k,cut){
+  const co=cutMap[ci+'_'+k]||{}; const u=imgUrl(ci,k);
+  const box=document.createElement('div'); box.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0c0f15;border:1px solid var(--line);margin-bottom:8px';
+  if(co.hide){ box.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px">画像なし（黒板＋立ち絵のみ）</div>'; return box; }
+  if(!u){ box.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px">画像 未取得</div>'; return box; }
+  const fit=co.fit||(((cut||{}).image_kind==='subject')?'contain':'cover');
+  const im=document.createElement('img');
+  im.style.cssText='width:100%;height:100%;object-fit:'+fit+';'+(co.filter?('filter:'+cssFilter(co.filter)+';'):'')+((fit==='contain'&&co.bg)?('background:'+co.bg+';'):'');
+  im.src=u; box.appendChild(im);
+  return box;
+}
+function renderImageTab(r,tn,ch,ci){
+  const cuts=ch.image_cuts||(ch.image_cuts=[]);
+  const cur=(typeof tn.cut==='number'?tn.cut:0);
+  // フレームプレビュー（この行で視聴者が見る画像）。クロップ精密反映は下の調整パネルで確認。
+  r.appendChild(framePrev(ci,cur,cuts[cur]));
+  r.appendChild(lblDiv('この行で出す画像（クリックで選択）'));
+  const pick=document.createElement('div'); pick.className='cutpick';
+  (cuts.length?cuts:[{}]).forEach((c,k)=>{ const u=imgUrl(ci,k);
+    const o=document.createElement('div'); o.className='copt'+(k===cur?' sel':'');
+    o.innerHTML=(u?'<img src="'+u+'">':'<span class="ph3">#'+k+'</span>')+'<span class="num">'+k+'</span>';
+    o.onclick=()=>{ tn.cut=k; markDirty(); render(); }; pick.appendChild(o); });
+  const add=document.createElement('button'); add.className='mini'; add.textContent='＋画像追加'; add.style.marginLeft='4px';
+  add.onclick=()=>{ cuts.push({image_query:'',image_kind:'ambient'}); render(); }; pick.appendChild(add);
+  r.appendChild(pick);
+  const ky=ci+'_'+cur;
+  const row=document.createElement('div'); row.style.cssText='display:flex;gap:6px;margin-top:8px';
+  const adj=document.createElement('button'); adj.className='mini';
+  adj.textContent=adjustOpen.has(ky)?'調整を閉じる':'🔧 クロップ/補正/差し替え';
+  adj.onclick=()=>{ adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); renderRight(); };
+  const cb=document.createElement('button'); cb.className='mini';
+  cb.textContent=candOpen.has(ky)?'候補を閉じる':'画像候補から選ぶ';
+  cb.onclick=()=>{ candOpen.has(ky)?candOpen.delete(ky):candOpen.add(ky); renderRight(); };
+  row.appendChild(adj); row.appendChild(cb); r.appendChild(row);
+  if(adjustOpen.has(ky)) r.appendChild(buildAdjust(ci,cur));
+  if(candOpen.has(ky)) r.appendChild(buildCand(ci,cur,cuts[cur]||{}));
+}
+
+function renderVizTab(r,tn,ch,ci){
+  r.appendChild(turnVizControl(tn, selGi, ch, ci));
+  if(vizOf(ch)){ const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;'; vizContent(ce,ch,ci); r.appendChild(ce); }
+}
+
+function renderChapterTab(r,ch,ci){
+  r.appendChild(lblDiv('タイトル / 要約'));
+  const tt=document.createElement('input'); tt.type='text'; tt.value=ch.title||''; tt.placeholder='章タイトル'; tt.style.width='100%';
+  tt.onchange=()=>{ ch.title=tt.value; markDirty(); }; r.appendChild(tt);
+  const sm=document.createElement('textarea'); sm.value=ch.summary||''; sm.placeholder='要約';
+  sm.oninput=()=>{ ch.summary=sm.value; autosize(sm); markDirty(); }; r.appendChild(sm); autosize(sm);
+  if(ch.section==='trivia'){
+    r.appendChild(lblDiv('固定見出し（ショート上部・掴み）'));
+    const hk=document.createElement('input'); hk.type='text'; hk.value=ch.hook||''; hk.style.width='100%';
+    hk.placeholder='空欄ならタイトルから仮生成'; hk.onchange=()=>{ ch.hook=hk.value; markDirty(); }; r.appendChild(hk);
+    r.appendChild(lblDiv('事実の確度 / 裏取り手がかり'));
+    const cs=document.createElement('select');
+    [['','(未設定)'],['high','high 公式/一次資料'],['medium','medium 要確認'],['low','low 諸説']].forEach(([v,t])=>{
+      const o=document.createElement('option'); o.value=v; o.textContent=t; if((ch.confidence||'')===v)o.selected=true; cs.appendChild(o); });
+    cs.onchange=()=>{ if(cs.value)ch.confidence=cs.value; else delete ch.confidence; markDirty(); render(); };
+    const sh=document.createElement('input'); sh.type='text'; sh.style.cssText='width:100%;margin-top:4px';
+    sh.value=ch.source_hint||''; sh.placeholder='裏取りの手がかり（公式発表・年・媒体名など）';
+    sh.onchange=()=>{ if(sh.value.trim())ch.source_hint=sh.value.trim(); else delete ch.source_hint; markDirty(); };
+    r.appendChild(cs); r.appendChild(sh);
+  }
+}
+
 document.getElementById('save').onclick=async()=>{
   const r=await api('/api/script', DATA);
-  const b=document.getElementById('save'); b.textContent=r.ok?'保存✓':'失敗'; setTimeout(()=>b.textContent='保存',1500);
+  const b=document.getElementById('save');
+  if(r.ok){ dirty=false; b.textContent='保存✓'; } else { b.textContent='失敗'; }
+  setTimeout(()=>updateSaveBtn(),1500);
 };
+// 未保存ガード＋Cmd/Ctrl+S＋編集でdirty
+window.addEventListener('beforeunload',(e)=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+window.addEventListener('keydown',(e)=>{ if((e.metaKey||e.ctrlKey)&&(e.key==='s'||e.key==='S')){ e.preventDefault(); document.getElementById('save').click(); } });
+(function(){ const m=document.getElementById('main'); if(m){ m.addEventListener('input',markDirty); m.addEventListener('change',markDirty); } })();
 
 // 再生成ボタンの活性/表示更新（選択ネタ章数を反映）
 function updateRegenBtn(){
