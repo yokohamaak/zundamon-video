@@ -649,34 +649,62 @@ const StatOverlay: React.FC<{
 };
 
 // 注釈・吹き出し（重ね層）：画像上の点(0..1)を指してラベルを出す。
-// style（章共通）でマーカー/ラベルの色・大きさを調整。arrow:true でラベル⇔点を線でつなぐ。
+// style（章共通）でマーカー/ラベルの色・大きさを調整。arrow:true でラベル→点へ矢印を引く。
+// ラベルは lx/ly があればその位置、無ければ点の上/下へ自動配置。
 const CalloutOverlay: React.FC<{
   callouts: Callout[];
   t: number;
   portrait: boolean;
   style?: CalloutStyle;
-}> = ({ callouts, t, portrait, style }) => {
+  boxW: number;
+  boxH: number;
+}> = ({ callouts, t, portrait, style, boxW, boxH }) => {
   const markerColor = style?.markerColor || "#ff5a6a";
   const markerSize = style?.markerSize ?? 1;
   const labelColor = style?.labelColor || "#14233a";
   const labelSize = style?.labelSize ?? 1;
   const dot = Math.round(18 * markerSize); // マーカー径(px)
-  const HEAD = Math.round(16 * markerSize); // 矢じりの長さ(px)
+  const HEAD = Math.round(18 * markerSize); // 矢じりの長さ(px)
   const HALF = Math.round(11 * markerSize); // 矢じりの半幅(px)
   const SHAFT = Math.round(5 * markerSize);  // 矢の軸の太さ(px)
+  const gapNorm = (44 * markerSize) / boxH;  // 自動配置時の点⇔ラベル距離(正規化)
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {/* 矢印はSVGで任意方向に引く（ラベル中心→点・先端に矢じり）。線はラベルの下に隠れる。 */}
+      <svg width={boxW} height={boxH} style={{ position: "absolute", inset: 0 }}>
+        {callouts.map((c, i) => {
+          const at = c.at ?? 0;
+          const ap = interpolate(t, [at, at + 0.3], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+          if (ap <= 0 || !c.arrow) return null;
+          const px = c.x * boxW, py = c.y * boxH;
+          const lx = (c.lx != null ? c.lx : c.x) * boxW;
+          const ly = (c.ly != null ? c.ly : (c.y < 0.25 ? c.y + gapNorm : c.y - gapNorm)) * boxH;
+          const ang = Math.atan2(py - ly, px - lx);
+          const baseX = px - HEAD * Math.cos(ang), baseY = py - HEAD * Math.sin(ang);
+          const pX = -Math.sin(ang), pY = Math.cos(ang); // 垂直方向
+          const h1x = baseX + HALF * pX, h1y = baseY + HALF * pY;
+          const h2x = baseX - HALF * pX, h2y = baseY - HALF * pY;
+          return (
+            <g key={i} opacity={ap}>
+              <line x1={lx} y1={ly} x2={baseX} y2={baseY} stroke={markerColor} strokeWidth={SHAFT} strokeLinecap="round" />
+              <polygon points={`${px},${py} ${h1x},${h1y} ${h2x},${h2y}`} fill={markerColor} />
+            </g>
+          );
+        })}
+      </svg>
       {callouts.map((c, i) => {
         const at = c.at ?? 0;
         const ap = interpolate(t, [at, at + 0.3], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         if (ap <= 0) return null;
-        const below = c.y < 0.25; // 点が上端寄りならラベルを下に出す
-        // arrow:true は矢じり付きの矢印で点を指す（長め）。false は点(ドット)のみ。
-        const gap = c.arrow ? Math.round(44 * markerSize) : 20; // 点とラベルの隙間(px)
+        const hasL = c.lx != null && c.ly != null;
+        // ラベル位置（lx/ly が無ければ点の上/下に自動）。
+        const lcx = c.lx != null ? c.lx : c.x;
+        const lcy = c.ly != null ? c.ly : (c.y < 0.25 ? c.y + gapNorm : c.y - gapNorm);
         const labelStyle: React.CSSProperties = {
           position: "absolute",
-          left: "50%",
-          transform: "translateX(-50%)",
+          left: `${lcx * 100}%`,
+          top: `${lcy * 100}%`,
+          transform: "translate(-50%,-50%)",
           whiteSpace: "nowrap",
           background: labelColor,
           color: "#fff",
@@ -686,31 +714,13 @@ const CalloutOverlay: React.FC<{
           borderRadius: 10,
           boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
         };
-        if (below) labelStyle.top = gap; else labelStyle.bottom = gap;
-        // 矢の軸（ラベル側から矢じりの根元まで）。
-        const shaftStyle: React.CSSProperties = {
-          position: "absolute",
-          left: -SHAFT / 2,
-          width: SHAFT,
-          height: gap - HEAD,
-          background: markerColor,
-        };
-        if (below) shaftStyle.top = HEAD; else shaftStyle.bottom = HEAD;
-        // 矢じり（点を指す三角）。below=上向き(先端が上の点)／above=下向き。
-        const headStyle: React.CSSProperties = below
-          ? { position: "absolute", top: 0, left: -HALF, width: 0, height: 0, borderLeft: `${HALF}px solid transparent`, borderRight: `${HALF}px solid transparent`, borderBottom: `${HEAD}px solid ${markerColor}` }
-          : { position: "absolute", bottom: 0, left: -HALF, width: 0, height: 0, borderLeft: `${HALF}px solid transparent`, borderRight: `${HALF}px solid transparent`, borderTop: `${HEAD}px solid ${markerColor}` };
         return (
-          <div key={i} style={{ position: "absolute", left: `${c.x * 100}%`, top: `${c.y * 100}%`, opacity: ap }}>
-            {c.arrow ? (
-              <>
-                <div style={shaftStyle} />
-                <div style={headStyle} />
-              </>
-            ) : (
-              <div style={{ position: "absolute", left: -dot / 2, top: -dot / 2, width: dot, height: dot, borderRadius: "50%", background: markerColor, border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)" }} />
-            )}
-            <div style={labelStyle}>{c.text}</div>
+          <div key={i} style={{ position: "absolute", inset: 0 }}>
+            {/* 点のマーカー。矢印が無いとき、または文字を離して置いたときに点を明示。 */}
+            {!c.arrow || hasL ? (
+              <div style={{ position: "absolute", left: `${c.x * 100}%`, top: `${c.y * 100}%`, width: dot, height: dot, borderRadius: "50%", background: markerColor, border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)", transform: "translate(-50%,-50%)", opacity: ap }} />
+            ) : null}
+            <div style={{ ...labelStyle, opacity: ap }}>{c.text}</div>
           </div>
         );
       })}
@@ -1259,7 +1269,7 @@ export const DialogueVideo: React.FC<{
           <StatOverlay stat={activeTopic.stat} t={t} portrait={portrait} />
         ) : null}
         {activeTopic && !activeTopic.blank && vizOn && activeTopic.callouts ? (
-          <CalloutOverlay callouts={activeTopic.callouts} t={t} portrait={portrait} style={activeTopic.calloutStyle} />
+          <CalloutOverlay callouts={activeTopic.callouts} t={t} portrait={portrait} style={activeTopic.calloutStyle} boxW={visualBoxW} boxH={visualBoxH} />
         ) : null}
         {/* クイズは画像を使わない演出＝背後の通常画像/黒板の上に「？・問い・答え」を重ねる。
             blank(画像なし＝黒板)でも出す。 */}

@@ -107,7 +107,11 @@ export type Callout = {
   text: string;
   x: number;              // 指し示す点の x（0..1・画像枠基準）
   y: number;              // 同 y
-  arrow?: boolean;        // ラベルから点へ線/矢印を引く
+  arrow?: boolean;        // ラベルから点へ矢印を引く
+  // ラベル(文字)の置き場（0..1・任意）。未指定なら点の上/下に自動配置。
+  // 指定すると点と独立した位置に文字を置け、矢印は文字→点へ引かれる。
+  lx?: number;
+  ly?: number;
   at?: number;            // 出現する絶対時刻（秒）。build が callout_item発言/均等割りで解決。
 };
 

@@ -1872,6 +1872,7 @@ function setUniqueFlag(ci,flag,value,tn,turnOn){
 }
 let vizOpenGi=null;  // 中身エディタを開いている発言の通し番号（章単位の演出内容を編集）
 let calloutSel=0;    // 注釈の「クリック配置」で動かす対象の注釈index
+let calloutMode='point'; // クリックで動かす対象：'point'=指す点 / 'label'=文字の置き場
 // この発言が章の演出イベントを担っているか（✎中身ボタンを出す判定）。
 function turnHasViz(tn, ch){
   if(ch.panel) return tn.panel_event==='shrink'||typeof tn.panel_item==='number';
@@ -2037,20 +2038,43 @@ function vizContent(box, ch, ci){
     if(calloutSel>=cs.length) calloutSel=0;
     const st=ch.calloutStyle||(ch.calloutStyle={});
     const mColor=st.markerColor||'#ff5a6a', lColor=st.labelColor||'#14233a';
-    // クリック配置プレビュー：章の画像(cut0)を出し、クリックで選択中の注釈のx/yを設定。
+    // 自動ラベル位置（lx/ly未指定時）：点の上/下に少しずらす。
+    const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+0.1:c.y-0.1))});
+    // 配置モード切替（点 / 文字）。
+    const mrow=document.createElement('div'); mrow.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:4px';
+    const ml=document.createElement('span'); ml.style.cssText='font-size:12px;color:var(--sub)'; ml.textContent='クリックで動かす：'; mrow.appendChild(ml);
+    [['point','◯ 点'],['label','文字']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
+      b.className='vchip'+(calloutMode===v?' on':''); b.textContent=t; b.onclick=()=>{ calloutMode=v; render(); }; mrow.appendChild(b); });
+    box.appendChild(mrow);
+    // クリック配置プレビュー：章の画像(cut0)を出し、クリックで選択中注釈の点/文字位置を設定。
     const u=imgUrl(ci,0);
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;cursor:crosshair;margin-bottom:6px;user-select:none';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none'; prev.appendChild(im); }
     else { const ph=document.createElement('div'); ph.style.cssText='display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px'; ph.textContent='画像なし（cut0を取得してください）'; prev.appendChild(ph); }
-    cs.forEach((c,i)=>{ const m=document.createElement('div'); const sel=(i===calloutSel);
-      m.style.cssText='position:absolute;width:'+(sel?16:12)+'px;height:'+(sel?16:12)+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(sel?';outline:2px solid #ffd84d;outline-offset:2px':'');
-      m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'：'+(c.text||''); prev.appendChild(m); });
+    // 矢印線（SVG・arrowのみ）。文字位置→点へ。
+    const svgns='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(svgns,'svg'); svg.setAttribute('style','position:absolute;inset:0;width:100%;height:100%;pointer-events:none');
+    cs.forEach((c)=>{ if(!c.arrow) return; const L=lpos(c);
+      const ln=document.createElementNS(svgns,'line'); ln.setAttribute('x1',(L.x*100)+'%'); ln.setAttribute('y1',(L.y*100)+'%');
+      ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width','2'); svg.appendChild(ln); });
+    prev.appendChild(svg);
+    cs.forEach((c,i)=>{ const sel=(i===calloutSel);
+      // 点マーカー
+      const m=document.createElement('div');
+      m.style.cssText='position:absolute;width:'+(sel?16:12)+'px;height:'+(sel?16:12)+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'の点'; prev.appendChild(m);
+      // 文字ラベル（プレビュー）
+      const L=lpos(c); const lab=document.createElement('div');
+      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:#fff;font-weight:800;font-size:12px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      lab.style.left=(L.x*100)+'%'; lab.style.top=(L.y*100)+'%'; lab.textContent=c.text||('注釈'+i); prev.appendChild(lab); });
     prev.onclick=(e)=>{ if(!cs.length) return; const r=prev.getBoundingClientRect();
       const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)), y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
-      cs[calloutSel].x=Math.round(x*1000)/1000; cs[calloutSel].y=Math.round(y*1000)/1000; render(); };
+      const rx=Math.round(x*1000)/1000, ry=Math.round(y*1000)/1000;
+      if(calloutMode==='label'){ cs[calloutSel].lx=rx; cs[calloutSel].ly=ry; } else { cs[calloutSel].x=rx; cs[calloutSel].y=ry; }
+      render(); };
     box.appendChild(prev);
     const hint=document.createElement('div'); hint.style.cssText='font-size:11px;color:var(--sub);margin-bottom:4px';
-    hint.textContent='画像をクリックすると「選択中(黄枠)」の注釈をそこへ配置。行の◉で選択切替。注釈章は画像が静止します。';
+    hint.textContent='「点/文字」を選び画像をクリックで、選択中(黄枠)の注釈のその位置を設定。行の◉で注釈切替。文字位置は「文字を既定に」で自動(点の上下)へ。';
     box.appendChild(hint);
     cs.forEach((c,i)=>{
       const r=vRow('注釈'+i);
@@ -2067,6 +2091,7 @@ function vizContent(box, ch, ci){
       const al=document.createElement('label'); al.style.cssText='font-size:12px;display:inline-flex;gap:3px;align-items:center';
       const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!c.arrow;
       ac.onchange=()=>{ if(ac.checked)c.arrow=true; else delete c.arrow; }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al);
+      if(c.lx!=null||c.ly!=null) r.appendChild(vMini('文字自動',()=>{ delete c.lx; delete c.ly; render(); }));
       r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',cs.length); if(calloutSel>=cs.length)calloutSel=Math.max(0,cs.length-1); render(); }));
       box.appendChild(r);
     });

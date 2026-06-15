@@ -539,7 +539,7 @@ def test_viz_fields_preserved():
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"},{"image_query":"b","image_kind":"ambient"}]},'
         '{"section":"trivia","title":"S","stat":{"value":"8","unit":"分の1","label":"故障率","color":"#ff5050","size":1.4,"bg":"#101820","bgOpacity":0.3,"countSpeed":"slow"},'
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"}]},'
-        '{"section":"trivia","title":"O","callouts":[{"text":"ここ","x":0.3,"y":0.4,"arrow":true},{"text":"範囲外","x":2,"y":0.5}],'
+        '{"section":"trivia","title":"O","callouts":[{"text":"ここ","x":0.3,"y":0.4,"arrow":true,"lx":0.6,"ly":0.15},{"text":"範囲外","x":2,"y":0.5}],'
         '"calloutStyle":{"markerColor":"#00ccff","markerSize":1.5,"labelColor":"#222a33","labelSize":0.8},'
         '"image_cuts":[{"image_query":"a","image_kind":"subject"}]}'
         '],"script":['
@@ -554,6 +554,8 @@ def test_viz_fields_preserved():
                              "countSpeed": "slow"}
     # x>1 の範囲外注釈は除去され、正しい1件だけ残る
     assert len(ch[3]["callouts"]) == 1 and ch[3]["callouts"][0]["arrow"] is True
+    # ラベル位置 lx/ly が保持される
+    assert ch[3]["callouts"][0]["lx"] == 0.6 and ch[3]["callouts"][0]["ly"] == 0.15
     assert ch[3]["calloutStyle"] == {"markerColor": "#00ccff", "markerSize": 1.5,
                                      "labelColor": "#222a33", "labelSize": 0.8}
     assert data["script"][0]["reveal"] is True and data["script"][1]["callout_item"] == 0

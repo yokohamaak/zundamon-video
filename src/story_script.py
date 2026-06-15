@@ -563,6 +563,15 @@ def _clean_callouts(callouts):
         item = {"text": text, "x": round(x, 3), "y": round(y, 3)}
         if c.get("arrow"):
             item["arrow"] = True
+        # ラベルの置き場（任意・0..1）。両方そろって範囲内のときだけ保持。
+        try:
+            lx = float(c.get("lx"))
+            ly = float(c.get("ly"))
+            if 0.0 <= lx <= 1.0 and 0.0 <= ly <= 1.0:
+                item["lx"] = round(lx, 3)
+                item["ly"] = round(ly, 3)
+        except (TypeError, ValueError):
+            pass
         out.append(item)
     return out[:4] or None  # 注釈は最大4個（画面が煩雑にならない範囲）
 
