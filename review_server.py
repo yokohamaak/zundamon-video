@@ -2038,6 +2038,7 @@ function vizContent(box, ch, ci){
     if(calloutSel>=cs.length) calloutSel=0;
     const st=ch.calloutStyle||(ch.calloutStyle={});
     const mColor=st.markerColor||'#ff5a6a', lColor=st.labelColor||'#14233a';
+    const mSize=(st.markerSize!=null?st.markerSize:1), lSize=(st.labelSize!=null?st.labelSize:1);
     // 自動ラベル位置（lx/ly未指定時）：点の上/下に少しずらす。
     const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+0.1:c.y-0.1))});
     // 配置モード切替（点 / 文字）。
@@ -2056,16 +2057,16 @@ function vizContent(box, ch, ci){
     const svg=document.createElementNS(svgns,'svg'); svg.setAttribute('style','position:absolute;inset:0;width:100%;height:100%;pointer-events:none');
     cs.forEach((c)=>{ if(!c.arrow) return; const L=lpos(c);
       const ln=document.createElementNS(svgns,'line'); ln.setAttribute('x1',(L.x*100)+'%'); ln.setAttribute('y1',(L.y*100)+'%');
-      ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width','2'); svg.appendChild(ln); });
+      ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width',String(Math.max(2,Math.round(3*mSize)))); svg.appendChild(ln); });
     prev.appendChild(svg);
     cs.forEach((c,i)=>{ const sel=(i===calloutSel);
-      // 点マーカー
-      const m=document.createElement('div');
-      m.style.cssText='position:absolute;width:'+(sel?16:12)+'px;height:'+(sel?16:12)+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      // 点マーカー（大きさ＝markerSize連動）
+      const m=document.createElement('div'); const md=Math.round((sel?14:12)*mSize);
+      m.style.cssText='position:absolute;width:'+md+'px;height:'+md+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
       m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'の点'; prev.appendChild(m);
-      // 文字ラベル（プレビュー）
+      // 文字ラベル（プレビュー・大きさ＝labelSize連動）
       const L=lpos(c); const lab=document.createElement('div');
-      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:#fff;font-weight:800;font-size:12px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:#fff;font-weight:800;font-size:'+Math.round(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
       lab.style.left=(L.x*100)+'%'; lab.style.top=(L.y*100)+'%'; lab.textContent=c.text||('注釈'+i); prev.appendChild(lab); });
     prev.onclick=(e)=>{ if(!cs.length) return; const r=prev.getBoundingClientRect();
       const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)), y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
@@ -2105,6 +2106,7 @@ function vizContent(box, ch, ci){
       const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
       const show=()=>{ sv.textContent=(st[sizeKey]!=null?st[sizeKey]:1).toFixed(1)+'倍'; }; show();
       sl.oninput=()=>{ st[sizeKey]=parseFloat(sl.value); show(); };
+      sl.onchange=()=>render();  // 離したらプレビューに反映
       r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(sl); r.appendChild(sv);
       r.appendChild(vMini('既定',()=>{ delete st[colorKey]; delete st[sizeKey]; render(); })); return r; };
     box.appendChild(styRow('マーカー','markerColor','#ff5a6a','markerSize'));
