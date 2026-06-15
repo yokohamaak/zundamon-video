@@ -1527,10 +1527,13 @@ STORY_PAGE = """<!doctype html>
   /* 広げる：左に被さる大きいパネル */
   .tp-right.wide { position:fixed; top:64px; right:14px; bottom:14px; width:min(960px,84vw);
                    max-height:none; z-index:30; box-shadow:0 12px 48px rgba(0,0,0,.55); }
-  .rwbar { display:flex; justify-content:flex-end; margin-bottom:6px; }
-  .rwbtn { font-size:12px; font-weight:700; padding:5px 11px; border-radius:7px; border:none;
+  /* 右ペイン上端に固定するツールバー（スクロールしても消えない） */
+  .rwbar { position:sticky; top:0; z-index:5; display:flex; justify-content:flex-end; align-items:center;
+           background:#10141b; margin:-14px -14px 10px; padding:9px 14px; border-bottom:1px solid #1c232e; }
+  .rwbtn { font-size:12px; font-weight:700; padding:6px 12px; border-radius:7px; border:none;
            background:#1a212c; color:var(--sub); cursor:pointer; }
-  .rwbtn:hover { color:var(--fg); }
+  .rwbtn:hover { color:var(--fg); background:#222a37; }
+  .rwbtn.wide { background:#ffd84d; color:#1a1f2b; }  /* 拡大中の「戻す」は目立たせる */
   /* 章＝セクション。章間は大きく空ける。選択中の章だけ淡く強調 */
   .chsec { margin:30px 0 0; padding:2px 0; border-radius:14px; border-left:3px solid transparent; }
   .chsec.active { background:#12171f; border-left-color:#39424f; padding:2px 10px 6px; }
@@ -2685,7 +2688,8 @@ function renderRight(){
   const r=document.getElementById('rpane'); if(!r) return; r.innerHTML='';
   // 拡大トグル（左に被さる大きいパネルへ）
   const wbar=document.createElement('div'); wbar.className='rwbar';
-  const wb=document.createElement('button'); wb.className='rwbtn'; wb.textContent=rwide?'⤡ 戻す':'⤢ 広げる'; wb.title='右ペインを広げる/戻す';
+  const wb=document.createElement('button'); wb.className='rwbtn'+(rwide?' wide':'');
+  wb.textContent=rwide?'⤡ 元のサイズに戻す':'⤢ 広げる'; wb.title='右ペインを広げる/戻す';
   wb.onclick=()=>setWide(!rwide); wbar.appendChild(wb); r.appendChild(wbar);
   const tn=DATA.script[selGi]; if(!tn){ r.appendChild(document.createTextNode('左で行を選択してください')); return; }
   const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
