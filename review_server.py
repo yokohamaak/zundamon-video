@@ -2065,20 +2065,33 @@ function vizContent(box, ch, ci){
     const rr=vRow('右'); rr.appendChild(vText(c.right.label,'右ラベル',v=>c.right.label=v)); rr.appendChild(mkCut(c.right,1)); box.appendChild(rr);
   }
   else if(ch.stat){ const s=ch.stat;
-    const r=vRow('数字'); r.appendChild(vText(s.value,'例 8 / 50万 / 500000',v=>s.value=v));
-    const u=document.createElement('input'); u.type='text'; u.value=s.unit||''; u.placeholder='単位'; u.style.width='90px';
-    u.oninput=()=>{ if(u.value.trim())s.unit=u.value; else delete s.unit; }; r.appendChild(u); box.appendChild(r);
-    const r2=vRow('ラベル'); r2.appendChild(vText(s.label,'例 故障率（任意）',v=>{ if(v.trim())s.label=v; else delete s.label; })); box.appendChild(r2);
+    // ライブプレビュー（画像の上に数字カードを重ねる＝render(StatOverlay)に合わせたモック）。
+    const sz=(s.size!=null?s.size:1);
+    const u=imgUrl(ci,0); const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
+    const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover'); const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px;display:flex;align-items:center;justify-content:center';
+    if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
+    const card=document.createElement('div'); card.style.cssText='position:relative;display:flex;flex-direction:column;align-items:center;border-radius:'+Math.round(14*sz)+'px;padding:'+Math.round(8*sz)+'px '+Math.round(18*sz)+'px';
+    const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:'+Math.round(14*sz)+'px;background:'+(s.bg||'#0f141e')+';opacity:'+(s.bgOpacity!=null?s.bgOpacity:0.5); card.appendChild(bgl);
+    if(s.label){ const lb=document.createElement('div'); lb.style.cssText='position:relative;color:rgba(255,255,255,.85);font-weight:700;font-size:'+Math.round(13*sz)+'px;margin-bottom:'+Math.round(3*sz)+'px'; lb.textContent=s.label; card.appendChild(lb); }
+    const vr=document.createElement('div'); vr.style.cssText='position:relative;display:flex;align-items:baseline;gap:4px;line-height:1';
+    const vv=document.createElement('span'); vv.style.cssText='color:'+(s.color||'#ffd84d')+';font-weight:900;font-size:'+Math.round(44*sz)+'px;text-shadow:0 2px 8px rgba(0,0,0,.55)'; vv.textContent=(s.value||'0'); vr.appendChild(vv);
+    if(s.unit){ const us=document.createElement('span'); us.style.cssText='color:#fff;font-weight:900;font-size:'+Math.round(20*sz)+'px'; us.textContent=s.unit; vr.appendChild(us); }
+    card.appendChild(vr); prev.appendChild(card); box.appendChild(prev);
+    const r=vRow('数字'); const vi=vText(s.value,'例 8 / 50万 / 500000',v=>s.value=v); vi.onchange=()=>render(); r.appendChild(vi);
+    const u2=document.createElement('input'); u2.type='text'; u2.value=s.unit||''; u2.placeholder='単位'; u2.style.width='90px';
+    u2.oninput=()=>{ if(u2.value.trim())s.unit=u2.value; else delete s.unit; }; u2.onchange=()=>render(); r.appendChild(u2); box.appendChild(r);
+    const r2=vRow('ラベル'); const li=vText(s.label,'例 故障率（任意）',v=>{ if(v.trim())s.label=v; else delete s.label; }); li.onchange=()=>render(); r2.appendChild(li); box.appendChild(r2);
     // 強調色（数字の色）
     const rc=vRow('強調色'); const cp=document.createElement('input'); cp.type='color'; cp.value=s.color||'#ffd84d'; cp.title='数字の色';
-    cp.oninput=()=>{ s.color=cp.value; }; rc.appendChild(cp);
+    cp.oninput=()=>{ s.color=cp.value; }; cp.onchange=()=>render(); rc.appendChild(cp);
     rc.appendChild(vMini('既定に戻す',()=>{ delete s.color; render(); })); box.appendChild(rc);
     // 大きさ（全体の倍率）
-    const rs=vRow('大きさ'); const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
+    const rs=vRow('大きさ'); const sl=document.createElement('input'); sl.type='range'; sl.min='0.3'; sl.max='2'; sl.step='0.1';
     sl.value=(s.size!=null?s.size:1); sl.style.cssText='width:120px;vertical-align:middle'; sl.title='数字演出の大きさ倍率';
     const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
     const showSv=()=>{ sv.textContent=(s.size!=null?s.size:1).toFixed(1)+'倍'; }; showSv();
-    sl.oninput=()=>{ s.size=parseFloat(sl.value); showSv(); };
+    sl.oninput=()=>{ s.size=parseFloat(sl.value); showSv(); }; sl.onchange=()=>render();
     rs.appendChild(stepWrap(sl)); rs.appendChild(sv); rs.appendChild(vMini('既定に戻す',()=>{ delete s.size; render(); })); box.appendChild(rs);
     // 背景色＋透過（土台）
     box.appendChild(vBgRow(s,'背景','#0f141e',0.5));

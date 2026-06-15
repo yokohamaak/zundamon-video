@@ -2,7 +2,7 @@
   "script": [
     {
       "speaker": "四国めたん",
-      "text": "お次は、おなじみのGoogle（グーグル）マップのストリートビュー撮影の裏側ね。",
+      "text": "これも驚くわよ。誰もが一度は使ったことがあるWikipedia（ウィキペディア）の運営の裏側。",
       "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
@@ -11,7 +11,7 @@
     },
     {
       "speaker": "ずんだもん",
-      "text": "ストリートビューは、あのカメラを載せた車が道路を走りまくって撮影しているのだ！",
+      "text": "世界中の人が毎日見ているから、何千人ものエリート社員が大金で維持しているのだ？",
       "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
@@ -20,28 +20,30 @@
     },
     {
       "speaker": "四国めたん",
-      "text": "基本はそうだけど、車が入れない砂漠や山の中、細い路地はどうしていると思う？",
-      "emotion": "normal",
-      "section": "trivia",
-      "chapter": 0,
-      "effect": "kenburns",
-      "cut": 1,
-      "panel_item": 0,
-      "panel_event": "shrink"
-    },
-    {
-      "speaker": "四国めたん",
-      "text": "実はね、車以外にも信じられない方法で撮影しているのよ。",
-      "emotion": "happy",
+      "text": "実は、あの規模のWeb（ウェブ）サイトなのに、運営団体の正規の職員は世界でわずか350人程度しかいないのよ。",
+      "emotion": "surprise",
       "section": "trivia",
       "chapter": 0,
       "effect": "zoom_punch",
       "cut": 1,
-      "panel_item": 1
+      "reveal": true
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "な、なな、何なのだその少なさは！あの膨大なサーバーをたったそれだけで支えているのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "shake",
+      "cut": 1,
+      "voice": {
+        "speed": 1.2,
+        "intonation": 1.3
+      }
     },
     {
       "speaker": "四国めたん",
-      "text": "山の上や観光地は、人間がカメラ付きのバックパックを背負って歩いて撮影しているの。",
+      "text": "そうなの。運営費はほぼユーザーからの寄付で、中身の執筆や修正は世界中の有志のボランティアが無償で行っているわ。",
       "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
@@ -49,63 +51,41 @@
       "cut": 1
     },
     {
-      "speaker": "四国めたん",
-      "text": "さらに、砂漠ではラクダの背中にカメラを載せて撮影したこともあるわ。",
-      "emotion": "happy",
-      "section": "trivia",
-      "chapter": 0,
-      "effect": "kenburns",
-      "cut": 2,
-      "panel_item": 2
-    },
-    {
       "speaker": "ずんだもん",
-      "text": "ラクダまで動員しているなんて、最先端の地図サービスの裏側はめちゃくちゃ泥臭かったのだ！",
-      "emotion": "surprise",
+      "text": "あのしつこいくらい何度も出てくる寄付のお願いバナーには、そういう裏の事情があったのだね。",
+      "emotion": "normal",
       "section": "trivia",
       "chapter": 0,
       "effect": "kenburns",
-      "cut": 2
+      "cut": 1
     }
   ],
   "theme": "実は知らないIT企業・サービスの裏側",
   "chapters": [
     {
       "section": "trivia",
-      "title": "マップ撮影の泥臭い裏側",
-      "summary": "Googleマップのストリートビューは、車が入れない僻地では人がバックパックを背負ったり、ラクダやヒツジなどの動物にカメラを載せて撮影している。",
+      "title": "ウィキペディアを支える少人数",
+      "summary": "世界最大級のアクセス数を誇るWikipediaは、わずか350人程度の正規職員と寄付、世界中のボランティアによって運営されている。",
       "image_cuts": [
         {
-          "image_query": "google street view car",
+          "image_query": "wikipedia logo",
           "image_kind": "subject",
-          "image_query_ja": "ストリートビューの撮影車"
+          "image_query_ja": "ウィキペディアのロゴ"
         },
         {
-          "image_query": "street view trekker backpack",
-          "image_kind": "subject",
-          "image_query_ja": "背負うカメラ"
-        },
-        {
-          "image_query": "camel with camera desert",
+          "image_query": "server rack cables",
           "image_kind": "ambient",
-          "image_query_ja": "ラクダに載せたカメラ"
+          "image_query_ja": "サーバーラック"
         }
       ],
-      "hook": "ストリートビューはラクダも撮影している",
+      "hook": "Wikipediaの運営はわずか350人だけ",
       "confidence": "high",
-      "source_hint": "Google公式ブログおよびStreet View Trekkerの公開情報",
-      "panel": {
-        "items": [
-          {
-            "text": "ストリートビュー車"
-          },
-          {
-            "text": "人間が背負うカメラ"
-          },
-          {
-            "text": "ラクダでの砂漠撮影"
-          }
-        ]
+      "source_hint": "Wikimedia Foundation（ウィキメディア財団）公式公開データ",
+      "owner_comment": true,
+      "stat": {
+        "value": "350",
+        "unit": "人",
+        "label": "運営団体の正規職員数"
       }
     }
   ]
