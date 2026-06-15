@@ -489,12 +489,18 @@ def _clean_quiz(quiz):
     op = _clean_opacity(quiz.get("bgOpacity"))
     if op is not None:
         out["bgOpacity"] = op
+    tc = (quiz.get("textColor") or "").strip()
+    if tc:
+        out["textColor"] = tc
     abg = (quiz.get("answerBg") or "").strip()
     if abg:
         out["answerBg"] = abg
     aop = _clean_opacity(quiz.get("answerBgOpacity"))
     if aop is not None:
         out["answerBgOpacity"] = aop
+    atc = (quiz.get("answerTextColor") or "").strip()
+    if atc:
+        out["answerTextColor"] = atc
     return out
 
 

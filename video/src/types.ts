@@ -68,9 +68,11 @@ export type Quiz = {
   // 背後の画像/黒板は暗転させない。bgOpacity=0 で土台なし（文字だけ・影で可読）。
   bg?: string;            // CSS color（例 "#0f141e"）
   bgOpacity?: number;     // 0..1（既定 0.62）
+  textColor?: string;     // 問いの文字色（既定 #fff）
   // 答えバナーの背景色＋不透明度（任意）。無指定なら黄色のほぼ不透明（既定）。
   answerBg?: string;      // CSS color（例 "#ffd84d"）
   answerBgOpacity?: number; // 0..1（既定 0.96）
+  answerTextColor?: string; // 答えの文字色（既定 #1a1f2b）
 };
 
 // 比較（2分割）：左右（縦は上下）にA対Bを並べる。before/after・対比ネタ向き。

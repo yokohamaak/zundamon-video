@@ -2042,14 +2042,35 @@ function vizContent(box, ch, ci){
     box.appendChild(vMini('＋項目',()=>{ p.items.push({text:''}); render(); }));
   }
   else if(ch.quiz){ const q=ch.quiz;
-    const r1=vRow('問い'); r1.appendChild(vText(q.question,'画面に出す問い',v=>q.question=v)); box.appendChild(r1);
-    const r2=vRow('答え'); r2.appendChild(vText(q.answer,'リビールで出す答え',v=>q.answer=v)); box.appendChild(r2);
-    // 画像は通常扱い（背後にそのまま）。調整できるのは「？・問い」を囲む土台パネルの背景だけ。
+    // ライブプレビュー（背後の画像＋「？・問い」土台＋答えバナー。動画では問い→答えに切替）。
+    const u=imgUrl(ci,0); const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
+    const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover'); const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;max-width:480px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px';
+    if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
+    // ？・問い 土台パネル（中央）
+    const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:10px 18px;max-width:86%';
+    const pbgl=document.createElement('div'); pbgl.style.cssText='position:absolute;inset:0;border-radius:12px;background:'+(q.bg||'#0f141e')+';opacity:'+(q.bgOpacity!=null?q.bgOpacity:0.62); pnl.appendChild(pbgl);
+    const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:34px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
+    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:14px;text-align:center'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
+    prev.appendChild(pnl);
+    // 答えバナー（下部）
+    const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:5px 14px;max-width:90%;box-shadow:0 3px 10px rgba(0,0,0,.4)';
+    const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
+    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:16px;text-align:center'; at.textContent=q.answer||'答え'; ans.appendChild(at);
+    prev.appendChild(ans); box.appendChild(prev);
+    const r1=vRow('問い'); const qi=vText(q.question,'画面に出す問い',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); box.appendChild(r1);
+    const r2=vRow('答え'); const ai=vText(q.answer,'リビールで出す答え',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
+    // 色の編集行ヘルパー（文字色など）。
+    const colRow=(label,key,defColor)=>{ const r=vRow(label); const cp=document.createElement('input'); cp.type='color'; cp.value=q[key]||defColor; cp.title='色';
+      cp.oninput=()=>{ q[key]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
+      r.appendChild(vMini('既定',()=>{ delete q[key]; render(); })); return r; };
     const nt=document.createElement('div'); nt.style.cssText='font-size:11px;color:var(--sub);margin:2px 0';
-    nt.textContent='画像は通常どおり背後に表示（暗転しない）。下は「？・問い」の文字を囲む土台の背景（透過0%で土台なし）。';
+    nt.textContent='画像は背後にそのまま表示（暗転しない）。土台の透過0%で土台なし（文字だけ）。';
     box.appendChild(nt);
     box.appendChild(vBgRow(q,'文字の背景','#0f141e',0.62));
+    box.appendChild(colRow('問いの文字色','textColor','#ffffff'));
     box.appendChild(vBgRow(q,'答えの背景','#ffd84d',0.96,'answerBg','answerBgOpacity'));
+    box.appendChild(colRow('答えの文字色','answerTextColor','#1a1f2b'));
   }
   else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // 画像はサムネで選ぶ（台本のcut選択と統一）。

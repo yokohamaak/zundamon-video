@@ -536,7 +536,7 @@ def test_viz_fields_preserved():
     # quiz/compare/stat/callouts と reveal/callout_item がパースを生き残る。
     data = s.parse_script_json(
         '{"chapters":['
-        '{"section":"trivia","title":"Q","quiz":{"question":"何の略?","answer":"造語","bg":"#1a2333","bgOpacity":0.55,"answerBg":"#ffcc00","answerBgOpacity":0.8},'
+        '{"section":"trivia","title":"Q","quiz":{"question":"何の略?","answer":"造語","bg":"#1a2333","bgOpacity":0.55,"textColor":"#eeeeff","answerBg":"#ffcc00","answerBgOpacity":0.8,"answerTextColor":"#222222"},'
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]},'
         '{"section":"trivia","title":"C","compare":{"left":{"label":"陸上"},"right":{"label":"海底","cut":1}},'
         '"image_cuts":[{"image_query":"a","image_kind":"ambient"},{"image_query":"b","image_kind":"ambient"}]},'
@@ -550,7 +550,8 @@ def test_viz_fields_preserved():
         '{"speaker":"四国めたん","text":"b","chapter":3,"callout_item":0}]}')
     ch = data["chapters"]
     assert ch[0]["quiz"] == {"question": "何の略?", "answer": "造語", "bg": "#1a2333", "bgOpacity": 0.55,
-                             "answerBg": "#ffcc00", "answerBgOpacity": 0.8}
+                             "textColor": "#eeeeff", "answerBg": "#ffcc00", "answerBgOpacity": 0.8,
+                             "answerTextColor": "#222222"}
     assert ch[1]["compare"]["left"]["cut"] == 0 and ch[1]["compare"]["right"]["cut"] == 1
     assert ch[2]["stat"] == {"value": "8", "unit": "分の1", "label": "故障率",
                              "color": "#ff5050", "size": 1.4, "bg": "#101820", "bgOpacity": 0.3,
