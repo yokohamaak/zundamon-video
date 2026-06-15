@@ -1524,6 +1524,13 @@ STORY_PAGE = """<!doctype html>
   /* 右ペイン＝補助。背景に寄せ視覚優先度を下げる（細い罫線・低コントラスト） */
   .tp-right { position:sticky; top:74px; max-height:calc(100vh - 90px); overflow:auto;
               background:#10141b; border:1px solid #1c232e; border-radius:12px; padding:14px; }
+  /* 広げる：左に被さる大きいパネル */
+  .tp-right.wide { position:fixed; top:64px; right:14px; bottom:14px; width:min(960px,84vw);
+                   max-height:none; z-index:30; box-shadow:0 12px 48px rgba(0,0,0,.55); }
+  .rwbar { display:flex; justify-content:flex-end; margin-bottom:6px; }
+  .rwbtn { font-size:12px; font-weight:700; padding:5px 11px; border-radius:7px; border:none;
+           background:#1a212c; color:var(--sub); cursor:pointer; }
+  .rwbtn:hover { color:var(--fg); }
   /* 章＝セクション。章間は大きく空ける。選択中の章だけ淡く強調 */
   .chsec { margin:30px 0 0; padding:2px 0; border-radius:14px; border-left:3px solid transparent; }
   .chsec.active { background:#12171f; border-left-color:#39424f; padding:2px 10px 6px; }
@@ -1576,7 +1583,7 @@ STORY_PAGE = """<!doctype html>
 <main id="main">読み込み中…</main>
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
-let selGi=-1, rtab=null, dirty=false, collapsed=new Set();  // 二画面：選択行 / 右タブ / 未保存 / 畳んだ章
+let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false;  // 二画面：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -2554,6 +2561,7 @@ function lblDiv(t){ const d=document.createElement('div'); d.className='lbl'; d.
 function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter===ci); return i<0?selGi:i; }
 function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
 function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存':'保存'; }
+function setWide(on){ rwide=on; const r=document.getElementById('rpane'); if(r) r.classList.toggle('wide',on); }
 function markSel(){
   const ci=(DATA.script[selGi]||{}).chapter;
   document.querySelectorAll('.line').forEach(el=>el.classList.toggle('sel', +el.dataset.gi===selGi));
@@ -2567,7 +2575,7 @@ function render(){
   const sy=window.scrollY;
   const tp=document.createElement('div'); tp.className='tp';
   const left=document.createElement('div'); left.className='tp-left';
-  const right=document.createElement('div'); right.className='tp-right'; right.id='rpane';
+  const right=document.createElement('div'); right.className='tp-right'+(rwide?' wide':''); right.id='rpane';
   tp.appendChild(left); tp.appendChild(right); m.appendChild(tp);
   // 左上：テーマ＋推定ゲージ
   const th=document.createElement('div'); th.className='theme';
@@ -2665,7 +2673,11 @@ function startEditLine(row,tn,tx){
 
 function renderRight(){
   const r=document.getElementById('rpane'); if(!r) return; r.innerHTML='';
-  const tn=DATA.script[selGi]; if(!tn){ r.textContent='左で行を選択してください'; return; }
+  // 拡大トグル（左に被さる大きいパネルへ）
+  const wbar=document.createElement('div'); wbar.className='rwbar';
+  const wb=document.createElement('button'); wb.className='rwbtn'; wb.textContent=rwide?'⤡ 戻す':'⤢ 広げる'; wb.title='右ペインを広げる/戻す';
+  wb.onclick=()=>setWide(!rwide); wbar.appendChild(wb); r.appendChild(wbar);
+  const tn=DATA.script[selGi]; if(!tn){ r.appendChild(document.createTextNode('左で行を選択してください')); return; }
   const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
   const vk=vizOf(ch); const vr=vk?vizRange(ci):null; const inViz=vr&&selGi>=vr.startGi&&selGi<=vr.endGi;
   const tabs=[['image','画像']];
