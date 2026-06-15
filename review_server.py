@@ -911,7 +911,7 @@ def review_summary(review):
 
 # 共通スタイル（各ページで使い回す）
 _BASE_CSS = """
-  :root { --bg:#11151c; --card:#1b212c; --line:#2c3543; --fg:#e8edf4; --sub:#90a0b5;
+  :root { --bg:#11151c; --card:#1b212c; --line:#2c3543; --fg:#d8dde6; --sub:#8693a5;
           --ok:#3fa34d; --accent:#4a86ff; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:'Hiragino Sans','Yu Gothic',system-ui,sans-serif;
@@ -919,7 +919,7 @@ _BASE_CSS = """
   header { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px;
            padding:14px 22px; background:#0d1117ee; backdrop-filter:blur(8px);
            border-bottom:1px solid var(--line); }
-  header h1 { font-size:18px; margin:0; font-weight:700; }
+  header h1 { font-size:18px; margin:0; font-weight:700; color:#fff; }
   header a { color:var(--sub); text-decoration:none; font-size:14px; }
   header a:hover { color:var(--fg); }
   .spacer { flex:1; }
@@ -1518,36 +1518,45 @@ STORY_PAGE = """<!doctype html>
             border-left:5px solid #7a5cff; background:rgba(122,92,255,0.12); border-radius:0 6px 6px 0; }
   .vizhdr-t { font-size:13px; font-weight:800; color:#c4a8ff; }
   .cutpick.vizmuted { color:var(--sub); font-size:11px; font-style:italic; align-items:center; }
-  /* === 二画面（台本左＋プレビュー右） === */
-  .tp { display:grid; grid-template-columns:1fr 480px; gap:16px; align-items:start; }
+  /* === 二画面（台本左＋編集右）：Notion/Discord/Linear 参考・可読性優先 === */
+  .tp { display:grid; grid-template-columns:1fr 440px; gap:24px; align-items:start; }
   .tp-left { min-width:0; }
+  /* 右ペイン＝補助。背景に寄せ視覚優先度を下げる（細い罫線・低コントラスト） */
   .tp-right { position:sticky; top:74px; max-height:calc(100vh - 90px); overflow:auto;
-              background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
-  .chdiv { display:flex; align-items:center; gap:8px; margin:18px 0 6px; padding:7px 11px;
-           background:#0c0f15; border:1px solid var(--line); border-radius:8px; }
-  .chdiv .ttl { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+              background:#10141b; border:1px solid #1c232e; border-radius:12px; padding:14px; }
+  /* 章＝セクション。章間は大きく空ける。選択中の章だけ淡く強調 */
+  .chsec { margin:30px 0 0; padding:2px 0; border-radius:14px; border-left:3px solid transparent; }
+  .chsec.active { background:#12171f; border-left-color:#39424f; padding:2px 10px 6px; }
+  .chsec:first-child { margin-top:8px; }
+  .chdiv { display:flex; align-items:center; gap:10px; margin:0 0 10px; padding:6px 2px; }
+  .chdiv .ttl { font-weight:700; font-size:15px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .chdiv .selcb { width:16px; height:16px; flex:none; accent-color:#ffd84d; }
-  .line { display:flex; gap:8px; align-items:flex-start; padding:6px 10px; border-radius:8px; cursor:pointer;
-          border-left:3px solid transparent; }
-  .line:hover { background:#1b212c; }
-  .line.sel { background:#202a3a; border-left-color:#ffd84d; }
-  .line.vizrow { border-left-color:#7a5cff; }
-  .line .nm { font-size:12px; font-weight:700; flex:none; width:84px; padding-top:3px; display:flex; align-items:center; gap:5px; }
-  .line .nm .dot { width:8px; height:8px; border-radius:50%; flex:none; }
-  .line .tx { flex:1; font-size:14px; line-height:1.55; color:var(--fg); white-space:pre-wrap; word-break:break-word; min-width:0; }
-  .line .mk { flex:none; display:flex; gap:3px; align-items:center; padding-top:3px; }
-  .line .mk img { width:34px; height:20px; object-fit:cover; border-radius:3px; border:1px solid var(--line); }
-  .line .mk .vz { font-size:10px; color:#c4a8ff; }
-  .line .lacts { display:none; gap:4px; flex:none; padding-top:2px; }
+  /* セリフカード＝Discord風（アイコン＋名前＋本文）。余白広め・罫線なし・6px左カラー */
+  .line { display:flex; gap:12px; align-items:flex-start; padding:13px 15px; margin-bottom:10px; border-radius:10px;
+          cursor:pointer; background:#161b24; border-left:6px solid transparent; }
+  .line:hover { background:#1a212c; }
+  .line.sel { background:#1f2835; }
+  .line.vizrow { background:#181a26; }
+  .line.sel.vizrow { background:#212336; }
+  .line .av { width:30px; height:30px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+              font-size:14px; font-weight:800; color:#fff; }
+  .line .lc { flex:1; min-width:0; }
+  .line .nm { font-weight:700; font-size:13px; margin-bottom:3px; }
+  .line .tx { font-size:16px; line-height:1.8; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
+  .line .tx.empty { color:var(--sub); }
+  .line textarea { width:100%; font-size:16px; line-height:1.7; min-height:48px; }
+  .line .mk { flex:none; display:flex; gap:4px; align-items:center; }
+  .line .mk img { width:40px; height:24px; object-fit:cover; border-radius:4px; }
+  .line .mk .vz { font-size:11px; color:#a99adf; }
+  .line .lacts { display:none; gap:5px; flex:none; align-items:center; }
   .line.sel .lacts { display:flex; }
-  .line .lacts button { font-size:11px; padding:3px 8px; background:var(--line); color:#fff; border:none; border-radius:6px; cursor:pointer; }
-  .line .lacts button.del { background:transparent; color:#c66; }
-  .line textarea { flex:1; min-height:46px; }
-  .rtabs { display:flex; gap:6px; margin-bottom:8px; }
-  .rtab { font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; border:1px solid var(--line);
-          background:transparent; color:var(--sub); cursor:pointer; }
-  .rtab.on { background:#2a2440; color:#c4a8ff; border-color:#5a4a8a; }
-  .rtab.imgon { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
+  .line .lacts button.del { background:transparent; color:#c97; }
+  .rtabs { display:flex; gap:6px; margin-bottom:10px; }
+  .rtab { font-size:13px; font-weight:700; padding:7px 13px; border-radius:8px; border:none;
+          background:#1a212c; color:var(--sub); cursor:pointer; }
+  .rtab.on { background:#2a2440; color:#c4a8ff; }
+  .rtab.imgon { background:#23354f; color:#cfe0ff; }
   @media (max-width:920px){ .tp { grid-template-columns:1fr; } .tp-right { position:static; max-height:none; } }
 </style></head>
 <body>
@@ -2542,7 +2551,11 @@ function lblDiv(t){ const d=document.createElement('div'); d.className='lbl'; d.
 function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter===ci); return i<0?selGi:i; }
 function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
 function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存':'保存'; }
-function markSel(){ document.querySelectorAll('.line').forEach(el=>el.classList.toggle('sel', +el.dataset.gi===selGi)); }
+function markSel(){
+  const ci=(DATA.script[selGi]||{}).chapter;
+  document.querySelectorAll('.line').forEach(el=>el.classList.toggle('sel', +el.dataset.gi===selGi));
+  document.querySelectorAll('.chsec').forEach(el=>el.classList.toggle('active', +el.dataset.ci===ci));
+}
 
 function render(){
   const m=document.getElementById('main'); m.innerHTML='';
@@ -2561,14 +2574,17 @@ function render(){
   const hint=document.createElement('div'); hint.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 8px';
   hint.textContent='行をクリック→右で画像/演出を編集　｜　本文をダブルクリック→セリフを編集';
   left.appendChild(hint);
-  // 章区切り＋セリフ行（intro→ネタ→outro 連続表示）
+  // 章＝セクション。選択行のある章を active 表示。intro→ネタ→outro 連続。
+  const selCi=(DATA.script[selGi]||{}).chapter;
   (DATA.chapters||[]).forEach((ch,ci)=>{
-    left.appendChild(chapterDivider(ch,ci));
+    const sec=document.createElement('div'); sec.className='chsec'+(ci===selCi?' active':''); sec.dataset.ci=ci;
+    sec.appendChild(chapterDivider(ch,ci));
     const vk=vizOf(ch); const vr=vk?vizRange(ci):null;
     (DATA.script||[]).forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
       const inViz=vr&&gi>=vr.startGi&&gi<=vr.endGi;
-      left.appendChild(lineRow(tn,gi,ch,ci,inViz));
+      sec.appendChild(lineRow(tn,gi,ch,ci,inViz));
     });
+    left.appendChild(sec);
   });
   renderRight();
   document.querySelectorAll('#main textarea').forEach(autosize);
@@ -2592,14 +2608,19 @@ function chapterDivider(ch,ci){
 
 function lineRow(tn,gi,ch,ci,inViz){
   const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(inViz?' vizrow':''); row.dataset.gi=gi;
-  const col=speakerColor(tn.speaker);
-  const nm=document.createElement('div'); nm.className='nm'; nm.style.color=col;
-  nm.innerHTML='<span class="dot" style="background:'+col+'"></span>'+tn.speaker;
-  const tx=document.createElement('div'); tx.className='tx'; tx.textContent=tn.text||'(空)';
-  const mk=document.createElement('div'); mk.className='mk';
-  const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
-  row.onclick=()=>{ if(selGi!==gi){ selGi=gi; rtab=null; renderRight(); markSel(); } };
+  const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
+  // アイコン（話者色の丸＋頭文字）
+  const av=document.createElement('div'); av.className='av'; av.style.background=col; av.textContent=(tn.speaker||'?').slice(0,1);
+  // 名前＋本文（縦並び）
+  const lc=document.createElement('div'); lc.className='lc';
+  const nm=document.createElement('div'); nm.className='nm'; nm.style.color=col; nm.textContent=tn.speaker||'';
+  const tx=document.createElement('div'); tx.className='tx'+(tn.text?'':' empty'); tx.textContent=tn.text||'(空・ダブルクリックで入力)';
   tx.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,tx); };
+  lc.appendChild(nm); lc.appendChild(tx);
+  // 右肩：演出マーク＋今出る画像のミニサムネ
+  const mk=document.createElement('div'); mk.className='mk';
+  if(inViz){ const v=document.createElement('span'); v.className='vz'; v.textContent='▣'; mk.appendChild(v); }
+  const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
   // 選択行に出る操作（分割・削除）。分割は編集中ならカーソル位置、読み表示なら文中の句読点で割る。
   const la=document.createElement('div'); la.className='lacts';
   const bs=document.createElement('button'); bs.textContent='分割'; bs.title='セリフを2つに分ける（編集中はカーソル位置）';
@@ -2607,7 +2628,8 @@ function lineRow(tn,gi,ch,ci,inViz){
   const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除';
   bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
   la.appendChild(bs); la.appendChild(bd);
-  row.appendChild(nm); row.appendChild(tx); row.appendChild(mk); row.appendChild(la);
+  row.onclick=()=>{ if(selGi!==gi){ selGi=gi; rtab=null; renderRight(); markSel(); } };
+  row.appendChild(av); row.appendChild(lc); row.appendChild(mk); row.appendChild(la);
   return row;
 }
 
@@ -2619,7 +2641,7 @@ function startEditLine(row,tn,tx){
   ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); };
   // 抜ける時は全再描画せず、その行だけ表示へ戻す（全DOM作り直しによるスクロール/フォーカス飛びを防ぐ）。
   ta.onblur=()=>{
-    const nd=document.createElement('div'); nd.className='tx'; nd.textContent=tn.text||'(空)';
+    const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
     nd.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,nd); };
     ta.replaceWith(nd);
   };
