@@ -1551,8 +1551,6 @@ STORY_PAGE = """<!doctype html>
           cursor:pointer; background:#161b24; border-left:6px solid transparent; }
   .line:hover { background:#1a212c; }
   .line.sel { background:#1f2835; }
-  .line.vizrow { background:#181a26; }
-  .line.sel.vizrow { background:#212336; }
   .line .av { width:30px; height:30px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
               font-size:14px; font-weight:800; color:#fff; }
   .line .lc { flex:1; min-width:0; }
@@ -1567,17 +1565,19 @@ STORY_PAGE = """<!doctype html>
   .line.sel .lacts { display:flex; }
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
-  /* 演出範囲レール：S(ここから)/E(ここまで)＋範囲の縦帯。viz章のみ */
-  .line .rail { width:30px; flex:none; align-self:stretch; position:relative; }
-  .line .rail .seg { position:absolute; left:13px; width:4px; background:#6f5bd6; top:-5px; bottom:-15px; }
-  .line .rail .seg.s { top:26px; border-radius:2px 2px 0 0; }
-  .line .rail .seg.e { bottom:26px; border-radius:0 0 2px 2px; }
-  .line .rail .hbtn { position:absolute; left:3px; width:22px; height:18px; font-size:10px; font-weight:800; border:none;
-                      border-radius:5px; background:#262d39; color:var(--sub); cursor:pointer; z-index:1; opacity:0; }
-  .line:hover .rail .hbtn, .line .rail .hbtn.on { opacity:1; }
-  .line .rail .hbtn.s { top:8px; }
-  .line .rail .hbtn.e { bottom:8px; }
-  .line .rail .hbtn.on { background:#6f5bd6; color:#fff; }
+  /* 演出範囲レール：S(ここから)/E(ここまで)＋範囲の縦帯。viz章のみ・Linear的に控えめ */
+  .line .rail { width:26px; flex:none; align-self:stretch; position:relative; }
+  .line .rail .seg { position:absolute; left:11px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
+  .line .rail .seg.s { top:25px; border-radius:3px 3px 0 0; }
+  .line .rail .seg.e { bottom:25px; border-radius:0 0 3px 3px; }
+  .line .rail .hbtn { position:absolute; left:1px; width:21px; height:16px; font-size:9px; font-weight:700; letter-spacing:.5px;
+                      border:1px solid #313a47; border-radius:6px; background:#141a23; color:#7e8aa0; cursor:pointer;
+                      z-index:1; opacity:0; transition:opacity .12s; }
+  .line:hover .rail .hbtn { opacity:.9; }
+  .line .rail .hbtn:hover { border-color:#6b6ae0; color:#dbe1ec; }
+  .line .rail .hbtn.on { opacity:1; background:#6b6ae0; border-color:#6b6ae0; color:#fff; }
+  .line .rail .hbtn.s { top:6px; }
+  .line .rail .hbtn.e { bottom:6px; }
   .rtabs { display:flex; gap:6px; margin-bottom:10px; }
   .rtab { font-size:13px; font-weight:700; padding:7px 13px; border-radius:8px; border:none;
           background:#1a212c; color:var(--sub); cursor:pointer; }
@@ -2687,7 +2687,6 @@ function lineRow(tn,gi,ch,ci,inViz){
   lc.appendChild(nm); lc.appendChild(tx);
   // 右肩：演出マーク＋今出る画像のミニサムネ
   const mk=document.createElement('div'); mk.className='mk';
-  if(inViz){ const v=document.createElement('span'); v.className='vz'; v.textContent='▣'; mk.appendChild(v); }
   const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
   // 選択行に出る操作（分割・削除）。分割は編集中ならカーソル位置、読み表示なら文中の句読点で割る。
   const la=document.createElement('div'); la.className='lacts';
