@@ -1519,7 +1519,7 @@ STORY_PAGE = """<!doctype html>
   .vizhdr-t { font-size:13px; font-weight:800; color:#c4a8ff; }
   .cutpick.vizmuted { color:var(--sub); font-size:11px; font-style:italic; align-items:center; }
   /* === 二画面（台本左＋編集右）：Notion/Discord/Linear 参考・可読性優先 === */
-  .tp { display:grid; grid-template-columns:1fr 440px; gap:24px; align-items:start; }
+  .tp { display:grid; grid-template-columns:1fr 480px; gap:24px; align-items:start; }
   .tp-left { min-width:0; }
   /* 右ペイン＝補助。背景に寄せ視覚優先度を下げる（細い罫線・低コントラスト） */
   .tp-right { position:sticky; top:74px; max-height:calc(100vh - 90px); overflow:auto;
