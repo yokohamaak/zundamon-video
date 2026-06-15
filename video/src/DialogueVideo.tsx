@@ -661,7 +661,9 @@ const CalloutOverlay: React.FC<{
   const labelColor = style?.labelColor || "#14233a";
   const labelSize = style?.labelSize ?? 1;
   const dot = Math.round(18 * markerSize); // マーカー径(px)
-  const gap = 20; // 点とラベルの隙間(px)
+  const HEAD = Math.round(16 * markerSize); // 矢じりの長さ(px)
+  const HALF = Math.round(11 * markerSize); // 矢じりの半幅(px)
+  const SHAFT = Math.round(5 * markerSize);  // 矢の軸の太さ(px)
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
       {callouts.map((c, i) => {
@@ -669,6 +671,8 @@ const CalloutOverlay: React.FC<{
         const ap = interpolate(t, [at, at + 0.3], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         if (ap <= 0) return null;
         const below = c.y < 0.25; // 点が上端寄りならラベルを下に出す
+        // arrow:true は矢じり付きの矢印で点を指す（長め）。false は点(ドット)のみ。
+        const gap = c.arrow ? Math.round(44 * markerSize) : 20; // 点とラベルの隙間(px)
         const labelStyle: React.CSSProperties = {
           position: "absolute",
           left: "50%",
@@ -683,19 +687,29 @@ const CalloutOverlay: React.FC<{
           boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
         };
         if (below) labelStyle.top = gap; else labelStyle.bottom = gap;
-        // ラベル⇔点をつなぐ線（arrow:true のとき）。点から隙間ぶんだけ伸ばす。
-        const lineStyle: React.CSSProperties = {
+        // 矢の軸（ラベル側から矢じりの根元まで）。
+        const shaftStyle: React.CSSProperties = {
           position: "absolute",
-          left: -1,
-          width: 2,
-          height: gap,
+          left: -SHAFT / 2,
+          width: SHAFT,
+          height: gap - HEAD,
           background: markerColor,
         };
-        if (below) lineStyle.top = 0; else lineStyle.bottom = 0;
+        if (below) shaftStyle.top = HEAD; else shaftStyle.bottom = HEAD;
+        // 矢じり（点を指す三角）。below=上向き(先端が上の点)／above=下向き。
+        const headStyle: React.CSSProperties = below
+          ? { position: "absolute", top: 0, left: -HALF, width: 0, height: 0, borderLeft: `${HALF}px solid transparent`, borderRight: `${HALF}px solid transparent`, borderBottom: `${HEAD}px solid ${markerColor}` }
+          : { position: "absolute", bottom: 0, left: -HALF, width: 0, height: 0, borderLeft: `${HALF}px solid transparent`, borderRight: `${HALF}px solid transparent`, borderTop: `${HEAD}px solid ${markerColor}` };
         return (
           <div key={i} style={{ position: "absolute", left: `${c.x * 100}%`, top: `${c.y * 100}%`, opacity: ap }}>
-            {c.arrow ? <div style={lineStyle} /> : null}
-            <div style={{ position: "absolute", left: -dot / 2, top: -dot / 2, width: dot, height: dot, borderRadius: "50%", background: markerColor, border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)" }} />
+            {c.arrow ? (
+              <>
+                <div style={shaftStyle} />
+                <div style={headStyle} />
+              </>
+            ) : (
+              <div style={{ position: "absolute", left: -dot / 2, top: -dot / 2, width: dot, height: dot, borderRadius: "50%", background: markerColor, border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)" }} />
+            )}
             <div style={labelStyle}>{c.text}</div>
           </div>
         );
