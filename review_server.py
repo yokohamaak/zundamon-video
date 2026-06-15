@@ -2056,15 +2056,17 @@ function vBgRow(obj, label, defColor, defOp, bgKey, opKey){
   return br;
 }
 
-function vizContent(box, ch, ci){
+// vh=演出ホルダ（旧:章ch / 新:セグメントseg。どちらも panel/quiz/… のキーを持つ）。
+// ch=章（image_cuts等の参照用）。onDel=削除時の処理。
+function vizContent(box, vh, ch, ci, onDel){
   const top=document.createElement('div'); top.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px';
-  const tl=document.createElement('span'); tl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff'; tl.textContent='演出：'+(VIZ_LABEL[vizOf(ch)]||'');
+  const tl=document.createElement('span'); tl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff'; tl.textContent='演出：'+(VIZ_LABEL[vizOf(vh)]||'');
   const del=document.createElement('button'); del.className='mini'; del.textContent='演出を削除';
-  del.onclick=()=>{ VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci); vizOpenGi=null; render(); };
+  del.onclick=()=>{ if(onDel) onDel(); else { VIZ_KEYS.forEach(k=>delete vh[k]); clearAllVizFlags(ci); } render(); };
   top.appendChild(tl); top.appendChild(del); box.appendChild(top);
   const ncuts=(ch.image_cuts||[]).length;
 
-  if(ch.panel){ const p=ch.panel; if(!Array.isArray(p.items))p.items=[];
+  if(vh.panel){ const p=vh.panel; if(!Array.isArray(p.items))p.items=[];
     // ライブプレビュー（最終の縮小レイアウトを再現＝render(DialoguePanel)に合わせたHTMLモック）。
     const isPar=!p.items.some(it=>it.arrow_from_prev);
     const pmType=(p.markerType||'check'), pmSym=(pmType==='square'?'■':pmType==='dot'?'●':'✔');
@@ -2150,7 +2152,7 @@ function vizContent(box, ch, ci){
     });
     box.appendChild(vMini('＋項目',()=>{ p.items.push({text:''}); render(); }));
   }
-  else if(ch.quiz){ const q=ch.quiz;
+  else if(vh.quiz){ const q=vh.quiz;
     // ライブプレビュー（背後の画像＋「？・問い」土台＋答えバナー。動画では問い→答えに切替）。
     const u=imgUrl(ci,0); const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
     const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover'); const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
@@ -2194,7 +2196,7 @@ function vizContent(box, ch, ci){
     wsl.oninput=()=>{ q.boxWidth=parseFloat(wsl.value); wshow(); }; wsl.onchange=()=>render();
     wr.appendChild(stepWrap(wsl)); wr.appendChild(wsv); wr.appendChild(vMini('自動',()=>{ delete q.boxWidth; render(); })); box.appendChild(wr);
   }
-  else if(ch.compare){ const c=ch.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
+  else if(vh.compare){ const c=vh.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // ライブプレビュー（左右2分割の最終分割状態＝render(CompareVisual)に合わせたモック）。
     const lblBg=c.labelColor||'rgba(20,26,38,.82)', lblTx=c.labelTextColor||'#ffffff';
     const lblSz=(c.labelSize!=null?c.labelSize:1), divC=c.dividerColor||'rgba(255,255,255,.85)';
@@ -2241,7 +2243,7 @@ function vizContent(box, ch, ci){
       r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(stepWrap(sl)); r.appendChild(sv); }));
     box.appendChild(colRow('分割線','dividerColor','#ffffff'));
   }
-  else if(ch.stat){ const s=ch.stat;
+  else if(vh.stat){ const s=vh.stat;
     // ライブプレビュー（画像の上に数字カードを重ねる＝render(StatOverlay)に合わせたモック）。
     const sz=(s.size!=null?s.size:1);
     const u=imgUrl(ci,0); const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
@@ -2288,7 +2290,7 @@ function vizContent(box, ch, ci){
     });
     box.appendChild(rsp);
   }
-  else if(ch.callouts){ let cs=ch.callouts; if(!Array.isArray(cs)){cs=ch.callouts=[];}
+  else if(vh.callouts){ let cs=vh.callouts; if(!Array.isArray(cs)){cs=vh.callouts=[];}
     if(calloutSel>=cs.length) calloutSel=0;
     const st=ch.calloutStyle||(ch.calloutStyle={});
     const mColor=st.markerColor||'#ff5a6a', lColor=st.labelColor||'#14233a';
@@ -2890,7 +2892,8 @@ function renderVizTab(r,tn,ch,ci){
     n.textContent='演出する範囲は左の台本でS（ここから）/E（ここまで）を押して指定。'; r.appendChild(n); }
   // この行で何を出すか（タイミングchip）。範囲は左の帯で指定するので抑制。
   r.appendChild(turnVizControl(tn, selGi, ch, ci, true));
-  if(vizOf(ch)){ const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;'; vizContent(ce,ch,ci); r.appendChild(ce); }
+  if(vizOf(ch)){ const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;';
+    vizContent(ce, ch, ch, ci, ()=>{ VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci); vizOpenGi=null; }); r.appendChild(ce); }
 }
 
 function renderChapterTab(r,ch,ci){
