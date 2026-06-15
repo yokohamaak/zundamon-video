@@ -674,7 +674,7 @@ const CalloutOverlay: React.FC<{
   const HEAD = Math.round(aBase.len * aSize);  // 矢じりの長さ(px)
   const HALF = Math.round(aBase.half * aSize); // 矢じりの半幅(px)
   const SHAFT = Math.round(aBase.shaft * aSize); // 矢の軸の太さ(px)
-  const gapNorm = (44 * aSize) / boxH;  // 自動配置時の点⇔ラベル距離(正規化)
+  const gapNorm = 0.1 * aSize;  // 自動配置時の点⇔ラベル距離(枠高に対する正規化・プレビューと共通)
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
       {/* 矢印はSVGで任意方向に引く（ラベル中心→点・先端に矢じり）。線はラベルの下に隠れる。 */}
@@ -712,7 +712,6 @@ const CalloutOverlay: React.FC<{
         const at = c.at ?? 0;
         const ap = interpolate(t, [at, at + 0.3], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         if (ap <= 0) return null;
-        const hasL = c.lx != null && c.ly != null;
         // ラベル位置（lx/ly が無ければ点の上/下に自動）。
         const lcx = c.lx != null ? c.lx : c.x;
         const lcy = c.ly != null ? c.ly : (c.y < 0.25 ? c.y + gapNorm : c.y - gapNorm);
@@ -732,8 +731,8 @@ const CalloutOverlay: React.FC<{
         };
         return (
           <div key={i} style={{ position: "absolute", inset: 0 }}>
-            {/* 点のマーカー。矢印が無いとき、または文字を離して置いたときに点を明示。 */}
-            {!c.arrow || hasL ? (
+            {/* 点のマーカーは矢印が無いときだけ。矢印ON時は矢じり/ドットが点を示すので重ねない。 */}
+            {!c.arrow ? (
               <div style={{ position: "absolute", left: `${c.x * 100}%`, top: `${c.y * 100}%`, width: dot, height: dot, borderRadius: "50%", background: markerColor, border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.4)", transform: "translate(-50%,-50%)", opacity: ap }} />
             ) : null}
             <div style={{ ...labelStyle, opacity: ap }}>{c.text}</div>

@@ -2044,8 +2044,9 @@ function vizContent(box, ch, ci){
     const aBase=(aShape==='sharp'?{len:26,half:9,shaft:4}:aShape==='thick'?{len:20,half:18,shaft:8}:aDot?{len:13,half:13,shaft:5}:{len:22,half:13,shaft:6});
     const aHL=Math.round(aBase.len*aSize), aHW=Math.round(aBase.half*aSize*2), aSH=Math.max(2,Math.round(aBase.shaft*aSize));
     const aR=Math.round(aBase.half*aSize); // dot半径
-    // 自動ラベル位置（lx/ly未指定時）：点の上/下に少しずらす。
-    const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+0.1:c.y-0.1))});
+    // 自動ラベル位置（lx/ly未指定時）：点の上/下に正規化0.1*aSizeずらす（renderと共通）。
+    const gapN=0.1*aSize;
+    const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+gapN:c.y-gapN))});
     // 配置モード切替（点 / 文字）。
     const mrow=document.createElement('div'); mrow.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:4px';
     const ml=document.createElement('span'); ml.style.cssText='font-size:12px;color:var(--sub)'; ml.textContent='クリックで動かす：'; mrow.appendChild(ml);
@@ -2078,10 +2079,13 @@ function vizContent(box, ch, ci){
       ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width',String(aSH)); ln.setAttribute('marker-end','url(#cah)'); svg.appendChild(ln); });
     prev.appendChild(svg);
     cs.forEach((c,i)=>{ const sel=(i===calloutSel);
-      // 点マーカー（大きさ＝markerSize連動）
-      const m=document.createElement('div'); const md=Math.round((sel?14:12)*mSize);
-      m.style.cssText='position:absolute;width:'+md+'px;height:'+md+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
-      m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'の点'; prev.appendChild(m);
+      // 点マーカー（矢印OFFのときだけ。ON時は矢じり/ドットが点を示す＝renderと一致）。
+      // ただし配置中は点の位置が見えるよう、選択中＆pointモードのときは薄く出す。
+      if(!c.arrow || (sel&&calloutMode==='point')){
+        const m=document.createElement('div'); const md=Math.round((sel?14:12)*mSize); const ghost=(c.arrow&&sel);
+        m.style.cssText='position:absolute;width:'+md+'px;height:'+md+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(ghost?';opacity:.4':'')+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+        m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'の点'; prev.appendChild(m);
+      }
       // 文字ラベル（プレビュー・大きさ＝labelSize連動）
       const L=lpos(c); const lab=document.createElement('div');
       lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:#fff;font-weight:800;font-size:'+Math.round(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
