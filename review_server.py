@@ -1566,13 +1566,13 @@ STORY_PAGE = """<!doctype html>
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
   /* 演出範囲レール：開始(行の上端)/終了(行の下端)＋範囲の縦帯。viz章のみ・Linear的に控えめ */
-  .line .rail { width:46px; flex:none; align-self:stretch; position:relative; margin:-13px 0; }  /* カード上下padding(13px)を打ち消し枠に揃える */
-  .line .rail .seg { position:absolute; left:21px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
+  .line .rail { width:50px; flex:none; align-self:stretch; position:relative; margin:-13px 0; }  /* カード上下padding(13px)を打ち消し枠に揃える */
+  .line .rail .seg { position:absolute; left:23px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
   .line .rail .seg.s { top:21px; border-radius:3px 3px 0 0; }
   .line .rail .seg.e { bottom:21px; border-radius:0 0 3px 3px; }
-  .line .rail .hbtn { position:absolute; left:1px; width:42px; height:19px; display:flex; align-items:center; justify-content:center;
-                      font-size:10px; font-weight:700; border:1px solid #313a47; border-radius:6px; background:#141a23;
-                      color:#7e8aa0; cursor:pointer; z-index:1; opacity:0; transition:opacity .12s; }
+  .line .rail .hbtn { position:absolute; left:1px; width:46px; height:19px; display:flex; align-items:center; justify-content:center;
+                      white-space:nowrap; font-size:10px; font-weight:700; border:1px solid #313a47; border-radius:6px; background:#141a23;
+                      color:#7e8aa0; cursor:pointer; z-index:1; opacity:0; transition:opacity .12s; box-sizing:border-box; }
   .line:hover .rail .hbtn { opacity:.9; }
   .line .rail .hbtn:hover { border-color:#6b6ae0; color:#dbe1ec; }
   .line .rail .hbtn.on { opacity:1; background:#6b6ae0; border-color:#6b6ae0; color:#fff; }
