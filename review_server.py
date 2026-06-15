@@ -2198,14 +2198,21 @@ function vizContent(box, ch, ci){
     // ライブプレビュー（左右2分割の最終分割状態＝render(CompareVisual)に合わせたモック）。
     const lblBg=c.labelColor||'rgba(20,26,38,.82)', lblTx=c.labelTextColor||'#ffffff';
     const lblSz=(c.labelSize!=null?c.labelSize:1), divC=c.dividerColor||'rgba(255,255,255,.85)';
-    const half=(side,def)=>{ const u=imgUrl(ci,(side.cut!=null?side.cut:def));
-      const h=document.createElement('div'); h.style.cssText='position:relative;width:50%;height:100%;overflow:hidden;background:linear-gradient(135deg,#324a5f,#25323f)';
+    // 分割タイミング連動：compare_item 0=左(at0)/1=右(at1で分割)。選択行時点を再現。
+    const _cst=DATA.script[selGi]; const cSel=_cst&&_cst.chapter===ci; let a0=null,a1=null;
+    (DATA.script||[]).forEach((t,g)=>{ if(t.chapter!==ci) return; if(t.compare_item===0&&a0==null)a0=g; if(t.compare_item===1&&a1==null)a1=g; });
+    const leftShown = !cSel ? true : (a0==null || selGi>=a0);
+    const split = !cSel ? true : (a1!=null ? selGi>=a1 : (a0==null || selGi>=a0));
+    const half=(side,def,w)=>{ const u=imgUrl(ci,(side.cut!=null?side.cut:def));
+      const h=document.createElement('div'); h.style.cssText='position:relative;width:'+w+';height:100%;overflow:hidden;background:linear-gradient(135deg,#324a5f,#25323f)';
       if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; h.appendChild(im); }
       const lb=document.createElement('div'); lb.style.cssText='position:absolute;left:0;right:0;bottom:0;background:'+lblBg+';color:'+lblTx+';font-weight:800;font-size:'+pv(13*lblSz)+'px;text-align:center;padding:4px 4px'; lb.textContent=side.label||''; h.appendChild(lb);
       return h; };
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;margin-bottom:6px;display:flex';
-    prev.appendChild(half(c.left,0)); prev.appendChild(half(c.right,1));
-    const dv=document.createElement('div'); dv.style.cssText='position:absolute;top:0;bottom:0;left:50%;width:3px;transform:translateX(-1.5px);background:'+divC; prev.appendChild(dv);
+    if(!leftShown){ /* 演出開始前＝何も出さない */ }
+    else if(!split){ prev.appendChild(half(c.left,0,'100%')); }   // 左フル（分割前）
+    else { prev.appendChild(half(c.left,0,'50%')); prev.appendChild(half(c.right,1,'50%'));
+      const dv=document.createElement('div'); dv.style.cssText='position:absolute;top:0;bottom:0;left:50%;width:3px;transform:translateX(-1.5px);background:'+divC; prev.appendChild(dv); }
     box.appendChild(prev);
     // 画像はサムネで選ぶ（台本のcut選択と統一）。
     const mkCut=(side,def)=>{ const cur=(side.cut??def); const pick=document.createElement('div'); pick.className='cutpick';
@@ -2241,13 +2248,20 @@ function vizContent(box, ch, ci){
     const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover'); const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px;display:flex;align-items:center;justify-content:center';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
+    // reveal（数字を出す）行で出現。選択行が前なら数字カードを出さない。
+    const _sst=DATA.script[selGi]; const sSel=_sst&&_sst.chapter===ci; let sRev=null;
+    (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci&&t.reveal===true&&sRev==null) sRev=g; });
+    const statShown = !sSel ? true : (sRev==null ? true : selGi>=sRev);
+    if(statShown){
     const card=document.createElement('div'); card.style.cssText='position:relative;display:flex;flex-direction:column;align-items:center;border-radius:'+Math.round(14*sz)+'px;padding:'+Math.round(8*sz)+'px '+Math.round(18*sz)+'px';
     const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:'+Math.round(14*sz)+'px;background:'+(s.bg||'#0f141e')+';opacity:'+(s.bgOpacity!=null?s.bgOpacity:0.5); card.appendChild(bgl);
     if(s.label){ const lb=document.createElement('div'); lb.style.cssText='position:relative;color:rgba(255,255,255,.85);font-weight:700;font-size:'+pv(13*sz)+'px;margin-bottom:'+Math.round(3*sz)+'px'; lb.textContent=s.label; card.appendChild(lb); }
     const vr=document.createElement('div'); vr.style.cssText='position:relative;display:flex;align-items:baseline;gap:4px;line-height:1';
     const vv=document.createElement('span'); vv.style.cssText='color:'+(s.color||'#ffd84d')+';font-weight:900;font-size:'+pv(44*sz)+'px;text-shadow:0 2px 8px rgba(0,0,0,.55)'; vv.textContent=(s.value||'0'); vr.appendChild(vv);
     if(s.unit){ const us=document.createElement('span'); us.style.cssText='color:#fff;font-weight:900;font-size:'+pv(20*sz)+'px'; us.textContent=s.unit; vr.appendChild(us); }
-    card.appendChild(vr); prev.appendChild(card); box.appendChild(prev);
+    card.appendChild(vr); prev.appendChild(card);
+    }
+    box.appendChild(prev);
     const r=vRow('数字'); const vi=vText(s.value,'例 8 / 50万 / 500000',v=>s.value=v); vi.onchange=()=>render(); r.appendChild(vi);
     const u2=document.createElement('input'); u2.type='text'; u2.value=s.unit||''; u2.placeholder='単位'; u2.style.width='90px';
     u2.oninput=()=>{ if(u2.value.trim())s.unit=u2.value; else delete s.unit; }; u2.onchange=()=>render(); r.appendChild(u2); box.appendChild(r);
@@ -2288,6 +2302,10 @@ function vizContent(box, ch, ci){
     // 自動ラベル位置（lx/ly未指定時）：点の上/下に正規化0.1*aSizeずらす（renderと共通）。
     const gapN=0.1*aSize;
     const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+gapN:c.y-gapN))});
+    // callout_item（各注釈を出す行）連動：選択行で未到達の注釈は薄く表示（配置はできる）。
+    const _cst=DATA.script[selGi]; const cSel=_cst&&_cst.chapter===ci; const coGi={};
+    (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci && typeof t.callout_item==='number' && !(t.callout_item in coGi)) coGi[t.callout_item]=g; });
+    const reached=(k)=> !cSel ? true : (coGi[k]==null ? true : selGi>=coGi[k]);
     // 配置モード切替（点 / 文字）。
     const mrow=document.createElement('div'); mrow.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:4px';
     const ml=document.createElement('span'); ml.style.cssText='font-size:12px;color:var(--sub)'; ml.textContent='クリックで動かす：'; mrow.appendChild(ml);
@@ -2320,21 +2338,23 @@ function vizContent(box, ch, ci){
       mk.appendChild(tri);
     }
     defs.appendChild(mk); svg.appendChild(defs);
-    cs.forEach((c)=>{ if(!c.arrow) return; const L=lpos(c);
+    cs.forEach((c,i)=>{ if(!c.arrow) return; const L=lpos(c);
       const ln=document.createElementNS(svgns,'line'); ln.setAttribute('x1',(L.x*100)+'%'); ln.setAttribute('y1',(L.y*100)+'%');
-      ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width',String(aSH)); ln.setAttribute('marker-end','url(#cah)'); svg.appendChild(ln); });
+      ln.setAttribute('x2',(c.x*100)+'%'); ln.setAttribute('y2',(c.y*100)+'%'); ln.setAttribute('stroke',mColor); ln.setAttribute('stroke-width',String(aSH)); ln.setAttribute('marker-end','url(#cah)');
+      if(!reached(i)) ln.setAttribute('opacity','0.28'); svg.appendChild(ln); });
     prev.appendChild(svg);
     cs.forEach((c,i)=>{ const sel=(i===calloutSel);
       // 点マーカー（矢印OFFのときだけ。ON時は矢じり/ドットが点を示す＝renderと一致）。
       // ただし配置中は点の位置が見えるよう、選択中＆pointモードのときは薄く出す。
+      const dim=(!reached(i)?';opacity:.28':'');
       if(!c.arrow || (sel&&calloutMode==='point')){
         const m=document.createElement('div'); const md=pv((sel?9:8)*mSize); const ghost=(c.arrow&&sel);
-        m.style.cssText='position:absolute;width:'+md+'px;height:'+md+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(ghost?';opacity:.4':'')+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+        m.style.cssText='position:absolute;width:'+md+'px;height:'+md+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(ghost?';opacity:.4':dim)+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
         m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'の点'; prev.appendChild(m);
       }
       // 文字ラベル（プレビュー・大きさ＝labelSize連動）
       const L=lpos(c); const lab=document.createElement('div');
-      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:'+lText+';font-weight:800;font-size:'+pv(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(lBorder?';border:2px solid '+lBorder:'')+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:'+lText+';font-weight:800;font-size:'+pv(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(lBorder?';border:2px solid '+lBorder:'')+dim+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
       lab.style.left=(L.x*100)+'%'; lab.style.top=(L.y*100)+'%'; lab.textContent=c.text||('注釈'+i); prev.appendChild(lab); });
     prev.onclick=(e)=>{ if(!cs.length) return; const r=prev.getBoundingClientRect();
       const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)), y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
