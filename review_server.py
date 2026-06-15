@@ -2094,14 +2094,14 @@ function vizContent(box, ch, ci){
       if(p.bg){ const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:8px;background:'+p.bg+';opacity:'+(p.bgOpacity!=null?p.bgOpacity:1); txt.appendChild(bgl); }
       if(p.heading){ const hd=document.createElement('div'); hd.style.cssText='position:relative;display:flex;align-items:center;gap:6px;margin-bottom:6px';
         const bar=document.createElement('span'); bar.style.cssText='width:5px;height:16px;background:#ffd84d;border-radius:2px;display:inline-block;flex:none';
-        const ht=document.createElement('span'); ht.style.cssText='color:#fff;font-weight:900;font-size:14px'; ht.textContent=p.heading;
+        const ht=document.createElement('span'); ht.style.cssText='color:#fff;font-weight:900;font-size:'+pv(14)+'px'; ht.textContent=p.heading;
         hd.appendChild(bar); hd.appendChild(ht); txt.appendChild(hd); }
       p.items.forEach((it,i)=>{ if(!it.text||!itemShown(i)) return;
         const w=document.createElement('div'); w.style.cssText='position:relative;margin:2px 0';
-        if(!isPar && it.arrow_from_prev && i>0){ const ar=document.createElement('div'); ar.style.cssText='color:rgba(255,255,255,.5);font-size:11px;line-height:1;margin:1px 0'; ar.textContent='▼'; w.appendChild(ar); }
+        if(!isPar && it.arrow_from_prev && i>0){ const ar=document.createElement('div'); ar.style.cssText='color:rgba(255,255,255,.5);font-size:'+pv(11)+'px;line-height:1;margin:1px 0'; ar.textContent='▼'; w.appendChild(ar); }
         const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px';
-        if(isPar){ const ck=document.createElement('span'); ck.style.cssText='color:'+pmColor+';font-weight:900;font-size:'+Math.round(13*pmSize)+'px;flex:none'; ck.textContent=pmSym; row.appendChild(ck); }
-        const chip=document.createElement('span'); chip.style.cssText='display:inline-block;background:rgba(20,26,38,.85);color:'+ptColor+';font-weight:800;font-size:'+Math.round(13*ptSize)+'px;padding:4px 9px;border-radius:7px;line-height:1.3'; chip.textContent=it.text; row.appendChild(chip);
+        if(isPar){ const ck=document.createElement('span'); ck.style.cssText='color:'+pmColor+';font-weight:900;font-size:'+pv(13*pmSize)+'px;flex:none'; ck.textContent=pmSym; row.appendChild(ck); }
+        const chip=document.createElement('span'); chip.style.cssText='display:inline-block;background:rgba(20,26,38,.85);color:'+ptColor+';font-weight:800;font-size:'+pv(13*ptSize)+'px;padding:4px 9px;border-radius:7px;line-height:1.3'; chip.textContent=it.text; row.appendChild(chip);
         w.appendChild(row); txt.appendChild(w); });
       prev.appendChild(txt);
     }
@@ -2159,13 +2159,13 @@ function vizContent(box, ch, ci){
     // ？・問い 土台パネル（中央）
     const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:10px 18px;max-width:86%';
     const pbgl=document.createElement('div'); pbgl.style.cssText='position:absolute;inset:0;border-radius:12px;background:'+(q.bg||'#0f141e')+';opacity:'+(q.bgOpacity!=null?q.bgOpacity:0.62); pnl.appendChild(pbgl);
-    const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:34px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
-    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:14px;text-align:center'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
+    const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:'+pv(34)+'px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
+    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+pv(14)+'px;text-align:center'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
     prev.appendChild(pnl);
     // 答えバナー（下部）
     const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:5px 14px;max-width:90%;box-shadow:0 3px 10px rgba(0,0,0,.4)';
     const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
-    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:16px;text-align:center'; at.textContent=q.answer||'答え'; ans.appendChild(at);
+    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+pv(16)+'px;text-align:center'; at.textContent=q.answer||'答え'; ans.appendChild(at);
     prev.appendChild(ans); box.appendChild(prev);
     const r1=vRow('問い'); const qi=vText(q.question,'画面に出す問い',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); box.appendChild(r1);
     const r2=vRow('答え'); const ai=vText(q.answer,'リビールで出す答え',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
@@ -2188,7 +2188,7 @@ function vizContent(box, ch, ci){
     const half=(side,def)=>{ const u=imgUrl(ci,(side.cut!=null?side.cut:def));
       const h=document.createElement('div'); h.style.cssText='position:relative;width:50%;height:100%;overflow:hidden;background:linear-gradient(135deg,#324a5f,#25323f)';
       if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; h.appendChild(im); }
-      const lb=document.createElement('div'); lb.style.cssText='position:absolute;left:0;right:0;bottom:0;background:'+lblBg+';color:'+lblTx+';font-weight:800;font-size:'+Math.round(13*lblSz)+'px;text-align:center;padding:4px 4px'; lb.textContent=side.label||''; h.appendChild(lb);
+      const lb=document.createElement('div'); lb.style.cssText='position:absolute;left:0;right:0;bottom:0;background:'+lblBg+';color:'+lblTx+';font-weight:800;font-size:'+pv(13*lblSz)+'px;text-align:center;padding:4px 4px'; lb.textContent=side.label||''; h.appendChild(lb);
       return h; };
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#222;margin-bottom:6px;display:flex';
     prev.appendChild(half(c.left,0)); prev.appendChild(half(c.right,1));
@@ -2230,10 +2230,10 @@ function vizContent(box, ch, ci){
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
     const card=document.createElement('div'); card.style.cssText='position:relative;display:flex;flex-direction:column;align-items:center;border-radius:'+Math.round(14*sz)+'px;padding:'+Math.round(8*sz)+'px '+Math.round(18*sz)+'px';
     const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:'+Math.round(14*sz)+'px;background:'+(s.bg||'#0f141e')+';opacity:'+(s.bgOpacity!=null?s.bgOpacity:0.5); card.appendChild(bgl);
-    if(s.label){ const lb=document.createElement('div'); lb.style.cssText='position:relative;color:rgba(255,255,255,.85);font-weight:700;font-size:'+Math.round(13*sz)+'px;margin-bottom:'+Math.round(3*sz)+'px'; lb.textContent=s.label; card.appendChild(lb); }
+    if(s.label){ const lb=document.createElement('div'); lb.style.cssText='position:relative;color:rgba(255,255,255,.85);font-weight:700;font-size:'+pv(13*sz)+'px;margin-bottom:'+Math.round(3*sz)+'px'; lb.textContent=s.label; card.appendChild(lb); }
     const vr=document.createElement('div'); vr.style.cssText='position:relative;display:flex;align-items:baseline;gap:4px;line-height:1';
-    const vv=document.createElement('span'); vv.style.cssText='color:'+(s.color||'#ffd84d')+';font-weight:900;font-size:'+Math.round(44*sz)+'px;text-shadow:0 2px 8px rgba(0,0,0,.55)'; vv.textContent=(s.value||'0'); vr.appendChild(vv);
-    if(s.unit){ const us=document.createElement('span'); us.style.cssText='color:#fff;font-weight:900;font-size:'+Math.round(20*sz)+'px'; us.textContent=s.unit; vr.appendChild(us); }
+    const vv=document.createElement('span'); vv.style.cssText='color:'+(s.color||'#ffd84d')+';font-weight:900;font-size:'+pv(44*sz)+'px;text-shadow:0 2px 8px rgba(0,0,0,.55)'; vv.textContent=(s.value||'0'); vr.appendChild(vv);
+    if(s.unit){ const us=document.createElement('span'); us.style.cssText='color:#fff;font-weight:900;font-size:'+pv(20*sz)+'px'; us.textContent=s.unit; vr.appendChild(us); }
     card.appendChild(vr); prev.appendChild(card); box.appendChild(prev);
     const r=vRow('数字'); const vi=vText(s.value,'例 8 / 50万 / 500000',v=>s.value=v); vi.onchange=()=>render(); r.appendChild(vi);
     const u2=document.createElement('input'); u2.type='text'; u2.value=s.unit||''; u2.placeholder='単位'; u2.style.width='90px';
@@ -2270,8 +2270,8 @@ function vizContent(box, ch, ci){
     const aSize=(st.arrowSize!=null?st.arrowSize:1), aShape=(st.arrowShape||'normal');
     const aDot=(aShape==='dot');
     const aBase=(aShape==='sharp'?{len:16,half:6,shaft:3}:aShape==='thick'?{len:13,half:11,shaft:5}:aDot?{len:8,half:8,shaft:3}:{len:14,half:8,shaft:4});
-    const aHL=Math.round(aBase.len*aSize), aHW=Math.round(aBase.half*aSize*2), aSH=Math.max(2,Math.round(aBase.shaft*aSize));
-    const aR=Math.round(aBase.half*aSize); // dot半径
+    const aHL=pv(aBase.len*aSize), aHW=pv(aBase.half*aSize*2), aSH=Math.max(2,pv(aBase.shaft*aSize));
+    const aR=pv(aBase.half*aSize); // dot半径
     // 自動ラベル位置（lx/ly未指定時）：点の上/下に正規化0.1*aSizeずらす（renderと共通）。
     const gapN=0.1*aSize;
     const lpos=(c)=>({x:(c.lx!=null?c.lx:c.x), y:(c.ly!=null?c.ly:(c.y<0.25?c.y+gapN:c.y-gapN))});
@@ -2315,13 +2315,13 @@ function vizContent(box, ch, ci){
       // 点マーカー（矢印OFFのときだけ。ON時は矢じり/ドットが点を示す＝renderと一致）。
       // ただし配置中は点の位置が見えるよう、選択中＆pointモードのときは薄く出す。
       if(!c.arrow || (sel&&calloutMode==='point')){
-        const m=document.createElement('div'); const md=Math.round((sel?9:8)*mSize); const ghost=(c.arrow&&sel);
+        const m=document.createElement('div'); const md=pv((sel?9:8)*mSize); const ghost=(c.arrow&&sel);
         m.style.cssText='position:absolute;width:'+md+'px;height:'+md+'px;border-radius:50%;background:'+mColor+';border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.4)'+(ghost?';opacity:.4':'')+(sel&&calloutMode==='point'?';outline:2px solid #ffd84d;outline-offset:2px':'');
         m.style.left=(c.x*100)+'%'; m.style.top=(c.y*100)+'%'; m.title='注釈'+i+'の点'; prev.appendChild(m);
       }
       // 文字ラベル（プレビュー・大きさ＝labelSize連動）
       const L=lpos(c); const lab=document.createElement('div');
-      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:'+lText+';font-weight:800;font-size:'+Math.round(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(lBorder?';border:2px solid '+lBorder:'')+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
+      lab.style.cssText='position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:'+lColor+';color:'+lText+';font-weight:800;font-size:'+pv(12*lSize)+'px;padding:3px 7px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.4)'+(lBorder?';border:2px solid '+lBorder:'')+(sel&&calloutMode==='label'?';outline:2px solid #ffd84d;outline-offset:2px':'');
       lab.style.left=(L.x*100)+'%'; lab.style.top=(L.y*100)+'%'; lab.textContent=c.text||('注釈'+i); prev.appendChild(lab); });
     prev.onclick=(e)=>{ if(!cs.length) return; const r=prev.getBoundingClientRect();
       const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)), y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
@@ -2616,6 +2616,8 @@ function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter=
 function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
 function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存':'保存'; }
 function setWide(on){ rwide=on; const r=document.getElementById('rpane'); if(r){ r.classList.toggle('wide',on); renderRight(); } }
+// プレビュー内の文字/要素サイズ。広げた時は拡大率に合わせて一緒に大きくする（画像だけでなくラベル等も）。
+function pv(n){ return Math.round(n*(rwide?1.9:1)); }
 // 折りたたみをCSSクラスで反映（全再描画しない＝スクロール位置を保つ）。
 function applyCollapse(){
   document.querySelectorAll('.chsec').forEach(sec=>{
