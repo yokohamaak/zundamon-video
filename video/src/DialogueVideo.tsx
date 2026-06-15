@@ -303,21 +303,24 @@ const DialoguePanel: React.FC<{
   const items = panel.items ?? [];
   // 矢印が1つも無ければ並列（時系列でない）＝▼でつながず✔の箇条書きにする。
   const isParallel = !items.some((it) => it.arrow_from_prev);
+  // overlay=縮小なし＝画像はフルのまま、テキストはテロップで重ねる。
+  const overlay = !!panel.overlay;
   const shrinkAt = panel.shrinkAt ?? 0;
-  // 縮小進捗 0(全体表示)→1(縮小・テキスト領域オープン)。0.5秒でイージング。
-  const sp = interpolate(t, [shrinkAt, shrinkAt + 0.5], [0, 1], {
+  // 縮小進捗 0(全体表示)→1(縮小・テキスト領域オープン)。0.5秒でイージング。overlayは常時開。
+  const sp = overlay ? 1 : interpolate(t, [shrinkAt, shrinkAt + 0.5], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
   const GAP = portrait ? 24 : 36;
-  // 縮小後の画像比率（横=幅46% / 縦=高さ50%）。残りがテキスト領域。
+  // 縮小後の画像比率（横=幅46% / 縦=高さ50%）。残りがテキスト領域。overlayは画像フル。
   const imgFrac = portrait ? 0.5 : 0.46;
-  const imgW = portrait ? boxW : boxW * (1 - (1 - imgFrac) * sp);
-  const imgH = portrait ? boxH * (1 - (1 - imgFrac) * sp) : boxH;
-  const textLeft = portrait ? 0 : imgW + GAP;
-  const textTop = portrait ? imgH + GAP : 0;
-  const textW = portrait ? boxW : boxW - imgW - GAP;
-  const textH = portrait ? boxH - imgH - GAP : boxH;
+  const imgW = overlay ? boxW : (portrait ? boxW : boxW * (1 - (1 - imgFrac) * sp));
+  const imgH = overlay ? boxH : (portrait ? boxH * (1 - (1 - imgFrac) * sp) : boxH);
+  // テキスト領域：通常=画像の横(縦は下)。overlay=下部のテロップ帯。
+  const textH = overlay ? Math.round(boxH * (portrait ? 0.4 : 0.44)) : (portrait ? boxH - imgH - GAP : boxH);
+  const textLeft = overlay ? 0 : (portrait ? 0 : imgW + GAP);
+  const textTop = overlay ? (boxH - textH) : (portrait ? imgH + GAP : 0);
+  const textW = overlay ? boxW : (portrait ? boxW : boxW - imgW - GAP);
   const fontSize = portrait ? 40 : 46;
   // 項目マーカー（並列時の記号）と、マーク/テキストの色・大きさ（任意・章共通）。
   const mType = panel.markerType || "check";
@@ -362,7 +365,7 @@ const DialoguePanel: React.FC<{
             width: textW,
             height: textH,
             background: panel.bg,
-            opacity: (panel.bgOpacity ?? 1) * sp,
+            opacity: (panel.bgOpacity ?? 1) * (overlay ? 1 : sp),
             borderRadius: 12,
           }}
         />
@@ -377,10 +380,10 @@ const DialoguePanel: React.FC<{
           height: textH,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
+          justifyContent: overlay ? "flex-end" : "center",
           gap: portrait ? 8 : 14,
-          opacity: sp,
-          padding: portrait ? "0 24px" : "0 18px",
+          opacity: overlay ? 1 : sp,
+          padding: overlay ? (portrait ? "0 24px 18px" : "0 22px 16px") : (portrait ? "0 24px" : "0 18px"),
           boxSizing: "border-box",
         }}
       >
@@ -392,7 +395,7 @@ const DialoguePanel: React.FC<{
               alignItems: "center",
               gap: 8,
               marginBottom: portrait ? 6 : 12,
-              opacity: sp,
+              opacity: overlay ? 1 : sp,
             }}
           >
             <span style={{ width: portrait ? 6 : 8, height: portrait ? 24 : 32, background: "#ffd84d", borderRadius: 3 }} />

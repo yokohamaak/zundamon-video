@@ -388,8 +388,8 @@ def _resolve_panel(panel, idxs, turns, seg_start, seg_end, image_files=None, ch=
         resolved["bgOpacity"] = panel["bgOpacity"]
     if panel.get("heading"):
         resolved["heading"] = panel["heading"]
-    # 項目マーカー/テキストの見た目（あれば素通しでtopic.panelへ）。
-    for k in ("markerType", "markerColor", "markerSize", "textColor", "textSize"):
+    # 項目マーカー/テキストの見た目＋overlay(縮小なし)を素通しでtopic.panelへ。
+    for k in ("markerType", "markerColor", "markerSize", "textColor", "textSize", "overlay"):
         if panel.get(k) is not None:
             resolved[k] = panel[k]
     return resolved

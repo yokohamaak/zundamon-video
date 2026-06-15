@@ -156,6 +156,8 @@ export type Panel = {
   // テキスト領域上部の見出し（任意・お題）。並列項目のときに特に有効。
   heading?: string;
   items: PanelItem[];
+  // true=縮小なし＝画像はフルのまま、テキストを下部テロップで重ねる（既定 false=画像を縮小して横に開く）。
+  overlay?: boolean;
   // 項目マーカー（並列時の記号）と、マーク/テキストの見た目（章共通・任意）。
   markerType?: "check" | "square" | "dot"; // ✔ / ■ / ●（既定 check）
   markerColor?: string;   // マーカーの色（既定 #ffd84d）

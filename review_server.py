@@ -2056,31 +2056,51 @@ function vizContent(box, ch, ci){
     const pmType=(p.markerType||'check'), pmSym=(pmType==='square'?'■':pmType==='dot'?'●':'✔');
     const pmColor=p.markerColor||'#ffd84d', pmSize=(p.markerSize!=null?p.markerSize:1);
     const ptColor=p.textColor||'#ffffff', ptSize=(p.textSize!=null?p.textSize:1);
-    // パネル画像はセリフ毎(cut追従)。プレビューは選択中の行のcutを代表表示（cut0固定をやめる）。
+    // 画像は選択行のcut。overlay=縮小なし(画像フル＋下部テロップ)。プレビューは選択行時点の段階を再現。
     const _st=DATA.script[selGi]; const pcut=(_st&&_st.chapter===ci&&typeof _st.cut==='number')?_st.cut:0;
-    const u=imgUrl(ci,pcut);
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px;display:flex;padding:10px;box-sizing:border-box;gap:14px';
-    const iw=document.createElement('div'); iw.style.cssText='width:44%;height:100%;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.04);flex:none;display:flex;align-items:center;justify-content:center';
+    const u=imgUrl(ci,pcut); const overlay=!!p.overlay; const selInCh=_st&&_st.chapter===ci;
+    let shrinkGi=null; const itemGi={};
+    (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci) return;
+      if(t.panel_event==='shrink'&&shrinkGi==null) shrinkGi=gi;
+      if(typeof t.panel_item==='number'&&!(t.panel_item in itemGi)) itemGi[t.panel_item]=gi; });
+    const opened = overlay ? true : (!selInCh ? true : (shrinkGi==null ? true : selGi>=shrinkGi));
+    const itemShown=(k)=>{ if(!selInCh) return true; if(!overlay&&!opened) return false; return (k in itemGi)? selGi>=itemGi[k] : true; };
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:6px';
+    const imgSide=(!overlay&&opened);  // 横に縮小して開く
+    const iw=document.createElement('div');
+    iw.style.cssText='position:absolute;top:0;bottom:0;left:0;'+(imgSide?'width:44%;margin:10px;border-radius:8px;':'right:0;')+'overflow:hidden;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='width:100%;height:100%;object-fit:cover'; iw.appendChild(im); }
     else { const ph=document.createElement('span'); ph.style.cssText='color:var(--sub);font-size:11px'; ph.textContent='画像(各行のcut)'; iw.appendChild(ph); }
     prev.appendChild(iw);
-    const txt=document.createElement('div'); txt.style.cssText='position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;padding:8px 6px;border-radius:8px;overflow:hidden';
-    if(p.bg){ const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:8px;background:'+p.bg+';opacity:'+(p.bgOpacity!=null?p.bgOpacity:1); txt.appendChild(bgl); }
-    if(p.heading){ const hd=document.createElement('div'); hd.style.cssText='position:relative;display:flex;align-items:center;gap:6px;margin-bottom:6px';
-      const bar=document.createElement('span'); bar.style.cssText='width:5px;height:16px;background:#ffd84d;border-radius:2px;display:inline-block;flex:none';
-      const ht=document.createElement('span'); ht.style.cssText='color:#fff;font-weight:900;font-size:14px'; ht.textContent=p.heading;
-      hd.appendChild(bar); hd.appendChild(ht); txt.appendChild(hd); }
-    p.items.forEach((it,i)=>{ if(!it.text) return;
-      const w=document.createElement('div'); w.style.cssText='position:relative;margin:2px 0';
-      if(!isPar && it.arrow_from_prev && i>0){ const ar=document.createElement('div'); ar.style.cssText='color:rgba(255,255,255,.5);font-size:11px;line-height:1;margin:1px 0'; ar.textContent='▼'; w.appendChild(ar); }
-      const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px';
-      if(isPar){ const ck=document.createElement('span'); ck.style.cssText='color:'+pmColor+';font-weight:900;font-size:'+Math.round(13*pmSize)+'px;flex:none'; ck.textContent=pmSym; row.appendChild(ck); }
-      const chip=document.createElement('span'); chip.style.cssText='display:inline-block;background:rgba(20,26,38,.85);color:'+ptColor+';font-weight:800;font-size:'+Math.round(13*ptSize)+'px;padding:4px 9px;border-radius:7px;line-height:1.3'; chip.textContent=it.text; row.appendChild(chip);
-      w.appendChild(row); txt.appendChild(w); });
-    prev.appendChild(txt); box.appendChild(prev);
+    if(overlay || opened){
+      const txt=document.createElement('div');
+      txt.style.cssText=overlay
+        ? 'position:absolute;left:0;right:0;bottom:0;height:44%;display:flex;flex-direction:column;justify-content:flex-end;padding:8px 12px 10px;box-sizing:border-box;overflow:hidden'
+        : 'position:absolute;left:46%;right:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:8px 10px;box-sizing:border-box;overflow:hidden';
+      if(p.bg){ const bgl=document.createElement('div'); bgl.style.cssText='position:absolute;inset:0;border-radius:8px;background:'+p.bg+';opacity:'+(p.bgOpacity!=null?p.bgOpacity:1); txt.appendChild(bgl); }
+      if(p.heading){ const hd=document.createElement('div'); hd.style.cssText='position:relative;display:flex;align-items:center;gap:6px;margin-bottom:6px';
+        const bar=document.createElement('span'); bar.style.cssText='width:5px;height:16px;background:#ffd84d;border-radius:2px;display:inline-block;flex:none';
+        const ht=document.createElement('span'); ht.style.cssText='color:#fff;font-weight:900;font-size:14px'; ht.textContent=p.heading;
+        hd.appendChild(bar); hd.appendChild(ht); txt.appendChild(hd); }
+      p.items.forEach((it,i)=>{ if(!it.text||!itemShown(i)) return;
+        const w=document.createElement('div'); w.style.cssText='position:relative;margin:2px 0';
+        if(!isPar && it.arrow_from_prev && i>0){ const ar=document.createElement('div'); ar.style.cssText='color:rgba(255,255,255,.5);font-size:11px;line-height:1;margin:1px 0'; ar.textContent='▼'; w.appendChild(ar); }
+        const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px';
+        if(isPar){ const ck=document.createElement('span'); ck.style.cssText='color:'+pmColor+';font-weight:900;font-size:'+Math.round(13*pmSize)+'px;flex:none'; ck.textContent=pmSym; row.appendChild(ck); }
+        const chip=document.createElement('span'); chip.style.cssText='display:inline-block;background:rgba(20,26,38,.85);color:'+ptColor+';font-weight:800;font-size:'+Math.round(13*ptSize)+'px;padding:4px 9px;border-radius:7px;line-height:1.3'; chip.textContent=it.text; row.appendChild(chip);
+        w.appendChild(row); txt.appendChild(w); });
+      prev.appendChild(txt);
+    }
+    box.appendChild(prev);
     const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 4px';
-    note.textContent='画像はセリフ毎に切替（各行のcutで選択・上は選択行の画像）。矢印で時系列フロー(▼)／無しは並列(✔)。';
+    note.textContent='プレビューは選択行の時点を再現（縮小/項目の出方が連動）。画像は各行のcut・矢印で流れ(▼)/無しは並列(✔)。';
     box.appendChild(note);
+    // 表示モード：縮小（横に開く）／縮小なし（画像フル＋下部テロップ）
+    const mdr=vRow('表示');
+    [['shrink','縮小して横に開く'],['overlay','縮小なし（テロップ）']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
+      const on=(v==='overlay')===(!!p.overlay); b.className='vchip'+(on?' on':''); b.textContent=t;
+      b.onclick=()=>{ if(v==='overlay')p.overlay=true; else delete p.overlay; render(); }; mdr.appendChild(b); });
+    box.appendChild(mdr);
     // 見出し（テキスト領域の上に出すお題。並列項目で特に有効）。
     const hr=vRow('見出し'); const hi=vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; }); hi.onchange=()=>render(); hr.appendChild(hi); box.appendChild(hr);
     // テキスト領域（縮小画像の横）の背景色＋不透明度。クリアで透過（黒板が見える）。

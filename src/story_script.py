@@ -450,6 +450,8 @@ def _clean_panel(panel):
     op = _clean_opacity(panel.get("bgOpacity"))
     if op is not None:
         out["bgOpacity"] = op
+    if panel.get("overlay"):
+        out["overlay"] = True
     mtype = panel.get("markerType")
     if mtype in ("check", "square", "dot"):
         out["markerType"] = mtype
