@@ -432,8 +432,12 @@ def _resolve_panel(panel, idxs, turns, seg_start, seg_end, image_files=None, ch=
     at_by_idx = {}
     for j in idxs:
         pi = turns[j].get("panel_item")
-        if isinstance(pi, int) and not isinstance(pi, bool) and 0 <= pi < len(items) and pi not in at_by_idx:
-            at_by_idx[pi] = float(turns[j].get("start", seg_start))
+        # panel_item は int（1項目）または int配列（複数項目を同時表示）。配列内の各項目にこの発言のstartを割当。
+        pis = pi if isinstance(pi, list) else [pi]
+        st = float(turns[j].get("start", seg_start))
+        for p in pis:
+            if isinstance(p, int) and not isinstance(p, bool) and 0 <= p < len(items) and p not in at_by_idx:
+                at_by_idx[p] = st
     n = len(items)
     out_items = []
     for k, it in enumerate(items):

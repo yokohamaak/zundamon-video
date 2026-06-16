@@ -875,7 +875,35 @@ def _normalize_panel_fields(turn):
     """
     if turn.get("panel_event") != "shrink":
         turn.pop("panel_event", None)
-    for key in ("panel_item", "callout_item", "compare_item"):
+    # panel_item は int（1項目）または int配列（複数項目を1発言で同時表示＝チェックボックス）。
+    pi = turn.get("panel_item")
+    if isinstance(pi, list):
+        arr = []
+        for x in pi:
+            if isinstance(x, bool):
+                continue
+            try:
+                xi = int(x)
+            except (TypeError, ValueError):
+                continue
+            if xi not in arr:
+                arr.append(xi)
+        arr.sort()
+        if len(arr) > 1:
+            turn["panel_item"] = arr
+        elif len(arr) == 1:
+            turn["panel_item"] = arr[0]
+        else:
+            turn.pop("panel_item", None)
+    elif "panel_item" in turn:
+        if isinstance(pi, bool):
+            turn.pop("panel_item", None)
+        else:
+            try:
+                turn["panel_item"] = int(pi)
+            except (TypeError, ValueError):
+                turn.pop("panel_item", None)
+    for key in ("callout_item", "compare_item"):
         if key in turn:
             v = turn[key]
             if isinstance(v, bool):
