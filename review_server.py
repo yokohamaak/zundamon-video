@@ -2870,7 +2870,7 @@ function lineRow(tn,gi,ch,ci,inViz){
       armEdge=null;  // 別章をタップ＝つかみ解除して通常選択へ
     }
     const chg=(selGi!==gi);
-    if(chg){ selGi=gi; rtab=null; }
+    if(chg){ selGi=gi; }   // タブ(rtab)は維持＝別セリフへ移っても画像/演出/章の表示を保つ
     if(seg) selSeg=seg.id;   // 演出セグメントの行を選んだらそのセグメントを選択
     markSel();
     if(rwide){ setWide(false); } else { renderRight(); }
