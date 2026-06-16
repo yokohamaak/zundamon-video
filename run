@@ -31,6 +31,27 @@ short_dir() {  # slug → docs/shorts/<slug>（存在チェック）
   echo "$d"
 }
 
+# meta.json の章一覧（番号/section/フレーム範囲/タイトル）を表示。0=導入 が分かるように。
+cmd_chapters() {
+  [ -f "$META" ] || { echo "× $META がありません（先に audio を実行）" >&2; return 1; }
+  "$PY" - "$META" "$FPS" <<'PY'
+import json, sys, math
+meta, fps = sys.argv[1], int(sys.argv[2])
+d = json.load(open(meta))
+rng = {}
+for t in d.get("topics", []):
+    c = t.get("chapter")
+    if c is None: continue
+    r = rng.setdefault(c, [t.get("start", 0), t.get("end", 0), t.get("section", ""), t.get("title", "")])
+    r[0] = min(r[0], t.get("start", 0)); r[1] = max(r[1], t.get("end", 0))
+lab = {"intro": "導入", "trivia": "本編", "outro": "締め"}
+print(" 章  種別  フレーム          秒          タイトル")
+for c in sorted(rng):
+    s, e, sec, ttl = rng[c]
+    print(f"{c:>3}  {lab.get(sec, sec):<4} {int(s*fps)}-{math.ceil(e*fps):<9} {s:.0f}-{e:.0f}s   {ttl}")
+PY
+}
+
 # 章番号 → meta.json から「開始フレーム 終了フレーム 開始秒 終了秒」を計算して出力。
 # dev/render の章単位プレビュー/書き出しで共用（要 audio 済み＝meta.json存在）。
 chap_range() {  # $1=章番号
@@ -61,6 +82,7 @@ cmd_help() {
   dev [章]          Remotion Studio（HMRプレビュー）。章番号を付けるとその章の頭フレームを案内
   render [章]       本編(横16:9)を書き出し → out/video.mp4。章番号を付けるとその章だけ out/ch<N>.mp4
   build             音声＋meta → 書き出し を一気に（レビュー後の本番出力）
+  chapters          章一覧（番号/種別/フレーム/タイトル）を表示。0=導入 1..=本編 末尾=締め
 
   ※ dev/render の章単位は audio 済み（meta.json）が前提。audio/meta は全体で1回流す。
 
@@ -124,6 +146,7 @@ if [ $# -gt 0 ]; then
     dev)      cmd_dev "${2:-}" ;;
     render)   cmd_render "${2:-}" ;;
     build)    cmd_build ;;
+    chapters|list) cmd_chapters ;;
     shorts)   cmd_shorts "${2:-}" ;;
     s-audio)  cmd_s_audio "${2:?slug を指定}" ;;
     depth)    cmd_depth "${2:?slug を指定}" ;;
@@ -146,9 +169,9 @@ echo "  5) meta      metaだけ再生成（画像/見出しだけ直した時・
 echo "  6) dev       Studioで全体プレビュー(HMR)"
 echo "  7) render    全体を書き出し"
 echo "  8) build     音声+meta+書き出し（本番出力）"
-echo "[章単位]  ※先に audio（meta.json）が必要"
-echo "  9) dev 章     章だけプレビュー案内（章番号を聞く）"
-echo " 10) render 章  章だけ書き出し → out/ch<N>.mp4（章番号を聞く）"
+echo "[章単位]  ※先に audio（meta.json）が必要。0=導入 1..=本編 末尾=締め"
+echo "  9) dev 章     章だけプレビュー案内（章一覧→章番号を聞く）"
+echo " 10) render 章  章だけ書き出し → out/ch<N>.mp4（章一覧→章番号を聞く）"
 echo "[ショート]"
 echo " 11) shorts    一括生成"
 echo " 12) s-audio   音声+meta"
@@ -167,8 +190,8 @@ case "$n" in
   6) cmd_dev ;;
   7) cmd_render ;;
   8) cmd_build ;;
-  9) read -rp "章番号: " c; cmd_dev "$(z2h "$c")" ;;
-  10) read -rp "章番号: " c; cmd_render "$(z2h "$c")" ;;
+  9) cmd_chapters || true; read -rp "章番号: " c; cmd_dev "$(z2h "$c")" ;;
+  10) cmd_chapters || true; read -rp "章番号: " c; cmd_render "$(z2h "$c")" ;;
   11) cmd_shorts "" ;;
   12) read -rp "slug: " s; cmd_s_audio "$s" ;;
   13) read -rp "slug: " s; cmd_depth "$s" ;;
