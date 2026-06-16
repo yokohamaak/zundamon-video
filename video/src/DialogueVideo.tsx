@@ -1019,6 +1019,15 @@ export const DialogueVideo: React.FC<{
   const isContain = activeTopic?.fit === "contain";
   const containZoom = portrait ? 0.08 : 0.04;
   const containTransform = freezeImage ? "none" : `scale(${(1 + containZoom * kbProgress).toFixed(4)})` + fxTransform;
+  // キーワードテロップ（重ねがけ小演出）：発言の telop を画面上部にポップ表示。どの演出/画像の上にも乗る。
+  const telopText = activeTurn?.telop ?? "";
+  const telopStart = activeTurn?.start ?? 0;
+  const telopOp = telopText
+    ? interpolate(t, [telopStart, telopStart + 0.18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 0;
+  const telopScale = telopText
+    ? interpolate(t, [telopStart, telopStart + 0.16, telopStart + 0.42], [0.6, 1.08, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
   // 補正フィルタ（画像レビュー指定）→ CSS filter 文字列。
   const flt = activeTopic?.filter;
   const imgFilter = flt
@@ -1473,6 +1482,45 @@ export const DialogueVideo: React.FC<{
             );
           })()
         : null}
+
+      {/* キーワードテロップ（重ねがけ）：画面上部にポップ。発言中ずっと表示・章バッジや演出の上に乗る。 */}
+      {telopText ? (
+        <div
+          style={{
+            position: "absolute",
+            top: portrait ? "13%" : "10%",
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            pointerEvents: "none",
+            zIndex: 9,
+            opacity: telopOp,
+          }}
+        >
+          <div
+            style={{
+              transform: `scale(${telopScale.toFixed(3)})`,
+              transformOrigin: "center",
+              background: "rgba(18,26,40,0.9)",
+              border: "3px solid #ffd84d",
+              borderRadius: 12,
+              padding: portrait ? "8px 20px" : "10px 30px",
+              color: "#ffd84d",
+              fontWeight: 900,
+              fontSize: portrait ? 46 : 56,
+              lineHeight: 1.25,
+              textAlign: "center",
+              whiteSpace: "pre-line",
+              textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+              maxWidth: "88%",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+            }}
+          >
+            {telopText}
+          </div>
+        </div>
+      ) : null}
 
       {portrait ? (
         // 縦ショート：今の立ち絵を四角く切り抜いた「肩から上」を字幕のすぐ下に小さめで2人。

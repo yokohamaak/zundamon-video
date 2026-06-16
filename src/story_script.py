@@ -891,6 +891,16 @@ def _normalize_panel_fields(turn):
     seg = turn.get("vizSeg")
     if not (isinstance(seg, str) and seg.strip()):
         turn.pop("vizSeg", None)
+    # キーワードテロップ（任意・重ねがけ小演出）。要所の単語をポップ表示。空は削除。改行可。
+    tl = turn.get("telop")
+    if isinstance(tl, str):
+        tl = strip_markdown(tl).strip()
+        if tl:
+            turn["telop"] = tl
+        else:
+            turn.pop("telop", None)
+    else:
+        turn.pop("telop", None)
 
 
 def normalize_turns(script: list, chapters: list = None) -> list:

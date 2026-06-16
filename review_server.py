@@ -2905,6 +2905,12 @@ function renderRight(){
   const tn=DATA.script[selGi]; if(!tn){ r.appendChild(document.createTextNode('左で行を選択してください')); return; }
   const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
   const inViz=!!tn.vizSeg; const nseg=chSegs(ch).length;
+  // キーワードテロップ（per-line・重ねがけ）。どのタブでも常に編集可＝タブの上に置く。
+  const tlr=document.createElement('div'); tlr.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px';
+  const tll=document.createElement('span'); tll.textContent='💬テロップ'; tll.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
+  const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
+  tli.rows=1;
+  tlr.appendChild(tll); tlr.appendChild(tli); r.appendChild(tlr);
   const tabs=[['image','画像']];
   tabs.push(['viz', nseg?('演出×'+nseg):'＋演出']);  // 全章（intro/outro含む）で演出を付けられる
   tabs.push(['chapter','章']);

@@ -54,6 +54,9 @@ export type Turn = {
   reveal?: boolean;
   callout_item?: number;
   compare_item?: number;
+  // キーワードテロップ（任意・重ねがけ小演出）。この発言の間、要所の単語を画面上部にポップ表示。
+  // どの演出/画像の上にも乗る。改行可（pre-line）。
+  telop?: string;
 };
 
 // クイズ・リビール：「？」で溜めて答えを出す（掛け合いの問い→外し→実はと相性◎）。
