@@ -2786,9 +2786,9 @@ function chapterDivider(ch,ci){
 function lineRow(tn,gi,ch,ci,inViz){
   const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(inViz?' vizrow':''); row.dataset.gi=gi;
   const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
-  // 演出セグメントのレール（所属＝色帯＋各演出が自分の開始/終了行に常時ハンドル）。trivia章のみ。
+  // 演出セグメントのレール（所属＝色帯＋各演出が自分の開始/終了行に常時ハンドル）。全章（intro/outro含む）で可。
   const seg=segOf(tn,ch); const segIdx=seg?chSegs(ch).indexOf(seg):-1;
-  if(ch.section==='trivia'){
+  {
     const rail=document.createElement('div'); rail.className='rail';
     if(seg){
       const c2=SEGCOL[segIdx%SEGCOL.length]; const rng=segRange(ci,seg.id);
@@ -2869,7 +2869,7 @@ function renderRight(){
   const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
   const inViz=!!tn.vizSeg; const nseg=chSegs(ch).length;
   const tabs=[['image','画像']];
-  if(ch.section==='trivia') tabs.push(['viz', nseg?('演出×'+nseg):'＋演出']);
+  tabs.push(['viz', nseg?('演出×'+nseg):'＋演出']);  // 全章（intro/outro含む）で演出を付けられる
   tabs.push(['chapter','章']);
   let cur=rtab; if(!cur||!tabs.some(t=>t[0]===cur)) cur=inViz?'viz':'image';
   const tb=document.createElement('div'); tb.className='rtabs';
