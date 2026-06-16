@@ -87,7 +87,7 @@ def test_clean_chapters():
         {"section": "intro", "title": "  はじまり  ", "image_cuts": [
             {"image_query": " wifi symbol ", "image_kind": "subject"},
             {"image_query": "router", "image_kind": "bogus"},   # kind不正→ambient
-            {"image_query": "  "},                              # query空→除外
+            {"image_query": "  "},                              # query空→残す(手動画像スロット)
         ]},
         {"section": "bogus", "title": "x"},                     # section不正→trivia / cut無→空query1cut
         "not a dict",                                           # 除外
@@ -96,10 +96,11 @@ def test_clean_chapters():
     out = s._clean_chapters(raw)
     assert len(out) == 3, f"dict以外は除外: {len(out)}"
     assert out[0]["title"] == "はじまり", "trim"
-    assert len(out[0]["image_cuts"]) == 2, "query空cutは除外"
+    assert len(out[0]["image_cuts"]) == 3, "query空cutも残す(カット番号の整合維持)"
     assert out[0]["image_cuts"][0]["image_query"] == "wifi symbol", "queryがtrimされる"
     assert out[0]["image_cuts"][0]["image_kind"] == "subject"
     assert out[0]["image_cuts"][1]["image_kind"] == "ambient", "不正kindはambient"
+    assert out[0]["image_cuts"][2]["image_query"] == "", "query空cutは空queryで残る"
     assert out[1]["section"] == "trivia", "不正sectionはtrivia"
     assert len(out[1]["image_cuts"]) == 1 and out[1]["image_cuts"][0]["image_query"] == "", "cut無しでも最低1cut(空query)"
     assert out[2]["image_cuts"][0]["image_query"] == "old style", "旧単数形式→1cut(後方互換)"

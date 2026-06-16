@@ -366,10 +366,12 @@ def warn_role_voice(script, questioner, explainer):
     return len(hits)
 
 
-def _clean_image_cuts(cuts, limit=4):
+def _clean_image_cuts(cuts, limit=8):
     """image_cuts を [{image_query, image_kind}] へ正規化（純関数）。
 
-    image_kind はenum固定、image_query は trim。dict以外・query空は除外・最大limit個。
+    image_kind はenum固定、image_query は trim。dict以外は除外・最大limit個。
+    **query空のcutも残す**（レビューで「画像だけ手動割当・クエリ空」のカットを追加でき、
+    これを落とすと script.image_cuts と review.json のカット番号がズレて別画像になるため）。
     """
     if not isinstance(cuts, list):
         return []
@@ -381,12 +383,11 @@ def _clean_image_cuts(cuts, limit=4):
         k = c.get("image_kind")
         if k not in VALID_IMAGE_KINDS:
             k = DEFAULT_IMAGE_KIND
-        if q:
-            cut = {"image_query": q, "image_kind": k}
-            ja = (c.get("image_query_ja") or "").strip()
-            if ja:  # 人が確認するための日本語ラベル（任意）
-                cut["image_query_ja"] = ja
-            out.append(cut)
+        cut = {"image_query": q, "image_kind": k}  # q は空でも可（手動画像スロット）
+        ja = (c.get("image_query_ja") or "").strip()
+        if ja:  # 人が確認するための日本語ラベル（任意）
+            cut["image_query_ja"] = ja
+        out.append(cut)
     return out[:limit]
 
 
