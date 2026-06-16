@@ -474,12 +474,12 @@ def _clean_panel(panel):
 
 
 def _clean_quiz(quiz):
-    """章のクイズ定義を正規化（純関数）。question/answer 必須・不正なら None。"""
+    """章のクイズ定義を正規化（純関数）。question 必須・answer は任意（空＝問題だけ出す）。不正なら None。"""
     if not isinstance(quiz, dict):
         return None
     q = strip_markdown((quiz.get("question") or "").strip())
     a = strip_markdown((quiz.get("answer") or "").strip())
-    if not q or not a:
+    if not q:  # answer は空でも可＝「問題だけ表示」（リビールなしで問いを出しっぱなし）
         return None
     out = {"question": q, "answer": a}
     img = (quiz.get("image") or "").strip()

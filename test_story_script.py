@@ -571,14 +571,14 @@ def test_viz_fields_preserved():
                                      "labelBorderColor": "#ffffff", "labelSize": 0.8,
                                      "arrowSize": 2.0, "arrowShape": "sharp"}
     assert data["script"][0]["reveal"] is True and data["script"][1]["callout_item"] == 0
-    # 必須欠落は None 化（quiz answer 無し / compare label 無し / stat value 無し）
+    # answer無しquizは「問題だけ表示」で保持（answer=""）。compare label無し / stat value無し は None化。
     d2 = s.parse_script_json(
         '{"chapters":[{"section":"trivia","title":"X","quiz":{"question":"q"},'
         '"compare":{"left":{"label":"A"}},"stat":{"unit":"倍"},'
         '"image_cuts":[{"image_query":"q","image_kind":"subject"}]}],'
         '"script":[{"speaker":"x","text":"y"}]}')
-    assert "quiz" not in d2["chapters"][0] and "compare" not in d2["chapters"][0]
-    assert "stat" not in d2["chapters"][0]
+    assert d2["chapters"][0].get("quiz") == {"question": "q", "answer": ""}, "answer無しquizは問題だけで保持"
+    assert "compare" not in d2["chapters"][0] and "stat" not in d2["chapters"][0]
     print("  quiz / compare / stat / callouts / reveal / callout_item: 保持と不正値除去 OK")
 
 

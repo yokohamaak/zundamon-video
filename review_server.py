@@ -2176,7 +2176,9 @@ function vizContent(box, vh, ch, ci, onDel){
     // reveal（答えを出す）行で問い→答えに切替。プレビューも選択行時点を再現。
     const _qst=DATA.script[selGi]; const qSel=_qst&&_qst.chapter===ci; let revGi=null;
     (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci&&t.reveal===true&&revGi==null) revGi=g; });
-    const revealed = !qSel ? true : (revGi==null ? true : selGi>=revGi);
+    // 答えが空＝「問題だけ表示」＝リビールしない（常に問いを出す）。
+    const hasAns=!!(q.answer&&q.answer.trim());
+    const revealed = hasAns && (!qSel ? true : (revGi==null ? true : selGi>=revGi));
     const qbw=q.boxWidth?(Math.round(q.boxWidth*100)+'%'):null;  // 枠幅（任意）
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
@@ -2200,7 +2202,7 @@ function vizContent(box, vh, ch, ci, onDel){
       qb.appendChild(qbody); prev.appendChild(qb); }
     box.appendChild(prev);
     const r1=vRow('問い'); const qi=vText(q.question,'画面に出す問い',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); box.appendChild(r1);
-    const r2=vRow('答え'); const ai=vText(q.answer,'リビールで出す答え',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
+    const r2=vRow('答え'); const ai=vText(q.answer,'リビールで出す答え（空＝問題だけ表示）',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
     // 色の編集行ヘルパー（文字色など）。
     const colRow=(label,key,defColor)=>{ const r=vRow(label); const cp=document.createElement('input'); cp.type='color'; cp.value=q[key]||defColor; cp.title='色';
       cp.oninput=()=>{ q[key]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);

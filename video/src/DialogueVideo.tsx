@@ -495,15 +495,15 @@ const QuizVisual: React.FC<{
   portrait: boolean;
 }> = ({ quiz, t, portrait }) => {
   const revealAt = quiz.revealAt ?? 0;
-  // 「考え中の画面」→「答えの画面」をクロスフェード。答えは少し遅れてせり上がる。
-  const rev = interpolate(t, [revealAt, revealAt + 0.35], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const ansPop = interpolate(t, [revealAt + 0.12, revealAt + 0.5], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  // 答えが空＝「問題だけ表示」＝リビールしない（問いを出しっぱなし・答えバナー無し）。
+  const hasAnswer = !!(quiz.answer && quiz.answer.trim());
+  // 「考え中の画面」→「答えの画面」をクロスフェード。答えは少し遅れてせり上がる。答え無しは常に問い。
+  const rev = hasAnswer
+    ? interpolate(t, [revealAt, revealAt + 0.35], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 0;
+  const ansPop = hasAnswer
+    ? interpolate(t, [revealAt + 0.12, revealAt + 0.5], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 0;
   const barPad = portrait ? "10px 18px" : "12px 26px";
   // クイズは画像を使わない演出＝背後の通常画像/黒板をそのまま見せ、その上に重ねる。
   // bg/bgOpacity は「？・問い」を囲む土台パネルの背景色＋不透明度（既定＝濃紺の半透明）。
@@ -1395,11 +1395,13 @@ export const DialogueVideo: React.FC<{
 
       {/* 章見出し。trivia章は「実は＋タイトル」、quizはどのsection(導入含む)でも
           リビール後に問題を左上へ昇格させる枠を出す。画像に重ねず上にフラットバーで。 */}
-      {!portrait && activeTopic && (activeTopic.section === "trivia" || !!activeTopic.quiz)
+      {/* 答えがあるquizだけ「問題→左上バッジへ昇格」。答え無し(問題だけ表示)は昇格させず中央に出しっぱなし。 */}
+      {!portrait && activeTopic &&
+      (activeTopic.section === "trivia" || !!(activeTopic.quiz?.answer && activeTopic.quiz.answer.trim()))
         ? (() => {
             // quiz章はタイトルがネタバレ＆クイズ表示と被るので、通常バッジを出さない。
             // 代わりに「番号(or Q.)＋問題」をリビール後にバッジ枠へフェードインさせる（問題が見出しへ昇格）。
-            const isQuiz = !!activeTopic.quiz;
+            const isQuiz = !!(activeTopic.quiz?.answer && activeTopic.quiz.answer.trim());
             const qRevealAt = activeTopic.quiz?.revealAt ?? 0;
             const badgeText = isQuiz ? activeTopic.quiz?.question : activeTopic.title;
             // 左ラベル：trivia は「実は①」、triviaIndexが無い章(導入/締め)のquizは「Q.」。
