@@ -2184,18 +2184,18 @@ function vizContent(box, vh, ch, ci, onDel){
     const hasAns=!!(q.answer&&q.answer.trim());
     const revealed = hasAns && (!qSel ? true : (revGi==null ? true : selGi>=revGi));
     const qbw=q.boxWidth?(Math.round(q.boxWidth*100)+'%'):null;  // 枠幅（任意）
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px';
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px;container-type:inline-size';
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
-    // ？・問い 土台パネル（中央）
-    const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:10px 18px;box-sizing:border-box;'+(qbw?('width:'+qbw+';max-width:96%'):'max-width:86%');
+    // ？・問い 土台パネル（中央）。幅/余白/文字は本番比率(1920基準)に合わせ、折り返し位置を一致させる(cqw)。
+    const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0.5cqw;border-radius:12px;padding:1.6cqw 2.7cqw;box-sizing:border-box;'+(qbw?('width:'+qbw+';max-width:92%'):'max-width:92%');
     const pbgl=document.createElement('div'); pbgl.style.cssText='position:absolute;inset:0;border-radius:12px;background:'+(q.bg||'#0f141e')+';opacity:'+(q.bgOpacity!=null?q.bgOpacity:0.62); pnl.appendChild(pbgl);
     const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:'+pv(34)+'px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
-    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+pv(14)+'px;text-align:center;white-space:pre-line'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
+    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:2.92cqw;text-align:center;white-space:pre-line'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
     if(!revealed) prev.appendChild(pnl);   // 答え前＝問いだけ
     // 答えバナー（下部）
-    const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:5px 14px;box-sizing:border-box;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4);'+(qbw?('width:'+qbw+';max-width:96%'):'max-width:90%');
+    const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:1cqw 1.77cqw;box-sizing:border-box;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4);'+(qbw?('width:'+qbw+';max-width:92%'):'max-width:90%');
     const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
-    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+pv(16)+'px;text-align:center;white-space:pre-line'; at.textContent=q.answer||'答え'; ans.appendChild(at);
+    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:3.44cqw;text-align:center;white-space:pre-line'; at.textContent=q.answer||'答え'; ans.appendChild(at);
     if(revealed) prev.appendChild(ans);   // 答え以降＝答えバナー
     // リビール後：問いは消えず上部の章バッジ枠へ昇格（本番=「実はN＋問題」）。プレビューも上バーで再現。
     if(revealed){ const qb=document.createElement('div'); qb.style.cssText='position:absolute;left:3%;top:5%;display:flex;align-items:stretch;border-radius:5px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5);max-width:86%';
@@ -2923,15 +2923,15 @@ function renderRight(){
   // 小演出プレビュー（テロップ/リアクション/集中線・flashの位置と見た目）。何かある時だけ出す。
   const punch=(tn.effect==='zoom_punch'||tn.effect==='shake');
   if(tn.telop||tn.reaction||punch||tn.effect==='flash'){
-    const sp=document.createElement('div'); sp.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:4px';
+    const sp=document.createElement('div'); sp.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:4px;container-type:inline-size';
     const su=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
     if(su){ const im=document.createElement('img'); im.src=su; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85'; sp.appendChild(im); }
     if(punch){ const fl=document.createElement('div'); fl.style.cssText='position:absolute;inset:0;opacity:.7;background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,.5) 0deg, rgba(0,0,0,.5) .55deg, transparent .55deg, transparent 2deg);-webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%);mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%)'; sp.appendChild(fl); }
     if(tn.effect==='flash'){ const ff=document.createElement('div'); ff.style.cssText='position:absolute;inset:0;background:#fff;opacity:.45'; sp.appendChild(ff); }
     if(tn.telop){ const tw=document.createElement('div'); tw.style.cssText='position:absolute;top:10%;left:0;right:0;display:flex;justify-content:center';
-      const tc=document.createElement('div'); tc.style.cssText='background:rgba(18,26,40,.9);border:2px solid #ffd84d;border-radius:8px;padding:'+pv(4)+'px '+pv(12)+'px;color:#ffd84d;font-weight:900;font-size:'+pv(18)+'px;line-height:1.25;white-space:pre-line;text-align:center;max-width:88%'; tc.textContent=tn.telop; tw.appendChild(tc); sp.appendChild(tw); }
+      const tc=document.createElement('div'); tc.style.cssText='background:rgba(18,26,40,.9);border:2px solid #ffd84d;border-radius:8px;padding:0.5cqw 1.56cqw;color:#ffd84d;font-weight:900;font-size:2.92cqw;line-height:1.25;white-space:pre-line;text-align:center;max-width:88%'; tc.textContent=tn.telop; tw.appendChild(tc); sp.appendChild(tw); }
     if(tn.reaction){ const isR=/ずんだ/.test(tn.speaker||''); const rc=document.createElement('div');
-      rc.style.cssText='position:absolute;top:22%;'+(isR?'right:13%':'left:13%')+';color:#ffe14d;font-weight:900;font-size:'+pv(48)+'px;line-height:1;white-space:pre-line;text-shadow:0 3px 10px rgba(0,0,0,.55),0 0 3px #000'; rc.textContent=tn.reaction; sp.appendChild(rc); }
+      rc.style.cssText='position:absolute;top:22%;'+(isR?'right:13%':'left:13%')+';color:#ffe14d;font-weight:900;font-size:7.8cqw;line-height:1;white-space:pre-line;text-shadow:0 3px 10px rgba(0,0,0,.55),0 0 3px #000'; rc.textContent=tn.reaction; sp.appendChild(rc); }
     r.appendChild(sp);
     const sn=document.createElement('div'); sn.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px'; sn.textContent='小演出プレビュー（位置/見た目の目安・本番はポップ/バーストで動く）'; r.appendChild(sn);
   }
