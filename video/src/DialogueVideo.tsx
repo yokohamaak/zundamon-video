@@ -1395,9 +1395,11 @@ export const DialogueVideo: React.FC<{
 
       {/* 章見出し。trivia章は「実は＋タイトル」、quizはどのsection(導入含む)でも
           リビール後に問題を左上へ昇格させる枠を出す。画像に重ねず上にフラットバーで。 */}
-      {/* 答えがあるquizだけ「問題→左上バッジへ昇格」。答え無し(問題だけ表示)は昇格させず中央に出しっぱなし。 */}
+      {/* バッジ：通常はtrivia章のタイトル。ただし quiz のある区間は章バッジを出さない
+          （答えありは「問題」がリビールで昇格／答えなし＝問題だけ表示は何も出さず問いに集中）。 */}
       {!portrait && activeTopic &&
-      (activeTopic.section === "trivia" || !!(activeTopic.quiz?.answer && activeTopic.quiz.answer.trim()))
+      ((activeTopic.section === "trivia" && !activeTopic.quiz) ||
+        !!(activeTopic.quiz?.answer && activeTopic.quiz.answer.trim()))
         ? (() => {
             // quiz章はタイトルがネタバレ＆クイズ表示と被るので、通常バッジを出さない。
             // 代わりに「番号(or Q.)＋問題」をリビール後にバッジ枠へフェードインさせる（問題が見出しへ昇格）。
