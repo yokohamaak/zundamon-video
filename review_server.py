@@ -1951,6 +1951,10 @@ function vRow(labelText){ const r=document.createElement('div');
   if(labelText){ const l=document.createElement('span'); l.style.cssText='font-size:12px;color:var(--sub);min-width:118px'; l.textContent=labelText; r.appendChild(l); } return r; }
 function vText(val,ph,oninput){ const i=document.createElement('input'); i.type='text'; i.value=val||''; i.placeholder=ph||'';
   i.style.cssText='flex:1;min-width:160px'; i.oninput=()=>oninput(i.value); return i; }
+// 複数行入力（Enterで任意改行＝画面の折り返し位置を手動指定）。textareaで改行をそのまま保存。
+function vArea(val,ph,oninput){ const t=document.createElement('textarea'); t.value=val||''; t.placeholder=ph||''; t.rows=2;
+  t.style.cssText='flex:1;min-width:160px;resize:vertical;font:inherit;line-height:1.4';
+  t.oninput=()=>{ oninput(t.value); }; return t; }
 function vMini(txt,onclick){ const b=document.createElement('button'); b.className='mini'; b.textContent=txt; b.onclick=onclick; return b; }
 // 演出のタイミングflagをセリフ単位で付け外し（同一値は章内で1発言に限定＝重複を外す）。
 function setUniqueFlag(ci,flag,value,tn,turnOn){
@@ -2186,23 +2190,23 @@ function vizContent(box, vh, ch, ci, onDel){
     const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:10px 18px;box-sizing:border-box;'+(qbw?('width:'+qbw+';max-width:96%'):'max-width:86%');
     const pbgl=document.createElement('div'); pbgl.style.cssText='position:absolute;inset:0;border-radius:12px;background:'+(q.bg||'#0f141e')+';opacity:'+(q.bgOpacity!=null?q.bgOpacity:0.62); pnl.appendChild(pbgl);
     const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:'+pv(34)+'px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
-    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+pv(14)+'px;text-align:center'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
+    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+pv(14)+'px;text-align:center;white-space:pre-line'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
     if(!revealed) prev.appendChild(pnl);   // 答え前＝問いだけ
     // 答えバナー（下部）
     const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:5px 14px;box-sizing:border-box;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4);'+(qbw?('width:'+qbw+';max-width:96%'):'max-width:90%');
     const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
-    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+pv(16)+'px;text-align:center'; at.textContent=q.answer||'答え'; ans.appendChild(at);
+    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+pv(16)+'px;text-align:center;white-space:pre-line'; at.textContent=q.answer||'答え'; ans.appendChild(at);
     if(revealed) prev.appendChild(ans);   // 答え以降＝答えバナー
     // リビール後：問いは消えず上部の章バッジ枠へ昇格（本番=「実はN＋問題」）。プレビューも上バーで再現。
     if(revealed){ const qb=document.createElement('div'); qb.style.cssText='position:absolute;left:3%;top:5%;display:flex;align-items:stretch;border-radius:5px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5);max-width:86%';
       const acc=document.createElement('div'); acc.style.cssText='width:4px;background:#ffd84d;flex:none'; qb.appendChild(acc);
       const qbody=document.createElement('div'); qbody.style.cssText='display:flex;align-items:center;gap:6px;background:rgba(18,30,58,.9);padding:'+pv(4)+'px '+pv(9)+'px';
       const lab=document.createElement('span'); lab.style.cssText='color:#ffd84d;font-weight:800;font-size:'+pv(12)+'px;flex:none'; lab.textContent='Q.'; qbody.appendChild(lab);
-      const qtx=document.createElement('span'); qtx.style.cssText='color:#fff;font-weight:800;font-size:'+pv(12)+'px;line-height:1.2'; qtx.textContent=q.question||'問い'; qbody.appendChild(qtx);
+      const qtx=document.createElement('span'); qtx.style.cssText='color:#fff;font-weight:800;font-size:'+pv(12)+'px;line-height:1.2;white-space:pre-line'; qtx.textContent=q.question||'問い'; qbody.appendChild(qtx);
       qb.appendChild(qbody); prev.appendChild(qb); }
     box.appendChild(prev);
-    const r1=vRow('問い'); const qi=vText(q.question,'画面に出す問い',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); box.appendChild(r1);
-    const r2=vRow('答え'); const ai=vText(q.answer,'リビールで出す答え（空＝問題だけ表示）',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
+    const r1=vRow('問い'); const qi=vArea(q.question,'画面に出す問い（Enterで任意の位置に改行）',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); box.appendChild(r1);
+    const r2=vRow('答え'); const ai=vArea(q.answer,'リビールで出す答え（空＝問題だけ表示・Enterで改行可）',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
     // 色の編集行ヘルパー（文字色など）。
     const colRow=(label,key,defColor)=>{ const r=vRow(label); const cp=document.createElement('input'); cp.type='color'; cp.value=q[key]||defColor; cp.title='色';
       cp.oninput=()=>{ q[key]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
