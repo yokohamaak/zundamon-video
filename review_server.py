@@ -2191,12 +2191,12 @@ function vizContent(box, vh, ch, ci, onDel){
     const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:'+(30*S).toFixed(1)+'px '+(52*S).toFixed(1)+'px;box-sizing:border-box;'+(qbw?('width:'+qbw+';max-width:92%'):'max-width:92%');
     const pbgl=document.createElement('div'); pbgl.style.cssText='position:absolute;inset:0;border-radius:12px;background:'+(q.bg||'#0f141e')+';opacity:'+(q.bgOpacity!=null?q.bgOpacity:0.62); pnl.appendChild(pbgl);
     const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:'+pv(34)+'px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
-    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+(56*S).toFixed(1)+'px;text-align:center;white-space:pre-line'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
+    const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+(56*(q.questionSize||1)*S).toFixed(1)+'px;text-align:center;white-space:pre-line'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
     if(!revealed) prev.appendChild(pnl);   // 答え前＝問いだけ
     // 答えバナー（下部）
     const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:'+(12*S).toFixed(1)+'px '+(34*S).toFixed(1)+'px;box-sizing:border-box;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4);'+(qbw?('width:'+qbw+';max-width:92%'):'max-width:90%');
     const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
-    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+(66*S).toFixed(1)+'px;text-align:center;white-space:pre-line'; at.textContent=q.answer||'答え'; ans.appendChild(at);
+    const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+(66*(q.answerSize||1)*S).toFixed(1)+'px;text-align:center;white-space:pre-line'; at.textContent=q.answer||'答え'; ans.appendChild(at);
     if(revealed) prev.appendChild(ans);   // 答え以降＝答えバナー
     // リビール後：問いは消えず上部の章バッジ枠へ昇格（本番=「実はN＋問題」）。プレビューも上バーで再現。
     if(revealed){ const qb=document.createElement('div'); qb.style.cssText='position:absolute;left:3%;top:5%;display:flex;align-items:stretch;border-radius:5px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5);max-width:86%';
@@ -2226,6 +2226,15 @@ function vizContent(box, vh, ch, ci, onDel){
     const wshow=()=>{ wsv.textContent=(q.boxWidth!=null?Math.round(q.boxWidth*100)+'%':'自動'); }; wshow();
     wsl.oninput=()=>{ q.boxWidth=parseFloat(wsl.value); wshow(); }; wsl.onchange=()=>render();
     wr.appendChild(stepWrap(wsl)); wr.appendChild(wsv); wr.appendChild(vMini('自動',()=>{ delete q.boxWidth; render(); })); box.appendChild(wr);
+    // 問い/答えの文字サイズ倍率（個別）。
+    const qSzRow=(label,key)=>{ const rr=vRow(label); const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
+      sl.value=(q[key]!=null?q[key]:1); sl.style.cssText='width:120px;vertical-align:middle'; sl.title='文字サイズ倍率';
+      const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:34px;display:inline-block;text-align:right';
+      const show=()=>{ sv.textContent=(q[key]!=null?q[key]:1).toFixed(1)+'倍'; }; show();
+      sl.oninput=()=>{ q[key]=parseFloat(sl.value); show(); }; sl.onchange=()=>render();
+      rr.appendChild(stepWrap(sl)); rr.appendChild(sv); rr.appendChild(vMini('既定',()=>{ delete q[key]; render(); })); return rr; };
+    box.appendChild(qSzRow('問いの大きさ','questionSize'));
+    box.appendChild(qSzRow('答えの大きさ','answerSize'));
   }
   else if(vh.compare){ const c=vh.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // ライブプレビュー（左右2分割の最終分割状態＝render(CompareVisual)に合わせたモック）。

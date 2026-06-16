@@ -549,7 +549,7 @@ const QuizVisual: React.FC<{
           {/* 土台パネルの背景（色＋不透明度・別レイヤー）。 */}
           <div style={{ position: "absolute", inset: 0, background: panelBg, opacity: panelOp, borderRadius: 24 }} />
           <div style={{ position: "relative", fontSize: portrait ? 130 : 180, fontWeight: 900, color: "#ffd84d", lineHeight: 1, textShadow: "0 4px 16px rgba(0,0,0,0.5)" }}>？</div>
-          <div style={{ position: "relative", fontSize: portrait ? 44 : 56, fontWeight: 800, color: qTextColor, textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,0.6)", whiteSpace: "pre-line" }}>{quiz.question}</div>
+          <div style={{ position: "relative", fontSize: (portrait ? 44 : 56) * (quiz.questionSize ?? 1), fontWeight: 800, color: qTextColor, textAlign: "center", textShadow: "0 2px 8px rgba(0,0,0,0.6)", whiteSpace: "pre-line" }}>{quiz.question}</div>
         </div>
       </div>
 
@@ -593,7 +593,7 @@ const QuizVisual: React.FC<{
         <div style={{ position: "relative", overflow: "hidden", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.45)", padding: portrait ? "10px 26px" : "12px 34px", width: qBoxW, maxWidth: "100%", boxSizing: "border-box", textAlign: "center" }}>
           {/* 答えバナーの背景（色＋不透明度・別レイヤー）。既定＝黄色のほぼ不透明。 */}
           <div style={{ position: "absolute", inset: 0, background: quiz.answerBg || "#ffd84d", opacity: quiz.answerBgOpacity ?? 0.96, borderRadius: 14 }} />
-          <div style={{ position: "relative", color: ansTextColor, fontWeight: 900, fontSize: portrait ? 50 : 66, textAlign: "center", lineHeight: 1.2, whiteSpace: "pre-line" }}>{quiz.answer}</div>
+          <div style={{ position: "relative", color: ansTextColor, fontWeight: 900, fontSize: (portrait ? 50 : 66) * (quiz.answerSize ?? 1), textAlign: "center", lineHeight: 1.2, whiteSpace: "pre-line" }}>{quiz.answer}</div>
         </div>
       </div>
     </div>

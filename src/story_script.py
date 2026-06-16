@@ -506,6 +506,10 @@ def _clean_quiz(quiz):
     bw = quiz.get("boxWidth")
     if isinstance(bw, (int, float)) and not isinstance(bw, bool) and 0.2 <= float(bw) <= 1.0:
         out["boxWidth"] = round(float(bw), 3)
+    for k in ("questionSize", "answerSize"):  # 問い/答えの文字サイズ倍率（任意）
+        sz = _clean_size(quiz.get(k))
+        if sz is not None:
+            out[k] = sz
     return out
 
 
