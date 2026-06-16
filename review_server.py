@@ -1571,7 +1571,14 @@ STORY_PAGE = """<!doctype html>
   .line .rail .bh { position:absolute; left:1px; width:58px; display:flex; align-items:center; gap:2px; z-index:1; }
   .line .rail .bh.s { top:1px; }      /* 開始＝行の上端 */
   .line .rail .bh.e { bottom:1px; }   /* 終了＝行の下端 */
-  .line .rail .bh .lab { font-size:9px; font-weight:800; color:#fff; border-radius:4px; padding:1px 3px; line-height:1.3; }
+  .line .rail .bh .lab { font-size:9px; font-weight:800; color:#fff; border-radius:4px; padding:1px 3px; line-height:1.3; cursor:pointer; }
+  .line .rail .bh .lab.armed { outline:2px solid #fff; box-shadow:0 0 0 2px #6b6ae0, 0 0 8px #6b6ae0; }
+  /* つかみ中：行が移動先タップ対象＝ポインタ＋淡い枠 */
+  .arming .line { cursor:pointer; }
+  .arming .line:hover { box-shadow:inset 0 0 0 2px #6b6ae0; }
+  .armbar { position:sticky; top:0; z-index:20; background:#6b6ae0; color:#fff; font-size:12px; font-weight:700;
+            padding:6px 12px; border-radius:8px; margin:0 0 8px; display:flex; align-items:center; gap:10px; }
+  .armbar button { font-size:11px; padding:2px 8px; border:1px solid #fff; border-radius:6px; background:transparent; color:#fff; cursor:pointer; }
   .line .rail .bh button { width:15px; height:16px; border:1px solid #313a47; border-radius:4px; background:#141a23;
                            color:#9aa6ba; cursor:pointer; font-size:10px; line-height:1; padding:0; box-sizing:border-box; }
   .line .rail .bh button:hover:not(:disabled) { border-color:#6b6ae0; color:#dbe1ec; }
@@ -1598,6 +1605,7 @@ STORY_PAGE = """<!doctype html>
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // 二画面：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
+let armEdge=null;  // 演出範囲の「つかんで置く」: {seg:id, edge:'s'|'e'} or null。ラベルタップでつかみ→行タップで一気に移動
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -2731,10 +2739,16 @@ function render(){
   m.innerHTML='';
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
-  const tp=document.createElement('div'); tp.className='tp';
+  const tp=document.createElement('div'); tp.className='tp'+(armEdge?' arming':'');  // つかみ中は行=移動先タップ対象
   const left=document.createElement('div'); left.className='tp-left';
   const right=document.createElement('div'); right.className='tp-right'+(rwide?' wide':''); right.id='rpane';
   tp.appendChild(left); tp.appendChild(right); m.appendChild(tp);
+  // つかみ中バー（移動先の行をタップ／解除）。
+  if(armEdge){ const ab=document.createElement('div'); ab.className='armbar';
+    const lbl=(armEdge.edge==='s'?'開始':'終了');
+    const t=document.createElement('span'); t.textContent='✊ '+lbl+'をつかみ中：移動先の行をタップ（隣の演出から自動で奪う）'; ab.appendChild(t);
+    const cx=document.createElement('button'); cx.textContent='解除'; cx.onclick=()=>{ armEdge=null; render(); }; ab.appendChild(cx);
+    left.appendChild(ab); }
   // 左上：テーマ＋推定ゲージ
   const th=document.createElement('div'); th.className='theme';
   const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
@@ -2800,7 +2814,12 @@ function lineRow(tn,gi,ch,ci,inViz){
       const multi=(rng.e>rng.s);  // 2行以上なら縮められる
       // 1行ずつ動かすハンドル（↑↓）。↑↓の向き=範囲を広げる/狭める。広げる時は隣の演出から1行奪う。
       const mkBh=(cls,label,btns)=>{ const bh=document.createElement('div'); bh.className='bh '+cls;
-        const lab=document.createElement('span'); lab.className='lab'; lab.style.background=c2; lab.textContent=label; bh.appendChild(lab);
+        // ラベル＝「つかむ」ボタン。タップで掴む→移動先の行をタップで一気に移動。再タップで解除。
+        const armd=(armEdge&&armEdge.seg===seg.id&&armEdge.edge===cls);
+        const lab=document.createElement('span'); lab.className='lab'+(armd?' armed':''); lab.style.background=c2; lab.textContent=label;
+        lab.title='タップで“つかむ”→移動先の行をタップで一気に移動';
+        lab.onclick=(e)=>{ e.stopPropagation(); armEdge=armd?null:{seg:seg.id,edge:cls}; render(); };
+        bh.appendChild(lab);
         btns.forEach(([sym,title,enabled,fn])=>{ const b=document.createElement('button'); b.textContent=sym; b.title=title; b.disabled=!enabled;
           b.onclick=(e)=>{ e.stopPropagation(); if(!enabled)return; fn(); render(); }; bh.appendChild(b); });
         rail.appendChild(bh); };
@@ -2834,6 +2853,16 @@ function lineRow(tn,gi,ch,ci,inViz){
   bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
   la.appendChild(bs); la.appendChild(bd);
   row.onclick=()=>{
+    // 「つかんで置く」中：この章にそのセグメントがあれば、タップ行へ境界を一気に移動。
+    if(armEdge){
+      if(chSegs(ch).some(s=>s.id===armEdge.seg)){
+        const cur=segRange(ci,armEdge.seg);
+        if(armEdge.edge==='s') retagSeg(ci,armEdge.seg,gi,(cur.e<0?gi:cur.e));
+        else retagSeg(ci,armEdge.seg,(cur.s<0?gi:cur.s),gi);
+        armEdge=null; render(); return;
+      }
+      armEdge=null;  // 別章をタップ＝つかみ解除して通常選択へ
+    }
     const chg=(selGi!==gi);
     if(chg){ selGi=gi; rtab=null; }
     if(seg) selSeg=seg.id;   // 演出セグメントの行を選んだらそのセグメントを選択
@@ -2983,7 +3012,7 @@ function renderVizTab(r,tn,ch,ci){
   let cur=segs.find(s=>s.id===selSeg); if(!cur){ const ls=segOf(tn,ch); if(ls){ cur=ls; selSeg=ls.id; } }
   if(cur){
     const n=document.createElement('div'); n.style.cssText='font-size:11px;color:var(--sub);margin:6px 0';
-    n.textContent='範囲は左レールの「開始/終了」の↑↓で1行ずつ調整（'+(VIZ_LABEL[cur.type]||'')+'）。広げると隣の演出から奪う。タイミングはこのセグメント内のセリフを選んで設定。';
+    n.textContent='範囲調整（'+(VIZ_LABEL[cur.type]||'')+'）＝左レールの「開始/終了」ラベルをタップ→移動先の行をタップで一気に移動（↑↓は1行ずつ微調整）。広げると隣の演出から自動で奪う。タイミングはこのセグメント内のセリフを選んで設定。';
     r.appendChild(n);
     if(tn.vizSeg===cur.id) r.appendChild(turnVizControl(tn, selGi, cur, ci));
     const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;';
