@@ -2977,13 +2977,10 @@ function renderRight(){
   // 小演出プレビュー（テロップ/リアクション/集中線・flashの位置と見た目）。何かある時だけ出す。
   const punch=(tn.effect==='zoom_punch'||tn.effect==='shake');
   if(tn.telop||tn.reaction||punch||tn.effect==='flash'){
-    // プレビュー枠＝全画面(1920×1080)。テロップ/リアクションは全画面座標で配置（本番と一致）。
-    const sp=document.createElement('div'); sp.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0a0d12;margin-bottom:4px'; const PW2=(((document.getElementById('rpane')||{}).clientWidth)||480)-28, S2=PW2/1920;
-    // 中央ビジュアル(板)＝本番のBOARD/visualBox位置。画像はここに入る。
-    const vbox=document.createElement('div'); vbox.style.cssText='position:absolute;left:19.3%;top:6.5%;width:61.4%;height:61.4%;overflow:hidden;background:#11151c;border-radius:3px';
+    // プレビュー枠＝画像エリア(中央ビジュアル)。テロップ/リアクションは画像エリア基準で配置（本番と一致・中央=画像エリアの中央）。
+    const sp=document.createElement('div'); sp.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:4px'; const PW2=(((document.getElementById('rpane')||{}).clientWidth)||480)-28, S2=PW2/1179;
     const su=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
-    if(su){ const im=document.createElement('img'); im.src=su; im.style.cssText='width:100%;height:100%;object-fit:cover;opacity:.9'; vbox.appendChild(im); }
-    sp.appendChild(vbox);
+    if(su){ const im=document.createElement('img'); im.src=su; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.9'; sp.appendChild(im); }
     if(punch){ const fl=document.createElement('div'); fl.style.cssText='position:absolute;inset:0;opacity:.7;background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,.5) 0deg, rgba(0,0,0,.5) .55deg, transparent .55deg, transparent 2deg);-webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%);mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%)'; sp.appendChild(fl); }
     if(tn.effect==='flash'){ const ff=document.createElement('div'); ff.style.cssText='position:absolute;inset:0;background:#fff;opacity:.45'; sp.appendChild(ff); }
     if(tn.telop){ const tx=(tn.telopX!=null?tn.telopX:0.5), ty=(tn.telopY!=null?tn.telopY:0.12);

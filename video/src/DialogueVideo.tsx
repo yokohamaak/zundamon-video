@@ -1511,8 +1511,8 @@ export const DialogueVideo: React.FC<{
         <div
           style={{
             position: "absolute",
-            left: `${(telopX * 100).toFixed(2)}%`,
-            top: `${(telopY * 100).toFixed(2)}%`,
+            left: visualLeft + telopX * visualBoxW,  // 画像エリア(中央ビジュアル)基準。中央=画像エリアの中央。
+            top: visualTop + telopY * visualBoxH,
             transform: `translate(-50%, -50%) scale(${telopScale.toFixed(3)})`,
             transformOrigin: "center",
             pointerEvents: "none",
@@ -1542,8 +1542,8 @@ export const DialogueVideo: React.FC<{
         <div
           style={{
             position: "absolute",
-            left: `${(rxX * 100).toFixed(2)}%`,
-            top: `${(rxY * 100).toFixed(2)}%`,
+            left: visualLeft + rxX * visualBoxW,  // 画像エリア基準
+            top: visualTop + rxY * visualBoxH,
             transform: `translate(-50%, -50%) scale(${rxScale.toFixed(3)}) rotate(${rxRot.toFixed(1)}deg)`,
             transformOrigin: "center",
             pointerEvents: "none",
