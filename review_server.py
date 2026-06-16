@@ -2915,7 +2915,7 @@ function renderRight(){
   const tlr=document.createElement('div'); tlr.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px';
   const tll=document.createElement('span'); tll.textContent='💬テロップ'; tll.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
   const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
-  tli.rows=1; tli.onchange=()=>renderRight();   // blurでプレビュー反映
+  tli.rows=1; tli.onchange=()=>render();   // blurでプレビュー＋左の行バッジを反映（全体再描画・スクロール保持）
   tlr.appendChild(tll); tlr.appendChild(tli); r.appendChild(tlr);
   // リアクション記号（per-line・重ねがけ）。プリセットをタップで付け外し。
   const rxr=document.createElement('div'); rxr.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap';
@@ -2923,8 +2923,8 @@ function renderRight(){
   rxr.appendChild(rxl);
   ['！？','💡','✨','！','？','😲'].forEach(sym=>{ const b=document.createElement('button'); b.type='button';
     b.className='vchip'+(tn.reaction===sym?' on':''); b.textContent=sym; b.style.fontSize='15px';
-    b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); renderRight(); }; rxr.appendChild(b); });
-  rxr.appendChild(vMini('×',()=>{ delete tn.reaction; markDirty(); renderRight(); }));
+    b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); render(); }; rxr.appendChild(b); });
+  rxr.appendChild(vMini('×',()=>{ delete tn.reaction; markDirty(); render(); }));
   r.appendChild(rxr);
   // --- テロップ/リアクションの調整（大きさ/長さ/色）。該当が有る時だけ出す。 ---
   const ctlRow=(label)=>{ const r2=document.createElement('div'); r2.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap;font-size:11px;color:var(--sub)';
