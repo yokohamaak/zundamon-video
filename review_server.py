@@ -2185,7 +2185,7 @@ function vizContent(box, vh, ch, ci, onDel){
     const hasAns=!!(q.answer&&q.answer.trim());
     const revealed = hasAns && (!qSel ? true : (revGi==null ? true : selGi>=revGi));
     const qbw=q.boxWidth?(Math.round(q.boxWidth*100)+'%'):null;  // 枠幅（任意）
-    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px'; const PW=(((document.getElementById('rpane')||{}).clientWidth)||480)-28, S=PW/1920;
+    const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px'; const PW=(((document.getElementById('rpane')||{}).clientWidth)||480)-28, S=PW/1179;
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
     // ？・問い 土台パネル（中央）。幅/余白/文字は本番比率(1920基準)に合わせ、折り返し位置を一致させる。
     const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:'+(30*S).toFixed(1)+'px '+(52*S).toFixed(1)+'px;box-sizing:border-box;'+(qbw?('width:'+qbw+';max-width:92%'):'max-width:92%');
@@ -2951,7 +2951,7 @@ function renderRight(){
   // 小演出プレビュー（テロップ/リアクション/集中線・flashの位置と見た目）。何かある時だけ出す。
   const punch=(tn.effect==='zoom_punch'||tn.effect==='shake');
   if(tn.telop||tn.reaction||punch||tn.effect==='flash'){
-    const sp=document.createElement('div'); sp.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:4px'; const PW2=(((document.getElementById('rpane')||{}).clientWidth)||480)-28, S2=PW2/1920;
+    const sp=document.createElement('div'); sp.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:4px'; const PW2=(((document.getElementById('rpane')||{}).clientWidth)||480)-28, S2=PW2/1179;
     const su=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
     if(su){ const im=document.createElement('img'); im.src=su; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85'; sp.appendChild(im); }
     if(punch){ const fl=document.createElement('div'); fl.style.cssText='position:absolute;inset:0;opacity:.7;background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,.5) 0deg, rgba(0,0,0,.5) .55deg, transparent .55deg, transparent 2deg);-webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%);mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%)'; sp.appendChild(fl); }
