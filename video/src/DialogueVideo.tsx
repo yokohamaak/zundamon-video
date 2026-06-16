@@ -87,10 +87,12 @@ function hasDepth(meta: Meta, image?: string): boolean {
 }
 
 // 「実は」バッジのラベル。ネタ番号を丸数字で（1〜10は①②…、超えたら数字）。
+// 章バッジ左の番号ラベル（物語のビート番号）。①②③…。idx無しは空（ラベルを出さない）。
+// ※旧「実は〇〇雑学」の "実は" プレフィックスは撤去（なぜ〜のか深掘り形式では不適切）。
 function triviaLabel(idx?: number): string {
-  if (!idx) return "実は";
+  if (!idx) return "";
   const circled = "①②③④⑤⑥⑦⑧⑨⑩";
-  return "実は " + (idx >= 1 && idx <= 10 ? circled[idx - 1] : String(idx));
+  return idx >= 1 && idx <= 10 ? circled[idx - 1] : String(idx);
 }
 
 // 話者→性別を解決。名前には依存しない（キャラ名が変わっても壊れない）。

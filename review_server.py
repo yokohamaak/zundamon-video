@@ -2468,7 +2468,7 @@ function spokenLen(text){
   return [...s].length;
 }
 function secLbl(ch,i,all){ if(ch.section==='intro')return '導入'; if(ch.section==='outro')return '締め';
-  let n=0; for(let j=0;j<=i;j++) if((all[j]||{}).section==='trivia')n++; return '実は'+n; }
+  let n=0; for(let j=0;j<=i;j++) if((all[j]||{}).section==='trivia')n++; return 'ビート'+n; }
 function buildEstimate(){
   const sc=DATA.script||[], ch=DATA.chapters||[]; const per=ch.map(()=>0); let total=0;
   sc.forEach(t=>{ const n=spokenLen(t.text); total+=n; if(typeof t.chapter==='number'&&per[t.chapter]!=null) per[t.chapter]+=n; });
@@ -3176,7 +3176,7 @@ function secLabel(ch, idx, all){
   if(ch.section==='intro') return '導入';
   if(ch.section==='outro') return '締め';
   let n=0; for(let i=0;i<=idx;i++){ if((all[i].section)==='trivia') n++; }
-  return '実は '+n;
+  return 'ビート'+n;
 }
 function render(){
   const root=document.getElementById('doc'); root.innerHTML='';
