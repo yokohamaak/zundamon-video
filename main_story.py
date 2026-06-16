@@ -156,6 +156,17 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
             ncut = max(1, min(len(cuts), len(idxs)))
             groups = [(ci, ci * len(idxs) // ncut, (ci + 1) * len(idxs) // ncut)
                       for ci in range(ncut)]
+        # 各cutグループを vizSeg の切れ目でさらに分割：1 topic = 1カット(画像) かつ 1演出。
+        # （同じカット内に複数演出があると、従来は時間が重なる最初の1つしか載らず、2つ目以降が消えていた。）
+        split = []
+        for ci, lo, hi in groups:
+            s = lo
+            for k in range(lo + 1, hi):
+                if turns[idxs[k]].get("vizSeg") != turns[idxs[k - 1]].get("vizSeg"):
+                    split.append((ci, s, k))
+                    s = k
+            split.append((ci, s, hi))
+        groups = split
         # 演出セグメント（範囲ごとに種類＋設定。1章に複数可・重ならない前提）。
         # 新形式 vizList があればそれ、無ければ旧単一形式(章直下の panel/quiz/…)を1セグメントへ。
         viz_segments = _resolve_viz_segments(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch)
