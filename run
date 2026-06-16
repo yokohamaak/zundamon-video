@@ -170,14 +170,15 @@ echo "  6) dev       Studioで全体プレビュー(HMR)"
 echo "  7) render    全体を書き出し"
 echo "  8) build     音声+meta+書き出し（本番出力）"
 echo "[章単位]  ※先に audio（meta.json）が必要。0=導入 1..=本編 末尾=締め"
-echo "  9) dev 章     章だけプレビュー案内（章一覧→章番号を聞く）"
-echo " 10) render 章  章だけ書き出し → out/ch<N>.mp4（章一覧→章番号を聞く）"
+echo "  9) chapters   章一覧を表示（番号/種別/フレーム/タイトル）"
+echo " 10) dev 章     章だけプレビュー案内（章一覧→章番号を聞く）"
+echo " 11) render 章  章だけ書き出し → out/ch<N>.mp4（章一覧→章番号を聞く）"
 echo "[ショート]"
-echo " 11) shorts    一括生成"
-echo " 12) s-audio   音声+meta"
-echo " 13) depth     深度（パララックス）"
-echo " 14) s-render  書き出し"
-echo " 15) s-build   音声+meta+深度+書き出し"
+echo " 12) shorts    一括生成"
+echo " 13) s-audio   音声+meta"
+echo " 14) depth     深度（パララックス）"
+echo " 15) s-render  書き出し"
+echo " 16) s-build   音声+meta+深度+書き出し"
 echo "  0) help"
 read -rp "番号: " n
 n="$(z2h "$n")"
@@ -190,12 +191,13 @@ case "$n" in
   6) cmd_dev ;;
   7) cmd_render ;;
   8) cmd_build ;;
-  9) cmd_chapters || true; read -rp "章番号: " c; cmd_dev "$(z2h "$c")" ;;
-  10) cmd_chapters || true; read -rp "章番号: " c; cmd_render "$(z2h "$c")" ;;
-  11) cmd_shorts "" ;;
-  12) read -rp "slug: " s; cmd_s_audio "$s" ;;
-  13) read -rp "slug: " s; cmd_depth "$s" ;;
-  14) read -rp "slug: " s; cmd_s_render "$s" ;;
-  15) read -rp "slug: " s; cmd_s_build "$s" ;;
+  9) cmd_chapters || true ;;
+  10) cmd_chapters || true; read -rp "章番号: " c; cmd_dev "$(z2h "$c")" ;;
+  11) cmd_chapters || true; read -rp "章番号: " c; cmd_render "$(z2h "$c")" ;;
+  12) cmd_shorts "" ;;
+  13) read -rp "slug: " s; cmd_s_audio "$s" ;;
+  14) read -rp "slug: " s; cmd_depth "$s" ;;
+  15) read -rp "slug: " s; cmd_s_render "$s" ;;
+  16) read -rp "slug: " s; cmd_s_build "$s" ;;
   0|*) cmd_help ;;
 esac
