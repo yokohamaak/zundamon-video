@@ -787,31 +787,33 @@ const CalloutOverlay: React.FC<{
 // 重ねエフェクト（台本 turn.effect）。kenburns は基準（追加なし）。
 // zoom_punch/shake は中央画像 transform に合成、flash/glow_pulse は重ねレイヤーで表現。
 // ターン開始(turn.start)からの経過で発火・減衰させ、決定論的に（sin/cosで）算出する。
-type FX = { punchScale: number; shakeX: number; shakeY: number; flash: number; glow: number };
+type FX = { punchScale: number; shakeX: number; shakeY: number; flash: number; glow: number; focus: number };
 function effectState(
   turn: Turn | null,
   t: number,
   frame: number
 ): FX {
-  const fx: FX = { punchScale: 0, shakeX: 0, shakeY: 0, flash: 0, glow: 0 };
+  const fx: FX = { punchScale: 0, shakeX: 0, shakeY: 0, flash: 0, glow: 0, focus: 0 };
   if (!turn) return fx;
   const since = t - (turn.start ?? 0); // ターン開始からの秒
   const clamp = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
   switch (turn.effect) {
     case "zoom_punch":
-      // 開始0.5sで+8%→0へ減衰（グッと寄ってから落ち着く）
+      // 開始0.5sで+8%→0へ減衰（グッと寄ってから落ち着く）＋集中線を一瞬バースト
       fx.punchScale = interpolate(since, [0, 0.5], [0.08, 0], clamp);
+      fx.focus = interpolate(since, [0, 0.06, 0.4], [0, 1, 0], clamp);
       break;
     case "shake": {
-      // 開始0.8sで減衰する揺れ。sin/cosで決定論的に振動。
+      // 開始0.8sで減衰する揺れ。sin/cosで決定論的に振動＋集中線。
       const env = interpolate(since, [0, 0.8], [1, 0], clamp);
       fx.shakeX = Math.sin(frame * 1.7) * 1.2 * env;
       fx.shakeY = Math.cos(frame * 2.3) * 1.2 * env;
+      fx.focus = interpolate(since, [0, 0.06, 0.5], [0, 0.85, 0], clamp);
       break;
     }
     case "flash":
-      // 開始0.35sの白フラッシュ（0.7→0）
-      fx.flash = interpolate(since, [0, 0.35], [0.7, 0], clamp);
+      // 開始0.4sの白フラッシュ（0.85→0・転換の見せ場を強める）
+      fx.flash = interpolate(since, [0, 0.4], [0.85, 0], clamp);
       break;
     case "glow_pulse":
       // 持続する発光脈動（0.12〜0.44を往復）
@@ -1558,6 +1560,26 @@ export const DialogueVideo: React.FC<{
         >
           {reactionText}
         </div>
+      ) : null}
+
+      {/* 集中線（重ねがけ）：zoom_punch/shake の瞬間に画面端から放射状の線をバースト。 */}
+      {fx.focus > 0.01 ? (
+        <AbsoluteFill
+          style={{
+            pointerEvents: "none",
+            zIndex: 8,
+            opacity: fx.focus,
+            background:
+              "repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,0.5) 0deg, rgba(0,0,0,0.5) 0.55deg, transparent 0.55deg, transparent 2deg)",
+            WebkitMaskImage: "radial-gradient(circle at 50% 50%, transparent 42%, #000 72%)",
+            maskImage: "radial-gradient(circle at 50% 50%, transparent 42%, #000 72%)",
+          }}
+        />
+      ) : null}
+
+      {/* フラッシュ（重ねがけ）：effect=flash の白い閃光（章/演出の切替を強める）。最前面。 */}
+      {fx.flash > 0.01 ? (
+        <AbsoluteFill style={{ pointerEvents: "none", zIndex: 11, background: "#fff", opacity: fx.flash }} />
       ) : null}
 
       {portrait ? (
