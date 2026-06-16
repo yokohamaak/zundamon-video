@@ -658,6 +658,16 @@ def append_closing_chorus(script_result, config, rotation=None):
         txt = t.get("text") or ""
         return t.get("section") == "outro" and ("チャンネル登録" in txt or "高評価" in txt)
 
+    # 作り直し前に、締め行へ人手で付けた小演出(テロップ/リアクション/声/間)をテキストで控え、新行へ引き継ぐ。
+    _CARRY = ("telop", "telopSize", "telopX", "telopY", "telopDur", "telopColor", "telopBg", "telopBorder",
+              "reaction", "reactionSize", "reactionX", "reactionY", "reactionDur", "voice", "pause")
+    old_fx = {}
+    for t in (script_result.get("script") or []):
+        if t.get("closing") or t.get("chorus") or _is_cta(t):
+            txt = (t.get("text") or "").strip()
+            fx = {k: t[k] for k in _CARRY if k in t}
+            if txt and fx:
+                old_fx[txt] = fx
     script = [t for t in (script_result.get("script") or [])
               if not (t.get("closing") or t.get("chorus") or _is_cta(t))]
     last = script[-1] if script else {}
@@ -669,6 +679,9 @@ def append_closing_chorus(script_result, config, rotation=None):
              "chapter": ch, "effect": "kenburns", "cut": cut, "closing": True}
         if chorus:
             t["chorus"] = True
+        fx = old_fx.get((text or "").strip())  # 人手で付けた小演出を引き継ぐ
+        if fx:
+            t.update(fx)
         return t
 
     # ① 締めCTA（巡回プール or 固定。コメント誘導/高評価/登録）
