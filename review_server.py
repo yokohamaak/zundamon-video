@@ -2845,7 +2845,12 @@ function lineRow(tn,gi,ch,ci,inViz){
   const av=document.createElement('div'); av.className='av'; av.style.background=col; av.textContent=(tn.speaker||'?').slice(0,1);
   // 名前＋本文（縦並び）
   const lc=document.createElement('div'); lc.className='lc';
-  const nm=document.createElement('div'); nm.className='nm'; nm.style.color=col; nm.textContent=tn.speaker||'';
+  const nm=document.createElement('div'); nm.className='nm'; nm.style.cssText='display:flex;align-items:center;gap:5px;flex-wrap:wrap';
+  const nmName=document.createElement('span'); nmName.style.color=col; nmName.textContent=tn.speaker||''; nm.appendChild(nmName);
+  // 小演出バッジ（迷子防止）：テロップ/リアクションが付いた行に表示。
+  const sbadge=(txt,bg)=>{ const b=document.createElement('span'); b.textContent=txt; b.style.cssText='font-size:10px;font-weight:700;color:#fff;background:'+bg+';border-radius:4px;padding:1px 5px;line-height:1.5;white-space:nowrap'; return b; };
+  if(tn.telop) nm.appendChild(sbadge('💬'+(tn.telop.length>6?tn.telop.slice(0,6)+'…':tn.telop),'#6b6ae0'));
+  if(tn.reaction) nm.appendChild(sbadge('😲'+tn.reaction,'#c0497a'));
   const tx=document.createElement('div'); tx.className='tx'+(tn.text?'':' empty'); tx.textContent=tn.text||'(空・ダブルクリックで入力)';
   tx.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,tx); };
   lc.appendChild(nm); lc.appendChild(tx);
