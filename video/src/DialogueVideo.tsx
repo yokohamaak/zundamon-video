@@ -1393,15 +1393,22 @@ export const DialogueVideo: React.FC<{
         {/* 白フラッシュ転換は廃止（章切替はページめくりで表現）。 */}
       </div>
 
-      {/* 章見出し（trivia章のみ）。画像枠の外＝画像の上に、フラットな見出しバーで「実は＋タイトル」。
-          画像に重ねない。切替でフェード＋わずかに下から出す。 */}
-      {!portrait && activeTopic && activeTopic.section === "trivia"
+      {/* 章見出し。trivia章は「実は＋タイトル」、quizはどのsection(導入含む)でも
+          リビール後に問題を左上へ昇格させる枠を出す。画像に重ねず上にフラットバーで。 */}
+      {!portrait && activeTopic && (activeTopic.section === "trivia" || !!activeTopic.quiz)
         ? (() => {
             // quiz章はタイトルがネタバレ＆クイズ表示と被るので、通常バッジを出さない。
-            // 代わりに「実は番号＋問題」をリビール後にバッジ枠へフェードインさせる（問題が見出しへ昇格）。
+            // 代わりに「番号(or Q.)＋問題」をリビール後にバッジ枠へフェードインさせる（問題が見出しへ昇格）。
             const isQuiz = !!activeTopic.quiz;
             const qRevealAt = activeTopic.quiz?.revealAt ?? 0;
             const badgeText = isQuiz ? activeTopic.quiz?.question : activeTopic.title;
+            // 左ラベル：trivia は「実は①」、triviaIndexが無い章(導入/締め)のquizは「Q.」。
+            const badgeLabel =
+              activeTopic.triviaIndex != null
+                ? triviaLabel(activeTopic.triviaIndex)
+                : isQuiz
+                ? "Q."
+                : "";
             const badgeOpacity = isQuiz
               ? interpolate(t, [qRevealAt, qRevealAt + 0.4], [0, 1], {
                   extrapolateLeft: "clamp",
@@ -1438,9 +1445,11 @@ export const DialogueVideo: React.FC<{
                     padding: "7px 22px",
                   }}
                 >
-                  <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>
-                    {triviaLabel(activeTopic.triviaIndex)}
-                  </span>
+                  {badgeLabel ? (
+                    <span style={{ color: "#ffd84d", fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>
+                      {badgeLabel}
+                    </span>
+                  ) : null}
                   {badgeText ? (
                     <span
                       style={{
