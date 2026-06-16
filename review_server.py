@@ -2909,7 +2909,7 @@ function renderRight(){
   const tlr=document.createElement('div'); tlr.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px';
   const tll=document.createElement('span'); tll.textContent='💬テロップ'; tll.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
   const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
-  tli.rows=1;
+  tli.rows=1; tli.onchange=()=>renderRight();   // blurでプレビュー反映
   tlr.appendChild(tll); tlr.appendChild(tli); r.appendChild(tlr);
   // リアクション記号（per-line・重ねがけ）。プリセットをタップで付け外し。
   const rxr=document.createElement('div'); rxr.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap';
@@ -2920,6 +2920,21 @@ function renderRight(){
     b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); renderRight(); }; rxr.appendChild(b); });
   rxr.appendChild(vMini('×',()=>{ delete tn.reaction; markDirty(); renderRight(); }));
   r.appendChild(rxr);
+  // 小演出プレビュー（テロップ/リアクション/集中線・flashの位置と見た目）。何かある時だけ出す。
+  const punch=(tn.effect==='zoom_punch'||tn.effect==='shake');
+  if(tn.telop||tn.reaction||punch||tn.effect==='flash'){
+    const sp=document.createElement('div'); sp.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#11151c;margin-bottom:4px';
+    const su=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
+    if(su){ const im=document.createElement('img'); im.src=su; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85'; sp.appendChild(im); }
+    if(punch){ const fl=document.createElement('div'); fl.style.cssText='position:absolute;inset:0;opacity:.7;background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,.5) 0deg, rgba(0,0,0,.5) .55deg, transparent .55deg, transparent 2deg);-webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%);mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%)'; sp.appendChild(fl); }
+    if(tn.effect==='flash'){ const ff=document.createElement('div'); ff.style.cssText='position:absolute;inset:0;background:#fff;opacity:.45'; sp.appendChild(ff); }
+    if(tn.telop){ const tw=document.createElement('div'); tw.style.cssText='position:absolute;top:10%;left:0;right:0;display:flex;justify-content:center';
+      const tc=document.createElement('div'); tc.style.cssText='background:rgba(18,26,40,.9);border:2px solid #ffd84d;border-radius:8px;padding:'+pv(4)+'px '+pv(12)+'px;color:#ffd84d;font-weight:900;font-size:'+pv(18)+'px;line-height:1.25;white-space:pre-line;text-align:center;max-width:88%'; tc.textContent=tn.telop; tw.appendChild(tc); sp.appendChild(tw); }
+    if(tn.reaction){ const isR=/ずんだ/.test(tn.speaker||''); const rc=document.createElement('div');
+      rc.style.cssText='position:absolute;top:22%;'+(isR?'right:13%':'left:13%')+';color:#ffe14d;font-weight:900;font-size:'+pv(48)+'px;line-height:1;white-space:pre-line;text-shadow:0 3px 10px rgba(0,0,0,.55),0 0 3px #000'; rc.textContent=tn.reaction; sp.appendChild(rc); }
+    r.appendChild(sp);
+    const sn=document.createElement('div'); sn.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px'; sn.textContent='小演出プレビュー（位置/見た目の目安・本番はポップ/バーストで動く）'; r.appendChild(sn);
+  }
   const tabs=[['image','画像']];
   tabs.push(['viz', nseg?('演出×'+nseg):'＋演出']);  // 全章（intro/outro含む）で演出を付けられる
   tabs.push(['chapter','章']);
