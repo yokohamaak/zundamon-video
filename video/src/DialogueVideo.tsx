@@ -87,7 +87,7 @@ function hasDepth(meta: Meta, image?: string): boolean {
 }
 
 // 「実は」バッジのラベル。ネタ番号を丸数字で（1〜10は①②…、超えたら数字）。
-// 章バッジ左の番号ラベル（物語のビート番号）。①②③…。idx無しは空（ラベルを出さない）。
+// 章バッジ左の番号ラベル（本編チャプターの通し番号）。①②③…。idx無しは空（ラベルを出さない）。
 // ※旧「実は〇〇雑学」の "実は" プレフィックスは撤去（なぜ〜のか深掘り形式では不適切）。
 function triviaLabel(idx?: number): string {
   if (!idx) return "";
