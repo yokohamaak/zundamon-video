@@ -79,7 +79,7 @@ cmd_help() {
   review            レビュー画面を開く（/story・/shorts）
   audio             音声＋meta を生成（VOICEVOX・全体で1回）
   meta              画像/見出しだけ直した時：音声据置で meta だけ再生成（全体）
-  dev [章]          Remotion Studio（HMRプレビュー）。章番号を付けるとその章の頭フレームを案内
+  dev [章]          Remotion Studio（HMRプレビュー）。章番号を付けると横1章プレビュー(DialogueChapter)を起動
   render [章]       本編(横16:9)を書き出し → out/video.mp4。章番号を付けるとその章だけ out/ch<N>.mp4
   build             音声＋meta → 書き出し を一気に（レビュー後の本番出力）
   chapters          章一覧（番号/種別/フレーム/タイトル）を表示。0=導入 1..=本編 末尾=締め
@@ -103,14 +103,17 @@ cmd_images()  { run "$PY main_story.py --from-script $STORY/script.json --stop-a
 cmd_review()  { run "$PY review_server.py --dir $STORY"; }
 cmd_audio()   { run "$PY main_story.py --from-script $STORY/script.json --images-from-dir"; }
 cmd_meta()    { run "$PY main_story.py --from-script $STORY/script.json --meta-only"; }
-cmd_dev()     {   # Studio（HMRプレビュー）。章番号を渡すとその章の頭フレームへ移動する案内を出す。
+cmd_dev()     {   # Studio（HMRプレビュー）。章番号を渡すと横1章プレビュー(DialogueChapter)を章クリップで起動。
   local ch="${1:-}"
   if [ -n "$ch" ]; then
-    ch="$(z2h "$ch")"; local r; r="$(chap_range "$ch")" || exit 1
-    set -- $r  # sf ef ss ee
-    echo "▶ 章${ch} は frame ${1}〜${2}（${3}s〜${4}s）。Studioのタイムラインでそのフレームへ移動して確認してね。"
+    ch="$(z2h "$ch")"
+    chap_range "$ch" >/dev/null || exit 1   # 章の存在チェック（無ければエラーで停止）
+    echo "▶ 章${ch} を横プレビュー。Studio左の 'DialogueChapter' を開いてね（章${ch}にクリップ済み・HMR反復可）。"
+    echo "  ※別の章に変えるなら props欄の clipChapter を編集 or ./run dev <別の章> で再起動。"
+    run "cd video && REMOTION_CHAPTER=${ch} npm run dev"
+  else
+    run "cd video && npm run dev"
   fi
-  run "cd video && npm run dev"
 }
 cmd_render()  {   # 書き出し。章番号を渡すとその章だけ video/out/ch<N>.mp4 に書き出す（--frames）。
   local ch="${1:-}"
@@ -171,7 +174,7 @@ echo "  7) render    全体を書き出し"
 echo "  8) build     音声+meta+書き出し（本番出力）"
 echo "[章単位]  ※先に audio（meta.json）が必要。0=導入 1..=本編 末尾=締め"
 echo "  9) chapters   章一覧を表示（番号/種別/フレーム/タイトル）"
-echo " 10) dev 章     章だけプレビュー案内（章一覧→章番号を聞く）"
+echo " 10) dev 章     横1章プレビュー(DialogueChapter)を起動（章一覧→章番号を聞く）"
 echo " 11) render 章  章だけ書き出し → out/ch<N>.mp4（章一覧→章番号を聞く）"
 echo "[ショート]"
 echo " 12) shorts    一括生成"

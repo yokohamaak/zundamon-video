@@ -15,6 +15,11 @@ const SHORT_HEIGHT = 1920;
 // 末尾の余韻（秒）
 const TAIL_SEC = 0.8;
 
+// dev <章> で渡す章番号（横・1章プレビュー用）。REMOTION_CHAPTER 環境変数→既定0。
+// Studio起動時にバンドルへ埋め込まれる。章を変えるなら REMOTION_CHAPTER を変えて再起動するか、
+// Studioのprops欄で clipChapter を直接編集（calculateMetadataが再クリップ）。
+const PREVIEW_CHAPTER = Number(process.env.REMOTION_CHAPTER ?? "0") || 0;
+
 // meta.json と立ち絵manifestを読み込む（横/縦の両Compositionで共用）。
 async function loadMeta(): Promise<Meta> {
   const res = await fetch(staticFile("meta.json"));
@@ -103,6 +108,34 @@ export const RemotionRoot: React.FC = () => {
           return {
             durationInFrames: Math.max(1, Math.ceil(end * FPS) + tailFrames(meta)),
             props: { meta },
+          };
+        }}
+      />
+
+      {/* 横・1章だけのライブプレビュー（dev <章>用）。中身は本編と同じ DialogueVideo を
+          clipChapter で1章にクリップ＝ショートのフック/CTAや縦レイアウトは付けない。
+          章は REMOTION_CHAPTER（dev <章>が設定）or Studioのprops欄 clipChapter で指定。 */}
+      <Composition
+        id="DialogueChapter"
+        component={DialogueVideo}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        defaultProps={{
+          meta: undefined as unknown as Meta,
+          clipStartSec: 0,
+          clipEndSec: 0,
+          clipChapter: PREVIEW_CHAPTER as number | undefined,
+        }}
+        calculateMetadata={async ({ props }) => {
+          const meta = await loadMeta();
+          const clip = computeClip(meta, props.clipChapter);
+          const scriptEnd = meta.script.reduce((max, t) => Math.max(max, t.end ?? 0), 0);
+          const start = clip?.start ?? 0;
+          const end = clip?.end ?? scriptEnd;
+          return {
+            durationInFrames: Math.max(1, Math.ceil((end - start) * FPS) + tailFrames(meta)),
+            props: { meta, clipStartSec: start, clipEndSec: end, clipChapter: props.clipChapter },
           };
         }}
       />
