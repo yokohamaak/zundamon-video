@@ -2161,7 +2161,9 @@ function vizContent(box, vh, ch, ci, onDel){
   }
   else if(vh.quiz){ const q=vh.quiz;
     // ライブプレビュー（背後の画像＋「？・問い」土台＋答えバナー。動画では問い→答えに切替）。
-    const u=imgUrl(ci,0); const co0=cutMap[ci+'_0']||{}; const cut0=(ch.image_cuts&&ch.image_cuts[0])||{};
+    // クイズは自前の画像を持たず通常画像の上に重なる＝背後は「選択行のcut」（本番と一致させる）。
+    const _qsel=DATA.script[selGi]; const qcut=(_qsel&&_qsel.chapter===ci&&typeof _qsel.cut==='number')?_qsel.cut:0;
+    const u=imgUrl(ci,qcut); const co0=cutMap[ci+'_'+qcut]||{}; const cut0=(ch.image_cuts&&ch.image_cuts[qcut])||{};
     const pfit=co0.fit||(cut0.image_kind==='subject'?'contain':'cover'); const pbg=(pfit==='contain'?(co0.bg||'#1a2230'):'#222');
     // reveal（答えを出す）行で問い→答えに切替。プレビューも選択行時点を再現。
     const _qst=DATA.script[selGi]; const qSel=_qst&&_qst.chapter===ci; let revGi=null;
