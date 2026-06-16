@@ -911,6 +911,29 @@ def _normalize_panel_fields(turn):
             turn.pop("reaction", None)
     else:
         turn.pop("reaction", None)
+    # テロップ/リアクションの調整（大きさ/位置/長さ/色）。任意・不正は削除。
+    for k in ("telopSize", "reactionSize"):
+        v = _clean_size(turn.get(k))
+        if v is not None:
+            turn[k] = v
+        else:
+            turn.pop(k, None)
+    for k in ("telopX", "telopY", "reactionX", "reactionY"):
+        v = turn.get(k)
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            turn[k] = round(min(1.0, max(0.0, float(v))), 4)
+        else:
+            turn.pop(k, None)
+    for k in ("telopDur", "reactionDur"):
+        if turn.get(k) not in ("short", "normal", "long"):
+            turn.pop(k, None)
+    for k in ("telopColor", "telopBg", "telopBorder"):
+        c = turn.get(k)
+        c = c.strip() if isinstance(c, str) else ""
+        if c:
+            turn[k] = c
+        else:
+            turn.pop(k, None)
 
 
 def normalize_turns(script: list, chapters: list = None) -> list:

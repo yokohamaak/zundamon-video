@@ -1021,28 +1021,36 @@ export const DialogueVideo: React.FC<{
   const isContain = activeTopic?.fit === "contain";
   const containZoom = portrait ? 0.08 : 0.04;
   const containTransform = freezeImage ? "none" : `scale(${(1 + containZoom * kbProgress).toFixed(4)})` + fxTransform;
-  // キーワードテロップ（重ねがけ小演出）：発言の telop を画面上部にポップ表示。どの演出/画像の上にも乗る。
+  const clampE = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
+  // キーワードテロップ（重ねがけ小演出）：telop を任意位置にポップ。大きさ/位置/長さ/色を指定可。
   const telopText = activeTurn?.telop ?? "";
   const telopStart = activeTurn?.start ?? 0;
+  const telopDurSec = activeTurn?.telopDur === "short" ? 1.3 : activeTurn?.telopDur === "long" ? 1e6 : 2.6;
   const telopOp = telopText
-    ? interpolate(t, [telopStart, telopStart + 0.18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    ? interpolate(t, [telopStart, telopStart + 0.18], [0, 1], clampE) *
+      interpolate(t, [telopStart + telopDurSec, telopStart + telopDurSec + 0.3], [1, 0], clampE)
     : 0;
-  const telopScale = telopText
-    ? interpolate(t, [telopStart, telopStart + 0.16, telopStart + 0.42], [0.6, 1.08, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  // リアクション記号（重ねがけ）：発言頭で話者側に弾けて短く消える。
+  const telopScale = telopText ? interpolate(t, [telopStart, telopStart + 0.16, telopStart + 0.42], [0.6, 1.08, 1], clampE) : 1;
+  const telopFontPx = (portrait ? 46 : 56) * (activeTurn?.telopSize ?? 1);
+  const telopX = typeof activeTurn?.telopX === "number" ? activeTurn.telopX : 0.5;
+  const telopY = typeof activeTurn?.telopY === "number" ? activeTurn.telopY : (portrait ? 0.16 : 0.12);
+  const telopColor = activeTurn?.telopColor || "#ffd84d";
+  const telopBg = activeTurn?.telopBg || "rgba(18,26,40,0.9)";
+  const telopBorder = activeTurn?.telopBorder || "#ffd84d";
+  // リアクション記号（重ねがけ）：発言頭で弾けて消える。大きさ/位置/長さを指定可（既定=話者側）。
   const reactionText = activeTurn?.reaction ?? "";
   const rxStart = activeTurn?.start ?? 0;
+  const rxHold: [number, number] =
+    activeTurn?.reactionDur === "short" ? [0.5, 0.7] : activeTurn?.reactionDur === "long" ? [1.6, 2.0] : [0.8, 1.1];
   const rxOp = reactionText
-    ? interpolate(t, [rxStart, rxStart + 0.12, rxStart + 0.8, rxStart + 1.1], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    ? interpolate(t, [rxStart, rxStart + 0.12, rxStart + rxHold[0], rxStart + rxHold[1]], [0, 1, 1, 0], clampE)
     : 0;
-  const rxScale = reactionText
-    ? interpolate(t, [rxStart, rxStart + 0.15, rxStart + 0.38], [0.3, 1.25, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 1;
-  const rxRot = reactionText
-    ? interpolate(t, [rxStart, rxStart + 0.3], [-14, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
-    : 0;
-  const rxRight = activeSpeaker === rightSpeaker; // 右キャラ側に出す
+  const rxScale = reactionText ? interpolate(t, [rxStart, rxStart + 0.15, rxStart + 0.38], [0.3, 1.25, 1], clampE) : 1;
+  const rxRot = reactionText ? interpolate(t, [rxStart, rxStart + 0.3], [-14, 0], clampE) : 0;
+  const rxRight = activeSpeaker === rightSpeaker; // 右キャラ側（既定位置）
+  const rxFontPx = (portrait ? 120 : 150) * (activeTurn?.reactionSize ?? 1);
+  const rxX = typeof activeTurn?.reactionX === "number" ? activeTurn.reactionX : (rxRight ? 0.85 : 0.15);
+  const rxY = typeof activeTurn?.reactionY === "number" ? activeTurn.reactionY : (portrait ? 0.3 : 0.24);
   // 補正フィルタ（画像レビュー指定）→ CSS filter 文字列。
   const flt = activeTopic?.filter;
   const imgFilter = flt
@@ -1498,61 +1506,52 @@ export const DialogueVideo: React.FC<{
           })()
         : null}
 
-      {/* キーワードテロップ（重ねがけ）：画面上部にポップ。発言中ずっと表示・章バッジや演出の上に乗る。 */}
+      {/* キーワードテロップ（重ねがけ）：指定位置(既定=上中央)にポップ。大きさ/長さ/色は発言フィールド。 */}
       {telopText ? (
         <div
           style={{
             position: "absolute",
-            top: portrait ? "13%" : "10%",
-            left: 0,
-            right: 0,
-            display: "flex",
-            justifyContent: "center",
+            left: `${(telopX * 100).toFixed(2)}%`,
+            top: `${(telopY * 100).toFixed(2)}%`,
+            transform: `translate(-50%, -50%) scale(${telopScale.toFixed(3)})`,
+            transformOrigin: "center",
             pointerEvents: "none",
             zIndex: 9,
             opacity: telopOp,
+            maxWidth: "86%",
+            background: telopBg,
+            border: `3px solid ${telopBorder}`,
+            borderRadius: 12,
+            padding: portrait ? "8px 20px" : "10px 30px",
+            color: telopColor,
+            fontWeight: 900,
+            fontSize: telopFontPx,
+            lineHeight: 1.25,
+            textAlign: "center",
+            whiteSpace: "pre-line",
+            textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
           }}
         >
-          <div
-            style={{
-              transform: `scale(${telopScale.toFixed(3)})`,
-              transformOrigin: "center",
-              background: "rgba(18,26,40,0.9)",
-              border: "3px solid #ffd84d",
-              borderRadius: 12,
-              padding: portrait ? "8px 20px" : "10px 30px",
-              color: "#ffd84d",
-              fontWeight: 900,
-              fontSize: portrait ? 46 : 56,
-              lineHeight: 1.25,
-              textAlign: "center",
-              whiteSpace: "pre-line",
-              textShadow: "0 2px 8px rgba(0,0,0,0.6)",
-              maxWidth: "88%",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
-            }}
-          >
-            {telopText}
-          </div>
+          {telopText}
         </div>
       ) : null}
 
-      {/* リアクション記号（重ねがけ）：話者側に弾けて短く消える。 */}
+      {/* リアクション記号（重ねがけ）：指定位置(既定=話者側)で弾けて消える。大きさ/長さは発言フィールド。 */}
       {reactionText ? (
         <div
           style={{
             position: "absolute",
-            top: portrait ? "30%" : "22%",
-            left: rxRight ? undefined : (portrait ? "8%" : "13%"),
-            right: rxRight ? (portrait ? "8%" : "13%") : undefined,
+            left: `${(rxX * 100).toFixed(2)}%`,
+            top: `${(rxY * 100).toFixed(2)}%`,
+            transform: `translate(-50%, -50%) scale(${rxScale.toFixed(3)}) rotate(${rxRot.toFixed(1)}deg)`,
+            transformOrigin: "center",
             pointerEvents: "none",
             zIndex: 10,
             opacity: rxOp,
-            transform: `scale(${rxScale.toFixed(3)}) rotate(${rxRot.toFixed(1)}deg)`,
-            transformOrigin: "center",
             color: "#ffe14d",
             fontWeight: 900,
-            fontSize: portrait ? 120 : 150,
+            fontSize: rxFontPx,
             lineHeight: 1,
             textShadow: "0 4px 14px rgba(0,0,0,0.55), 0 0 4px #000",
             whiteSpace: "pre-line",

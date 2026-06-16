@@ -54,11 +54,21 @@ export type Turn = {
   reveal?: boolean;
   callout_item?: number;
   compare_item?: number;
-  // キーワードテロップ（任意・重ねがけ小演出）。この発言の間、要所の単語を画面上部にポップ表示。
-  // どの演出/画像の上にも乗る。改行可（pre-line）。
+  // キーワードテロップ（任意・重ねがけ小演出）。この発言の間、要所の単語をポップ表示。改行可（pre-line）。
   telop?: string;
-  // リアクション記号（任意・重ねがけ小演出）。！？💡✨等を発言頭で瞬間的に弾く（話者側に出る）。
+  telopSize?: number;     // 大きさ倍率（既定1）
+  telopX?: number;        // 位置x 0..1（未指定=上中央）
+  telopY?: number;        // 位置y 0..1
+  telopDur?: "short" | "normal" | "long"; // 表示の長さ（既定normal）
+  telopColor?: string;    // 文字色（既定 #ffd84d）
+  telopBg?: string;       // 背景色（既定 rgba(18,26,40,0.9)）
+  telopBorder?: string;   // 枠色（既定 #ffd84d）
+  // リアクション記号（任意・重ねがけ小演出）。発言頭で瞬間的に弾く（既定=話者側）。
   reaction?: string;
+  reactionSize?: number;  // 大きさ倍率（既定1）
+  reactionX?: number;     // 位置x 0..1（未指定=話者側）
+  reactionY?: number;     // 位置y 0..1
+  reactionDur?: "short" | "normal" | "long"; // 表示の長さ（既定normal）
 };
 
 // クイズ・リビール：「？」で溜めて答えを出す（掛け合いの問い→外し→実はと相性◎）。
