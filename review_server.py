@@ -2911,6 +2911,15 @@ function renderRight(){
   const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
   tli.rows=1;
   tlr.appendChild(tll); tlr.appendChild(tli); r.appendChild(tlr);
+  // リアクション記号（per-line・重ねがけ）。プリセットをタップで付け外し。
+  const rxr=document.createElement('div'); rxr.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap';
+  const rxl=document.createElement('span'); rxl.textContent='😲リアクション'; rxl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
+  rxr.appendChild(rxl);
+  ['！？','💡','✨','！','？','😲'].forEach(sym=>{ const b=document.createElement('button'); b.type='button';
+    b.className='vchip'+(tn.reaction===sym?' on':''); b.textContent=sym; b.style.fontSize='15px';
+    b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); renderRight(); }; rxr.appendChild(b); });
+  rxr.appendChild(vMini('×',()=>{ delete tn.reaction; markDirty(); renderRight(); }));
+  r.appendChild(rxr);
   const tabs=[['image','画像']];
   tabs.push(['viz', nseg?('演出×'+nseg):'＋演出']);  // 全章（intro/outro含む）で演出を付けられる
   tabs.push(['chapter','章']);

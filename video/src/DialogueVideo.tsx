@@ -1028,6 +1028,19 @@ export const DialogueVideo: React.FC<{
   const telopScale = telopText
     ? interpolate(t, [telopStart, telopStart + 0.16, telopStart + 0.42], [0.6, 1.08, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
     : 1;
+  // リアクション記号（重ねがけ）：発言頭で話者側に弾けて短く消える。
+  const reactionText = activeTurn?.reaction ?? "";
+  const rxStart = activeTurn?.start ?? 0;
+  const rxOp = reactionText
+    ? interpolate(t, [rxStart, rxStart + 0.12, rxStart + 0.8, rxStart + 1.1], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 0;
+  const rxScale = reactionText
+    ? interpolate(t, [rxStart, rxStart + 0.15, rxStart + 0.38], [0.3, 1.25, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
+  const rxRot = reactionText
+    ? interpolate(t, [rxStart, rxStart + 0.3], [-14, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 0;
+  const rxRight = activeSpeaker === rightSpeaker; // 右キャラ側に出す
   // 補正フィルタ（画像レビュー指定）→ CSS filter 文字列。
   const flt = activeTopic?.filter;
   const imgFilter = flt
@@ -1519,6 +1532,31 @@ export const DialogueVideo: React.FC<{
           >
             {telopText}
           </div>
+        </div>
+      ) : null}
+
+      {/* リアクション記号（重ねがけ）：話者側に弾けて短く消える。 */}
+      {reactionText ? (
+        <div
+          style={{
+            position: "absolute",
+            top: portrait ? "30%" : "22%",
+            left: rxRight ? undefined : (portrait ? "8%" : "13%"),
+            right: rxRight ? (portrait ? "8%" : "13%") : undefined,
+            pointerEvents: "none",
+            zIndex: 10,
+            opacity: rxOp,
+            transform: `scale(${rxScale.toFixed(3)}) rotate(${rxRot.toFixed(1)}deg)`,
+            transformOrigin: "center",
+            color: "#ffe14d",
+            fontWeight: 900,
+            fontSize: portrait ? 120 : 150,
+            lineHeight: 1,
+            textShadow: "0 4px 14px rgba(0,0,0,0.55), 0 0 4px #000",
+            whiteSpace: "pre-line",
+          }}
+        >
+          {reactionText}
         </div>
       ) : null}
 

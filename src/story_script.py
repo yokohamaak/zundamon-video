@@ -901,6 +901,16 @@ def _normalize_panel_fields(turn):
             turn.pop("telop", None)
     else:
         turn.pop("telop", None)
+    # リアクション記号（任意・重ねがけ小演出）。！？💡✨等を瞬間的に弾く。空は削除・短く制限。
+    rx = turn.get("reaction")
+    if isinstance(rx, str):
+        rx = strip_markdown(rx).strip()[:12]
+        if rx:
+            turn["reaction"] = rx
+        else:
+            turn.pop("reaction", None)
+    else:
+        turn.pop("reaction", None)
 
 
 def normalize_turns(script: list, chapters: list = None) -> list:
