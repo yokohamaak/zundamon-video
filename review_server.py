@@ -1606,6 +1606,7 @@ STORY_PAGE = """<!doctype html>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // 二画面：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
 let armEdge=null;  // 演出範囲の「つかんで置く」: {seg:id, edge:'s'|'e'} or null。ラベルタップでつかみ→行タップで一気に移動
+let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -2920,6 +2921,28 @@ function renderRight(){
     b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); renderRight(); }; rxr.appendChild(b); });
   rxr.appendChild(vMini('×',()=>{ delete tn.reaction; markDirty(); renderRight(); }));
   r.appendChild(rxr);
+  // --- テロップ/リアクションの調整（大きさ/長さ/色）。該当が有る時だけ出す。 ---
+  const ctlRow=(label)=>{ const r2=document.createElement('div'); r2.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap;font-size:11px;color:var(--sub)';
+    const l=document.createElement('span'); l.textContent=label; l.style.cssText='flex:none;min-width:56px'; r2.appendChild(l); return r2; };
+  const sizeCtl=(row,key)=>{ const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1'; sl.value=(tn[key]!=null?tn[key]:1); sl.style.cssText='width:100px;vertical-align:middle';
+    const sv=document.createElement('span'); sv.style.cssText='min-width:30px'; const show=()=>sv.textContent=(tn[key]!=null?tn[key]:1).toFixed(1)+'倍'; show();
+    sl.oninput=()=>{ tn[key]=parseFloat(sl.value); show(); markDirty(); }; sl.onchange=()=>renderRight();
+    row.appendChild(document.createTextNode('大きさ')); row.appendChild(stepWrap(sl)); row.appendChild(sv); };
+  const durCtl=(row,key)=>{ row.appendChild(document.createTextNode('長さ'));
+    [['short','短'],['normal','通常'],['long','長']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button'; b.className='vchip'+(((tn[key]||'normal')===v)?' on':''); b.textContent=t;
+      b.onclick=()=>{ if(v==='normal') delete tn[key]; else tn[key]=v; markDirty(); renderRight(); }; row.appendChild(b); }); };
+  const colCtl=(row,label,key,def)=>{ const cp=document.createElement('input'); cp.type='color'; cp.value=tn[key]||def; cp.title=label;
+    cp.oninput=()=>{ tn[key]=cp.value; markDirty(); }; cp.onchange=()=>renderRight();
+    row.appendChild(document.createTextNode(label)); row.appendChild(cp); row.appendChild(vMini('既',()=>{ delete tn[key]; markDirty(); renderRight(); })); };
+  if(tn.telop){ const r2=ctlRow('テロップ'); sizeCtl(r2,'telopSize'); durCtl(r2,'telopDur'); r.appendChild(r2);
+    const r3=ctlRow('色'); colCtl(r3,'文字','telopColor','#ffd84d'); colCtl(r3,'背景','telopBg','#121a28'); colCtl(r3,'枠','telopBorder','#ffd84d'); r.appendChild(r3); }
+  if(tn.reaction){ const r2=ctlRow('リアクション'); sizeCtl(r2,'reactionSize'); durCtl(r2,'reactionDur'); r.appendChild(r2); }
+  // 位置の配置対象トグル（プレビューをクリックで配置）。
+  if(tn.telop||tn.reaction){ const pr=ctlRow('位置');
+    [['telop','テロップ',!!tn.telop],['reaction','リアクション',!!tn.reaction]].forEach(([v,t,on])=>{ if(!on)return; const b=document.createElement('button'); b.type='button'; b.className='vchip'+(placeMode===v?' on':''); b.textContent=t+'を配置';
+      b.onclick=()=>{ placeMode=v; renderRight(); }; pr.appendChild(b); });
+    pr.appendChild(vMini('位置リセット',()=>{ ['telopX','telopY','reactionX','reactionY'].forEach(k=>delete tn[k]); markDirty(); renderRight(); }));
+    r.appendChild(pr); }
   // 小演出プレビュー（テロップ/リアクション/集中線・flashの位置と見た目）。何かある時だけ出す。
   const punch=(tn.effect==='zoom_punch'||tn.effect==='shake');
   if(tn.telop||tn.reaction||punch||tn.effect==='flash'){
@@ -2928,12 +2951,20 @@ function renderRight(){
     if(su){ const im=document.createElement('img'); im.src=su; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85'; sp.appendChild(im); }
     if(punch){ const fl=document.createElement('div'); fl.style.cssText='position:absolute;inset:0;opacity:.7;background:repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,.5) 0deg, rgba(0,0,0,.5) .55deg, transparent .55deg, transparent 2deg);-webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%);mask-image:radial-gradient(circle at 50% 50%, transparent 42%, #000 72%)'; sp.appendChild(fl); }
     if(tn.effect==='flash'){ const ff=document.createElement('div'); ff.style.cssText='position:absolute;inset:0;background:#fff;opacity:.45'; sp.appendChild(ff); }
-    if(tn.telop){ const tw=document.createElement('div'); tw.style.cssText='position:absolute;top:10%;left:0;right:0;display:flex;justify-content:center';
-      const tc=document.createElement('div'); tc.style.cssText='background:rgba(18,26,40,.9);border:2px solid #ffd84d;border-radius:8px;padding:0.5cqw 1.56cqw;color:#ffd84d;font-weight:900;font-size:2.92cqw;line-height:1.25;white-space:pre-line;text-align:center;max-width:88%'; tc.textContent=tn.telop; tw.appendChild(tc); sp.appendChild(tw); }
-    if(tn.reaction){ const isR=/ずんだ/.test(tn.speaker||''); const rc=document.createElement('div');
-      rc.style.cssText='position:absolute;top:22%;'+(isR?'right:13%':'left:13%')+';color:#ffe14d;font-weight:900;font-size:7.8cqw;line-height:1;white-space:pre-line;text-shadow:0 3px 10px rgba(0,0,0,.55),0 0 3px #000'; rc.textContent=tn.reaction; sp.appendChild(rc); }
+    if(tn.telop){ const tx=(tn.telopX!=null?tn.telopX:0.5), ty=(tn.telopY!=null?tn.telopY:0.12);
+      const tc=document.createElement('div');
+      tc.style.cssText='position:absolute;left:'+(tx*100)+'%;top:'+(ty*100)+'%;transform:translate(-50%,-50%);background:'+(tn.telopBg||'rgba(18,26,40,.9)')+';border:2px solid '+(tn.telopBorder||'#ffd84d')+';border-radius:8px;padding:0.5cqw 1.56cqw;color:'+(tn.telopColor||'#ffd84d')+';font-weight:900;font-size:'+(2.92*(tn.telopSize||1)).toFixed(2)+'cqw;line-height:1.25;white-space:pre-line;text-align:center;max-width:86%';
+      tc.textContent=tn.telop; sp.appendChild(tc); }
+    if(tn.reaction){ const isR=/ずんだ/.test(tn.speaker||''); const rxx=(tn.reactionX!=null?tn.reactionX:(isR?0.85:0.15)), rxy=(tn.reactionY!=null?tn.reactionY:0.24);
+      const rc=document.createElement('div');
+      rc.style.cssText='position:absolute;left:'+(rxx*100)+'%;top:'+(rxy*100)+'%;transform:translate(-50%,-50%);color:#ffe14d;font-weight:900;font-size:'+(7.8*(tn.reactionSize||1)).toFixed(2)+'cqw;line-height:1;white-space:pre-line;text-shadow:0 3px 10px rgba(0,0,0,.55),0 0 3px #000'; rc.textContent=tn.reaction; sp.appendChild(rc); }
+    sp.style.cursor='crosshair';
+    sp.onclick=(e)=>{ const b=sp.getBoundingClientRect(); const rd=n=>Math.round(Math.min(1,Math.max(0,n))*1000)/1000;
+      const x=rd((e.clientX-b.left)/b.width), y=rd((e.clientY-b.top)/b.height);
+      if(placeMode==='reaction'&&tn.reaction){ tn.reactionX=x; tn.reactionY=y; } else if(tn.telop){ tn.telopX=x; tn.telopY=y; } else if(tn.reaction){ tn.reactionX=x; tn.reactionY=y; }
+      markDirty(); renderRight(); };
     r.appendChild(sp);
-    const sn=document.createElement('div'); sn.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px'; sn.textContent='小演出プレビュー（位置/見た目の目安・本番はポップ/バーストで動く）'; r.appendChild(sn);
+    const sn=document.createElement('div'); sn.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px'; sn.textContent='クリックで配置（上の「○を配置」で対象切替）。位置/大きさ/色/長さを反映・本番はポップ/バーストで動く。'; r.appendChild(sn);
   }
   const tabs=[['image','画像']];
   tabs.push(['viz', nseg?('演出×'+nseg):'＋演出']);  // 全章（intro/outro含む）で演出を付けられる
