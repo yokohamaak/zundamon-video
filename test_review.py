@@ -35,6 +35,26 @@ def test_safe_ext():
     print("  safe_ext: 許可拡張子のみ・パス事故防止 OK")
 
 
+def test_preview_assets():
+    tmp = tempfile.mkdtemp()
+    old = R.DIR
+    R.DIR = tmp
+    try:
+        for name in ("meta.json", "digest.mp3", "ch_00_00.png", "ch_00_00.depth.png"):
+            with open(os.path.join(tmp, name), "wb") as f:
+                f.write(b"x")
+        assert R.preview_asset_path("meta.json") == os.path.join(tmp, "meta.json")
+        assert R.preview_asset_path("ch_00_00.png") == os.path.join(tmp, "ch_00_00.png")
+        assert R.preview_asset_path("../../.env") is None
+        assert R.preview_asset_path("unknown/file.txt") is None
+        assert R.depth_manifest() == ["ch_00_00.png"]
+        manifest = R.avatar_manifest()
+        assert "zundamon" in manifest and "base" in manifest["zundamon"]
+    finally:
+        R.DIR = old
+    print("  preview assets: 許可パス/manifest/depth対応 OK")
+
+
 def test_approve_and_attribution():
     rev = _sample_review()
     assert R.apply_approve(rev, "0_0", True)
@@ -306,6 +326,7 @@ if __name__ == "__main__":
     print("test_review:")
     test_find_and_keys()
     test_safe_ext()
+    test_preview_assets()
     test_approve_and_attribution()
     test_replace_writes_and_updates()
     test_clean_crop_and_filter()

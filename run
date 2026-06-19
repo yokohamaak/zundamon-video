@@ -100,7 +100,7 @@ EOF
 # ---- コマンド本体 ----
 cmd_script()  { run "$PY main_story.py --stop-after-images"; }
 cmd_images()  { run "$PY main_story.py --from-script $STORY/script.json --stop-after-images"; }  # 既存台本のまま画像取得
-cmd_review()  { run "$PY review_server.py --dir $STORY"; }
+cmd_review()  { run "cd video && npm run build:review-player && cd .. && $PY review_server.py --dir $STORY"; }
 cmd_audio()   { run "$PY main_story.py --from-script $STORY/script.json --images-from-dir"; }
 cmd_meta()    { run "$PY main_story.py --from-script $STORY/script.json --meta-only"; }
 cmd_dev()     {   # Studio（HMRプレビュー）。章番号を渡すと横1章プレビュー(DialogueChapter)を章クリップで起動。

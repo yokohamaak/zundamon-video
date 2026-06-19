@@ -17,6 +17,7 @@
 import argparse
 import base64
 import json
+import mimetypes
 import os
 import re
 import shlex
@@ -25,17 +26,79 @@ import subprocess
 import sys
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 # レビュー対象ディレクトリ（既定 docs/story）。main()で上書き。/shorts から実行時に切替可能。
 DIR = "docs/story"
 # 基準（本編）ディレクトリ。ショートのネタ元・docs/shorts の親判定に使う（起動時に固定）。
 BASE_DIR = "docs/story"
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+VIDEO_DIR = os.path.join(ROOT_DIR, "video")
+VIDEO_ASSETS_DIR = os.path.join(VIDEO_DIR, "assets")
+VIDEO_PUBLIC_DIR = os.path.join(VIDEO_DIR, "public")
 
 _CT = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
     ".gif": "image/gif", ".webp": "image/webp",
 }
+
+_PREVIEW_ASSET_DIRS = {"avatars", "fonts", "background", "bgm", "se"}
+
+
+def preview_asset_path(relative):
+    """Remotion Player用アセットを許可ディレクトリ内だけから解決する。"""
+    if not isinstance(relative, str):
+        return None
+    rel = unquote(relative).replace("\\", "/").strip("/")
+    if not rel or rel.startswith(".") or "/../" in f"/{rel}/":
+        return None
+    parts = rel.split("/")
+    if parts[0] in _PREVIEW_ASSET_DIRS:
+        base = VIDEO_ASSETS_DIR
+    elif len(parts) == 1 and (rel in {"meta.json", "digest.mp3"} or
+                              rel.startswith("ch_") or rel.startswith("manual_")):
+        base = os.path.abspath(DIR)
+    else:
+        return None
+    path = os.path.abspath(os.path.join(base, *parts))
+    try:
+        if os.path.commonpath([path, os.path.abspath(base)]) != os.path.abspath(base):
+            return None
+    except ValueError:
+        return None
+    return path if os.path.isfile(path) else None
+
+
+def avatar_manifest():
+    """assets/avatars/<キャラ>/ のパーツ一覧をPlayerへ渡す。"""
+    out = {}
+    root = os.path.join(VIDEO_ASSETS_DIR, "avatars")
+    if not os.path.isdir(root):
+        return out
+    for name in sorted(os.listdir(root)):
+        directory = os.path.join(root, name)
+        if not os.path.isdir(directory):
+            continue
+        parts = {}
+        for filename in sorted(os.listdir(directory)):
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in {".png", ".webp", ".svg"}:
+                parts[os.path.splitext(filename)[0]] = filename
+        if parts:
+            out[name] = parts
+    return out
+
+
+def depth_manifest():
+    """レビュー対象内で深度マップを持つ画像名一覧を返す。"""
+    if not os.path.isdir(DIR):
+        return []
+    files = os.listdir(DIR)
+    depth_bases = {f[:-len(".depth.png")] for f in files if f.lower().endswith(".depth.png")}
+    image_exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    return sorted(f for f in files if os.path.splitext(f)[1].lower() in image_exts and
+                  not f.lower().endswith(".depth.png") and
+                  os.path.splitext(f)[0] in depth_bases)
 
 
 # ---- ストレージ層（ここだけ差し替えれば R2/KV 等へ移行できる） ----
@@ -1519,7 +1582,7 @@ STORY_PAGE = """<!doctype html>
   body { overflow:hidden; }
   body > header { height:56px; box-sizing:border-box; }
   main#main { width:100%; max-width:none; height:calc(100vh - 56px); padding:8px; box-sizing:border-box; }
-  .tp { height:100%; display:grid; grid-template-columns:minmax(320px,25%) minmax(420px,1fr) minmax(330px,23%);
+  .tp { height:100%; display:grid; grid-template-columns:minmax(360px,27%) minmax(420px,1fr) minmax(330px,23%);
         grid-template-rows:minmax(360px,58%) minmax(220px,42%); gap:8px; align-items:stretch; }
   .tp-left { min-width:0; overflow:auto; background:#10141b; border:1px solid #1c232e;
              border-radius:10px; padding:12px; }
@@ -1531,6 +1594,10 @@ STORY_PAGE = """<!doctype html>
                   padding:5px 9px; font-size:11px; }
   .preview-viewport { flex:1; min-height:0; display:flex; align-items:center; justify-content:center;
                       overflow:hidden; background:#080a0f; border-radius:8px; container-type:size; }
+  .remotion-player-host { flex:none; overflow:hidden; border-radius:8px; background:#080a0f; aspect-ratio:16/9;
+                          width:min(100cqw,calc(100cqh * 16 / 9)); height:min(100cqh,calc(100cqw * 9 / 16)); }
+  .remotion-player-loading { height:100%; display:flex; align-items:center; justify-content:center;
+                             color:var(--sub); font-size:12px; }
   .preview-stage { position:relative; flex:none; overflow:hidden; border-radius:8px; background:#0b0e13;
                    display:flex; align-items:center; justify-content:center; aspect-ratio:16/9;
                    width:min(100cqw,calc(100cqh * 16 / 9)); height:min(100cqh,calc(100cqw * 9 / 16)); }
@@ -1574,7 +1641,7 @@ STORY_PAGE = """<!doctype html>
   .chsec.collapsed .chcnt { display:inline-block; }
   .chsec.collapsed .line { display:none; }
   /* セリフカード＝Discord風（アイコン＋名前＋本文）。余白広め・罫線なし・6px左カラー */
-  .line { display:flex; gap:12px; align-items:flex-start; padding:13px 15px; margin-bottom:10px; border-radius:10px;
+  .line { position:relative; display:flex; gap:12px; align-items:flex-start; padding:13px 15px; margin-bottom:10px; border-radius:10px;
           cursor:pointer; background:#161b24; border-left:6px solid transparent; }
   .line:hover { background:#1a212c; }
   .line.sel { background:#1f2835; }
@@ -1586,9 +1653,11 @@ STORY_PAGE = """<!doctype html>
   .line .tx.empty { color:var(--sub); }
   .line textarea { width:100%; font-size:14.5px; line-height:1.7; min-height:46px; }
   .line .mk { flex:none; display:flex; gap:4px; align-items:center; }
+  .line.sel .mk { display:none; }
   .line .mk img { width:40px; height:24px; object-fit:cover; border-radius:4px; }
   .line .mk .vz { font-size:11px; color:#a99adf; }
-  .line .lacts { display:none; gap:5px; flex:none; align-items:center; }
+  .line .lacts { display:none; position:absolute; top:6px; right:6px; z-index:3; gap:5px; align-items:center;
+                 padding:3px; border-radius:7px; background:rgba(16,20,27,.92); }
   .line.sel .lacts { display:flex; }
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
@@ -1663,6 +1732,8 @@ STORY_PAGE = """<!doctype html>
   <button class="ok" id="save">保存</button>
 </header>
 <main id="main">読み込み中…</main>
+<script>window.remotion_staticBase='/preview-assets';</script>
+<script src="/preview/player.js" defer></script>
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // ワークスペース：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
@@ -2828,6 +2899,7 @@ function render(){
   // スクロール保持：左=window / 右ペイン=内部scrollTop（操作で最上部へ飛ぶのを防ぐ）。
   const sy=window.scrollY;
   const _oldrp=document.getElementById('rpane'); const rsy=_oldrp?_oldrp.scrollTop:0;
+  if(window.remotionEditorPlayer) window.remotionEditorPlayer.unmount();
   m.innerHTML='';
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
@@ -2877,14 +2949,41 @@ function render(){
 
 function renderPreviewPane(){
   const p=document.getElementById('previewPane'); if(!p||!DATA||!DATA.script) return;
+  if(p.dataset.playerMounted==='1'){
+    const title=p.querySelector('[data-preview-title]'); const tn=DATA.script[selGi]||{};
+    const ch=(DATA.chapters||[])[tn.chapter]||{}; if(title) title.textContent=ch.title||'プレビュー';
+    seekRemotionToSelection(); return;
+  }
+  if(p.dataset.playerLoading==='1') return;
   p.innerHTML='';
+  p.dataset.playerLoading='1';
   const tn=DATA.script[selGi]||{}; const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
   const toolbar=document.createElement('div'); toolbar.className='preview-toolbar';
   const ratio=document.createElement('span'); ratio.className='preview-chip'; ratio.textContent='16:9'; toolbar.appendChild(ratio);
-  const title=document.createElement('span'); title.className='preview-chip'; title.textContent=ch.title||'プレビュー'; toolbar.appendChild(title);
+  const title=document.createElement('span'); title.className='preview-chip'; title.dataset.previewTitle='1'; title.textContent=ch.title||'プレビュー'; toolbar.appendChild(title);
   const spacer=document.createElement('span'); spacer.className='spacer'; toolbar.appendChild(spacer);
-  const note=document.createElement('span'); note.className='preview-chip'; note.textContent='簡易プレビュー'; toolbar.appendChild(note);
+  const note=document.createElement('span'); note.className='preview-chip'; note.textContent='Remotion Player'; toolbar.appendChild(note);
   p.appendChild(toolbar);
+  const viewport=document.createElement('div'); viewport.className='preview-viewport'; p.appendChild(viewport);
+  const host=document.createElement('div'); host.className='remotion-player-host';
+  host.innerHTML='<div class="remotion-player-loading">本番プレビューを読み込み中...</div>'; viewport.appendChild(host);
+  let settled=false;
+  const fallback=(message)=>{ if(settled)return; settled=true; delete p.dataset.playerLoading;
+    note.textContent=message||'簡易プレビュー'; host.remove(); renderSimplePreview(viewport,tn,ci); };
+  const mount=()=>{
+    if(!window.remotionEditorPlayer){ fallback('簡易プレビュー'); return; }
+    window.remotionEditorPlayer.mount(host).then(()=>{ settled=true; delete p.dataset.playerLoading;
+      p.dataset.playerMounted='1'; seekRemotionToSelection(); })
+      .catch(()=>fallback('meta未生成・簡易表示'));
+  };
+  if(window.remotionEditorPlayer) mount();
+  else {
+    window.addEventListener('remotion-player-ready',mount,{once:true});
+    setTimeout(()=>{ if(!window.remotionEditorPlayer) fallback('Player未ビルド・簡易表示'); },1200);
+  }
+}
+
+function renderSimplePreview(viewport,tn,ci){
   const stage=document.createElement('div'); stage.className='preview-stage';
   const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
   if(u){ const im=document.createElement('img'); im.src=u; stage.appendChild(im); }
@@ -2896,20 +2995,18 @@ function renderPreviewPane(){
   const speaker=document.createElement('div'); speaker.className='preview-speaker'; speaker.style.background=speakerColor(tn.speaker||'');
   speaker.textContent=tn.speaker||''; stage.appendChild(speaker);
   const caption=document.createElement('div'); caption.className='preview-caption'; caption.textContent=tn.text||'(空のセリフ)'; stage.appendChild(caption);
-  const viewport=document.createElement('div'); viewport.className='preview-viewport'; viewport.appendChild(stage); p.appendChild(viewport);
-  const controls=document.createElement('div'); controls.className='preview-controls';
-  const pos=document.createElement('span'); pos.textContent=(selGi+1)+' / '+DATA.script.length; controls.appendChild(pos);
-  const prev=document.createElement('button'); prev.textContent='前へ'; prev.title='前のセリフ'; prev.onclick=()=>selectTurn(Math.max(0,selGi-1)); controls.appendChild(prev);
-  const play=document.createElement('button'); play.textContent='再生'; play.title='Remotionプレビューは後続フェーズで接続'; controls.appendChild(play);
-  const next=document.createElement('button'); next.textContent='次へ'; next.title='次のセリフ'; next.onclick=()=>selectTurn(Math.min(DATA.script.length-1,selGi+1)); controls.appendChild(next);
-  p.appendChild(controls);
+  viewport.appendChild(stage);
+}
+
+function seekRemotionToSelection(){
+  if(window.remotionEditorPlayer) window.remotionEditorPlayer.seekToTurn(selGi);
 }
 
 function selectTurn(gi){
   if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
   selGi=gi; const tn=DATA.script[gi]; const ch=(DATA.chapters||[])[tn.chapter]||{}; const seg=segOf(tn,ch);
   if(seg) selSeg=seg.id;
-  markSel(); renderPreviewPane(); renderRight(); renderTimeline();
+  markSel(); renderPreviewPane(); seekRemotionToSelection(); renderRight(); renderTimeline();
   const row=document.querySelector('.line[data-gi="'+gi+'"]'); if(row) row.scrollIntoView({block:'nearest'});
 }
 
@@ -3510,6 +3607,54 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _file(self, path, content_type=None):
+        """ローカル静的ファイルをRange対応で配信する（音声シーク用）。"""
+        if not path or not os.path.isfile(path):
+            self.send_response(404)
+            self.end_headers()
+            return
+        size = os.path.getsize(path)
+        start, end = 0, max(0, size - 1)
+        status = 200
+        range_header = self.headers.get("Range") or ""
+        match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip())
+        if match and size:
+            if match.group(1):
+                start = int(match.group(1))
+                end = int(match.group(2)) if match.group(2) else size - 1
+            elif match.group(2):
+                length = min(size, int(match.group(2)))
+                start, end = size - length, size - 1
+            if start >= size or start > end:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.end_headers()
+                return
+            end = min(end, size - 1)
+            status = 206
+        length = max(0, end - start + 1)
+        mime = content_type or mimetypes.guess_type(path)[0] or "application/octet-stream"
+        self.send_response(status)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(length))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", "no-store")
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.end_headers()
+        with open(path, "rb") as f:
+            f.seek(start)
+            remaining = length
+            while remaining:
+                chunk = f.read(min(64 * 1024, remaining))
+                if not chunk:
+                    break
+                try:
+                    self.wfile.write(chunk)
+                except (BrokenPipeError, ConnectionResetError):
+                    break  # Playerがシーク時に古いRange要求を破棄しただけなので正常扱い。
+                remaining -= len(chunk)
+
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/":
@@ -3523,6 +3668,18 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/story":
             self._html(STORY_PAGE.replace("__CSS__", _BASE_CSS))
+            return
+        if path == "/preview/player.js":
+            self._file(os.path.join(VIDEO_PUBLIC_DIR, "review-player.js"), "text/javascript; charset=utf-8")
+            return
+        if path == "/preview-assets/avatars/manifest.json":
+            self._json(avatar_manifest())
+            return
+        if path == "/preview-assets/depth-manifest.json":
+            self._json(depth_manifest())
+            return
+        if path.startswith("/preview-assets/"):
+            self._file(preview_asset_path(path[len("/preview-assets/"):]))
             return
         if path == "/shorts":
             self._html(SHORTS_PAGE.replace("__CSS__", _BASE_CSS))
