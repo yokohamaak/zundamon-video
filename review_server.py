@@ -1704,6 +1704,7 @@ STORY_PAGE = """<!doctype html>
   .tl-text-effect { position:absolute; top:0; height:27px; min-width:4px; box-sizing:border-box; overflow:hidden;
                     padding:6px 5px; border-radius:4px; color:#20152d; background:#ffd34e; font-size:9px;
                     font-weight:800; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
+  .tl-text-effect.dragging { overflow:visible; outline:2px solid #fff0b5; box-shadow:0 0 12px rgba(255,211,78,.55); }
   .tl-handle { position:absolute; top:0; bottom:0; width:10px; border:0; padding:0; z-index:2;
                background:rgba(255,255,255,.82); cursor:ew-resize; opacity:.72; }
   .tl-handle:hover, .tl-handle.dragging { opacity:1; background:#fff; }
@@ -3030,7 +3031,7 @@ function renderTimeline(){
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
-  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='大演出バーの両端をドラッグしてセリフ境界単位で調整'; head.appendChild(hint); pane.appendChild(head);
+  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='演出バーの両端をドラッグして範囲を調整'; head.appendChild(hint); pane.appendChild(head);
   const scroll=document.createElement('div'); scroll.className='tl-scroll'; scroll.onscroll=()=>{ timelineScrollLeft=scroll.scrollLeft; };
   const body=document.createElement('div'); body.className='tl-body'; body.style.width=Math.max(900,150+DATA.script.length*105)+'px';
   scroll.appendChild(body); pane.appendChild(scroll);
@@ -3054,6 +3055,11 @@ function renderTimeline(){
     const len=Math.max(1,(tn.text||'').length); effects.forEach(fx=>{ const b=document.createElement('div'); b.className='tl-text-effect';
       b.style.left=(Math.max(0,fx.start)/len*100)+'%'; b.style.width=(Math.max(1,fx.end-fx.start)/len*100)+'%';
       if(fx.color)b.style.background=fx.color; b.textContent=(fx.type==='emphasis'?'強調':'色')+': '+(fx.text||'');
+      const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始文字をドラッグ';
+      const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了文字をドラッグ';
+      hs.onpointerdown=e=>startTextEffectResize(e,gi,fx.id,'s',group,b);
+      he.onpointerdown=e=>startTextEffectResize(e,gi,fx.id,'e',group,b);
+      b.appendChild(hs); b.appendChild(he);
       b.onclick=()=>{ rtab='small'; selectTurn(gi); }; group.appendChild(b); }); textTrack.appendChild(group); });
   if(!textCount){ const textEmpty=document.createElement('span'); textEmpty.className='tl-empty'; textEmpty.textContent='文字を選択して小演出を追加'; textTrack.appendChild(textEmpty); }
   body.appendChild(textRow);
@@ -3105,6 +3111,39 @@ function startTimelineResize(ev,ci,id,edge,bar){
     } else { bar.style.gridColumn=(original.s+1)+' / '+(original.e+2); bar.classList.remove('dragging'); handle.classList.remove('dragging'); dragLabel.remove(); }
   };
   const cancel=()=>{ target=edge==='s'?original.s:original.e; finish(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
+}
+
+function startTextEffectResize(ev,gi,id,edge,group,bar){
+  ev.preventDefault(); ev.stopPropagation();
+  const tn=DATA.script[gi], fx=(tn.textEffects||[]).find(f=>f.id===id); if(!fx)return;
+  const len=(tn.text||'').length; if(!len)return;
+  const original={start:fx.start,end:fx.end}; let target=edge==='s'?original.start:original.end;
+  const handle=ev.currentTarget; handle.classList.add('dragging'); bar.classList.add('dragging'); document.body.classList.add('tl-resizing');
+  const dragLabel=document.createElement('span'); dragLabel.className='tl-drag-label'; bar.appendChild(dragLabel);
+  const update=()=>{
+    const start=edge==='s'?target:original.start, end=edge==='e'?target:original.end;
+    bar.style.left=(start/len*100)+'%'; bar.style.width=((end-start)/len*100)+'%';
+    dragLabel.textContent=(edge==='s'?'開始 ':'終了 ')+(target+1)+'文字目';
+  }; update();
+  const move=e=>{
+    const r=group.getBoundingClientRect();
+    const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*len);
+    target=edge==='s'?Math.max(0,Math.min(original.end-1,pos)):Math.max(original.start+1,Math.min(len,pos));
+    update();
+  };
+  const cleanup=()=>{
+    document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
+    document.removeEventListener('pointercancel',cancel); document.body.classList.remove('tl-resizing');
+  };
+  const finish=()=>{
+    cleanup();
+    if(target!==(edge==='s'?original.start:original.end)){
+      fx.start=edge==='s'?target:original.start; fx.end=edge==='e'?target:original.end;
+      fx.text=tn.text.slice(fx.start,fx.end); selGi=gi; selectedTextRange=null; syncTextEffects(tn);
+    } else { bar.classList.remove('dragging'); handle.classList.remove('dragging'); dragLabel.remove(); }
+  };
+  const cancel=()=>{ target=edge==='s'?original.start:original.end; finish(); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
 }
 
