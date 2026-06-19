@@ -3208,7 +3208,7 @@ function renderTextEffectEditor(panel,tn){
   const source=document.createElement('textarea'); source.className='textfx-source'; source.readOnly=true; source.value=tn.text||''; wrap.appendChild(source);
   const actions=document.createElement('div'); actions.className='textfx-actions';
   const status=document.createElement('span'); status.className='textfx-status'; status.textContent='文字をドラッグして選択'; actions.appendChild(status);
-  const capture=()=>{ const start=source.selectionStart,end=source.selectionEnd; if(end<=start)return;
+  const capture=()=>{ const start=source.selectionStart,end=source.selectionEnd; if(end<=start){ selectedTextRange=null; status.textContent='文字をドラッグして選択'; return; }
     const text=source.value.slice(start,end); selectedTextRange={gi:selGi,start,end,text}; status.textContent='選択中: 「'+text+'」'; };
   source.onselect=capture; source.onmouseup=capture;
   actions.appendChild(vMini('強調',()=>addTextEffect(tn,'emphasis','#ffd000')));
