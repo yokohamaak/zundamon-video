@@ -1002,58 +1002,104 @@ LANDING_PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>制作パネル</title>
 <style>__CSS__
-  .stage { display:flex; align-items:center; gap:14px; background:var(--card);
-           border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:12px; }
-  .dot { width:12px; height:12px; border-radius:50%; background:var(--line); flex:none; }
-  .dot.done { background:var(--ok); }
-  .stage .t { font-weight:700; }
-  .stage .d { color:var(--sub); font-size:13px; }
-  .stage .go { margin-left:auto; }
-  .cmd { color:var(--sub); font-size:12px; margin-top:6px; }
+  :root { --accent:#8b5cf6; }
+  body { min-height:100vh; background:
+    radial-gradient(circle at 75% -20%,rgba(139,92,246,.16),transparent 38%),var(--bg); }
+  header { height:58px; padding:0 28px; }
+  .brand { display:flex; align-items:center; gap:10px; color:#fff; font-weight:800; letter-spacing:.01em; }
+  .brand-mark { display:grid; place-items:center; width:28px; height:28px; border-radius:8px;
+                background:linear-gradient(145deg,#9b6dff,#6d3de5); font-size:13px; }
+  .target { padding:5px 10px; border:1px solid var(--line); border-radius:999px; color:var(--sub); font-size:11px; }
+  main.dashboard { max-width:1080px; padding:34px 24px 48px; }
+  .hero { display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center; padding:30px;
+          border:1px solid #302a42; border-radius:18px; background:linear-gradient(135deg,#1c2130,#181722); }
+  .eyebrow { margin-bottom:8px; color:#a78bfa; font-size:11px; font-weight:800; letter-spacing:.12em; }
+  .hero h2 { margin:0; color:#fff; font-size:clamp(22px,3vw,34px); line-height:1.25; }
+  .hero-status { margin:10px 0 0; color:var(--sub); font-size:13px; }
+  .primary-action { display:inline-flex; align-items:center; justify-content:center; min-width:156px; padding:12px 18px;
+                    border-radius:10px; background:#7c4dff; color:#fff; text-decoration:none; font-weight:800; }
+  .primary-action:hover { background:#8d63ff; }
+  .short-notice { display:none; align-items:center; gap:12px; margin-top:12px; padding:12px 16px;
+                  border:1px solid #3e3557; border-radius:12px; background:#1c1928; font-size:12px; }
+  .short-notice.show { display:flex; }
+  .short-notice span { flex:1; color:#c8bddf; }
+  .progress { display:grid; grid-template-columns:repeat(4,1fr); margin:26px 0; padding:18px 20px;
+              border:1px solid var(--line); border-radius:14px; background:rgba(27,33,44,.78); }
+  .progress-step { position:relative; display:flex; align-items:center; gap:9px; color:#677386; font-size:12px; font-weight:700; }
+  .progress-step:not(:last-child)::after { content:""; position:absolute; left:30px; right:10px; top:8px;
+                                           height:1px; background:#343d4b; }
+  .progress-dot { position:relative; z-index:1; width:17px; height:17px; border:4px solid #252d39;
+                  border-radius:50%; background:#596577; }
+  .progress-step.done { color:#cfd6e1; }
+  .progress-step.done .progress-dot { border-color:#24472d; background:#52bd67; }
+  .progress-step.done:not(:last-child)::after { background:#365b41; }
+  .section-title { margin:0 0 12px; color:#e9edf5; font-size:14px; }
+  .actions { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .action-card { display:block; min-height:118px; padding:18px; border:1px solid var(--line); border-radius:14px;
+                 background:var(--card); color:inherit; text-decoration:none; transition:.15s ease; }
+  .action-card:hover { transform:translateY(-2px); border-color:#584783; background:#202635; }
+  .action-card b { display:block; margin-bottom:7px; color:#f1f3f7; font-size:14px; }
+  .action-card span { color:var(--sub); font-size:12px; line-height:1.55; }
+  details { margin-top:22px; border-top:1px solid var(--line); color:var(--sub); }
+  summary { padding:16px 2px; cursor:pointer; font-size:12px; font-weight:700; }
+  .commands { display:grid; gap:8px; padding-bottom:14px; }
+  .command { display:grid; grid-template-columns:110px 1fr; gap:12px; align-items:center; font-size:11px; }
+  .command code { overflow:auto; white-space:nowrap; }
+  @media (max-width:760px){
+    header { padding:0 16px; } main.dashboard { padding:20px 14px 36px; }
+    .hero { grid-template-columns:1fr; padding:22px; } .primary-action { width:100%; }
+    .progress { grid-template-columns:repeat(2,1fr); gap:16px; }
+    .progress-step::after { display:none; } .actions { grid-template-columns:repeat(2,1fr); }
+  }
 </style></head>
 <body>
-<header><h1>制作パネル</h1><span class="spacer"></span><span class="d" id="dir"></span></header>
-<main id="main">読み込み中…</main>
+<header><a class="brand" href="/"><span class="brand-mark">▶</span>Zundamon Video</a><span class="spacer"></span><span class="target" id="dir">読み込み中</span></header>
+<main class="dashboard">
+  <section class="hero">
+    <div><div class="eyebrow">CURRENT PROJECT</div><h2 id="projectTitle">制作データを確認中…</h2><p class="hero-status" id="projectStatus"></p></div>
+    <a class="primary-action" id="primaryAction" href="/story">制作を続ける</a>
+  </section>
+  <div class="short-notice" id="shortNotice"><span id="shortText"></span><button id="backToMain">本編に戻す</button></div>
+  <section class="progress" aria-label="制作進捗">
+    <div class="progress-step" data-key="script"><span class="progress-dot"></span>台本</div>
+    <div class="progress-step" data-key="review"><span class="progress-dot"></span>画像</div>
+    <div class="progress-step" data-key="audio"><span class="progress-dot"></span>音声</div>
+    <div class="progress-step" data-key="meta"><span class="progress-dot"></span>動画準備</div>
+  </section>
+  <h3 class="section-title">制作ツール</h3>
+  <section class="actions">
+    <a class="action-card" href="/story"><b>ストーリー編集</b><span>台本、画像、演出をまとめて編集</span></a>
+    <a class="action-card" href="/read"><b>ファクトチェック</b><span>台本と概要を読み取り専用で確認</span></a>
+    <a class="action-card" href="/compose"><b>台本を取り込む</b><span>ブラウザAI用プロンプトとJSON取込</span></a>
+    <a class="action-card" href="/shorts"><b>ショート制作</b><span>本編から縦型ショートを作成</span></a>
+  </section>
+  <details><summary>技術情報とコマンド</summary><div class="commands" id="commands"></div></details>
+</main>
 <script>
-const STAGES = [
-  {key:'script', t:'① ストーリー編集', d:'台本＋画像を一体で確認/編集（概要→章を開く）', link:'/story',
-   cmd:'python main_story.py --stop-after-images'},
-  {key:'script', t:'台本ファクトチェック', d:'フル台本／概要を読み取り専用で表示（事実確認用）', link:'/read',
-   cmd:'(読むだけ・編集は /story から)'},
-  {key:'script', t:'ブラウザAIで台本を作る', d:'Geminiの代わりにプロンプトをコピー→他AIで生成→貼り付け取り込み', link:'/compose',
-   cmd:'(Gemini枠を使わず台本JSONを取り込む)'},
-  {key:'audio',  t:'③ 音声+meta', d:'VOICEVOXで音声・字幕生成', link:null,
-   cmd:'python main_story.py --from-script DIR/script.json --images-from-dir'},
-  {key:'meta',   t:'④ 仕上げ', d:'Remotionで動画書き出し', link:null,
-   cmd:'cd video && SRC_DIR=../DIR npm run render'},
-  {key:'meta',   t:'⑤ ショート（縦9:16）', d:'本編ネタから独立ショートを生成→台本レビュー→書き出し', link:'/shorts',
-   cmd:'python main_story.py --from-script DIR/script.json --short-from N --slug NAME --stop-after-images'},
+const commandRows=[
+  ['台本・画像生成','python main_story.py --stop-after-images'],
+  ['音声・meta生成','python main_story.py --from-script DIR/script.json --images-from-dir'],
+  ['動画書き出し','cd video && SRC_DIR=../DIR npm run render']
 ];
-fetch('/api/status').then(r=>r.json()).then(st=>{
-  document.getElementById('dir').textContent = '対象: '+st.dir;
-  const m = document.getElementById('main'); m.innerHTML='';
+Promise.all([fetch('/api/status').then(r=>r.json()),fetch('/api/script').then(r=>r.json())]).then(([st,script])=>{
+  document.getElementById('dir').textContent=st.dir;
+  document.getElementById('projectTitle').textContent=script.theme||st.dir.split('/').pop()||'名称未設定';
+  const status=st.status||{};
+  const next=!status.script?'台本の準備が必要です':!status.review?'画像の準備が必要です':
+    !status.audio?'レビュー後、音声を生成できます':!status.meta?'音声生成済み・動画準備待ち':'動画を書き出せます';
+  document.getElementById('projectStatus').textContent=next;
+  const primary=document.getElementById('primaryAction');
+  if(!status.script){ primary.textContent='台本を取り込む'; primary.href='/compose'; }
+  document.querySelectorAll('.progress-step').forEach(el=>el.classList.toggle('done',!!status[el.dataset.key]));
   if(st.dir!==st.base){
-    const sw=document.createElement('div'); sw.className='stage';
-    sw.innerHTML='<span class="dot done"></span><div><div class="t">ショートを編集中: '+st.dir+'</div>'+
-      '<div class="d">レビュー対象がショートに切り替わっています</div></div>';
-    const b=document.createElement('button'); b.className='go'; b.textContent='本編に戻す';
-    b.onclick=async()=>{ await fetch('/api/set-dir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dir:st.base})}); location.reload(); };
-    sw.appendChild(b); m.appendChild(sw);
+    document.getElementById('shortNotice').classList.add('show');
+    document.getElementById('shortText').textContent='ショートを編集中: '+st.dir;
   }
-  for(const s of STAGES){
-    const done = st.status[s.key];
-    const el = document.createElement('div'); el.className='stage';
-    el.innerHTML = `<span class="dot ${done?'done':''}"></span>
-      <div><div class="t">${s.t} ${done?'<span class="d">✓ 生成済</span>':''}</div>
-        <div class="d">${s.d}</div>
-        <div class="cmd"><code>${s.cmd.replace('DIR', st.dir)}</code></div></div>
-      ${s.link?`<a class="go" href="${s.link}"><button class="primary">開く</button></a>`:''}`;
-    m.appendChild(el);
-  }
-  const note = document.createElement('p'); note.className='d';
-  note.style.color='var(--sub)'; note.style.fontSize='13px';
-  note.innerHTML='※ 生成/書き出しは今はコマンドで実行（ボタン起動は今後対応）。台本・画像は「開く」で確認/編集。';
-  m.appendChild(note);
+  document.getElementById('backToMain').onclick=async()=>{ await fetch('/api/set-dir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dir:st.base})}); location.reload(); };
+  const commands=document.getElementById('commands');
+  commandRows.forEach(([label,cmd])=>{ const row=document.createElement('div'); row.className='command';
+    const name=document.createElement('span'); name.textContent=label; const code=document.createElement('code'); code.textContent=cmd.replaceAll('DIR',st.dir);
+    row.appendChild(name); row.appendChild(code); commands.appendChild(row); });
 });
 </script>
 </body></html>
