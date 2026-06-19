@@ -1700,6 +1700,16 @@ STORY_PAGE = """<!doctype html>
             cursor:pointer; position:relative; user-select:none; }
   .tl-bar.main { background:linear-gradient(90deg,#6940a5,#8b5cf6); }
   .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
+  .tl-row.small-effects { min-height:52px; }
+  .tl-small-group { position:relative; height:46px; margin:3px; border-radius:5px; cursor:pointer; }
+  .tl-small-group:hover { background:rgba(255,255,255,.035); }
+  .tl-small-effect { position:absolute; left:0; right:0; height:19px; box-sizing:border-box; overflow:hidden;
+                     padding:3px 7px; border-radius:4px; color:#fff; font-size:9px; font-weight:700;
+                     white-space:nowrap; text-overflow:ellipsis; }
+  .tl-small-effect.telop { top:1px; background:linear-gradient(90deg,#4d55ad,#6b6ae0); }
+  .tl-small-effect.reaction { top:24px; background:linear-gradient(90deg,#9b3968,#c0497a); }
+  .tl-small-add { position:absolute; inset:8px 4px; display:flex; align-items:center; justify-content:center;
+                  border:1px dashed #394454; border-radius:4px; color:#748197; font-size:9px; }
   .tl-text-group { position:relative; height:27px; margin:5px 3px; }
   .tl-text-effect { position:absolute; top:0; height:27px; min-width:4px; box-sizing:border-box; overflow:hidden;
                     padding:6px 5px; border-radius:4px; color:#20152d; background:#ffd34e; font-size:9px;
@@ -3063,10 +3073,14 @@ function renderTimeline(){
       b.onclick=()=>{ rtab='small'; selectTurn(gi); }; group.appendChild(b); }); textTrack.appendChild(group); });
   if(!textCount){ const textEmpty=document.createElement('span'); textEmpty.className='tl-empty'; textEmpty.textContent='文字を選択して小演出を追加'; textTrack.appendChild(textEmpty); }
   body.appendChild(textRow);
-  const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）'); let smallCount=0;
-  DATA.script.forEach((tn,gi)=>{ const names=[]; if(tn.telop)names.push('テロップ'); if(tn.reaction)names.push('リアクション'); if(!names.length)return; smallCount++;
-    const b=document.createElement('div'); b.className='tl-bar small'; b.style.gridColumn=(gi+1)+' / span 1'; b.textContent=names.join('・'); b.onclick=()=>selectTurn(gi); smallTrack.appendChild(b); });
-  if(!smallCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='小演出なし'; smallTrack.appendChild(e); } body.appendChild(smallRow);
+  const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）','small-effects');
+  DATA.script.forEach((tn,gi)=>{ const group=document.createElement('div'); group.className='tl-small-group'; group.style.gridColumn=(gi+1)+' / span 1';
+    group.title='クリックして小演出を編集'; group.onclick=()=>{ rtab='small'; selectTurn(gi); };
+    if(tn.telop){ const b=document.createElement('div'); b.className='tl-small-effect telop'; b.textContent='テロップ: '+tn.telop; group.appendChild(b); }
+    if(tn.reaction){ const b=document.createElement('div'); b.className='tl-small-effect reaction'; b.textContent='リアクション: '+tn.reaction; group.appendChild(b); }
+    if(!tn.telop&&!tn.reaction&&gi===selGi){ const add=document.createElement('span'); add.className='tl-small-add'; add.textContent='＋小演出'; group.appendChild(add); }
+    smallTrack.appendChild(group); });
+  body.appendChild(smallRow);
   scroll.scrollLeft=sx; timelineScrollLeft=sx;
 }
 
