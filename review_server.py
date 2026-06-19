@@ -1697,7 +1697,7 @@ STORY_PAGE = """<!doctype html>
   .tl-scroll { flex:1; min-height:0; overflow:auto; }
   .tl-body { min-width:900px; }
   .tl-row { display:grid; grid-template-columns:150px minmax(750px,1fr); min-height:42px;
-            border-bottom:1px solid #1c232e; }
+            width:100%; border-bottom:1px solid #1c232e; }
   .tl-label { position:sticky; left:0; z-index:4; display:flex; align-items:center; padding:0 12px;
               background:#12171f; border-right:1px solid #26303d; color:var(--fg); font-size:11px; font-weight:700; }
   .tl-track { display:grid; position:relative; align-items:center;
@@ -1747,6 +1747,7 @@ STORY_PAGE = """<!doctype html>
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // ワークスペース：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
+let timelineScrollLeft=0;  // 全体再描画を挟んでもタイムラインの横位置を維持する。
 let armEdge=null;  // 演出範囲の「つかんで置く」: {seg:id, edge:'s'|'e'} or null。ラベルタップでつかみ→行タップで一気に移動
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -2909,6 +2910,7 @@ function render(){
   // スクロール保持：左=window / 右ペイン=内部scrollTop（操作で最上部へ飛ぶのを防ぐ）。
   const sy=window.scrollY;
   const _oldrp=document.getElementById('rpane'); const rsy=_oldrp?_oldrp.scrollTop:0;
+  const _oldtl=document.querySelector('.tl-scroll'); if(_oldtl) timelineScrollLeft=_oldtl.scrollLeft;
   if(window.remotionEditorPlayer) window.remotionEditorPlayer.unmount();
   m.innerHTML='';
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
@@ -3031,11 +3033,13 @@ function timelineRow(label, cls){
 }
 function renderTimeline(){
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
-  const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:0; pane.innerHTML='';
+  const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
   const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='大演出バーの両端をドラッグしてセリフ境界単位で調整'; head.appendChild(hint); pane.appendChild(head);
-  const scroll=document.createElement('div'); scroll.className='tl-scroll'; const body=document.createElement('div'); body.className='tl-body'; scroll.appendChild(body); pane.appendChild(scroll);
+  const scroll=document.createElement('div'); scroll.className='tl-scroll'; scroll.onscroll=()=>{ timelineScrollLeft=scroll.scrollLeft; };
+  const body=document.createElement('div'); body.className='tl-body'; body.style.width=Math.max(900,150+DATA.script.length*105)+'px';
+  scroll.appendChild(body); pane.appendChild(scroll);
   const [turnRow,turnTrack]=timelineRow('セリフ');
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi); turnTrack.appendChild(c); }); body.appendChild(turnRow);
@@ -3056,7 +3060,7 @@ function renderTimeline(){
   DATA.script.forEach((tn,gi)=>{ const names=[]; if(tn.telop)names.push('テロップ'); if(tn.reaction)names.push('リアクション'); if(!names.length)return; smallCount++;
     const b=document.createElement('div'); b.className='tl-bar small'; b.style.gridColumn=(gi+1)+' / span 1'; b.textContent=names.join('・'); b.onclick=()=>selectTurn(gi); smallTrack.appendChild(b); });
   if(!smallCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='小演出なし'; smallTrack.appendChild(e); } body.appendChild(smallRow);
-  scroll.scrollLeft=sx;
+  scroll.scrollLeft=sx; timelineScrollLeft=sx;
 }
 
 function chapterTurnBounds(ci){
