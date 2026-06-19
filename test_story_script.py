@@ -150,6 +150,19 @@ def test_normalize_turns_strips_markdown():
     print("  normalize_turns: 本文のMarkdown除去 OK")
 
 
+def test_normalize_turns_text_effects():
+    script = [{"text": "Gitを解説", "textEffects": [
+        {"id": "te1", "type": "emphasis", "start": 0, "end": 3, "text": "Git", "color": "#ffd000"},
+        {"type": "unknown", "start": 0, "end": 2},
+        {"type": "color", "start": 4, "end": 4},
+    ]}]
+    s.normalize_turns(script)
+    assert script[0]["textEffects"] == [
+        {"id": "te1", "type": "emphasis", "start": 0, "end": 3, "text": "Git", "color": "#ffd000"}
+    ]
+    print("  normalize_turns: テキスト範囲演出の正規化 OK")
+
+
 def test_normalize_turns_cut_clamp():
     chapters = [{"section": "intro", "image_cuts": [{"image_query": "q"}]},
                 {"section": "trivia", "image_cuts": [{"image_query": "a"}, {"image_query": "b"}]}]
@@ -598,6 +611,7 @@ if __name__ == "__main__":
     test_repair_json_trailing_comma()
     test_strip_markdown()
     test_normalize_turns_strips_markdown()
+    test_normalize_turns_text_effects()
     test_normalize_turns_cut_clamp()
     test_normalize_voice_and_pause()
     test_normalize_turns_enums()

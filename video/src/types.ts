@@ -54,6 +54,15 @@ export type Turn = {
   reveal?: boolean;
   callout_item?: number;
   compare_item?: number;
+  // セリフを分割せず、字幕内の文字範囲へ付ける演出。start/endはJS文字位置（endは含まない）。
+  textEffects?: Array<{
+    id: string;
+    type: "emphasis" | "color";
+    start: number;
+    end: number;
+    text?: string;
+    color?: string;
+  }>;
   // キーワードテロップ（任意・重ねがけ小演出）。この発言の間、要所の単語をポップ表示。改行可（pre-line）。
   telop?: string;
   telopSize?: number;     // 大きさ倍率（既定1）

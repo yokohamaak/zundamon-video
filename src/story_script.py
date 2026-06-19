@@ -968,6 +968,33 @@ def _normalize_panel_fields(turn):
             turn.pop(k, None)
 
 
+def _normalize_text_effects(turn):
+    """字幕内の文字範囲演出を安全な最小スキーマへ正規化する。"""
+    cleaned = []
+    for i, fx in enumerate(turn.get("textEffects") or []):
+        if not isinstance(fx, dict) or fx.get("type") not in ("emphasis", "color"):
+            continue
+        try:
+            start, end = int(fx.get("start")), int(fx.get("end"))
+        except (TypeError, ValueError):
+            continue
+        if start < 0 or end <= start or end > 10000:
+            continue
+        item = {"id": str(fx.get("id") or f"te{i + 1}")[:40], "type": fx["type"],
+                "start": start, "end": end}
+        selected = fx.get("text")
+        if isinstance(selected, str) and selected:
+            item["text"] = selected[:200]
+        color = fx.get("color")
+        if isinstance(color, str) and color.strip():
+            item["color"] = color.strip()[:40]
+        cleaned.append(item)
+    if cleaned:
+        turn["textEffects"] = cleaned
+    else:
+        turn.pop("textEffects", None)
+
+
 def normalize_turns(script: list, chapters: list = None) -> list:
     """各ターンの emotion / effect / section / chapter をenum・整数固定する（破壊的・in-place）。
 
@@ -996,6 +1023,7 @@ def normalize_turns(script: list, chapters: list = None) -> list:
         _normalize_voice(turn)  # 声の上書き（任意）をクランプ
         _normalize_pause(turn)  # 台詞後の間（任意）をクランプ
         _normalize_panel_fields(turn)  # 解説パネル操作（任意・shrink/item）を正規化
+        _normalize_text_effects(turn)  # 字幕内の文字範囲演出を正規化
         if n:
             turn["section"] = chapters[ch].get("section", DEFAULT_SECTION)
         elif turn.get("section") not in VALID_SECTIONS:

@@ -150,27 +150,42 @@ const KEYWORD_HIGHLIGHT = "#ffd000";
 const KEYWORD_STROKE = "10px #000"; // 黄色文字の太い黒縁(輪郭をくっきり締める)
 const KEYWORD_OUTLINE = "0 2px 5px rgba(0,0,0,0.4)"; // 黒縁の下に僅かな影で浮かせる
 
-// 字幕テキスト：『』「」で囲まれた語を黄色＋太黒縁で強調。それ以外は地の文色。
-function renderCaption(text: string): React.ReactNode {
-  const parts = text.split(/(『[^』]*』|「[^」]*」)/g);
-  return parts.map((p, i) =>
-    /^[『「]/.test(p) ? (
-      <span
-        key={i}
-        style={{
-          color: KEYWORD_HIGHLIGHT,
-          fontWeight: 900,
-          WebkitTextStroke: KEYWORD_STROKE,
-          paintOrder: "stroke fill", // 黒縁を先に描き黄色塗りを上に→黄色は満タン・縁は外側だけ
-          textShadow: KEYWORD_OUTLINE,
-        }}
-      >
-        {p}
-      </span>
-    ) : (
-      <span key={i}>{p}</span>
-    )
-  );
+// 字幕テキスト：手動の文字範囲演出を優先し、未指定箇所は従来どおり括弧語を強調する。
+function renderCaption(text: string, turn?: Turn | null): React.ReactNode {
+  const full = turn?.text ?? text;
+  const base = Math.max(0, full.indexOf(text));
+  const effects = (turn?.textEffects ?? []).filter((fx) => fx.end > base && fx.start < base + text.length);
+  const quoted: Array<{start: number; end: number}> = [];
+  for (const match of full.matchAll(/『[^』]*』|「[^」]*」/g)) {
+    quoted.push({start: match.index ?? 0, end: (match.index ?? 0) + match[0].length});
+  }
+  const cuts = new Set([0, text.length]);
+  for (const fx of effects) {
+    cuts.add(Math.max(0, fx.start - base));
+    cuts.add(Math.min(text.length, fx.end - base));
+  }
+  for (const q of quoted) {
+    if (q.end > base && q.start < base + text.length) {
+      cuts.add(Math.max(0, q.start - base));
+      cuts.add(Math.min(text.length, q.end - base));
+    }
+  }
+  const points = [...cuts].sort((a, b) => a - b);
+  return points.slice(0, -1).map((start, i) => {
+    const end = points[i + 1];
+    const absolute = base + start;
+    const fx = effects.find((item) => item.start <= absolute && item.end > absolute);
+    const quote = quoted.some((item) => item.start <= absolute && item.end > absolute);
+    const emphasis = fx?.type === "emphasis" || (!fx && quote);
+    const style: React.CSSProperties | undefined = fx || emphasis ? {
+      color: fx?.color || (emphasis ? KEYWORD_HIGHLIGHT : undefined),
+      fontWeight: emphasis ? 900 : undefined,
+      WebkitTextStroke: emphasis ? KEYWORD_STROKE : undefined,
+      paintOrder: emphasis ? "stroke fill" : undefined,
+      textShadow: emphasis ? KEYWORD_OUTLINE : undefined,
+    } : undefined;
+    return <span key={`${start}-${end}`} style={style}>{text.slice(start, end)}</span>;
+  });
 }
 
 // テキストからの簡易感情推定（meta側にemotion指定が無いときのフォールバック）。
@@ -1724,7 +1739,7 @@ export const DialogueVideo: React.FC<{
               color: "#1b2330",
             }}
           >
-            {renderCaption(caption)}
+            {renderCaption(caption, activeTurn)}
           </div>
         </div>
       ) : null}

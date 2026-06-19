@@ -12,6 +12,8 @@ type EditorPlayerApi = {
   mount: (element: HTMLElement) => Promise<void>;
   unmount: () => void;
   seekToTurn: (turnIndex: number) => void;
+  updateTextEffects: (turnIndex: number, effects: Meta["script"][number]["textEffects"]) => void;
+  syncTextEffects: (effects: Array<Meta["script"][number]["textEffects"]>) => void;
 };
 
 declare global {
@@ -23,6 +25,7 @@ declare global {
 let root: Root | null = null;
 let playerRef: PlayerRef | null = null;
 let loadedMeta: Meta | null = null;
+let setMetaState: React.Dispatch<React.SetStateAction<Meta>> | null = null;
 
 async function loadMeta(): Promise<Meta> {
   const response = await fetch("/preview-assets/meta.json", {cache: "no-store"});
@@ -43,8 +46,9 @@ async function loadMeta(): Promise<Meta> {
   return meta;
 }
 
-const ReviewPlayer: React.FC<{meta: Meta}> = ({meta}) => {
+const ReviewPlayer: React.FC<{meta: Meta}> = ({meta: initialMeta}) => {
   const ref = useRef<PlayerRef>(null);
+  const [meta, setMeta] = useState(initialMeta);
   const [ready, setReady] = useState(false);
   const duration = Math.max(
     1,
@@ -53,9 +57,11 @@ const ReviewPlayer: React.FC<{meta: Meta}> = ({meta}) => {
 
   useEffect(() => {
     playerRef = ref.current;
+    setMetaState = setMeta;
     setReady(true);
     return () => {
       playerRef = null;
+      setMetaState = null;
     };
   }, []);
 
@@ -99,11 +105,24 @@ window.remotionEditorPlayer = {
     root = null;
     playerRef = null;
     loadedMeta = null;
+    setMetaState = null;
   },
   seekToTurn(turnIndex) {
     const turn = loadedMeta?.script?.[turnIndex];
     if (!turn || !playerRef) return;
     playerRef.seekTo(Math.max(0, Math.round((turn.start ?? 0) * FPS)));
+  },
+  updateTextEffects(turnIndex, effects) {
+    if (!loadedMeta?.script?.[turnIndex]) return;
+    loadedMeta = {...loadedMeta, script: loadedMeta.script.map((turn, index) =>
+      index === turnIndex ? {...turn, textEffects: effects ?? []} : turn)};
+    setMetaState?.(loadedMeta);
+  },
+  syncTextEffects(effects) {
+    if (!loadedMeta) return;
+    loadedMeta = {...loadedMeta, script: loadedMeta.script.map((turn, index) =>
+      ({...turn, textEffects: effects[index] ?? []}))};
+    setMetaState?.(loadedMeta);
   },
 };
 

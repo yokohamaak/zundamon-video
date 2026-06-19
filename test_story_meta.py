@@ -106,7 +106,8 @@ def test_build_meta():
         "theme": "実は知らないデジタルの名前の謎",
         "chapters": CHAPTERS,
         "script": [
-            {"speaker": "四国めたん", "text": "a", "chapter": 0, "section": "intro", "emotion": "normal", "effect": "kenburns"},
+            {"speaker": "四国めたん", "text": "a", "chapter": 0, "section": "intro", "emotion": "normal", "effect": "kenburns",
+             "textEffects": [{"id": "te1", "type": "emphasis", "start": 0, "end": 1}]},
             {"speaker": "ずんだもん", "text": "b", "chapter": 0, "section": "intro", "emotion": "surprise", "effect": "kenburns"},
             {"speaker": "四国めたん", "text": "c", "chapter": 1, "section": "trivia", "emotion": "normal", "effect": "flash"},
         ],
@@ -122,6 +123,7 @@ def test_build_meta():
     # script合流（start/end/sentences付与）
     assert len(meta["script"]) == 3
     assert meta["script"][0]["start"] == 0.0 and "sentences" in meta["script"][0]
+    assert meta["script"][0]["textEffects"][0]["type"] == "emphasis"
     # topics: 章0(cut2・ターン2→2カット)+章1(cut1・ターン1→1)=3・被覆
     assert len(meta["topics"]) == 3, "章0が2カット+章1=3topic"
     assert meta["topics"][0]["start"] == 0.0 and meta["topics"][-1]["end"] == turns[-1]["end"]

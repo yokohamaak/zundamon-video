@@ -1666,6 +1666,16 @@ STORY_PAGE = """<!doctype html>
           background:#1a212c; color:var(--sub); cursor:pointer; }
   .rtab.on { background:#2a2440; color:#c4a8ff; }
   .rtab.imgon { background:#23354f; color:#cfe0ff; }
+  .textfx-editor { margin-bottom:12px; padding:10px; border:1px solid #39445a; border-radius:8px; background:#0c0f15; }
+  .textfx-source { padding:10px; border:1px solid #2d3745; border-radius:6px; color:var(--fg); line-height:1.7;
+                   width:100%; min-height:82px; box-sizing:border-box; resize:none; white-space:pre-wrap;
+                   user-select:text; cursor:text; background:#111722; }
+  .textfx-actions { display:flex; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .textfx-status { color:var(--sub); font-size:10px; flex:1; min-width:110px; }
+  .textfx-item { display:flex; align-items:center; gap:6px; margin-top:6px; padding:5px 7px; border-radius:5px;
+                 background:#171e29; font-size:10px; }
+  .textfx-swatch { width:10px; height:10px; border-radius:3px; flex:none; }
+  .textfx-item .snippet { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .timeline { grid-column:1 / -1; min-height:0; overflow:hidden; background:#10141b;
               border:1px solid #1c232e; border-radius:10px; display:flex; flex-direction:column; }
   .tl-head { height:42px; flex:none; display:flex; align-items:center; gap:8px; padding:0 12px;
@@ -1690,6 +1700,10 @@ STORY_PAGE = """<!doctype html>
             cursor:pointer; position:relative; user-select:none; }
   .tl-bar.main { background:linear-gradient(90deg,#6940a5,#8b5cf6); }
   .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
+  .tl-text-group { position:relative; height:27px; margin:5px 3px; }
+  .tl-text-effect { position:absolute; top:0; height:27px; min-width:4px; box-sizing:border-box; overflow:hidden;
+                    padding:6px 5px; border-radius:4px; color:#20152d; background:#ffd34e; font-size:9px;
+                    font-weight:800; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
   .tl-handle { position:absolute; top:0; bottom:0; width:10px; border:0; padding:0; z-index:2;
                background:rgba(255,255,255,.82); cursor:ew-resize; opacity:.72; }
   .tl-handle:hover, .tl-handle.dragging { opacity:1; background:#fff; }
@@ -1727,6 +1741,7 @@ STORY_PAGE = """<!doctype html>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // ワークスペース：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
 let timelineScrollLeft=0;  // 全体再描画を挟んでもタイムラインの横位置を維持する。
+let selectedTextRange=null;  // {gi,start,end,text}。小演出タブの文字選択をボタン操作まで保持。
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
@@ -1940,6 +1955,12 @@ function splitTurn(tn,ta){
   ['pause','closing','chorus','viz_end'].forEach(k=>{ if(tn[k]!=null){ nt[k]=tn[k]; delete tn[k]; } });
   // 一点flag(compare_item/panel_item/panel_event/reveal/callout_item)とviz_startは先頭に残す。
   // 後半に何を出すかは下のタイミングchip（左/右(分割)など）で指定する。
+  const effects=tn.textEffects||[];
+  const rawA=text.slice(0,pos), rawB=text.slice(pos), aFrom=Math.max(0,rawA.indexOf(a)), bFrom=pos+Math.max(0,rawB.indexOf(b));
+  const sliceFx=(from,to,part)=>effects.filter(f=>f.end>from&&f.start<to).map(f=>{ const start=Math.max(f.start,from)-from,end=Math.min(f.end,to)-from;
+    return {...f,start,end,text:part.slice(start,end)}; });
+  tn.textEffects=sliceFx(aFrom,aFrom+a.length,a); nt.textEffects=sliceFx(bFrom,bFrom+b.length,b);
+  if(!tn.textEffects.length)delete tn.textEffects; if(!nt.textEffects.length)delete nt.textEffects;
   tn.text=a; ['start','end','sentences'].forEach(k=>delete tn[k]);
   DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
 }
@@ -2957,7 +2978,7 @@ function renderPreviewPane(){
   const mount=()=>{
     if(!window.remotionEditorPlayer){ fallback('簡易プレビュー'); return; }
     window.remotionEditorPlayer.mount(host).then(()=>{ settled=true; delete p.dataset.playerLoading;
-      p.dataset.playerMounted='1'; seekRemotionToSelection(); })
+      p.dataset.playerMounted='1'; window.remotionEditorPlayer.syncTextEffects(DATA.script.map(t=>t.textEffects||[])); seekRemotionToSelection(); })
       .catch(()=>fallback('meta未生成・簡易表示'));
   };
   if(window.remotionEditorPlayer) mount();
@@ -2988,6 +3009,7 @@ function seekRemotionToSelection(){
 
 function selectTurn(gi){
   if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
+  if(selGi!==gi) selectedTextRange=null;
   selGi=gi; const tn=DATA.script[gi]; const ch=(DATA.chapters||[])[tn.chapter]||{}; const seg=segOf(tn,ch);
   if(seg) selSeg=seg.id;
   markSel(); renderPreviewPane(); seekRemotionToSelection(); renderRight(); renderTimeline();
@@ -3026,8 +3048,15 @@ function renderTimeline(){
     b.appendChild(hs); b.appendChild(he);
     b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); }); });
   if(!mainCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
-  const [textRow,textTrack]=timelineRow('小演出（テキスト内）');
-  const textEmpty=document.createElement('span'); textEmpty.className='tl-empty'; textEmpty.textContent='テキスト範囲演出は次の実装段階で追加'; textTrack.appendChild(textEmpty); body.appendChild(textRow);
+  const [textRow,textTrack]=timelineRow('小演出（テキスト内）'); let textCount=0;
+  DATA.script.forEach((tn,gi)=>{ const effects=tn.textEffects||[]; if(!effects.length)return; textCount+=effects.length;
+    const group=document.createElement('div'); group.className='tl-text-group'; group.style.gridColumn=(gi+1)+' / span 1';
+    const len=Math.max(1,(tn.text||'').length); effects.forEach(fx=>{ const b=document.createElement('div'); b.className='tl-text-effect';
+      b.style.left=(Math.max(0,fx.start)/len*100)+'%'; b.style.width=(Math.max(1,fx.end-fx.start)/len*100)+'%';
+      if(fx.color)b.style.background=fx.color; b.textContent=(fx.type==='emphasis'?'強調':'色')+': '+(fx.text||'');
+      b.onclick=()=>{ rtab='small'; selectTurn(gi); }; group.appendChild(b); }); textTrack.appendChild(group); });
+  if(!textCount){ const textEmpty=document.createElement('span'); textEmpty.className='tl-empty'; textEmpty.textContent='文字を選択して小演出を追加'; textTrack.appendChild(textEmpty); }
+  body.appendChild(textRow);
   const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）'); let smallCount=0;
   DATA.script.forEach((tn,gi)=>{ const names=[]; if(tn.telop)names.push('テロップ'); if(tn.reaction)names.push('リアクション'); if(!names.length)return; smallCount++;
     const b=document.createElement('div'); b.className='tl-bar small'; b.style.gridColumn=(gi+1)+' / span 1'; b.textContent=names.join('・'); b.onclick=()=>selectTurn(gi); smallTrack.appendChild(b); });
@@ -3142,13 +3171,55 @@ function startEditLine(row,tn,tx){
   tx.replaceWith(ta); autosize(ta); ta.focus();
   // カーソルを末尾へ
   const n=ta.value.length; try{ ta.setSelectionRange(n,n); }catch(e){}
-  ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); renderPreviewPane(); renderTimeline(); };
+  ta.oninput=()=>{ tn.text=ta.value;
+    tn.textEffects=(tn.textEffects||[]).filter(f=>{ if(!f.text)return f.end<=tn.text.length; const i=tn.text.indexOf(f.text); if(i<0)return false; f.start=i;f.end=i+f.text.length;return true; });
+    if(!tn.textEffects.length)delete tn.textEffects;
+    autosize(ta); refreshEst(); markDirty(); renderPreviewPane(); renderTimeline(); };
   // 抜ける時は全再描画せず、その行だけ表示へ戻す（全DOM作り直しによるスクロール/フォーカス飛びを防ぐ）。
   ta.onblur=()=>{
     const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
     nd.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,nd); };
     ta.replaceWith(nd);
   };
+}
+
+function nextTextEffectId(tn){
+  const used=new Set((tn.textEffects||[]).map(f=>f.id)); let i=1; while(used.has('te'+i))i++; return 'te'+i;
+}
+
+function syncTextEffects(tn){
+  if(!(tn.textEffects||[]).length)delete tn.textEffects;
+  markDirty();
+  if(window.remotionEditorPlayer)window.remotionEditorPlayer.updateTextEffects(selGi,tn.textEffects||[]);
+  renderTimeline(); renderRight();
+}
+
+function addTextEffect(tn,type,color){
+  const range=selectedTextRange; if(!range||range.gi!==selGi||range.end<=range.start){ alert('セリフ内の文字を選択してください'); return; }
+  const effects=(tn.textEffects||[]).filter(f=>f.end<=range.start||f.start>=range.end);
+  const fx={id:nextTextEffectId(tn),type,start:range.start,end:range.end,text:range.text};
+  if(color)fx.color=color; effects.push(fx); effects.sort((a,b)=>a.start-b.start); tn.textEffects=effects;
+  selectedTextRange=null; syncTextEffects(tn);
+}
+
+function renderTextEffectEditor(panel,tn){
+  const wrap=document.createElement('div'); wrap.className='textfx-editor';
+  wrap.appendChild(lblDiv('テキスト内の演出（文字を選択して追加）'));
+  const source=document.createElement('textarea'); source.className='textfx-source'; source.readOnly=true; source.value=tn.text||''; wrap.appendChild(source);
+  const actions=document.createElement('div'); actions.className='textfx-actions';
+  const status=document.createElement('span'); status.className='textfx-status'; status.textContent='文字をドラッグして選択'; actions.appendChild(status);
+  const capture=()=>{ const start=source.selectionStart,end=source.selectionEnd; if(end<=start)return;
+    const text=source.value.slice(start,end); selectedTextRange={gi:selGi,start,end,text}; status.textContent='選択中: 「'+text+'」'; };
+  source.onselect=capture; source.onmouseup=capture;
+  actions.appendChild(vMini('強調',()=>addTextEffect(tn,'emphasis','#ffd000')));
+  const color=document.createElement('input'); color.type='color'; color.value='#ff5ca8'; color.title='文字色'; actions.appendChild(color);
+  actions.appendChild(vMini('文字色を適用',()=>addTextEffect(tn,'color',color.value)));
+  wrap.appendChild(actions);
+  (tn.textEffects||[]).forEach(fx=>{ const item=document.createElement('div'); item.className='textfx-item';
+    const sw=document.createElement('span'); sw.className='textfx-swatch'; sw.style.background=fx.color||(fx.type==='emphasis'?'#ffd000':'#fff'); item.appendChild(sw);
+    const text=document.createElement('span'); text.className='snippet'; text.textContent=(fx.type==='emphasis'?'強調':'文字色')+'「'+(fx.text||tn.text.slice(fx.start,fx.end))+'」'; item.appendChild(text);
+    item.appendChild(vMini('削除',()=>{ tn.textEffects=(tn.textEffects||[]).filter(f=>f.id!==fx.id); syncTextEffects(tn); })); wrap.appendChild(item); });
+  panel.appendChild(wrap);
 }
 
 function renderRight(){
@@ -3173,6 +3244,7 @@ function renderRight(){
   const info=document.createElement('div'); info.style.cssText='font-size:11px;color:var(--sub);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
   info.textContent=(ch.title||'')+'｜'+(tn.speaker||'')+': '+(tn.text||''); r.appendChild(info);
   const smallPanel=document.createElement('div');
+  renderTextEffectEditor(smallPanel,tn);
   // キーワードテロップ（per-line・重ねがけ）。小演出タブ内で編集する。
   const tlr=document.createElement('div'); tlr.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px';
   const tll=document.createElement('span'); tll.textContent='💬テロップ'; tll.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
