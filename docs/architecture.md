@@ -33,7 +33,8 @@ flowchart LR
 /workspace
 ├── run                     # 制作ラッパー（薄い）。番号メニュー/コマンドで下記を叩くだけ
 ├── main_story.py           # ★パイプラインのオーケストレータ（CLI入口）
-├── review_server.py        # ★レビューUI（stdlibのみのローカルWebサーバ・3576行）
+├── review_server.py        # ★レビューUIのローカルWebサーバ/API（stdlibのみ）
+├── review_story_page.html  #   メイン制作UI（HTML/CSS/JS）
 ├── make_depth.py           # 深度マップ生成（パララックス用・ローカル推論）
 ├── src/                    # パイプライン部品
 │   ├── story_script.py     #   台本データモデル＋Gemini呼び出し（1559行）
@@ -190,9 +191,9 @@ flowchart TD
 
 ## 5. レビューUI（Human-in-the-loop）
 
-`review_server.py`（3576行・**Python標準ライブラリのみ**、Flask等不使用）。`http.server.BaseHTTPRequestHandler` + `ThreadingHTTPServer`。HTML/CSS/JSはすべてPython文字列定数として**埋め込み**。
+`review_server.py`（**Python標準ライブラリのみ**、Flask等不使用）が `http.server.BaseHTTPRequestHandler` + `ThreadingHTTPServer` でAPIとページを配信する。メイン制作UIは `review_story_page.html` に分離し、その他の小規模ページはPython文字列定数として保持する。
 
-> **UI/UX改善の主戦場はここ。** ダークテーマの2ペイン構成は維持方針（過去にライト+Pico全面刷新は却下済）。改善はピンポイントで。
+> **UI/UX改善の主戦場はここ。** ダークテーマの4領域構成を維持し、段階的に改善する。
 
 ```bash
 python review_server.py --dir docs/story --port 8765   # ./run review でも可
@@ -203,7 +204,7 @@ python review_server.py --dir docs/story --port 8765   # ./run review でも可
 | ルート | 役割 |
 |---|---|
 | `/` | ランディング（パイプライン進捗ダッシュボード） |
-| `/story` | ★メインの review/edit UI（左=台本、右=画像/演出エディタの2ペイン） |
+| `/story` | ★メインの review/edit UI（左=台本、中央=Remotion、右=設定、下=タイムライン） |
 | `/read` | 読み専用のファクトチェック表示 |
 | `/script` | 台本メタ編集 |
 | `/shorts` | ショート作成ハブ（ネタ選択→一括生成→個別レビュー） |
@@ -222,13 +223,13 @@ python review_server.py --dir docs/story --port 8765   # ./run review でも可
 | 201–344 | ショート管理・ジョブキュー（subprocess起動とポーリング） |
 | 909–928 | `_BASE_CSS`（テーマ変数・共通スタイル） |
 | 930–1375 | `LANDING_PAGE` / `SHORTS_PAGE` / `COMPOSE_PAGE` / `SCRIPT_PAGE` |
-| **1376–3219** | **`STORY_PAGE`（メインUI：章・行・演出エディタ・画像ピッカー）** |
-| 3232–3344 | `READ_PAGE` |
-| 3347–3576 | HTTPハンドラ（`do_GET`/`do_POST` ルーティング）と `main()` |
+| 外部ファイル | **`review_story_page.html`（メインUI：章・行・演出エディタ・画像ピッカー・タイムライン）** |
+| `READ_PAGE` | 読み専用ファクトチェックページ |
+| `Handler` 以降 | HTTPハンドラ（`do_GET`/`do_POST` ルーティング）と `main()` |
 
 ### プレビューについて
 
-Remotionをそのまま埋め込むのではなく、**HTML/CSSでレイアウトを再現したWYSIWYGモック**で位置/大きさを確認する（テロップ/リアクションのプレビューは全画面1920基準・中央=画像エリア基準で本番一致させる、が直近の修正方針）。
+`/story` の中央には Remotion Player を埋め込み、本番と同じ `DialogueVideo` を16:9で確認する。meta未生成やPlayer未ビルド時のみ簡易プレビューへフォールバックする。
 
 ---
 
@@ -422,4 +423,4 @@ flowchart TD
 3. `main_story.py` の `build_meta` / `build_chapter_topics` … 台本→描画データの変換と演出時刻解決。
 4. `video/src/Root.tsx` … Composition定義と尺の決め方。
 5. `video/src/DialogueVideo.tsx` の `effectState()`・各 `*Visual`/`*Overlay` … 演出の描画。
-6. `review_server.py` の `STORY_PAGE`（1376–3219行） … UI/UX改善の対象。
+6. `review_story_page.html` … UI/UX改善の対象。
