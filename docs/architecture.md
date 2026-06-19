@@ -210,6 +210,8 @@ python review_server.py --dir docs/story --port 8765   # ./run review でも可
 | `/shorts` | ショート作成ハブ（ネタ選択→一括生成→個別レビュー） |
 | `/compose` | ブラウザAI用プロンプト（コピペ運用） |
 
+`/story` のヘッダーで作業モードを切り替えられる。**演出モード**は4領域、**台本モード**はプレビューとタイムラインを停止して台本・設定を50:50で表示する。選択はブラウザの `localStorage` に保存する。
+
 ### 主なAPI（POST・JSON body）
 
 `/api/fetch`（1カット取得）・`/api/candidates`（候補サムネ取得）・`/api/script`（保存）・`/api/approve`（承認）・`/api/options`（crop/filter/pad/bg/hide適用）・`/api/import-url`・`/api/replace`（base64アップロード）・`/api/delete-cut`（削除＋再採番）・`/api/regenerate`（章再生成＝Gemini）・`/api/set-dir`（本編/ショート切替）・`/api/shorts/*`。

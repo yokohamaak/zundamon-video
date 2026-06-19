@@ -288,6 +288,10 @@
                    font-size:10px; font-weight:800; pointer-events:none; }
   body.tl-resizing, body.tl-resizing * { cursor:ew-resize !important; }
   .tl-empty { align-self:center; color:#657184; font-size:10px; padding-left:10px; }
+  .mode-switch { display:flex; padding:2px; border:1px solid #2b3442; border-radius:8px; background:#10141b; }
+  .mode-switch button { padding:5px 11px; border:0; border-radius:6px; background:transparent; color:var(--sub);
+                        font-size:11px; font-weight:700; }
+  .mode-switch button.on { background:#3a2d62; color:#eee8ff; }
   @media (max-width:1200px){
     body { overflow:auto; }
     main#main { height:auto; }
@@ -295,11 +299,20 @@
     .tp-right { grid-column:1 / -1; }
     .timeline { grid-row:3; }
   }
+  body.mode-script { overflow:hidden; }
+  body.mode-script main#main { height:calc(100vh - 56px); }
+  .tp.mode-script { grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
+  .tp.mode-script .tp-center, .tp.mode-script .timeline { display:none; }
+  .tp.mode-script .tp-right { grid-column:auto; }
 </style></head>
 <body>
 <header>
   <a href="/">← パネル</a>
   <h1>ストーリー編集</h1>
+  <div class="mode-switch" aria-label="作業モード">
+    <button type="button" id="modeScript">台本</button>
+    <button type="button" id="modeEffect">演出</button>
+  </div>
   <span class="spacer"></span>
   <a href="/read"><button title="フル台本/概要を読み取り専用で表示（事実確認）">台本を読む</button></a>
   <button id="regenall" title="テーマで台本を丸ごと作り直す（intro+全ネタ+outroを新規生成・整合性が保たれる）">全体を作り直す</button>
@@ -316,6 +329,20 @@ let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=n
 let timelineScrollLeft=0;  // 全体再描画を挟んでもタイムラインの横位置を維持する。
 let selectedTextRange=null;  // {gi,start,end,text}。小演出タブの文字選択をボタン操作まで保持。
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
+let workspaceMode=localStorage.getItem('reviewWorkspaceMode')==='script'?'script':'effect';
+function applyWorkspaceMode(){
+  document.body.classList.toggle('mode-script',workspaceMode==='script');
+  document.getElementById('modeScript').classList.toggle('on',workspaceMode==='script');
+  document.getElementById('modeEffect').classList.toggle('on',workspaceMode==='effect');
+}
+function setWorkspaceMode(mode){
+  if(mode!=='script' && mode!=='effect')return;
+  workspaceMode=mode; rwide=false; localStorage.setItem('reviewWorkspaceMode',mode); applyWorkspaceMode();
+  if(DATA)render();
+}
+document.getElementById('modeScript').onclick=()=>setWorkspaceMode('script');
+document.getElementById('modeEffect').onclick=()=>setWorkspaceMode('effect');
+applyWorkspaceMode();
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
 function setOpt(key,patch){ return api('/api/options',{key,patch}); }
@@ -1487,7 +1514,7 @@ function render(){
   m.innerHTML='';
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
-  const tp=document.createElement('div'); tp.className='tp';
+  const tp=document.createElement('div'); tp.className='tp'+(workspaceMode==='script'?' mode-script':'');
   const left=document.createElement('div'); left.className='tp-left';
   const center=document.createElement('div'); center.className='tp-center'; center.id='previewPane';
   const right=document.createElement('div'); right.className='tp-right'+(rwide?' wide':''); right.id='rpane';
@@ -1517,15 +1544,16 @@ function render(){
     });
     left.appendChild(sec);
   });
-  renderPreviewPane();
+  if(workspaceMode==='effect') renderPreviewPane();
   renderRight();
-  renderTimeline();
+  if(workspaceMode==='effect') renderTimeline();
   const _newrp=document.getElementById('rpane'); if(_newrp) _newrp.scrollTop=rsy;
   document.querySelectorAll('#main textarea').forEach(autosize);
   window.scrollTo(0,sy);
 }
 
 function renderPreviewPane(){
+  if(workspaceMode!=='effect') return;
   const p=document.getElementById('previewPane'); if(!p||!DATA||!DATA.script) return;
   if(p.dataset.playerMounted==='1'){
     const title=p.querySelector('[data-preview-title]'); const tn=DATA.script[selGi]||{};
@@ -1599,6 +1627,7 @@ function timelineRow(label, cls){
   return [row,track];
 }
 function renderTimeline(){
+  if(workspaceMode!=='effect') return;
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';

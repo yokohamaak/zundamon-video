@@ -135,6 +135,8 @@ python review_server.py --dir docs/story --port 8765   # ./run review でも可
 
 4領域（左 = 台本、中央 = Remotionプレビュー、右 = 設定、下 = タイムライン）。ダークテーマ。
 
+ヘッダーの「台本 / 演出」で作業モードを切り替える。台本モードはRemotionとタイムラインを停止して左右50:50、演出モードは4領域へ戻る。選択状態は `localStorage` の `reviewWorkspaceMode` に保存される。
+
 - **左ペイン**：章カード（`.chsec`・intro/trivia/outro）＋ Discord風のセリフ行カード（`.line`・話者色ドット＋名前＋本文＋画像サムネ）。演出が範囲にまたがる場合は可視化レール（ハンドル）で範囲指定。
 - **右ペイン**（`.tp-right`）：
   - 画像パネル … クロップ/差し替え（ドラッグ・ドロップ・URL取込）、フィルタ（明度/コントラスト/グレースケール）、`fit`（cover/contain）、padding/背景色
