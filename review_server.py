@@ -1582,7 +1582,7 @@ STORY_PAGE = """<!doctype html>
   body { overflow:hidden; }
   body > header { height:56px; box-sizing:border-box; }
   main#main { width:100%; max-width:none; height:calc(100vh - 56px); padding:8px; box-sizing:border-box; }
-  .tp { height:100%; display:grid; grid-template-columns:minmax(360px,27%) minmax(420px,1fr) minmax(330px,23%);
+  .tp { height:100%; display:grid; grid-template-columns:minmax(320px,24%) minmax(420px,1fr) minmax(360px,25%);
         grid-template-rows:minmax(360px,58%) minmax(220px,42%); gap:8px; align-items:stretch; }
   .tp-left { min-width:0; overflow:auto; background:#10141b; border:1px solid #1c232e;
              border-radius:10px; padding:12px; }
@@ -1661,27 +1661,6 @@ STORY_PAGE = """<!doctype html>
   .line.sel .lacts { display:flex; }
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
-  /* 演出範囲レール：各セグメントが自分の開始/終了行にハンドルを常時持つ＋範囲の縦帯。viz章のみ */
-  .line .rail { width:62px; flex:none; align-self:stretch; position:relative; margin:-13px 0; }  /* カード上下padding(13px)を打ち消し枠に揃える */
-  .line .rail .seg { position:absolute; left:29px; width:3px; background:#6b6ae0; top:-5px; bottom:-13px; }
-  .line .rail .seg.s { top:21px; border-radius:3px 3px 0 0; }
-  .line .rail .seg.e { bottom:21px; border-radius:0 0 3px 3px; }
-  /* 境界ハンドル：ラベル(開始/終了)＋1行ずつ動かす ↑↓ ボタン。常時表示。 */
-  .line .rail .bh { position:absolute; left:1px; width:58px; display:flex; align-items:center; gap:2px; z-index:1; }
-  .line .rail .bh.s { top:1px; }      /* 開始＝行の上端 */
-  .line .rail .bh.e { bottom:1px; }   /* 終了＝行の下端 */
-  .line .rail .bh .lab { font-size:9px; font-weight:800; color:#fff; border-radius:4px; padding:1px 3px; line-height:1.3; cursor:pointer; }
-  .line .rail .bh .lab.armed { outline:2px solid #fff; box-shadow:0 0 0 2px #6b6ae0, 0 0 8px #6b6ae0; }
-  /* つかみ中：行が移動先タップ対象＝ポインタ＋淡い枠 */
-  .arming .line { cursor:pointer; }
-  .arming .line:hover { box-shadow:inset 0 0 0 2px #6b6ae0; }
-  .armbar { position:sticky; top:0; z-index:20; background:#6b6ae0; color:#fff; font-size:12px; font-weight:700;
-            padding:6px 12px; border-radius:8px; margin:0 0 8px; display:flex; align-items:center; gap:10px; }
-  .armbar button { font-size:11px; padding:2px 8px; border:1px solid #fff; border-radius:6px; background:transparent; color:#fff; cursor:pointer; }
-  .line .rail .bh button { width:15px; height:16px; border:1px solid #313a47; border-radius:4px; background:#141a23;
-                           color:#9aa6ba; cursor:pointer; font-size:10px; line-height:1; padding:0; box-sizing:border-box; }
-  .line .rail .bh button:hover:not(:disabled) { border-color:#6b6ae0; color:#dbe1ec; }
-  .line .rail .bh button:disabled { opacity:.2; cursor:default; }
   .rtabs { display:flex; gap:6px; margin-bottom:10px; }
   .rtab { font-size:13px; font-weight:700; padding:7px 13px; border-radius:8px; border:none;
           background:#1a212c; color:var(--sub); cursor:pointer; }
@@ -1748,7 +1727,6 @@ STORY_PAGE = """<!doctype html>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // ワークスペース：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
 let timelineScrollLeft=0;  // 全体再描画を挟んでもタイムラインの横位置を維持する。
-let armEdge=null;  // 演出範囲の「つかんで置く」: {seg:id, edge:'s'|'e'} or null。ラベルタップでつかみ→行タップで一気に移動
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
@@ -2915,18 +2893,12 @@ function render(){
   m.innerHTML='';
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
-  const tp=document.createElement('div'); tp.className='tp'+(armEdge?' arming':'');  // つかみ中は行=移動先タップ対象
+  const tp=document.createElement('div'); tp.className='tp';
   const left=document.createElement('div'); left.className='tp-left';
   const center=document.createElement('div'); center.className='tp-center'; center.id='previewPane';
   const right=document.createElement('div'); right.className='tp-right'+(rwide?' wide':''); right.id='rpane';
   const timeline=document.createElement('div'); timeline.className='timeline'; timeline.id='timelinePane';
   tp.appendChild(left); tp.appendChild(center); tp.appendChild(right); tp.appendChild(timeline); m.appendChild(tp);
-  // つかみ中バー（移動先の行をタップ／解除）。
-  if(armEdge){ const ab=document.createElement('div'); ab.className='armbar';
-    const lbl=(armEdge.edge==='s'?'開始':'終了');
-    const t=document.createElement('span'); t.textContent='✊ '+lbl+'をつかみ中：移動先の行をタップ（隣の演出から自動で奪う）'; ab.appendChild(t);
-    const cx=document.createElement('button'); cx.textContent='解除'; cx.onclick=()=>{ armEdge=null; render(); }; ab.appendChild(cx);
-    left.appendChild(ab); }
   // 左上：テーマ＋推定ゲージ
   const th=document.createElement('div'); th.className='theme';
   const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
@@ -3130,38 +3102,7 @@ function chapterDivider(ch,ci){
 function lineRow(tn,gi,ch,ci,inViz){
   const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(inViz?' vizrow':''); row.dataset.gi=gi;
   const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
-  // 演出セグメントのレール（所属＝色帯＋各演出が自分の開始/終了行に常時ハンドル）。全章（intro/outro含む）で可。
-  const seg=segOf(tn,ch); const segIdx=seg?chSegs(ch).indexOf(seg):-1;
-  {
-    const rail=document.createElement('div'); rail.className='rail';
-    if(seg){
-      const c2=SEGCOL[segIdx%SEGCOL.length]; const rng=segRange(ci,seg.id);
-      const sg=document.createElement('div'); sg.className='seg'+(gi===rng.s?' s':'')+(gi===rng.e?' e':''); sg.style.background=c2; rail.appendChild(sg);
-      const prevSame=(gi>0 && DATA.script[gi-1] && DATA.script[gi-1].chapter===ci);
-      const nextSame=(gi<DATA.script.length-1 && DATA.script[gi+1] && DATA.script[gi+1].chapter===ci);
-      const multi=(rng.e>rng.s);  // 2行以上なら縮められる
-      // 1行ずつ動かすハンドル（↑↓）。↑↓の向き=範囲を広げる/狭める。広げる時は隣の演出から1行奪う。
-      const mkBh=(cls,label,btns)=>{ const bh=document.createElement('div'); bh.className='bh '+cls;
-        // ラベル＝「つかむ」ボタン。タップで掴む→移動先の行をタップで一気に移動。再タップで解除。
-        const armd=(armEdge&&armEdge.seg===seg.id&&armEdge.edge===cls);
-        const lab=document.createElement('span'); lab.className='lab'+(armd?' armed':''); lab.style.background=c2; lab.textContent=label;
-        lab.title='タップで“つかむ”→移動先の行をタップで一気に移動';
-        lab.onclick=(e)=>{ e.stopPropagation(); armEdge=armd?null:{seg:seg.id,edge:cls}; render(); };
-        bh.appendChild(lab);
-        btns.forEach(([sym,title,enabled,fn])=>{ const b=document.createElement('button'); b.textContent=sym; b.title=title; b.disabled=!enabled;
-          b.onclick=(e)=>{ e.stopPropagation(); if(!enabled)return; fn(); render(); }; bh.appendChild(b); });
-        rail.appendChild(bh); };
-      if(gi===rng.s) mkBh('s','開始',[
-        ['↑','1行上へ広げる（前の演出から奪う）', prevSame, ()=>retagSeg(ci,seg.id,gi-1,rng.e)],
-        ['↓','1行下へ狭める',                  multi,    ()=>retagSeg(ci,seg.id,gi+1,rng.e)],
-      ]);
-      if(gi===rng.e) mkBh('e','終了',[
-        ['↑','1行上へ狭める',                  multi,    ()=>retagSeg(ci,seg.id,rng.s,gi-1)],
-        ['↓','1行下へ広げる（次の演出から奪う）', nextSame, ()=>retagSeg(ci,seg.id,rng.s,gi+1)],
-      ]);
-    }
-    row.appendChild(rail);
-  }
+  const seg=segOf(tn,ch);
   // アイコン（話者色の丸＋頭文字）
   const av=document.createElement('div'); av.className='av'; av.style.background=col; av.textContent=(tn.speaker||'?').slice(0,1);
   // 名前＋本文（縦並び）
@@ -3186,16 +3127,6 @@ function lineRow(tn,gi,ch,ci,inViz){
   bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
   la.appendChild(bs); la.appendChild(bd);
   row.onclick=()=>{
-    // 「つかんで置く」中：この章にそのセグメントがあれば、タップ行へ境界を一気に移動。
-    if(armEdge){
-      if(chSegs(ch).some(s=>s.id===armEdge.seg)){
-        const cur=segRange(ci,armEdge.seg);
-        if(armEdge.edge==='s') retagSeg(ci,armEdge.seg,gi,(cur.e<0?gi:cur.e));
-        else retagSeg(ci,armEdge.seg,(cur.s<0?gi:cur.s),gi);
-        armEdge=null; render(); return;
-      }
-      armEdge=null;  // 別章をタップ＝つかみ解除して通常選択へ
-    }
     const chg=(selGi!==gi);
     if(chg){ selGi=gi; }   // タブ(rtab)は維持＝別セリフへ移っても画像/演出/章の表示を保つ
     if(seg) selSeg=seg.id;   // 演出セグメントの行を選んだらそのセグメントを選択
@@ -3232,12 +3163,22 @@ function renderRight(){
   const tn=DATA.script[selGi]; if(!tn){ r.appendChild(document.createTextNode('左で行を選択してください')); return; }
   const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
   const inViz=!!tn.vizSeg; const nseg=chSegs(ch).length;
-  // キーワードテロップ（per-line・重ねがけ）。どのタブでも常に編集可＝タブの上に置く。
+  const tabs=[['image','画像'],['viz',nseg?('大演出 '+nseg):'大演出'],['small','小演出'],['chapter','章']];
+  let cur=rtab; if(!cur||!tabs.some(t=>t[0]===cur)) cur=inViz?'viz':'image';
+  const tb=document.createElement('div'); tb.className='rtabs';
+  tabs.forEach(([k,label])=>{ const b=document.createElement('button');
+    b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):''); b.textContent=label;
+    b.onclick=()=>{ rtab=k; renderRight(); const rp=document.getElementById('rpane'); if(rp) rp.scrollTop=0; }; tb.appendChild(b); });
+  r.appendChild(tb);
+  const info=document.createElement('div'); info.style.cssText='font-size:11px;color:var(--sub);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+  info.textContent=(ch.title||'')+'｜'+(tn.speaker||'')+': '+(tn.text||''); r.appendChild(info);
+  const smallPanel=document.createElement('div');
+  // キーワードテロップ（per-line・重ねがけ）。小演出タブ内で編集する。
   const tlr=document.createElement('div'); tlr.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px';
   const tll=document.createElement('span'); tll.textContent='💬テロップ'; tll.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
   const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
   tli.rows=1; tli.onchange=()=>render();   // blurでプレビュー＋左の行バッジを反映（全体再描画・スクロール保持）
-  tlr.appendChild(tll); tlr.appendChild(tli); r.appendChild(tlr);
+  tlr.appendChild(tll); tlr.appendChild(tli); smallPanel.appendChild(tlr);
   // リアクション記号（per-line・重ねがけ）。プリセットをタップで付け外し。
   const rxr=document.createElement('div'); rxr.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap';
   const rxl=document.createElement('span'); rxl.textContent='😲リアクション'; rxl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
@@ -3246,7 +3187,7 @@ function renderRight(){
     b.className='vchip'+(tn.reaction===sym?' on':''); b.textContent=sym; b.style.fontSize='15px';
     b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); render(); }; rxr.appendChild(b); });
   rxr.appendChild(vMini('×',()=>{ delete tn.reaction; markDirty(); render(); }));
-  r.appendChild(rxr);
+  smallPanel.appendChild(rxr);
   // --- テロップ/リアクションの調整（大きさ/長さ/色）。該当が有る時だけ出す。 ---
   const ctlRow=(label)=>{ const r2=document.createElement('div'); r2.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap;font-size:11px;color:var(--sub)';
     const l=document.createElement('span'); l.textContent=label; l.style.cssText='flex:none;min-width:56px'; r2.appendChild(l); return r2; };
@@ -3260,9 +3201,9 @@ function renderRight(){
   const colCtl=(row,label,key,def)=>{ const cp=document.createElement('input'); cp.type='color'; cp.value=tn[key]||def; cp.title=label;
     cp.oninput=()=>{ tn[key]=cp.value; markDirty(); }; cp.onchange=()=>renderRight();
     row.appendChild(document.createTextNode(label)); row.appendChild(cp); row.appendChild(vMini('既',()=>{ delete tn[key]; markDirty(); renderRight(); })); };
-  if(tn.telop){ const r2=ctlRow('テロップ'); sizeCtl(r2,'telopSize'); durCtl(r2,'telopDur'); r.appendChild(r2);
-    const r3=ctlRow('色'); colCtl(r3,'文字','telopColor','#ffd84d'); colCtl(r3,'背景','telopBg','#121a28'); colCtl(r3,'枠','telopBorder','#ffd84d'); r.appendChild(r3); }
-  if(tn.reaction){ const r2=ctlRow('リアクション'); sizeCtl(r2,'reactionSize'); durCtl(r2,'reactionDur'); r.appendChild(r2); }
+  if(tn.telop){ const r2=ctlRow('テロップ'); sizeCtl(r2,'telopSize'); durCtl(r2,'telopDur'); smallPanel.appendChild(r2);
+    const r3=ctlRow('色'); colCtl(r3,'文字','telopColor','#ffd84d'); colCtl(r3,'背景','telopBg','#121a28'); colCtl(r3,'枠','telopBorder','#ffd84d'); smallPanel.appendChild(r3); }
+  if(tn.reaction){ const r2=ctlRow('リアクション'); sizeCtl(r2,'reactionSize'); durCtl(r2,'reactionDur'); smallPanel.appendChild(r2); }
   // 位置の配置対象トグル（プレビューをクリックで配置）。
   if(tn.telop||tn.reaction){ const pr=ctlRow('位置');
     [['telop','テロップ',!!tn.telop],['reaction','リアクション',!!tn.reaction]].forEach(([v,t,on])=>{ if(!on)return; const b=document.createElement('button'); b.type='button'; b.className='vchip'+(placeMode===v?' on':''); b.textContent=t+'を配置';
@@ -3270,7 +3211,7 @@ function renderRight(){
     const setPos=(x,y)=>{ if(placeMode==='reaction'&&tn.reaction){tn.reactionX=x;tn.reactionY=y;} else if(tn.telop){tn.telopX=x;tn.telopY=y;} else if(tn.reaction){tn.reactionX=x;tn.reactionY=y;} markDirty(); renderRight(); };
     pr.appendChild(vMini('中央へ',()=>setPos(0.5,0.5)));
     pr.appendChild(vMini('位置リセット',()=>{ ['telopX','telopY','reactionX','reactionY'].forEach(k=>delete tn[k]); markDirty(); renderRight(); }));
-    r.appendChild(pr); }
+    smallPanel.appendChild(pr); }
   // 小演出プレビュー（テロップ/リアクション/集中線・flashの位置と見た目）。何かある時だけ出す。
   const punch=(tn.effect==='zoom_punch'||tn.effect==='shake');
   if(tn.telop||tn.reaction||punch||tn.effect==='flash'){
@@ -3292,23 +3233,13 @@ function renderRight(){
       const x=rd((e.clientX-b.left)/b.width), y=rd((e.clientY-b.top)/b.height);
       if(placeMode==='reaction'&&tn.reaction){ tn.reactionX=x; tn.reactionY=y; } else if(tn.telop){ tn.telopX=x; tn.telopY=y; } else if(tn.reaction){ tn.reactionX=x; tn.reactionY=y; }
       markDirty(); renderRight(); };
-    r.appendChild(sp);
-    const sn=document.createElement('div'); sn.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px'; sn.textContent='クリックで配置（上の「○を配置」で対象切替）。位置/大きさ/色/長さを反映・本番はポップ/バーストで動く。'; r.appendChild(sn);
+    smallPanel.appendChild(sp);
+    const sn=document.createElement('div'); sn.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px'; sn.textContent='クリックで配置（上の「○を配置」で対象切替）。位置/大きさ/色/長さを反映・本番はポップ/バーストで動く。';
+    smallPanel.appendChild(sn);
   }
-  const tabs=[['image','画像']];
-  tabs.push(['viz', nseg?('演出×'+nseg):'＋演出']);  // 全章（intro/outro含む）で演出を付けられる
-  tabs.push(['chapter','章']);
-  let cur=rtab; if(!cur||!tabs.some(t=>t[0]===cur)) cur=inViz?'viz':'image';
-  const tb=document.createElement('div'); tb.className='rtabs';
-  tabs.forEach(([k,label])=>{ const b=document.createElement('button');
-    b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):''); b.textContent=label;
-    b.onclick=()=>{ rtab=k; renderRight(); const rp=document.getElementById('rpane'); if(rp) rp.scrollTop=0; }; tb.appendChild(b); });
-  r.appendChild(tb);
-  const info=document.createElement('div'); info.style.cssText='font-size:11px;color:var(--sub);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-  info.textContent=(ch.title||'')+'｜'+(tn.speaker||'')+': '+(tn.text||'');
-  r.appendChild(info);
   if(cur==='image') renderImageTab(r,tn,ch,ci);
   else if(cur==='viz') renderVizTab(r,tn,ch,ci);
+  else if(cur==='small') r.appendChild(smallPanel);
   else renderChapterTab(r,ch,ci);
   renderPreviewPane();
   r.scrollTop=_rsy;  // スクロール位置を復元
