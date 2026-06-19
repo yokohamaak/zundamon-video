@@ -1515,11 +1515,38 @@ STORY_PAGE = """<!doctype html>
             border-left:5px solid #7a5cff; background:rgba(122,92,255,0.12); border-radius:0 6px 6px 0; }
   .vizhdr-t { font-size:13px; font-weight:800; color:#c4a8ff; }
   .cutpick.vizmuted { color:var(--sub); font-size:11px; font-style:italic; align-items:center; }
-  /* === 二画面（台本左＋編集右）：Notion/Discord/Linear 参考・可読性優先 === */
-  .tp { display:grid; grid-template-columns:1fr 480px; gap:24px; align-items:start; }
-  .tp-left { min-width:0; }
+  /* === セリフ駆動ワークスペース：左=セリフ / 中央=プレビュー / 右=設定 / 下=タイムライン === */
+  body { overflow:hidden; }
+  body > header { height:56px; box-sizing:border-box; }
+  main#main { width:100%; max-width:none; height:calc(100vh - 56px); padding:8px; box-sizing:border-box; }
+  .tp { height:100%; display:grid; grid-template-columns:minmax(320px,25%) minmax(420px,1fr) minmax(330px,23%);
+        grid-template-rows:minmax(360px,58%) minmax(220px,42%); gap:8px; align-items:stretch; }
+  .tp-left { min-width:0; overflow:auto; background:#10141b; border:1px solid #1c232e;
+             border-radius:10px; padding:12px; }
+  .tp-center { min-width:0; overflow:hidden; background:#10141b; border:1px solid #1c232e;
+               border-radius:10px; padding:10px; display:flex; flex-direction:column; }
+  .preview-toolbar { display:flex; align-items:center; gap:8px; min-height:34px; margin-bottom:8px; }
+  .preview-toolbar .spacer { flex:1; }
+  .preview-chip { color:var(--sub); background:#1a212c; border:1px solid #2b3442; border-radius:7px;
+                  padding:5px 9px; font-size:11px; }
+  .preview-stage { position:relative; flex:1; min-height:0; overflow:hidden; border-radius:8px;
+                   background:#0b0e13; display:flex; align-items:center; justify-content:center; }
+  .preview-stage img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.82; }
+  .preview-empty { color:var(--sub); font-size:13px; }
+  .preview-caption { position:absolute; left:5%; right:5%; bottom:5%; z-index:2; padding:10px 16px;
+                     background:rgba(8,11,16,.82); border-radius:8px; color:#fff; text-align:center;
+                     font-size:clamp(14px,1.7vw,28px); font-weight:800; line-height:1.45; text-shadow:0 2px 5px #000; }
+  .preview-speaker { position:absolute; left:5%; bottom:calc(5% + 64px); z-index:3; padding:3px 9px;
+                     border-radius:999px; color:#fff; font-size:11px; font-weight:800; }
+  .preview-telop { position:absolute; z-index:4; transform:translate(-50%,-50%); padding:7px 18px;
+                   border:2px solid #ffd84d; border-radius:8px; background:#121a28; color:#ffd84d;
+                   font-weight:900; white-space:pre-line; text-align:center; }
+  .preview-controls { display:flex; align-items:center; justify-content:center; gap:12px; min-height:42px;
+                      margin-top:8px; color:var(--sub); font-size:12px; }
+  .preview-controls button { min-width:52px; height:30px; border:0; border-radius:7px; background:#1a212c;
+                             color:var(--fg); cursor:pointer; }
   /* 右ペイン＝補助。背景に寄せ視覚優先度を下げる（細い罫線・低コントラスト） */
-  .tp-right { position:sticky; top:74px; max-height:calc(100vh - 90px); overflow:auto;
+  .tp-right { min-width:0; max-height:none; overflow:auto;
               background:#10141b; border:1px solid #1c232e; border-radius:12px; padding:14px; }
   /* 広げる：左に被さる大きいパネル */
   .tp-right.wide { position:fixed; top:64px; right:14px; bottom:14px; width:min(960px,84vw);
@@ -1588,7 +1615,38 @@ STORY_PAGE = """<!doctype html>
           background:#1a212c; color:var(--sub); cursor:pointer; }
   .rtab.on { background:#2a2440; color:#c4a8ff; }
   .rtab.imgon { background:#23354f; color:#cfe0ff; }
-  @media (max-width:920px){ .tp { grid-template-columns:1fr; } .tp-right { position:static; max-height:none; } }
+  .timeline { grid-column:1 / -1; min-height:0; overflow:hidden; background:#10141b;
+              border:1px solid #1c232e; border-radius:10px; display:flex; flex-direction:column; }
+  .tl-head { height:42px; flex:none; display:flex; align-items:center; gap:8px; padding:0 12px;
+             border-bottom:1px solid #1c232e; }
+  .tl-title { color:#d7caff; background:#2a2440; border-radius:999px; padding:5px 14px;
+              font-size:12px; font-weight:800; }
+  .tl-hint { color:var(--sub); font-size:11px; }
+  .tl-scroll { flex:1; min-height:0; overflow:auto; }
+  .tl-body { min-width:900px; }
+  .tl-row { display:grid; grid-template-columns:150px minmax(750px,1fr); min-height:42px;
+            border-bottom:1px solid #1c232e; }
+  .tl-label { position:sticky; left:0; z-index:4; display:flex; align-items:center; padding:0 12px;
+              background:#12171f; border-right:1px solid #26303d; color:var(--fg); font-size:11px; font-weight:700; }
+  .tl-track { display:grid; position:relative; align-items:center;
+              background-image:linear-gradient(to right,rgba(255,255,255,.045) 1px,transparent 1px); }
+  .tl-turn { height:32px; margin:4px 3px; padding:6px 9px; box-sizing:border-box; overflow:hidden;
+             border:1px solid #2d3745; border-radius:5px; background:#1a212c; color:#cbd3df;
+             font-size:10px; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
+  .tl-turn.sel { border-color:#8b5cf6; background:#292340; color:#fff; box-shadow:inset 0 0 0 1px #8b5cf6; }
+  .tl-bar { height:27px; margin:5px 3px; padding:6px 10px; box-sizing:border-box; overflow:hidden;
+            border-radius:5px; color:#fff; font-size:10px; font-weight:700; white-space:nowrap; text-overflow:ellipsis;
+            cursor:pointer; }
+  .tl-bar.main { background:linear-gradient(90deg,#6940a5,#8b5cf6); }
+  .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
+  .tl-empty { align-self:center; color:#657184; font-size:10px; padding-left:10px; }
+  @media (max-width:1100px){
+    body { overflow:auto; }
+    main#main { height:auto; }
+    .tp { grid-template-columns:minmax(300px,38%) 1fr; grid-template-rows:520px 520px 300px; }
+    .tp-right { grid-column:1 / -1; }
+    .timeline { grid-row:3; }
+  }
 </style></head>
 <body>
 <header>
@@ -1604,7 +1662,7 @@ STORY_PAGE = """<!doctype html>
 <main id="main">読み込み中…</main>
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
-let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // 二画面：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
+let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // ワークスペース：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
 let armEdge=null;  // 演出範囲の「つかんで置く」: {seg:id, edge:'s'|'e'} or null。ラベルタップでつかみ→行タップで一気に移動
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -2772,8 +2830,10 @@ function render(){
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
   const tp=document.createElement('div'); tp.className='tp'+(armEdge?' arming':'');  // つかみ中は行=移動先タップ対象
   const left=document.createElement('div'); left.className='tp-left';
+  const center=document.createElement('div'); center.className='tp-center'; center.id='previewPane';
   const right=document.createElement('div'); right.className='tp-right'+(rwide?' wide':''); right.id='rpane';
-  tp.appendChild(left); tp.appendChild(right); m.appendChild(tp);
+  const timeline=document.createElement('div'); timeline.className='timeline'; timeline.id='timelinePane';
+  tp.appendChild(left); tp.appendChild(center); tp.appendChild(right); tp.appendChild(timeline); m.appendChild(tp);
   // つかみ中バー（移動先の行をタップ／解除）。
   if(armEdge){ const ab=document.createElement('div'); ab.className='armbar';
     const lbl=(armEdge.edge==='s'?'開始':'終了');
@@ -2804,10 +2864,83 @@ function render(){
     });
     left.appendChild(sec);
   });
+  renderPreviewPane();
   renderRight();
+  renderTimeline();
   const _newrp=document.getElementById('rpane'); if(_newrp) _newrp.scrollTop=rsy;
   document.querySelectorAll('#main textarea').forEach(autosize);
   window.scrollTo(0,sy);
+}
+
+function renderPreviewPane(){
+  const p=document.getElementById('previewPane'); if(!p||!DATA||!DATA.script) return;
+  p.innerHTML='';
+  const tn=DATA.script[selGi]||{}; const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
+  const toolbar=document.createElement('div'); toolbar.className='preview-toolbar';
+  const ratio=document.createElement('span'); ratio.className='preview-chip'; ratio.textContent='16:9'; toolbar.appendChild(ratio);
+  const title=document.createElement('span'); title.className='preview-chip'; title.textContent=ch.title||'プレビュー'; toolbar.appendChild(title);
+  const spacer=document.createElement('span'); spacer.className='spacer'; toolbar.appendChild(spacer);
+  const note=document.createElement('span'); note.className='preview-chip'; note.textContent='簡易プレビュー'; toolbar.appendChild(note);
+  p.appendChild(toolbar);
+  const stage=document.createElement('div'); stage.className='preview-stage';
+  const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
+  if(u){ const im=document.createElement('img'); im.src=u; stage.appendChild(im); }
+  else { const empty=document.createElement('div'); empty.className='preview-empty'; empty.textContent='画像がありません'; stage.appendChild(empty); }
+  if(tn.telop){ const tel=document.createElement('div'); tel.className='preview-telop';
+    tel.textContent=tn.telop; tel.style.left=((tn.telopX!=null?tn.telopX:.5)*100)+'%';
+    tel.style.top=((tn.telopY!=null?tn.telopY:.12)*100)+'%'; tel.style.color=tn.telopColor||'#ffd84d';
+    tel.style.background=tn.telopBg||'#121a28'; tel.style.borderColor=tn.telopBorder||'#ffd84d'; stage.appendChild(tel); }
+  const speaker=document.createElement('div'); speaker.className='preview-speaker'; speaker.style.background=speakerColor(tn.speaker||'');
+  speaker.textContent=tn.speaker||''; stage.appendChild(speaker);
+  const caption=document.createElement('div'); caption.className='preview-caption'; caption.textContent=tn.text||'(空のセリフ)'; stage.appendChild(caption);
+  p.appendChild(stage);
+  const controls=document.createElement('div'); controls.className='preview-controls';
+  const pos=document.createElement('span'); pos.textContent=(selGi+1)+' / '+DATA.script.length; controls.appendChild(pos);
+  const prev=document.createElement('button'); prev.textContent='前へ'; prev.title='前のセリフ'; prev.onclick=()=>selectTurn(Math.max(0,selGi-1)); controls.appendChild(prev);
+  const play=document.createElement('button'); play.textContent='再生'; play.title='Remotionプレビューは後続フェーズで接続'; controls.appendChild(play);
+  const next=document.createElement('button'); next.textContent='次へ'; next.title='次のセリフ'; next.onclick=()=>selectTurn(Math.min(DATA.script.length-1,selGi+1)); controls.appendChild(next);
+  p.appendChild(controls);
+}
+
+function selectTurn(gi){
+  if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
+  selGi=gi; const tn=DATA.script[gi]; const ch=(DATA.chapters||[])[tn.chapter]||{}; const seg=segOf(tn,ch);
+  if(seg) selSeg=seg.id;
+  markSel(); renderPreviewPane(); renderRight(); renderTimeline();
+  const row=document.querySelector('.line[data-gi="'+gi+'"]'); if(row) row.scrollIntoView({block:'nearest'});
+}
+
+function timelineGrid(){
+  return (DATA.script||[]).map(t=>Math.max(1,Math.min(3,(t.text||'').length/28))).map(v=>'minmax(105px,'+v+'fr)').join(' ');
+}
+function timelineRow(label, cls){
+  const row=document.createElement('div'); row.className='tl-row '+(cls||'');
+  const l=document.createElement('div'); l.className='tl-label'; l.textContent=label; row.appendChild(l);
+  const track=document.createElement('div'); track.className='tl-track'; track.style.gridTemplateColumns=timelineGrid(); row.appendChild(track);
+  return [row,track];
+}
+function renderTimeline(){
+  const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
+  const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:0; pane.innerHTML='';
+  const head=document.createElement('div'); head.className='tl-head';
+  const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
+  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='セリフ境界を基準に演出区間を表示'; head.appendChild(hint); pane.appendChild(head);
+  const scroll=document.createElement('div'); scroll.className='tl-scroll'; const body=document.createElement('div'); body.className='tl-body'; scroll.appendChild(body); pane.appendChild(scroll);
+  const [turnRow,turnTrack]=timelineRow('セリフ');
+  DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'');
+    c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi); turnTrack.appendChild(c); }); body.appendChild(turnRow);
+  const [mainRow,mainTrack]=timelineRow('大演出（メイン）'); let mainCount=0;
+  (DATA.chapters||[]).forEach((ch,ci)=>{ chSegs(ch).forEach((seg,si)=>{ const rng=segRange(ci,seg.id); if(rng.s<0)return; mainCount++;
+    const b=document.createElement('div'); b.className='tl-bar main'; b.style.gridColumn=(rng.s+1)+' / '+(rng.e+2);
+    b.textContent=VIZ_LABEL[seg.type]||seg.type; b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); }); });
+  if(!mainCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
+  const [textRow,textTrack]=timelineRow('小演出（テキスト内）');
+  const textEmpty=document.createElement('span'); textEmpty.className='tl-empty'; textEmpty.textContent='テキスト範囲演出は次の実装段階で追加'; textTrack.appendChild(textEmpty); body.appendChild(textRow);
+  const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）'); let smallCount=0;
+  DATA.script.forEach((tn,gi)=>{ const names=[]; if(tn.telop)names.push('テロップ'); if(tn.reaction)names.push('リアクション'); if(!names.length)return; smallCount++;
+    const b=document.createElement('div'); b.className='tl-bar small'; b.style.gridColumn=(gi+1)+' / span 1'; b.textContent=names.join('・'); b.onclick=()=>selectTurn(gi); smallTrack.appendChild(b); });
+  if(!smallCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='小演出なし'; smallTrack.appendChild(e); } body.appendChild(smallRow);
+  scroll.scrollLeft=sx;
 }
 
 function chapterDivider(ch,ci){
@@ -2902,7 +3035,7 @@ function lineRow(tn,gi,ch,ci,inViz){
     const chg=(selGi!==gi);
     if(chg){ selGi=gi; }   // タブ(rtab)は維持＝別セリフへ移っても画像/演出/章の表示を保つ
     if(seg) selSeg=seg.id;   // 演出セグメントの行を選んだらそのセグメントを選択
-    markSel();
+    markSel(); renderPreviewPane(); renderTimeline();
     if(rwide){ setWide(false); } else { renderRight(); }
   };
   row.appendChild(av); row.appendChild(lc); row.appendChild(mk); row.appendChild(la);
@@ -2914,7 +3047,7 @@ function startEditLine(row,tn,tx){
   tx.replaceWith(ta); autosize(ta); ta.focus();
   // カーソルを末尾へ
   const n=ta.value.length; try{ ta.setSelectionRange(n,n); }catch(e){}
-  ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); };
+  ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); renderPreviewPane(); renderTimeline(); };
   // 抜ける時は全再描画せず、その行だけ表示へ戻す（全DOM作り直しによるスクロール/フォーカス飛びを防ぐ）。
   ta.onblur=()=>{
     const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
@@ -3013,6 +3146,7 @@ function renderRight(){
   if(cur==='image') renderImageTab(r,tn,ch,ci);
   else if(cur==='viz') renderVizTab(r,tn,ch,ci);
   else renderChapterTab(r,ch,ci);
+  renderPreviewPane();
   r.scrollTop=_rsy;  // スクロール位置を復元
 }
 
