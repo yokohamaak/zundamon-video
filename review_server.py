@@ -1529,8 +1529,11 @@ STORY_PAGE = """<!doctype html>
   .preview-toolbar .spacer { flex:1; }
   .preview-chip { color:var(--sub); background:#1a212c; border:1px solid #2b3442; border-radius:7px;
                   padding:5px 9px; font-size:11px; }
-  .preview-stage { position:relative; flex:1; min-height:0; overflow:hidden; border-radius:8px;
-                   background:#0b0e13; display:flex; align-items:center; justify-content:center; }
+  .preview-viewport { flex:1; min-height:0; display:flex; align-items:center; justify-content:center;
+                      overflow:hidden; background:#080a0f; border-radius:8px; container-type:size; }
+  .preview-stage { position:relative; flex:none; overflow:hidden; border-radius:8px; background:#0b0e13;
+                   display:flex; align-items:center; justify-content:center; aspect-ratio:16/9;
+                   width:min(100cqw,calc(100cqh * 16 / 9)); height:min(100cqh,calc(100cqw * 9 / 16)); }
   .preview-stage img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.82; }
   .preview-empty { color:var(--sub); font-size:13px; }
   .preview-caption { position:absolute; left:5%; right:5%; bottom:5%; z-index:2; padding:10px 16px;
@@ -2893,7 +2896,7 @@ function renderPreviewPane(){
   const speaker=document.createElement('div'); speaker.className='preview-speaker'; speaker.style.background=speakerColor(tn.speaker||'');
   speaker.textContent=tn.speaker||''; stage.appendChild(speaker);
   const caption=document.createElement('div'); caption.className='preview-caption'; caption.textContent=tn.text||'(空のセリフ)'; stage.appendChild(caption);
-  p.appendChild(stage);
+  const viewport=document.createElement('div'); viewport.className='preview-viewport'; viewport.appendChild(stage); p.appendChild(viewport);
   const controls=document.createElement('div'); controls.className='preview-controls';
   const pos=document.createElement('span'); pos.textContent=(selGi+1)+' / '+DATA.script.length; controls.appendChild(pos);
   const prev=document.createElement('button'); prev.textContent='前へ'; prev.title='前のセリフ'; prev.onclick=()=>selectTurn(Math.max(0,selGi-1)); controls.appendChild(prev);
