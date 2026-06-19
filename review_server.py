@@ -1582,10 +1582,10 @@ STORY_PAGE = """<!doctype html>
   body { overflow:hidden; }
   body > header { height:56px; box-sizing:border-box; }
   main#main { width:100%; max-width:none; height:calc(100vh - 56px); padding:8px; box-sizing:border-box; }
-  .tp { height:100%; display:grid; grid-template-columns:minmax(320px,24%) minmax(420px,1fr) minmax(360px,25%);
+  .tp { height:100%; display:grid; grid-template-columns:clamp(310px,22vw,380px) minmax(520px,1fr) clamp(330px,23vw,410px);
         grid-template-rows:minmax(360px,58%) minmax(220px,42%); gap:8px; align-items:stretch; }
   .tp-left { min-width:0; overflow:auto; background:#10141b; border:1px solid #1c232e;
-             border-radius:10px; padding:12px; }
+             border-radius:10px; padding:10px; }
   .tp-center { min-width:0; overflow:hidden; background:#10141b; border:1px solid #1c232e;
                border-radius:10px; padding:10px; display:flex; flex-direction:column; }
   .preview-toolbar { display:flex; align-items:center; gap:8px; min-height:34px; margin-bottom:8px; }
@@ -1617,13 +1617,13 @@ STORY_PAGE = """<!doctype html>
                              color:var(--fg); cursor:pointer; }
   /* 右ペイン＝補助。背景に寄せ視覚優先度を下げる（細い罫線・低コントラスト） */
   .tp-right { min-width:0; max-height:none; overflow:auto;
-              background:#10141b; border:1px solid #1c232e; border-radius:12px; padding:14px; }
+              background:#10141b; border:1px solid #1c232e; border-radius:12px; padding:12px; }
   /* 広げる：左に被さる大きいパネル */
   .tp-right.wide { position:fixed; top:64px; right:14px; bottom:14px; width:min(960px,84vw);
                    max-height:none; z-index:30; box-shadow:0 12px 48px rgba(0,0,0,.55); }
   /* 右ペイン上端に固定するツールバー（スクロールしても消えない） */
   .rwbar { position:sticky; top:0; z-index:5; display:flex; justify-content:flex-end; align-items:center;
-           background:#10141b; margin:-14px -14px 10px; padding:9px 14px; border-bottom:1px solid #1c232e; }
+           background:#10141b; margin:-12px -12px 10px; padding:9px 12px; border-bottom:1px solid #1c232e; }
   .rwbtn { font-size:12px; font-weight:700; padding:6px 12px; border-radius:7px; border:none;
            background:#1a212c; color:var(--sub); cursor:pointer; }
   .rwbtn:hover { color:var(--fg); background:#222a37; }
@@ -1641,7 +1641,7 @@ STORY_PAGE = """<!doctype html>
   .chsec.collapsed .chcnt { display:inline-block; }
   .chsec.collapsed .line { display:none; }
   /* セリフカード＝Discord風（アイコン＋名前＋本文）。余白広め・罫線なし・6px左カラー */
-  .line { position:relative; display:flex; gap:12px; align-items:flex-start; padding:13px 15px; margin-bottom:10px; border-radius:10px;
+  .line { position:relative; display:flex; gap:10px; align-items:flex-start; padding:11px 12px; margin-bottom:8px; border-radius:10px;
           cursor:pointer; background:#161b24; border-left:6px solid transparent; }
   .line:hover { background:#1a212c; }
   .line.sel { background:#1f2835; }
@@ -1726,7 +1726,7 @@ STORY_PAGE = """<!doctype html>
                    font-size:10px; font-weight:800; pointer-events:none; }
   body.tl-resizing, body.tl-resizing * { cursor:ew-resize !important; }
   .tl-empty { align-self:center; color:#657184; font-size:10px; padding-left:10px; }
-  @media (max-width:1100px){
+  @media (max-width:1200px){
     body { overflow:auto; }
     main#main { height:auto; }
     .tp { grid-template-columns:minmax(300px,38%) 1fr; grid-template-rows:520px 520px 300px; }
