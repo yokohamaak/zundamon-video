@@ -1708,9 +1708,19 @@ STORY_PAGE = """<!doctype html>
   .tl-turn.sel { border-color:#8b5cf6; background:#292340; color:#fff; box-shadow:inset 0 0 0 1px #8b5cf6; }
   .tl-bar { height:27px; margin:5px 3px; padding:6px 10px; box-sizing:border-box; overflow:hidden;
             border-radius:5px; color:#fff; font-size:10px; font-weight:700; white-space:nowrap; text-overflow:ellipsis;
-            cursor:pointer; }
+            cursor:pointer; position:relative; user-select:none; }
   .tl-bar.main { background:linear-gradient(90deg,#6940a5,#8b5cf6); }
   .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
+  .tl-handle { position:absolute; top:0; bottom:0; width:10px; border:0; padding:0; z-index:2;
+               background:rgba(255,255,255,.82); cursor:ew-resize; opacity:.72; }
+  .tl-handle:hover, .tl-handle.dragging { opacity:1; background:#fff; }
+  .tl-handle.start { left:0; border-radius:5px 0 0 5px; }
+  .tl-handle.end { right:0; border-radius:0 5px 5px 0; }
+  .tl-bar.dragging { overflow:visible; outline:2px solid #d8c8ff; box-shadow:0 0 14px rgba(139,92,246,.65); }
+  .tl-drag-label { position:absolute; left:50%; bottom:31px; transform:translateX(-50%); z-index:8;
+                   padding:3px 7px; border-radius:5px; background:#f4efff; color:#241637;
+                   font-size:10px; font-weight:800; pointer-events:none; }
+  body.tl-resizing, body.tl-resizing * { cursor:ew-resize !important; }
   .tl-empty { align-self:center; color:#657184; font-size:10px; padding-left:10px; }
   @media (max-width:1100px){
     body { overflow:auto; }
@@ -3024,15 +3034,21 @@ function renderTimeline(){
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:0; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
-  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='セリフ境界を基準に演出区間を表示'; head.appendChild(hint); pane.appendChild(head);
+  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='大演出バーの両端をドラッグしてセリフ境界単位で調整'; head.appendChild(hint); pane.appendChild(head);
   const scroll=document.createElement('div'); scroll.className='tl-scroll'; const body=document.createElement('div'); body.className='tl-body'; scroll.appendChild(body); pane.appendChild(scroll);
   const [turnRow,turnTrack]=timelineRow('セリフ');
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'');
-    c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi); turnTrack.appendChild(c); }); body.appendChild(turnRow);
+    c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi); turnTrack.appendChild(c); }); body.appendChild(turnRow);
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）'); let mainCount=0;
   (DATA.chapters||[]).forEach((ch,ci)=>{ chSegs(ch).forEach((seg,si)=>{ const rng=segRange(ci,seg.id); if(rng.s<0)return; mainCount++;
     const b=document.createElement('div'); b.className='tl-bar main'; b.style.gridColumn=(rng.s+1)+' / '+(rng.e+2);
-    b.textContent=VIZ_LABEL[seg.type]||seg.type; b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); }); });
+    const label=document.createElement('span'); label.textContent=VIZ_LABEL[seg.type]||seg.type; b.appendChild(label);
+    const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始位置をドラッグ';
+    const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了位置をドラッグ';
+    hs.onpointerdown=e=>startTimelineResize(e,ci,seg.id,'s',b);
+    he.onpointerdown=e=>startTimelineResize(e,ci,seg.id,'e',b);
+    b.appendChild(hs); b.appendChild(he);
+    b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); }); });
   if(!mainCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
   const [textRow,textTrack]=timelineRow('小演出（テキスト内）');
   const textEmpty=document.createElement('span'); textEmpty.className='tl-empty'; textEmpty.textContent='テキスト範囲演出は次の実装段階で追加'; textTrack.appendChild(textEmpty); body.appendChild(textRow);
@@ -3041,6 +3057,50 @@ function renderTimeline(){
     const b=document.createElement('div'); b.className='tl-bar small'; b.style.gridColumn=(gi+1)+' / span 1'; b.textContent=names.join('・'); b.onclick=()=>selectTurn(gi); smallTrack.appendChild(b); });
   if(!smallCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='小演出なし'; smallTrack.appendChild(e); } body.appendChild(smallRow);
   scroll.scrollLeft=sx;
+}
+
+function chapterTurnBounds(ci){
+  let first=-1,last=-1; (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter===ci){ if(first<0)first=gi; last=gi; } });
+  return {first,last};
+}
+
+function timelineTurnAtX(clientX,ci){
+  let best=-1,dist=Infinity;
+  document.querySelectorAll('.tl-turn').forEach(el=>{
+    const gi=+el.dataset.gi; if(!DATA.script[gi]||DATA.script[gi].chapter!==ci)return;
+    const r=el.getBoundingClientRect();
+    if(clientX>=r.left&&clientX<=r.right){ best=gi; dist=0; return; }
+    const d=Math.min(Math.abs(clientX-r.left),Math.abs(clientX-r.right)); if(d<dist){dist=d;best=gi;}
+  });
+  return best;
+}
+
+function startTimelineResize(ev,ci,id,edge,bar){
+  ev.preventDefault(); ev.stopPropagation();
+  const original=segRange(ci,id); if(original.s<0)return;
+  const bounds=chapterTurnBounds(ci); let target=edge==='s'?original.s:original.e;
+  const handle=ev.currentTarget; handle.classList.add('dragging'); bar.classList.add('dragging'); document.body.classList.add('tl-resizing');
+  const dragLabel=document.createElement('span'); dragLabel.className='tl-drag-label'; bar.appendChild(dragLabel);
+  const updateLabel=()=>{ dragLabel.textContent=(edge==='s'?'開始 ':'終了 ')+(target+1)+'行目'; }; updateLabel();
+  const move=e=>{
+    const scroll=document.querySelector('.tl-scroll');
+    if(scroll){ const r=scroll.getBoundingClientRect(); if(e.clientX<r.left+36)scroll.scrollLeft-=18; else if(e.clientX>r.right-36)scroll.scrollLeft+=18; }
+    const gi=timelineTurnAtX(e.clientX,ci); if(gi<0)return;
+    target=edge==='s'?Math.min(gi,original.e):Math.max(gi,original.s);
+    target=Math.max(bounds.first,Math.min(bounds.last,target));
+    const s=edge==='s'?target:original.s, en=edge==='e'?target:original.e;
+    bar.style.gridColumn=(s+1)+' / '+(en+2); updateLabel();
+  };
+  const finish=()=>{
+    document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
+    document.removeEventListener('pointercancel',cancel); document.body.classList.remove('tl-resizing');
+    if(target!==(edge==='s'?original.s:original.e)){
+      const s=edge==='s'?target:original.s, en=edge==='e'?target:original.e;
+      retagSeg(ci,id,s,en); selSeg=id; markDirty(); render();
+    } else { bar.style.gridColumn=(original.s+1)+' / '+(original.e+2); bar.classList.remove('dragging'); handle.classList.remove('dragging'); dragLabel.remove(); }
+  };
+  const cancel=()=>{ target=edge==='s'?original.s:original.e; finish(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
 }
 
 function chapterDivider(ch,ci){
