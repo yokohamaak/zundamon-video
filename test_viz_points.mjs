@@ -19,7 +19,7 @@ function extractFn(name) {
 }
 
 const names = ['findVizPoint', 'nextVizPointId', 'setVizPointPos', 'removeVizPoint',
-  'splitVizPoints', 'shiftVizPointValues', 'moveAnchorFlag', 'moveAnchorToTurn', 'canMoveAnchorTo', 'reconcileVizPointPos',
+  'splitVizPoints', 'shiftVizPointValues', 'moveAnchorFlag', 'moveAnchorToTurn', 'anchorPlacementError', 'reconcileVizPointPos',
   'chSegs', 'pruneEmptySegs', 'clampItemFlags', 'retagSeg', 'setSegFlag', 'togglePanelItem',
   'segAnchorOptions', 'anchorOn', 'anchorFlagVal', 'segUnplacedOptions', 'addAnchorToTurn'];
 const src = names.map(extractFn).join('\n\n');
@@ -107,19 +107,22 @@ t('moveAnchorToTurn: 別セリフへフラグと演出点を移動', () => {
   assert.equal(dst.vizPoints.length, 1); assert.equal(dst.vizPoints[0].value, 1); assert.equal(dst.vizPoints[0].pos, 5);
 });
 
-t('canMoveAnchorTo: compare/calloutは移動先に別値があると拒否', () => {
-  assert.equal(canMoveAnchorTo({}, { type: 'compare_item', value: 1 }), true);
-  assert.equal(canMoveAnchorTo({ compare_item: 0 }, { type: 'compare_item', value: 1 }), false);
-  assert.equal(canMoveAnchorTo({ compare_item: 1 }, { type: 'compare_item', value: 1 }), true); // 同値はOK
-  assert.equal(canMoveAnchorTo({ callout_item: 2 }, { type: 'callout_item', value: 0 }), false);
-  assert.equal(canMoveAnchorTo({ panel_item: [0] }, { type: 'panel_item', value: 1 }), true); // panelは複数可
-  assert.equal(canMoveAnchorTo({ reveal: true }, { type: 'reveal' }), true);
+t('anchorPlacementError: compare/calloutは移動先に別値があると拒否', () => {
+  assert.equal(anchorPlacementError(0, { id: 's1' }, {}, { type: 'compare_item', value: 1 }, 0, 'move'), null);
+  assert.ok(anchorPlacementError(0, { id: 's1' }, { compare_item: 0 }, { type: 'compare_item', value: 1 }, 0, 'move'));
+  assert.equal(anchorPlacementError(0, { id: 's1' }, { compare_item: 1 }, { type: 'compare_item', value: 1 }, 0, 'move'), null); // 同値OK
+  assert.ok(anchorPlacementError(0, { id: 's1' }, { callout_item: 2 }, { type: 'callout_item', value: 0 }, 0, 'move'));
+  assert.equal(anchorPlacementError(0, { id: 's1' }, { panel_item: [0] }, { type: 'panel_item', value: 1 }, 0, 'move'), null); // segにpanel無し=制約なし
 });
 
-t('canMoveAnchorTo: パネル項目は縮小より前のセリフへ移動不可', () => {
-  assert.equal(canMoveAnchorTo({}, { type: 'panel_item', value: 0 }, { shrinkGi: 2, dstGi: 1 }), false);
-  assert.equal(canMoveAnchorTo({}, { type: 'panel_item', value: 0 }, { shrinkGi: 2, dstGi: 3 }), true);
-  assert.equal(canMoveAnchorTo({}, { type: 'panel_item', value: 0 }, { shrinkGi: null, dstGi: 0 }), true); // overlay等で制約なし
+t('anchorPlacementError: パネルの縮小→項目順序（add/move/remove）', () => {
+  const seg = { id: 's1', panel: { items: [{}, {}] } };
+  // 縮小gi=1, 項目gi=2 の配置
+  globalThis.DATA = { script: [{ chapter: 0, vizSeg: 's1' }, { chapter: 0, vizSeg: 's1', panel_event: 'shrink' }, { chapter: 0, vizSeg: 's1', panel_item: 0 }] };
+  assert.ok(anchorPlacementError(0, seg, {}, { type: 'panel_item', value: 1 }, 0, 'add'));        // gi0 < 縮小gi1 → 不可
+  assert.equal(anchorPlacementError(0, seg, {}, { type: 'panel_item', value: 1 }, 2, 'add'), null); // gi2 ≥ 縮小 → OK
+  assert.ok(anchorPlacementError(0, seg, {}, { type: 'panel_event' }, 3, 'move'));                 // 縮小を項目(gi2)より後ろ → 不可
+  assert.ok(anchorPlacementError(0, seg, {}, { type: 'panel_event' }, 1, 'remove'));               // 項目が残った状態で縮小削除 → 不可
 });
 
 t('segUnplacedOptions: セグメント全体に無い項目を返す', () => {

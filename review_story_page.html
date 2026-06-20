@@ -1857,11 +1857,23 @@ function moveAnchorFlag(tn,nt,p){
   else if(type==='callout_item'){ if(tn.callout_item===v){ nt.callout_item=v; delete tn.callout_item; } }
 }
 // 別セリフへ移せるか：compare/calloutは1セリフ1つ。移動先に別の値が既にあるなら不可（上書きで孤立点が出るのを防ぐ）。
-function canMoveAnchorTo(dstTn,a,info){
-  if(a.type==='compare_item') return !(typeof dstTn.compare_item==='number' && dstTn.compare_item!==a.value);
-  if(a.type==='callout_item') return !(typeof dstTn.callout_item==='number' && dstTn.callout_item!==a.value);
-  if(a.type==='panel_item' && info && info.shrinkGi!=null && info.dstGi<info.shrinkGi) return false;  // 縮小より前に項目は置けない
-  return true;
+// 配置の妥当性検証（追加/移動/削除 共通）。問題なければ null、あればエラー文。op: 'add'|'move'|'remove'。
+function anchorPlacementError(ci, seg, dstTn, a, dstGi, op){
+  if(op!=='remove'){
+    if(a.type==='compare_item' && typeof dstTn.compare_item==='number' && dstTn.compare_item!==a.value) return '比較は1セリフに1つです。';
+    if(a.type==='callout_item' && typeof dstTn.callout_item==='number' && dstTn.callout_item!==a.value) return '注釈は1セリフに1つです。';
+  }
+  if(seg && seg.panel && !seg.panel.overlay){
+    const segId=seg.id;
+    let shrinkGi=null; (DATA.script||[]).forEach((t,i)=>{ if(t.chapter===ci&&t.vizSeg===segId&&t.panel_event==='shrink'&&shrinkGi==null)shrinkGi=i; });
+    const minItemGi=(ex)=>{ let g=null; (DATA.script||[]).forEach((t,i)=>{ if(t.chapter===ci&&t.vizSeg===segId&&i!==ex){ const has=Array.isArray(t.panel_item)?t.panel_item.length>0:(typeof t.panel_item==='number'); if(has&&(g==null||i<g))g=i; } }); return g; };
+    if(a.type==='panel_item' && op!=='remove'){ if(shrinkGi!=null && dstGi<shrinkGi) return '項目は縮小より前のセリフには置けません。'; }
+    if(a.type==='panel_event'){
+      if(op==='remove'){ if(minItemGi(-1)!=null) return '項目が残っています。先に項目を外してください。'; }
+      else { const mi=minItemGi(dstGi); if(mi!=null && dstGi>mi) return '縮小は項目より後ろには置けません。'; }
+    }
+  }
+  return null;
 }
 // 変化点を別セリフへ移す（タイムラインのドラッグ用）：flagと演出点を src→dst へ移し dst に文字位置を設定。
 function moveAnchorToTurn(srcTn,dstTn,a,pos){
@@ -1931,9 +1943,7 @@ function startKfDrag(ev,gi,a,m){
   ev.preventDefault(); ev.stopPropagation();
   const srcTn=DATA.script[gi]; if(!srcTn) return; const ci=srcTn.chapter; const segId=srcTn.vizSeg; if(!segId) return;
   const rng=segRange(ci,segId); if(rng.s<0) return;
-  // パネルの「縮小→項目」順序制約用：縮小行のgi（overlay時は制約なし）。
-  let shrinkGi=null; { const _so=(DATA.chapters[ci]?chSegs(DATA.chapters[ci]).find(s=>s.id===segId):null);
-    if(!(_so&&_so.panel&&_so.panel.overlay)) (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci&&t.vizSeg===segId&&t.panel_event==='shrink'&&shrinkGi==null)shrinkGi=g; }); }
+  const kseg=(DATA.chapters[ci]?chSegs(DATA.chapters[ci]).find(s=>s.id===segId):null);   // 配置検証用セグメント
   const ovp=findVizPoint(srcTn,a); const origPos=(ovp&&typeof ovp.pos==='number')?ovp.pos:null;
   const x0=ev.clientX, y0=ev.clientY;
   let tgtGi=gi, pos=(origPos!=null?origPos:0), moved=false, lastHi=null, caret=null;
@@ -1950,7 +1960,7 @@ function startKfDrag(ev,gi,a,m){
       if(caret){ caret.style.left=(cr.left+(pos/len)*cr.width)+'px'; caret.style.top=cr.top+'px'; caret.style.height=cr.height+'px'; } }   // pos位置に縦線
     // ドロップ先セリフをハイライト（移動可否で色分け：可=緑/不可=赤）。
     if(lastHi && lastHi!==cell) clearHi();
-    if(cell){ const ok=(tgtGi===gi)||canMoveAnchorTo(DATA.script[tgtGi],a,{shrinkGi,dstGi:tgtGi});
+    if(cell){ const ok=(tgtGi===gi)||!anchorPlacementError(ci,kseg,DATA.script[tgtGi],a,tgtGi,'move');
       cell.classList.add(ok?'kf-drop':'kf-drop-ng'); cell.classList.remove(ok?'kf-drop-ng':'kf-drop'); lastHi=cell; }
     if(m){ m.style.position='fixed'; m.style.margin='0'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px'; }  // 掴んだ◆をポインタに追従
   };
@@ -1959,8 +1969,8 @@ function startKfDrag(ev,gi,a,m){
     document.body.classList.remove('tl-resizing'); if(m) m.classList.remove('dragging'); clearHi(); if(caret){ caret.remove(); caret=null; }
     if(!moved){ selectTurn(gi); return; }                          // 閾値未満＝クリック＝セリフ選択
     if(tgtGi===gi){ setVizPointPos(srcTn,a,pos); markDirty(); }    // 同セリフ＝文字位置変更
-    else if(canMoveAnchorTo(DATA.script[tgtGi],a,{shrinkGi,dstGi:tgtGi})){ moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); markDirty(); }  // 別セリフ＝所属移動
-    else { alert('そのセリフには移動できません（比較・注釈は1セリフに1つ／パネル項目は縮小より前に置けません）。'); }
+    else { const err=anchorPlacementError(ci,kseg,DATA.script[tgtGi],a,tgtGi,'move');   // 別セリフ＝所属移動
+      if(!err){ moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); markDirty(); } else alert(err); }
     renderTimeline();
   };
   const cancel=()=>{ moved=false; finish(); };
@@ -2014,11 +2024,14 @@ function renderTimeline(){
       if(placed){ m.style.left=(pos/len*100)+'%'; }
       else { m.style.left='0%'; m.style.marginLeft=(autoN++*54)+'px'; }   // 自動(先頭)は重ならないよう横へ並べる
       m.textContent='◆'+a.label;
-      m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（ドラッグで移動／ダブルクリックで削除・◆塗り=明示/◇枠=自動）';
+      m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（ドラッグで移動／×で削除・◆塗り=明示/◇枠=自動）';
       m.style.cursor='grab'; m.onpointerdown=(e)=>startKfDrag(e,gi,a,m);
       const xb=document.createElement('span'); xb.className='kf-del'; xb.textContent='×'; xb.title='この変化点を削除';
       xb.onpointerdown=(e)=>e.stopPropagation();   // ドラッグ開始を抑止
-      xb.onclick=(e)=>{ e.stopPropagation(); if(kfSeg && confirm(a.label+'をこのセリフから外しますか？')){ toggleAnchor(kfCh,kfSeg,tn,{type:a.type,value:a.value}); renderTimeline(); } };
+      xb.onclick=(e)=>{ e.stopPropagation(); if(!kfSeg) return;
+        const err=anchorPlacementError(kfCh,kfSeg,tn,{type:a.type,value:a.value},gi,'remove');
+        if(err){ alert(err); return; }
+        if(confirm(a.label+'をこのセリフから外しますか？')){ toggleAnchor(kfCh,kfSeg,tn,{type:a.type,value:a.value}); renderTimeline(); } };
       m.appendChild(xb);
       group.appendChild(m); kfCount++; });
     kfTrack.appendChild(group); }); }
@@ -2033,6 +2046,8 @@ function renderTimeline(){
         const o0=document.createElement('option'); o0.value=''; o0.textContent='＋変化点'; sel.appendChild(o0);
         unplaced.forEach((opt,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=opt.label; sel.appendChild(o); });
         sel.onchange=()=>{ const opt=unplaced[+sel.value]; if(!opt||addGi<0)return;
+          const err=anchorPlacementError(kfCh,_seg,DATA.script[addGi],{type:opt.type,value:opt.value},addGi,'add');
+          if(err){ alert(err); renderTimeline(); return; }
           addAnchorToTurn(kfCh,_seg,DATA.script[addGi],opt); selectTurn(addGi); markDirty(); renderTimeline(); };
         const lab=kfRow.querySelector('.tl-label'); if(lab) lab.appendChild(sel);
       }
