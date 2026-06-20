@@ -52,17 +52,30 @@ try:
 finally:
     rs.DIR = old_dir
 
-# 4. compute_preview_state（再読込時の初期状態）
+# 4. compute_preview_state（再読込時の初期状態・mtime方式）
+def _m(p, v):
+    os.utime(p, (v, v))
+
 d2 = tempfile.mkdtemp()
-json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0, "start": 0, "end": 1, "sentences": []}]},
-          open(os.path.join(d2, "meta.json"), "w"))
-json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0}]}, open(os.path.join(d2, "script.json"), "w"))
-t("script/meta一致→synced", rs.compute_preview_state(d2) == "synced")
-json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0, "vizPoints": [{"type": "reveal", "pos": 0}]}]},
-          open(os.path.join(d2, "script.json"), "w"))
-t("演出差→visual-stale", rs.compute_preview_state(d2) == "visual-stale")
-json.dump({"script": [{"speaker": "A", "text": "ちがう", "chapter": 0}]}, open(os.path.join(d2, "script.json"), "w"))
-t("音声差→audio-stale", rs.compute_preview_state(d2) == "audio-stale")
+mp = os.path.join(d2, "meta.json"); sp = os.path.join(d2, "script.json")
+rj = os.path.join(d2, "review.json"); img = os.path.join(d2, "ch_00_00.jpg")
+json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0, "start": 0, "end": 1, "sentences": []}]}, open(mp, "w"))
+json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0}]}, open(sp, "w"))
+_m(mp, 2000)
+
+_m(sp, 1000)
+t("全てmetaより古い→synced", rs.compute_preview_state(d2) == "synced")
+_m(sp, 3000)
+t("script.json更新(演出/chapters.vizList等)→visual-stale", rs.compute_preview_state(d2) == "visual-stale")
+_m(sp, 1000); json.dump({"cuts": []}, open(rj, "w")); _m(rj, 3000)
+t("review.json更新(クロップ/画像設定)→visual-stale", rs.compute_preview_state(d2) == "visual-stale")
+_m(rj, 1000); open(img, "w").write("x"); _m(img, 3000)
+t("画像差し替え→visual-stale", rs.compute_preview_state(d2) == "visual-stale")
+_m(img, 1000)
+t("全て再びmetaより古い→synced", rs.compute_preview_state(d2) == "synced")
+# 音声差は mtime より優先（古くても audio-stale）
+json.dump({"script": [{"speaker": "A", "text": "ちがう", "chapter": 0}]}, open(sp, "w")); _m(sp, 1000)
+t("音声差→audio-stale(mtime優先)", rs.compute_preview_state(d2) == "audio-stale")
 t("meta無し→synced", rs.compute_preview_state(tempfile.mkdtemp()) == "synced")
 
 print("ALL PASS (%d)" % passed)

@@ -761,22 +761,11 @@ def audio_affecting_changed(old_script, new_script):
     return False
 
 
-def _viz_changed(old_script, new_script):
-    """音声以外（演出/画像cut/vizPoints/textEffects/telop等）の差を検出（純関数）。"""
-    if len(old_script) != len(new_script):
-        return True
-    ignore = {"start", "end", "sentences", "text", "speaker", "voice", "pause", "chapter", "chorus"}
-    for o, n in zip(old_script, new_script):
-        ko = {k: v for k, v in o.items() if k not in ignore}
-        kn = {k: v for k, v in n.items() if k not in ignore}
-        if ko != kn:
-            return True
-    return False
-
-
 def compute_preview_state(dir_path=None):
-    """script.json と meta.json を比較し初期プレビュー状態を返す（純関数・I/Oは読み取りのみ）。
-    audio-stale（音声再生成が必要）/ visual-stale（保存して更新が必要）/ synced（一致）。"""
+    """初期プレビュー状態を返す。audio-stale / visual-stale / synced。
+    音声差分は script配列の内容比較で判定。演出(chapters.vizList)・review.json・画像差し替えは
+    script配列に現れないため、script.json/review.json/対象画像のmtimeが meta.json より新しければ
+    visual-stale とみなす（mtime比較で堅実に）。"""
     d = dir_path or DIR
     meta_path = os.path.join(d, "meta.json")
     script_path = os.path.join(d, "script.json")
@@ -791,8 +780,17 @@ def compute_preview_state(dir_path=None):
         return "synced"
     if audio_affecting_changed(old, new):
         return "audio-stale"
-    if _viz_changed(old, new):
-        return "visual-stale"
+    meta_m = os.path.getmtime(meta_path)
+    targets = [script_path, os.path.join(d, "review.json")]
+    try:
+        for fn in os.listdir(d):
+            if fn.startswith("ch_") and not fn.endswith(".json"):
+                targets.append(os.path.join(d, fn))   # 章画像（差し替え検出）
+    except OSError:
+        pass
+    for p in targets:
+        if os.path.exists(p) and os.path.getmtime(p) > meta_m:
+            return "visual-stale"
     return "synced"
 
 
