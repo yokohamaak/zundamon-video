@@ -46,11 +46,20 @@ t('shiftVizPointValues: 中間削除で繰り下げ', () => {
   assert.equal(shiftVizPointValues([{ type: 'panel_item', value: 0, pos: 1 }], 'panel_item', 0), null);
 });
 
-t('reconcileVizPointPos: pos が新テキスト長を超えたらクランプ', () => {
-  const vps = [{ type: 'reveal', pos: 20 }];
-  assert.equal(reconcileVizPointPos(vps, 10), true);
-  assert.equal(vps[0].pos, 10);
-  assert.equal(reconcileVizPointPos([{ type: 'reveal', pos: 5 }], 10), false);
+t('reconcileVizPointPos: 前挿入で後続posをシフト', () => {
+  const vps = [{ type: 'reveal', pos: 2 }];
+  assert.equal(reconcileVizPointPos(vps, 'あいう', 'XXあいう'), true);
+  assert.equal(vps[0].pos, 4); // 先頭2挿入 → +2
+});
+t('reconcileVizPointPos: 編集より前の点は不変', () => {
+  const vps = [{ type: 'reveal', pos: 1 }];
+  assert.equal(reconcileVizPointPos(vps, 'あいう', 'あいうえお'), false); // pos1 <= 共通接頭辞
+  assert.equal(vps[0].pos, 1);
+});
+t('reconcileVizPointPos: 末尾短縮で範囲内へクランプ', () => {
+  const vps = [{ type: 'reveal', pos: 4 }];
+  reconcileVizPointPos(vps, 'あいうえお', 'あい');
+  assert.equal(vps[0].pos, 2);
 });
 
 t('setVizPointPos: pos:0 は先頭の明示として保持（削除しない）', () => {
@@ -88,15 +97,16 @@ t('moveAnchorFlag: 後半へ移った点の対応flagを tn→nt へ移す', () 
   assert.equal(tn3.compare_item, undefined); assert.equal(nt3.compare_item, 1);
 });
 
-t('retagSeg: 範囲外になったセリフの vizPoints を掃除', () => {
+t('retagSeg: 範囲外のセリフは vizPoints とフラグを掃除', () => {
   globalThis.selSeg = null;
   globalThis.DATA = { chapters: [{ vizList: [{ id: 's1', type: 'panel' }] }],
-    script: [{ chapter: 0, vizSeg: 's1', vizPoints: [{ type: 'reveal', pos: 1 }] },
-             { chapter: 0, vizSeg: 's1', vizPoints: [{ type: 'reveal', pos: 2 }] }] };
+    script: [{ chapter: 0, vizSeg: 's1', panel_item: 0, vizPoints: [{ type: 'panel_item', value: 0, pos: 1 }] },
+             { chapter: 0, vizSeg: 's1', panel_item: 1, vizPoints: [{ type: 'panel_item', value: 1, pos: 2 }] }] };
   retagSeg(0, 's1', 0, 0); // gi=0 のみ範囲。gi=1 は範囲外
   assert.equal(DATA.script[0].vizSeg, 's1');
   assert.equal(DATA.script[1].vizSeg, undefined);
   assert.equal(DATA.script[1].vizPoints, undefined);
+  assert.equal(DATA.script[1].panel_item, undefined); // 旧フラグも残さない
 });
 
 t('setSegFlag: 他行へ移すと旧行のflagと演出点を削除', () => {

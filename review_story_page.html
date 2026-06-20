@@ -686,8 +686,8 @@ function splitTurn(tn,ta){
   // 演出点(vizPoints)も同じ分割位置で前半/後半へ振り分ける（textEffectsと同基準）。
   const vps=splitVizPoints(tn.vizPoints, pos, aFrom, bFrom, a.length, b.length);
   if(vps.a.length) tn.vizPoints=vps.a; else delete tn.vizPoints;
+  if(tn.vizSeg) nt.vizSeg=tn.vizSeg;             // 演出区間内なら後半も区間に属させる（変化点の有無に依らず）
   if(vps.b.length){ nt.vizPoints=vps.b;
-    if(tn.vizSeg) nt.vizSeg=tn.vizSeg;            // 後半も同じ演出範囲に属させる（孤立防止）
     vps.b.forEach(p=>moveAnchorFlag(tn,nt,p));     // 後半へ移った点の対応flagも tn→nt へ移す
   }
   tn.text=a; ['start','end','sentences'].forEach(k=>delete tn[k]);
@@ -1652,7 +1652,9 @@ function retagSeg(ci,id,s,e){
         // 別演出から奪う＝その演出のタイミングflag/演出点は外す（別演出のものなので）。
         delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; delete t.vizPoints; }
       t.vizSeg=id; }
-    else if(t.vizSeg===id){ delete t.vizSeg; delete t.vizPoints; } });
+    else if(t.vizSeg===id){ delete t.vizSeg; delete t.vizPoints;
+      // 範囲から外れたセリフは旧タイミングflagも消す（範囲を戻した時に古い設定が復活しないように）。
+      delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; } });
   pruneEmptySegs(ci);
 }
 function pruneEmptySegs(ci){
@@ -1873,10 +1875,24 @@ function moveAnchorFlag(tn,nt,p){
   else if(type==='compare_item'){ if(tn.compare_item===v){ nt.compare_item=v; delete tn.compare_item; } }
   else if(type==='callout_item'){ if(tn.callout_item===v){ nt.callout_item=v; delete tn.callout_item; } }
 }
-// 本文編集追従：pos が新テキスト長を超えたら末尾へクランプ。戻り値=変更有無。
-function reconcileVizPointPos(vizPoints, textLen){
+// 本文編集追従：旧→新テキストの差分（共通の前/後ろ）から編集区間を求め、編集より後ろの pos をずらす。
+// 編集区間内の点は編集後区間の末尾へ寄せる。戻り値=変更有無。
+function reconcileVizPointPos(vizPoints, oldText, newText){
+  oldText=oldText||''; newText=newText||'';
+  if(oldText===newText || !Array.isArray(vizPoints)) return false;
+  const oldLen=oldText.length, newLen=newText.length;
+  let pre=0; while(pre<oldLen && pre<newLen && oldText[pre]===newText[pre]) pre++;
+  let suf=0; while(suf<(oldLen-pre) && suf<(newLen-pre) && oldText[oldLen-1-suf]===newText[newLen-1-suf]) suf++;
+  const oldEnd=oldLen-suf, delta=newLen-oldLen;
   let changed=false;
-  (vizPoints||[]).forEach(p=>{ if(typeof p.pos==='number' && p.pos>textLen){ p.pos=textLen; changed=true; } });
+  (vizPoints||[]).forEach(p=>{ if(typeof p.pos!=='number') return;
+    let np;
+    if(p.pos<=pre) np=p.pos;                       // 編集より前＝不変
+    else if(p.pos>=oldEnd) np=p.pos+delta;         // 編集より後＝ずらす
+    else np=newLen-suf;                            // 編集区間内＝編集後区間の末尾へ寄せる
+    np=Math.max(0,Math.min(newLen,np));
+    if(np!==p.pos){ p.pos=np; changed=true; }
+  });
   return changed;
 }
 function renderVizPointMarkers(cell,tn,gi){
@@ -2295,7 +2311,7 @@ function startEditLine(row,tn,tx){
       if(origVizPoints.length) tn.vizPoints=origVizPoints; else delete tn.vizPoints;
     } else {
       staleChanged=reconcileTextEffects(tn);
-      reconcileVizPointPos(tn.vizPoints,(tn.text||'').length);   // 演出点の文字位置も範囲内へ追従
+      reconcileVizPointPos(tn.vizPoints, origText, tn.text||'');   // 演出点の文字位置も編集差分に追従
       if(!(tn.textEffects||[]).length) delete tn.textEffects;
     }
     const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
