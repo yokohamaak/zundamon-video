@@ -123,6 +123,10 @@ t('anchorPlacementError: パネルの縮小→項目順序（add/move/remove）'
   assert.equal(anchorPlacementError(0, seg, {}, { type: 'panel_item', value: 1 }, 2, 'add'), null); // gi2 ≥ 縮小 → OK
   assert.ok(anchorPlacementError(0, seg, {}, { type: 'panel_event' }, 3, 'move'));                 // 縮小を項目(gi2)より後ろ → 不可
   assert.ok(anchorPlacementError(0, seg, {}, { type: 'panel_event' }, 1, 'remove'));               // 項目が残った状態で縮小削除 → 不可
+  // 縮小が無い状態では項目を追加/移動できない
+  globalThis.DATA = { script: [{ chapter: 0, vizSeg: 's1' }] };
+  assert.ok(anchorPlacementError(0, seg, {}, { type: 'panel_item', value: 0 }, 0, 'add'));
+  assert.ok(anchorPlacementError(0, seg, {}, { type: 'panel_item', value: 0 }, 0, 'move'));
 });
 
 t('segUnplacedOptions: セグメント全体に無い項目を返す', () => {

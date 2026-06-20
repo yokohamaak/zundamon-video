@@ -1867,7 +1867,9 @@ function anchorPlacementError(ci, seg, dstTn, a, dstGi, op){
     const segId=seg.id;
     let shrinkGi=null; (DATA.script||[]).forEach((t,i)=>{ if(t.chapter===ci&&t.vizSeg===segId&&t.panel_event==='shrink'&&shrinkGi==null)shrinkGi=i; });
     const minItemGi=(ex)=>{ let g=null; (DATA.script||[]).forEach((t,i)=>{ if(t.chapter===ci&&t.vizSeg===segId&&i!==ex){ const has=Array.isArray(t.panel_item)?t.panel_item.length>0:(typeof t.panel_item==='number'); if(has&&(g==null||i<g))g=i; } }); return g; };
-    if(a.type==='panel_item' && op!=='remove'){ if(shrinkGi!=null && dstGi<shrinkGi) return '項目は縮小より前のセリフには置けません。'; }
+    if(a.type==='panel_item' && op!=='remove'){
+      if(shrinkGi==null) return '先に「縮小」を追加してください（縮小なしでは項目を置けません）。';
+      if(dstGi<shrinkGi) return '項目は縮小より前のセリフには置けません。'; }
     if(a.type==='panel_event'){
       if(op==='remove'){ if(minItemGi(-1)!=null) return '項目が残っています。先に項目を外してください。'; }
       else { const mi=minItemGi(dstGi); if(mi!=null && dstGi>mi) return '縮小は項目より後ろには置けません。'; }
