@@ -301,8 +301,9 @@
   }
   body.mode-script { overflow:hidden; }
   body.mode-script main#main { height:calc(100vh - 56px); }
-  .tp.mode-script { grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
-  .tp.mode-script .tp-center, .tp.mode-script .timeline { display:none; }
+  .tp.mode-script { grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+                    grid-template-rows:minmax(360px,58%) minmax(220px,42%); }
+  .tp.mode-script .tp-center { display:none; }
   .tp.mode-script .tp-right { grid-column:auto; }
 </style></head>
 <body>
@@ -1546,7 +1547,7 @@ function render(){
   });
   if(workspaceMode==='effect') renderPreviewPane();
   renderRight();
-  if(workspaceMode==='effect') renderTimeline();
+  renderTimeline();
   const _newrp=document.getElementById('rpane'); if(_newrp) _newrp.scrollTop=rsy;
   document.querySelectorAll('#main textarea').forEach(autosize);
   window.scrollTo(0,sy);
@@ -1627,7 +1628,6 @@ function timelineRow(label, cls){
   return [row,track];
 }
 function renderTimeline(){
-  if(workspaceMode!=='effect') return;
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';

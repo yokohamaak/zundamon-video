@@ -65,7 +65,7 @@ flowchart LR
 
 4領域（左=台本、中央=Remotionプレビュー、右=設定、下=タイムライン）。右ペインは `.wide` で全幅オーバーレイ化。
 
-ヘッダーの作業モード切替は `workspaceMode` で管理する。`script` は台本・設定を50:50で表示してPlayerとタイムラインを停止し、`effect` は4領域を表示する。`reviewWorkspaceMode` として `localStorage` に保存する。
+ヘッダーの作業モード切替は `workspaceMode` で管理する。`script` はPlayerを停止して台本・設定を50:50で表示し、下段タイムラインは維持する。`effect` は4領域を表示する。`reviewWorkspaceMode` として `localStorage` に保存する。
 
 ### DOMツリー
 
