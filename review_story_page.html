@@ -251,6 +251,10 @@
   .tl-title { color:#d7caff; background:#2a2440; border-radius:999px; padding:5px 14px;
               font-size:12px; font-weight:800; }
   .tl-hint { color:var(--sub); font-size:11px; }
+  .tl-detail-btn { margin-left:auto; flex:none; font-size:11px; font-weight:700; padding:4px 11px;
+                   border:1px solid #2c3543; border-radius:999px; background:#1a212c; color:var(--sub); cursor:pointer; }
+  .tl-detail-btn:hover { color:var(--fg); }
+  .tl-detail-btn.on { background:#2a2440; color:#d7caff; border-color:#3a2d62; }
   .tl-scroll { flex:1; min-height:0; overflow:auto; }
   .tl-body { min-width:900px; }
   .tl-row { display:grid; grid-template-columns:150px minmax(750px,1fr); min-height:42px;
@@ -335,6 +339,12 @@
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // ワークスペース：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
 let timelineScrollLeft=0;  // 全体再描画を挟んでもタイムラインの横位置を維持する。
+// 詳細モード：各セリフ列をセリフ全文が1行で収まる幅（文字数比例＝尺の代理）にする。
+// 将来セリフ単位で演出を指定する運用に向けた細かい粒度。localStorageに保存。
+let timelineDetail=localStorage.getItem('reviewTimelineDetail')==='1';
+const TL_CHAR_PX=11;   // 1文字あたりの想定幅（10pxフォントの全角＋余裕）。見て微調整する係数。
+function tlColWidth(t){ return Math.max(72, Math.round(((t&&t.text||'').length)*TL_CHAR_PX)+30); }
+function setTimelineDetail(on){ timelineDetail=!!on; localStorage.setItem('reviewTimelineDetail',timelineDetail?'1':'0'); renderTimeline(); }
 let selectedTextRange=null;  // {gi,start,end,text}。小演出タブの文字選択をボタン操作まで保持。
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 let workspaceMode=localStorage.getItem('reviewWorkspaceMode')==='script'?'script':'effect';
@@ -1659,7 +1669,12 @@ function selectTurn(gi){
 }
 
 function timelineGrid(){
+  if(timelineDetail) return (DATA.script||[]).map(t=>tlColWidth(t)+'px').join(' ');
   return (DATA.script||[]).map(t=>Math.max(1,Math.min(3,(t.text||'').length/28))).map(v=>'minmax(105px,'+v+'fr)').join(' ');
+}
+function timelineBodyWidth(){
+  if(timelineDetail) return Math.max(900,150+(DATA.script||[]).reduce((w,t)=>w+tlColWidth(t),0));
+  return Math.max(900,150+(DATA.script||[]).length*105);
 }
 function timelineRow(label, cls){
   const row=document.createElement('div'); row.className='tl-row '+(cls||'');
@@ -1672,9 +1687,12 @@ function renderTimeline(){
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
-  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='演出バーの両端をドラッグして範囲を調整'; head.appendChild(hint); pane.appendChild(head);
+  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='演出バーの両端をドラッグして範囲を調整'; head.appendChild(hint);
+  const detailBtn=document.createElement('button'); detailBtn.type='button'; detailBtn.className='tl-detail-btn'+(timelineDetail?' on':'');
+  detailBtn.textContent=timelineDetail?'詳細表示: ON':'詳細表示: OFF'; detailBtn.title='セリフ全文が1行で収まる細かい粒度に切り替える';
+  detailBtn.onclick=()=>setTimelineDetail(!timelineDetail); head.appendChild(detailBtn); pane.appendChild(head);
   const scroll=document.createElement('div'); scroll.className='tl-scroll'; scroll.onscroll=()=>{ timelineScrollLeft=scroll.scrollLeft; };
-  const body=document.createElement('div'); body.className='tl-body'; body.style.width=Math.max(900,150+DATA.script.length*105)+'px';
+  const body=document.createElement('div'); body.className='tl-body'; body.style.width=timelineBodyWidth()+'px';
   scroll.appendChild(body); pane.appendChild(scroll);
   const [turnRow,turnTrack]=timelineRow('セリフ');
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'');
