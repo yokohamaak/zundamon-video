@@ -686,7 +686,10 @@ function splitTurn(tn,ta){
   // 演出点(vizPoints)も同じ分割位置で前半/後半へ振り分ける（textEffectsと同基準）。
   const vps=splitVizPoints(tn.vizPoints, pos, aFrom, bFrom, a.length, b.length);
   if(vps.a.length) tn.vizPoints=vps.a; else delete tn.vizPoints;
-  if(vps.b.length) nt.vizPoints=vps.b;
+  if(vps.b.length){ nt.vizPoints=vps.b;
+    if(tn.vizSeg) nt.vizSeg=tn.vizSeg;            // 後半も同じ演出範囲に属させる（孤立防止）
+    vps.b.forEach(p=>moveAnchorFlag(tn,nt,p));     // 後半へ移った点の対応flagも tn→nt へ移す
+  }
   tn.text=a; ['start','end','sentences'].forEach(k=>delete tn[k]);
   DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
 }
@@ -819,21 +822,23 @@ function vizRange(ci){ let first=-1,last=-1,sGi=-1,eGi=-1;
     if(first<0)first=gi; last=gi; if(t.viz_start)sGi=gi; if(t.viz_end)eGi=gi; });
   if(sGi<0)sGi=first; if(eGi<0||eGi<sGi)eGi=last;
   return {startGi:sGi, endGi:eGi, first, last}; }
-function clampItemFlags(ci,flag,n){ (DATA.script||[]).forEach(t=>{
+// 項目を removedIdx 番目で削除した後の再採番：removedIdx は外し、それより大きい index は1繰り下げる。
+function clampItemFlags(ci,flag,removedIdx){ const shift=v=> v===removedIdx?null:(v>removedIdx?v-1:v);
+  (DATA.script||[]).forEach(t=>{
   if(t.chapter!==ci) return;
-  if(Array.isArray(t[flag])){ const f=t[flag].filter(x=>x<n); if(f.length>1) t[flag]=f; else if(f.length===1) t[flag]=f[0]; else delete t[flag]; }
-  else if(typeof t[flag]==='number' && t[flag]>=n) delete t[flag];
-  // 同 type の演出点も value を再採番（範囲外は削除）。
-  if(t.vizPoints){ const cv=clampVizPointValues(t.vizPoints, flag, n); if(cv) t.vizPoints=cv; else delete t.vizPoints; } }); }
+  if(Array.isArray(t[flag])){ const f=t[flag].map(shift).filter(x=>x!=null); if(f.length>1) t[flag]=f; else if(f.length===1) t[flag]=f[0]; else delete t[flag]; }
+  else if(typeof t[flag]==='number'){ const s=shift(t[flag]); if(s==null) delete t[flag]; else t[flag]=s; }
+  // 同 type の演出点も同じ規則で再採番（削除＋繰り下げ）。
+  if(t.vizPoints){ const cv=shiftVizPointValues(t.vizPoints, flag, removedIdx); if(cv) t.vizPoints=cv; else delete t.vizPoints; } }); }
 // panel_item を「この発言で出す項目」の集合として持つ（int or int配列）。チェックボックス的にkを付け外し。
 // 1項目は1発言（同一kは他発言から外す）＝重複防止しつつ、1発言に複数項目を同時表示できる。
 function togglePanelItem(ci,sid,k,tn){
   let arr = Array.isArray(tn.panel_item)?tn.panel_item.slice():(typeof tn.panel_item==='number'?[tn.panel_item]:[]);
-  if(arr.includes(k)){ arr=arr.filter(x=>x!==k); }
+  if(arr.includes(k)){ arr=arr.filter(x=>x!==k); removeVizPoint(tn,{type:'panel_item',value:k}); }   // 外す＝点も削除
   else { arr.push(k);
     (DATA.script||[]).forEach(t=>{ if(t.chapter===ci&&t.vizSeg===sid&&t!==tn){
-      if(Array.isArray(t.panel_item)){ const f=t.panel_item.filter(x=>x!==k); if(f.length>1)t.panel_item=f; else if(f.length===1)t.panel_item=f[0]; else delete t.panel_item; }
-      else if(t.panel_item===k){ delete t.panel_item; } }}); }
+      if(Array.isArray(t.panel_item)){ const f=t.panel_item.filter(x=>x!==k); if(f.length>1)t.panel_item=f; else if(f.length===1)t.panel_item=f[0]; else delete t.panel_item; removeVizPoint(t,{type:'panel_item',value:k}); }
+      else if(t.panel_item===k){ delete t.panel_item; removeVizPoint(t,{type:'panel_item',value:k}); } }}); }
   arr.sort((a,b)=>a-b);
   if(arr.length>1) tn.panel_item=arr; else if(arr.length===1) tn.panel_item=arr[0]; else delete tn.panel_item;
   markDirty();
@@ -898,7 +903,8 @@ function vizHeaderCard(ch, ci, startGi){
 }
 // フラグをセグメント内でユニークに設定（同一値は同セグメントの他行から外す＝重複防止）。
 function setSegFlag(ci,segId,flag,value,tn,on){
-  (DATA.script||[]).forEach(t=>{ if(t.chapter===ci && t.vizSeg===segId && t[flag]===value) delete t[flag]; });
+  (DATA.script||[]).forEach(t=>{ if(t.chapter===ci && t.vizSeg===segId && t[flag]===value){ delete t[flag];
+    removeVizPoint(t,{type:flag, value:typeof value==='number'?value:undefined}); } });   // 旧位置の演出点も外す
   if(on) tn[flag]=value;
 }
 // 選択中セグメント(seg)の「この発言で何を出すか」タイミングchip。tnはこのセグメント内の発言。
@@ -1067,7 +1073,7 @@ function vizContent(box, vh, ch, ci, onDel){
         const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!it.arrow_from_prev;
         ac.onchange=()=>{ if(ac.checked)it.arrow_from_prev=true; else delete it.arrow_from_prev; render(); };
         al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al); }
-      r.appendChild(vMini('削除',()=>{ p.items.splice(i,1); clampItemFlags(ci,'panel_item',p.items.length); render(); }));
+      r.appendChild(vMini('削除',()=>{ p.items.splice(i,1); clampItemFlags(ci,'panel_item',i); render(); }));
       content.appendChild(r);
     });
     content.appendChild(vMini('＋項目',()=>{ p.items.push({text:''}); render(); }));
@@ -1327,7 +1333,7 @@ function vizContent(box, vh, ch, ci, onDel){
       const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!c.arrow;
       ac.onchange=()=>{ if(ac.checked)c.arrow=true; else delete c.arrow; render(); }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al);
       if(c.lx!=null||c.ly!=null) r.appendChild(vMini('文字自動',()=>{ delete c.lx; delete c.ly; render(); }));
-      r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',cs.length); if(calloutSel>=cs.length)calloutSel=Math.max(0,cs.length-1); render(); }));
+      r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',i); if(calloutSel>=cs.length)calloutSel=Math.max(0,cs.length-1); render(); }));
       content.appendChild(r);
     });
     if(cs.length<4) content.appendChild(vMini('＋注釈',()=>{ cs.push({text:'',x:0.5,y:0.5}); calloutSel=cs.length-1; render(); }));
@@ -1839,11 +1845,33 @@ function splitVizPoints(vizPoints, cutPos, aFrom, bFrom, aLen, bLen){
   });
   return {a,b};
 }
-// 項目削除/再採番：value>=n の該当 type 点を捨てる。戻り値=新配列 or null(空)。
-function clampVizPointValues(vizPoints, type, n){
+// 項目の中間削除に対応した再採番：removedIdx の点は捨て、それより大きい value は1繰り下げる。
+// 戻り値=新配列 or null(空)。
+function shiftVizPointValues(vizPoints, type, removedIdx){
   if(!Array.isArray(vizPoints)) return null;
-  const out=vizPoints.filter(p=>!(p.type===type && typeof p.value==='number' && p.value>=n));
+  const out=[];
+  (vizPoints||[]).forEach(p=>{
+    if(p.type===type && typeof p.value==='number'){
+      if(p.value===removedIdx) return;                              // 削除された項目の点は捨てる
+      out.push(p.value>removedIdx ? {...p, value:p.value-1} : p);   // 後ろの項目は繰り下げ
+    } else out.push(p);
+  });
   return out.length?out:null;
+}
+// セリフ分割で後半へ移った演出点に対応するタイミングflagを tn→nt へ移す（先頭固定でなく実体を移動）。
+function moveAnchorFlag(tn,nt,p){
+  const type=p.type, v=p.value;
+  if(type==='panel_item'){
+    let arr=Array.isArray(tn.panel_item)?tn.panel_item.slice():(typeof tn.panel_item==='number'?[tn.panel_item]:[]);
+    arr=arr.filter(x=>x!==v); if(arr.length>1)tn.panel_item=arr; else if(arr.length===1)tn.panel_item=arr[0]; else delete tn.panel_item;
+    let narr=Array.isArray(nt.panel_item)?nt.panel_item.slice():(typeof nt.panel_item==='number'?[nt.panel_item]:[]);
+    if(!narr.includes(v))narr.push(v); narr.sort((a,b)=>a-b);
+    if(narr.length>1)nt.panel_item=narr; else nt.panel_item=narr[0];
+  }
+  else if(type==='panel_event'){ if(tn.panel_event!=null){ nt.panel_event=tn.panel_event; delete tn.panel_event; } }
+  else if(type==='reveal'){ if(tn.reveal!=null){ nt.reveal=tn.reveal; delete tn.reveal; } }
+  else if(type==='compare_item'){ if(tn.compare_item===v){ nt.compare_item=v; delete tn.compare_item; } }
+  else if(type==='callout_item'){ if(tn.callout_item===v){ nt.callout_item=v; delete tn.callout_item; } }
 }
 // 本文編集追従：pos が新テキスト長を超えたら末尾へクランプ。戻り値=変更有無。
 function reconcileVizPointPos(vizPoints, textLen){
@@ -2041,12 +2069,17 @@ function renderTimeline(){
   if(!mainSegs.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
   // 変化点トラック（選択中の大演出の出現・変化タイミング）。現状は読み取り専用＝一覧表示。
   const [kfRow,kfTrack]=timelineRow('変化点'); let kfCount=0;
-  if(selSeg){ DATA.script.forEach((tn,gi)=>{ if(tn.vizSeg!==selSeg) return;
+  // selSeg のIDは章ごとに再利用されるため、選択行の章でも絞る（別章の同ID演出が混ざるのを防ぐ）。
+  const kfCh = DATA.script[selGi] ? DATA.script[selGi].chapter : -1;
+  if(selSeg){ DATA.script.forEach((tn,gi)=>{ if(tn.chapter!==kfCh || tn.vizSeg!==selSeg) return;
     const anchors=turnVizAnchors(tn); if(!anchors.length) return;
     const len=Math.max(1,(tn.text||'').length);
     const group=document.createElement('div'); group.className='tl-kf-group'; group.style.gridColumn=(gi+1)+' / span 1';
+    let autoN=0;
     anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'; const pos=placed?vp.pos:0;
-      const m=document.createElement('div'); m.className='tl-kf'+(placed?' placed':' auto'); m.style.left=(pos/len*100)+'%';
+      const m=document.createElement('div'); m.className='tl-kf'+(placed?' placed':' auto');
+      if(placed){ m.style.left=(pos/len*100)+'%'; }
+      else { m.style.left='0%'; m.style.marginLeft=(autoN++*54)+'px'; }   // 自動(先頭)は重ならないよう横へ並べる
       m.textContent='◆'+a.label;
       m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（◆塗り=明示配置・◇枠=自動）';
       m.onclick=(e)=>{ e.stopPropagation(); selectTurn(gi); }; group.appendChild(m); kfCount++; });
