@@ -2011,7 +2011,7 @@ function openVizPointEditor(gi){
     let addable=0;
     segAnchorOptions(seg).forEach(opt=>{ if(anchorOn(tn,opt)) return; addable++;
       const b=document.createElement('button'); b.type='button'; b.className='vchip'; b.textContent='＋'+opt.label;
-      b.onclick=()=>{ toggleAnchor(ci,seg,tn,opt); vpeActiveKey=opt.type+':'+(opt.value==null?'':opt.value); rebuild(); renderTimeline(); }; add.appendChild(b); });
+      b.onclick=()=>{ addAnchorToTurn(ci,seg,tn,opt); markDirty(); vpeActiveKey=opt.type+':'+(opt.value==null?'':opt.value); rebuild(); renderTimeline(); }; add.appendChild(b); });
     if(!addable){ const e=document.createElement('span'); e.className='lbl'; e.textContent='（このセリフに置ける項目は全て配置済み）'; add.appendChild(e); }
     mo.appendChild(add);
     // 一覧（文字位置）
