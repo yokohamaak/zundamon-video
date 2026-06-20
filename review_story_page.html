@@ -1685,6 +1685,12 @@ function selectTurn(gi){
   if(seg) selSeg=seg.id;
   markSel(); renderPreviewPane(); seekRemotionToSelection(); renderRight(); renderTimeline();
   const row=document.querySelector('.line[data-gi="'+gi+'"]'); if(row) row.scrollIntoView({block:'nearest'});
+  scrollTimelineToTurn(gi);
+}
+// 選択セリフをタイムラインの可視範囲へ横スクロール（renderTimeline後に呼ぶ＝両方向の連動用）。
+function scrollTimelineToTurn(gi){
+  const cell=document.querySelector('.tl-turn[data-gi="'+gi+'"]');
+  if(cell) cell.scrollIntoView({block:'nearest',inline:'nearest'});
 }
 
 function timelineGrid(){
@@ -1985,8 +1991,9 @@ function lineRow(tn,gi,ch,ci,inViz){
     const chg=(selGi!==gi);
     if(chg){ selGi=gi; }   // タブ(rtab)は維持＝別セリフへ移っても画像/演出/章の表示を保つ
     if(seg) selSeg=seg.id;   // 演出セグメントの行を選んだらそのセグメントを選択
-    markSel(); renderPreviewPane(); renderTimeline();
+    markSel(); renderPreviewPane(); seekRemotionToSelection(); renderTimeline();
     if(rwide){ setWide(false); } else { renderRight(); }
+    scrollTimelineToTurn(gi);   // 左台本→タイムラインも連動して該当セリフへスクロール
   };
   row.appendChild(av); row.appendChild(lc); row.appendChild(mk); row.appendChild(la);
   return row;
