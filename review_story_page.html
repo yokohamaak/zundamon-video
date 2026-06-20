@@ -245,6 +245,8 @@
   .adjsub { margin:4px 0; }
   .adjsub > summary { cursor:pointer; font-size:11px; color:var(--sub); padding:4px 0; list-style:revert; }
   .adjsub[open] > summary { color:#c4a8ff; }
+  .vizgrp-head { font-size:11px; font-weight:700; color:#8ea0c0; margin:10px 0 5px; border-top:1px solid var(--line); padding-top:8px; }
+  .vizdesign { margin-top:6px; }
   .textfx-editor { margin-bottom:12px; padding:10px; border:1px solid #39445a; border-radius:8px; background:#0c0f15; }
   .textfx-source { padding:10px; border:1px solid #2d3745; border-radius:6px; color:var(--fg); line-height:1.7;
                    width:100%; min-height:82px; box-sizing:border-box; resize:none; white-space:pre-wrap;
@@ -939,6 +941,16 @@ function vizContent(box, vh, ch, ci, onDel){
   const tl=document.createElement('span'); tl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff'; tl.textContent='演出：'+(VIZ_LABEL[vizOf(vh)]||'');
   top.appendChild(tl); box.appendChild(top);
   const ncuts=(ch.image_cuts||[]).length;
+  // 設定を「内容 / 表示タイミング / デザイン」に整理。プレビューや配置操作は各タイプが box 直下に出す。
+  const content=document.createElement('div');
+  const timing=document.createElement('div');
+  const design=document.createElement('details'); design.className='adjsub vizdesign';
+  const dsum=document.createElement('summary'); dsum.textContent='デザイン（色・大きさ・位置）'; design.appendChild(dsum);
+  // 各タイプの末尾で呼び、中身があるグループだけ見出し付きで box に並べる。
+  const flushGroups=()=>{ const grp=(title,el)=>{ const h=document.createElement('div'); h.className='vizgrp-head'; h.textContent=title; box.appendChild(h); box.appendChild(el); };
+    if(content.children.length) grp('内容',content);
+    if(timing.children.length) grp('表示タイミング',timing);
+    if(design.children.length>1) box.appendChild(design); };
 
   if(vh.panel){ const p=vh.panel; if(!Array.isArray(p.items))p.items=[];
     // ライブプレビュー（最終の縮小レイアウトを再現＝render(DialoguePanel)に合わせたHTMLモック）。
@@ -998,7 +1010,7 @@ function vizContent(box, vh, ch, ci, onDel){
     [['shrink','縮小して横に開く'],['overlay','縮小なし（テロップ）']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
       const on=(v==='overlay')===(!!p.overlay); b.className='vchip'+(on?' on':''); b.textContent=t;
       b.onclick=()=>{ if(v==='overlay')p.overlay=true; else delete p.overlay; delete p.pos; render(); }; mdr.appendChild(b); });
-    box.appendChild(mdr);
+    timing.appendChild(mdr);
     // パネル位置プリセット。overlay=帯の縦位置(下/上/中央)、縮小=開く側(右/左)。既定はクリアで戻す。
     const por=vRow('位置');
     const popts = (!!p.overlay)
@@ -1007,11 +1019,11 @@ function vizContent(box, vh, ch, ci, onDel){
     popts.forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button';
       const on=(p.pos||'')===v; b.className='vchip'+(on?' on':''); b.textContent=t;
       b.onclick=()=>{ if(v)p.pos=v; else delete p.pos; render(); }; por.appendChild(b); });
-    box.appendChild(por);
+    design.appendChild(por);
     // 見出し（テキスト領域の上に出すお題。並列項目で特に有効）。
-    const hr=vRow('見出し'); const hi=vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; }); hi.onchange=()=>render(); hr.appendChild(hi); box.appendChild(hr);
+    const hr=vRow('見出し'); const hi=vText(p.heading,'例: マップ撮影の3つの方法（任意）',v=>{ if(v.trim())p.heading=v; else delete p.heading; }); hi.onchange=()=>render(); hr.appendChild(hi); content.appendChild(hr);
     // テキスト領域（縮小画像の横）の背景色＋不透明度。クリアで透過（黒板が見える）。
-    box.appendChild(vBgRow(p,'文字側の背景','#1a2740'));
+    design.appendChild(vBgRow(p,'文字側の背景','#1a2740'));
     // 色＋大きさ倍率の編集行ヘルパー（マーカー/テキスト共用）。
     const csRow=(label,colorKey,defColor,sizeKey)=>{ const r=vRow(label);
       const cp=document.createElement('input'); cp.type='color'; cp.value=p[colorKey]||defColor; cp.title='色';
@@ -1028,9 +1040,9 @@ function vizContent(box, vh, ch, ci, onDel){
     [['check','✔'],['square','■'],['dot','●']].forEach(([v,sym])=>{ const b=document.createElement('button'); b.type='button';
       b.className='vchip'+((p.markerType||'check')===v?' on':''); b.textContent=sym; b.style.fontSize='14px';
       b.onclick=()=>{ if(v==='check') delete p.markerType; else p.markerType=v; render(); }; mr.appendChild(b); });
-    box.appendChild(mr);
-    box.appendChild(csRow('マーカー色/大','markerColor','#ffd84d','markerSize'));
-    box.appendChild(csRow('テキスト色/大','textColor','#ffffff','textSize'));
+    design.appendChild(mr);
+    design.appendChild(csRow('マーカー色/大','markerColor','#ffd84d','markerSize'));
+    design.appendChild(csRow('テキスト色/大','textColor','#ffffff','textSize'));
     p.items.forEach((it,i)=>{
       const r=vRow('項目'+i);
       const ti=vText(it.text,'体言止め10字以内',v=>it.text=v); ti.onchange=()=>render(); r.appendChild(ti);
@@ -1039,9 +1051,10 @@ function vizContent(box, vh, ch, ci, onDel){
         ac.onchange=()=>{ if(ac.checked)it.arrow_from_prev=true; else delete it.arrow_from_prev; render(); };
         al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al); }
       r.appendChild(vMini('削除',()=>{ p.items.splice(i,1); clampItemFlags(ci,'panel_item',p.items.length); render(); }));
-      box.appendChild(r);
+      content.appendChild(r);
     });
-    box.appendChild(vMini('＋項目',()=>{ p.items.push({text:''}); render(); }));
+    content.appendChild(vMini('＋項目',()=>{ p.items.push({text:''}); render(); }));
+    flushGroups();
   }
   else if(vh.quiz){ const q=vh.quiz;
     // ライブプレビュー（背後の画像＋「？・問い」土台＋答えバナー。動画では問い→答えに切替）。
@@ -1077,8 +1090,8 @@ function vizContent(box, vh, ch, ci, onDel){
       const qtx=document.createElement('span'); qtx.style.cssText='color:#fff;font-weight:800;font-size:'+pv(12)+'px;line-height:1.2;white-space:pre-line'; qtx.textContent=q.question||'問い'; qbody.appendChild(qtx);
       qb.appendChild(qbody); prev.appendChild(qb); }
     box.appendChild(prev);
-    const r1=vRow('問い'); const qi=vArea(q.question,'画面に出す問い（Enterで任意の位置に改行）',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); box.appendChild(r1);
-    const r2=vRow('答え'); const ai=vArea(q.answer,'リビールで出す答え（空＝問題だけ表示・Enterで改行可）',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); box.appendChild(r2);
+    const r1=vRow('問い'); const qi=vArea(q.question,'画面に出す問い（Enterで任意の位置に改行）',v=>q.question=v); qi.onchange=()=>render(); r1.appendChild(qi); content.appendChild(r1);
+    const r2=vRow('答え'); const ai=vArea(q.answer,'リビールで出す答え（空＝問題だけ表示・Enterで改行可）',v=>q.answer=v); ai.onchange=()=>render(); r2.appendChild(ai); content.appendChild(r2);
     // 色の編集行ヘルパー（文字色など）。
     const colRow=(label,key,defColor)=>{ const r=vRow(label); const cp=document.createElement('input'); cp.type='color'; cp.value=q[key]||defColor; cp.title='色';
       cp.oninput=()=>{ q[key]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
@@ -1086,17 +1099,17 @@ function vizContent(box, vh, ch, ci, onDel){
     const nt=document.createElement('div'); nt.style.cssText='font-size:11px;color:var(--sub);margin:2px 0';
     nt.textContent='プレビューは選択行を再現：「答えを出す」行より前＝中央に問い／以降＝問いは上部バー(Q.)へ縮小＋答えバナー。画像は背後にそのまま（暗転しない）。';
     box.appendChild(nt);
-    box.appendChild(vBgRow(q,'文字の背景','#0f141e',0.62));
-    box.appendChild(colRow('問いの文字色','textColor','#ffffff'));
-    box.appendChild(vBgRow(q,'答えの背景','#ffd84d',0.96,'answerBg','answerBgOpacity'));
-    box.appendChild(colRow('答えの文字色','answerTextColor','#1a1f2b'));
+    design.appendChild(vBgRow(q,'文字の背景','#0f141e',0.62));
+    design.appendChild(colRow('問いの文字色','textColor','#ffffff'));
+    design.appendChild(vBgRow(q,'答えの背景','#ffd84d',0.96,'answerBg','answerBgOpacity'));
+    design.appendChild(colRow('答えの文字色','answerTextColor','#1a1f2b'));
     // ボックス幅（問い土台/答えバナーの横幅・画面比）。未指定=内容に応じ自動。
     const wr=vRow('ボックス幅'); const wsl=document.createElement('input'); wsl.type='range'; wsl.min='0.3'; wsl.max='1'; wsl.step='0.05';
     wsl.value=(q.boxWidth!=null?q.boxWidth:0.8); wsl.style.cssText='width:120px;vertical-align:middle'; wsl.title='問い土台/答えバナーの横幅（画面比）';
     const wsv=document.createElement('span'); wsv.style.cssText='font-size:11px;color:var(--sub);min-width:40px;display:inline-block;text-align:right';
     const wshow=()=>{ wsv.textContent=(q.boxWidth!=null?Math.round(q.boxWidth*100)+'%':'自動'); }; wshow();
     wsl.oninput=()=>{ q.boxWidth=parseFloat(wsl.value); wshow(); }; wsl.onchange=()=>render();
-    wr.appendChild(stepWrap(wsl)); wr.appendChild(wsv); wr.appendChild(vMini('自動',()=>{ delete q.boxWidth; render(); })); box.appendChild(wr);
+    wr.appendChild(stepWrap(wsl)); wr.appendChild(wsv); wr.appendChild(vMini('自動',()=>{ delete q.boxWidth; render(); })); design.appendChild(wr);
     // 問い/答えの文字サイズ倍率（個別）。
     const qSzRow=(label,key)=>{ const rr=vRow(label); const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
       sl.value=(q[key]!=null?q[key]:1); sl.style.cssText='width:120px;vertical-align:middle'; sl.title='文字サイズ倍率';
@@ -1104,8 +1117,9 @@ function vizContent(box, vh, ch, ci, onDel){
       const show=()=>{ sv.textContent=(q[key]!=null?q[key]:1).toFixed(1)+'倍'; }; show();
       sl.oninput=()=>{ q[key]=parseFloat(sl.value); show(); }; sl.onchange=()=>render();
       rr.appendChild(stepWrap(sl)); rr.appendChild(sv); rr.appendChild(vMini('既定',()=>{ delete q[key]; render(); })); return rr; };
-    box.appendChild(qSzRow('問いの大きさ','questionSize'));
-    box.appendChild(qSzRow('答えの大きさ','answerSize'));
+    design.appendChild(qSzRow('問いの大きさ','questionSize'));
+    design.appendChild(qSzRow('答えの大きさ','answerSize'));
+    flushGroups();
   }
   else if(vh.compare){ const c=vh.compare; c.left=c.left||{label:'',cut:0}; c.right=c.right||{label:'',cut:1};
     // ライブプレビュー（左右2分割の最終分割状態＝render(CompareVisual)に合わせたモック）。
@@ -1136,15 +1150,15 @@ function vizContent(box, vh, ch, ci, onDel){
         o.onclick=()=>{ side.cut=k; render(); };  // 再描画＝セリフ行の「演出で表示」サムネも更新
         pick.appendChild(o); }
       return pick; };
-    const rl=vRow('左'); const li=vText(c.left.label,'左ラベル',v=>c.left.label=v); li.onchange=()=>render(); rl.appendChild(li); rl.appendChild(mkCut(c.left,0)); box.appendChild(rl);
-    const rr=vRow('右'); const ri=vText(c.right.label,'右ラベル',v=>c.right.label=v); ri.onchange=()=>render(); rr.appendChild(ri); rr.appendChild(mkCut(c.right,1)); box.appendChild(rr);
+    const rl=vRow('左'); const li=vText(c.left.label,'左ラベル',v=>c.left.label=v); li.onchange=()=>render(); rl.appendChild(li); rl.appendChild(mkCut(c.left,0)); content.appendChild(rl);
+    const rr=vRow('右'); const ri=vText(c.right.label,'右ラベル',v=>c.right.label=v); ri.onchange=()=>render(); rr.appendChild(ri); rr.appendChild(mkCut(c.right,1)); content.appendChild(rr);
     // ラベル/分割線の見た目。色の編集行ヘルパー。
     const colRow=(label,key,defColor,extra)=>{ const r=vRow(label); const cp=document.createElement('input'); cp.type='color'; cp.value=c[key]||defColor; cp.title='色';
       cp.oninput=()=>{ c[key]=cp.value; }; cp.onchange=()=>render(); r.appendChild(cp);
       if(extra) extra(r);
       r.appendChild(vMini('既定',()=>{ delete c[key]; render(); })); return r; };
-    box.appendChild(colRow('ラベル背景','labelColor','#141a26'));
-    box.appendChild(colRow('ラベル文字','labelTextColor','#ffffff',(r)=>{
+    design.appendChild(colRow('ラベル背景','labelColor','#141a26'));
+    design.appendChild(colRow('ラベル文字','labelTextColor','#ffffff',(r)=>{
       // ラベル大きさスライダーも同じ行に。
       const sl=document.createElement('input'); sl.type='range'; sl.min='0.3'; sl.max='2'; sl.step='0.1';
       sl.value=(c.labelSize!=null?c.labelSize:1); sl.style.cssText='width:90px;vertical-align:middle'; sl.title='ラベル大きさ倍率';
@@ -1152,7 +1166,8 @@ function vizContent(box, vh, ch, ci, onDel){
       const show=()=>{ sv.textContent=(c.labelSize!=null?c.labelSize:1).toFixed(1)+'倍'; }; show();
       sl.oninput=()=>{ c.labelSize=parseFloat(sl.value); show(); }; sl.onchange=()=>render();
       r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(stepWrap(sl)); r.appendChild(sv); }));
-    box.appendChild(colRow('分割線','dividerColor','#ffffff'));
+    design.appendChild(colRow('分割線','dividerColor','#ffffff'));
+    flushGroups();
   }
   else if(vh.stat){ const s=vh.stat;
     // ライブプレビュー（画像の上に数字カードを重ねる＝render(StatOverlay)に合わせたモック）。
@@ -1177,21 +1192,21 @@ function vizContent(box, vh, ch, ci, onDel){
     box.appendChild(prev);
     const r=vRow('数字'); const vi=vText(s.value,'例 8 / 50万 / 500000',v=>s.value=v); vi.onchange=()=>render(); r.appendChild(vi);
     const u2=document.createElement('input'); u2.type='text'; u2.value=s.unit||''; u2.placeholder='単位'; u2.style.width='90px';
-    u2.oninput=()=>{ if(u2.value.trim())s.unit=u2.value; else delete s.unit; }; u2.onchange=()=>render(); r.appendChild(u2); box.appendChild(r);
-    const r2=vRow('ラベル'); const li=vText(s.label,'例 故障率（任意）',v=>{ if(v.trim())s.label=v; else delete s.label; }); li.onchange=()=>render(); r2.appendChild(li); box.appendChild(r2);
+    u2.oninput=()=>{ if(u2.value.trim())s.unit=u2.value; else delete s.unit; }; u2.onchange=()=>render(); r.appendChild(u2); content.appendChild(r);
+    const r2=vRow('ラベル'); const li=vText(s.label,'例 故障率（任意）',v=>{ if(v.trim())s.label=v; else delete s.label; }); li.onchange=()=>render(); r2.appendChild(li); content.appendChild(r2);
     // 強調色（数字の色）
     const rc=vRow('強調色'); const cp=document.createElement('input'); cp.type='color'; cp.value=s.color||'#ffd84d'; cp.title='数字の色';
     cp.oninput=()=>{ s.color=cp.value; }; cp.onchange=()=>render(); rc.appendChild(cp);
-    rc.appendChild(vMini('既定に戻す',()=>{ delete s.color; render(); })); box.appendChild(rc);
+    rc.appendChild(vMini('既定に戻す',()=>{ delete s.color; render(); })); design.appendChild(rc);
     // 大きさ（全体の倍率）
     const rs=vRow('大きさ'); const sl=document.createElement('input'); sl.type='range'; sl.min='0.3'; sl.max='2'; sl.step='0.1';
     sl.value=(s.size!=null?s.size:1); sl.style.cssText='width:120px;vertical-align:middle'; sl.title='数字演出の大きさ倍率';
     const sv=document.createElement('span'); sv.style.cssText='font-size:11px;color:var(--sub);min-width:36px;display:inline-block;text-align:right';
     const showSv=()=>{ sv.textContent=(s.size!=null?s.size:1).toFixed(1)+'倍'; }; showSv();
     sl.oninput=()=>{ s.size=parseFloat(sl.value); showSv(); }; sl.onchange=()=>render();
-    rs.appendChild(stepWrap(sl)); rs.appendChild(sv); rs.appendChild(vMini('既定に戻す',()=>{ delete s.size; render(); })); box.appendChild(rs);
+    rs.appendChild(stepWrap(sl)); rs.appendChild(sv); rs.appendChild(vMini('既定に戻す',()=>{ delete s.size; render(); })); design.appendChild(rs);
     // 背景色＋透過（土台）
-    box.appendChild(vBgRow(s,'背景','#0f141e',0.5));
+    design.appendChild(vBgRow(s,'背景','#0f141e',0.5));
     // カウントアップ速度（数字が整数のとき有効）。3段階＝速い/標準(既定)/ゆっくり。
     const rsp=vRow('カウント速度');
     [['fast','速い'],['normal','標準'],['slow','ゆっくり']].forEach(([v,t])=>{
@@ -1199,7 +1214,8 @@ function vizContent(box, vh, ch, ci, onDel){
       const b=document.createElement('button'); b.type='button'; b.className='vchip'+(cur===v?' on':''); b.textContent=t;
       b.onclick=()=>{ if(v==='normal') delete s.countSpeed; else s.countSpeed=v; render(); }; rsp.appendChild(b);
     });
-    box.appendChild(rsp);
+    timing.appendChild(rsp);
+    flushGroups();
   }
   else if(vh.callouts){ let cs=vh.callouts; if(!Array.isArray(cs)){cs=vh.callouts=[];}
     if(calloutSel>=cs.length) calloutSel=0;
@@ -1295,9 +1311,9 @@ function vizContent(box, vh, ch, ci, onDel){
       ac.onchange=()=>{ if(ac.checked)c.arrow=true; else delete c.arrow; render(); }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); r.appendChild(al);
       if(c.lx!=null||c.ly!=null) r.appendChild(vMini('文字自動',()=>{ delete c.lx; delete c.ly; render(); }));
       r.appendChild(vMini('削除',()=>{ cs.splice(i,1); clampItemFlags(ci,'callout_item',cs.length); if(calloutSel>=cs.length)calloutSel=Math.max(0,cs.length-1); render(); }));
-      box.appendChild(r);
+      content.appendChild(r);
     });
-    if(cs.length<4) box.appendChild(vMini('＋注釈',()=>{ cs.push({text:'',x:0.5,y:0.5}); calloutSel=cs.length-1; render(); }));
+    if(cs.length<4) content.appendChild(vMini('＋注釈',()=>{ cs.push({text:'',x:0.5,y:0.5}); calloutSel=cs.length-1; render(); }));
     // 見た目（章共通）：マーカー/ラベルの色・大きさ。
     const styRow=(label,colorKey,defColor,sizeKey)=>{ const r=vRow(label);
       const cp=document.createElement('input'); cp.type='color'; cp.value=st[colorKey]||defColor; cp.title='色';
@@ -1310,8 +1326,8 @@ function vizContent(box, vh, ch, ci, onDel){
       sl.onchange=()=>render();  // 離したらプレビューに反映
       r.appendChild(document.createTextNode(' 大きさ')); r.appendChild(stepWrap(sl)); r.appendChild(sv);
       r.appendChild(vMini('既定',()=>{ delete st[colorKey]; delete st[sizeKey]; render(); })); return r; };
-    box.appendChild(styRow('マーカー','markerColor','#ff5a6a','markerSize'));
-    box.appendChild(styRow('ラベル','labelColor','#14233a','labelSize'));
+    design.appendChild(styRow('マーカー','markerColor','#ff5a6a','markerSize'));
+    design.appendChild(styRow('ラベル','labelColor','#14233a','labelSize'));
     // ラベルの文字色・外枠色（背景と同化して見づらい時に）。
     const lcr=vRow('ラベル文字/枠');
     const tcp=document.createElement('input'); tcp.type='color'; tcp.value=lText; tcp.title='文字色';
@@ -1322,7 +1338,7 @@ function vizContent(box, vh, ch, ci, onDel){
     lcr.appendChild(document.createTextNode(' 外枠')); lcr.appendChild(bcp);
     lcr.appendChild(vMini('枠なし',()=>{ delete st.labelBorderColor; render(); }));
     lcr.appendChild(vMini('既定',()=>{ delete st.labelTextColor; delete st.labelBorderColor; render(); }));
-    box.appendChild(lcr);
+    design.appendChild(lcr);
     // 矢印：大きさ（スライダー）＋形（プリセット）。色はマーカー色を流用。
     const ar=vRow('矢印');
     const asl=document.createElement('input'); asl.type='range'; asl.min='0.3'; asl.max='3'; asl.step='0.1';
@@ -1335,7 +1351,8 @@ function vizContent(box, vh, ch, ci, onDel){
       b.className='vchip'+((st.arrowShape||'normal')===v?' on':''); b.textContent=t;
       b.onclick=()=>{ if(v==='normal') delete st.arrowShape; else st.arrowShape=v; render(); }; ar.appendChild(b); });
     ar.appendChild(vMini('既定',()=>{ delete st.arrowSize; delete st.arrowShape; render(); }));
-    box.appendChild(ar);
+    design.appendChild(ar);
+    flushGroups();
   }
   // 危険操作：演出の削除は通常設定から区切ったエリアに置き、確認を挟む。
   const danger=document.createElement('div'); danger.style.cssText='margin-top:14px;padding-top:10px;border-top:1px solid #6b3a3a';
