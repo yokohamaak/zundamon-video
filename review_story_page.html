@@ -955,7 +955,7 @@ function vizContent(box, vh, ch, ci, onDel){
   // 各タイプの末尾で呼び、中身があるグループだけ見出し付きで box に並べる。
   const flushGroups=()=>{ const grp=(title,el)=>{ const h=document.createElement('div'); h.className='vizgrp-head'; h.textContent=title; box.appendChild(h); box.appendChild(el); };
     if(content.children.length) grp('内容',content);
-    if(timing.children.length) grp('表示タイミング',timing);
+    if(timing.children.length) grp('動き・表示方法',timing);
     if(design.children.length>1) box.appendChild(design); };
 
   if(vh.panel){ const p=vh.panel; if(!Array.isArray(p.items))p.items=[];
