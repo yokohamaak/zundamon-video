@@ -201,7 +201,8 @@
   .chsec.active { background:#12171f; border-left-color:#39424f; padding:2px 10px 6px; }
   .chsec:first-child { margin-top:8px; }
   .chdiv { display:flex; align-items:center; gap:9px; margin:0 0 10px; padding:6px 2px; }
-  .chdiv .ttl { font-weight:700; font-size:14.5px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chdiv .ttl { font-weight:700; font-size:14.5px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+  .chdiv .chedit { flex:none; margin-left:auto; padding:4px 8px; font-size:12px; line-height:1; white-space:nowrap; }
   .chdiv .selcb { width:16px; height:16px; flex:none; accent-color:#ffd84d; }
   .chdiv .chev { background:transparent; border:none; color:var(--sub); font-size:13px; padding:2px 4px; cursor:pointer; flex:none; border-radius:5px; }
   .chdiv .chev:hover { background:#1c232e; color:var(--fg); }
@@ -2110,7 +2111,7 @@ function chapterDivider(ch,ci){
   // 行数（畳んだ時だけCSSで表示）。常に生成しておく。
   const n=(DATA.script||[]).filter(x=>x.chapter===ci).length;
   const cnt=document.createElement('span'); cnt.className='chcnt'; cnt.textContent=n+'行'; d.appendChild(cnt);
-  const e=document.createElement('button'); e.className='mini'; e.textContent='章を編集'; e.style.marginLeft='auto';
+  const e=document.createElement('button'); e.className='mini chedit'; e.textContent='✏️ 章'; e.title='章を編集（タイトル/要約）';
   e.onclick=()=>{ selGi=firstGiOfChapter(ci); rtab='chapter'; renderRight(); markSel(); }; d.appendChild(e);
   return d;
 }
