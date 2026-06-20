@@ -36,5 +36,5 @@ cat <<'MSG'
   cd video && npm install && SRC_DIR=../docs/story npm run render
 
 テスト:
-  python test_story_script.py && python test_story_meta.py
+  python test_story_script.py && python test_story_meta.py && python test_editor_model.py
 MSG

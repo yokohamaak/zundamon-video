@@ -737,6 +737,10 @@ def apply_save_script(data):
         out["theme"] = data["theme"]
     if "chapters" in data:
         out["chapters"] = data["chapters"]
+    # 編集モデルのトップレベルフィールドは保存時に保持（Phase 1 では UI 未送出だが前方互換）。
+    for k in ("schemaVersion", "assets", "imageCues", "visualSegments"):
+        if k in data:
+            out[k] = data[k]
     return True, "ok", out
 
 
@@ -1831,6 +1835,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/script":
             data = load_script()
+            if data:
+                # 編集モデル（schemaVersion/assets/imageCues/visualSegments＋turn ID）を
+                # 読み込み時に変換して付与する。非破壊・冪等で、旧フィールドはそのまま残る。
+                from src import editor_model
+                data = editor_model.migrate(data, load_review())
             self._json(data if data else {"error": "script.json がありません（先に台本生成）"})
             return
         if path == "/api/cuts":
