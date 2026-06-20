@@ -116,6 +116,12 @@ t('canMoveAnchorTo: compare/calloutは移動先に別値があると拒否', () 
   assert.equal(canMoveAnchorTo({ reveal: true }, { type: 'reveal' }), true);
 });
 
+t('canMoveAnchorTo: パネル項目は縮小より前のセリフへ移動不可', () => {
+  assert.equal(canMoveAnchorTo({}, { type: 'panel_item', value: 0 }, { shrinkGi: 2, dstGi: 1 }), false);
+  assert.equal(canMoveAnchorTo({}, { type: 'panel_item', value: 0 }, { shrinkGi: 2, dstGi: 3 }), true);
+  assert.equal(canMoveAnchorTo({}, { type: 'panel_item', value: 0 }, { shrinkGi: null, dstGi: 0 }), true); // overlay等で制約なし
+});
+
 t('segUnplacedOptions: セグメント全体に無い項目を返す', () => {
   globalThis.DATA = { script: [{ chapter: 0, vizSeg: 's1', compare_item: 0 }] };
   const seg = { id: 's1', compare: { left: {}, right: {} } };
