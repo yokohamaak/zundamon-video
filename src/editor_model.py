@@ -35,8 +35,8 @@ _TYPE_TO_MODE = {
 }
 # vizList エントリの種類別ペイロードを持つキー（config へ退避する対象）。
 _VIZ_PAYLOAD_KEYS = ("panel", "quiz", "compare", "stat", "callouts", "calloutStyle")
-# セリフ（turn）に乗る大演出の進行フラグ。keyframe へ正規化する。
-_FLAG_BOOL = ("reveal", "viz_start", "viz_end")
+# セリフ（turn）に乗る大演出の進行フラグ（整数 value つき）。keyframe へ展開する。
+# reveal / panel_event は別途個別に扱い、viz_start/viz_end は範囲情報なので keyframe にしない。
 _FLAG_VALUED = ("panel_item", "callout_item", "compare_item")
 
 
@@ -77,22 +77,26 @@ def next_turn_id(existing_ids):
 
 
 def assign_turn_ids(script):
-    """全セリフへ安定 turn ID を付与（in-place）。既存 ID は維持し、未付与だけ採番する。
+    """全セリフへ安定 turn ID を付与（in-place）。既存 ID は維持し、未付与・重複だけ採番し直す。
 
     - 既存 ID（turn-NNNN 形式以外も含む）はそのまま尊重する。
-    - 連番は既存の最大値の続きから振る＝再付与しても番号が動かない＝冪等。
+    - 同じ ID が複数あるとアンカーが曖昧になるため、後から出現した重複へ新 ID を振る
+      （先に出たものを正とする）。
+    - 連番は全 turn の最大番号の続きから振る＝既存番号と衝突しない＝再付与で番号が動かない＝冪等。
     """
-    existing = {t.get("id") for t in script if t.get("id")}
     mx = 0
-    for tid in existing:
-        n = _id_num(tid)
+    for turn in script:
+        n = _id_num(turn.get("id"))
         if n is not None and n > mx:
             mx = n
+    seen = set()
     for turn in script:
-        if not turn.get("id"):
+        tid = turn.get("id")
+        if not tid or tid in seen:
             mx += 1
-            turn["id"] = _format_turn_id(mx)
-            existing.add(turn["id"])
+            tid = _format_turn_id(mx)   # mx は全体最大の続き＝既存IDと必ず非衝突
+            turn["id"] = tid
+        seen.add(tid)
     return script
 
 
@@ -140,97 +144,146 @@ def build_assets(chapters, review_data=None):
 
 # ---- imageCues（6.3） ----
 
-def _effective_cut(turn, carry):
-    """そのセリフの実効 cut（明示があれば採用・無ければ直前を継続）。
+def _chapter_segments(script):
+    """script を chapter の連続塊に分ける [(ch, [turn_index,...]), ...]（出現順）。
 
-    main_story._cut_groups と同じ「欠落は直前のcutを継続」規則に合わせる。
+    main_story.assign_sections_to_turns と同じ「連続塊で切る」規則。非連続再登場は別塊。
+    画像の章内cut割当は塊ごとに独立（旧 build_chapter_topics と一致させる）。
     """
-    c = turn.get("cut")
-    if isinstance(c, int) and not isinstance(c, bool) and c >= 0:
-        return c
-    return carry
+    segs = []
+    for i, t in enumerate(script):
+        ch = t.get("chapter", 0)
+        if not isinstance(ch, int) or isinstance(ch, bool):
+            ch = 0
+        if segs and segs[-1][0] == ch:
+            segs[-1][1].append(i)
+        else:
+            segs.append((ch, [i]))
+    return segs
 
 
-def build_image_cues(script, asset_index, review_data=None):
-    """script順に (chapter, cut) を走査し、切り替わり位置へ imageCue を作る（6.3）。
+def _cut_groups(idxs, script, ncuts):
+    """章塊のターン列を cut アンカーでグループ化（main_story._cut_groups の完全移植）。
 
-    - 先頭と、直前から (chapter, cut) 組が変わったセリフへキューを作る。
-    - 章境界では carry を 0 に戻す（cut は章内ローカル番号のため）。
-    - crop/fit/filter/pad/bg/hide は review からコピーし、cue 側に持たせる
-      （同じ素材を別クロップで複数箇所に置けるよう、表示調整は asset でなく cue）。
-    - assetId は (chapter, cut) の asset。範囲外（asset 無し）なら None。
+    - 範囲外/不正/欠落の cut は無効値として直前の cut を継続する。
+    - アンカーが1つも無ければ None（呼び出し側が均等割りへフォールバック）。
+    Returns: [(cut_index, lo, hi)]（idxs 内の位置・hi排他・連続被覆）または None
+    """
+    if ncuts <= 0:
+        return None
+    vals, cur, any_anchor = [], 0, False
+    for j in idxs:
+        c = script[j].get("cut")
+        if isinstance(c, int) and not isinstance(c, bool) and 0 <= c < ncuts:
+            any_anchor = True
+        else:
+            c = cur
+        vals.append(c)
+        cur = c
+    if not any_anchor:
+        return None
+    groups, pos, n = [], 0, len(vals)
+    while pos < n:
+        ci, start = vals[pos], pos
+        while pos < n and vals[pos] == ci:
+            pos += 1
+        groups.append((ci, start, pos))
+    return groups
+
+
+def build_image_cues(script, chapters, asset_index, review_data=None):
+    """章塊ごとに cut グループ（旧 meta と同じ割当）を求め、各グループ先頭へ imageCue を作る（6.3）。
+
+    旧 build_chapter_topics と同じ規則で変換し、無編集移行で描画が一致するようにする:
+    - cut アンカーがあれば _cut_groups で章内を区切る。
+    - アンカーが無ければ均等割り（len(image_cuts or [{}]) と発言数で分割）。
+    - 章境界では cut を引き継がない（cut は章内ローカル番号のため）。
+    crop/fit/filter/pad/bg/hide は review からコピーし cue 側に持たせる（表示調整は asset でなく cue）。
+    assetId は (chapter, cut) の asset。範囲外（asset 無し）なら None。
     """
     rev = _review_index(review_data)
     cues = []
-    prev_key = None
-    prev_chapter = None
-    carry = 0
     n = 0
-    for turn in script:
-        ch = turn.get("chapter", 0)
-        if not isinstance(ch, int) or isinstance(ch, bool):
-            ch = 0
-        if ch != prev_chapter:
-            carry = 0
-        cut = _effective_cut(turn, carry)
-        carry = cut
-        prev_chapter = ch
-        key = (ch, cut)
-        if key == prev_key:
-            continue
-        prev_key = key
-        n += 1
-        rcut = rev.get(key, {})
-        pad = rcut.get("pad")
-        cues.append({
-            "id": f"image-cue-{n:04d}",
-            "turnId": turn.get("id"),
-            "assetId": asset_index.get(key),
-            "fit": rcut.get("fit"),
-            "crop": rcut.get("crop"),
-            "filter": rcut.get("filter"),
-            "pad": pad if isinstance(pad, (int, float)) and not isinstance(pad, bool) else 0,
-            "bg": rcut.get("bg"),
-            "hide": bool(rcut.get("hide")),
-        })
+    for ch, idxs in _chapter_segments(script):
+        chapter = chapters[ch] if 0 <= ch < len(chapters) else {}
+        ncuts = len(chapter.get("image_cuts") or [{}])   # 旧 meta と同じ（空でも最低1）
+        groups = _cut_groups(idxs, script, ncuts)
+        if groups is None:
+            ncut = max(1, min(ncuts, len(idxs)))
+            groups = [(ci, ci * len(idxs) // ncut, (ci + 1) * len(idxs) // ncut)
+                      for ci in range(ncut)]
+        for ci, lo, _hi in groups:
+            anchor = script[idxs[lo]]
+            key = (ch, ci)
+            rcut = rev.get(key, {})
+            pad = rcut.get("pad")
+            n += 1
+            cues.append({
+                "id": f"image-cue-{n:04d}",
+                "turnId": anchor.get("id"),
+                "assetId": asset_index.get(key),
+                "fit": rcut.get("fit"),
+                "crop": rcut.get("crop"),
+                "filter": rcut.get("filter"),
+                "pad": pad if isinstance(pad, (int, float)) and not isinstance(pad, bool) else 0,
+                "bg": rcut.get("bg"),
+                "hide": bool(rcut.get("hide")),
+            })
     return cues
 
 
 # ---- visualSegments（6.4） ----
 
-def _keyframes_for_turns(member_turns):
-    """所属セリフ群のフラグと vizPoints を keyframe 列へ正規化する。
+def _kf_key(vtype, value):
+    """keyframe の同一性キー (type, value)。値なし種別は value=None（meta の _viz_point_times と同形）。"""
+    v = value if (isinstance(value, int) and not isinstance(value, bool)) else None
+    return (vtype, v)
 
-    - turn 直下のフラグ（reveal/viz_start/viz_end/panel_event/panel_item/...）はそのセリフ全体に効く点。
-    - vizPoints はセリフ内の文字位置(pos)を持つ点。pos を保持する。
-    順序は member_turns の順＝script順。id は seg 内連番（kf-N）。
+
+def _keyframes_for_turns(member_turns):
+    """所属セリフ群の vizPoints と進行フラグを keyframe 列へ正規化する。
+
+    旧 meta の優先規則（_viz_point_times / _resolve_viz）に合わせる:
+    - vizPoints を最優先。対応点（同じ type+value）が無いフラグだけをフォールバックで追加する。
+    - viz_start / viz_end は「範囲」を表すフラグ＝keyframe には入れない（startTurnId/endTurnId で表現）。
+    - panel_item / callout_item / compare_item の配列は項目ごとに展開する。
+    pos は vizPoints のみ持つ（pos:0 と未指定を区別＝0 をそのまま保持）。id は seg 内連番。
     """
+    covered = set()      # vizPoints が押さえている (type, value)＝同じフラグは抑制する
+    for turn in member_turns:
+        for p in turn.get("vizPoints") or []:
+            if isinstance(p, dict) and p.get("type"):
+                covered.add(_kf_key(p["type"], p.get("value")))
     kfs = []
     for turn in member_turns:
         tid = turn.get("id")
-        for flag in _FLAG_BOOL:
-            if turn.get(flag):
-                kfs.append({"turnId": tid, "type": flag})
-        if turn.get("panel_event") == "shrink":
-            kfs.append({"turnId": tid, "type": "panel_event", "value": "shrink"})
-        for flag in _FLAG_VALUED:
-            if flag in turn:
-                v = turn[flag]
-                if isinstance(v, bool):
-                    continue
-                if isinstance(v, (int, list)):
-                    kfs.append({"turnId": tid, "type": flag, "value": v})
+        # 1) vizPoints（文字位置つき・最優先）
         for p in turn.get("vizPoints") or []:
-            if not isinstance(p, dict) or "type" not in p:
+            if not isinstance(p, dict) or not p.get("type"):
                 continue
             kf = {"turnId": tid, "type": p["type"], "pos": p.get("pos")}
-            if "value" in p:
+            if isinstance(p.get("value"), int) and not isinstance(p.get("value"), bool):
                 kf["value"] = p["value"]
             kfs.append(kf)
-    for i, kf in enumerate(kfs, 1):
-        kf["id"] = f"kf-{i:03d}"
-        # id を先頭に揃える（可読性のみ・順序は意味を持たない）。
-    return [{"id": kf.pop("id"), **kf} for kf in kfs]
+        # 2) フラグ（vizPoints に対応点が無いものだけ）
+        if turn.get("reveal") and _kf_key("reveal", None) not in covered:
+            kfs.append({"turnId": tid, "type": "reveal"})
+        if turn.get("panel_event") == "shrink" and _kf_key("panel_event", None) not in covered:
+            kfs.append({"turnId": tid, "type": "panel_event", "value": "shrink"})
+        for flag in _FLAG_VALUED:
+            if flag not in turn:
+                continue
+            v = turn[flag]
+            if isinstance(v, bool):
+                continue
+            items = v if isinstance(v, list) else [v]
+            for item in items:
+                if not isinstance(item, int) or isinstance(item, bool):
+                    continue
+                if _kf_key(flag, item) in covered:
+                    continue
+                kfs.append({"turnId": tid, "type": flag, "value": item})
+    return [{"id": f"kf-{i:03d}", **kf} for i, kf in enumerate(kfs, 1)]
 
 
 def _entry_type(entry):
@@ -260,8 +313,9 @@ def build_visual_segments(script, chapters):
 
     - id は chapter + vizSeg からグローバル一意（visual-CC-<sid>）＝章ごとに同じ ID でも衝突しない。
     - 所属セリフ＝同章で turn.vizSeg==id。その先頭/末尾を startTurnId/endTurnId へ。
-    - 所属が無いエントリは章の先頭/末尾セリフへアンカー（データを落とさない）。
-    - フラグと vizPoints を keyframes へ正規化。
+    - 所属が無いエントリは旧 meta が描画しない（_resolve_viz_segments がスキップ）。突然表示されない
+      よう status="orphaned"・アンカー None で「保持するが無効」にする（移行で再アンカー可能）。
+    - vizPoints/フラグを keyframes へ正規化。
     - 旧単一形式（章直下の panel/quiz/...）は viz_start/viz_end か章全体を範囲に1セグメント。
     """
     segs = []
@@ -274,19 +328,17 @@ def build_visual_segments(script, chapters):
                     continue
                 sid = entry.get("id")
                 members = [t for t in ch_turns if t.get("vizSeg") == sid]
-                if not members:
-                    members = ch_turns  # アンカー不能なら章全体へ寄せる（消失防止）
-                if not members:
-                    continue
                 vtype = _entry_type(entry)
+                orphaned = not members
                 segs.append({
                     "id": f"visual-{ch:02d}-{sid}",
                     "type": vtype,
                     "mode": _TYPE_TO_MODE.get(vtype, "replace"),
-                    "startTurnId": members[0].get("id"),
-                    "endTurnId": members[-1].get("id"),
+                    "status": "orphaned" if orphaned else "active",
+                    "startTurnId": None if orphaned else members[0].get("id"),
+                    "endTurnId": None if orphaned else members[-1].get("id"),
                     "config": _entry_config(entry, vtype),
-                    "keyframes": _keyframes_for_turns(members),
+                    "keyframes": [] if orphaned else _keyframes_for_turns(members),
                     "sourceChapter": ch,
                 })
             continue
@@ -304,6 +356,7 @@ def build_visual_segments(script, chapters):
             "id": f"visual-{ch:02d}-legacy",
             "type": vtype,
             "mode": _TYPE_TO_MODE.get(vtype, "replace"),
+            "status": "active",
             "startTurnId": start_turn.get("id"),
             "endTurnId": end_turn.get("id"),
             "config": dict(legacy),
@@ -315,8 +368,13 @@ def build_visual_segments(script, chapters):
 
 # ---- 変換本体（冪等） ----
 
+# 編集モデルの「正」がどちらか。Phase 1 では常に legacy（毎回旧形式から再導出する）。
+# Phase 2 で UI が編集を imageCues 等へ直接書くようになったら "editor" を立てて切り替える。
+AUTHORITY_FIELD = "editorModelAuthority"
+
+
 def is_migrated(data):
-    """編集モデルへ変換済みか（schemaVersion と3キーが揃っているか）。"""
+    """編集モデルの3キーと schemaVersion が揃っているか（保存・前方互換の判定用）。"""
     return (isinstance(data, dict)
             and data.get("schemaVersion") == SCHEMA_VERSION
             and all(k in data for k in ("assets", "imageCues", "visualSegments")))
@@ -325,9 +383,13 @@ def is_migrated(data):
 def migrate(script_data, review_data=None):
     """script.json の dict（＋任意の review.json）を編集モデルへ変換して新 dict を返す。
 
-    冪等：変換済み入力には turn ID の補完のみ行い、assets/cues/segments は作り直さない
-    （＝2回適用しても ID・asset・cue・segment が増えない）。入力は破壊しない（deepcopy）。
-    既存フィールドは残す＝旧経路（meta生成・UI）は引き続きそのまま読める。
+    Phase 1（authority=legacy）: assets/imageCues/visualSegments は毎回 *旧形式から* 再導出する。
+    こうしないと、新フィールド保存後に旧UIが review.json や vizList を変えても反映されない
+    （正が曖昧になる）。旧形式が真である限り再導出は決定的＝冪等（2回適用で不変）。
+    authority=="editor"（Phase 2以降）になったら編集モデル側を正とし、再導出しない。
+
+    turn ID は唯一その場で確定して持ち越す情報。既存は維持し、未付与・重複のみ採番し直す。
+    入力は破壊しない（deepcopy）。旧フィールドは残す＝旧経路（meta生成・UI）はそのまま読める。
     """
     if not isinstance(script_data, dict):
         return script_data
@@ -335,14 +397,14 @@ def migrate(script_data, review_data=None):
     script = data.get("script")
     if not isinstance(script, list):
         return data
-    assign_turn_ids(script)              # 既存IDは維持・未付与のみ採番（常に実行＝冪等）
-    if is_migrated(data):
-        return data                      # 変換済みは再構築しない（冪等の核）
+    assign_turn_ids(script)              # 既存IDは維持・未付与/重複のみ採番（常に実行＝冪等）
+    if data.get(AUTHORITY_FIELD) == "editor":
+        return data                      # 編集モデルが正＝再導出しない（Phase 2以降）
     chapters = data.get("chapters") or []
     assets, index = build_assets(chapters, review_data)
     data["schemaVersion"] = SCHEMA_VERSION
     data["assets"] = assets
-    data["imageCues"] = build_image_cues(script, index, review_data)
+    data["imageCues"] = build_image_cues(script, chapters, index, review_data)
     data["visualSegments"] = build_visual_segments(script, chapters)
     return data
 
@@ -372,7 +434,8 @@ def migrate_dir(dir_path, persist=False, backups_root=".backups"):
         with open(rp, encoding="utf-8") as f:
             review_data = json.load(f)
     migrated = migrate(script_data, review_data)
-    if persist and not is_migrated(script_data):
+    # 内容が実際に変わるときだけ退避＋書き戻し（再導出で同一なら何もしない＝再バックアップしない）。
+    if persist and migrated != script_data:
         bdir = _backup_dir(backups_root)
         os.makedirs(bdir, exist_ok=True)
         shutil.copy2(sp, os.path.join(bdir, "script.json"))

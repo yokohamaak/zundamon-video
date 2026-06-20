@@ -102,8 +102,9 @@ def test_assets_empty_and_unfetched():
 def test_cues_merge_consecutive_same_cut():
     script = [_turn(chapter=0, cut=0), _turn(chapter=0, cut=0), _turn(chapter=0, cut=0)]
     em.assign_turn_ids(script)
-    _, index = em.build_assets([{"image_cuts": [{}]}])
-    cues = em.build_image_cues(script, index)
+    chapters = [{"image_cuts": [{}]}]
+    _, index = em.build_assets(chapters)
+    cues = em.build_image_cues(script, chapters, index)
     assert len(cues) == 1, "連続する同じchapter+cutは1キュー"
     assert cues[0]["turnId"] == "turn-0001"
     print("  連続する同じchapter+cutを1つのimageCueへ: OK")
@@ -113,8 +114,9 @@ def test_cues_add_at_cut_change():
     script = [_turn(chapter=0, cut=0), _turn(chapter=0, cut=1), _turn(chapter=0, cut=1),
               _turn(chapter=1, cut=0)]
     em.assign_turn_ids(script)
-    _, index = em.build_assets([{"image_cuts": [{}, {}]}, {"image_cuts": [{}]}])
-    cues = em.build_image_cues(script, index)
+    chapters = [{"image_cuts": [{}, {}]}, {"image_cuts": [{}]}]
+    _, index = em.build_assets(chapters)
+    cues = em.build_image_cues(script, chapters, index)
     assert [c["turnId"] for c in cues] == ["turn-0001", "turn-0002", "turn-0004"], \
         [c["turnId"] for c in cues]
     assert cues[0]["assetId"] == "asset-00-00"
@@ -127,10 +129,38 @@ def test_cues_carry_missing_cut():
     # cut欠落は直前を継続（_cut_groups と同じ）＝新キューを作らない。
     script = [_turn(chapter=0, cut=2), _turn(chapter=0), _turn(chapter=0)]
     em.assign_turn_ids(script)
-    _, index = em.build_assets([{"image_cuts": [{}, {}, {}]}])
-    cues = em.build_image_cues(script, index)
+    chapters = [{"image_cuts": [{}, {}, {}]}]
+    _, index = em.build_assets(chapters)
+    cues = em.build_image_cues(script, chapters, index)
     assert len(cues) == 1 and cues[0]["assetId"] == "asset-00-02"
     print("  cut欠落は直前を継続: OK")
+
+
+def test_cues_out_of_range_cut_fallback():
+    # 範囲外cut(=5 だが image_cuts は2枚)は無効値＝直前cutへフォールバック（旧_cut_groupsと一致）。
+    script = [_turn(chapter=0, cut=1), _turn(chapter=0, cut=5), _turn(chapter=0, cut=5)]
+    em.assign_turn_ids(script)
+    chapters = [{"image_cuts": [{}, {}]}]
+    _, index = em.build_assets(chapters)
+    cues = em.build_image_cues(script, chapters, index)
+    assert len(cues) == 1 and cues[0]["assetId"] == "asset-00-01", \
+        [(c["assetId"]) for c in cues]
+    print("  範囲外cutは直前へフォールバック: OK")
+
+
+def test_cues_no_anchor_even_split():
+    # cutアンカーが一つも無い＋複数画像 → 旧metaどおり発言数を均等割りしてキュー化する。
+    script = [_turn(chapter=0) for _ in range(4)]
+    em.assign_turn_ids(script)
+    chapters = [{"image_cuts": [{}, {}]}]   # 2枚 → 4発言を2分割
+    _, index = em.build_assets(chapters)
+    cues = em.build_image_cues(script, chapters, index)
+    assert [c["assetId"] for c in cues] == ["asset-00-00", "asset-00-01"], \
+        [c["assetId"] for c in cues]
+    # 0..2 / 2..4 の境界＝turn-0001 と turn-0003 が開始
+    assert [c["turnId"] for c in cues] == ["turn-0001", "turn-0003"], \
+        [c["turnId"] for c in cues]
+    print("  cutアンカーなし複数画像の均等割り: OK")
 
 
 def test_cue_display_settings_from_review():
@@ -140,7 +170,7 @@ def test_cue_display_settings_from_review():
     review = {"cuts": [{"ch": 0, "ci": 0, "fit": "contain", "crop": {"x": 1},
                         "filter": "mono", "pad": 12, "bg": "#000", "hide": True}]}
     _, index = em.build_assets(chapters, review)
-    cues = em.build_image_cues(script, index, review)
+    cues = em.build_image_cues(script, chapters, index, review)
     c = cues[0]
     assert c["fit"] == "contain" and c["crop"] == {"x": 1} and c["filter"] == "mono"
     assert c["pad"] == 12 and c["bg"] == "#000" and c["hide"] is True
@@ -153,7 +183,7 @@ def test_cue_settings_per_cue_not_asset():
     em.assign_turn_ids(script)
     chapters = [{"image_cuts": [{}, {}]}]
     _, index = em.build_assets(chapters)
-    cues = em.build_image_cues(script, index)
+    cues = em.build_image_cues(script, chapters, index)
     assert cues[0]["assetId"] == cues[2]["assetId"] == "asset-00-00", "同asset共有"
     assert cues[0]["id"] != cues[2]["id"], "cueは別物"
     print("  同asset共有・cropはcueごと独立: OK")
@@ -208,15 +238,54 @@ def test_vizpoints_to_keyframes_pos0():
     print("  vizPoints→keyframe（pos:0保持）: OK")
 
 
-def test_segment_no_members_anchors_to_chapter():
-    # vizSeg を持つ発言が無いエントリも章端へアンカーして落とさない。
+def test_keyframe_dedup_flag_and_vizpoint():
+    # 同じ発言に reveal フラグと reveal vizPoint。vizPoint 優先＝reveal は1つだけ（重複しない）。
+    script = [_turn(chapter=0, vizSeg="s1", reveal=True,
+                    vizPoints=[{"id": "vp1", "type": "reveal", "pos": 4}])]
+    em.assign_turn_ids(script)
+    chapters = [{"vizList": [{"id": "s1", "type": "quiz", "quiz": {"question": "q"}}]}]
+    segs = em.build_visual_segments(script, chapters)
+    reveals = [k for k in segs[0]["keyframes"] if k["type"] == "reveal"]
+    assert len(reveals) == 1, reveals
+    assert reveals[0].get("pos") == 4, "vizPoint(文字位置)を採用"
+    print("  flag＋vizPointの重複排除: OK")
+
+
+def test_keyframe_excludes_viz_start_end():
+    # viz_start/viz_end は範囲フラグ＝keyframe に入れない。
+    script = [_turn(chapter=0, vizSeg="s1", viz_start=True),
+              _turn(chapter=0, vizSeg="s1", viz_end=True)]
+    em.assign_turn_ids(script)
+    chapters = [{"vizList": [{"id": "s1", "type": "quiz", "quiz": {"question": "q"}}]}]
+    segs = em.build_visual_segments(script, chapters)
+    types = {k["type"] for k in segs[0]["keyframes"]}
+    assert "viz_start" not in types and "viz_end" not in types, types
+    print("  viz_start/end が keyframe へ入らない: OK")
+
+
+def test_keyframe_panel_item_array_expand():
+    # panel_item 配列は項目ごとに keyframe を展開する。
+    script = [_turn(chapter=0, vizSeg="s1", panel_item=[0, 2, 3])]
+    em.assign_turn_ids(script)
+    chapters = [{"vizList": [{"id": "s1", "type": "panel", "panel": {"items": []}}]}]
+    segs = em.build_visual_segments(script, chapters)
+    vals = sorted(k["value"] for k in segs[0]["keyframes"] if k["type"] == "panel_item")
+    assert vals == [0, 2, 3], vals
+    print("  panel_item配列の展開: OK")
+
+
+def test_segment_orphaned_not_activated():
+    # vizSeg を持つ発言が無いエントリは旧 meta が描画しない＝activeにしない（orphaned保持）。
     script = [_turn(chapter=0), _turn(chapter=0)]
     em.assign_turn_ids(script)
     chapters = [{"vizList": [{"id": "s9", "type": "quiz", "quiz": {"question": "q"}}]}]
     segs = em.build_visual_segments(script, chapters)
-    assert len(segs) == 1
-    assert segs[0]["startTurnId"] == "turn-0001" and segs[0]["endTurnId"] == "turn-0002"
-    print("  所属なし演出は章端アンカー: OK")
+    assert len(segs) == 1, "データは保持する"
+    s = segs[0]
+    assert s["status"] == "orphaned", s["status"]
+    assert s["startTurnId"] is None and s["endTurnId"] is None, "アンカー無し＝有効化しない"
+    assert s["keyframes"] == []
+    print("  所属なし演出が有効化されない: OK")
 
 
 def test_legacy_single_viz_form():
@@ -294,6 +363,36 @@ def test_migrate_empty_and_null():
     print("  null・空・script不正でも安全: OK")
 
 
+def test_duplicate_turn_id_repaired():
+    script = [_turn(id="turn-0001"), _turn(id="turn-0001"), _turn(id="turn-0002")]
+    em.assign_turn_ids(script)
+    ids = [t["id"] for t in script]
+    assert ids[0] == "turn-0001" and ids[2] == "turn-0002", "先に出たIDは維持"
+    assert ids[1] not in ("turn-0001", "turn-0002"), ids
+    assert len(set(ids)) == 3, ids
+    print("  重複turn IDの修復: OK")
+
+
+def test_legacy_authority_reflects_review_change():
+    # Phase 1（authority=legacy）: 新フィールド保存後でも、旧形式(review.json)変更を再導出で反映する。
+    base = em.migrate(_sample(), {"cuts": [{"ch": 0, "ci": 0, "image": "a.jpg", "fit": "cover"}]})
+    assert base["imageCues"][0]["fit"] == "cover"
+    assert em.AUTHORITY_FIELD not in base, "Phase 1 は legacy（明示フラグを立てない）"
+    out = em.migrate(base, {"cuts": [{"ch": 0, "ci": 0, "image": "a.jpg", "fit": "contain"}]})
+    assert out["imageCues"][0]["fit"] == "contain", "移行済み状態でも review 変更が反映される"
+    print("  移行済み状態でreview変更が反映: OK")
+
+
+def test_editor_authority_freezes_rederive():
+    # authority=editor（Phase 2以降）になったら編集モデル側を正とし、再導出で上書きしない。
+    base = em.migrate(_sample())
+    base[em.AUTHORITY_FIELD] = "editor"
+    base["imageCues"] = [{"id": "hand-edited"}]
+    out = em.migrate(base, {"cuts": [{"ch": 0, "ci": 0, "fit": "contain"}]})
+    assert out["imageCues"] == [{"id": "hand-edited"}], "editorが正＝再導出しない"
+    print("  editor権威では再導出しない: OK")
+
+
 def test_save_reload_invariant():
     with tempfile.TemporaryDirectory() as d:
         with open(os.path.join(d, "script.json"), "w", encoding="utf-8") as f:
@@ -329,17 +428,25 @@ if __name__ == "__main__":
     test_cues_merge_consecutive_same_cut()
     test_cues_add_at_cut_change()
     test_cues_carry_missing_cut()
+    test_cues_out_of_range_cut_fallback()
+    test_cues_no_anchor_even_split()
     test_cue_display_settings_from_review()
     test_cue_settings_per_cue_not_asset()
     test_segments_no_collision_same_vizseg_across_chapters()
     test_segments_anchor_and_config()
     test_vizpoints_to_keyframes_pos0()
-    test_segment_no_members_anchors_to_chapter()
+    test_keyframe_dedup_flag_and_vizpoint()
+    test_keyframe_excludes_viz_start_end()
+    test_keyframe_panel_item_array_expand()
+    test_segment_orphaned_not_activated()
     test_legacy_single_viz_form()
     test_no_viz_chapter()
     test_migrate_adds_schema()
     test_migrate_does_not_mutate_input()
     test_migrate_idempotent()
     test_migrate_empty_and_null()
+    test_duplicate_turn_id_repaired()
+    test_legacy_authority_reflects_review_change()
+    test_editor_authority_freezes_rederive()
     test_save_reload_invariant()
     print("ALL PASS")
