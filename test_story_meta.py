@@ -470,6 +470,54 @@ def test_build_chapter_topics_viz_reveal_fallback():
     print("  build_chapter_topics: reveal無し→zoom_punchで解決 OK")
 
 
+def test_build_chapter_topics_viz_points():
+    # セリフ内文字位置の演出点(vizPoints)：セリフを分割せず1セリフ内で panel/quiz を時刻解決。
+    chapters = [
+        {"section": "trivia", "title": "T", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}],
+         "panel": {"items": [{"text": "JR"}, {"text": "京急"}, {"text": "相鉄"}]},
+         "quiz": {"question": "なぜ?", "answer": "そうだから"}},
+    ]
+    text = "そう。JR、京急、相鉄、"  # len 12（JR=3, 京急=6, 相鉄=9 文字目）
+    turns = [{
+        "chapter": 0, "cut": 0, "start": 0.0, "end": 2.0, "text": text,
+        "sentences": [{"text": text, "start": 0.0, "end": 2.0}],
+        "vizPoints": [
+            {"id": "vp0", "type": "panel_event", "pos": 0},
+            {"id": "vp1", "type": "panel_item", "value": 0, "pos": 3},
+            {"id": "vp2", "type": "panel_item", "value": 1, "pos": 6},
+            {"id": "vp3", "type": "panel_item", "value": 2, "pos": 9},
+            {"id": "vp4", "type": "reveal", "pos": 6},
+        ],
+    }]
+    script = [{"chapter": 0}]
+    segs = story_script.assign_sections_to_turns(script)
+    topics = m.build_chapter_topics(segs, turns, chapters, image_files={(0, 0): "ch_00_00.jpg"})
+    p = next(t["panel"] for t in topics if "panel" in t)
+    # 文字位置→秒の線形按分: 2.0秒×(pos/12)。shrink=0.0 / JR=0.5 / 京急=1.0 / 相鉄=1.5。
+    assert p["shrinkAt"] == 0.0, p["shrinkAt"]
+    assert [it["at"] for it in p["items"]] == [0.5, 1.0, 1.5], [it["at"] for it in p["items"]]
+    q = next(t["quiz"] for t in topics if "quiz" in t)
+    assert q["revealAt"] == 1.0, f"reveal pos6→1.0: {q['revealAt']}"
+    print("  build_chapter_topics: vizPoints(文字位置→秒)で panel/quiz 解決 OK")
+
+
+def test_build_chapter_topics_viz_points_compat():
+    # vizPoints が無ければ従来のTurnフラグ方式のまま（非破壊）。
+    chapters = [
+        {"section": "trivia", "title": "T", "image_cuts": [{"image_query": "a", "image_kind": "ambient"}],
+         "panel": {"items": [{"text": "x"}, {"text": "y"}]}},
+    ]
+    script = [{"chapter": 0, "panel_event": "shrink", "panel_item": 0},
+              {"chapter": 0, "panel_item": 1}, {"chapter": 0}]
+    timing = _turns(3)
+    turns = [{**sc, **ti} for sc, ti in zip(script, timing)]
+    segs = story_script.assign_sections_to_turns(script)
+    topics = m.build_chapter_topics(segs, turns, chapters)
+    p = next(t["panel"] for t in topics if "panel" in t)
+    assert p["shrinkAt"] == 0.0 and [it["at"] for it in p["items"]] == [0.0, 2.0], p
+    print("  build_chapter_topics: vizPoints無し＝従来フラグ方式を維持 OK")
+
+
 if __name__ == "__main__":
     print("test_story_meta:")
     test_append_closing_chorus()
@@ -486,6 +534,8 @@ if __name__ == "__main__":
     test_viz_window_boundary_snap()
     test_viz_list_multiple_segments()
     test_build_chapter_topics_viz_reveal_fallback()
+    test_build_chapter_topics_viz_points()
+    test_build_chapter_topics_viz_points_compat()
     test_build_credits()
     test_build_meta()
     test_build_meta_cut_anchors()

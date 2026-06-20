@@ -163,6 +163,23 @@ def test_normalize_turns_text_effects():
     print("  normalize_turns: テキスト範囲演出の正規化 OK")
 
 
+def test_normalize_turns_viz_points():
+    script = [{"text": "そう。JR、京急、相鉄、", "chapter": 0, "vizPoints": [
+        {"id": "vp1", "type": "panel_item", "value": 0, "pos": 3},
+        {"type": "panel_event", "pos": 0},                    # value無しでもOK（reveal/panel_event）
+        {"type": "unknown", "pos": 1},                        # 不正type→除外
+        {"type": "panel_item", "pos": 5},                     # 値必須なのにvalue無し→除外
+        {"type": "callout_item", "value": 1, "pos": -1},      # pos負→除外
+    ]}]
+    s.normalize_turns(script)
+    vp = script[0]["vizPoints"]
+    assert vp == [
+        {"id": "vp1", "type": "panel_item", "pos": 3, "value": 0},
+        {"id": "vp2", "type": "panel_event", "pos": 0},
+    ], vp
+    print("  normalize_turns: vizPoints(文字位置演出点)の正規化 OK")
+
+
 def test_normalize_turns_cut_clamp():
     chapters = [{"section": "intro", "image_cuts": [{"image_query": "q"}]},
                 {"section": "trivia", "image_cuts": [{"image_query": "a"}, {"image_query": "b"}]}]
@@ -612,6 +629,7 @@ if __name__ == "__main__":
     test_strip_markdown()
     test_normalize_turns_strips_markdown()
     test_normalize_turns_text_effects()
+    test_normalize_turns_viz_points()
     test_normalize_turns_cut_clamp()
     test_normalize_voice_and_pause()
     test_normalize_turns_enums()

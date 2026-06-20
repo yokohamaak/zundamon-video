@@ -321,12 +321,54 @@ def _resolve_viz_segments(meta_ch, idxs, turns, seg_start, seg_end, image_files,
     return [seg] if (len(seg) > 2) else []
 
 
+def _point_time(turn, pos):
+    """Turn内の文字位置 pos を絶対秒へ線形按分（純関数）。start〜end を text 長で割る。
+
+    textEffectsの発話タイミング同期と同じ考え方。end<=start や空文字は start を返す。
+    """
+    s = float(turn.get("start", 0.0))
+    e = float(turn.get("end", s))
+    n = len(turn.get("text") or "")
+    try:
+        pos = int(pos)
+    except (TypeError, ValueError):
+        pos = 0
+    if n <= 0 or e <= s:
+        return round(s, 3)
+    frac = max(0.0, min(1.0, pos / n))
+    return round(s + (e - s) * frac, 3)
+
+
+def _viz_point_times(idxs, turns):
+    """セリフ内文字位置の演出点(vizPoints)を {(type, value): 秒} へ解決（純関数）。
+
+    既存のTurnフラグ方式(panel_item等)と共存し、vizPoints があれば出現時刻を上書きする。
+    value を持たない reveal / panel_event は value=None で格納する。
+    """
+    out = {}
+    for j in idxs:
+        for p in (turns[j].get("vizPoints") or []):
+            if not isinstance(p, dict) or not p.get("type"):
+                continue
+            v = p.get("value")
+            v = v if (isinstance(v, int) and not isinstance(v, bool)) else None
+            key = (p["type"], v)
+            if key not in out:
+                out[key] = _point_time(turns[j], p.get("pos", 0))
+    return out
+
+
 def _reveal_time(idxs, turns, seg_start, seg_end):
     """「実は」の答え/数字を出す時刻を発言timingから推定（純関数）。
 
     優先: reveal==True の発言 → effect=="zoom_punch" の発言 → 章の約60%地点。
     どれも無ければ seg の中盤を返す。
+    vizPoints(セリフ内文字位置)に reveal があれば最優先で文字位置から秒を出す。
     """
+    for j in idxs:
+        for p in (turns[j].get("vizPoints") or []):
+            if isinstance(p, dict) and p.get("type") == "reveal":
+                return _point_time(turns[j], p.get("pos", 0))
     for j in idxs:
         if turns[j].get("reveal"):
             return float(turns[j].get("start", seg_start))
@@ -342,6 +384,7 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
     Returns: topicに載せる {quiz?,compare?,stat?,callouts?}（あるものだけ）。
     """
     out = {}
+    pts = _viz_point_times(idxs, turns)  # セリフ内文字位置の演出点（あれば時刻を上書き）
     quiz = meta_ch.get("quiz")
     if quiz:
         # クイズは画像を使わない演出＝背後の通常画像/黒板をそのまま見せる。
@@ -358,8 +401,10 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
                 r["image"] = img
             return r
         # 出現時刻: compare_item==0→左(at0) / ==1→右(at1)。
+        # vizPoints があれば最優先。無ければ発言の compare_item フラグから。
         # at0未指定は章頭、at1未指定は at0 と同時（＝最初から2分割）。
-        at0 = at1 = None
+        at0 = pts.get(("compare_item", 0))
+        at1 = pts.get(("compare_item", 1))
         for j in idxs:
             ci = turns[j].get("compare_item")
             if not isinstance(ci, int) or isinstance(ci, bool):
@@ -394,6 +439,9 @@ def _resolve_viz(meta_ch, idxs, turns, seg_start, seg_end, image_files, ch):
     callouts = meta_ch.get("callouts")
     if callouts:
         at_by_idx = {}
+        for (typ, v), t in pts.items():  # vizPoints を最優先で反映（フラグ走査は未指定分のみ）
+            if typ == "callout_item" and isinstance(v, int) and 0 <= v < len(callouts):
+                at_by_idx[v] = t
         for j in idxs:
             ci = turns[j].get("callout_item")
             if isinstance(ci, int) and not isinstance(ci, bool) and 0 <= ci < len(callouts) and ci not in at_by_idx:
@@ -424,12 +472,18 @@ def _resolve_panel(panel, idxs, turns, seg_start, seg_end, image_files=None, ch=
     if not panel or not panel.get("items"):
         return None
     items = panel["items"]
-    shrink_at = float(seg_start)
-    for j in idxs:
-        if turns[j].get("panel_event") == "shrink":
-            shrink_at = float(turns[j].get("start", seg_start))
-            break
+    pts = _viz_point_times(idxs, turns)  # セリフ内文字位置の演出点（あれば時刻を上書き）
+    shrink_at = pts.get(("panel_event", None))
+    if shrink_at is None:
+        shrink_at = float(seg_start)
+        for j in idxs:
+            if turns[j].get("panel_event") == "shrink":
+                shrink_at = float(turns[j].get("start", seg_start))
+                break
     at_by_idx = {}
+    for (typ, v), t in pts.items():  # vizPoints を最優先（フラグ走査は未指定分のみ）
+        if typ == "panel_item" and isinstance(v, int) and 0 <= v < len(items):
+            at_by_idx[v] = t
     for j in idxs:
         pi = turns[j].get("panel_item")
         # panel_item は int（1項目）または int配列（複数項目を同時表示）。配列内の各項目にこの発言のstartを割当。

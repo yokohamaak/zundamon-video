@@ -995,6 +995,42 @@ def _normalize_text_effects(turn):
         turn.pop("textEffects", None)
 
 
+_VIZ_POINT_TYPES = {"panel_item", "callout_item", "compare_item", "reveal", "panel_event"}
+_VIZ_POINT_VALUED = {"panel_item", "callout_item", "compare_item"}  # 整数valueが必須の種別
+
+
+def _normalize_viz_points(turn):
+    """セリフ内の文字位置に置く演出点(vizPoints)を安全な最小スキーマへ正規化する。
+
+    textEffectsと同じく文字位置(pos)を持ち、build_chapter_topics が秒へ解決する。
+    セリフを分割せずに1セリフ内へ演出タイミングを複数置くための仕組み。
+    """
+    cleaned = []
+    for i, p in enumerate(turn.get("vizPoints") or []):
+        if not isinstance(p, dict) or p.get("type") not in _VIZ_POINT_TYPES:
+            continue
+        try:
+            pos = int(p.get("pos"))
+        except (TypeError, ValueError):
+            continue
+        if pos < 0 or pos > 10000:
+            continue
+        item = {"id": str(p.get("id") or f"vp{i + 1}")[:40], "type": p["type"], "pos": pos}
+        if p["type"] in _VIZ_POINT_VALUED:
+            try:
+                v = int(p.get("value"))
+            except (TypeError, ValueError):
+                continue
+            if v < 0 or v > 999:
+                continue
+            item["value"] = v
+        cleaned.append(item)
+    if cleaned:
+        turn["vizPoints"] = cleaned
+    else:
+        turn.pop("vizPoints", None)
+
+
 def normalize_turns(script: list, chapters: list = None) -> list:
     """各ターンの emotion / effect / section / chapter をenum・整数固定する（破壊的・in-place）。
 
@@ -1024,6 +1060,7 @@ def normalize_turns(script: list, chapters: list = None) -> list:
         _normalize_pause(turn)  # 台詞後の間（任意）をクランプ
         _normalize_panel_fields(turn)  # 解説パネル操作（任意・shrink/item）を正規化
         _normalize_text_effects(turn)  # 字幕内の文字範囲演出を正規化
+        _normalize_viz_points(turn)    # セリフ内文字位置の演出点(vizPoints)を正規化
         if n:
             turn["section"] = chapters[ch].get("section", DEFAULT_SECTION)
         elif turn.get("section") not in VALID_SECTIONS:

@@ -63,6 +63,16 @@ export type Turn = {
     text?: string;
     color?: string;
   }>;
+  // セリフを分割せず、セリフ内の文字位置(pos)に置く演出タイミング点。
+  // build_chapter_topics が pos を start〜end の文字数按分で秒へ解決し、各演出の出現時刻
+  // (panel.items[].at / callouts[].at / quiz.revealAt / compare.at0/at1) へ流す。
+  // 既存のTurnフラグ方式(panel_item等)と共存。描画では未使用（型整合・編集UI用）。
+  vizPoints?: Array<{
+    id: string;
+    type: "panel_item" | "callout_item" | "compare_item" | "reveal" | "panel_event";
+    pos: number;     // セリフ内のJS文字位置
+    value?: number;  // panel_item/callout_item/compare_item の項目番号（reveal/panel_eventは無し）
+  }>;
   // キーワードテロップ（任意・重ねがけ小演出）。この発言の間、要所の単語をポップ表示。改行可（pre-line）。
   telop?: string;
   telopSize?: number;     // 大きさ倍率（既定1）
