@@ -19,7 +19,7 @@ function extractFn(name) {
 }
 
 const names = ['findVizPoint', 'nextVizPointId', 'setVizPointPos', 'removeVizPoint',
-  'splitVizPoints', 'shiftVizPointValues', 'moveAnchorFlag', 'moveAnchorToTurn', 'reconcileVizPointPos',
+  'splitVizPoints', 'shiftVizPointValues', 'moveAnchorFlag', 'moveAnchorToTurn', 'canMoveAnchorTo', 'reconcileVizPointPos',
   'chSegs', 'pruneEmptySegs', 'clampItemFlags', 'retagSeg', 'setSegFlag', 'togglePanelItem'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
@@ -104,6 +104,15 @@ t('moveAnchorToTurn: 別セリフへフラグと演出点を移動', () => {
   assert.equal(src.panel_item, 0); assert.equal(src.vizPoints, undefined);
   assert.equal(dst.panel_item, 1);
   assert.equal(dst.vizPoints.length, 1); assert.equal(dst.vizPoints[0].value, 1); assert.equal(dst.vizPoints[0].pos, 5);
+});
+
+t('canMoveAnchorTo: compare/calloutは移動先に別値があると拒否', () => {
+  assert.equal(canMoveAnchorTo({}, { type: 'compare_item', value: 1 }), true);
+  assert.equal(canMoveAnchorTo({ compare_item: 0 }, { type: 'compare_item', value: 1 }), false);
+  assert.equal(canMoveAnchorTo({ compare_item: 1 }, { type: 'compare_item', value: 1 }), true); // 同値はOK
+  assert.equal(canMoveAnchorTo({ callout_item: 2 }, { type: 'callout_item', value: 0 }), false);
+  assert.equal(canMoveAnchorTo({ panel_item: [0] }, { type: 'panel_item', value: 1 }), true); // panelは複数可
+  assert.equal(canMoveAnchorTo({ reveal: true }, { type: 'reveal' }), true);
 });
 
 t('retagSeg: 範囲外のセリフは vizPoints とフラグを掃除', () => {

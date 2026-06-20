@@ -1875,6 +1875,12 @@ function moveAnchorFlag(tn,nt,p){
   else if(type==='compare_item'){ if(tn.compare_item===v){ nt.compare_item=v; delete tn.compare_item; } }
   else if(type==='callout_item'){ if(tn.callout_item===v){ nt.callout_item=v; delete tn.callout_item; } }
 }
+// 別セリフへ移せるか：compare/calloutは1セリフ1つ。移動先に別の値が既にあるなら不可（上書きで孤立点が出るのを防ぐ）。
+function canMoveAnchorTo(dstTn,a){
+  if(a.type==='compare_item') return !(typeof dstTn.compare_item==='number' && dstTn.compare_item!==a.value);
+  if(a.type==='callout_item') return !(typeof dstTn.callout_item==='number' && dstTn.callout_item!==a.value);
+  return true;
+}
 // 変化点を別セリフへ移す（タイムラインのドラッグ用）：flagと演出点を src→dst へ移し dst に文字位置を設定。
 function moveAnchorToTurn(srcTn,dstTn,a,pos){
   moveAnchorFlag(srcTn,dstTn,a);
@@ -2060,9 +2066,11 @@ function startKfDrag(ev,gi,a){
   const srcTn=DATA.script[gi]; if(!srcTn) return; const ci=srcTn.chapter; const segId=srcTn.vizSeg; if(!segId) return;
   const rng=segRange(ci,segId); if(rng.s<0) return;
   const ovp=findVizPoint(srcTn,a); const origPos=(ovp&&typeof ovp.pos==='number')?ovp.pos:null;
-  document.body.classList.add('tl-resizing');
+  const x0=ev.clientX, y0=ev.clientY;
   let tgtGi=gi, pos=(origPos!=null?origPos:0), moved=false;
-  const move=e=>{ moved=true;
+  const move=e=>{
+    if(!moved){ if(Math.abs(e.clientX-x0)<4 && Math.abs(e.clientY-y0)<4) return;   // 手ぶれ無視（4pxのドラッグ閾値）
+      moved=true; document.body.classList.add('tl-resizing'); }
     const scroll=document.querySelector('.tl-scroll');
     if(scroll){ const r=scroll.getBoundingClientRect(); if(e.clientX<r.left+36)scroll.scrollLeft-=18; else if(e.clientX>r.right-36)scroll.scrollLeft+=18; }
     let g=timelineTurnAtX(e.clientX,ci); if(g<0)g=gi; g=Math.max(rng.s,Math.min(rng.e,g)); tgtGi=g;
@@ -2072,10 +2080,11 @@ function startKfDrag(ev,gi,a){
   const finish=()=>{
     document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.removeEventListener('pointercancel',cancel);
     document.body.classList.remove('tl-resizing');
-    if(!moved){ selectTurn(gi); return; }                          // クリック＝セリフ選択
-    if(tgtGi===gi){ setVizPointPos(srcTn,a,pos); }                 // 同セリフ＝文字位置変更
-    else { moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); }     // 別セリフ＝所属移動
-    markDirty(); renderTimeline();
+    if(!moved){ selectTurn(gi); return; }                          // 閾値未満＝クリック＝セリフ選択
+    if(tgtGi===gi){ setVizPointPos(srcTn,a,pos); markDirty(); }    // 同セリフ＝文字位置変更
+    else if(canMoveAnchorTo(DATA.script[tgtGi],a)){ moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); markDirty(); }  // 別セリフ＝所属移動
+    else { alert('移動先のセリフは既に別の項目を持っています（比較・注釈は1セリフに1つ）。'); }
+    renderTimeline();
   };
   const cancel=()=>{ moved=false; finish(); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
