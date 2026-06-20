@@ -263,10 +263,19 @@
               background:#12171f; border-right:1px solid #26303d; color:var(--fg); font-size:11px; font-weight:700; }
   .tl-track { display:grid; position:relative; align-items:center;
               background-image:linear-gradient(to right,rgba(255,255,255,.045) 1px,transparent 1px); }
-  .tl-turn { height:32px; margin:4px 3px; padding:6px 9px; box-sizing:border-box; overflow:hidden;
+  .tl-turn { position:relative; height:32px; margin:4px 3px; padding:6px 9px; box-sizing:border-box; overflow:hidden;
              border:1px solid #2d3745; border-radius:5px; background:#1a212c; color:#cbd3df;
              font-size:10px; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
   .tl-turn.sel { border-color:#8b5cf6; background:#292340; color:#fff; box-shadow:inset 0 0 0 1px #8b5cf6; }
+  /* 詳細モード：セリフ内に演出点マーカーを置くため高さを確保し、はみ出しを許可 */
+  .tl-turn.detail { height:46px; overflow:visible; padding-bottom:16px; }
+  .vp-pin { position:absolute; bottom:2px; transform:translateX(-50%); height:13px; display:flex; align-items:center;
+            padding:0 4px; border-radius:3px; background:#8b5cf6; color:#fff; font-size:8px; font-weight:700; line-height:1;
+            white-space:nowrap; cursor:ew-resize; z-index:3; box-shadow:0 0 0 1px #11151c; }
+  .vp-pin::before { content:""; position:absolute; left:50%; bottom:13px; width:1px; height:6px; background:#8b5cf6; }
+  .vp-pin.unplaced { background:#39335a; color:#cdbcff; transform:none; }
+  .vp-pin.unplaced::before { background:#39335a; }
+  .vp-pin.dragging { background:#a685ff; box-shadow:0 0 8px rgba(139,92,246,.7); }
   .tl-bar { height:27px; margin:5px 3px; padding:6px 10px; box-sizing:border-box; overflow:hidden;
             border-radius:5px; color:#fff; font-size:10px; font-weight:700; white-space:nowrap; text-overflow:ellipsis;
             cursor:pointer; position:relative; user-select:none; }
@@ -1682,12 +1691,65 @@ function timelineRow(label, cls){
   const track=document.createElement('div'); track.className='tl-track'; track.style.gridTemplateColumns=timelineGrid(); row.appendChild(track);
   return [row,track];
 }
+// セリフが持つ演出アンカー（メンバーシップ）を {type,value?,label} の配列で返す。
+// メンバーシップ(どの項目を持つか)は演出パネルで設定し、ここでは文字位置だけ扱う。
+function turnVizAnchors(tn){
+  const out=[];
+  if(tn.panel_event==='shrink') out.push({type:'panel_event', label:'縮小'});
+  const pis=Array.isArray(tn.panel_item)?tn.panel_item:(typeof tn.panel_item==='number'?[tn.panel_item]:[]);
+  pis.forEach(k=>out.push({type:'panel_item', value:k, label:'項目'+(k+1)}));
+  if(tn.reveal===true) out.push({type:'reveal', label:'答え'});
+  if(tn.compare_item===0) out.push({type:'compare_item', value:0, label:'左'});
+  if(tn.compare_item===1) out.push({type:'compare_item', value:1, label:'右'});
+  if(typeof tn.callout_item==='number') out.push({type:'callout_item', value:tn.callout_item, label:'注'+(tn.callout_item+1)});
+  return out;
+}
+function findVizPoint(tn,a){ return (tn.vizPoints||[]).find(p=>p.type===a.type && (a.value===undefined?p.value==null:p.value===a.value)); }
+function nextVizPointId(tn){ const u=new Set((tn.vizPoints||[]).map(p=>p.id)); let i=1; while(u.has('vp'+i))i++; return 'vp'+i; }
+// 文字位置を保存。pos<=0 は「セリフ頭」＝既定なので点を消す（フラグ既定へ戻す）。
+function setVizPointPos(tn,a,pos){
+  if(pos<=0){ if(Array.isArray(tn.vizPoints)){ tn.vizPoints=tn.vizPoints.filter(p=>p!==findVizPoint(tn,a)); if(!tn.vizPoints.length)delete tn.vizPoints; } return; }
+  if(!Array.isArray(tn.vizPoints)) tn.vizPoints=[];
+  let p=findVizPoint(tn,a);
+  if(!p){ p={id:nextVizPointId(tn), type:a.type, pos:pos}; if(a.value!==undefined)p.value=a.value; tn.vizPoints.push(p); }
+  else p.pos=pos;
+}
+function renderVizPointMarkers(cell,tn,gi){
+  const anchors=turnVizAnchors(tn); if(!anchors.length) return;
+  const len=Math.max(1,(tn.text||'').length); let unplacedIdx=0;
+  anchors.forEach(a=>{
+    const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'&&vp.pos>0;
+    const pin=document.createElement('div'); pin.className='vp-pin'+(placed?'':' unplaced');
+    if(placed) pin.style.left=(vp.pos/len*100)+'%';
+    else pin.style.left=(2+(unplacedIdx++)*20)+'px';   // 未配置はセリフ頭付近に少しずらして並べる
+    pin.textContent=a.label;
+    pin.title=(placed?'文字位置: '+vp.pos:'セリフ頭（ドラッグで文字位置を指定）')+' ／ '+a.label;
+    pin.onpointerdown=e=>startVizPointDrag(e,gi,a,pin,cell);
+    pin.onclick=e=>e.stopPropagation();   // セリフ選択へ伝播させない
+    cell.appendChild(pin);
+  });
+}
+function startVizPointDrag(ev,gi,a,pin,cell){
+  ev.preventDefault(); ev.stopPropagation();
+  const tn=DATA.script[gi]; const len=Math.max(1,(tn.text||'').length);
+  const orig=(findVizPoint(tn,a)||{}).pos; let pos=typeof orig==='number'?orig:0;
+  pin.classList.add('dragging'); document.body.classList.add('tl-resizing');
+  const move=e=>{ const r=cell.getBoundingClientRect();
+    const frac=Math.max(0,Math.min(1,(e.clientX-r.left)/Math.max(1,r.width)));
+    pos=Math.round(frac*len); pin.style.left=(pos/len*100)+'%'; pin.classList.remove('unplaced'); };
+  const finish=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
+    pin.classList.remove('dragging'); document.body.classList.remove('tl-resizing');
+    if(pos!==(typeof orig==='number'?orig:0)){ setVizPointPos(tn,a,pos); markDirty(); }
+    renderTimeline(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
+}
 function renderTimeline(){
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
-  const hint=document.createElement('span'); hint.className='tl-hint'; hint.textContent='演出バーの両端をドラッグして範囲を調整'; head.appendChild(hint);
+  const hint=document.createElement('span'); hint.className='tl-hint';
+  hint.textContent=timelineDetail?'演出バー＝範囲を調整／セリフ内の演出点をドラッグで文字位置に配置':'演出バーの両端をドラッグして範囲を調整'; head.appendChild(hint);
   const detailBtn=document.createElement('button'); detailBtn.type='button'; detailBtn.className='tl-detail-btn'+(timelineDetail?' on':'');
   detailBtn.textContent=timelineDetail?'詳細表示: ON':'詳細表示: OFF'; detailBtn.title='セリフ全文が1行で収まる細かい粒度に切り替える';
   detailBtn.onclick=()=>setTimelineDetail(!timelineDetail); head.appendChild(detailBtn); pane.appendChild(head);
@@ -1695,8 +1757,10 @@ function renderTimeline(){
   const body=document.createElement('div'); body.className='tl-body'; body.style.width=timelineBodyWidth()+'px';
   scroll.appendChild(body); pane.appendChild(scroll);
   const [turnRow,turnTrack]=timelineRow('セリフ');
-  DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'');
-    c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi); turnTrack.appendChild(c); }); body.appendChild(turnRow);
+  DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
+    c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi);
+    if(timelineDetail) renderVizPointMarkers(c,tn,gi);   // 詳細モードのみ：文字位置に演出点マーカー
+    turnTrack.appendChild(c); }); body.appendChild(turnRow);
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
   // 開始位置の昇順に並べてから追加する。Gridの自動配置は開始列が左へ戻ると新しい行を作るため、
   // 章順のまま追加すると重なっていなくても段が増えてしまう（重なった時だけ段が増えるようにする）。
