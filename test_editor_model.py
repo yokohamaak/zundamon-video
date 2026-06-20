@@ -393,6 +393,55 @@ def test_editor_authority_freezes_rederive():
     print("  editor権威では再導出しない: OK")
 
 
+def test_save_preserves_authority_and_freezes():
+    # editor指定＋人手編集imageCues → 保存(apply_save_script) → 再読込でも上書きされない。
+    import review_server as rs
+    edited = em.migrate(_sample())
+    edited[em.AUTHORITY_FIELD] = "editor"
+    edited["imageCues"] = [{"id": "image-cue-0001", "turnId": edited["script"][0]["id"],
+                            "assetId": "asset-99", "fit": "contain"}]   # 人手編集
+    ok, _, saved = rs.apply_save_script(edited)
+    assert ok and saved.get("editorModelAuthority") == "editor", "authorityを保存で保持"
+    assert saved["imageCues"][0]["assetId"] == "asset-99", "編集imageCuesを保持"
+    # 再読込相当：保存物を migrate しても editor権威なので再導出せず人手編集が残る
+    reloaded = em.migrate(saved, {"cuts": [{"ch": 0, "ci": 0, "fit": "cover"}]})
+    assert reloaded["imageCues"][0]["assetId"] == "asset-99", "再読込でも上書きされない"
+    print("  保存でauthority保持＋editor編集が再読込で不変: OK")
+
+
+def test_save_rejects_invalid_authority():
+    # 不正な authority 値は legacy 化けで人手編集を壊すため通さない（保存対象から除外）。
+    import review_server as rs
+    data = {"script": [{"speaker": "A", "text": "t"}], "editorModelAuthority": "bogus"}
+    ok, _, saved = rs.apply_save_script(data)
+    assert ok and "editorModelAuthority" not in saved, "不正値は保存しない"
+    print("  不正authority値は保存しない: OK")
+
+
+def test_preview_refresh_persists_authority():
+    # /api/preview-refresh 経由（do_preview_refresh）でも authority と編集 imageCues が script.json に残る。
+    import review_server as rs
+    with tempfile.TemporaryDirectory() as d:
+        # 音声差分ありにして meta 再生成(subprocess)へ進まず early-return させる。
+        with open(os.path.join(d, "meta.json"), "w", encoding="utf-8") as f:
+            json.dump({"script": [{"speaker": "A", "text": "old"}]}, f)
+        body = {"script": [{"speaker": "A", "text": "new", "id": "turn-0001"}],
+                "editorModelAuthority": "editor",
+                "imageCues": [{"id": "image-cue-0001", "turnId": "turn-0001", "assetId": "asset-99"}]}
+        old_dir = rs.DIR
+        try:
+            rs.DIR = d
+            res = rs.do_preview_refresh(body)
+            assert res["ok"], res
+            with open(os.path.join(d, "script.json"), encoding="utf-8") as f:
+                saved = json.load(f)
+        finally:
+            rs.DIR = old_dir
+        assert saved.get("editorModelAuthority") == "editor", "preview-refreshでauthority保持"
+        assert saved["imageCues"][0]["assetId"] == "asset-99", "編集imageCues保持"
+    print("  preview-refresh経由でもauthority/編集保持: OK")
+
+
 def test_save_reload_invariant():
     with tempfile.TemporaryDirectory() as d:
         with open(os.path.join(d, "script.json"), "w", encoding="utf-8") as f:
@@ -448,5 +497,8 @@ if __name__ == "__main__":
     test_duplicate_turn_id_repaired()
     test_legacy_authority_reflects_review_change()
     test_editor_authority_freezes_rederive()
+    test_save_preserves_authority_and_freezes()
+    test_save_rejects_invalid_authority()
+    test_preview_refresh_persists_authority()
     test_save_reload_invariant()
     print("ALL PASS")

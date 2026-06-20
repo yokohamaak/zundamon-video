@@ -741,6 +741,10 @@ def apply_save_script(data):
     for k in ("schemaVersion", "assets", "imageCues", "visualSegments"):
         if k in data:
             out[k] = data[k]
+    # 移行の「正」フラグ。editor のとき編集モデルを正とし再導出で上書きしない（Phase 2以降）。
+    # 不正値で legacy 扱いに化けると人手編集を壊すため、既知の値のみ通す。
+    if data.get("editorModelAuthority") in ("legacy", "editor"):
+        out["editorModelAuthority"] = data["editorModelAuthority"]
     return True, "ok", out
 
 
