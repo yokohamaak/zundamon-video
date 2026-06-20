@@ -908,30 +908,19 @@ function setSegFlag(ci,segId,flag,value,tn,on){
   if(on) tn[flag]=value;
 }
 // 選択中セグメント(seg)の「この発言で何を出すか」タイミングchip。tnはこのセグメント内の発言。
+// 読み取り専用：このセリフが持つ変化点と文字位置を表示するだけ（追加・移動はタイムラインへ移行済み）。
 function turnVizControl(tn, gi, seg, ci){
   const ctrl=document.createElement('div'); ctrl.className='vchips';
   if(!seg) return ctrl;
-  const sid=seg.id;
-  const chip=(label,flag,value,title)=>{ const on=tn[flag]===value;
-    const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=label; if(title)b.title=title;
-    b.onclick=()=>{ setSegFlag(ci,sid,flag,value,tn,!on); render(); }; ctrl.appendChild(b); };
-  if(seg.panel){
-    const ov=!!seg.panel.overlay;
-    if(!ov){ const son=tn.panel_event==='shrink';
-      const sb=document.createElement('button'); sb.type='button'; sb.className='vchip'+(son?' on':''); sb.textContent='縮小'; sb.title='この発言で画像を縮小（パネルを開く）';
-      sb.onclick=()=>{ setSegFlag(ci,sid,'panel_event','shrink',tn,!son);
-        if(!son){ (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci && t.vizSeg===sid && g<gi && typeof t.panel_item==='number') delete t.panel_item; }); }
-        render(); }; ctrl.appendChild(sb); }
-    let shrinkGi=null; (DATA.script||[]).forEach((t,g)=>{ if(t.chapter===ci && t.vizSeg===sid && t.panel_event==='shrink' && shrinkGi==null) shrinkGi=g; });
-    (seg.panel.items||[]).forEach((it,k)=>{ const cur=tn.panel_item; const on=Array.isArray(cur)?cur.includes(k):cur===k; const dis=(!ov && shrinkGi!=null && gi<shrinkGi);
-      const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':'')+(dis?' dis':''); b.textContent=(on?'☑':'☐')+'項目'+k;
-      b.title=dis?'縮小より前には置けません（先に縮小を設定）':(it.text||'')+'（複数選択可＝この発言で同時表示）';
-      b.onclick=()=>{ if(dis) return; togglePanelItem(ci,sid,k,tn); render(); }; ctrl.appendChild(b); });
-  }
-  else if(seg.quiz){ chip('答えを出す','reveal',true); }
-  else if(seg.compare){ chip('左','compare_item',0); chip('右(分割)','compare_item',1); }
-  else if(seg.stat){ chip('数字を出す','reveal',true); }
-  else if(seg.callouts){ (seg.callouts||[]).forEach((c,k)=>chip('注'+k,'callout_item',k,c.text||'')); }
+  const anchors=turnVizAnchors(tn);
+  if(!anchors.length){ const e=document.createElement('span'); e.style.cssText='font-size:11px;color:var(--sub)';
+    e.textContent='このセリフに変化点なし'; ctrl.appendChild(e); }
+  else anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number';
+    const b=document.createElement('span'); b.className='vchip'+(placed?' on':'');
+    b.textContent=a.label+'：'+(placed?(vp.pos+'文字目'):'自動(先頭)'); ctrl.appendChild(b); });
+  const note=document.createElement('div'); note.style.cssText='font-size:10px;color:var(--sub);margin-top:4px;width:100%';
+  note.textContent='変化点の追加・移動は下のタイムライン「変化点」トラックで（＋変化点／◆ドラッグ）。';
+  ctrl.appendChild(note);
   return ctrl;
 }
 // 演出の中身エディタ（章単位の内容）。セリフ行の下にインライン展開する。
