@@ -1679,8 +1679,13 @@ function renderTimeline(){
   const [turnRow,turnTrack]=timelineRow('セリフ');
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi); turnTrack.appendChild(c); }); body.appendChild(turnRow);
-  const [mainRow,mainTrack]=timelineRow('大演出（メイン）'); let mainCount=0;
-  (DATA.chapters||[]).forEach((ch,ci)=>{ chSegs(ch).forEach((seg,si)=>{ const rng=segRange(ci,seg.id); if(rng.s<0)return; mainCount++;
+  const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
+  // 開始位置の昇順に並べてから追加する。Gridの自動配置は開始列が左へ戻ると新しい行を作るため、
+  // 章順のまま追加すると重なっていなくても段が増えてしまう（重なった時だけ段が増えるようにする）。
+  const mainSegs=[];
+  (DATA.chapters||[]).forEach((ch,ci)=>{ chSegs(ch).forEach(seg=>{ const rng=segRange(ci,seg.id); if(rng.s<0)return; mainSegs.push({ci,seg,rng}); }); });
+  mainSegs.sort((a,b)=> a.rng.s-b.rng.s || a.rng.e-b.rng.e);
+  mainSegs.forEach(({ci,seg,rng})=>{
     const b=document.createElement('div'); b.className='tl-bar main'; b.style.gridColumn=(rng.s+1)+' / '+(rng.e+2);
     const label=document.createElement('span'); label.textContent=VIZ_LABEL[seg.type]||seg.type; b.appendChild(label);
     const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始位置をドラッグ';
@@ -1688,8 +1693,8 @@ function renderTimeline(){
     hs.onpointerdown=e=>startTimelineResize(e,ci,seg.id,'s',b);
     he.onpointerdown=e=>startTimelineResize(e,ci,seg.id,'e',b);
     b.appendChild(hs); b.appendChild(he);
-    b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); }); });
-  if(!mainCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
+    b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); });
+  if(!mainSegs.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
   const [textRow,textTrack]=timelineRow('小演出（テキスト内）'); let textCount=0;
   DATA.script.forEach((tn,gi)=>{ const effects=tn.textEffects||[]; if(!effects.length)return; textCount+=effects.length;
     const group=document.createElement('div'); group.className='tl-text-group'; group.style.gridColumn=(gi+1)+' / span 1';
