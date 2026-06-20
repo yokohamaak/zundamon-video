@@ -360,6 +360,7 @@
                     outline:2px solid #fff; box-shadow:0 2px 12px rgba(139,92,246,.7); background:#3a3168; color:#fff; }
   .tl-turn.kf-drop { outline:2px solid #6ad08a; outline-offset:-2px; background:#1b2a22; }
   .tl-turn.kf-drop-ng { outline:2px solid #d06a6a; outline-offset:-2px; background:#2a1b1b; }
+  .kf-caret { position:fixed; width:2px; background:#ffd84d; z-index:7; pointer-events:none; box-shadow:0 0 6px #ffd84d; }
   .tl-handle { position:absolute; top:0; bottom:0; width:10px; border:0; padding:0; z-index:2;
                background:rgba(255,255,255,.82); cursor:ew-resize; opacity:.72; }
   .tl-handle:hover, .tl-handle.dragging { opacity:1; background:#fff; }
@@ -2051,16 +2052,18 @@ function startKfDrag(ev,gi,a,m){
   const rng=segRange(ci,segId); if(rng.s<0) return;
   const ovp=findVizPoint(srcTn,a); const origPos=(ovp&&typeof ovp.pos==='number')?ovp.pos:null;
   const x0=ev.clientX, y0=ev.clientY;
-  let tgtGi=gi, pos=(origPos!=null?origPos:0), moved=false, lastHi=null;
+  let tgtGi=gi, pos=(origPos!=null?origPos:0), moved=false, lastHi=null, caret=null;
   const clearHi=()=>{ if(lastHi){ lastHi.classList.remove('kf-drop','kf-drop-ng'); lastHi=null; } };
   const move=e=>{
     if(!moved){ if(Math.abs(e.clientX-x0)<4 && Math.abs(e.clientY-y0)<4) return;   // 手ぶれ無視（4pxのドラッグ閾値）
-      moved=true; document.body.classList.add('tl-resizing'); if(m) m.classList.add('dragging'); }   // 掴んでいる表示
+      moved=true; document.body.classList.add('tl-resizing'); if(m) m.classList.add('dragging');   // 掴んでいる表示
+      caret=document.createElement('div'); caret.className='kf-caret'; document.body.appendChild(caret); }   // 文字位置の目印
     const scroll=document.querySelector('.tl-scroll');
     if(scroll){ const r=scroll.getBoundingClientRect(); if(e.clientX<r.left+36)scroll.scrollLeft-=18; else if(e.clientX>r.right-36)scroll.scrollLeft+=18; }
     let g=timelineTurnAtX(e.clientX,ci); if(g<0)g=gi; g=Math.max(rng.s,Math.min(rng.e,g)); tgtGi=g;
     const cell=document.querySelector('.tl-turn[data-gi="'+g+'"]'); const len=Math.max(1,(DATA.script[g].text||'').length);
-    if(cell){ const cr=cell.getBoundingClientRect(); pos=Math.max(0,Math.min(len,Math.round((e.clientX-cr.left)/Math.max(1,cr.width)*len))); }
+    if(cell){ const cr=cell.getBoundingClientRect(); pos=Math.max(0,Math.min(len,Math.round((e.clientX-cr.left)/Math.max(1,cr.width)*len)));
+      if(caret){ caret.style.left=(cr.left+(pos/len)*cr.width)+'px'; caret.style.top=cr.top+'px'; caret.style.height=cr.height+'px'; } }   // pos位置に縦線
     // ドロップ先セリフをハイライト（移動可否で色分け：可=緑/不可=赤）。
     if(lastHi && lastHi!==cell) clearHi();
     if(cell){ const ok=(tgtGi===gi)||canMoveAnchorTo(DATA.script[tgtGi],a);
@@ -2069,7 +2072,7 @@ function startKfDrag(ev,gi,a,m){
   };
   const finish=()=>{
     document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.removeEventListener('pointercancel',cancel);
-    document.body.classList.remove('tl-resizing'); if(m) m.classList.remove('dragging'); clearHi();
+    document.body.classList.remove('tl-resizing'); if(m) m.classList.remove('dragging'); clearHi(); if(caret){ caret.remove(); caret=null; }
     if(!moved){ selectTurn(gi); return; }                          // 閾値未満＝クリック＝セリフ選択
     if(tgtGi===gi){ setVizPointPos(srcTn,a,pos); markDirty(); }    // 同セリフ＝文字位置変更
     else if(canMoveAnchorTo(DATA.script[tgtGi],a)){ moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); markDirty(); }  // 別セリフ＝所属移動
