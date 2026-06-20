@@ -144,8 +144,14 @@
   body { overflow:hidden; }
   body > header { height:56px; box-sizing:border-box; }
   main#main { width:100%; max-width:none; height:calc(100vh - 56px); padding:8px; box-sizing:border-box; }
-  .tp { height:100%; display:grid; grid-template-columns:clamp(310px,22vw,380px) minmax(520px,1fr) clamp(330px,23vw,410px);
-        grid-template-rows:minmax(360px,58%) minmax(220px,42%); gap:8px; align-items:stretch; }
+  .tp { position:relative; height:100%; display:grid; grid-template-columns:clamp(310px,22vw,380px) minmax(520px,1fr) clamp(330px,23vw,410px);
+        grid-template-rows:var(--tp-split,58%) minmax(0,1fr); gap:8px; align-items:stretch; }
+  /* 上段とタイムラインの高さ境界をドラッグするスプリッター（gap内に重ねる） */
+  .tp-vsplit { position:absolute; left:0; right:0; height:8px; z-index:6; cursor:row-resize;
+               display:flex; align-items:center; justify-content:center; }
+  .tp-vsplit::before { content:""; width:64px; height:4px; border-radius:3px; background:#2c3543; transition:background .12s; }
+  .tp-vsplit:hover::before, .tp-vsplit.dragging::before { background:#8b5cf6; }
+  body.tp-vresizing { cursor:row-resize; user-select:none; }
   .tp-left { min-width:0; overflow:auto; background:#10141b; border:1px solid #1c232e;
              border-radius:10px; padding:10px; }
   .tp-center { min-width:0; overflow:hidden; background:#10141b; border:1px solid #1c232e;
@@ -298,11 +304,12 @@
     .tp { grid-template-columns:minmax(300px,38%) 1fr; grid-template-rows:520px 520px 300px; }
     .tp-right { grid-column:1 / -1; }
     .timeline { grid-row:3; }
+    .tp-vsplit { display:none; }   /* 縦積みレイアウトでは高さスプリッターを無効化 */
   }
   body.mode-script { overflow:hidden; }
   body.mode-script main#main { height:calc(100vh - 56px); }
   .tp.mode-script { grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-                    grid-template-rows:minmax(360px,58%) minmax(220px,42%); }
+                    grid-template-rows:var(--tp-split,58%) minmax(0,1fr); }
   .tp.mode-script .tp-center { display:none; }
   .tp.mode-script .tp-right { grid-column:auto; }
 </style></head>
@@ -343,6 +350,37 @@ function setWorkspaceMode(mode){
 }
 document.getElementById('modeScript').onclick=()=>setWorkspaceMode('script');
 document.getElementById('modeEffect').onclick=()=>setWorkspaceMode('effect');
+// 上段とタイムラインの高さ配分（0..1）。全再描画を挟んでも維持し、localStorageに永続化。
+let timelineSplit=(()=>{ const v=parseFloat(localStorage.getItem('reviewTimelineSplit')); return (v>=0.2&&v<=0.85)?v:0.58; })();
+function positionTimelineSplit(){
+  const h=document.querySelector('.tp-vsplit'), tl=document.getElementById('timelinePane');
+  if(h&&tl) h.style.top=(tl.offsetTop-8)+'px';   // gap(8px)内にハンドルを重ねる
+}
+function applyTimelineSplit(){
+  const tp=document.querySelector('.tp'); if(!tp)return;
+  tp.style.setProperty('--tp-split',(timelineSplit*100).toFixed(2)+'%');
+  positionTimelineSplit();
+}
+function startTimelineSplitDrag(ev){
+  ev.preventDefault();
+  const tp=document.querySelector('.tp'), h=ev.currentTarget; if(!tp)return;
+  h.classList.add('dragging'); document.body.classList.add('tp-vresizing');
+  const MIN_TOP=320, MIN_BOTTOM=120, GAP=8;   // 上段とタイムラインが潰れない最小高さ
+  const move=e=>{
+    const r=tp.getBoundingClientRect();
+    const maxTop=Math.max(MIN_TOP,r.height-GAP-MIN_BOTTOM);
+    const topPx=Math.max(MIN_TOP,Math.min(maxTop,e.clientY-r.top));
+    timelineSplit=topPx/r.height;
+    tp.style.setProperty('--tp-split',(timelineSplit*100).toFixed(2)+'%'); positionTimelineSplit();
+  };
+  const finish=()=>{
+    document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
+    h.classList.remove('dragging'); document.body.classList.remove('tp-vresizing');
+    localStorage.setItem('reviewTimelineSplit',timelineSplit.toFixed(4));
+  };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
+}
+window.addEventListener('resize',positionTimelineSplit);
 applyWorkspaceMode();
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(r=>r.json()); }
@@ -1520,7 +1558,8 @@ function render(){
   const center=document.createElement('div'); center.className='tp-center'; center.id='previewPane';
   const right=document.createElement('div'); right.className='tp-right'+(rwide?' wide':''); right.id='rpane';
   const timeline=document.createElement('div'); timeline.className='timeline'; timeline.id='timelinePane';
-  tp.appendChild(left); tp.appendChild(center); tp.appendChild(right); tp.appendChild(timeline); m.appendChild(tp);
+  const vsplit=document.createElement('div'); vsplit.className='tp-vsplit'; vsplit.title='ドラッグで上段とタイムラインの高さを調整'; vsplit.onpointerdown=startTimelineSplitDrag;
+  tp.appendChild(left); tp.appendChild(center); tp.appendChild(right); tp.appendChild(timeline); tp.appendChild(vsplit); m.appendChild(tp);
   // 左上：テーマ＋推定ゲージ
   const th=document.createElement('div'); th.className='theme';
   const ti=document.createElement('input'); ti.type='text'; ti.value=DATA.theme||''; ti.placeholder='テーマ';
@@ -1548,6 +1587,7 @@ function render(){
   if(workspaceMode==='effect') renderPreviewPane();
   renderRight();
   renderTimeline();
+  applyTimelineSplit();
   const _newrp=document.getElementById('rpane'); if(_newrp) _newrp.scrollTop=rsy;
   document.querySelectorAll('#main textarea').forEach(autosize);
   window.scrollTo(0,sy);
