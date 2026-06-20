@@ -1901,36 +1901,7 @@ function reconcileVizPointPos(vizPoints, oldText, newText){
   });
   return changed;
 }
-function renderVizPointMarkers(cell,tn,gi){
-  const anchors=turnVizAnchors(tn); if(!anchors.length) return;
-  const len=Math.max(1,(tn.text||'').length); let unplacedIdx=0;
-  anchors.forEach(a=>{
-    const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number';
-    const pin=document.createElement('div'); pin.className='vp-pin'+(placed?'':' unplaced');
-    if(placed) pin.style.left=(vp.pos/len*100)+'%';
-    else pin.style.left=(2+(unplacedIdx++)*20)+'px';   // 未配置はセリフ頭付近に少しずらして並べる
-    pin.textContent=a.label;
-    pin.title=(placed?'文字位置: '+vp.pos:'セリフ頭（ドラッグで文字位置を指定）')+' ／ '+a.label;
-    pin.onpointerdown=e=>startVizPointDrag(e,gi,a,pin,cell);
-    pin.onclick=e=>e.stopPropagation();   // セリフ選択へ伝播させない
-    pin.ondblclick=e=>{ e.stopPropagation(); openVizPointEditor(gi); };   // 大きい画面で調整
-    cell.appendChild(pin);
-  });
-}
-function startVizPointDrag(ev,gi,a,pin,cell){
-  ev.preventDefault(); ev.stopPropagation();
-  const tn=DATA.script[gi]; const len=Math.max(1,(tn.text||'').length);
-  const orig=(findVizPoint(tn,a)||{}).pos; let pos=typeof orig==='number'?orig:0;
-  pin.classList.add('dragging'); document.body.classList.add('tl-resizing');
-  const move=e=>{ const r=cell.getBoundingClientRect();
-    const frac=Math.max(0,Math.min(1,(e.clientX-r.left)/Math.max(1,r.width)));
-    pos=Math.round(frac*len); pin.style.left=(pos/len*100)+'%'; pin.classList.remove('unplaced'); };
-  const finish=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
-    pin.classList.remove('dragging'); document.body.classList.remove('tl-resizing');
-    if(pos!==(typeof orig==='number'?orig:0)){ setVizPointPos(tn,a,pos); markDirty(); }
-    renderTimeline(); };
-  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
-}
+// （renderVizPointMarkers/startVizPointDrag は撤去：変化点はタイムラインの変化点トラックで編集）
 // セグメントの演出タイプに応じ、このセリフに置ける演出点の候補を返す（中身はパネルで作る前提）。
 function segAnchorOptions(seg){
   const o=[];
@@ -1965,85 +1936,7 @@ function addAnchorToTurn(ci,seg,tn,opt){
   setVizPointPos(tn,{type:opt.type,value:opt.value},0);
 }
 // （anchorPicker は撤去：変化点の追加はタイムラインの「＋変化点」へ移行済み）
-// 演出点エディタ・モーダル：セリフ全文を大きく表示し、文字位置に演出点を配置する。
-function vpeKeyOf(a){ return a.type+':'+(a.value==null?'':a.value); }
-function vpeNearestPos(inner,clientX){
-  const ir=inner.getBoundingClientRect(); const x=clientX-ir.left+inner.scrollLeft;
-  const spans=[...inner.querySelectorAll('.vpe-char')]; if(!spans.length) return 0;
-  let best=0,bestD=Infinity;
-  spans.forEach((s,i)=>{ [[s.offsetLeft,i],[s.offsetLeft+s.offsetWidth,i+1]].forEach(([px,p])=>{ const d=Math.abs(x-px); if(d<bestD){bestD=d;best=p;} }); });
-  return best;
-}
-function vpePosLeft(inner,pos){ const spans=[...inner.querySelectorAll('.vpe-char')]; if(!spans.length) return 0;
-  if(pos>=spans.length){ const s=spans[spans.length-1]; return s.offsetLeft+s.offsetWidth; } return spans[pos].offsetLeft; }
-let vpeActiveKey=null;
-function openVizPointEditor(gi){
-  const tn=DATA.script[gi]; const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]; if(!ch) return;
-  const seg=chSegs(ch).find(s=>s.id===tn.vizSeg); if(!seg) return;
-  vpeActiveKey=null;
-  const ov=document.createElement('div'); ov.className='vpe-overlay';
-  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
-  const mo=document.createElement('div'); mo.className='vpe-modal'; ov.appendChild(mo);
-  const text=tn.text||'';
-  const rebuild=()=>{
-    mo.innerHTML='';
-    const head=document.createElement('div'); head.className='vpe-head';
-    const t=document.createElement('span'); t.className='t'; t.textContent='演出点を編集　（'+(gi+1)+'. '+(tn.speaker||'')+'）'; head.appendChild(t);
-    const x=document.createElement('button'); x.className='x'; x.textContent='閉じる'; x.onclick=()=>ov.remove(); head.appendChild(x); mo.appendChild(head);
-    const sub=document.createElement('div'); sub.className='vpe-sub'; sub.textContent='文字をクリック→選択中の点をそこへ移動／タブをドラッグでも移動／×で削除'; mo.appendChild(sub);
-    // セリフ全文（文字span）＋演出点ピン
-    const box=document.createElement('div'); box.className='vpe-text';
-    const inner=document.createElement('div'); inner.className='vpe-inner'; box.appendChild(inner);
-    const len=Math.max(0,text.length);
-    [...text].forEach((c,i)=>{ const sp=document.createElement('span'); sp.className='vpe-char'; sp.textContent=(c==='\n'?'⏎\n':c); sp.dataset.i=i;
-      sp.onclick=()=>{ if(vpeActiveKey){ const a=turnVizAnchors(tn).find(an=>vpeKeyOf(an)===vpeActiveKey); if(a){ setVizPointPos(tn,a,i); markDirty(); rebuild(); renderTimeline(); } } }; inner.appendChild(sp); });
-    mo.appendChild(box);
-    const anchors=turnVizAnchors(tn);
-    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'; const pos=placed?vp.pos:0;
-      const pin=document.createElement('div'); pin.className='vpe-pin'+(placed?'':' unplaced')+(vpeKeyOf(a)===vpeActiveKey?' active':'');
-      pin.style.left=vpePosLeft(inner,pos)+'px';
-      const tab=document.createElement('div'); tab.className='tab';
-      const nm=document.createElement('span'); nm.textContent=a.label; tab.appendChild(nm);
-      const del=document.createElement('span'); del.className='del'; del.textContent='×'; del.title='この演出点を削除';
-      del.onclick=e=>{ e.stopPropagation(); toggleAnchor(ci,seg,tn,{type:a.type,value:a.value}); rebuild(); renderTimeline(); };
-      tab.appendChild(del); pin.appendChild(tab);
-      pin.onpointerdown=e=>vpeStartDrag(e,gi,a,pin,inner,rebuild);
-      inner.appendChild(pin);
-    });
-    // 未配置の項目を追加
-    const add=document.createElement('div'); add.className='vpe-add';
-    const lbl=document.createElement('span'); lbl.className='lbl'; lbl.textContent='追加:'; add.appendChild(lbl);
-    let addable=0;
-    segAnchorOptions(seg).forEach(opt=>{ if(anchorOn(tn,opt)) return; addable++;
-      const b=document.createElement('button'); b.type='button'; b.className='vchip'; b.textContent='＋'+opt.label;
-      b.onclick=()=>{ addAnchorToTurn(ci,seg,tn,opt); markDirty(); vpeActiveKey=opt.type+':'+(opt.value==null?'':opt.value); rebuild(); renderTimeline(); }; add.appendChild(b); });
-    if(!addable){ const e=document.createElement('span'); e.className='lbl'; e.textContent='（このセリフに置ける項目は全て配置済み）'; add.appendChild(e); }
-    mo.appendChild(add);
-    // 一覧（文字位置）
-    const list=document.createElement('div'); list.className='vpe-list';
-    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number';
-      const li=document.createElement('div'); li.className='vpe-li';
-      const nm=document.createElement('span'); nm.className='nm'; nm.textContent=a.label; li.appendChild(nm);
-      const ps=document.createElement('span'); ps.className='ps'; ps.textContent=placed?(vp.pos+'文字目 ／ 全'+len+'文字'):'セリフ頭（未配置）'; li.appendChild(ps);
-      const rm=document.createElement('button'); rm.className='rm'; rm.textContent='削除';
-      rm.onclick=()=>{ toggleAnchor(ci,seg,tn,{type:a.type,value:a.value}); rebuild(); renderTimeline(); }; li.appendChild(rm);
-      li.onclick=e=>{ if(e.target===rm) return; vpeActiveKey=vpeKeyOf(a); rebuild(); }; list.appendChild(li);
-    });
-    if(!anchors.length){ const e=document.createElement('div'); e.className='vpe-sub'; e.textContent='まだ演出点がありません。上の「追加」から置いてください。'; list.appendChild(e); }
-    mo.appendChild(list);
-  };
-  document.body.appendChild(ov); rebuild();   // DOM追加後にrebuild＝文字のoffsetLeftが確定しピンが正しい位置に出る
-}
-function vpeStartDrag(ev,gi,a,pin,inner,rebuild){
-  ev.preventDefault(); ev.stopPropagation();
-  const tn=DATA.script[gi]; const orig=(findVizPoint(tn,a)||{}).pos; let pos=typeof orig==='number'?orig:0;
-  pin.classList.add('active'); vpeActiveKey=a.type+':'+(a.value==null?'':a.value);
-  const move=e=>{ pos=vpeNearestPos(inner,e.clientX); pin.classList.remove('unplaced'); pin.style.left=vpePosLeft(inner,pos)+'px'; };
-  const finish=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
-    if(pos!==(typeof orig==='number'?orig:0)){ setVizPointPos(tn,a,pos); markDirty(); }
-    rebuild(); renderTimeline(); };
-  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
-}
+// （演出点エディタ・モーダル(openVizPointEditor)とセリフ内ピンは撤去：変化点はタイムラインの変化点トラックで編集）
 // 変化点トラックの◆ドラッグ：同セリフ内なら文字位置(pos)、別セリフ列なら所属セリフを移す（演出範囲内に限定）。
 // 動かさなければクリック＝そのセリフを選択。
 function startKfDrag(ev,gi,a,m){
@@ -2098,9 +1991,6 @@ function renderTimeline(){
   const [turnRow,turnTrack]=timelineRow('セリフ');
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi);
-    if(timelineDetail){ renderVizPointMarkers(c,tn,gi);   // 詳細モードのみ：文字位置に演出点マーカー
-      if(tn.vizSeg){ const add=document.createElement('button'); add.type='button'; add.className='vp-add'; add.textContent='✎';
-        add.title='演出点を編集（大きい画面で文字位置に配置）'; add.onclick=e=>{ e.stopPropagation(); openVizPointEditor(gi); }; c.appendChild(add); } }
     turnTrack.appendChild(c); }); body.appendChild(turnRow);
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
   // 開始位置の昇順に並べてから追加する。Gridの自動配置は開始列が左へ戻ると新しい行を作るため、
