@@ -2122,6 +2122,7 @@ function renderTimeline(){
   const [kfRow,kfTrack]=timelineRow('変化点'); let kfCount=0;
   // selSeg のIDは章ごとに再利用されるため、選択行の章でも絞る（別章の同ID演出が混ざるのを防ぐ）。
   const kfCh = DATA.script[selGi] ? DATA.script[selGi].chapter : -1;
+  const kfChObj=(DATA.chapters||[])[kfCh]; const kfSeg=kfChObj?chSegs(kfChObj).find(s=>s.id===selSeg):null;
   if(selSeg){ DATA.script.forEach((tn,gi)=>{ if(tn.chapter!==kfCh || tn.vizSeg!==selSeg) return;
     const anchors=turnVizAnchors(tn); if(!anchors.length) return;
     const len=Math.max(1,(tn.text||'').length);
@@ -2132,8 +2133,10 @@ function renderTimeline(){
       if(placed){ m.style.left=(pos/len*100)+'%'; }
       else { m.style.left='0%'; m.style.marginLeft=(autoN++*54)+'px'; }   // 自動(先頭)は重ならないよう横へ並べる
       m.textContent='◆'+a.label;
-      m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（ドラッグで移動・◆塗り=明示/◇枠=自動）';
-      m.style.cursor='grab'; m.onpointerdown=(e)=>startKfDrag(e,gi,a,m); group.appendChild(m); kfCount++; });
+      m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（ドラッグで移動／ダブルクリックで削除・◆塗り=明示/◇枠=自動）';
+      m.style.cursor='grab'; m.onpointerdown=(e)=>startKfDrag(e,gi,a,m);
+      m.ondblclick=(e)=>{ e.stopPropagation(); if(kfSeg && confirm(a.label+'をこのセリフから外しますか？')){ toggleAnchor(kfCh,kfSeg,tn,{type:a.type,value:a.value}); renderTimeline(); } };
+      group.appendChild(m); kfCount++; });
     kfTrack.appendChild(group); }); }
   if(!kfCount){ const e=document.createElement('span'); e.className='tl-empty';
     e.textContent=selSeg?'この演出に変化点なし':'大演出を選ぶと変化点を表示'; kfTrack.appendChild(e); }
