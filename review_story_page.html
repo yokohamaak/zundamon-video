@@ -229,6 +229,7 @@
   .line.sel .lacts { display:flex; }
   .line .lacts button { font-size:11px; padding:4px 9px; background:#2a323e; color:var(--fg); border:none; border-radius:6px; cursor:pointer; }
   .line .lacts button.del { background:transparent; color:#c97; }
+  .line .lacts .lacts-sep { width:1px; height:18px; background:var(--line); margin:0 1px; flex:none; }
   .rtabs { display:flex; gap:6px; margin-bottom:10px; }
   .rtab { font-size:13px; font-weight:700; padding:7px 13px; border-radius:8px; border:none;
           background:#1a212c; color:var(--sub); cursor:pointer; }
@@ -242,8 +243,13 @@
   .textfx-status { color:var(--sub); font-size:10px; flex:1; min-width:110px; }
   .textfx-item { display:flex; align-items:center; gap:6px; margin-top:6px; padding:5px 7px; border-radius:5px;
                  background:#171e29; font-size:10px; }
+  .textfx-item:not(.stale) { cursor:pointer; }
+  .textfx-item.stale { background:#2a2018; border:1px solid #6b4a2a; }
+  .textfx-item.stale .snippet { color:#e0a060; }
   .textfx-swatch { width:10px; height:10px; border-radius:3px; flex:none; }
   .textfx-item .snippet { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .textfx-warn { margin-top:6px; padding:5px 7px; border-radius:5px; background:#2a2018; border:1px solid #6b4a2a;
+                 color:#e0a060; font-size:10px; line-height:1.5; }
   .timeline { grid-column:1 / -1; min-height:0; overflow:hidden; background:#10141b; position:relative; z-index:0;
               border:1px solid #1c232e; border-radius:10px; display:flex; flex-direction:column; }
   .tl-head { height:42px; flex:none; display:flex; align-items:center; gap:8px; padding:0 12px;
@@ -915,9 +921,7 @@ function vBgRow(obj, label, defColor, defOp, bgKey, opKey){
 function vizContent(box, vh, ch, ci, onDel){
   const top=document.createElement('div'); top.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px';
   const tl=document.createElement('span'); tl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff'; tl.textContent='演出：'+(VIZ_LABEL[vizOf(vh)]||'');
-  const del=document.createElement('button'); del.className='mini'; del.textContent='演出を削除';
-  del.onclick=()=>{ if(onDel) onDel(); else { VIZ_KEYS.forEach(k=>delete vh[k]); clearAllVizFlags(ci); } render(); };
-  top.appendChild(tl); top.appendChild(del); box.appendChild(top);
+  top.appendChild(tl); box.appendChild(top);
   const ncuts=(ch.image_cuts||[]).length;
 
   if(vh.panel){ const p=vh.panel; if(!Array.isArray(p.items))p.items=[];
@@ -1317,6 +1321,13 @@ function vizContent(box, vh, ch, ci, onDel){
     ar.appendChild(vMini('既定',()=>{ delete st.arrowSize; delete st.arrowShape; render(); }));
     box.appendChild(ar);
   }
+  // 危険操作：演出の削除は通常設定から区切ったエリアに置き、確認を挟む。
+  const danger=document.createElement('div'); danger.style.cssText='margin-top:14px;padding-top:10px;border-top:1px solid #6b3a3a';
+  const ddel=document.createElement('button'); ddel.className='mini'; ddel.style.cssText='background:transparent;color:#d66;border:1px solid #6b3a3a';
+  ddel.textContent='この演出を削除';
+  ddel.onclick=()=>{ if(!confirm('この演出（'+(VIZ_LABEL[vizOf(vh)]||'')+'）を削除しますか？')) return;
+    if(onDel) onDel(); else { VIZ_KEYS.forEach(k=>delete vh[k]); clearAllVizFlags(ci); } render(); };
+  danger.appendChild(ddel); box.appendChild(danger);
 }
 
 // 喋り文字数→推定分。英字（かな）は読み仮名だけ喋る＝畳んで数える（実測較正305字/分）。
@@ -1450,7 +1461,7 @@ function renderLegacy(){  // 旧アコーディオン版（未使用・参考保
         adj.onclick=()=>{ const ky=ci+'_'+k; adjustOpen.has(ky)?adjustOpen.delete(ky):adjustOpen.add(ky); render(); };
         const del=document.createElement('button'); del.className='mini'; del.style.color='#c66'; del.style.background='transparent'; del.textContent='×';
         del.onclick=async()=>{
-          if(!confirm('この画像カットを削除しますか？（以降のカットは前に詰まり、画像も整列します）')) return;
+          if(!confirm('この画像カットを削除しますか？\nこの操作は即時保存され、取り消せません。\n以降のカットは前に詰まり、画像ファイルも整列（再採番）されます。')) return;
           cuts.splice(k,1); const newLen=cuts.length;
           DATA.script.forEach(tn=>{ if(tn.chapter!==ci||typeof tn.cut!=='number') return;
             if(tn.cut>k) tn.cut--; else if(tn.cut===k) tn.cut=Math.min(k,Math.max(0,newLen-1)); });
@@ -2091,13 +2102,16 @@ function lineRow(tn,gi,ch,ci,inViz){
   // 右肩：演出マーク＋今出る画像のミニサムネ
   const mk=document.createElement('div'); mk.className='mk';
   const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
-  // 選択行に出る操作（分割・削除）。分割は編集中ならカーソル位置、読み表示なら文中の句読点で割る。
+  // 選択行に出る操作（編集・分割／削除）。削除は誤操作防止のため区切りで離す。
   const la=document.createElement('div'); la.className='lacts';
+  const be=document.createElement('button'); be.textContent='編集'; be.title='本文を編集（Escで取消・⌘/Ctrl+Enterで確定）';
+  be.onclick=(e)=>{ e.stopPropagation(); const cur=row.querySelector('.tx'); if(cur) startEditLine(row,tn,cur); };
   const bs=document.createElement('button'); bs.textContent='分割'; bs.title='セリフを2つに分ける（編集中はカーソル位置）';
   bs.onclick=(e)=>{ e.stopPropagation(); splitTurn(tn, row.querySelector('textarea')); };
-  const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除';
+  const sep=document.createElement('span'); sep.className='lacts-sep';
+  const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除'; bd.title='この発言を削除';
   bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
-  la.appendChild(bs); la.appendChild(bd);
+  la.appendChild(be); la.appendChild(bs); la.appendChild(sep); la.appendChild(bd);
   row.onclick=()=>{
     const chg=(selGi!==gi);
     if(chg){ selGi=gi; }   // タブ(rtab)は維持＝別セリフへ移っても画像/演出/章の表示を保つ
@@ -2110,21 +2124,63 @@ function lineRow(tn,gi,ch,ci,inViz){
   return row;
 }
 
+// セリフ編集後、各テキスト演出の文字位置を安全に追従させる。
+// 同じ語句が複数あるとき先頭一致へ勝手に移すのは禁止。一意に追えない場合は削除せず stale 印を付ける。
+function reconcileTextEffects(tn){
+  const t=tn.text||''; let changed=false;
+  (tn.textEffects||[]).forEach(f=>{
+    if(f.text){
+      if(t.slice(f.start,f.end)===f.text){ if(f.stale){ delete f.stale; changed=true; } return; }  // 位置そのまま有効
+      const first=t.indexOf(f.text), last=t.lastIndexOf(f.text);
+      if(first>=0 && first===last){ f.start=first; f.end=first+f.text.length; if(f.stale) delete f.stale; changed=true; }  // 一意→追従
+      else if(!f.stale){ f.stale=true; changed=true; }  // 消えた/複数該当→動かさず要再選択
+    } else {  // 旧データ(text無し)＝範囲がテキスト内なら有効
+      if(f.end<=t.length){ if(f.stale){ delete f.stale; changed=true; } }
+      else if(!f.stale){ f.stale=true; changed=true; }
+    }
+  });
+  return changed;
+}
+
 function startEditLine(row,tn,tx){
-  const ta=document.createElement('textarea'); ta.value=tn.text||'';
+  if(row._editing) return;   // 二重起動防止（編集ボタンとダブルクリックの併存）
+  row._editing=true;
+  const origText=tn.text||'';
+  const origEffects=JSON.parse(JSON.stringify(tn.textEffects||[]));   // 取消用スナップショット
+  const ta=document.createElement('textarea'); ta.value=origText;
   tx.replaceWith(ta); autosize(ta); ta.focus();
   // カーソルを末尾へ
   const n=ta.value.length; try{ ta.setSelectionRange(n,n); }catch(e){}
-  ta.oninput=()=>{ tn.text=ta.value;
-    tn.textEffects=(tn.textEffects||[]).filter(f=>{ if(!f.text)return f.end<=tn.text.length; const i=tn.text.indexOf(f.text); if(i<0)return false; f.start=i;f.end=i+f.text.length;return true; });
-    if(!tn.textEffects.length)delete tn.textEffects;
-    autosize(ta); refreshEst(); markDirty(); renderPreviewPane(); renderTimeline(); };
-  // 抜ける時は全再描画せず、その行だけ表示へ戻す（全DOM作り直しによるスクロール/フォーカス飛びを防ぐ）。
-  ta.onblur=()=>{
+  // 編集中は本文だけ追従。演出位置は勝手に動かさず、確定時にまとめて整合する。
+  ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); renderPreviewPane(); renderTimeline(); };
+  let done=false;
+  // revert=true で編集前へ巻き戻し。抜ける時は全再描画せずその行だけ表示へ戻す（スクロール/フォーカス飛び防止）。
+  const finish=(revert)=>{
+    if(done) return; done=true; row._editing=false;
+    let staleChanged=false;
+    if(revert){
+      tn.text=origText;
+      if(origEffects.length) tn.textEffects=origEffects; else delete tn.textEffects;
+    } else {
+      staleChanged=reconcileTextEffects(tn);
+      if(!(tn.textEffects||[]).length) delete tn.textEffects;
+    }
     const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
     nd.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,nd); };
-    ta.replaceWith(nd);
+    if(ta.parentNode) ta.replaceWith(nd);
+    markDirty(); refreshEst();
+    const gi=DATA.script.indexOf(tn);
+    if(window.remotionEditorPlayer) window.remotionEditorPlayer.updateTextEffects(gi,tn.textEffects||[]);
+    renderPreviewPane(); renderTimeline();
+    // 演出の追従結果（要再選択など）は小演出タブの一覧に反映する。
+    if(staleChanged && rtab==='small' && gi===selGi) renderRight();
   };
+  ta.onkeydown=(e)=>{
+    if(e.isComposing||e.keyCode===229) return;   // IME変換中はショートカット無効
+    if(e.key==='Escape'){ e.preventDefault(); finish(true); }
+    else if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); finish(false); }
+  };
+  ta.onblur=()=>finish(false);   // フォーカスアウト=確定（編集中も即時反映のため自然）
 }
 
 function nextTextEffectId(tn){
@@ -2140,7 +2196,10 @@ function syncTextEffects(tn){
 
 function addTextEffect(tn,type,color){
   const range=selectedTextRange; if(!range||range.gi!==selGi||range.end<=range.start){ alert('セリフ内の文字を選択してください'); return; }
-  const effects=(tn.textEffects||[]).filter(f=>f.end<=range.start||f.start>=range.end);
+  const effects=(tn.textEffects||[]);
+  // Remotionは1文字につき先頭の演出のみ描画＝重複非対応。重なる既存演出は消さず、追加を拒否する。
+  const overlap=effects.find(f=>!f.stale&&f.end>range.start&&f.start<range.end);
+  if(overlap){ alert('選択範囲が既存の演出「'+(overlap.text||tn.text.slice(overlap.start,overlap.end))+'」と重なっています。\n既存の演出を削除してから追加してください。'); return; }
   const fx={id:nextTextEffectId(tn),type,start:range.start,end:range.end,text:range.text};
   if(color)fx.color=color; effects.push(fx); effects.sort((a,b)=>a.start-b.start); tn.textEffects=effects;
   selectedTextRange=null; syncTextEffects(tn);
@@ -2159,9 +2218,18 @@ function renderTextEffectEditor(panel,tn){
   const color=document.createElement('input'); color.type='color'; color.value='#ff5ca8'; color.title='文字色'; actions.appendChild(color);
   actions.appendChild(vMini('文字色を適用',()=>addTextEffect(tn,'color',color.value)));
   wrap.appendChild(actions);
-  (tn.textEffects||[]).forEach(fx=>{ const item=document.createElement('div'); item.className='textfx-item';
+  const fxs=(tn.textEffects||[]);
+  if(fxs.some(f=>f.stale)){ const warn=document.createElement('div'); warn.className='textfx-warn';
+    warn.textContent='⚠ セリフ編集で対象範囲が特定できなくなった演出があります。一度削除して付け直してください。'; wrap.appendChild(warn); }
+  fxs.forEach(fx=>{ const item=document.createElement('div'); item.className='textfx-item'+(fx.stale?' stale':'');
     const sw=document.createElement('span'); sw.className='textfx-swatch'; sw.style.background=fx.color||(fx.type==='emphasis'?'#ffd000':'#fff'); item.appendChild(sw);
-    const text=document.createElement('span'); text.className='snippet'; text.textContent=(fx.type==='emphasis'?'強調':'文字色')+'「'+(fx.text||tn.text.slice(fx.start,fx.end))+'」'; item.appendChild(text);
+    const label=(fx.type==='emphasis'?'強調':'文字色')+'「'+(fx.text||tn.text.slice(fx.start,fx.end))+'」'+(fx.stale?'（要再選択）':'');
+    const text=document.createElement('span'); text.className='snippet'; text.textContent=label; item.appendChild(text);
+    if(!fx.stale){ item.title='クリックで対象範囲を選択表示';
+      item.onclick=(e)=>{ if(e.target.tagName==='BUTTON') return;   // 削除ボタンは除外
+        source.focus(); try{ source.setSelectionRange(fx.start,fx.end); }catch(_){}
+        selectedTextRange={gi:selGi,start:fx.start,end:fx.end,text:source.value.slice(fx.start,fx.end)};
+        status.textContent='選択中: 「'+source.value.slice(fx.start,fx.end)+'」'; }; }
     item.appendChild(vMini('削除',()=>{ tn.textEffects=(tn.textEffects||[]).filter(f=>f.id!==fx.id); syncTextEffects(tn); })); wrap.appendChild(item); });
   panel.appendChild(wrap);
 }
@@ -2311,7 +2379,7 @@ function renderImageTab(r,tn,ch,ci){
   orow.appendChild(sz); const sp=document.createElement('span'); sp.style.flex='1'; orow.appendChild(sp);
   orow.appendChild(vMini('📋貼付',()=>pasteClipboard(ky,ci,cur)));
   const delc=vMini('× カット削除',async()=>{
-    if(!confirm('この画像カットを削除しますか？（以降のカットは前に詰まり、画像も整列します）')) return;
+    if(!confirm('この画像カットを削除しますか？\nこの操作は即時保存され、取り消せません。\n以降のカットは前に詰まり、画像ファイルも整列（再採番）されます。')) return;
     cuts.splice(cur,1); const newLen=cuts.length;
     DATA.script.forEach(t=>{ if(t.chapter!==ci||typeof t.cut!=='number') return;
       if(t.cut>cur) t.cut--; else if(t.cut===cur) t.cut=Math.min(cur,Math.max(0,newLen-1)); });
