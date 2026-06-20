@@ -110,7 +110,9 @@ window.remotionEditorPlayer = {
   seekToTurn(turnIndex) {
     const turn = loadedMeta?.script?.[turnIndex];
     if (!turn || !playerRef) return;
-    playerRef.seekTo(Math.max(0, Math.round((turn.start ?? 0) * FPS)));
+    // 開始時刻以上の最初のフレーム（＝そのセリフの先頭フレーム）へ。
+    // round だと丸め方向次第で1フレーム手前に乗り、pickActive が前のセリフを表示してしまう。
+    playerRef.seekTo(Math.max(0, Math.ceil((turn.start ?? 0) * FPS)));
   },
   updateTextEffects(turnIndex, effects) {
     if (!loadedMeta?.script?.[turnIndex]) return;
