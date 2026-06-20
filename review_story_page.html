@@ -276,6 +276,16 @@
   .vp-pin.unplaced { background:#39335a; color:#cdbcff; transform:none; }
   .vp-pin.unplaced::before { background:#39335a; }
   .vp-pin.dragging { background:#a685ff; box-shadow:0 0 8px rgba(139,92,246,.7); }
+  /* セリフに演出点を追加する＋ボタン（詳細モード・演出セグメント内のセリフのみ） */
+  .vp-add { position:absolute; top:1px; right:1px; width:16px; height:16px; line-height:1; padding:0;
+            border:1px solid #3a2d62; border-radius:4px; background:#241d3a; color:#cdbcff; font-size:11px;
+            font-weight:800; cursor:pointer; z-index:4; }
+  .vp-add:hover { background:#3a2d62; color:#fff; }
+  /* 演出点ピッカー（＋から開く小ポップアップ） */
+  .anchor-picker { position:fixed; z-index:60; background:#1b212c; border:1px solid #3a2d62; border-radius:8px;
+                   padding:8px 9px; box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:280px; }
+  .ap-ttl { font-size:10px; color:var(--sub); margin-bottom:6px; }
+  .ap-chips { display:flex; flex-wrap:wrap; gap:5px; }
   .tl-bar { height:27px; margin:5px 3px; padding:6px 10px; box-sizing:border-box; overflow:hidden;
             border-radius:5px; color:#fff; font-size:10px; font-weight:700; white-space:nowrap; text-overflow:ellipsis;
             cursor:pointer; position:relative; user-select:none; }
@@ -1743,6 +1753,49 @@ function startVizPointDrag(ev,gi,a,pin,cell){
     renderTimeline(); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
 }
+// セグメントの演出タイプに応じ、このセリフに置ける演出点の候補を返す（中身はパネルで作る前提）。
+function segAnchorOptions(seg){
+  const o=[];
+  if(seg.panel){ if(!seg.panel.overlay) o.push({type:'panel_event',label:'縮小'});
+    (seg.panel.items||[]).forEach((it,k)=>o.push({type:'panel_item',value:k,label:'項目'+(k+1)+(it.text?'（'+it.text.slice(0,8)+'）':'')})); }
+  else if(seg.quiz) o.push({type:'reveal',label:'答えを出す'});
+  else if(seg.stat) o.push({type:'reveal',label:'数字を出す'});
+  else if(seg.compare){ o.push({type:'compare_item',value:0,label:'左'}); o.push({type:'compare_item',value:1,label:'右(分割)'}); }
+  else if(seg.callouts) (seg.callouts||[]).forEach((c,k)=>o.push({type:'callout_item',value:k,label:'注'+(k+1)+(c.text?'（'+c.text.slice(0,8)+'）':'')}));
+  return o;
+}
+// flag値（panel_event=shrink / reveal=true / 他=value）。型名はvizPointの type と一致。
+function anchorFlagVal(opt){ return opt.type==='panel_event'?'shrink':(opt.type==='reveal'?true:opt.value); }
+function anchorOn(tn,opt){
+  if(opt.type==='panel_item'){ const c=tn.panel_item; return Array.isArray(c)?c.includes(opt.value):c===opt.value; }
+  return tn[opt.type]===anchorFlagVal(opt);
+}
+function toggleAnchor(ci,seg,tn,opt){
+  if(opt.type==='panel_item'){ togglePanelItem(ci,seg.id,opt.value,tn); }
+  else { setSegFlag(ci,seg.id,opt.type,anchorFlagVal(opt),tn,!anchorOn(tn,opt)); }
+  if(!anchorOn(tn,opt)) setVizPointPos(tn,{type:opt.type,value:opt.value},0);  // 外したら位置点も消す
+  markDirty();
+}
+let anchorPickerEl=null;
+function closeAnchorPicker(){ if(anchorPickerEl){ anchorPickerEl.remove(); anchorPickerEl=null; document.removeEventListener('pointerdown',anchorPickerOutside,true); } }
+function anchorPickerOutside(e){ if(anchorPickerEl && !anchorPickerEl.contains(e.target)) closeAnchorPicker(); }
+function openAnchorPicker(gi,btn){
+  closeAnchorPicker();
+  const tn=DATA.script[gi]; const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]; if(!ch) return;
+  const seg=chSegs(ch).find(s=>s.id===tn.vizSeg); if(!seg) return;
+  const opts=segAnchorOptions(seg); if(!opts.length) return;
+  const pop=document.createElement('div'); pop.className='anchor-picker';
+  const ttl=document.createElement('div'); ttl.className='ap-ttl'; ttl.textContent='このセリフで出す演出点（中身は演出パネルで編集）'; pop.appendChild(ttl);
+  const wrap=document.createElement('div'); wrap.className='ap-chips'; pop.appendChild(wrap);
+  const rebuild=()=>{ wrap.innerHTML=''; segAnchorOptions(seg).forEach(opt=>{ const on=anchorOn(tn,opt);
+    const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=(on?'☑':'☐')+opt.label;
+    b.onclick=()=>{ toggleAnchor(ci,seg,tn,opt); rebuild(); renderTimeline(); }; wrap.appendChild(b); }); };
+  rebuild(); document.body.appendChild(pop);
+  const r=btn.getBoundingClientRect();
+  pop.style.left=Math.max(8,Math.min(r.left,window.innerWidth-pop.offsetWidth-12))+'px';
+  pop.style.top=Math.min(r.bottom+4,window.innerHeight-pop.offsetHeight-8)+'px';
+  anchorPickerEl=pop; setTimeout(()=>document.addEventListener('pointerdown',anchorPickerOutside,true),0);
+}
 function renderTimeline(){
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
@@ -1759,7 +1812,9 @@ function renderTimeline(){
   const [turnRow,turnTrack]=timelineRow('セリフ');
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi);
-    if(timelineDetail) renderVizPointMarkers(c,tn,gi);   // 詳細モードのみ：文字位置に演出点マーカー
+    if(timelineDetail){ renderVizPointMarkers(c,tn,gi);   // 詳細モードのみ：文字位置に演出点マーカー
+      if(tn.vizSeg){ const add=document.createElement('button'); add.type='button'; add.className='vp-add'; add.textContent='＋';
+        add.title='このセリフに演出点を追加'; add.onclick=e=>{ e.stopPropagation(); openAnchorPicker(gi,add); }; c.appendChild(add); } }
     turnTrack.appendChild(c); }); body.appendChild(turnRow);
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
   // 開始位置の昇順に並べてから追加する。Gridの自動配置は開始列が左へ戻ると新しい行を作るため、
