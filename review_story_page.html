@@ -407,7 +407,7 @@
   <button id="regenall" title="テーマで台本を丸ごと作り直す（intro+全ネタ+outroを新規生成・整合性が保たれる）">全体を作り直す</button>
   <button id="regen" disabled style="display:none" title="（深掘りストーリーでは無効：章は物語が連続するため章単位の作り直しは不可。全体を作り直すを使う）">選択章を再生成</button>
   <label id="fblabel" title="ON=primaryモデルが503/枯渇なら別の無料モデルへ自動切替。OFF=primaryのみ（品質固定・失敗を即把握）" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#9fb0c5;cursor:pointer;"><input type="checkbox" id="fallback" checked> フォールバック</label>
-  <button class="ok" id="save">保存</button>
+  <button class="ok" id="save">保存して更新</button>
 </header>
 <main id="main">読み込み中…</main>
 <script>window.remotion_staticBase='/preview-assets';</script>
@@ -1588,7 +1588,7 @@ function renderLegacy(){  // 旧アコーディオン版（未使用・参考保
 function lblDiv(t){ const d=document.createElement('div'); d.className='lbl'; d.textContent=t; return d; }
 function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter===ci); return i<0?selGi:i; }
 function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
-function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存':'保存'; }
+function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存して更新':'保存して更新'; }
 function setWide(on){ rwide=on; const r=document.getElementById('rpane'); if(r){ r.classList.toggle('wide',on); renderRight(); } }
 // プレビュー内の文字/要素サイズ。広げた時は拡大率に合わせて一緒に大きくする（画像だけでなくラベル等も）。
 function pv(n){ return Math.round(n*(rwide?1.9:1)); }
@@ -2584,12 +2584,24 @@ function renderChapterTab(r,ch,ci){
   }
 }
 
-document.getElementById('save').onclick=async()=>{
-  const r=await api('/api/script', DATA);
-  const b=document.getElementById('save');
-  if(r.ok){ dirty=false; b.textContent='保存✓'; } else { b.textContent='失敗'; }
-  setTimeout(()=>updateSaveBtn(),1500);
-};
+// 保存してプレビュー更新：script.jsonを保存し、音声に影響しない変更ならmeta.jsonを再生成してPlayerを再読込。
+async function saveAndPreview(){
+  const b=document.getElementById('save'); if(!b||b.disabled) return;
+  b.disabled=true; b.textContent='更新中…';
+  let r; try{ r=await api('/api/preview-refresh', DATA); }catch(e){ r={ok:false,message:String(e)}; }
+  if(r&&r.ok){ dirty=false;
+    if(r.metaUpdated){
+      // 新しいmeta.jsonでRemotion Playerを再読込（再mount＝loadMeta→選択セリフへseek）。
+      const p=document.getElementById('previewPane');
+      if(window.remotionEditorPlayer && p && p.dataset.playerMounted==='1'){
+        window.remotionEditorPlayer.unmount(); delete p.dataset.playerMounted; p.innerHTML=''; renderPreviewPane();
+      }
+      b.textContent='更新✓';
+    } else { b.textContent='保存（要音声再生成）'; alert(r.message||'音声の再生成が必要です'); }
+  } else { b.textContent='失敗'; alert((r&&r.message)||'更新に失敗しました'); }
+  b.disabled=false; setTimeout(()=>updateSaveBtn(),2000);
+}
+document.getElementById('save').onclick=saveAndPreview;
 // 未保存ガード＋Cmd/Ctrl+S＋編集でdirty
 window.addEventListener('beforeunload',(e)=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
 window.addEventListener('keydown',(e)=>{ if((e.metaKey||e.ctrlKey)&&(e.key==='s'||e.key==='S')){ e.preventDefault(); document.getElementById('save').click(); } });

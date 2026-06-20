@@ -740,6 +740,70 @@ def apply_save_script(data):
     return True, "ok", out
 
 
+def _norm_text_for_audio(t):
+    """音声影響判定用のテキスト正規化（meta側は normalize_turns 済みなので揃える）。"""
+    from src import story_script
+    return story_script.strip_redundant_kana_gloss(story_script.strip_markdown(t or ""))
+
+
+def audio_affecting_changed(old_script, new_script):
+    """保存済みmetaのscriptと新scriptで、音声(VOICEVOX)に影響する差分があるか（純関数）。
+    比較対象：ターン数/順序・speaker・text・voice・pause・chapter・chorus。
+    演出/vizPoints/textEffects/画像設定/色/配置だけの差なら False（meta-only更新で足りる）。"""
+    if len(old_script) != len(new_script):
+        return True
+    for o, n in zip(old_script, new_script):
+        if _norm_text_for_audio(o.get("text")) != _norm_text_for_audio(n.get("text")):
+            return True
+        for k in ("speaker", "voice", "pause", "chapter", "chorus"):
+            if o.get(k) != n.get(k):
+                return True
+    return False
+
+
+def _restore_meta(meta_path, backup_text):
+    with open(meta_path, "w", encoding="utf-8") as f:
+        f.write(backup_text)
+
+
+def do_preview_refresh(body):
+    """script.jsonを保存し、音声に影響しなければ meta-only で meta.json を再生成する。
+    Returns: {ok, metaUpdated?, message}。meta生成失敗時は既存meta.jsonを維持する。"""
+    meta_path = os.path.join(DIR, "meta.json")
+    script_path = os.path.join(DIR, "script.json")
+    if not os.path.exists(meta_path):
+        return {"ok": False, "message": "meta.json がありません（先に音声＋meta生成が必要です）"}
+    with open(meta_path, encoding="utf-8") as f:
+        backup = f.read()                       # 失敗時に書き戻す生バックアップ
+    old_meta = json.loads(backup)
+    ok, msg, norm = apply_save_script(body)
+    if not ok:
+        return {"ok": False, "message": msg}
+    save_script(norm)                           # script.json は常に保存
+    if audio_affecting_changed(old_meta.get("script", []), norm["script"]):
+        return {"ok": True, "metaUpdated": False,
+                "message": "台本が変更されています。プレビュー更新には音声の再生成が必要です"}
+    # meta-only 再生成（shellを使わず sys.executable＋引数配列で実行）。
+    try:
+        proc = subprocess.run(
+            [sys.executable, "main_story.py", "--from-script", script_path, "--meta-only", "--output-dir", DIR],
+            cwd=ROOT_DIR, capture_output=True, text=True, timeout=120)
+    except Exception as e:
+        _restore_meta(meta_path, backup)
+        return {"ok": False, "metaUpdated": False, "message": "meta再生成に失敗: " + str(e)}
+    if proc.returncode != 0:
+        _restore_meta(meta_path, backup)
+        return {"ok": False, "metaUpdated": False,
+                "message": "meta再生成に失敗: " + ((proc.stderr or proc.stdout or "").strip()[-300:])}
+    try:
+        with open(meta_path, encoding="utf-8") as f:
+            json.load(f)                        # 生成後のJSON妥当性を確認
+    except Exception as e:
+        _restore_meta(meta_path, backup)
+        return {"ok": False, "metaUpdated": False, "message": "生成された meta.json が不正です: " + str(e)}
+    return {"ok": True, "metaUpdated": True, "message": "プレビューを更新しました"}
+
+
 def cut_key(cut):
     return f"{cut['ch']}_{cut['ci']}"
 
@@ -1800,6 +1864,9 @@ class Handler(BaseHTTPRequestHandler):
             if ok:
                 save_script(norm)
             self._json({"ok": ok, "message": msg})
+            return
+        if path == "/api/preview-refresh":
+            self._json(do_preview_refresh(body))
             return
         if path == "/api/approve":
             ok = apply_approve(review, body.get("key"), body.get("approved", True))
