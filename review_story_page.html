@@ -235,6 +235,16 @@
           background:#1a212c; color:var(--sub); cursor:pointer; }
   .rtab.on { background:#2a2440; color:#c4a8ff; }
   .rtab.imgon { background:#23354f; color:#cfe0ff; }
+  .rhead { position:sticky; top:0; z-index:5; background:var(--bg); padding:2px 0 6px; margin-bottom:4px; border-bottom:1px solid var(--line); }
+  .rinfo { font-size:11px; color:var(--sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sec { margin-bottom:14px; }
+  .sec-head { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#c4a8ff; margin:0 0 6px; }
+  .sec-count { font-size:10px; font-weight:600; color:var(--sub); background:#1a212c; border-radius:999px; padding:1px 7px; }
+  .savehint { font-size:10px; color:var(--sub); margin:0 0 8px; line-height:1.5; }
+  .savehint.auto { color:#7fb0e0; }
+  .adjsub { margin:4px 0; }
+  .adjsub > summary { cursor:pointer; font-size:11px; color:var(--sub); padding:4px 0; list-style:revert; }
+  .adjsub[open] > summary { color:#c4a8ff; }
   .textfx-editor { margin-bottom:12px; padding:10px; border:1px solid #39445a; border-radius:8px; background:#0c0f15; }
   .textfx-source { padding:10px; border:1px solid #2d3745; border-radius:6px; color:var(--fg); line-height:1.7;
                    width:100%; min-height:82px; box-sizing:border-box; resize:none; white-space:pre-wrap;
@@ -681,7 +691,7 @@ function buildAdjust(ci,k){
   // fit
   const fr=document.createElement('div'); fr.className='row'; fr.innerHTML='<span class="hint">収め方</span>';
   const fit=document.createElement('select');
-  fit.innerHTML='<option value="">自動</option><option value="cover">cover(埋める)</option><option value="contain">contain(全体)</option>';
+  fit.innerHTML='<option value="">自動（種別で決定）</option><option value="cover">cover：枠を埋める（はみ出しトリミング）</option><option value="contain">contain：全体を収める（余白可）</option>';
   fit.value=cut.fit||''; fit.onchange=()=>{ cut.fit=fit.value||null; setOpt(key,{fit:fit.value||null}); };
   fr.appendChild(fit);
 
@@ -723,8 +733,7 @@ function buildAdjust(ci,k){
   attr.onchange=()=>{ cut.attribution=attr.value; api('/api/attribution',{key,attribution:attr.value}); };
   ar.appendChild(attr);
 
-  // 差し替え / クロップ解除
-  const r3=document.createElement('div'); r3.className='row';
+  // 差し替えファイル
   const fileL=document.createElement('label'); fileL.className='mini'; fileL.style.cursor='pointer'; fileL.textContent='差し替え';
   const file=document.createElement('input'); file.type='file'; file.accept='image/*'; file.style.display='none'; fileL.appendChild(file);
   const onNew=async(fn)=>{ await refreshCuts(); render(); };  // 差し替え後はサーバ値(出典/調整リセット)で更新
@@ -733,10 +742,17 @@ function buildAdjust(ci,k){
     rd.readAsDataURL(f); };
   const cclr=document.createElement('button'); cclr.className='mini'; cclr.textContent='クロップ解除';
   cclr.onclick=()=>{ cut.crop=null; setOpt(key,{crop:null}); render(); };  // 行サムネのクロップも解除
-  r3.appendChild(fileL); r3.appendChild(cclr); r3.appendChild(fclr);
-
   const hint=document.createElement('div'); hint.className='hint'; hint.textContent='画像をドラッグ＝クロップ / 画像をドロップ＝差し替え';
-  ctl.appendChild(fr); ctl.appendChild(filt); ctl.appendChild(r2); ctl.appendChild(ar); ctl.appendChild(r3); ctl.appendChild(hint);
+  // 補正・差し替えが即時保存であることを明示（台本の「保存」とは独立）。
+  const saveh=document.createElement('div'); saveh.className='savehint auto'; saveh.textContent='補正・差し替え・出典は即時保存されます（台本の「保存」とは別）。';
+  // 補正＝高頻度（収め方/明るさ等/余白/解除/クロップ操作ヒント）を常時表示。
+  const clrRow=document.createElement('div'); clrRow.className='row'; clrRow.appendChild(cclr); clrRow.appendChild(fclr);
+  ctl.appendChild(saveh); ctl.appendChild(fr); ctl.appendChild(filt); ctl.appendChild(r2); ctl.appendChild(clrRow); ctl.appendChild(hint);
+  // 差し替え・出典＝低頻度は折り畳み。
+  const repl=document.createElement('details'); repl.className='adjsub';
+  const rsum=document.createElement('summary'); rsum.textContent='差し替え・出典'; repl.appendChild(rsum);
+  const r3=document.createElement('div'); r3.className='row'; r3.appendChild(fileL); repl.appendChild(ar); repl.appendChild(r3);
+  ctl.appendChild(repl);
   wrap.appendChild(crop); wrap.appendChild(ctl);
 
   // クロップ枠描画＋ドラッグ
@@ -834,7 +850,7 @@ function turnHasViz(tn, ch){
 function vizAddMenu(ctrl, tn, ci){
   const sel=document.createElement('select'); sel.className='vchip'; sel.style.cursor='pointer';
   const o0=document.createElement('option'); o0.value=''; o0.textContent='＋演出'; sel.appendChild(o0);
-  [['panel','パネル'],['quiz','クイズ'],['compare','比較'],['stat','数字'],['callouts','注釈']].forEach(([v,t])=>{
+  [['panel','パネル：要点を箇条書き'],['quiz','クイズ：問いを出して答えを後出し'],['compare','比較：左右で対比'],['stat','数字：大きな数値を強調'],['callouts','注釈：画像に指し示しラベル']].forEach(([v,t])=>{
     const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); });
   sel.onchange=()=>{ const ch=DATA.chapters[ci], v=sel.value; if(!v) return;
     VIZ_KEYS.forEach(k=>delete ch[k]); clearAllVizFlags(ci);
@@ -2207,7 +2223,6 @@ function addTextEffect(tn,type,color){
 
 function renderTextEffectEditor(panel,tn){
   const wrap=document.createElement('div'); wrap.className='textfx-editor';
-  wrap.appendChild(lblDiv('テキスト内の演出（文字を選択して追加）'));
   const source=document.createElement('textarea'); source.className='textfx-source'; source.readOnly=true; source.value=tn.text||''; wrap.appendChild(source);
   const actions=document.createElement('div'); actions.className='textfx-actions';
   const status=document.createElement('span'); status.className='textfx-status'; status.textContent='文字をドラッグして選択'; actions.appendChild(status);
@@ -2215,6 +2230,7 @@ function renderTextEffectEditor(panel,tn){
     const text=source.value.slice(start,end); selectedTextRange={gi:selGi,start,end,text}; status.textContent='選択中: 「'+text+'」'; };
   source.onselect=capture; source.onmouseup=capture;
   actions.appendChild(vMini('強調',()=>addTextEffect(tn,'emphasis','#ffd000')));
+  const colLbl=document.createElement('span'); colLbl.textContent='色'; colLbl.style.cssText='font-size:10px;color:var(--sub)'; actions.appendChild(colLbl);
   const color=document.createElement('input'); color.type='color'; color.value='#ff5ca8'; color.title='文字色'; actions.appendChild(color);
   actions.appendChild(vMini('文字色を適用',()=>addTextEffect(tn,'color',color.value)));
   wrap.appendChild(actions);
@@ -2252,27 +2268,16 @@ function renderRight(){
   tabs.forEach(([k,label])=>{ const b=document.createElement('button');
     b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):''); b.textContent=label;
     b.onclick=()=>{ rtab=k; renderRight(); const rp=document.getElementById('rpane'); if(rp) rp.scrollTop=0; }; tb.appendChild(b); });
-  r.appendChild(tb);
-  const info=document.createElement('div'); info.style.cssText='font-size:11px;color:var(--sub);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-  info.textContent=(ch.title||'')+'｜'+(tn.speaker||'')+': '+(tn.text||''); r.appendChild(info);
+  // 選択中セリフを「章 / 話者 / 番号」で短く（タブとともにスクロール中も固定表示）。
+  const info=document.createElement('div'); info.className='rinfo';
+  const within=(DATA.script||[]).filter((t,i)=>t.chapter===ci&&i<=selGi).length;
+  info.textContent='第'+(ci+1)+'章 '+(ch.title||'')+' ／ '+(tn.speaker||'')+' ／ #'+within;
+  const head=document.createElement('div'); head.className='rhead'; head.appendChild(tb); head.appendChild(info); r.appendChild(head);
   const smallPanel=document.createElement('div');
-  renderTextEffectEditor(smallPanel,tn);
-  // キーワードテロップ（per-line・重ねがけ）。小演出タブ内で編集する。
-  const tlr=document.createElement('div'); tlr.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:8px';
-  const tll=document.createElement('span'); tll.textContent='💬テロップ'; tll.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
-  const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
-  tli.rows=1; tli.onchange=()=>render();   // blurでプレビュー＋左の行バッジを反映（全体再描画・スクロール保持）
-  tlr.appendChild(tll); tlr.appendChild(tli); smallPanel.appendChild(tlr);
-  // リアクション記号（per-line・重ねがけ）。プリセットをタップで付け外し。
-  const rxr=document.createElement('div'); rxr.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap';
-  const rxl=document.createElement('span'); rxl.textContent='😲リアクション'; rxl.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;flex:none';
-  rxr.appendChild(rxl);
-  ['！？','💡','✨','！','？','😲'].forEach(sym=>{ const b=document.createElement('button'); b.type='button';
-    b.className='vchip'+(tn.reaction===sym?' on':''); b.textContent=sym; b.style.fontSize='15px';
-    b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); render(); }; rxr.appendChild(b); });
-  rxr.appendChild(vMini('×',()=>{ delete tn.reaction; markDirty(); render(); }));
-  smallPanel.appendChild(rxr);
-  // --- テロップ/リアクションの調整（大きさ/長さ/色）。該当が有る時だけ出す。 ---
+  const sectionHead=(title,count)=>{ const h=document.createElement('div'); h.className='sec-head';
+    const t=document.createElement('span'); t.textContent=title; h.appendChild(t);
+    if(count){ const c=document.createElement('span'); c.className='sec-count'; c.textContent=count+'件'; h.appendChild(c); } return h; };
+  // --- テロップ/リアクションの調整ヘルパ（大きさ/長さ/色） ---
   const ctlRow=(label)=>{ const r2=document.createElement('div'); r2.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap;font-size:11px;color:var(--sub)';
     const l=document.createElement('span'); l.textContent=label; l.style.cssText='flex:none;min-width:56px'; r2.appendChild(l); return r2; };
   const sizeCtl=(row,key)=>{ const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1'; sl.value=(tn[key]!=null?tn[key]:1); sl.style.cssText='width:100px;vertical-align:middle';
@@ -2285,9 +2290,30 @@ function renderRight(){
   const colCtl=(row,label,key,def)=>{ const cp=document.createElement('input'); cp.type='color'; cp.value=tn[key]||def; cp.title=label;
     cp.oninput=()=>{ tn[key]=cp.value; markDirty(); }; cp.onchange=()=>renderRight();
     row.appendChild(document.createTextNode(label)); row.appendChild(cp); row.appendChild(vMini('既',()=>{ delete tn[key]; markDirty(); renderRight(); })); };
-  if(tn.telop){ const r2=ctlRow('テロップ'); sizeCtl(r2,'telopSize'); durCtl(r2,'telopDur'); smallPanel.appendChild(r2);
-    const r3=ctlRow('色'); colCtl(r3,'文字','telopColor','#ffd84d'); colCtl(r3,'背景','telopBg','#121a28'); colCtl(r3,'枠','telopBorder','#ffd84d'); smallPanel.appendChild(r3); }
-  if(tn.reaction){ const r2=ctlRow('リアクション'); sizeCtl(r2,'reactionSize'); durCtl(r2,'reactionDur'); smallPanel.appendChild(r2); }
+  // セクション1：テキスト範囲演出
+  const sec1=document.createElement('div'); sec1.className='sec';
+  sec1.appendChild(sectionHead('テキスト範囲演出',(tn.textEffects||[]).length));
+  renderTextEffectEditor(sec1,tn); smallPanel.appendChild(sec1);
+  // セクション2：テロップ（per-line・重ねがけ）
+  const sec2=document.createElement('div'); sec2.className='sec';
+  sec2.appendChild(sectionHead('💬 テロップ',tn.telop?1:0));
+  const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
+  tli.rows=1; tli.style.width='100%'; tli.style.marginBottom='6px'; tli.onchange=()=>render();   // blurでプレビュー＋左の行バッジを反映
+  sec2.appendChild(tli);
+  if(tn.telop){ const r2=ctlRow('大きさ/長さ'); sizeCtl(r2,'telopSize'); durCtl(r2,'telopDur'); sec2.appendChild(r2);
+    const r3=ctlRow('色'); colCtl(r3,'文字','telopColor','#ffd84d'); colCtl(r3,'背景','telopBg','#121a28'); colCtl(r3,'枠','telopBorder','#ffd84d'); sec2.appendChild(r3); }
+  smallPanel.appendChild(sec2);
+  // セクション3：リアクション（per-line・重ねがけ）
+  const sec3=document.createElement('div'); sec3.className='sec';
+  sec3.appendChild(sectionHead('😲 リアクション',tn.reaction?1:0));
+  const rxr=document.createElement('div'); rxr.style.cssText='display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap';
+  ['！？','💡','✨','！','？','😲'].forEach(sym=>{ const b=document.createElement('button'); b.type='button';
+    b.className='vchip'+(tn.reaction===sym?' on':''); b.textContent=sym; b.style.fontSize='15px';
+    b.onclick=()=>{ if(tn.reaction===sym) delete tn.reaction; else tn.reaction=sym; markDirty(); render(); }; rxr.appendChild(b); });
+  rxr.appendChild(vMini('解除',()=>{ delete tn.reaction; markDirty(); render(); }));
+  sec3.appendChild(rxr);
+  if(tn.reaction){ const r2=ctlRow('大きさ/長さ'); sizeCtl(r2,'reactionSize'); durCtl(r2,'reactionDur'); sec3.appendChild(r2); }
+  smallPanel.appendChild(sec3);
   // 位置の配置対象トグル（プレビューをクリックで配置）。
   if(tn.telop||tn.reaction){ const pr=ctlRow('位置');
     [['telop','テロップ',!!tn.telop],['reaction','リアクション',!!tn.reaction]].forEach(([v,t,on])=>{ if(!on)return; const b=document.createElement('button'); b.type='button'; b.className='vchip'+(placeMode===v?' on':''); b.textContent=t+'を配置';
@@ -2356,18 +2382,20 @@ function renderImageTab(r,tn,ch,ci){
   const add=document.createElement('button'); add.className='mini'; add.textContent='＋画像追加'; add.style.marginLeft='4px';
   add.onclick=()=>{ cuts.push({image_query:'',image_kind:'ambient'}); render(); }; pick.appendChild(add);
   r.appendChild(pick);
-  // 画像を探す：検索語(英/日)→取得ボタンで候補表示。差し替え/クロップは🔧へ。
-  r.appendChild(lblDiv('画像を探す（検索語を入れて「取得」）'));
-  const enRow=document.createElement('div'); enRow.style.cssText='display:flex;gap:6px;margin:2px 0';
-  const en=document.createElement('input'); en.type='text'; en.placeholder='英語の検索語（例: street view car）'; en.value=cut.image_query||''; en.style.flex='1';
-  en.onchange=()=>{ cut.image_query=en.value; markDirty(); };
-  enRow.appendChild(en); enRow.appendChild(vMini('取得',()=>{ cut.image_query=en.value; openCand(ci,cur,cut,'en'); }));
-  r.appendChild(enRow);
+  // 画像を探す：普段は日本語で取得。英語検索は折り畳みに退避（自分で英訳しなくてよい）。
+  r.appendChild(lblDiv('画像を探す（日本語の言葉を入れて「取得」）'));
   const jaRow=document.createElement('div'); jaRow.style.cssText='display:flex;gap:6px;margin:2px 0';
   const ja=document.createElement('input'); ja.type='text'; ja.placeholder='日本語(意味)＝自分で英訳しなくてよい'; ja.value=cut.image_query_ja||''; ja.style.flex='1';
   ja.onchange=()=>{ cut.image_query_ja=ja.value; markDirty(); };
-  jaRow.appendChild(ja); jaRow.appendChild(vMini('日本語で取得',()=>{ cut.image_query_ja=ja.value; openCand(ci,cur,cut,'ja'); }));
+  jaRow.appendChild(ja); jaRow.appendChild(vMini('取得',()=>{ cut.image_query_ja=ja.value; openCand(ci,cur,cut,'ja'); }));
   r.appendChild(jaRow);
+  const enWrap=document.createElement('details'); enWrap.className='adjsub';
+  const ensum=document.createElement('summary'); ensum.textContent='英語で検索（任意）'; enWrap.appendChild(ensum);
+  const enRow=document.createElement('div'); enRow.style.cssText='display:flex;gap:6px;margin:2px 0';
+  const en=document.createElement('input'); en.type='text'; en.placeholder='英語の検索語（例: street view car）'; en.value=cut.image_query||''; en.style.flex='1';
+  en.onchange=()=>{ cut.image_query=en.value; markDirty(); };
+  enRow.appendChild(en); enRow.appendChild(vMini('英語で取得',()=>{ cut.image_query=en.value; openCand(ci,cur,cut,'en'); }));
+  enWrap.appendChild(enRow); r.appendChild(enWrap);
   // 種別（cover/contain の既定や検索の傾向に影響）
   const kr=vRow('種別'); const ks=document.createElement('select');
   [['ambient','ambient（写真・風景）'],['subject','subject（ロゴ・製品・記号）']].forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; if((cut.image_kind||'ambient')===v)o.selected=true; ks.appendChild(o); });
@@ -2400,7 +2428,7 @@ function renderImageTab(r,tn,ch,ci){
 function vizAddRow(tn,ch,ci){
   const row=vRow('演出を追加'); const sel=document.createElement('select'); sel.className='vchip'; sel.style.cursor='pointer';
   const o0=document.createElement('option'); o0.value=''; o0.textContent='＋演出を追加'; sel.appendChild(o0);
-  [['panel','パネル'],['quiz','クイズ'],['compare','比較'],['stat','数字'],['callouts','注釈']].forEach(([v,t])=>{
+  [['panel','パネル：要点を箇条書き'],['quiz','クイズ：問いを出して答えを後出し'],['compare','比較：左右で対比'],['stat','数字：大きな数値を強調'],['callouts','注釈：画像に指し示しラベル']].forEach(([v,t])=>{
     const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); });
   sel.onchange=()=>{ const v=sel.value; if(!v) return; const id=newSegId(ch); const seg={id:id,type:v};
     if(v==='panel'){ seg.panel={items:[{text:''}]}; tn.panel_event='shrink'; }
@@ -2424,7 +2452,7 @@ function renderVizTab(r,tn,ch,ci){
   let cur=segs.find(s=>s.id===selSeg); if(!cur){ const ls=segOf(tn,ch); if(ls){ cur=ls; selSeg=ls.id; } }
   if(cur){
     const n=document.createElement('div'); n.style.cssText='font-size:11px;color:var(--sub);margin:6px 0';
-    n.textContent='範囲調整（'+(VIZ_LABEL[cur.type]||'')+'）＝左レールの「開始/終了」ラベルをタップ→移動先の行をタップで一気に移動（↑↓は1行ずつ微調整）。広げると隣の演出から自動で奪う。タイミングはこのセグメント内のセリフを選んで設定。';
+    n.textContent='範囲調整（'+(VIZ_LABEL[cur.type]||'')+'）＝下のタイムラインで、この演出バーの左右端をドラッグして開始/終了の行を変える。表示タイミングはセグメント内のセリフを選んで設定。';
     r.appendChild(n);
     if(tn.vizSeg===cur.id) r.appendChild(turnVizControl(tn, selGi, cur, ci));
     const ce=document.createElement('div'); ce.className='vizcontent'; ce.style.cssText='margin:8px 0 0;';
@@ -2436,9 +2464,15 @@ function renderVizTab(r,tn,ch,ci){
 }
 
 function renderChapterTab(r,ch,ci){
-  r.appendChild(lblDiv('タイトル / 要約'));
+  const head=document.createElement('div'); head.style.cssText='font-size:13px;font-weight:700;color:#c4a8ff;margin-bottom:2px';
+  head.textContent='第'+(ci+1)+'章：'+(ch.title||'(無題)'); r.appendChild(head);
+  const hint=document.createElement('div'); hint.className='savehint';
+  hint.textContent='章の編集は「保存」ボタンでまとめて保存されます（自動保存ではありません）。'; r.appendChild(hint);
+  r.appendChild(lblDiv('タイトル（左の章見出し・動画の章バッジに使用）'));
   const tt=document.createElement('input'); tt.type='text'; tt.value=ch.title||''; tt.placeholder='章タイトル'; tt.style.width='100%';
+  tt.oninput=()=>{ head.textContent='第'+(ci+1)+'章：'+(tt.value||'(無題)'); };
   tt.onchange=()=>{ ch.title=tt.value; markDirty(); }; r.appendChild(tt);
+  r.appendChild(lblDiv('要約（台本生成・再生成時の文脈に使用。動画には表示されません）'));
   const sm=document.createElement('textarea'); sm.value=ch.summary||''; sm.placeholder='要約';
   sm.oninput=()=>{ ch.summary=sm.value; autosize(sm); markDirty(); }; r.appendChild(sm); autosize(sm);
   if(ch.section==='trivia'){
