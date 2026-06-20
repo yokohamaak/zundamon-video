@@ -678,6 +678,10 @@ function splitTurn(tn,ta){
     return {...f,start,end,text:part.slice(start,end)}; });
   tn.textEffects=sliceFx(aFrom,aFrom+a.length,a); nt.textEffects=sliceFx(bFrom,bFrom+b.length,b);
   if(!tn.textEffects.length)delete tn.textEffects; if(!nt.textEffects.length)delete nt.textEffects;
+  // 演出点(vizPoints)も同じ分割位置で前半/後半へ振り分ける（textEffectsと同基準）。
+  const vps=splitVizPoints(tn.vizPoints, pos, aFrom, bFrom, a.length, b.length);
+  if(vps.a.length) tn.vizPoints=vps.a; else delete tn.vizPoints;
+  if(vps.b.length) nt.vizPoints=vps.b;
   tn.text=a; ['start','end','sentences'].forEach(k=>delete tn[k]);
   DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
 }
@@ -813,7 +817,9 @@ function vizRange(ci){ let first=-1,last=-1,sGi=-1,eGi=-1;
 function clampItemFlags(ci,flag,n){ (DATA.script||[]).forEach(t=>{
   if(t.chapter!==ci) return;
   if(Array.isArray(t[flag])){ const f=t[flag].filter(x=>x<n); if(f.length>1) t[flag]=f; else if(f.length===1) t[flag]=f[0]; else delete t[flag]; }
-  else if(typeof t[flag]==='number' && t[flag]>=n) delete t[flag]; }); }
+  else if(typeof t[flag]==='number' && t[flag]>=n) delete t[flag];
+  // 同 type の演出点も value を再採番（範囲外は削除）。
+  if(t.vizPoints){ const cv=clampVizPointValues(t.vizPoints, flag, n); if(cv) t.vizPoints=cv; else delete t.vizPoints; } }); }
 // panel_item を「この発言で出す項目」の集合として持つ（int or int配列）。チェックボックス的にkを付け外し。
 // 1項目は1発言（同一kは他発言から外す）＝重複防止しつつ、1発言に複数項目を同時表示できる。
 function togglePanelItem(ci,sid,k,tn){
@@ -1632,10 +1638,10 @@ function retagSeg(ci,id,s,e){
   if(s>e){ const t=s; s=e; e=t; }
   (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci) return;
     if(gi>=s&&gi<=e){ if(t.vizSeg && t.vizSeg!==id){
-        // 別演出から奪う＝その演出のタイミングflagは外す（別演出のものなので）。
-        delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; }
+        // 別演出から奪う＝その演出のタイミングflag/演出点は外す（別演出のものなので）。
+        delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; delete t.vizPoints; }
       t.vizSeg=id; }
-    else if(t.vizSeg===id) delete t.vizSeg; });
+    else if(t.vizSeg===id){ delete t.vizSeg; delete t.vizPoints; } });
   pruneEmptySegs(ci);
 }
 function pruneEmptySegs(ci){
@@ -1645,7 +1651,7 @@ function pruneEmptySegs(ci){
     if(!has){ if(selSeg===id) selSeg=null; vl.splice(i,1); } }
 }
 function removeSeg(ch,ci,id){ const vl=chSegs(ch); const i=vl.findIndex(s=>s.id===id); if(i>=0)vl.splice(i,1);
-  (DATA.script||[]).forEach(t=>{ if(t.chapter===ci&&t.vizSeg===id){ delete t.vizSeg; delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; } });
+  (DATA.script||[]).forEach(t=>{ if(t.chapter===ci&&t.vizSeg===id){ delete t.vizSeg; delete t.panel_event; delete t.panel_item; delete t.reveal; delete t.compare_item; delete t.callout_item; delete t.vizPoints; } });
   if(selSeg===id) selSeg=null; }
 
 function render(){
@@ -1803,19 +1809,48 @@ function turnVizAnchors(tn){
 }
 function findVizPoint(tn,a){ return (tn.vizPoints||[]).find(p=>p.type===a.type && (a.value===undefined?p.value==null:p.value===a.value)); }
 function nextVizPointId(tn){ const u=new Set((tn.vizPoints||[]).map(p=>p.id)); let i=1; while(u.has('vp'+i))i++; return 'vp'+i; }
-// 文字位置を保存。pos<=0 は「セリフ頭」＝既定なので点を消す（フラグ既定へ戻す）。
+// 文字位置を保存。点が存在する=明示配置（pos:0=セリフ先頭の明示）。点が無い=自動（フラグ既定へ）。
+// 削除は removeVizPoint で行う（pos:0 は削除しない）。
 function setVizPointPos(tn,a,pos){
-  if(pos<=0){ if(Array.isArray(tn.vizPoints)){ tn.vizPoints=tn.vizPoints.filter(p=>p!==findVizPoint(tn,a)); if(!tn.vizPoints.length)delete tn.vizPoints; } return; }
+  pos=Math.max(0,Math.round(pos||0));
   if(!Array.isArray(tn.vizPoints)) tn.vizPoints=[];
   let p=findVizPoint(tn,a);
   if(!p){ p={id:nextVizPointId(tn), type:a.type, pos:pos}; if(a.value!==undefined)p.value=a.value; tn.vizPoints.push(p); }
   else p.pos=pos;
 }
+// 演出点を削除（自動配置＝フラグ既定へ戻す）。
+function removeVizPoint(tn,a){
+  if(!Array.isArray(tn.vizPoints)) return;
+  const p=findVizPoint(tn,a); if(!p) return;
+  tn.vizPoints=tn.vizPoints.filter(x=>x!==p); if(!tn.vizPoints.length) delete tn.vizPoints;
+}
+// セリフ分割：各演出点を分割位置で前半/後半へ振り分け、pos を各断片基準へ調整（textEffectsと同基準）。
+function splitVizPoints(vizPoints, cutPos, aFrom, bFrom, aLen, bLen){
+  const a=[], b=[];
+  (vizPoints||[]).forEach(p=>{
+    if(typeof p.pos!=='number'){ a.push({...p}); return; }
+    if(p.pos<cutPos) a.push({...p, pos:Math.max(0,Math.min(aLen,p.pos-aFrom))});
+    else b.push({...p, pos:Math.max(0,Math.min(bLen,p.pos-bFrom))});
+  });
+  return {a,b};
+}
+// 項目削除/再採番：value>=n の該当 type 点を捨てる。戻り値=新配列 or null(空)。
+function clampVizPointValues(vizPoints, type, n){
+  if(!Array.isArray(vizPoints)) return null;
+  const out=vizPoints.filter(p=>!(p.type===type && typeof p.value==='number' && p.value>=n));
+  return out.length?out:null;
+}
+// 本文編集追従：pos が新テキスト長を超えたら末尾へクランプ。戻り値=変更有無。
+function reconcileVizPointPos(vizPoints, textLen){
+  let changed=false;
+  (vizPoints||[]).forEach(p=>{ if(typeof p.pos==='number' && p.pos>textLen){ p.pos=textLen; changed=true; } });
+  return changed;
+}
 function renderVizPointMarkers(cell,tn,gi){
   const anchors=turnVizAnchors(tn); if(!anchors.length) return;
   const len=Math.max(1,(tn.text||'').length); let unplacedIdx=0;
   anchors.forEach(a=>{
-    const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'&&vp.pos>0;
+    const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number';
     const pin=document.createElement('div'); pin.className='vp-pin'+(placed?'':' unplaced');
     if(placed) pin.style.left=(vp.pos/len*100)+'%';
     else pin.style.left=(2+(unplacedIdx++)*20)+'px';   // 未配置はセリフ頭付近に少しずらして並べる
@@ -1861,7 +1896,7 @@ function anchorOn(tn,opt){
 function toggleAnchor(ci,seg,tn,opt){
   if(opt.type==='panel_item'){ togglePanelItem(ci,seg.id,opt.value,tn); }
   else { setSegFlag(ci,seg.id,opt.type,anchorFlagVal(opt),tn,!anchorOn(tn,opt)); }
-  if(!anchorOn(tn,opt)) setVizPointPos(tn,{type:opt.type,value:opt.value},0);  // 外したら位置点も消す
+  if(!anchorOn(tn,opt)) removeVizPoint(tn,{type:opt.type,value:opt.value});  // 外したら位置点も消す
   markDirty();
 }
 let anchorPickerEl=null;
@@ -1918,7 +1953,7 @@ function openVizPointEditor(gi){
       sp.onclick=()=>{ if(vpeActiveKey){ const a=turnVizAnchors(tn).find(an=>vpeKeyOf(an)===vpeActiveKey); if(a){ setVizPointPos(tn,a,i); markDirty(); rebuild(); renderTimeline(); } } }; inner.appendChild(sp); });
     mo.appendChild(box);
     const anchors=turnVizAnchors(tn);
-    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'&&vp.pos>0; const pos=placed?vp.pos:0;
+    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'; const pos=placed?vp.pos:0;
       const pin=document.createElement('div'); pin.className='vpe-pin'+(placed?'':' unplaced')+(vpeKeyOf(a)===vpeActiveKey?' active':'');
       pin.style.left=vpePosLeft(inner,pos)+'px';
       const tab=document.createElement('div'); tab.className='tab';
@@ -1940,7 +1975,7 @@ function openVizPointEditor(gi){
     mo.appendChild(add);
     // 一覧（文字位置）
     const list=document.createElement('div'); list.className='vpe-list';
-    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'&&vp.pos>0;
+    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number';
       const li=document.createElement('div'); li.className='vpe-li';
       const nm=document.createElement('span'); nm.className='nm'; nm.textContent=a.label; li.appendChild(nm);
       const ps=document.createElement('span'); ps.className='ps'; ps.textContent=placed?(vp.pos+'文字目 ／ 全'+len+'文字'):'セリフ頭（未配置）'; li.appendChild(ps);
@@ -2189,6 +2224,7 @@ function startEditLine(row,tn,tx){
   const wasDirty=dirty;      // 編集開始前の未保存状態（Esc取消時に正しく戻すため）
   const origText=tn.text||'';
   const origEffects=JSON.parse(JSON.stringify(tn.textEffects||[]));   // 取消用スナップショット
+  const origVizPoints=JSON.parse(JSON.stringify(tn.vizPoints||[]));   // 演出点も取消用に保持
   const ta=document.createElement('textarea'); ta.value=origText;
   tx.replaceWith(ta); autosize(ta); ta.focus();
   // カーソルを末尾へ
@@ -2203,8 +2239,10 @@ function startEditLine(row,tn,tx){
     if(revert){
       tn.text=origText;
       if(origEffects.length) tn.textEffects=origEffects; else delete tn.textEffects;
+      if(origVizPoints.length) tn.vizPoints=origVizPoints; else delete tn.vizPoints;
     } else {
       staleChanged=reconcileTextEffects(tn);
+      reconcileVizPointPos(tn.vizPoints,(tn.text||'').length);   // 演出点の文字位置も範囲内へ追従
       if(!(tn.textEffects||[]).length) delete tn.textEffects;
     }
     const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
