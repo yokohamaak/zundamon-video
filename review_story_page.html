@@ -351,6 +351,11 @@
                     padding:6px 5px; border-radius:4px; color:#20152d; background:#ffd34e; font-size:9px;
                     font-weight:800; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
   .tl-text-effect.dragging { overflow:visible; outline:2px solid #fff0b5; box-shadow:0 0 12px rgba(255,211,78,.55); }
+  .tl-kf-group { position:relative; height:22px; margin:4px 3px; }
+  .tl-kf { position:absolute; top:50%; transform:translate(-50%,-50%); font-size:9px; font-weight:800;
+           white-space:nowrap; padding:1px 5px; border-radius:9px; cursor:pointer; line-height:1.4; }
+  .tl-kf.placed { background:#2a2440; color:#c4a8ff; border:1px solid #5a4a8a; }
+  .tl-kf.auto { background:transparent; color:#8693a5; border:1px dashed #4a5568; }
   .tl-handle { position:absolute; top:0; bottom:0; width:10px; border:0; padding:0; z-index:2;
                background:rgba(255,255,255,.82); cursor:ew-resize; opacity:.72; }
   .tl-handle:hover, .tl-handle.dragging { opacity:1; background:#fff; }
@@ -2034,6 +2039,21 @@ function renderTimeline(){
     b.appendChild(hs); b.appendChild(he);
     b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); });
   if(!mainSegs.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
+  // 変化点トラック（選択中の大演出の出現・変化タイミング）。現状は読み取り専用＝一覧表示。
+  const [kfRow,kfTrack]=timelineRow('変化点'); let kfCount=0;
+  if(selSeg){ DATA.script.forEach((tn,gi)=>{ if(tn.vizSeg!==selSeg) return;
+    const anchors=turnVizAnchors(tn); if(!anchors.length) return;
+    const len=Math.max(1,(tn.text||'').length);
+    const group=document.createElement('div'); group.className='tl-kf-group'; group.style.gridColumn=(gi+1)+' / span 1';
+    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'; const pos=placed?vp.pos:0;
+      const m=document.createElement('div'); m.className='tl-kf'+(placed?' placed':' auto'); m.style.left=(pos/len*100)+'%';
+      m.textContent='◆'+a.label;
+      m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（◆塗り=明示配置・◇枠=自動）';
+      m.onclick=(e)=>{ e.stopPropagation(); selectTurn(gi); }; group.appendChild(m); kfCount++; });
+    kfTrack.appendChild(group); }); }
+  if(!kfCount){ const e=document.createElement('span'); e.className='tl-empty';
+    e.textContent=selSeg?'この演出に変化点なし':'大演出を選ぶと変化点を表示'; kfTrack.appendChild(e); }
+  body.appendChild(kfRow);
   const [textRow,textTrack]=timelineRow('小演出（テキスト内）'); let textCount=0;
   DATA.script.forEach((tn,gi)=>{ const effects=activeFx(tn); if(!effects.length)return; textCount+=effects.length;
     const group=document.createElement('div'); group.className='tl-text-group'; group.style.gridColumn=(gi+1)+' / span 1';
