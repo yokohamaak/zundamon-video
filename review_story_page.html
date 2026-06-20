@@ -179,13 +179,13 @@
                              color:var(--fg); cursor:pointer; }
   /* 右ペイン＝補助。背景に寄せ視覚優先度を下げる（細い罫線・低コントラスト） */
   .tp-right { min-width:0; max-height:none; overflow:auto;
-              background:#10141b; border:1px solid #1c232e; border-radius:12px; padding:12px; }
+              background:#10141b; border:1px solid #1c232e; border-radius:12px; padding:0 12px 12px; }
   /* 広げる：左に被さる大きいパネル */
   .tp-right.wide { position:fixed; top:64px; right:14px; bottom:14px; width:min(960px,84vw);
                    max-height:none; z-index:30; box-shadow:0 12px 48px rgba(0,0,0,.55); }
   /* 右ペイン上端に固定するツールバー（スクロールしても消えない） */
   .rwbar { position:sticky; top:0; z-index:5; display:flex; justify-content:flex-end; align-items:center;
-           background:#10141b; margin:-12px -12px 10px; padding:9px 12px; border-bottom:1px solid #1c232e; }
+           background:#10141b; margin:0 -12px 10px; padding:9px 12px; border-bottom:1px solid #1c232e; }
   .rwbtn { font-size:12px; font-weight:700; padding:6px 12px; border-radius:7px; border:none;
            background:#1a212c; color:var(--sub); cursor:pointer; }
   .rwbtn:hover { color:var(--fg); background:#222a37; }
