@@ -356,6 +356,8 @@
            white-space:nowrap; padding:1px 5px; border-radius:9px; cursor:pointer; line-height:1.4; }
   .tl-kf.placed { background:#2a2440; color:#c4a8ff; border:1px solid #5a4a8a; }
   .tl-kf.auto { background:transparent; color:#8693a5; border:1px dashed #4a5568; }
+  .tl-kf.dragging { z-index:6; cursor:grabbing; transform:translate(-50%,-50%) scale(1.18);
+                    outline:2px solid #fff; box-shadow:0 2px 12px rgba(139,92,246,.7); background:#3a3168; color:#fff; }
   .tl-handle { position:absolute; top:0; bottom:0; width:10px; border:0; padding:0; z-index:2;
                background:rgba(255,255,255,.82); cursor:ew-resize; opacity:.72; }
   .tl-handle:hover, .tl-handle.dragging { opacity:1; background:#fff; }
@@ -2041,7 +2043,7 @@ function vpeStartDrag(ev,gi,a,pin,inner,rebuild){
 }
 // 変化点トラックの◆ドラッグ：同セリフ内なら文字位置(pos)、別セリフ列なら所属セリフを移す（演出範囲内に限定）。
 // 動かさなければクリック＝そのセリフを選択。
-function startKfDrag(ev,gi,a){
+function startKfDrag(ev,gi,a,m){
   ev.preventDefault(); ev.stopPropagation();
   const srcTn=DATA.script[gi]; if(!srcTn) return; const ci=srcTn.chapter; const segId=srcTn.vizSeg; if(!segId) return;
   const rng=segRange(ci,segId); if(rng.s<0) return;
@@ -2050,7 +2052,7 @@ function startKfDrag(ev,gi,a){
   let tgtGi=gi, pos=(origPos!=null?origPos:0), moved=false;
   const move=e=>{
     if(!moved){ if(Math.abs(e.clientX-x0)<4 && Math.abs(e.clientY-y0)<4) return;   // 手ぶれ無視（4pxのドラッグ閾値）
-      moved=true; document.body.classList.add('tl-resizing'); }
+      moved=true; document.body.classList.add('tl-resizing'); if(m) m.classList.add('dragging'); }   // 掴んでいる表示
     const scroll=document.querySelector('.tl-scroll');
     if(scroll){ const r=scroll.getBoundingClientRect(); if(e.clientX<r.left+36)scroll.scrollLeft-=18; else if(e.clientX>r.right-36)scroll.scrollLeft+=18; }
     let g=timelineTurnAtX(e.clientX,ci); if(g<0)g=gi; g=Math.max(rng.s,Math.min(rng.e,g)); tgtGi=g;
@@ -2059,7 +2061,7 @@ function startKfDrag(ev,gi,a){
   };
   const finish=()=>{
     document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.removeEventListener('pointercancel',cancel);
-    document.body.classList.remove('tl-resizing');
+    document.body.classList.remove('tl-resizing'); if(m) m.classList.remove('dragging');
     if(!moved){ selectTurn(gi); return; }                          // 閾値未満＝クリック＝セリフ選択
     if(tgtGi===gi){ setVizPointPos(srcTn,a,pos); markDirty(); }    // 同セリフ＝文字位置変更
     else if(canMoveAnchorTo(DATA.script[tgtGi],a)){ moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); markDirty(); }  // 別セリフ＝所属移動
@@ -2120,7 +2122,7 @@ function renderTimeline(){
       else { m.style.left='0%'; m.style.marginLeft=(autoN++*54)+'px'; }   // 自動(先頭)は重ならないよう横へ並べる
       m.textContent='◆'+a.label;
       m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（ドラッグで移動・◆塗り=明示/◇枠=自動）';
-      m.style.cursor='grab'; m.onpointerdown=(e)=>startKfDrag(e,gi,a); group.appendChild(m); kfCount++; });
+      m.style.cursor='grab'; m.onpointerdown=(e)=>startKfDrag(e,gi,a,m); group.appendChild(m); kfCount++; });
     kfTrack.appendChild(group); }); }
   if(!kfCount){ const e=document.createElement('span'); e.className='tl-empty';
     e.textContent=selSeg?'この演出に変化点なし':'大演出を選ぶと変化点を表示'; kfTrack.appendChild(e); }
