@@ -2401,9 +2401,12 @@ function renderImageTab(r,tn,ch,ci){
   const cur=(typeof tn.cut==='number'?tn.cut:0);
   if(!cuts[cur]) cuts[cur]={image_query:'',image_kind:'ambient'};
   const cut=cuts[cur]; const ky=ci+'_'+cur;
-  // フレームプレビュー（この行で視聴者が見る画像）。1280x720でも画像選択/日本語検索が初期表示に
-  // 入るよう小さく表示。クロップ精密反映は下の調整パネルで確認。
-  const fp=framePrev(ci,cur,cut); fp.style.maxWidth='260px'; fp.style.margin='0 auto 8px'; r.appendChild(fp);
+  // フレームプレビューは折り畳み（既定で閉じる）。1280x720で右ペインを開いた直後に、画像選択と
+  // 日本語検索がスクロールなしで表示範囲へ入るようにする。クロップ精密反映は下の調整パネルで確認。
+  const fpWrap=document.createElement('details'); fpWrap.className='adjsub';
+  const fpSum=document.createElement('summary'); fpSum.textContent='現在の表示プレビュー'; fpWrap.appendChild(fpSum);
+  const fp=framePrev(ci,cur,cut); fp.style.maxWidth='260px'; fp.style.margin='6px auto 0'; fpWrap.appendChild(fp);
+  r.appendChild(fpWrap);
   r.appendChild(lblDiv('この行で出す画像（クリックで選択）'));
   const pick=document.createElement('div'); pick.className='cutpick';
   (cuts.length?cuts:[{}]).forEach((c,k)=>{ const u=imgUrl(ci,k);
