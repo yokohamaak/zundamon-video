@@ -19,7 +19,7 @@ function extractFn(name) {
 }
 
 const names = ['findVizPoint', 'nextVizPointId', 'setVizPointPos', 'removeVizPoint',
-  'splitVizPoints', 'shiftVizPointValues', 'moveAnchorFlag', 'reconcileVizPointPos',
+  'splitVizPoints', 'shiftVizPointValues', 'moveAnchorFlag', 'moveAnchorToTurn', 'reconcileVizPointPos',
   'chSegs', 'pruneEmptySegs', 'clampItemFlags', 'retagSeg', 'setSegFlag', 'togglePanelItem'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
@@ -95,6 +95,15 @@ t('moveAnchorFlag: 後半へ移った点の対応flagを tn→nt へ移す', () 
   const tn3 = { compare_item: 1 }, nt3 = {};
   moveAnchorFlag(tn3, nt3, { type: 'compare_item', value: 1 });
   assert.equal(tn3.compare_item, undefined); assert.equal(nt3.compare_item, 1);
+});
+
+t('moveAnchorToTurn: 別セリフへフラグと演出点を移動', () => {
+  const src = { panel_item: [0, 1], vizPoints: [{ type: 'panel_item', value: 1, pos: 3 }] };
+  const dst = {};
+  moveAnchorToTurn(src, dst, { type: 'panel_item', value: 1 }, 5);
+  assert.equal(src.panel_item, 0); assert.equal(src.vizPoints, undefined);
+  assert.equal(dst.panel_item, 1);
+  assert.equal(dst.vizPoints.length, 1); assert.equal(dst.vizPoints[0].value, 1); assert.equal(dst.vizPoints[0].pos, 5);
 });
 
 t('retagSeg: 範囲外のセリフは vizPoints とフラグを掃除', () => {

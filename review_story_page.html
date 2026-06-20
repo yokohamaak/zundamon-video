@@ -1875,6 +1875,12 @@ function moveAnchorFlag(tn,nt,p){
   else if(type==='compare_item'){ if(tn.compare_item===v){ nt.compare_item=v; delete tn.compare_item; } }
   else if(type==='callout_item'){ if(tn.callout_item===v){ nt.callout_item=v; delete tn.callout_item; } }
 }
+// 変化点を別セリフへ移す（タイムラインのドラッグ用）：flagと演出点を src→dst へ移し dst に文字位置を設定。
+function moveAnchorToTurn(srcTn,dstTn,a,pos){
+  moveAnchorFlag(srcTn,dstTn,a);
+  removeVizPoint(srcTn,a);
+  setVizPointPos(dstTn,a,pos);
+}
 // 本文編集追従：旧→新テキストの差分（共通の前/後ろ）から編集区間を求め、編集より後ろの pos をずらす。
 // 編集区間内の点は編集後区間の末尾へ寄せる。戻り値=変更有無。
 function reconcileVizPointPos(vizPoints, oldText, newText){
@@ -2047,13 +2053,40 @@ function vpeStartDrag(ev,gi,a,pin,inner,rebuild){
     rebuild(); renderTimeline(); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
 }
+// 変化点トラックの◆ドラッグ：同セリフ内なら文字位置(pos)、別セリフ列なら所属セリフを移す（演出範囲内に限定）。
+// 動かさなければクリック＝そのセリフを選択。
+function startKfDrag(ev,gi,a){
+  ev.preventDefault(); ev.stopPropagation();
+  const srcTn=DATA.script[gi]; if(!srcTn) return; const ci=srcTn.chapter; const segId=srcTn.vizSeg; if(!segId) return;
+  const rng=segRange(ci,segId); if(rng.s<0) return;
+  const ovp=findVizPoint(srcTn,a); const origPos=(ovp&&typeof ovp.pos==='number')?ovp.pos:null;
+  document.body.classList.add('tl-resizing');
+  let tgtGi=gi, pos=(origPos!=null?origPos:0), moved=false;
+  const move=e=>{ moved=true;
+    const scroll=document.querySelector('.tl-scroll');
+    if(scroll){ const r=scroll.getBoundingClientRect(); if(e.clientX<r.left+36)scroll.scrollLeft-=18; else if(e.clientX>r.right-36)scroll.scrollLeft+=18; }
+    let g=timelineTurnAtX(e.clientX,ci); if(g<0)g=gi; g=Math.max(rng.s,Math.min(rng.e,g)); tgtGi=g;
+    const cell=document.querySelector('.tl-turn[data-gi="'+g+'"]'); const len=Math.max(1,(DATA.script[g].text||'').length);
+    if(cell){ const cr=cell.getBoundingClientRect(); pos=Math.max(0,Math.min(len,Math.round((e.clientX-cr.left)/Math.max(1,cr.width)*len))); }
+  };
+  const finish=()=>{
+    document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.removeEventListener('pointercancel',cancel);
+    document.body.classList.remove('tl-resizing');
+    if(!moved){ selectTurn(gi); return; }                          // クリック＝セリフ選択
+    if(tgtGi===gi){ setVizPointPos(srcTn,a,pos); }                 // 同セリフ＝文字位置変更
+    else { moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); }     // 別セリフ＝所属移動
+    markDirty(); renderTimeline();
+  };
+  const cancel=()=>{ moved=false; finish(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
+}
 function renderTimeline(){
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
   const hint=document.createElement('span'); hint.className='tl-hint';
-  hint.textContent=timelineDetail?'演出バー＝範囲を調整／セリフ内の演出点をドラッグで文字位置に配置':'演出バーの両端をドラッグして範囲を調整'; head.appendChild(hint);
+  hint.textContent=timelineDetail?'演出バー＝範囲を調整／変化点◆や演出点をドラッグで文字位置・別セリフへ移動':'演出バーの両端で範囲を調整／変化点◆をドラッグで移動'; head.appendChild(hint);
   const detailBtn=document.createElement('button'); detailBtn.type='button'; detailBtn.className='tl-detail-btn'+(timelineDetail?' on':'');
   detailBtn.textContent=timelineDetail?'詳細表示: ON':'詳細表示: OFF'; detailBtn.title='セリフ全文が1行で収まる細かい粒度に切り替える';
   detailBtn.onclick=()=>setTimelineDetail(!timelineDetail); head.appendChild(detailBtn); pane.appendChild(head);
@@ -2097,8 +2130,8 @@ function renderTimeline(){
       if(placed){ m.style.left=(pos/len*100)+'%'; }
       else { m.style.left='0%'; m.style.marginLeft=(autoN++*54)+'px'; }   // 自動(先頭)は重ならないよう横へ並べる
       m.textContent='◆'+a.label;
-      m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（◆塗り=明示配置・◇枠=自動）';
-      m.onclick=(e)=>{ e.stopPropagation(); selectTurn(gi); }; group.appendChild(m); kfCount++; });
+      m.title=(placed?('文字位置: '+pos):'自動（セリフ先頭）')+' ／ '+a.label+'（ドラッグで移動・◆塗り=明示/◇枠=自動）';
+      m.style.cursor='grab'; m.onpointerdown=(e)=>startKfDrag(e,gi,a); group.appendChild(m); kfCount++; });
     kfTrack.appendChild(group); }); }
   if(!kfCount){ const e=document.createElement('span'); e.className='tl-empty';
     e.textContent=selSeg?'この演出に変化点なし':'大演出を選ぶと変化点を表示'; kfTrack.appendChild(e); }
