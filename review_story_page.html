@@ -415,6 +415,7 @@
 <script>
 let DATA=null, CUTS=[], cutMap={}, OPEN=new Set(), adjustOpen=new Set(), candOpen=new Set(), candState={}, selChs=new Set();
 let selGi=-1, rtab=null, dirty=false, collapsed=new Set(), rwide=false, selSeg=null;  // ワークスペース：選択行 / 右タブ / 未保存 / 畳んだ章 / 右ペイン拡大 / 選択中演出セグメント
+let previewState='synced';  // プレビュー状態：synced（更新済）/ visual-stale（要・保存して更新）/ audio-stale（音声再生成が必要）/ error（更新失敗）
 let timelineScrollLeft=0;  // 全体再描画を挟んでもタイムラインの横位置を維持する。
 // 詳細モード：各セリフ列をセリフ全文が1行で収まる幅（文字数比例＝尺の代理）にする。
 // 将来セリフ単位で演出を指定する運用に向けた細かい粒度。localStorageに保存。
@@ -475,12 +476,13 @@ function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'applic
 // 画像の即時保存。失敗時は保存済みに見せず、エラー表示＋サーバ値で再描画してローカルの見かけを戻す。
 function setOpt(key,patch){ return api('/api/options',{key,patch}).then(r=>{
   if(!r||!r.ok){ alert('画像設定の保存に失敗しました: '+((r&&r.message)||'不明')); refreshCuts().then(render); }
+  else { markVisualStale(); }   // 画像補正は即時保存だがプレビューは更新が必要
   return r; }); }
 function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん|メタン/.test(n))return '#d85a9c'; return '#90a0b5'; }
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
 // review.json からカット情報(画像/出典/調整)を取り直して cutMap を更新（差し替え後にクレジット等を反映）。
-async function refreshCuts(){ const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c); }
+async function refreshCuts(){ const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c); markVisualStale(); }
 function fmtKB(b){ if(b==null) return '?'; return b<1024? b+'B' : b<1048576? Math.round(b/1024)+'KB' : (b/1048576).toFixed(1)+'MB'; }
 // 入力/プルダウンに小さなラベルを上付けする（何の項目か分かるように）
 function fl(text, el){ const w=document.createElement('label'); w.className='fl';
@@ -1507,7 +1509,7 @@ function renderLegacy(){  // 旧アコーディオン版（未使用・参考保
           await api('/api/script', DATA);              // script.json(image_cuts/turn cut)を整合保存
           await api('/api/delete-cut',{ch:ci,ci:k});   // review.jsonを再番号＋画像リネーム
           const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
-          render();
+          markVisualStale(); render();
         };
         // 画像の右にフィールドを縦積み：検索語 → 日本語 → [種別＋ボタン]（各ラベル付き）
         const fields=document.createElement('div'); fields.className='fields';
@@ -1587,8 +1589,17 @@ function renderLegacy(){  // 旧アコーディオン版（未使用・参考保
 // ===== 二画面（台本左＋プレビュー右）。hoistで後勝ち＝こちらが実体 =====
 function lblDiv(t){ const d=document.createElement('div'); d.className='lbl'; d.textContent=t; return d; }
 function firstGiOfChapter(ci){ const i=(DATA.script||[]).findIndex(t=>t.chapter===ci); return i<0?selGi:i; }
-function markDirty(){ if(!dirty){ dirty=true; updateSaveBtn(); } }
-function updateSaveBtn(){ const b=document.getElementById('save'); if(b) b.textContent=dirty?'● 保存して更新':'保存して更新'; }
+function markDirty(){ dirty=true; markVisualStale(); }
+// 台本・演出・画像の変更でプレビュー(meta/動画)が古くなったことを示す（音声再生成が必要な状態は維持）。
+function markVisualStale(){ if(previewState!=='audio-stale') previewState='visual-stale'; updateSaveBtn(); }
+function setPreviewState(s){ previewState=s; updateSaveBtn(); }
+function updateSaveBtn(){ const b=document.getElementById('save'); if(!b) return;
+  const warn=(previewState==='audio-stale'||previewState==='error');
+  b.style.background = warn ? '#b5532a' : '';
+  if(previewState==='audio-stale') b.textContent='⚠ 音声の再生成が必要';
+  else if(previewState==='error') b.textContent='⚠ 更新失敗（再試行）';
+  else if(previewState==='visual-stale') b.textContent='● 保存して更新';
+  else b.textContent='保存して更新'; }
 function setWide(on){ rwide=on; const r=document.getElementById('rpane'); if(r){ r.classList.toggle('wide',on); renderRight(); } }
 // プレビュー内の文字/要素サイズ。広げた時は拡大率に合わせて一緒に大きくする（画像だけでなくラベル等も）。
 function pv(n){ return Math.round(n*(rwide?1.9:1)); }
@@ -2596,10 +2607,10 @@ async function saveAndPreview(){
       if(window.remotionEditorPlayer && p && p.dataset.playerMounted==='1'){
         window.remotionEditorPlayer.unmount(); delete p.dataset.playerMounted; p.innerHTML=''; renderPreviewPane();
       }
-      b.textContent='更新✓';
-    } else { b.textContent='保存（要音声再生成）'; alert(r.message||'音声の再生成が必要です'); }
-  } else { b.textContent='失敗'; alert((r&&r.message)||'更新に失敗しました'); }
-  b.disabled=false; setTimeout(()=>updateSaveBtn(),2000);
+      setPreviewState('synced');
+    } else { setPreviewState('audio-stale'); alert(r.message||'音声の再生成が必要です'); }
+  } else { setPreviewState('error'); alert((r&&r.message)||'更新に失敗しました'); }
+  b.disabled=false;
 }
 document.getElementById('save').onclick=saveAndPreview;
 // 未保存ガード＋Cmd/Ctrl+S＋編集でdirty
