@@ -286,6 +286,32 @@
                    padding:8px 9px; box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:280px; }
   .ap-ttl { font-size:10px; color:var(--sub); margin-bottom:6px; }
   .ap-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  /* 演出点エディタ・モーダル（大画面で文字位置に配置） */
+  .vpe-overlay { position:fixed; inset:0; background:rgba(5,7,11,.62); z-index:80; display:flex; align-items:center; justify-content:center; }
+  .vpe-modal { width:min(860px,93vw); max-height:88vh; overflow:auto; background:#161b24; border:1px solid #2c3543;
+               border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.6); padding:18px 20px; }
+  .vpe-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .vpe-head .t { font-size:14px; font-weight:800; color:#fff; }
+  .vpe-head .x { margin-left:auto; border:0; background:#222a37; color:#cbd3df; border-radius:7px; padding:5px 11px; cursor:pointer; font-weight:700; }
+  .vpe-sub { font-size:11px; color:var(--sub); margin-bottom:12px; }
+  .vpe-text { position:relative; overflow-x:auto; background:#10141b; border:1px solid #1c232e; border-radius:10px; }
+  .vpe-inner { position:relative; display:inline-block; white-space:nowrap; padding:34px 10px 12px; min-width:100%; box-sizing:border-box; }
+  .vpe-char { font-size:26px; line-height:1.4; letter-spacing:1px; color:#e6e9f0; cursor:text; border-radius:2px; }
+  .vpe-char:hover { background:#23304a; }
+  .vpe-pin { position:absolute; top:3px; transform:translateX(-50%); z-index:4; cursor:ew-resize; display:flex; flex-direction:column; align-items:center; }
+  .vpe-pin .tab { background:#8b5cf6; color:#fff; font-size:11px; font-weight:700; padding:2px 6px; border-radius:5px; white-space:nowrap; display:flex; align-items:center; gap:5px; }
+  .vpe-pin .tab .del { cursor:pointer; opacity:.75; font-weight:900; }
+  .vpe-pin .tab .del:hover { opacity:1; }
+  .vpe-pin::after { content:""; width:2px; height:26px; background:#8b5cf6; }
+  .vpe-pin.active .tab { background:#a685ff; box-shadow:0 0 0 2px rgba(166,133,255,.45); }
+  .vpe-pin.unplaced .tab, .vpe-pin.unplaced::after { background:#4a4470; }
+  .vpe-add { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:14px 0 6px; }
+  .vpe-add .lbl { font-size:11px; color:var(--sub); margin-right:2px; }
+  .vpe-list { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+  .vpe-li { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--fg); }
+  .vpe-li .nm { font-weight:700; min-width:78px; }
+  .vpe-li .ps { color:var(--sub); }
+  .vpe-li .rm { margin-left:auto; border:0; background:#2a2230; color:#e6a; border-radius:6px; padding:2px 8px; cursor:pointer; }
   .tl-bar { height:27px; margin:5px 3px; padding:6px 10px; box-sizing:border-box; overflow:hidden;
             border-radius:5px; color:#fff; font-size:10px; font-weight:700; white-space:nowrap; text-overflow:ellipsis;
             cursor:pointer; position:relative; user-select:none; }
@@ -1689,8 +1715,13 @@ function selectTurn(gi){
 }
 // 選択セリフをタイムラインの可視範囲へ横スクロール（renderTimeline後に呼ぶ＝両方向の連動用）。
 function scrollTimelineToTurn(gi){
+  const scroll=document.querySelector('.tl-scroll');
   const cell=document.querySelector('.tl-turn[data-gi="'+gi+'"]');
-  if(cell) cell.scrollIntoView({block:'nearest',inline:'nearest'});
+  if(!scroll||!cell) return;
+  // 選択セリフをタイムラインの左端（固定ラベル150pxのすぐ右）に寄せる。
+  const sr=scroll.getBoundingClientRect(), cr=cell.getBoundingClientRect();
+  scroll.scrollLeft += (cr.left - sr.left) - 150 - 6;
+  timelineScrollLeft=scroll.scrollLeft;
 }
 
 function timelineGrid(){
@@ -1742,6 +1773,7 @@ function renderVizPointMarkers(cell,tn,gi){
     pin.title=(placed?'文字位置: '+vp.pos:'セリフ頭（ドラッグで文字位置を指定）')+' ／ '+a.label;
     pin.onpointerdown=e=>startVizPointDrag(e,gi,a,pin,cell);
     pin.onclick=e=>e.stopPropagation();   // セリフ選択へ伝播させない
+    pin.ondblclick=e=>{ e.stopPropagation(); openVizPointEditor(gi); };   // 大きい画面で調整
     cell.appendChild(pin);
   });
 }
@@ -1802,6 +1834,85 @@ function openAnchorPicker(gi,btn){
   pop.style.top=Math.min(r.bottom+4,window.innerHeight-pop.offsetHeight-8)+'px';
   anchorPickerEl=pop; setTimeout(()=>document.addEventListener('pointerdown',anchorPickerOutside,true),0);
 }
+// 演出点エディタ・モーダル：セリフ全文を大きく表示し、文字位置に演出点を配置する。
+function vpeKeyOf(a){ return a.type+':'+(a.value==null?'':a.value); }
+function vpeNearestPos(inner,clientX){
+  const ir=inner.getBoundingClientRect(); const x=clientX-ir.left+inner.scrollLeft;
+  const spans=[...inner.querySelectorAll('.vpe-char')]; if(!spans.length) return 0;
+  let best=0,bestD=Infinity;
+  spans.forEach((s,i)=>{ [[s.offsetLeft,i],[s.offsetLeft+s.offsetWidth,i+1]].forEach(([px,p])=>{ const d=Math.abs(x-px); if(d<bestD){bestD=d;best=p;} }); });
+  return best;
+}
+function vpePosLeft(inner,pos){ const spans=[...inner.querySelectorAll('.vpe-char')]; if(!spans.length) return 0;
+  if(pos>=spans.length){ const s=spans[spans.length-1]; return s.offsetLeft+s.offsetWidth; } return spans[pos].offsetLeft; }
+let vpeActiveKey=null;
+function openVizPointEditor(gi){
+  const tn=DATA.script[gi]; const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]; if(!ch) return;
+  const seg=chSegs(ch).find(s=>s.id===tn.vizSeg); if(!seg) return;
+  vpeActiveKey=null;
+  const ov=document.createElement('div'); ov.className='vpe-overlay';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  const mo=document.createElement('div'); mo.className='vpe-modal'; ov.appendChild(mo);
+  const text=tn.text||'';
+  const rebuild=()=>{
+    mo.innerHTML='';
+    const head=document.createElement('div'); head.className='vpe-head';
+    const t=document.createElement('span'); t.className='t'; t.textContent='演出点を編集　（'+(gi+1)+'. '+(tn.speaker||'')+'）'; head.appendChild(t);
+    const x=document.createElement('button'); x.className='x'; x.textContent='閉じる'; x.onclick=()=>ov.remove(); head.appendChild(x); mo.appendChild(head);
+    const sub=document.createElement('div'); sub.className='vpe-sub'; sub.textContent='文字をクリック→選択中の点をそこへ移動／タブをドラッグでも移動／×で削除'; mo.appendChild(sub);
+    // セリフ全文（文字span）＋演出点ピン
+    const box=document.createElement('div'); box.className='vpe-text';
+    const inner=document.createElement('div'); inner.className='vpe-inner'; box.appendChild(inner);
+    const len=Math.max(0,text.length);
+    [...text].forEach((c,i)=>{ const sp=document.createElement('span'); sp.className='vpe-char'; sp.textContent=(c==='\n'?'⏎\n':c); sp.dataset.i=i;
+      sp.onclick=()=>{ if(vpeActiveKey){ const a=turnVizAnchors(tn).find(an=>vpeKeyOf(an)===vpeActiveKey); if(a){ setVizPointPos(tn,a,i); markDirty(); rebuild(); renderTimeline(); } } }; inner.appendChild(sp); });
+    mo.appendChild(box);
+    const anchors=turnVizAnchors(tn);
+    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'&&vp.pos>0; const pos=placed?vp.pos:0;
+      const pin=document.createElement('div'); pin.className='vpe-pin'+(placed?'':' unplaced')+(vpeKeyOf(a)===vpeActiveKey?' active':'');
+      pin.style.left=vpePosLeft(inner,pos)+'px';
+      const tab=document.createElement('div'); tab.className='tab';
+      const nm=document.createElement('span'); nm.textContent=a.label; tab.appendChild(nm);
+      const del=document.createElement('span'); del.className='del'; del.textContent='×'; del.title='この演出点を削除';
+      del.onclick=e=>{ e.stopPropagation(); toggleAnchor(ci,seg,tn,{type:a.type,value:a.value}); rebuild(); renderTimeline(); };
+      tab.appendChild(del); pin.appendChild(tab);
+      pin.onpointerdown=e=>vpeStartDrag(e,gi,a,pin,inner,rebuild);
+      inner.appendChild(pin);
+    });
+    // 未配置の項目を追加
+    const add=document.createElement('div'); add.className='vpe-add';
+    const lbl=document.createElement('span'); lbl.className='lbl'; lbl.textContent='追加:'; add.appendChild(lbl);
+    let addable=0;
+    segAnchorOptions(seg).forEach(opt=>{ if(anchorOn(tn,opt)) return; addable++;
+      const b=document.createElement('button'); b.type='button'; b.className='vchip'; b.textContent='＋'+opt.label;
+      b.onclick=()=>{ toggleAnchor(ci,seg,tn,opt); vpeActiveKey=opt.type+':'+(opt.value==null?'':opt.value); rebuild(); renderTimeline(); }; add.appendChild(b); });
+    if(!addable){ const e=document.createElement('span'); e.className='lbl'; e.textContent='（このセリフに置ける項目は全て配置済み）'; add.appendChild(e); }
+    mo.appendChild(add);
+    // 一覧（文字位置）
+    const list=document.createElement('div'); list.className='vpe-list';
+    anchors.forEach(a=>{ const vp=findVizPoint(tn,a); const placed=vp&&typeof vp.pos==='number'&&vp.pos>0;
+      const li=document.createElement('div'); li.className='vpe-li';
+      const nm=document.createElement('span'); nm.className='nm'; nm.textContent=a.label; li.appendChild(nm);
+      const ps=document.createElement('span'); ps.className='ps'; ps.textContent=placed?(vp.pos+'文字目 ／ 全'+len+'文字'):'セリフ頭（未配置）'; li.appendChild(ps);
+      const rm=document.createElement('button'); rm.className='rm'; rm.textContent='削除';
+      rm.onclick=()=>{ toggleAnchor(ci,seg,tn,{type:a.type,value:a.value}); rebuild(); renderTimeline(); }; li.appendChild(rm);
+      li.onclick=e=>{ if(e.target===rm) return; vpeActiveKey=vpeKeyOf(a); rebuild(); }; list.appendChild(li);
+    });
+    if(!anchors.length){ const e=document.createElement('div'); e.className='vpe-sub'; e.textContent='まだ演出点がありません。上の「追加」から置いてください。'; list.appendChild(e); }
+    mo.appendChild(list);
+  };
+  document.body.appendChild(ov); rebuild();   // DOM追加後にrebuild＝文字のoffsetLeftが確定しピンが正しい位置に出る
+}
+function vpeStartDrag(ev,gi,a,pin,inner,rebuild){
+  ev.preventDefault(); ev.stopPropagation();
+  const tn=DATA.script[gi]; const orig=(findVizPoint(tn,a)||{}).pos; let pos=typeof orig==='number'?orig:0;
+  pin.classList.add('active'); vpeActiveKey=a.type+':'+(a.value==null?'':a.value);
+  const move=e=>{ pos=vpeNearestPos(inner,e.clientX); pin.classList.remove('unplaced'); pin.style.left=vpePosLeft(inner,pos)+'px'; };
+  const finish=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
+    if(pos!==(typeof orig==='number'?orig:0)){ setVizPointPos(tn,a,pos); markDirty(); }
+    rebuild(); renderTimeline(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
+}
 function renderTimeline(){
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
   const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
@@ -1819,8 +1930,8 @@ function renderTimeline(){
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi);
     if(timelineDetail){ renderVizPointMarkers(c,tn,gi);   // 詳細モードのみ：文字位置に演出点マーカー
-      if(tn.vizSeg){ const add=document.createElement('button'); add.type='button'; add.className='vp-add'; add.textContent='＋';
-        add.title='このセリフに演出点を追加'; add.onclick=e=>{ e.stopPropagation(); openAnchorPicker(gi,add); }; c.appendChild(add); } }
+      if(tn.vizSeg){ const add=document.createElement('button'); add.type='button'; add.className='vp-add'; add.textContent='✎';
+        add.title='演出点を編集（大きい画面で文字位置に配置）'; add.onclick=e=>{ e.stopPropagation(); openVizPointEditor(gi); }; c.appendChild(add); } }
     turnTrack.appendChild(c); }); body.appendChild(turnRow);
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
   // 開始位置の昇順に並べてから追加する。Gridの自動配置は開始列が左へ戻ると新しい行を作るため、
