@@ -457,8 +457,12 @@ function startTimelineSplitDrag(ev){
 window.addEventListener('resize',positionTimelineSplit);
 applyWorkspaceMode();
 function api(p,b){ return fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},
-  body:JSON.stringify(b)}).then(r=>r.json()); }
-function setOpt(key,patch){ return api('/api/options',{key,patch}); }
+  body:JSON.stringify(b)}).then(r=>r.json().catch(()=>({ok:false,message:'HTTP '+r.status})))
+  .catch(e=>({ok:false,message:'通信エラー '+e})); }
+// 画像の即時保存。失敗時は保存済みに見せず、エラー表示＋サーバ値で再描画してローカルの見かけを戻す。
+function setOpt(key,patch){ return api('/api/options',{key,patch}).then(r=>{
+  if(!r||!r.ok){ alert('画像設定の保存に失敗しました: '+((r&&r.message)||'不明')); refreshCuts().then(render); }
+  return r; }); }
 function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん|メタン/.test(n))return '#d85a9c'; return '#90a0b5'; }
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
@@ -733,7 +737,8 @@ function buildAdjust(ci,k){
   const ar=document.createElement('div'); ar.className='row'; ar.innerHTML='<span class="hint">出典・クレジット</span>';
   const attr=document.createElement('input'); attr.type='text'; attr.placeholder='例: 作者名 / CC-BY 4.0（CC-BYは必須）'; attr.value=cut.attribution||'';
   attr.style.flex='1'; attr.style.height='34px';
-  attr.onchange=()=>{ cut.attribution=attr.value; api('/api/attribution',{key,attribution:attr.value}); };
+  attr.onchange=()=>{ const prev=cut.attribution; cut.attribution=attr.value;
+    api('/api/attribution',{key,attribution:attr.value}).then(r=>{ if(!r||!r.ok){ alert('出典の保存に失敗しました: '+((r&&r.message)||'不明')); cut.attribution=prev; attr.value=prev||''; } }); };
   ar.appendChild(attr);
 
   // 差し替えファイル
@@ -1720,7 +1725,7 @@ function renderPreviewPane(){
   const mount=()=>{
     if(!window.remotionEditorPlayer){ fallback('簡易プレビュー'); return; }
     window.remotionEditorPlayer.mount(host).then(()=>{ settled=true; delete p.dataset.playerLoading;
-      p.dataset.playerMounted='1'; window.remotionEditorPlayer.syncTextEffects(DATA.script.map(t=>t.textEffects||[])); seekRemotionToSelection(); })
+      p.dataset.playerMounted='1'; window.remotionEditorPlayer.syncTextEffects(DATA.script.map(t=>activeFx(t))); seekRemotionToSelection(); })
       .catch(()=>fallback('meta未生成・簡易表示'));
   };
   if(window.remotionEditorPlayer) mount();
@@ -1995,7 +2000,7 @@ function renderTimeline(){
     b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); });
   if(!mainSegs.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
   const [textRow,textTrack]=timelineRow('小演出（テキスト内）'); let textCount=0;
-  DATA.script.forEach((tn,gi)=>{ const effects=tn.textEffects||[]; if(!effects.length)return; textCount+=effects.length;
+  DATA.script.forEach((tn,gi)=>{ const effects=activeFx(tn); if(!effects.length)return; textCount+=effects.length;
     const group=document.createElement('div'); group.className='tl-text-group'; group.style.gridColumn=(gi+1)+' / span 1';
     const len=Math.max(1,(tn.text||'').length); effects.forEach(fx=>{ const b=document.createElement('div'); b.className='tl-text-effect';
       b.style.left=(Math.max(0,fx.start)/len*100)+'%'; b.style.width=(Math.max(1,fx.end-fx.start)/len*100)+'%';
@@ -2158,6 +2163,8 @@ function lineRow(tn,gi,ch,ci,inViz){
   return row;
 }
 
+// 描画・出力に使うのは範囲が有効な演出だけ（stale=要再選択 は除外）。編集UIの一覧では別途staleも表示する。
+function activeFx(tn){ return ((tn&&tn.textEffects)||[]).filter(f=>!f.stale); }
 // セリフ編集後、各テキスト演出の文字位置を安全に追従させる。
 // 同じ語句が複数あるとき先頭一致へ勝手に移すのは禁止。一意に追えない場合は削除せず stale 印を付ける。
 function reconcileTextEffects(tn){
@@ -2179,6 +2186,7 @@ function reconcileTextEffects(tn){
 function startEditLine(row,tn,tx){
   if(row._editing) return;   // 二重起動防止（編集ボタンとダブルクリックの併存）
   row._editing=true;
+  const wasDirty=dirty;      // 編集開始前の未保存状態（Esc取消時に正しく戻すため）
   const origText=tn.text||'';
   const origEffects=JSON.parse(JSON.stringify(tn.textEffects||[]));   // 取消用スナップショット
   const ta=document.createElement('textarea'); ta.value=origText;
@@ -2202,9 +2210,13 @@ function startEditLine(row,tn,tx){
     const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
     nd.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,nd); };
     if(ta.parentNode) ta.replaceWith(nd);
-    markDirty(); refreshEst();
+    // Esc取消で編集前へ戻したら、編集開始前が未保存なしだった場合は保存ボタンも通常へ戻す。
+    // 既に別の未保存変更があった(wasDirty)なら維持。確定時は通常どおりdirty化。
+    if(revert){ if(wasDirty) markDirty(); else { dirty=false; updateSaveBtn(); } }
+    else markDirty();
+    refreshEst();
     const gi=DATA.script.indexOf(tn);
-    if(window.remotionEditorPlayer) window.remotionEditorPlayer.updateTextEffects(gi,tn.textEffects||[]);
+    if(window.remotionEditorPlayer) window.remotionEditorPlayer.updateTextEffects(gi,activeFx(tn));
     renderPreviewPane(); renderTimeline();
     // 演出の追従結果（要再選択など）は小演出タブの一覧に反映する。
     if(staleChanged && rtab==='small' && gi===selGi) renderRight();
@@ -2224,7 +2236,7 @@ function nextTextEffectId(tn){
 function syncTextEffects(tn){
   if(!(tn.textEffects||[]).length)delete tn.textEffects;
   markDirty();
-  if(window.remotionEditorPlayer)window.remotionEditorPlayer.updateTextEffects(selGi,tn.textEffects||[]);
+  if(window.remotionEditorPlayer)window.remotionEditorPlayer.updateTextEffects(selGi,activeFx(tn));
   renderTimeline(); renderRight();
 }
 
@@ -2389,8 +2401,9 @@ function renderImageTab(r,tn,ch,ci){
   const cur=(typeof tn.cut==='number'?tn.cut:0);
   if(!cuts[cur]) cuts[cur]={image_query:'',image_kind:'ambient'};
   const cut=cuts[cur]; const ky=ci+'_'+cur;
-  // フレームプレビュー（この行で視聴者が見る画像）。クロップ精密反映は下の調整パネルで確認。
-  r.appendChild(framePrev(ci,cur,cut));
+  // フレームプレビュー（この行で視聴者が見る画像）。1280x720でも画像選択/日本語検索が初期表示に
+  // 入るよう小さく表示。クロップ精密反映は下の調整パネルで確認。
+  const fp=framePrev(ci,cur,cut); fp.style.maxWidth='260px'; fp.style.margin='0 auto 8px'; r.appendChild(fp);
   r.appendChild(lblDiv('この行で出す画像（クリックで選択）'));
   const pick=document.createElement('div'); pick.className='cutpick';
   (cuts.length?cuts:[{}]).forEach((c,k)=>{ const u=imgUrl(ci,k);

@@ -764,7 +764,17 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
 
     script = []
     for turn, t in zip(base, turns):
-        script.append({**turn, "start": t["start"], "end": t["end"], "sentences": t["sentences"]})
+        merged = {**turn, "start": t["start"], "end": t["end"], "sentences": t["sentences"]}
+        # 範囲が特定できない(stale)文字演出は動画へ出さない（誤った位置の強調を防ぐ）。
+        # staleはレビューUI用に script.json には残るが、meta には含めない。
+        fx = merged.get("textEffects")
+        if fx:
+            active = [e for e in fx if not e.get("stale")]
+            if active:
+                merged["textEffects"] = active
+            else:
+                merged.pop("textEffects", None)
+        script.append(merged)
 
     # speakers の並び順 = 動画の画面配置（[0]=左 / [1]=右）。
     # config.characters_gender の定義順で固定（台本の発話順に依存しない）。

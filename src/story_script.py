@@ -982,6 +982,10 @@ def _normalize_text_effects(turn):
             continue
         item = {"id": str(fx.get("id") or f"te{i + 1}")[:40], "type": fx["type"],
                 "start": start, "end": end}
+        # stale=範囲が特定できなくなった演出。レビューUIで「要再選択」として残すため保持する
+        # （動画(meta)へは build_meta が出さない）。後方互換：staleが無いデータは従来通り。
+        if fx.get("stale"):
+            item["stale"] = True
         selected = fx.get("text")
         if isinstance(selected, str) and selected:
             item["text"] = selected[:200]
