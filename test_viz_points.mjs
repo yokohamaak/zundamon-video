@@ -20,7 +20,8 @@ function extractFn(name) {
 
 const names = ['findVizPoint', 'nextVizPointId', 'setVizPointPos', 'removeVizPoint',
   'splitVizPoints', 'shiftVizPointValues', 'moveAnchorFlag', 'moveAnchorToTurn', 'canMoveAnchorTo', 'reconcileVizPointPos',
-  'chSegs', 'pruneEmptySegs', 'clampItemFlags', 'retagSeg', 'setSegFlag', 'togglePanelItem'];
+  'chSegs', 'pruneEmptySegs', 'clampItemFlags', 'retagSeg', 'setSegFlag', 'togglePanelItem',
+  'segAnchorOptions', 'anchorOn', 'anchorFlagVal', 'segUnplacedOptions', 'addAnchorToTurn'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 globalThis.selSeg = null;
@@ -113,6 +114,23 @@ t('canMoveAnchorTo: compare/calloutは移動先に別値があると拒否', () 
   assert.equal(canMoveAnchorTo({ callout_item: 2 }, { type: 'callout_item', value: 0 }), false);
   assert.equal(canMoveAnchorTo({ panel_item: [0] }, { type: 'panel_item', value: 1 }), true); // panelは複数可
   assert.equal(canMoveAnchorTo({ reveal: true }, { type: 'reveal' }), true);
+});
+
+t('segUnplacedOptions: セグメント全体に無い項目を返す', () => {
+  globalThis.DATA = { script: [{ chapter: 0, vizSeg: 's1', compare_item: 0 }] };
+  const seg = { id: 's1', compare: { left: {}, right: {} } };
+  assert.deepEqual(segUnplacedOptions(0, seg).map(o => o.value), [1]); // 左(0)配置済 → 右(1)のみ未配置
+});
+
+t('addAnchorToTurn: 旧フラグと vizPoints(pos:0) を同時生成', () => {
+  globalThis.markDirty = () => {};
+  globalThis.DATA = { script: [{ chapter: 0, vizSeg: 's1' }] };
+  const tn = DATA.script[0];
+  addAnchorToTurn(0, { id: 's1', compare: { left: {}, right: {} } }, tn, { type: 'compare_item', value: 1 });
+  assert.equal(tn.compare_item, 1);
+  assert.equal(tn.vizPoints[0].type, 'compare_item');
+  assert.equal(tn.vizPoints[0].value, 1);
+  assert.equal(tn.vizPoints[0].pos, 0);
 });
 
 t('retagSeg: 範囲外のセリフは vizPoints とフラグを掃除', () => {

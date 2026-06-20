@@ -1960,26 +1960,17 @@ function toggleAnchor(ci,seg,tn,opt){
   if(!anchorOn(tn,opt)) removeVizPoint(tn,{type:opt.type,value:opt.value});  // 外したら位置点も消す
   markDirty();
 }
-let anchorPickerEl=null;
-function closeAnchorPicker(){ if(anchorPickerEl){ anchorPickerEl.remove(); anchorPickerEl=null; document.removeEventListener('pointerdown',anchorPickerOutside,true); } }
-function anchorPickerOutside(e){ if(anchorPickerEl && !anchorPickerEl.contains(e.target)) closeAnchorPicker(); }
-function openAnchorPicker(gi,btn){
-  closeAnchorPicker();
-  const tn=DATA.script[gi]; const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]; if(!ch) return;
-  const seg=chSegs(ch).find(s=>s.id===tn.vizSeg); if(!seg) return;
-  const opts=segAnchorOptions(seg); if(!opts.length) return;
-  const pop=document.createElement('div'); pop.className='anchor-picker';
-  const ttl=document.createElement('div'); ttl.className='ap-ttl'; ttl.textContent='このセリフで出す演出点（中身は演出パネルで編集）'; pop.appendChild(ttl);
-  const wrap=document.createElement('div'); wrap.className='ap-chips'; pop.appendChild(wrap);
-  const rebuild=()=>{ wrap.innerHTML=''; segAnchorOptions(seg).forEach(opt=>{ const on=anchorOn(tn,opt);
-    const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=(on?'☑':'☐')+opt.label;
-    b.onclick=()=>{ toggleAnchor(ci,seg,tn,opt); rebuild(); renderTimeline(); }; wrap.appendChild(b); }); };
-  rebuild(); document.body.appendChild(pop);
-  const r=btn.getBoundingClientRect();
-  pop.style.left=Math.max(8,Math.min(r.left,window.innerWidth-pop.offsetWidth-12))+'px';
-  pop.style.top=Math.min(r.bottom+4,window.innerHeight-pop.offsetHeight-8)+'px';
-  anchorPickerEl=pop; setTimeout(()=>document.addEventListener('pointerdown',anchorPickerOutside,true),0);
+// セグメント全体（どのセリフにも）配置されていない演出点の候補を返す＝タイムラインの「＋追加」用。
+function segUnplacedOptions(ci,seg){
+  return segAnchorOptions(seg).filter(opt=> !(DATA.script||[]).some(t=>t.chapter===ci && t.vizSeg===seg.id && anchorOn(t,opt)));
 }
+// 選択セリフに変化点を追加：旧フラグ（互換）と vizPoints(pos:0=先頭の明示) を同時生成する。
+function addAnchorToTurn(ci,seg,tn,opt){
+  if(opt.type==='panel_item') togglePanelItem(ci,seg.id,opt.value,tn);
+  else setSegFlag(ci,seg.id,opt.type,anchorFlagVal(opt),tn,true);
+  setVizPointPos(tn,{type:opt.type,value:opt.value},0);
+}
+// （anchorPicker は撤去：変化点の追加はタイムラインの「＋変化点」へ移行済み）
 // 演出点エディタ・モーダル：セリフ全文を大きく表示し、文字位置に演出点を配置する。
 function vpeKeyOf(a){ return a.type+':'+(a.value==null?'':a.value); }
 function vpeNearestPos(inner,clientX){
@@ -2144,6 +2135,20 @@ function renderTimeline(){
     kfTrack.appendChild(group); }); }
   if(!kfCount){ const e=document.createElement('span'); e.className='tl-empty';
     e.textContent=selSeg?'この演出に変化点なし':'大演出を選ぶと変化点を表示'; kfTrack.appendChild(e); }
+  // ＋追加：選択セグメント全体に未配置の項目を、選択セリフ（無ければ範囲先頭）へ追加する。
+  if(selSeg){ const _ch=(DATA.chapters||[])[kfCh]; const _seg=_ch?chSegs(_ch).find(s=>s.id===selSeg):null;
+    if(_seg){ const unplaced=segUnplacedOptions(kfCh,_seg);
+      if(unplaced.length){ const rng=segRange(kfCh,selSeg);
+        const addGi=(DATA.script[selGi]&&DATA.script[selGi].vizSeg===selSeg)?selGi:rng.s;
+        const sel=document.createElement('select'); sel.className='vchip'; sel.style.marginLeft='6px'; sel.title='選択セリフに変化点を追加';
+        const o0=document.createElement('option'); o0.value=''; o0.textContent='＋変化点'; sel.appendChild(o0);
+        unplaced.forEach((opt,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=opt.label; sel.appendChild(o); });
+        sel.onchange=()=>{ const opt=unplaced[+sel.value]; if(!opt||addGi<0)return;
+          addAnchorToTurn(kfCh,_seg,DATA.script[addGi],opt); selectTurn(addGi); markDirty(); renderTimeline(); };
+        const lab=kfRow.querySelector('.tl-label'); if(lab) lab.appendChild(sel);
+      }
+    }
+  }
   body.appendChild(kfRow);
   const [textRow,textTrack]=timelineRow('小演出（テキスト内）'); let textCount=0;
   DATA.script.forEach((tn,gi)=>{ const effects=activeFx(tn); if(!effects.length)return; textCount+=effects.length;
