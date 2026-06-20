@@ -52,4 +52,17 @@ try:
 finally:
     rs.DIR = old_dir
 
+# 4. compute_preview_state（再読込時の初期状態）
+d2 = tempfile.mkdtemp()
+json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0, "start": 0, "end": 1, "sentences": []}]},
+          open(os.path.join(d2, "meta.json"), "w"))
+json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0}]}, open(os.path.join(d2, "script.json"), "w"))
+t("script/meta一致→synced", rs.compute_preview_state(d2) == "synced")
+json.dump({"script": [{"speaker": "A", "text": "あ", "chapter": 0, "vizPoints": [{"type": "reveal", "pos": 0}]}]},
+          open(os.path.join(d2, "script.json"), "w"))
+t("演出差→visual-stale", rs.compute_preview_state(d2) == "visual-stale")
+json.dump({"script": [{"speaker": "A", "text": "ちがう", "chapter": 0}]}, open(os.path.join(d2, "script.json"), "w"))
+t("音声差→audio-stale", rs.compute_preview_state(d2) == "audio-stale")
+t("meta無し→synced", rs.compute_preview_state(tempfile.mkdtemp()) == "synced")
+
 print("ALL PASS (%d)" % passed)

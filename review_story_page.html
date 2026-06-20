@@ -482,7 +482,7 @@ function speakerColor(n){ if(/ずんだ/.test(n))return '#3fa34d'; if(/めたん
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function imgUrl(ci,k){ const c=cutMap[ci+'_'+k]; return (c&&c.image)?('/img/'+ci+'_'+k+'?v='+Date.now()):null; }
 // review.json からカット情報(画像/出典/調整)を取り直して cutMap を更新（差し替え後にクレジット等を反映）。
-async function refreshCuts(){ const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c); markVisualStale(); }
+async function refreshCuts(){ const rev=await (await fetch('/api/cuts')).json(); CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c); }
 function fmtKB(b){ if(b==null) return '?'; return b<1024? b+'B' : b<1048576? Math.round(b/1024)+'KB' : (b/1048576).toFixed(1)+'MB'; }
 // 入力/プルダウンに小さなラベルを上付けする（何の項目か分かるように）
 function fl(text, el){ const w=document.createElement('label'); w.className='fl';
@@ -766,7 +766,7 @@ function buildAdjust(ci,k){
   // 差し替えファイル
   const fileL=document.createElement('label'); fileL.className='mini'; fileL.style.cursor='pointer'; fileL.textContent='差し替え';
   const file=document.createElement('input'); file.type='file'; file.accept='image/*'; file.style.display='none'; fileL.appendChild(file);
-  const onNew=async(fn)=>{ await refreshCuts(); render(); };  // 差し替え後はサーバ値(出典/調整リセット)で更新
+  const onNew=async(fn)=>{ await refreshCuts(); markVisualStale(); render(); };  // 差し替え後はサーバ値(出典/調整リセット)で更新
   file.onchange=()=>{ const f=file.files[0]; if(!f)return; const rd=new FileReader();
     rd.onload=async()=>{ const r=await api('/api/replace',{key,filename:f.name,dataB64:rd.result.split(',')[1],attribution:''}); r.ok?onNew(r.filename):alert(r.message||'失敗'); };
     rd.readAsDataURL(f); };
@@ -1482,7 +1482,7 @@ function renderLegacy(){  // 旧アコーディオン版（未使用・参考保
           const ky=ci+'_'+k;
           // 差し替えなのでクレジットは引き継がない（''）→ URL取り込みは出典URLが入る。差し替え後はサーバ値で更新。
           const res=await dropImport(ky, e.dataTransfer, '');
-          if(res && res.ok){ await refreshCuts(); render(); }
+          if(res && res.ok){ await refreshCuts(); markVisualStale(); render(); }
           else if(res){ alert(res.message||'取り込み失敗'); } });
         const q=document.createElement('input'); q.type='text'; q.className='q'; q.placeholder='英語の検索語';
         q.value=cut.image_query||''; q.onchange=()=>cut.image_query=q.value;
@@ -2517,7 +2517,7 @@ function renderImageTab(r,tn,ch,ci){
     DATA.script.forEach(t=>{ if(t.chapter!==ci||typeof t.cut!=='number') return;
       if(t.cut>cur) t.cut--; else if(t.cut===cur) t.cut=Math.min(cur,Math.max(0,newLen-1)); });
     await api('/api/script', DATA); await api('/api/delete-cut',{ch:ci,ci:cur});
-    await refreshCuts(); render();
+    await refreshCuts(); markVisualStale(); render();
   }); delc.style.color='#c66'; orow.appendChild(delc);
   r.appendChild(orow);
   // 調整（クロップ/補正/差し替え/D&D）はトグル
@@ -2681,10 +2681,11 @@ Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>
              fetch('/api/status').then(r=>r.json())])
 .then(([s,rev,st])=>{
   if(st&&st.target){ TARGET_CHARS=st.target.chars; TARGET_LABEL=st.target.label; }  // ショート/本編で目標切替
+  if(st&&st.previewState) previewState=st.previewState;  // 再読込後もプレビュー状態を維持（サーバがscript/meta比較）
   if(s.error){ document.getElementById('main').textContent=s.error; return; }
   DATA=s; CUTS=rev.cuts||[]; cutMap={}; CUTS.forEach(c=>cutMap[c.ch+'_'+c.ci]=c);
   if(DATA.chapters&&DATA.chapters.length) OPEN.add(0);  // 先頭は開いておく
-  render();
+  render(); updateSaveBtn();
 });
 </script>
 </body></html>
