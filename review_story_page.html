@@ -453,6 +453,8 @@ function rightDefaultTab(authority, inViz){
 // 画像タブの中身：editor=新(cueベース) / legacy=旧(image_cuts/review)。
 // editor時に旧 renderImageTab(image_cuts/review編集)へ到達させないための分岐キー（テスト可能）。
 function imageTabKind(authority){ return authority==='editor' ? 'editor' : 'legacy'; }
+// 大演出タブの中身：editor=visualSegments編集 / legacy=旧vizList編集（editor時に旧UIへ行かせない）。
+function vizTabKind(authority){ return authority==='editor' ? 'editor' : 'legacy'; }
 // 移行の手順（純関数・テスト可能）：確認→現DATA保存→成功時のみ移行→reload。
 // 保存失敗時は移行せずreloadもしない（中途半端な状態を作らない）。di依存を排しI/Oは注入。
 async function runMigrate(confirmFn, saveFn, migrateFn, reloadFn, alertFn){
@@ -2593,7 +2595,7 @@ function renderRight(){
     smallPanel.appendChild(sn);
   }
   if(cur==='image'){ if(imageTabKind((DATA||{}).editorModelAuthority)==='editor') renderEditorImageTab(r,tn); else renderImageTab(r,tn,ch,ci); }
-  else if(cur==='viz') renderVizTab(r,tn,ch,ci);
+  else if(cur==='viz'){ if(vizTabKind((DATA||{}).editorModelAuthority)==='editor') renderEditorVizTab(r,tn); else renderVizTab(r,tn,ch,ci); }
   else if(cur==='small') r.appendChild(smallPanel);
   else if(cur==='assets') renderAssetTab(r);
   else renderChapterTab(r,ch,ci);
@@ -2877,6 +2879,125 @@ function buildEditorAdjust(cue, asset){
     if(imgEl.complete) sched(); else imgEl.onload=sched;
     bindCropDrag(crop,imgEl,rectEl,(c)=>commit({crop:c}),drawCrop); }
   return wrap;
+}
+
+// ===== Phase3 3-A：大演出(visualSegments)編集ペイン（editor権威・cueと同じくサーバ共通op経由） =====
+const VIZ_TYPE_LABEL={panel:'解説パネル',quiz:'クイズ',compare:'比較',stat:'数字強調',callouts:'注釈'};
+function vizDefaultConfig(type){ return ({
+  quiz:{quiz:{question:'',answer:''}}, stat:{stat:{value:'',unit:'',label:''}},
+  panel:{panel:{items:[{text:''}]}}, compare:{compare:{left:{label:''},right:{label:''}}},
+  callouts:{callouts:[{text:''}]} })[type]||{}; }
+async function vizOp(params){
+  const r=await api('/api/editor/viz-op', Object.assign({data:DATA}, params));
+  if(!r||!r.ok){ alert('大演出の操作に失敗: '+((r&&r.message)||'不明')); return null; }
+  DATA=r.data; markVisualStale(); return r;
+}
+function segBoundsGi(seg){ const m=_turnIndexMap(); const s=m[seg.startTurnId], e=m[seg.endTurnId]; return (s==null||e==null)?null:[s,e]; }
+function findSeg(id){ return (DATA.visualSegments||[]).find(s=>s.id===id)||null; }
+function segCoversGi(seg,gi){ const b=segBoundsGi(seg); return !!(b && seg.status!=='orphaned' && b[0]<=gi && gi<=b[1]); }
+// セグメント種別ごとの変化点候補（keyframeの追加メニュー用）。
+function vizAnchorOptions(seg){ const t=seg.type, cfg=seg.config||{};
+  if(t==='panel'){ const items=(cfg.panel&&cfg.panel.items)||[]; const o=items.map((it,k)=>({type:'panel_item',value:k,label:'項目'+(k+1)})); o.push({type:'panel_event',label:'縮小'}); return o; }
+  if(t==='quiz') return [{type:'reveal',label:'答え'}];
+  if(t==='stat') return [{type:'reveal',label:'数字を出す'}];
+  if(t==='compare') return [{type:'compare_item',value:0,label:'左'},{type:'compare_item',value:1,label:'右(分割)'}];
+  if(t==='callouts'){ const cs=cfg.callouts||[]; return cs.map((c,k)=>({type:'callout_item',value:k,label:'注'+(k+1)})); }
+  return []; }
+function kfLabel(seg,kf){ const opt=vizAnchorOptions(seg).find(o=>o.type===kf.type && (o.value==null||o.value===kf.value));
+  return (opt?opt.label:kf.type)+(kf.pos!=null?('（文字'+kf.pos+'）'):''); }
+function vizTurnSelect(ci,currentId,onPick){ const sel=document.createElement('select');
+  (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci)return; const o=document.createElement('option'); o.value=t.id;
+    const within=(DATA.script||[]).filter((x,j)=>x.chapter===ci&&j<=gi).length;
+    o.textContent='#'+within+' '+((t.text||'').slice(0,10)); if(t.id===currentId)o.selected=true; sel.appendChild(o); });
+  sel.onchange=()=>onPick(sel.value); return sel; }
+// config編集：未知キーを保たつつ field を変更して setConfig（サーバが正規化保存）。
+function vizConfigEditor(seg){
+  const wrap=document.createElement('div'); wrap.style.cssText='margin:6px 0';
+  const cfg=JSON.parse(JSON.stringify(seg.config||{}));
+  const commit=async()=>{ const ok=await vizOp({op:'setConfig', segId:seg.id, config:cfg}); if(ok) renderRight(); };
+  const field=(label,val,on)=>{ const w=document.createElement('label'); w.style.cssText='display:block;font-size:11px;color:var(--sub);margin:4px 0';
+    w.appendChild(document.createTextNode(label)); const i=document.createElement('input'); i.type='text'; i.value=val||''; i.style.cssText='width:100%';
+    i.onchange=()=>{ on(i.value); commit(); }; w.appendChild(i); return w; };
+  const t=seg.type;
+  if(t==='quiz'){ cfg.quiz=cfg.quiz||{}; wrap.appendChild(field('問題文',cfg.quiz.question,v=>cfg.quiz.question=v)); wrap.appendChild(field('答え',cfg.quiz.answer,v=>cfg.quiz.answer=v)); }
+  else if(t==='stat'){ cfg.stat=cfg.stat||{}; wrap.appendChild(field('数値',cfg.stat.value,v=>cfg.stat.value=v)); wrap.appendChild(field('単位',cfg.stat.unit,v=>cfg.stat.unit=v)); wrap.appendChild(field('ラベル',cfg.stat.label,v=>cfg.stat.label=v)); }
+  else if(t==='compare'){ cfg.compare=cfg.compare||{left:{},right:{}}; cfg.compare.left=cfg.compare.left||{}; cfg.compare.right=cfg.compare.right||{};
+    wrap.appendChild(field('左ラベル',cfg.compare.left.label,v=>cfg.compare.left.label=v)); wrap.appendChild(field('右ラベル',cfg.compare.right.label,v=>cfg.compare.right.label=v)); }
+  else if(t==='panel'||t==='callouts'){
+    const isPanel=t==='panel'; const list=isPanel?((cfg.panel=cfg.panel||{items:[]}).items=cfg.panel.items||[]):(cfg.callouts=cfg.callouts||[]);
+    const lab=document.createElement('div'); lab.style.cssText='font-size:11px;color:var(--sub)'; lab.textContent=isPanel?'パネル項目':'注釈'; wrap.appendChild(lab);
+    list.forEach((it,k)=>{ const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;margin:3px 0';
+      const i=document.createElement('input'); i.type='text'; i.value=it.text||''; i.style.flex='1'; i.onchange=()=>{ it.text=i.value; commit(); };
+      const del=document.createElement('button'); del.className='mini'; del.textContent='×'; del.onclick=()=>{ list.splice(k,1); commit(); };
+      row.appendChild(i); row.appendChild(del); wrap.appendChild(row); });
+    const add=document.createElement('button'); add.className='mini'; add.textContent=isPanel?'＋項目':'＋注釈'; add.onclick=()=>{ list.push({text:''}); commit(); }; wrap.appendChild(add);
+  }
+  return wrap;
+}
+function renderEditorVizTab(r,tn){
+  const ci=tn.chapter;
+  const inCh=(DATA.visualSegments||[]).filter(s=>s.sourceChapter===ci);
+  const active=inCh.filter(s=>s.status!=='orphaned'), orphaned=inCh.filter(s=>s.status==='orphaned');
+  // ＋大演出（選択セリフを開始に追加）
+  const addRow=document.createElement('div'); addRow.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
+  const ts=document.createElement('select'); const o0=document.createElement('option'); o0.value=''; o0.textContent='＋大演出を追加…'; ts.appendChild(o0);
+  Object.keys(VIZ_TYPE_LABEL).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=VIZ_TYPE_LABEL[k]; ts.appendChild(o); });
+  ts.onchange=async()=>{ const t=ts.value; if(!t)return; const ok=await vizOp({op:'addSeg', segType:t, startTurnId:tn.id, config:vizDefaultConfig(t)}); if(ok){ rtab='viz'; renderRight(); } };
+  addRow.appendChild(ts); r.appendChild(addRow);
+  // orphaned 警告＋修復
+  orphaned.forEach(s=>{ const w=document.createElement('div'); w.style.cssText='border:1px solid #b5532a;border-radius:6px;padding:6px;margin-bottom:6px;font-size:11px;color:#e0a060';
+    w.textContent='⚠ 無効な大演出（'+(VIZ_TYPE_LABEL[s.type]||s.type)+'・理由:'+(s.orphanReason||'?')+'）。範囲を直すと復活します。';
+    const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap';
+    let st=s.startTurnId, en=s.endTurnId;
+    row.appendChild(document.createTextNode('開始')); row.appendChild(vizTurnSelect(ci, st, v=>st=v));
+    row.appendChild(document.createTextNode('終了')); row.appendChild(vizTurnSelect(ci, en, v=>en=v));
+    row.appendChild(vMini('修復', async()=>{ const ok=await vizOp({op:'setRange', segId:s.id, startTurnId:st, endTurnId:en}); if(ok){ selSeg=s.id; renderRight(); } }));
+    row.appendChild(vMini('削除', async()=>{ if(!confirm('この大演出を削除しますか？'))return; const ok=await vizOp({op:'delSeg', segId:s.id}); if(ok) renderRight(); }));
+    w.appendChild(row); r.appendChild(w); });
+  if(!active.length){ const n=document.createElement('div'); n.style.cssText='font-size:11px;color:var(--sub)'; n.textContent='この章に大演出はありません。上の「＋大演出を追加」で作成できます。'; r.appendChild(n); return; }
+  // 一覧（選択セリフを覆うものを強調）。
+  const lr=document.createElement('div'); lr.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px';
+  active.forEach((s,i)=>{ const b=document.createElement('button'); b.type='button';
+    b.className='vchip'+(selSeg===s.id?' on':'')+(segCoversGi(s,selGi)?'':''); b.textContent=(VIZ_TYPE_LABEL[s.type]||s.type)+(segCoversGi(s,selGi)?'●':'');
+    b.title=segCoversGi(s,selGi)?'選択セリフを含む':''; b.onclick=()=>{ selSeg=s.id; const bd=segBoundsGi(s); if(bd) selectTurn(bd[0]); else renderRight(); }; lr.appendChild(b); });
+  r.appendChild(lr);
+  // 選択中（無ければ選択セリフを覆う先頭）。
+  let cur=findSeg(selSeg); if(!cur||cur.sourceChapter!==ci||cur.status==='orphaned'){ cur=active.find(s=>segCoversGi(s,selGi))||active[0]; selSeg=cur?cur.id:null; }
+  if(!cur) return;
+  const bd=segBoundsGi(cur);
+  const box=document.createElement('div'); box.style.cssText='border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:4px';
+  const hd=document.createElement('div'); hd.style.cssText='font-size:12px;font-weight:700;color:#c4a8ff;margin-bottom:4px'; hd.textContent=VIZ_TYPE_LABEL[cur.type]||cur.type; box.appendChild(hd);
+  // 範囲
+  const rr=document.createElement('div'); rr.style.cssText='display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--sub);margin-bottom:6px';
+  let cs=cur.startTurnId, ce2=cur.endTurnId;
+  rr.appendChild(document.createTextNode('範囲 開始')); rr.appendChild(vizTurnSelect(ci, cs, async v=>{ const ok=await vizOp({op:'setRange', segId:cur.id, startTurnId:v, endTurnId:ce2}); if(ok) renderRight(); }));
+  rr.appendChild(document.createTextNode('終了')); rr.appendChild(vizTurnSelect(ci, ce2, async v=>{ const ok=await vizOp({op:'setRange', segId:cur.id, startTurnId:cs, endTurnId:v}); if(ok) renderRight(); }));
+  box.appendChild(rr);
+  box.appendChild(lblDiv('内容'));
+  box.appendChild(vizConfigEditor(cur));
+  // 変化点（keyframes）
+  box.appendChild(lblDiv('変化点（このセグメント内）'));
+  const kfs=cur.keyframes||[];
+  if(kfs.length){ kfs.forEach(kf=>{ const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;align-items:center;font-size:11px;margin:2px 0';
+    const gi=turnGi(kf.turnId); const within=gi>=0?(DATA.script||[]).filter((x,j)=>x.chapter===ci&&j<=gi).length:'?';
+    const s=document.createElement('span'); s.style.flex='1'; s.textContent='◆'+kfLabel(cur,kf)+' @#'+within; row.appendChild(s);
+    row.appendChild(vMini('×', async()=>{ const ok=await vizOp({op:'delKf', segId:cur.id, kfId:kf.id}); if(ok) renderRight(); }));
+    box.appendChild(row); }); }
+  else { const e=document.createElement('div'); e.style.cssText='font-size:11px;color:var(--sub)'; e.textContent='変化点なし'; box.appendChild(e); }
+  // ＋変化点（選択セリフが範囲内なら、未配置の候補を追加）
+  if(bd && bd[0]<=selGi && selGi<=bd[1]){
+    const placed=new Set(kfs.map(k=>k.type+':'+(k.value==null?'':k.value)));
+    const un=vizAnchorOptions(cur).filter(o=>!placed.has(o.type+':'+(o.value==null?'':o.value)));
+    if(un.length){ const sel=document.createElement('select'); const a0=document.createElement('option'); a0.value=''; a0.textContent='＋変化点を選択セリフへ'; sel.appendChild(a0);
+      un.forEach((o,i)=>{ const op=document.createElement('option'); op.value=i; op.textContent=o.label; sel.appendChild(op); });
+      sel.onchange=async()=>{ const o=un[+sel.value]; if(!o)return; const ok=await vizOp({op:'addKf', segId:cur.id, turnId:tn.id, kfType:o.type, value:o.value}); if(ok) renderRight(); };
+      box.appendChild(sel); }
+  } else { const n=document.createElement('div'); n.style.cssText='font-size:10px;color:var(--sub);margin-top:4px'; n.textContent='変化点を足すには、範囲内のセリフを選んでください。'; box.appendChild(n); }
+  // 削除
+  const del=document.createElement('div'); del.style.cssText='margin-top:8px';
+  del.appendChild(vMini('この大演出を削除', async()=>{ if(!confirm('この大演出を削除しますか？'))return; const ok=await vizOp({op:'delSeg', segId:cur.id}); if(ok){ selSeg=null; renderRight(); } }));
+  box.appendChild(del);
+  r.appendChild(box);
 }
 
 function framePrev(ci,k,cut){

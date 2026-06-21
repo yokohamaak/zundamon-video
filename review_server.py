@@ -1032,6 +1032,56 @@ def do_cue_op(body):
     return {"ok": True, "data": norm}
 
 
+def do_viz_op(body):
+    """大演出(visualSegments/keyframes)の編集操作を editor_model 共通opへ集約（editor権威のみ）。
+
+    検証（章跨ぎ・範囲重複・範囲逆転・keyframe重複・範囲外）はすべて editor_model 側。成功時のみ
+    原子的に保存し正規化結果を返す。op: addSeg|setRange|delSeg|setConfig|addKf|moveKf|delKf。
+    """
+    from src import editor_model as em
+    data = body.get("data") or {}
+    if data.get("editorModelAuthority") != "editor":
+        return {"ok": False, "message": "editor権威ではありません"}
+    op = body.get("op")
+    try:
+        if op == "addSeg":
+            em.add_visual_segment(data, seg_type=body["segType"], start_turn_id=body["startTurnId"],
+                                  end_turn_id=body.get("endTurnId"), config=body.get("config"))
+        elif op == "setRange":
+            kw = {}
+            if body.get("startTurnId") is not None:
+                kw["start_turn_id"] = body["startTurnId"]
+            if body.get("endTurnId") is not None:
+                kw["end_turn_id"] = body["endTurnId"]
+            em.set_segment_range(data, body["segId"], **kw)
+        elif op == "delSeg":
+            em.delete_visual_segment(data, body["segId"])
+        elif op == "setConfig":
+            em.set_segment_config(data, body["segId"], body.get("config") or {})
+        elif op == "addKf":
+            em.add_keyframe(data, body["segId"], turn_id=body["turnId"], kf_type=body["kfType"],
+                            value=body.get("value"), pos=body.get("pos"))
+        elif op == "moveKf":
+            kw = {}
+            if "turnId" in body:
+                kw["turn_id"] = body["turnId"]
+            if body.get("clearPos"):
+                kw["pos"] = None
+            elif "pos" in body:
+                kw["pos"] = body["pos"]
+            em.move_keyframe(data, body["segId"], body["kfId"], **kw)
+        elif op == "delKf":
+            em.delete_keyframe(data, body["segId"], body["kfId"])
+        else:
+            return {"ok": False, "message": f"unknown op: {op}"}
+    except (ValueError, KeyError) as e:
+        return {"ok": False, "message": str(e)}
+    ok, msg, norm = _save_editor_data(data)
+    if not ok:
+        return {"ok": False, "message": msg}
+    return {"ok": True, "data": norm}
+
+
 def cut_key(cut):
     return f"{cut['ch']}_{cut['ci']}"
 
@@ -2129,6 +2179,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/editor/cue-op":
             self._json(do_cue_op(body))
+            return
+        if path == "/api/editor/viz-op":
+            self._json(do_viz_op(body))
             return
         if path == "/api/approve":
             ok = apply_approve(review, body.get("key"), body.get("approved", True))

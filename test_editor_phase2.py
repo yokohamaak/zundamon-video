@@ -1001,6 +1001,59 @@ def test_real_data_build_meta_viz_equivalence():
     ok("editor build_meta は冪等", again["topics"] == editor_meta["topics"])
 
 
+def test_viz_op_endpoint_roundtrip():
+    import shutil as _sh
+    import tempfile as _tf
+    import review_server as rs
+    d = _tf.mkdtemp()
+    json.dump(_multichapter(), open(os.path.join(d, "script.json"), "w"))  # 2章×3・移行済segなし
+    old = rs.DIR
+    try:
+        rs.DIR = d
+        cur = json.load(open(os.path.join(d, "script.json")))
+        r1 = rs.do_viz_op({"data": cur, "op": "addSeg", "segType": "quiz",
+                           "startTurnId": "turn-0001", "endTurnId": "turn-0002",
+                           "config": {"quiz": {"question": "q", "answer": "a"}}})
+        add_ok = r1["ok"] and len(r1["data"]["visualSegments"]) == 1
+        disk_ok = len(json.load(open(os.path.join(d, "script.json")))["visualSegments"]) == 1
+        cur = r1["data"]; seg = cur["visualSegments"][0]
+        overlap_rej = rs.do_viz_op({"data": cur, "op": "addSeg", "segType": "panel",
+                                    "startTurnId": "turn-0002", "endTurnId": "turn-0003"})["ok"] is False
+        cross_rej = rs.do_viz_op({"data": cur, "op": "addSeg", "segType": "panel",
+                                  "startTurnId": "turn-0003", "endTurnId": "turn-0004"})["ok"] is False
+        r4 = rs.do_viz_op({"data": cur, "op": "addKf", "segId": seg["id"],
+                           "turnId": "turn-0002", "kfType": "reveal"})
+        kf_ok = r4["ok"] and r4["data"]["visualSegments"][0]["keyframes"]
+        cur = r4["data"]
+        kf_dup_rej = rs.do_viz_op({"data": cur, "op": "addKf", "segId": seg["id"],
+                                   "turnId": "turn-0001", "kfType": "reveal"})["ok"] is False
+        r6 = rs.do_viz_op({"data": cur, "op": "setConfig", "segId": seg["id"],
+                           "config": {"quiz": {"question": "q2", "answer": "a2"}}})
+        cfg_ok = r6["ok"] and r6["data"]["visualSegments"][0]["config"]["quiz"]["question"] == "q2"
+        cur = r6["data"]
+        r7 = rs.do_viz_op({"data": cur, "op": "setRange", "segId": seg["id"],
+                           "startTurnId": "turn-0001", "endTurnId": "turn-0003"})
+        range_ok = r7["ok"] and r7["data"]["visualSegments"][0]["endTurnId"] == "turn-0003"
+        cur = r7["data"]
+        kfid = cur["visualSegments"][0]["keyframes"][0]["id"]
+        cur = rs.do_viz_op({"data": cur, "op": "delKf", "segId": seg["id"], "kfId": kfid})["data"]
+        r9 = rs.do_viz_op({"data": cur, "op": "delSeg", "segId": seg["id"]})
+        del_ok = r9["ok"] and not r9["data"]["visualSegments"]
+        leg = {k: v for k, v in cur.items() if k != "editorModelAuthority"}
+        leg_rej = rs.do_viz_op({"data": leg, "op": "delSeg", "segId": "x"})["ok"] is False
+    finally:
+        rs.DIR = old
+        _sh.rmtree(d, ignore_errors=True)
+    ok("viz-op addSeg＋disk保存", add_ok and disk_ok)
+    ok("viz-op 範囲重複を拒否", overlap_rej)
+    ok("viz-op 章跨ぎを拒否", cross_rej)
+    ok("viz-op addKf＋同一keyframe拒否", kf_ok and kf_dup_rej)
+    ok("viz-op setConfig", cfg_ok)
+    ok("viz-op setRange", range_ok)
+    ok("viz-op delKf/delSeg", del_ok)
+    ok("viz-op legacyデータ拒否", leg_rej)
+
+
 # ===== 実データ：legacy/editor の meta 等価性（機械比較） =====
 
 def test_real_data_legacy_editor_meta_equivalence():
@@ -1087,6 +1140,7 @@ if __name__ == "__main__":
     test_normalize_resolves_overlap_and_kf_dup()
     test_orphaned_segment_repair_keeps_inrange_keyframes()
     test_chapter2_segment_renders_in_meta()
+    test_viz_op_endpoint_roundtrip()
     test_real_data_build_meta_viz_equivalence()
     test_switch_to_editor_atomic()
     test_switch_then_legacy_change_ignored()

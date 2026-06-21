@@ -21,7 +21,8 @@ function extractFn(name) {
 
 const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate', 'hideToggleOp',
   '_turnIndexMap', 'resolveCueJS', 'computeImagePlan', 'createAsyncQueue',
-  'cueSpans', 'endDragIsContinue', 'spanUnderViz'];
+  'cueSpans', 'endDragIsContinue', 'spanUnderViz',
+  'vizTabKind', 'vizAnchorOptions', 'vizDefaultConfig'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 
@@ -130,6 +131,25 @@ t('crop枠は添付後に描く（requestAnimationFrameで遅延）', () => {
   assert.ok((html.match(/requestAnimationFrame\(drawCrop\)/g) || []).length >= 2,
     'legacy/editor両方でrAF遅延描画');
   assert.ok(!/imgEl\.complete\?drawCrop\(\)/.test(html), '同期drawCrop()呼び出しは残っていない');
+});
+
+// --- 大演出(visualSegments)エディタの純関数 ---
+t('vizTabKind: editor=新エディタ / legacy=旧', () => {
+  assert.equal(vizTabKind('editor'), 'editor');
+  assert.equal(vizTabKind(undefined), 'legacy');
+});
+t('vizDefaultConfig: 型ごとの初期config', () => {
+  assert.ok(vizDefaultConfig('quiz').quiz);
+  assert.ok(vizDefaultConfig('panel').panel.items.length === 1);
+  assert.ok(vizDefaultConfig('compare').compare.left && vizDefaultConfig('compare').compare.right);
+});
+t('vizAnchorOptions: 型ごとの変化点候補', () => {
+  const panel = vizAnchorOptions({ type: 'panel', config: { panel: { items: [{}, {}] } } });
+  assert.ok(panel.some(o => o.type === 'panel_item' && o.value === 1));
+  assert.ok(panel.some(o => o.type === 'panel_event'));
+  assert.deepEqual(vizAnchorOptions({ type: 'quiz', config: {} }).map(o => o.type), ['reveal']);
+  const cmp = vizAnchorOptions({ type: 'compare', config: {} });
+  assert.deepEqual(cmp.map(o => o.value), [0, 1]);
 });
 
 // --- runMigrate ---
