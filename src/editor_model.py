@@ -18,6 +18,7 @@ import copy
 import datetime
 import json
 import os
+import re
 import shutil
 
 SCHEMA_VERSION = 2
@@ -444,3 +445,354 @@ def migrate_dir(dir_path, persist=False, backups_root=".backups"):
         with open(sp, "w", encoding="utf-8") as f:
             json.dump(migrated, f, ensure_ascii=False, indent=2)
     return migrated
+
+
+# ============================================================================
+# Phase 2: 画像編集（assets / imageCues）の共通操作・正規化・meta解決・authority切替
+# ----------------------------------------------------------------------------
+# 設計方針（dev-thoroughness-checklist / Phase 2指示書）:
+#   - 検証/ID発行/整合(normalize/reconcile)はここへ集約し、全UI経路から呼ぶ前提の純関数にする。
+#   - 配列を直接書き換えず、必ずこの関数群を通す（追加/差し替え/移動/範囲変更/削除/並べ替え）。
+#   - 0 / null / 未指定 を同一視しない（pad:0・crop座標0・空配列を欠損扱いしない）。
+#   - imageCue は turnId(開始) を必須、endTurnId(終了) は任意。endTurnId が無ければ「次のcueまで継続」。
+#     これにより Phase 1 の移行出力（endTurnId 無し＝継続）と完全に等価のまま、UI で範囲も持てる。
+# ============================================================================
+
+# 表示調整キー（asset でなく cue 側に持つ。同素材を別クロップで複数配置できるようにするため）。
+CUE_OPT_KEYS = ("fit", "crop", "filter", "pad", "bg")
+
+
+def _turn_index(script):
+    """turnId → script内index（最初の出現を採用。重複は assign_turn_ids 側で解消済みの前提）。"""
+    idx = {}
+    for i, t in enumerate(script or []):
+        tid = t.get("id")
+        if tid is not None and tid not in idx:
+            idx[tid] = i
+    return idx
+
+
+def _next_seq_id(existing, prefix):
+    """prefix + 連番(4桁) で existing と衝突しない ID を返す（再利用しない）。"""
+    n = 1
+    while True:
+        cand = f"{prefix}{n:04d}"
+        if cand not in existing:
+            return cand
+        n += 1
+
+
+def _asset_origin(asset):
+    """asset の生成元 (chapter, cut)。移行ID 'asset-CC-II' から決定的に復元（未取得時のplaceholder名用）。"""
+    m = re.match(r"asset-(\d+)-(\d+)$", str(asset.get("id") or ""))
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    sc = asset.get("sourceChapter")
+    return (sc if isinstance(sc, int) else 0), 0
+
+
+# ---- assets 操作 ----
+
+def find_asset(data, asset_id):
+    return next((a for a in data.get("assets") or [] if a.get("id") == asset_id), None)
+
+
+def add_asset(data, *, file=None, query=None, queryJa=None, kind=None,
+              attribution=None, sourceChapter=None):
+    """素材を1件追加して返す（ID は既存と衝突しない asset-NNNN を採番）。"""
+    assets = data.setdefault("assets", [])
+    aid = _next_seq_id({a.get("id") for a in assets}, "asset-")
+    asset = {"id": aid, "file": file, "query": _clean_str(query), "queryJa": _clean_str(queryJa),
+             "kind": _clean_str(kind), "attribution": _clean_str(attribution),
+             "sourceChapter": sourceChapter}
+    assets.append(asset)
+    return asset
+
+
+def asset_usage(data, asset_id):
+    """その asset を参照している imageCue の ID 一覧（使用中判定・削除可否・共有判定に使う）。"""
+    return [c.get("id") for c in data.get("imageCues") or [] if c.get("assetId") == asset_id]
+
+
+def can_delete_asset(data, asset_id):
+    """参照 cue が無ければ削除可。使用中の素材は無条件削除しない（plan 5.1）。"""
+    return not asset_usage(data, asset_id)
+
+
+def delete_asset(data, asset_id, *, force=False):
+    """素材を削除。参照 cue があれば force 必須（明示的な一括解除）。
+
+    force のとき参照 cue も削除する（ファイル本体は消さない＝呼び出し側の責務）。
+    Returns: 削除した cue ID 一覧。参照ありで force=False なら ValueError。
+    """
+    used = asset_usage(data, asset_id)
+    if used and not force:
+        raise ValueError(f"asset {asset_id} は {len(used)} 件の cue から参照中（force 指定で一括解除）")
+    removed = []
+    if force and used:
+        keep = [c for c in data.get("imageCues") or [] if c.get("assetId") != asset_id]
+        removed = used
+        data["imageCues"] = keep
+    data["assets"] = [a for a in data.get("assets") or [] if a.get("id") != asset_id]
+    return removed
+
+
+def unused_assets(data):
+    """どの cue からも参照されていない asset の ID 一覧（「未使用」フィルタ用）。"""
+    used = {c.get("assetId") for c in data.get("imageCues") or []}
+    return [a.get("id") for a in data.get("assets") or [] if a.get("id") not in used]
+
+
+def broken_cue_refs(data):
+    """assetId が存在しない asset を指す cue の ID 一覧（「壊れた参照」＝未使用assetとは区別）。"""
+    ids = {a.get("id") for a in data.get("assets") or []}
+    return [c.get("id") for c in data.get("imageCues") or []
+            if c.get("assetId") is not None and c.get("assetId") not in ids]
+
+
+# ---- imageCues 操作 ----
+
+def _apply_cue_opts(cue, opts):
+    """cue へ表示調整値を適用。0/空文字/None を区別して保持（pad:0 を落とさない）。hide は bool 化。"""
+    for k in CUE_OPT_KEYS:
+        if k in opts:
+            cue[k] = opts[k]
+    if "hide" in opts:
+        cue["hide"] = bool(opts["hide"])
+    return cue
+
+
+def _new_cue(data, turn_id, asset_id, end_turn_id, opts):
+    cues = data.setdefault("imageCues", [])
+    cid = _next_seq_id({c.get("id") for c in cues}, "image-cue-")
+    cue = {"id": cid, "turnId": turn_id, "assetId": asset_id,
+           "fit": None, "crop": None, "filter": None, "pad": 0, "bg": None, "hide": False}
+    if end_turn_id is not None:
+        cue["endTurnId"] = end_turn_id
+    _apply_cue_opts(cue, opts)
+    cues.append(cue)
+    return cue
+
+
+def find_cue(data, cue_id):
+    return next((c for c in data.get("imageCues") or [] if c.get("id") == cue_id), None)
+
+
+def cue_at(data, turn_id):
+    """その turnId を開始位置に持つ cue（差し替え/追加の判定用）。無ければ None。"""
+    return next((c for c in data.get("imageCues") or [] if c.get("turnId") == turn_id), None)
+
+
+def add_cue(data, turn_id, asset_id=None, *, end_turn_id=None, **opts):
+    """指定セリフを開始位置に画像 cue を追加する。turnId はスクリプトに存在必須。"""
+    if turn_id not in _turn_index(data.get("script") or []):
+        raise ValueError(f"turnId {turn_id} がスクリプトに存在しません")
+    return _new_cue(data, turn_id, asset_id, end_turn_id, opts)
+
+
+def place_image(data, turn_id, asset_id, **opts):
+    """plan 3.4 の配置規則：開始位置に既存 cue があれば素材を差し替え、無ければ追加（add-or-replace）。"""
+    existing = cue_at(data, turn_id)
+    if existing is not None:
+        existing["assetId"] = asset_id
+        _apply_cue_opts(existing, opts)
+        return existing
+    return add_cue(data, turn_id, asset_id, **opts)
+
+
+def replace_cue_asset(data, cue_id, asset_id):
+    """cue の参照素材だけ差し替える（表示調整はそのまま＝同位置で別画像へ）。"""
+    cue = find_cue(data, cue_id)
+    if cue is None:
+        raise ValueError(f"cue {cue_id} がありません")
+    cue["assetId"] = asset_id
+    return cue
+
+
+def move_cue(data, cue_id, new_turn_id):
+    """cue の開始セリフを変更（タイムラインの左端ドラッグ）。turnId は存在必須。"""
+    cue = find_cue(data, cue_id)
+    if cue is None:
+        raise ValueError(f"cue {cue_id} がありません")
+    if new_turn_id not in _turn_index(data.get("script") or []):
+        raise ValueError(f"turnId {new_turn_id} がスクリプトに存在しません")
+    cue["turnId"] = new_turn_id
+    return cue
+
+
+def set_cue_range(data, cue_id, *, start_turn_id=None, end_turn_id="__keep__"):
+    """cue の開始/終了セリフを調整。end_turn_id=None で「次のcueまで継続」へ戻す。
+
+    start_turn_id 省略時は変更しない。end_turn_id は明示時のみ変更（"__keep__"=据え置き）。
+    """
+    cue = find_cue(data, cue_id)
+    if cue is None:
+        raise ValueError(f"cue {cue_id} がありません")
+    idx = _turn_index(data.get("script") or [])
+    if start_turn_id is not None:
+        if start_turn_id not in idx:
+            raise ValueError(f"turnId {start_turn_id} がスクリプトに存在しません")
+        cue["turnId"] = start_turn_id
+    if end_turn_id != "__keep__":
+        if end_turn_id is None:
+            cue.pop("endTurnId", None)
+        else:
+            if end_turn_id not in idx:
+                raise ValueError(f"turnId {end_turn_id} がスクリプトに存在しません")
+            cue["endTurnId"] = end_turn_id
+    return cue
+
+
+def delete_cue(data, cue_id):
+    """cue を削除（素材ファイルは消さない＝直前の画像が継続）。"""
+    before = data.get("imageCues") or []
+    data["imageCues"] = [c for c in before if c.get("id") != cue_id]
+    return len(data["imageCues"]) != len(before)
+
+
+# ---- normalize / reconcile ----
+
+def normalize_cues(data):
+    """imageCues の構造を正規化（in-place）。冪等。
+
+    - 孤立参照: turnId がスクリプトに無い cue は除去。
+    - 範囲逆転: endTurnId の index が turnId より前なら endTurnId を外す（＝次のcueまで継続へ）。
+    - 重複: 同じ開始 turnId の cue は最初の1つだけ残す。
+    - 並び: 開始セリフの出現順にソート（描画は順序前提）。pad:0/crop:0 等は保持（落とさない）。
+    壊れた assetId（存在しないasset参照）は区別して残す（broken_cue_refs で検出）。
+    """
+    idx = _turn_index(data.get("script") or [])
+    out, seen_start = [], set()
+    for c in sorted((data.get("imageCues") or []),
+                    key=lambda c: idx.get(c.get("turnId"), 1 << 30)):
+        tid = c.get("turnId")
+        if tid not in idx:
+            continue                       # 孤立 cue は除去
+        if tid in seen_start:
+            continue                       # 同一開始の重複は最初だけ
+        seen_start.add(tid)
+        e = c.get("endTurnId")
+        if e is not None and (e not in idx or idx[e] < idx[tid]):
+            c.pop("endTurnId", None)       # 範囲逆転/無効終了は継続扱いへ
+        out.append(c)
+    data["imageCues"] = out
+    return data
+
+
+def reconcile_cues(data, prev_turn_ids=None):
+    """turn の削除・並べ替えに追従して cue を整合（in-place）。冪等。
+
+    prev_turn_ids（変更前の turnId 順）があれば、消えた開始 turnId を「元の並びで次に残る
+    セリフ」へ寄せる（plan 7: キュー位置のセリフ削除→次へ移す・無ければ削除）。
+    endTurnId が消えた場合は継続扱いへ戻す。最後に normalize_cues で重複/逆転/並びを整える。
+    """
+    idx = _turn_index(data.get("script") or [])
+    if prev_turn_ids:
+        succ = _successor_map(prev_turn_ids, set(idx))
+        for c in data.get("imageCues") or []:
+            if c.get("turnId") not in idx:
+                c["turnId"] = succ.get(c.get("turnId"))   # 次の生存セリフ（無ければ None→normalizeで除去）
+            e = c.get("endTurnId")
+            if e is not None and e not in idx:
+                c["endTurnId"] = succ.get(e)
+                if c["endTurnId"] is None:
+                    c.pop("endTurnId", None)
+    return normalize_cues(data)
+
+
+def _successor_map(prev_ids, surviving):
+    """変更前の順序 prev_ids について、各IDの「以降で最初に生存するID」を返す（自分が生存なら自分）。"""
+    succ, nxt = {}, None
+    for tid in reversed(prev_ids):
+        if tid in surviving:
+            nxt = tid
+        succ[tid] = tid if tid in surviving else nxt
+    return succ
+
+
+# ---- editor → 既存meta形式への解決（純関数） ----
+
+def _resolve_cue(cue, asset_by):
+    """1つの cue を「topicに載せる画像情報」へ解決する（legacy build_chapter_topics と等価になるよう）。
+
+    Returns: {cueId, blank?|image+fit/crop/filter/pad/bg/credit | note+placeholder(ch,ci)}。
+    """
+    res = {"cueId": cue.get("id")}
+    if cue.get("hide"):
+        res["blank"] = True
+        return res
+    asset = asset_by.get(cue.get("assetId"))
+    if asset and asset.get("file"):
+        res["image"] = asset["file"]
+        if cue.get("fit"):
+            res["fit"] = cue["fit"]
+        elif asset.get("kind") == "subject":
+            res["fit"] = "contain"           # subjectは全体表示（legacyと同じ既定）
+        for k in ("crop", "filter", "pad", "bg"):
+            if cue.get(k):                    # 0/None/空は載せない（legacyの `if opt.get(k)` と一致）
+                res[k] = cue[k]
+        if asset.get("attribution"):
+            res["credit"] = asset["attribution"]
+    elif asset is not None:
+        res["note"] = asset.get("query")     # build側で None→章タイトルへフォールバック
+        res["placeholder"] = _asset_origin(asset)
+    else:
+        res["blank"] = True                  # 壊れた/未指定の assetId は画像なし
+    return res
+
+
+def resolve_turn_images(script, assets, image_cues):
+    """各セリフ(index)で有効な画像解決を返す（[plan 4] 画像は次のcueまで継続）。
+
+    Returns: len(script) の配列。各要素は _resolve_cue の dict、または None（cue無し＝画像なし）。
+    - cue は開始セリフ index 順。endTurnId があればそこまで、無ければ次cueの直前まで継続。
+    - 同一開始の重複は最初を採用、孤立 turnId の cue は無視（normalize 相当を解決時にも保証）。
+    """
+    idx = _turn_index(script)
+    asset_by = {a.get("id"): a for a in (assets or [])}
+    cues = []
+    for c in image_cues or []:
+        si = idx.get(c.get("turnId"))
+        if si is None:
+            continue
+        ei = idx.get(c.get("endTurnId")) if c.get("endTurnId") else None
+        cues.append((si, ei, c))
+    cues.sort(key=lambda x: x[0])
+    seen, uniq = set(), []
+    for si, ei, c in cues:
+        if si in seen:
+            continue
+        seen.add(si)
+        uniq.append((si, ei, c))
+    n = len(script)
+    plan = [None] * n
+    for k, (si, ei, c) in enumerate(uniq):
+        next_start = uniq[k + 1][0] if k + 1 < len(uniq) else n
+        end = min(ei, next_start - 1) if (ei is not None and ei >= si) else next_start - 1
+        res = _resolve_cue(c, asset_by)
+        for i in range(si, min(end, n - 1) + 1):
+            plan[i] = res
+    return plan
+
+
+# ---- legacy → editor authority 切替（明示・原子的。自動では呼ばない） ----
+
+def switch_to_editor(script_data, review_data=None):
+    """編集モデルを「正」へ切り替える。変換・整合が成功したときだけ editor を立てる（原子的）。
+
+    旧形式（image_cuts/cut/review.json）から assets/imageCues を構築し、normalize/reconcile を通し、
+    全 cue の turnId がスクリプトに存在することを検証してから editorModelAuthority="editor" にする。
+    途中で不整合が出れば例外を投げ、legacy のまま返さない（中途半端な混在を作らない）。
+    Returns: editor 化した新 dict。
+    """
+    data = migrate(script_data, review_data)          # legacy→新フィールド導出（非破壊・冪等）
+    if not isinstance(data.get("script"), list):
+        raise ValueError("script がありません")
+    reconcile_cues(data)                              # 孤立/重複/逆転を解消
+    idx = _turn_index(data["script"])
+    for c in data.get("imageCues") or []:
+        if c.get("turnId") not in idx:
+            raise ValueError(f"cue {c.get('id')} の turnId が解決できません")
+    # 全 cue 検証通過後にのみ権威を切替（原子的）。
+    data[AUTHORITY_FIELD] = "editor"
+    return data

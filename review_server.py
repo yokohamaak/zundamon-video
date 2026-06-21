@@ -16,11 +16,13 @@
 """
 import argparse
 import base64
+import datetime
 import json
 import mimetypes
 import os
 import re
 import shlex
+import shutil
 import struct
 import subprocess
 import sys
@@ -843,6 +845,37 @@ def do_preview_refresh(body):
         _restore_meta(meta_path, backup)
         return {"ok": False, "metaUpdated": False, "message": "生成された meta.json が不正です: " + str(e)}
     return {"ok": True, "metaUpdated": True, "message": "プレビューを更新しました"}
+
+
+def do_switch_to_editor():
+    """編集モデルを「正」へ明示切替（自動では呼ばない）。変換・整合成功時のみ editor を立てて保存。
+
+    旧形式(image_cuts/cut/review.json)から assets/imageCues を確定し、整合検証に通ったら
+    editorModelAuthority="editor" にして script.json へ保存する。失敗時は legacy のまま据え置く。
+    保存前に .backups へ退避する（ユーザーデータを破壊しない）。
+    Returns: {ok, message, switched?}
+    """
+    from src import editor_model
+    sp = os.path.join(DIR, "script.json")
+    if not os.path.exists(sp):
+        return {"ok": False, "message": "script.json がありません"}
+    with open(sp, encoding="utf-8") as f:
+        script_data = json.load(f)
+    if script_data.get("editorModelAuthority") == "editor":
+        return {"ok": True, "switched": False, "message": "すでに editor 権威です"}
+    try:
+        switched = editor_model.switch_to_editor(script_data, load_review())
+    except Exception as e:
+        return {"ok": False, "message": "切替に失敗（legacyのまま）: " + str(e)}
+    bdir = os.path.join(".backups", "editor-authority-pre-"
+                        + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    os.makedirs(bdir, exist_ok=True)
+    shutil.copy2(sp, os.path.join(bdir, "script.json"))
+    with open(sp, "w", encoding="utf-8") as f:
+        json.dump(switched, f, ensure_ascii=False, indent=2)
+    return {"ok": True, "switched": True,
+            "message": f"editor 権威へ切替（assets {len(switched.get('assets', []))} / "
+                       f"imageCues {len(switched.get('imageCues', []))}）"}
 
 
 def cut_key(cut):
@@ -1913,6 +1946,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/preview-refresh":
             self._json(do_preview_refresh(body))
+            return
+        if path == "/api/migrate-to-editor":
+            # 編集モデルを「正」へ明示切替（自動では行わない・UI未実装のため当面手動API）。
+            self._json(do_switch_to_editor())
             return
         if path == "/api/approve":
             ok = apply_approve(review, body.get("key"), body.get("approved", True))

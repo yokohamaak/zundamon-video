@@ -112,7 +112,8 @@ def _cut_groups(idxs, turns, ncuts):
     return groups
 
 
-def build_chapter_topics(segments, turns, chapters, image_files=None, attributions=None, cut_opts=None):
+def build_chapter_topics(segments, turns, chapters, image_files=None, attributions=None,
+                         cut_opts=None, turn_image=None):
     """章区間 → meta.topics（純関数）。
 
     各章区間を image_cuts の数で複数カットに分割し、[0, total] を隙間なく被覆する
@@ -125,6 +126,10 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
         chapters: 章メタ [{title, section, image_cuts:[{image_query,image_kind}]}]
         image_files: {(chapter, cut): "ch_NN_MM.jpg"} 取得済画像の実ファイル名（無ければ全プレースホルダ）
         attributions: {(chapter, cut): "出典文字列"} 帰属（任意）
+        turn_image: editor権威時のみ。editor_model.resolve_turn_images の出力（turnsと同indexの配列）。
+            指定時は画像のグルーピング/解決をこれで行う（cut/image_files/cut_opts は無視）。
+            非指定(None)＝従来の legacy 経路（image_cuts × cut アンカー）。タイミング・章バッジ・
+            演出オーバーレイは両経路で完全に同じコードを通す（＝画像の出所だけが違う）。
     Returns:
         meta.topics のリスト（時刻順・[0,total]被覆）
     """
@@ -151,11 +156,24 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
         seg_end = total if si == nseg - 1 else turns[idxs[-1]]["end"]
         # カット割り当て: ターンの cut アンカー（その章の何番目の画像か）があれば章内をそれで
         # 区切る（話の流れで切替）。無ければ均等割り（後方互換）。
-        groups = _cut_groups(idxs, turns, len(cuts))
-        if groups is None:
-            ncut = max(1, min(len(cuts), len(idxs)))
-            groups = [(ci, ci * len(idxs) // ncut, (ci + 1) * len(idxs) // ncut)
-                      for ci in range(ncut)]
+        # editor権威時は cut でなく「有効な imageCue（turn_image[idx]）」の連続塊で区切る。
+        # tok=グループ識別子（legacy=cut番号 / editor=cueId）。以降の vizSeg分割・タイミングは共通。
+        if turn_image is not None:
+            groups, pos, m = [], 0, len(idxs)
+            def _cid(p):
+                r = turn_image[idxs[p]]
+                return r.get("cueId") if r else None
+            while pos < m:
+                tok, s = _cid(pos), pos
+                while pos < m and _cid(pos) == tok:
+                    pos += 1
+                groups.append((tok, s, pos))
+        else:
+            groups = _cut_groups(idxs, turns, len(cuts))
+            if groups is None:
+                ncut = max(1, min(len(cuts), len(idxs)))
+                groups = [(ci, ci * len(idxs) // ncut, (ci + 1) * len(idxs) // ncut)
+                          for ci in range(ncut)]
         # 各cutグループを vizSeg の切れ目でさらに分割：1 topic = 1カット(画像) かつ 1演出。
         # （同じカット内に複数演出があると、従来は時間が重なる最初の1つしか載らず、2つ目以降が消えていた。）
         split = []
@@ -173,7 +191,6 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
         for gi, (ci, lo, hi) in enumerate(groups):
             cstart = seg_start if gi == 0 else turns[idxs[lo]]["start"]
             cend = seg_end if gi == len(groups) - 1 else turns[idxs[hi]]["start"]
-            cut = cuts[ci] if ci < len(cuts) else {}
             topic = {
                 "title": meta_ch.get("title"),
                 "start": round(float(cstart), 3),
@@ -189,34 +206,52 @@ def build_chapter_topics(segments, turns, chapters, image_files=None, attributio
                 # ショート固定見出し用フック（Gemini生成・任意）。動画側が章の代表hookとして使う。
                 if meta_ch.get("hook"):
                     topic["hook"] = meta_ch["hook"]
-            key = (ch, ci)
-            opt = (cut_opts or {}).get(key, {})
-            fname = image_files.get(key)
-            if opt.get("hide"):
-                # レビューで「画像なし」を選択＝中央ビジュアルを出さず黒板のみ。
-                topic["blank"] = True
-            elif fname:
-                topic["image"] = fname
-                # subject(ロゴ・記号・製品)は端が切れると意味を失うため contain で全体表示。
-                # ambient(写真)は cover で枠を埋める（既定）。レビュー指定(opt.fit)があれば優先。
-                if opt.get("fit"):
-                    topic["fit"] = opt["fit"]
-                elif cut.get("image_kind") == "subject":
-                    topic["fit"] = "contain"
-                if opt.get("crop"):
-                    topic["crop"] = opt["crop"]
-                if opt.get("filter"):
-                    topic["filter"] = opt["filter"]
-                if opt.get("pad"):
-                    topic["pad"] = opt["pad"]
-                if opt.get("bg"):
-                    topic["bg"] = opt["bg"]
-                if attributions.get(key):
-                    topic["credit"] = attributions[key]
+            if turn_image is not None:
+                # editor権威：有効cueの解決結果（editor_model._resolve_cue）をそのまま topic へ。
+                # 各キー(blank/image/fit/crop/filter/pad/bg/credit/note/placeholder)は legacy と
+                # 同じ条件で計算済み＝同入力なら legacy と等価になる（test_phase2 で実データ機械比較）。
+                res = turn_image[idxs[lo]]
+                if res is None or res.get("blank"):
+                    topic["blank"] = True
+                elif res.get("image"):
+                    topic["image"] = res["image"]
+                    for k in ("fit", "crop", "filter", "pad", "bg", "credit"):
+                        if res.get(k) is not None:
+                            topic[k] = res[k]
+                else:
+                    topic["note"] = res.get("note") or meta_ch.get("title")
+                    pch, pci = res["placeholder"]
+                    topic["placeholder"] = chapter_image_name(pch, pci)
             else:
-                # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
-                topic["note"] = cut.get("image_query") or meta_ch.get("title")
-                topic["placeholder"] = chapter_image_name(ch, ci)
+                cut = cuts[ci] if ci < len(cuts) else {}
+                key = (ch, ci)
+                opt = (cut_opts or {}).get(key, {})
+                fname = image_files.get(key)
+                if opt.get("hide"):
+                    # レビューで「画像なし」を選択＝中央ビジュアルを出さず黒板のみ。
+                    topic["blank"] = True
+                elif fname:
+                    topic["image"] = fname
+                    # subject(ロゴ・記号・製品)は端が切れると意味を失うため contain で全体表示。
+                    # ambient(写真)は cover で枠を埋める（既定）。レビュー指定(opt.fit)があれば優先。
+                    if opt.get("fit"):
+                        topic["fit"] = opt["fit"]
+                    elif cut.get("image_kind") == "subject":
+                        topic["fit"] = "contain"
+                    if opt.get("crop"):
+                        topic["crop"] = opt["crop"]
+                    if opt.get("filter"):
+                        topic["filter"] = opt["filter"]
+                    if opt.get("pad"):
+                        topic["pad"] = opt["pad"]
+                    if opt.get("bg"):
+                        topic["bg"] = opt["bg"]
+                    if attributions.get(key):
+                        topic["credit"] = attributions[key]
+                else:
+                    # 未取得：動画側がプレースホルダカードを描く。差し替え先と検索語を案内。
+                    topic["note"] = cut.get("image_query") or meta_ch.get("title")
+                    topic["placeholder"] = chapter_image_name(ch, ci)
             # 演出セグメントのうち、このtopicの時間帯に重なるものを載せる（範囲は重ならない前提＝最初の1つ）。
             # 描画側で vizFrom/vizUntil の時刻ゲートをするので、窓の手前/後は通常画像になる。
             for seg in viz_segments:
@@ -792,13 +827,22 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
     segments = story_script.assign_sections_to_turns(base)
     chapters = script_result.get("chapters", [])
 
+    # editor権威なら assets/imageCues を「正」として画像を解決（legacy の image_cuts/cut は使わない）。
+    # 非editor（legacy）は従来どおり image_files/cut_opts/cut アンカー経路。
+    turn_image = None
+    if script_result.get("editorModelAuthority") == "editor":
+        from src import editor_model
+        turn_image = editor_model.resolve_turn_images(
+            script, script_result.get("assets") or [], script_result.get("imageCues") or [])
+
     return {
         "generated_at": now_iso,
         "title": script_result.get("theme"),
         "speakers": speakers,
         # script(merged) は timing(start/end) と cut(台本由来)の両方を持つ。turns(TTS)は cut を
         # 持たないので必ず script を渡す（C-1のcutアンカーを効かせるため）。
-        "topics": build_chapter_topics(segments, script, chapters, image_files, attributions, cut_opts),
+        "topics": build_chapter_topics(segments, script, chapters, image_files, attributions,
+                                       cut_opts, turn_image=turn_image),
         "credits": build_credits(config, attributions),
         "audio": build_audio(config, script),
         "script": script,
