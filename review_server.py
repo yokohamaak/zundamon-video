@@ -877,12 +877,13 @@ def _atomic_write_json(path, obj):
         raise
 
 
-def do_switch_to_editor():
+def do_switch_to_editor(backups_root=".backups"):
     """編集モデルを「正」へ明示切替（自動では呼ばない）。変換・整合成功時のみ editor を立てて保存。
 
     旧形式(image_cuts/cut/review.json)から assets/imageCues を確定し、整合検証に通ったら
     editorModelAuthority="editor" にして script.json へ保存する。失敗時は legacy のまま据え置く。
-    保存前に .backups へ退避し、本体書き込みは一時ファイル＋fsync＋os.replace で原子的に行う。
+    保存前に backups_root（既定 .backups）へ退避し、本体書き込みは一時ファイル＋fsync＋os.replace
+    で原子的に行う。backups_root はテストで一時ディレクトリへ差し替えられる（本番の .backups を汚さない）。
     Returns: {ok, message, switched?}
     """
     from src import editor_model
@@ -897,7 +898,7 @@ def do_switch_to_editor():
         switched = editor_model.switch_to_editor(script_data, load_review())
     except Exception as e:
         return {"ok": False, "message": "切替に失敗（legacyのまま）: " + str(e)}
-    bdir = os.path.join(".backups", "editor-authority-pre-"
+    bdir = os.path.join(backups_root, "editor-authority-pre-"
                         + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     os.makedirs(bdir, exist_ok=True)
     shutil.copy2(sp, os.path.join(bdir, "script.json"))

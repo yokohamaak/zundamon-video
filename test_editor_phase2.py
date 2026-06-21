@@ -503,26 +503,35 @@ def test_switch_failure_keeps_legacy_file():
 
 
 def test_switch_success_atomic_and_idempotent():
+    import shutil as _sh
     import tempfile as _tf
     import review_server as rs
     d = _tf.mkdtemp()
+    bk = _tf.mkdtemp()                       # 退避先もtempdir（本番 .backups を一切触らない）
+    # 本番 .backups に既存退避を模した sentinel を置き、テスト後も残ることを検証する。
+    real_backups = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".backups")
+    os.makedirs(real_backups, exist_ok=True)
+    sentinel = os.path.join(real_backups, "editor-authority-pre-SENTINEL-DONOTDELETE")
+    os.makedirs(sentinel, exist_ok=True)
     json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
     json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
     old = rs.DIR
     try:
         rs.DIR = d
-        r1 = rs.do_switch_to_editor()
+        r1 = rs.do_switch_to_editor(backups_root=bk)
         sd = json.load(open(os.path.join(d, "script.json")))
-        r2 = rs.do_switch_to_editor()       # 2回目は no-op
+        r2 = rs.do_switch_to_editor(backups_root=bk)   # 2回目は no-op
+        bk_dirs = os.listdir(bk)
+        sentinel_survives = os.path.isdir(sentinel)
     finally:
         rs.DIR = old
-        import shutil as _sh
         _sh.rmtree(d, ignore_errors=True)
-        for b in os.listdir(".backups"):    # テストが作った退避を掃除
-            if b.startswith("editor-authority-pre-"):
-                _sh.rmtree(os.path.join(".backups", b), ignore_errors=True)
+        _sh.rmtree(bk, ignore_errors=True)
+        _sh.rmtree(sentinel, ignore_errors=True)        # テスト自身が作った sentinel のみ撤去
     ok("切替成功でeditor権威・妥当JSON", r1["ok"] and r1["switched"]
        and sd.get("editorModelAuthority") == "editor")
+    ok("退避は指定backups_root配下に作られる", any(b.startswith("editor-authority-pre-") for b in bk_dirs))
+    ok("本番 .backups の既存退避(sentinel)はテスト後も残る", sentinel_survives)
     ok("切替は冪等（2回目はno-op）", r2["ok"] and r2.get("switched") is False)
 
 
