@@ -2659,11 +2659,17 @@ function computeImagePlan(){
 }
 function nextCueStartIdx(startIdx){ const idx=_turnIndexMap(); let best=(DATA.script||[]).length;
   (DATA.imageCues||[]).forEach(c=>{ const si=idx[c.turnId]; if(si!=null && si>startIdx && si<best) best=si; }); return best; }
+// 即時保存を直列化する。cropやsliderを続けて操作しても、古い応答が後からDATAを上書きしない。
+function createAsyncQueue(){ let tail=Promise.resolve(); return run=>{ const current=tail.then(run,run);
+  tail=current.then(()=>undefined,()=>undefined); return current; }; }
+const enqueueCueOp=createAsyncQueue();
 // すべてのcue編集はサーバの editor_model 共通op経由（制約・正規化はPython側を正とする＝JS/Python不一致を作らない）。
 async function cueOp(params){
-  const r=await api('/api/editor/cue-op', Object.assign({data:DATA}, params));
-  if(!r||!r.ok){ alert('画像操作に失敗しました: '+((r&&r.message)||'不明')); return null; }
-  DATA=r.data; markVisualStale(); return r;
+  return enqueueCueOp(async()=>{
+    const r=await api('/api/editor/cue-op', Object.assign({data:DATA}, params));
+    if(!r||!r.ok){ alert('画像操作に失敗しました: '+((r&&r.message)||'不明')); return null; }
+    DATA=r.data; markVisualStale(); return r;
+  });
 }
 function editorFramePrev(entry){
   const box=document.createElement('div'); box.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0c0f15;border:1px solid var(--line)';

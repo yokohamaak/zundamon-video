@@ -20,7 +20,7 @@ function extractFn(name) {
 }
 
 const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate', 'hideToggleOp',
-  '_turnIndexMap', 'resolveCueJS', 'computeImagePlan'];
+  '_turnIndexMap', 'resolveCueJS', 'computeImagePlan', 'createAsyncQueue'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 
@@ -96,6 +96,15 @@ t('crop drag は終了をwindowで捕捉しlistenerを解除する', () => {
 
 // --- runMigrate ---
 async function runTests() {
+  // 即時保存を連続実行しても、開始・完了順が入れ替わらない。
+  const enqueue = createAsyncQueue(); const order=[];
+  const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
+  const q1=enqueue(async()=>{ order.push('start1'); await wait(20); order.push('end1'); return 1; });
+  const q2=enqueue(async()=>{ order.push('start2'); await wait(1); order.push('end2'); return 2; });
+  assert.deepEqual(await Promise.all([q1,q2]),[1,2]);
+  assert.deepEqual(order,['start1','end1','start2','end2']);
+  pass++; console.log('  cue即時保存は直列実行（古い応答で上書きしない） OK');
+
   // 保存失敗 → 移行しない（migrateFnを呼ばない・reloadしない）
   let migrateCalled = false, reloaded = false;
   const r1 = await runMigrate(() => true,
