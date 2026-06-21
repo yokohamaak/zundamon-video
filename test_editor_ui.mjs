@@ -188,6 +188,15 @@ t('groupKeyframesByTurn: 同一turnIdを1グループへ集約・出現順維持
   assert.deepEqual(groupKeyframesByTurn([]), [], '空でも安全');
 });
 
+t('デッドな旧UIコードは撤去済み(renderLegacy等)', () => {
+  // editor到達不能（かつ全モード未使用）のデッドコードが残っていないこと。
+  ['renderLegacy', 'vizHeaderCard', 'vizOpenGi', 'turnHasViz', 'vizAddMenu', 'vizRange']
+    .forEach(n => assert.ok(!new RegExp('\\b' + n + '\\b').test(html), n + ' が残存'));
+  // 一方で legacy 編集UIは維持（後方互換）。
+  assert.ok(/function renderVizTab\b/.test(html) && /function renderImageTab\b/.test(html),
+    'legacy編集UI(renderVizTab/renderImageTab)は維持');
+});
+
 t('cue/viz/asset書込は同一キューで直列化', () => {
   // 古い応答が新しい編集を上書きしないよう、全editor書込が共有キューを通ること（ソース確認）。
   assert.ok(/const enqueueEditorWrite=createAsyncQueue\(\)/.test(html), '共有キューを定義');

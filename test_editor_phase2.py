@@ -1014,6 +1014,42 @@ def test_editor_meta_keyframe_pos0_timing():
     ok("pos:0 keyframe→revealAtがそのセリフ先頭(2.0)", quiz and abs(quiz.get("revealAt", -1) - 2.0) < 1e-6)
 
 
+def test_legacy_editor_save_reload_meta_synthetic():
+    # 自己完結（docs/story非依存）: 画像＋大演出を含むプロジェクトで legacy/editor の
+    # 読み込み・保存・meta生成が双方とも成立し、topics が一致・保存再読込で不変なことを確認。
+    import copy as _c
+    import review_server as rs
+    base = {"theme": "T",
+            "chapters": [{"title": "C0", "section": "intro",
+                          "image_cuts": [{"image_query": "A", "image_kind": "ambient"},
+                                         {"image_query": "B", "image_kind": "subject"}],
+                          "vizList": [{"id": "s1", "type": "quiz", "quiz": {"question": "Q", "answer": "X"}}]}],
+            "script": [{"speaker": "四国めたん", "text": "いち", "chapter": 0, "cut": 0, "vizSeg": "s1", "reveal": True},
+                       {"speaker": "ずんだもん", "text": "にい", "chapter": 0, "cut": 1, "vizSeg": "s1"}]}
+    review = {"cuts": [{"ch": 0, "ci": 0, "image": "a.jpg", "attribution": "Au / CC"},
+                       {"ch": 0, "ci": 1, "image": "b.jpg"}]}
+    config = {"characters_gender": {}, "tts_voicevox": {"speakers": {}}}
+    turns = [{"start": 0.0, "end": 2.0, "sentences": []}, {"start": 2.0, "end": 4.0, "sentences": []}]
+    img, attr, opts = {}, {}, {}
+    for c in review["cuts"]:
+        k = (c["ch"], c["ci"]); img[k] = c["image"]
+        if c.get("attribution"):
+            attr[k] = c["attribution"]
+    leg = _c.deepcopy(base); story_script.normalize_turns(leg["script"], leg["chapters"])
+    legacy_meta = ms.build_meta(leg, turns, config, "X", img, attr, opts)
+    ed = em.switch_to_editor(base, review); story_script.normalize_turns(ed["script"], ed["chapters"])
+    editor_meta = ms.build_meta(ed, turns, config, "X", img, attr, opts)
+    ok("自己完結: legacy/editor topics一致(image+viz)", legacy_meta["topics"] == editor_meta["topics"])
+    # editor: 保存→再読込→meta 不変
+    okk, _, norm = rs.apply_save_script(ed)
+    re_meta = ms.build_meta(em.migrate(norm, review), turns, config, "X", img, attr, opts)
+    ok("editor 保存→再読込→meta不変", okk and re_meta["topics"] == editor_meta["topics"])
+    # legacy: 保存→再読込→meta 不変
+    okl, _, lnorm = rs.apply_save_script(leg)
+    le_meta = ms.build_meta(lnorm, turns, config, "X", img, attr, opts)
+    ok("legacy 保存→再読込→meta不変", okl and le_meta["topics"] == legacy_meta["topics"])
+
+
 def test_real_data_build_meta_viz_equivalence():
     import copy as _c
     sp, rp, mp = ("docs/story/script.json", "docs/story/review.json", "docs/story/meta.json")
@@ -1220,6 +1256,7 @@ if __name__ == "__main__":
     test_viz_op_endpoint_roundtrip()
     test_editor_meta_ignores_stale_legacy_vizlist()
     test_editor_meta_keyframe_pos0_timing()
+    test_legacy_editor_save_reload_meta_synthetic()
     test_real_data_build_meta_viz_equivalence()
     test_switch_to_editor_atomic()
     test_switch_then_legacy_change_ignored()
