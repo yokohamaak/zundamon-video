@@ -911,6 +911,82 @@ def do_switch_to_editor(backups_root=".backups"):
                        f"imageCues {len(switched.get('imageCues', []))}）"}
 
 
+def _save_editor_data(data):
+    """編集モデルの全体dictを検証して script.json へ原子的に保存する。Returns: (ok, msg, norm)。"""
+    ok, msg, norm = apply_save_script(data)
+    if not ok:
+        return False, msg, None
+    _atomic_write_json(os.path.join(DIR, "script.json"), norm)
+    return True, "ok", norm
+
+
+def do_asset_add(body):
+    """素材ライブラリへ asset を1件追加（editor権威のときのみ）。
+
+    クライアントから現在の編集モデル全体(data)を受け取り、画像(dataB64 か url)があれば DIR へ
+    保存して file をひも付け、editor_model.add_asset で追加してから全体を原子的に保存する。
+    画像が無い場合は query 必須（後から差し替える素材枠）。Returns: {ok, data, assetId} など。
+    """
+    from src import editor_model
+    data = body.get("data") or {}
+    if data.get("editorModelAuthority") != "editor":
+        return {"ok": False, "message": "editor権威ではありません（先に編集モデルへ移行）"}
+    raw, ext = None, None
+    if body.get("dataB64"):
+        try:
+            raw = base64.b64decode(body["dataB64"])
+        except Exception:
+            return {"ok": False, "message": "invalid base64"}
+        if not raw:
+            return {"ok": False, "message": "空のデータ"}
+        ext = safe_ext(body.get("filename") or "")
+    elif body.get("url"):
+        if not valid_http_url(body["url"]):
+            return {"ok": False, "message": "http(s)のURLのみ取り込めます"}
+        try:
+            ok, ext_or_msg, raw = download_image(body["url"])
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "message": f"取得失敗: {e}"}
+        if not ok:
+            return {"ok": False, "message": ext_or_msg}
+        ext = ext_or_msg
+    if raw is None and not (body.get("query") or "").strip():
+        return {"ok": False, "message": "画像（ファイル/URL）かキーワードが必要です"}
+    asset = editor_model.add_asset(
+        data, file=None, query=body.get("query"), queryJa=body.get("queryJa"),
+        kind=body.get("kind") or "ambient",
+        attribution=(body.get("attribution") or body.get("url") or None))
+    if raw is not None:
+        fname = f"{asset['id']}{ext or '.jpg'}"   # 素材ファイル名は asset ID 基準で一意
+        write_image_bytes(fname, raw)
+        asset["file"] = fname
+    ok, msg, norm = _save_editor_data(data)
+    if not ok:
+        return {"ok": False, "message": msg}
+    return {"ok": True, "data": norm, "assetId": asset["id"]}
+
+
+def do_asset_delete(body):
+    """素材を削除（editor権威のときのみ）。使用中は force 指定がなければ拒否（使用cueを返す）。
+
+    画像ファイル本体は消さない（移行元 ch_NN_MM は legacy UI と共有しているため）。
+    Returns: {ok, data?, used?, removedCues?}。
+    """
+    from src import editor_model
+    data = body.get("data") or {}
+    if data.get("editorModelAuthority") != "editor":
+        return {"ok": False, "message": "editor権威ではありません"}
+    aid = body.get("assetId")
+    try:
+        removed = editor_model.delete_asset(data, aid, force=bool(body.get("force")))
+    except ValueError as e:
+        return {"ok": False, "used": editor_model.asset_usage(data, aid), "message": str(e)}
+    ok, msg, norm = _save_editor_data(data)
+    if not ok:
+        return {"ok": False, "message": msg}
+    return {"ok": True, "data": norm, "removedCues": removed}
+
+
 def cut_key(cut):
     return f"{cut['ch']}_{cut['ci']}"
 
@@ -1927,6 +2003,22 @@ class Handler(BaseHTTPRequestHandler):
             review.update({"summary": review_summary(review)})
             self._json(review)
             return
+        if path.startswith("/img-file/"):
+            # 素材ライブラリ用：ファイル名で DIR 内の画像を配信（ch_ci キーに依らない）。
+            name = os.path.basename(unquote(path[len("/img-file/"):]))   # basenameでパス遡上を防ぐ
+            data = read_image_bytes(name) if name else None
+            if not data:
+                self.send_response(404)
+                self.end_headers()
+                return
+            ext = os.path.splitext(name)[1].lower()
+            self.send_response(200)
+            self.send_header("Content-Type", _CT.get(ext, "application/octet-stream"))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if path.startswith("/img/"):
             key = path[len("/img/"):]
             cut = find_cut(load_review(), key)
@@ -1981,8 +2073,14 @@ class Handler(BaseHTTPRequestHandler):
             self._json(do_preview_refresh(body))
             return
         if path == "/api/migrate-to-editor":
-            # 編集モデルを「正」へ明示切替（自動では行わない・UI未実装のため当面手動API）。
+            # 編集モデルを「正」へ明示切替（自動では行わない・ユーザー操作のみ）。
             self._json(do_switch_to_editor())
+            return
+        if path == "/api/editor/asset-add":
+            self._json(do_asset_add(body))
+            return
+        if path == "/api/editor/asset-delete":
+            self._json(do_asset_delete(body))
             return
         if path == "/api/approve":
             ok = apply_approve(review, body.get("key"), body.get("approved", True))
