@@ -1058,6 +1058,12 @@ def test_viz_op_endpoint_roundtrip():
         cur = r4["data"]
         kf_dup_rej = rs.do_viz_op({"data": cur, "op": "addKf", "segId": seg["id"],
                                    "turnId": "turn-0001", "kfType": "reveal"})["ok"] is False
+        r5b = rs.do_viz_op({"data": cur, "op": "moveKf", "segId": seg["id"],
+                            "kfId": r4["data"]["visualSegments"][0]["keyframes"][0]["id"],
+                            "turnId": "turn-0001", "pos": 3})
+        kf=r5b["data"]["visualSegments"][0]["keyframes"][0]
+        move_kf_ok = r5b["ok"] and kf["turnId"] == "turn-0001" and kf["pos"] == 3
+        cur = r5b["data"]
         r6 = rs.do_viz_op({"data": cur, "op": "setConfig", "segId": seg["id"],
                            "config": {"quiz": {"question": "q2", "answer": "a2"}}})
         cfg_ok = r6["ok"] and r6["data"]["visualSegments"][0]["config"]["quiz"]["question"] == "q2"
@@ -1079,6 +1085,7 @@ def test_viz_op_endpoint_roundtrip():
     ok("viz-op 範囲重複を拒否", overlap_rej)
     ok("viz-op 章跨ぎを拒否", cross_rej)
     ok("viz-op addKf＋同一keyframe拒否", kf_ok and kf_dup_rej)
+    ok("viz-op moveKf(turn/pos)", move_kf_ok)
     ok("viz-op setConfig", cfg_ok)
     ok("viz-op setRange", range_ok)
     ok("viz-op delKf/delSeg", del_ok)
