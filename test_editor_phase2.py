@@ -816,6 +816,7 @@ def test_normalize_resolves_overlap_and_kf_dup():
     em.normalize_visual_segments(d)
     a = em.find_segment(d, "visual-00-a"); b = em.find_segment(d, "visual-00-b")
     ok("重複は開始が早い方を残し後続をorphaned", a["status"] == "active" and b["status"] == "orphaned")
+    ok("orphaned後続も端点を保持（修復可能）", b["startTurnId"] == "turn-0002" and b["endTurnId"] == "turn-0004")
     reveals = [k for k in a["keyframes"] if k["type"] == "reveal"]
     ok("同一(type,value)keyframeを1つへ・最小turn index採用",
        len(reveals) == 1 and reveals[0]["turnId"] == "turn-0002")
@@ -823,6 +824,32 @@ def test_normalize_resolves_overlap_and_kf_dup():
     snap = json.dumps(d["visualSegments"], sort_keys=True)
     em.normalize_visual_segments(d)
     ok("normalize_visual_segments冪等", json.dumps(d["visualSegments"], sort_keys=True) == snap)
+
+
+def test_orphaned_segment_repair_keeps_inrange_keyframes():
+    d = _segdata(6)
+    em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0001", end_turn_id="turn-0003")
+    b = em.add_visual_segment(d, seg_type="panel", start_turn_id="turn-0004", end_turn_id="turn-0006",
+                              config={"panel": {"items": [{"text": "x"}]}})
+    em.add_keyframe(d, b["id"], turn_id="turn-0005", kf_type="reveal")
+    # 外部要因で b を orphaned 化（status/reason のみ・端点とkeyframesは保持される想定）
+    em._orphan_segment(em.find_segment(d, b["id"]), "overlap")
+    bb = em.find_segment(d, b["id"])
+    ok("orphaned化で端点/keyframes保持", bb["startTurnId"] == "turn-0004" and bb["keyframes"])
+    ok("reconstructはorphanedを無視", _orphaned_not_rendered(d, b["id"]))
+    # 修復: 有効範囲へ set_segment_range → active 復帰
+    em.set_segment_range(d, b["id"], start_turn_id="turn-0004", end_turn_id="turn-0006")
+    rb = em.find_segment(d, b["id"])
+    ok("修復でactive復帰＋orphanReason消去", rb["status"] == "active" and "orphanReason" not in rb)
+    ok("修復後も範囲内keyframeが残る", any(k["turnId"] == "turn-0005" for k in rb["keyframes"]))
+
+
+def _orphaned_not_rendered(d, seg_id):
+    import copy as _c
+    turns = _c.deepcopy(_timed(d["script"])); chapters = _c.deepcopy(d["chapters"])
+    em.reconstruct_legacy_viz(turns, chapters, d["visualSegments"])
+    sid = em._seg_local_id(seg_id)
+    return not any(t.get("vizSeg") == sid for t in turns)
 
 
 def test_chapter2_segment_renders_in_meta():
@@ -898,10 +925,14 @@ def test_normalize_segment_orphaned():
     d = _segdata(3)
     d["visualSegments"] = [{"id": "visual-00-s9", "type": "quiz", "status": "active",
                             "startTurnId": "turn-9999", "endTurnId": "turn-0002",
-                            "config": {}, "keyframes": [], "sourceChapter": 0}]
+                            "config": {"quiz": {"question": "q"}},
+                            "keyframes": [{"id": "kf-001", "turnId": "turn-0002", "type": "reveal"}],
+                            "sourceChapter": 0}]
     em.normalize_visual_segments(d)
     s = d["visualSegments"][0]
-    ok("解決不能セグメントはorphaned・アンカーNone", s["status"] == "orphaned" and s["startTurnId"] is None)
+    ok("解決不能セグメントはorphaned＋orphanReason", s["status"] == "orphaned" and s.get("orphanReason"))
+    ok("orphanedでも端点/keyframes/configは保持",
+       s["startTurnId"] == "turn-9999" and s["keyframes"] and s["config"].get("quiz"))
 
 
 def test_reconcile_segments_turn_delete():
@@ -1054,6 +1085,7 @@ if __name__ == "__main__":
     test_segment_sourcechapter_set_and_maintained()
     test_keyframe_dup_rejected()
     test_normalize_resolves_overlap_and_kf_dup()
+    test_orphaned_segment_repair_keeps_inrange_keyframes()
     test_chapter2_segment_renders_in_meta()
     test_real_data_build_meta_viz_equivalence()
     test_switch_to_editor_atomic()

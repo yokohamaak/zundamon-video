@@ -1004,9 +1004,10 @@ def set_segment_range(data, seg_id, *, start_turn_id=None, end_turn_id=None):
     if ov is not None:
         raise ValueError(f"他の大演出({ov})と範囲が重複します")
     seg["startTurnId"], seg["endTurnId"] = ns, ne
-    seg["status"] = "active"
+    seg["status"] = "active"                  # 有効範囲へ直したので active へ復帰
+    seg.pop("orphanReason", None)
     seg["sourceChapter"] = ch
-    # 範囲外へ出た keyframe は捨てる（端を縮めたら外側の変化点は無効）。
+    # 範囲外へ出た keyframe は捨てる（端を縮めたら外側の変化点は無効）。範囲内は残す（修復後も保持）。
     seg["keyframes"] = [k for k in seg.get("keyframes") or []
                         if idx.get(k.get("turnId")) is not None and si <= idx[k["turnId"]] <= ei]
     return seg
@@ -1095,32 +1096,37 @@ def delete_keyframe(data, seg_id, kf_id):
 
 # ---- normalize / reconcile ----
 
-def _orphan_segment(seg):
+def _orphan_segment(seg, reason):
+    """無効化＝status と orphanReason だけ変更。端点・keyframes・config は保持（修復可能に）。"""
     seg["status"] = "orphaned"
-    seg["startTurnId"] = None
-    seg["endTurnId"] = None
-    seg["keyframes"] = []
+    seg["orphanReason"] = reason
 
 
 def normalize_visual_segments(data):
     """visualSegments を正規化（in-place）。冪等・決定的。
 
-    - 範囲解決不能（turnId 欠落・逆転）／章跨ぎ → orphaned・アンカー None（突然有効化しない）。
-    - keyframe: turnId 欠落 or 範囲外は除去。同一(type,value)は最小turn indexの1つだけ残す（決定的）。
-      type/value/pos:0 は保持。
-    - active 同士の範囲重複は「開始が早い→ID昇順」を優先し、重なる後続を orphaned（決定的に競合解消）。
-    - 開始セリフ順にソート（orphaned は末尾）。
+    - 範囲解決不能（turnId 欠落・逆転）／章跨ぎ → orphaned（status/orphanReason のみ変更、端点・
+      keyframes・config は保持＝後で set_segment_range で修復可能）。突然有効化はしない。
+    - 既に orphaned のものは触らない（自動再活性化しない／データ保持）。
+    - active の keyframe: turnId 欠落 or 範囲外は除去、同一(type,value)は最小turn indexの1つへ（決定的）。
+    - active 同士の範囲重複は「開始が早い→ID昇順」を残し、重なる後続を orphaned（決定的に競合解消）。
+    - 並びは active を開始セリフ順、orphaned は末尾。
     """
     idx = _turn_index(data.get("script") or [])
     segs = data.get("visualSegments") or []
-    # 1) 範囲・章の妥当性 → active/orphaned。keyframe を範囲内へトリム＋(type,value)重複除去。
+    # 1) 既存orphanedは保持。activeは妥当性検査→無効ならorphaned、有効ならkeyframeをトリム＋重複除去。
     for seg in segs:
+        if seg.get("status") == "orphaned":
+            continue
         s, e = idx.get(seg.get("startTurnId")), idx.get(seg.get("endTurnId"))
-        if seg.get("status") == "orphaned" or s is None or e is None or e < s \
-                or _range_chapter(data, s, e) is None:
-            _orphan_segment(seg)
+        if s is None or e is None or e < s:
+            _orphan_segment(seg, "unresolved")
+            continue
+        if _range_chapter(data, s, e) is None:
+            _orphan_segment(seg, "cross-chapter")
             continue
         seg["status"] = "active"
+        seg.pop("orphanReason", None)
         seg["sourceChapter"] = _range_chapter(data, s, e)
         kfs = sorted((k for k in seg.get("keyframes") or []
                       if idx.get(k.get("turnId")) is not None and s <= idx[k["turnId"]] <= e),
@@ -1139,10 +1145,12 @@ def normalize_visual_segments(data):
                       key=lambda sg: (idx[sg["startTurnId"]], str(sg.get("id") or ""))):
         b = (idx[seg["startTurnId"]], idx[seg["endTurnId"]])
         if any(b[0] <= ab[1] and ab[0] <= b[1] for ab in accepted):
-            _orphan_segment(seg)
+            _orphan_segment(seg, "overlap")
         else:
             accepted.append(b)
-    data["visualSegments"] = sorted(segs, key=lambda sg: idx.get(sg.get("startTurnId"), 1 << 30))
+    # active を開始順・orphaned は末尾（端点は保持しているので start index で安定ソート）。
+    data["visualSegments"] = sorted(
+        segs, key=lambda sg: (sg.get("status") == "orphaned", idx.get(sg.get("startTurnId"), 1 << 30)))
     return data
 
 
