@@ -93,6 +93,7 @@ const ReviewPlayer: React.FC<{meta: Meta}> = ({meta: initialMeta}) => {
       compositionHeight={HEIGHT}
       fps={FPS}
       controls
+      showPlaybackRateControl={[0.5, 0.75, 1, 1.25, 1.5, 2]}
       initiallyMuted={false}
       acknowledgeRemotionLicense
       style={{width: "100%", height: "100%", background: "#080a0f"}}
