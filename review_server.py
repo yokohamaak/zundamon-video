@@ -26,6 +26,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
@@ -740,7 +741,8 @@ def apply_save_script(data):
     if "chapters" in data:
         out["chapters"] = data["chapters"]
     # 編集モデルのトップレベルフィールドは保存時に保持（Phase 1 では UI 未送出だが前方互換）。
-    for k in ("schemaVersion", "assets", "imageCues", "visualSegments"):
+    # idCounters は ID 再利用防止の発番カウンタ（削除後も再利用しないため必ず持ち越す）。
+    for k in ("schemaVersion", "assets", "imageCues", "visualSegments", "idCounters"):
         if k in data:
             out[k] = data[k]
     # 移行の「正」フラグ。editor のとき編集モデルを正とし再導出で上書きしない（Phase 2以降）。
@@ -847,12 +849,40 @@ def do_preview_refresh(body):
     return {"ok": True, "metaUpdated": True, "message": "プレビューを更新しました"}
 
 
+def _atomic_write_json(path, obj):
+    """同ディレクトリの一時ファイルへ書き→fsync→os.replace で原子的に置換する。
+
+    途中で失敗しても元ファイルは壊れない（os.replace は同一FS上でアトミック）。一時ファイルは
+    失敗時に掃除する。ディレクトリエントリも fsync して replace を確実に永続化する。
+    """
+    d = os.path.dirname(os.path.abspath(path))
+    fd, tmp = tempfile.mkstemp(prefix=".tmp-", dir=d)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(obj, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)              # アトミック置換（成功するとtmpは消える）
+        try:
+            dfd = os.open(d, os.O_RDONLY)
+            try:
+                os.fsync(dfd)
+            finally:
+                os.close(dfd)
+        except OSError:
+            pass                           # ディレクトリfsync非対応FSでも本体は置換済み
+    except Exception:
+        if os.path.exists(tmp):
+            os.remove(tmp)                 # 失敗時は一時ファイルを残さない（元ファイルは無傷）
+        raise
+
+
 def do_switch_to_editor():
     """編集モデルを「正」へ明示切替（自動では呼ばない）。変換・整合成功時のみ editor を立てて保存。
 
     旧形式(image_cuts/cut/review.json)から assets/imageCues を確定し、整合検証に通ったら
     editorModelAuthority="editor" にして script.json へ保存する。失敗時は legacy のまま据え置く。
-    保存前に .backups へ退避する（ユーザーデータを破壊しない）。
+    保存前に .backups へ退避し、本体書き込みは一時ファイル＋fsync＋os.replace で原子的に行う。
     Returns: {ok, message, switched?}
     """
     from src import editor_model
@@ -871,8 +901,10 @@ def do_switch_to_editor():
                         + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     os.makedirs(bdir, exist_ok=True)
     shutil.copy2(sp, os.path.join(bdir, "script.json"))
-    with open(sp, "w", encoding="utf-8") as f:
-        json.dump(switched, f, ensure_ascii=False, indent=2)
+    try:
+        _atomic_write_json(sp, switched)   # 原子的保存（途中失敗でも元のlegacyが残る）
+    except Exception as e:
+        return {"ok": False, "message": "保存に失敗（元のlegacyを維持）: " + str(e)}
     return {"ok": True, "switched": True,
             "message": f"editor 権威へ切替（assets {len(switched.get('assets', []))} / "
                        f"imageCues {len(switched.get('imageCues', []))}）"}

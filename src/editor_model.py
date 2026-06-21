@@ -472,14 +472,41 @@ def _turn_index(script):
     return idx
 
 
-def _next_seq_id(existing, prefix):
-    """prefix + 連番(4桁) で existing と衝突しない ID を返す（再利用しない）。"""
-    n = 1
-    while True:
-        cand = f"{prefix}{n:04d}"
-        if cand not in existing:
-            return cand
-        n += 1
+def _issue_seq_id(data, list_key, prefix, counter_key):
+    """prefix + 連番(4桁) を「最大連番+1」で採番（削除後も再利用しない）。
+
+    data["idCounters"][counter_key] に発番済み最大値を永続化し、毎回+1する。カウンタが無い
+    （旧データ/migrate直後）場合は既存の prefix+連番 から最大値で初期化する。万一カウンタが
+    現存IDより小さくても衝突しないよう、現存最大ともmaxを取る。
+    """
+    counters = data.setdefault("idCounters", {})
+    cur = counters.get(counter_key)
+    existing_max = 0
+    for x in data.get(list_key) or []:
+        m = re.fullmatch(re.escape(prefix) + r"(\d+)", str(x.get("id") or ""))
+        if m:
+            existing_max = max(existing_max, int(m.group(1)))
+    base = existing_max if cur is None else max(cur, existing_max)
+    nxt = base + 1
+    counters[counter_key] = nxt
+    return f"{prefix}{nxt:04d}"
+
+
+def _validate_asset(data, asset_id, *, allow_none):
+    """assetId の妥当性を保証（不正参照を生成させない）。allow_none=Falseは実在必須。"""
+    if asset_id is None:
+        if allow_none:
+            return
+        raise ValueError("assetId が必要です")
+    if find_asset(data, asset_id) is None:
+        raise ValueError(f"asset {asset_id} は存在しません")
+
+
+def _assert_no_start_collision(data, turn_id, *, ignore_cue_id=None):
+    """同じ開始 turnId に別の cue が無いことを保証（開始位置衝突を生成させない）。"""
+    other = cue_at(data, turn_id)
+    if other is not None and other.get("id") != ignore_cue_id:
+        raise ValueError(f"turnId {turn_id} には既に cue {other.get('id')} があります（差し替えは place_image）")
 
 
 def _asset_origin(asset):
@@ -499,9 +526,9 @@ def find_asset(data, asset_id):
 
 def add_asset(data, *, file=None, query=None, queryJa=None, kind=None,
               attribution=None, sourceChapter=None):
-    """素材を1件追加して返す（ID は既存と衝突しない asset-NNNN を採番）。"""
+    """素材を1件追加して返す（ID は最大連番+1で採番＝削除後も再利用しない）。"""
     assets = data.setdefault("assets", [])
-    aid = _next_seq_id({a.get("id") for a in assets}, "asset-")
+    aid = _issue_seq_id(data, "assets", "asset-", "asset")
     asset = {"id": aid, "file": file, "query": _clean_str(query), "queryJa": _clean_str(queryJa),
              "kind": _clean_str(kind), "attribution": _clean_str(attribution),
              "sourceChapter": sourceChapter}
@@ -564,7 +591,7 @@ def _apply_cue_opts(cue, opts):
 
 def _new_cue(data, turn_id, asset_id, end_turn_id, opts):
     cues = data.setdefault("imageCues", [])
-    cid = _next_seq_id({c.get("id") for c in cues}, "image-cue-")
+    cid = _issue_seq_id(data, "imageCues", "image-cue-", "imageCue")
     cue = {"id": cid, "turnId": turn_id, "assetId": asset_id,
            "fit": None, "crop": None, "filter": None, "pad": 0, "bg": None, "hide": False}
     if end_turn_id is not None:
@@ -584,14 +611,30 @@ def cue_at(data, turn_id):
 
 
 def add_cue(data, turn_id, asset_id=None, *, end_turn_id=None, **opts):
-    """指定セリフを開始位置に画像 cue を追加する。turnId はスクリプトに存在必須。"""
-    if turn_id not in _turn_index(data.get("script") or []):
+    """指定セリフを開始位置に画像 cue を追加する。
+
+    検証（不正状態を生成させない）: turnId はスクリプトに存在必須／開始位置に既存 cue があれば拒否
+    （差し替えは place_image）／assetId は None か実在素材／endTurnId 指定時は開始以降。
+    """
+    idx = _turn_index(data.get("script") or [])
+    if turn_id not in idx:
         raise ValueError(f"turnId {turn_id} がスクリプトに存在しません")
+    _assert_no_start_collision(data, turn_id)
+    _validate_asset(data, asset_id, allow_none=True)
+    if end_turn_id is not None:
+        if end_turn_id not in idx:
+            raise ValueError(f"endTurnId {end_turn_id} がスクリプトに存在しません")
+        if idx[end_turn_id] < idx[turn_id]:
+            raise ValueError("endTurnId が開始より前です（範囲逆転）")
     return _new_cue(data, turn_id, asset_id, end_turn_id, opts)
 
 
 def place_image(data, turn_id, asset_id, **opts):
-    """plan 3.4 の配置規則：開始位置に既存 cue があれば素材を差し替え、無ければ追加（add-or-replace）。"""
+    """plan 3.4 の配置規則：開始位置に既存 cue があれば素材を差し替え、無ければ追加（add-or-replace）。
+
+    assetId は実在必須（画像を置く操作なので未指定/不正は拒否）。
+    """
+    _validate_asset(data, asset_id, allow_none=False)
     existing = cue_at(data, turn_id)
     if existing is not None:
         existing["assetId"] = asset_id
@@ -601,21 +644,31 @@ def place_image(data, turn_id, asset_id, **opts):
 
 
 def replace_cue_asset(data, cue_id, asset_id):
-    """cue の参照素材だけ差し替える（表示調整はそのまま＝同位置で別画像へ）。"""
+    """cue の参照素材だけ差し替える（表示調整はそのまま＝同位置で別画像へ）。assetId は実在必須。"""
     cue = find_cue(data, cue_id)
     if cue is None:
         raise ValueError(f"cue {cue_id} がありません")
+    _validate_asset(data, asset_id, allow_none=False)
     cue["assetId"] = asset_id
     return cue
 
 
 def move_cue(data, cue_id, new_turn_id):
-    """cue の開始セリフを変更（タイムラインの左端ドラッグ）。turnId は存在必須。"""
+    """cue の開始セリフを変更（タイムラインの左端ドラッグ）。
+
+    検証: turnId 存在必須／移動先に別 cue があれば拒否（開始位置衝突）／endTurnId があれば
+    移動後に範囲逆転しないこと。
+    """
     cue = find_cue(data, cue_id)
     if cue is None:
         raise ValueError(f"cue {cue_id} がありません")
-    if new_turn_id not in _turn_index(data.get("script") or []):
+    idx = _turn_index(data.get("script") or [])
+    if new_turn_id not in idx:
         raise ValueError(f"turnId {new_turn_id} がスクリプトに存在しません")
+    _assert_no_start_collision(data, new_turn_id, ignore_cue_id=cue_id)
+    e = cue.get("endTurnId")
+    if e is not None and e in idx and idx[e] < idx[new_turn_id]:
+        raise ValueError("移動すると endTurnId より後になります（範囲逆転）")
     cue["turnId"] = new_turn_id
     return cue
 
@@ -624,22 +677,30 @@ def set_cue_range(data, cue_id, *, start_turn_id=None, end_turn_id="__keep__"):
     """cue の開始/終了セリフを調整。end_turn_id=None で「次のcueまで継続」へ戻す。
 
     start_turn_id 省略時は変更しない。end_turn_id は明示時のみ変更（"__keep__"=据え置き）。
+    検証: 各 turnId 存在必須／開始移動先の衝突拒否／最終的に開始<=終了（範囲逆転を生成させない）。
     """
     cue = find_cue(data, cue_id)
     if cue is None:
         raise ValueError(f"cue {cue_id} がありません")
     idx = _turn_index(data.get("script") or [])
+    new_start = cue.get("turnId")
     if start_turn_id is not None:
         if start_turn_id not in idx:
             raise ValueError(f"turnId {start_turn_id} がスクリプトに存在しません")
-        cue["turnId"] = start_turn_id
-    if end_turn_id != "__keep__":
-        if end_turn_id is None:
-            cue.pop("endTurnId", None)
-        else:
-            if end_turn_id not in idx:
-                raise ValueError(f"turnId {end_turn_id} がスクリプトに存在しません")
-            cue["endTurnId"] = end_turn_id
+        _assert_no_start_collision(data, start_turn_id, ignore_cue_id=cue_id)
+        new_start = start_turn_id
+    new_end = cue.get("endTurnId") if end_turn_id == "__keep__" else end_turn_id
+    if new_end is not None:
+        if new_end not in idx:
+            raise ValueError(f"endTurnId {new_end} がスクリプトに存在しません")
+        if idx[new_end] < idx.get(new_start, 0):
+            raise ValueError("endTurnId が開始より前です（範囲逆転）")
+    # 検証通過後にのみ適用（部分適用しない）。
+    cue["turnId"] = new_start
+    if new_end is None:
+        cue.pop("endTurnId", None)
+    else:
+        cue["endTurnId"] = new_end
     return cue
 
 
@@ -739,6 +800,22 @@ def _resolve_cue(cue, asset_by):
     else:
         res["blank"] = True                  # 壊れた/未指定の assetId は画像なし
     return res
+
+
+def editor_attributions(assets, image_cues):
+    """使用中(cueに参照されている)assetのattributionを {assetId: 出典} で返す（出現順・assetは一意）。
+
+    未使用assetは含めない。build_credits/write_credits_txt が .values() で重複除去するので、
+    同一出典が複数assetにあっても最終的なクレジットは1つになる。
+    """
+    asset_by = {a.get("id"): a for a in assets or []}
+    out = {}
+    for c in image_cues or []:
+        aid = c.get("assetId")
+        a = asset_by.get(aid)
+        if a and a.get("attribution") and aid not in out:
+            out[aid] = a["attribution"]
+    return out
 
 
 def resolve_turn_images(script, assets, image_cues):

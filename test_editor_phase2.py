@@ -57,7 +57,8 @@ def test_asset_usage_and_delete():
 def test_unused_vs_broken_distinction():
     d = _data()
     a = em.add_asset(d, file="x.jpg")      # 未使用
-    em.add_cue(d, "turn-0001", "asset-missing")  # 壊れた参照
+    # 壊れた参照は ops では生成不可（検証で弾く）＝外部要因(削除レース等)で混入した状態を直接構築。
+    d["imageCues"].append({"id": "image-cue-9999", "turnId": "turn-0001", "assetId": "asset-missing"})
     ok("未使用assetを列挙", em.unused_assets(d) == [a["id"]])
     ok("壊れたassetId参照を区別して列挙", len(em.broken_cue_refs(d)) == 1)
 
@@ -108,6 +109,106 @@ def test_pad_zero_and_crop_zero_preserved():
     c = em.add_cue(d, "turn-0001", a["id"], pad=0, crop={"l": 0, "t": 0, "r": 0.5, "b": 0.5})
     ok("pad:0 を欠損扱いしない", c["pad"] == 0)
     ok("crop座標0 を保持", c["crop"]["l"] == 0)
+
+
+# ===== ID 再利用しない（削除→再追加） =====
+
+def test_asset_id_no_reuse():
+    d = _data()
+    a1 = em.add_asset(d, file="1")
+    a2 = em.add_asset(d, file="2")
+    em.delete_asset(d, a2["id"])
+    a3 = em.add_asset(d, file="3")
+    ok("削除したasset IDを再利用しない（最大連番+1）", a3["id"] != a2["id"] and a3["id"] != a1["id"])
+    em.delete_asset(d, a1["id"])
+    a4 = em.add_asset(d, file="4")
+    ok("先頭asset削除後も再利用しない", a4["id"] not in (a1["id"], a2["id"], a3["id"]))
+
+
+def test_cue_id_no_reuse():
+    d = _data(4)
+    a = em.add_asset(d, file="x")
+    c1 = em.add_cue(d, "turn-0001", a["id"])
+    c2 = em.add_cue(d, "turn-0002", a["id"])
+    em.delete_cue(d, c2["id"])
+    c3 = em.add_cue(d, "turn-0002", a["id"])
+    ok("削除したcue IDを再利用しない", c3["id"] != c2["id"] and c3["id"] != c1["id"])
+
+
+def test_id_counter_persists_through_save():
+    import review_server as rs
+    d = _data()
+    a1 = em.add_asset(d, file="1"); em.add_asset(d, file="2")
+    em.delete_asset(d, a1["id"])
+    _, _, saved = rs.apply_save_script(dict(d, editorModelAuthority="legacy"))
+    ok("idCountersが保存で持ち越される", saved.get("idCounters", {}).get("asset") == 2)
+    a3 = em.add_asset(saved, file="3")
+    ok("再読込後も再利用しない", a3["id"] == "asset-0003")
+
+
+# ===== 不正状態を生成させない（add/place/replace/move/set_range） =====
+
+def test_ops_reject_invalid_asset():
+    d = _data()
+    a = em.add_asset(d, file="x")
+    c = em.add_cue(d, "turn-0001", a["id"])
+    for label, fn in [
+        ("place_image不正assetId", lambda: em.place_image(d, "turn-0002", "asset-x")),
+        ("replace_cue_asset不正assetId", lambda: em.replace_cue_asset(d, c["id"], "asset-x")),
+        ("add_cue不正assetId", lambda: em.add_cue(d, "turn-0003", "asset-x")),
+    ]:
+        try:
+            fn(); ok(label + "を拒否", False)
+        except ValueError:
+            ok(label + "を拒否", True)
+
+
+def test_ops_reject_start_collision():
+    d = _data(4)
+    a = em.add_asset(d, file="x")
+    em.add_cue(d, "turn-0001", a["id"])
+    c2 = em.add_cue(d, "turn-0003", a["id"])
+    try:
+        em.add_cue(d, "turn-0001", a["id"]); ok("add_cue開始位置衝突を拒否", False)
+    except ValueError:
+        ok("add_cue開始位置衝突を拒否", True)
+    try:
+        em.move_cue(d, c2["id"], "turn-0001"); ok("move_cue開始位置衝突を拒否", False)
+    except ValueError:
+        ok("move_cue開始位置衝突を拒否", True)
+    ok("拒否後も状態は不変（cue 2件・turn-0003のまま）",
+       len(d["imageCues"]) == 2 and em.find_cue(d, c2["id"])["turnId"] == "turn-0003")
+
+
+def test_ops_reject_reversed_range():
+    d = _data(4)
+    a = em.add_asset(d, file="x")
+    c = em.add_cue(d, "turn-0002", a["id"])
+    try:
+        em.add_cue(d, "turn-0003", a["id"], end_turn_id="turn-0001")
+        ok("add_cue範囲逆転を拒否", False)
+    except ValueError:
+        ok("add_cue範囲逆転を拒否", True)
+    try:
+        em.set_cue_range(d, c["id"], end_turn_id="turn-0001")  # end(0) < start(1)
+        ok("set_cue_range範囲逆転を拒否", False)
+    except ValueError:
+        ok("set_cue_range範囲逆転を拒否", True)
+    ok("set_cue_range拒否で部分適用しない", "endTurnId" not in em.find_cue(d, c["id"]))
+
+
+# ===== 削除→再追加（UI共通操作の往復） =====
+
+def test_delete_readd_roundtrip():
+    d = _data(4)
+    a = em.add_asset(d, file="x")
+    c = em.add_cue(d, "turn-0001", a["id"], fit="cover")
+    em.delete_cue(d, c["id"])
+    ok("cue削除後assetは残る", not d["imageCues"] and em.find_asset(d, a["id"]))
+    c2 = em.place_image(d, "turn-0001", a["id"], fit="contain")
+    ok("同位置へ再配置できる（IDは新規）", c2["id"] != c["id"] and c2["fit"] == "contain")
+    em.delete_asset(d, a["id"], force=True)
+    ok("force削除でassetとcue両方消える", not d["assets"] and not d["imageCues"])
 
 
 # ===== normalize / reconcile =====
@@ -195,7 +296,8 @@ def test_resolve_hide_blank_broken_nofile():
     a_file = em.add_asset(d, file="0.jpg")
     a_nofile = em.add_asset(d)                       # file無し→placeholder
     em.add_cue(d, "turn-0001", a_file["id"], hide=True)   # hide→blank
-    em.add_cue(d, "turn-0002", "asset-missing")           # 壊れ→blank
+    d["imageCues"].append({"id": "image-cue-9000", "turnId": "turn-0002",
+                           "assetId": "asset-missing"})    # 壊れ参照(外部混入)→blank
     em.add_cue(d, "turn-0003", a_nofile["id"])            # file無し→placeholder
     plan = em.resolve_turn_images(d["script"], d["assets"], d["imageCues"])
     ok("hide→blank", plan[0].get("blank") is True)
@@ -318,6 +420,112 @@ def test_save_reload_resave_idempotent_editor():
     ok("保存→再読込→再保存が冪等", resaved["imageCues"] == saved["imageCues"])
 
 
+# ===== editor クレジット（使用中assetのattributionのみ・重複除去） =====
+
+_CONFIG = {"characters_gender": {}, "tts_voicevox": {"speakers": {"四国めたん": {}}}}
+
+
+def test_editor_credits_used_only_dedup():
+    d = _data(3)
+    used = em.add_asset(d, file="u.jpg", attribution="Foo / Pexels")
+    used2 = em.add_asset(d, file="u2.jpg", attribution="Foo / Pexels")  # 同出典別asset
+    em.add_asset(d, file="x.jpg", attribution="UNUSED / Z")             # 未使用
+    em.add_cue(d, "turn-0001", used["id"]); em.add_cue(d, "turn-0002", used2["id"])
+    d["editorModelAuthority"] = "editor"
+    turns = [{"start": i, "end": i + 1, "sentences": []} for i in range(3)]
+    meta = ms.build_meta(d, turns, _CONFIG, "X")
+    line = next((c for c in meta["credits"] if c.startswith("画像出典")), "")
+    ok("使用中assetの出典をcreditsへ", "Foo / Pexels" in line)
+    ok("未使用assetは含めない", "UNUSED" not in line)
+    ok("同一出典は重複除去", line.count("Foo / Pexels") == 1)
+
+
+def test_editor_credits_txt_for_added_asset():
+    import pathlib
+    import tempfile as _tf
+    d = _data(2)
+    a = em.add_asset(d, file="z.jpg", attribution="Bar / CC-BY")
+    em.add_cue(d, "turn-0001", a["id"])
+    d["editorModelAuthority"] = "editor"
+    attrs = em.editor_attributions(d["assets"], d["imageCues"])
+    tmp = pathlib.Path(_tf.mkdtemp())
+    try:
+        ms.write_credits_txt(tmp, _CONFIG, attrs)
+        txt = (tmp / "credits.txt").read_text(encoding="utf-8")
+    finally:
+        import shutil as _sh
+        _sh.rmtree(tmp)
+    ok("editor追加assetの出典がcredits.txtに出る", "Bar / CC-BY" in txt)
+
+
+# ===== 原子的保存（一時ファイル＋fsync＋os.replace） =====
+
+def test_atomic_write_and_failure_preserves_original():
+    import tempfile as _tf
+    import review_server as rs
+    d = _tf.mkdtemp()
+    p = os.path.join(d, "f.json")
+    try:
+        rs._atomic_write_json(p, {"a": 1})
+        ok("原子的書き込み成功", json.load(open(p)) == {"a": 1})
+        # 直列化不能オブジェクトで失敗→元ファイル不変・一時ファイル残さない
+        try:
+            rs._atomic_write_json(p, {"bad": {1, 2, 3}})  # set はJSON不可
+            ok("保存失敗を検知", False)
+        except TypeError:
+            ok("保存失敗を検知", True)
+        ok("失敗時に元ファイルは無傷", json.load(open(p)) == {"a": 1})
+        ok("失敗時に一時ファイルを残さない",
+           not [f for f in os.listdir(d) if f.startswith(".tmp-")])
+    finally:
+        import shutil as _sh
+        _sh.rmtree(d)
+
+
+def test_switch_failure_keeps_legacy_file():
+    import tempfile as _tf
+    import review_server as rs
+    d = _tf.mkdtemp()
+    # script が不正（リストでない）＝switch_to_editor が例外→書き込まず legacy のまま据え置き。
+    json.dump({"script": "bad", "chapters": []}, open(os.path.join(d, "script.json"), "w"))
+    before = open(os.path.join(d, "script.json")).read()
+    old = rs.DIR
+    try:
+        rs.DIR = d
+        r = rs.do_switch_to_editor()
+        after = open(os.path.join(d, "script.json")).read()
+    finally:
+        rs.DIR = old
+        import shutil as _sh
+        _sh.rmtree(d, ignore_errors=True)
+    ok("切替失敗時はok=False", r["ok"] is False and "switched" not in r)
+    ok("切替失敗時にscript.jsonを書き換えない", before == after)
+
+
+def test_switch_success_atomic_and_idempotent():
+    import tempfile as _tf
+    import review_server as rs
+    d = _tf.mkdtemp()
+    json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
+    json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
+    old = rs.DIR
+    try:
+        rs.DIR = d
+        r1 = rs.do_switch_to_editor()
+        sd = json.load(open(os.path.join(d, "script.json")))
+        r2 = rs.do_switch_to_editor()       # 2回目は no-op
+    finally:
+        rs.DIR = old
+        import shutil as _sh
+        _sh.rmtree(d, ignore_errors=True)
+        for b in os.listdir(".backups"):    # テストが作った退避を掃除
+            if b.startswith("editor-authority-pre-"):
+                _sh.rmtree(os.path.join(".backups", b), ignore_errors=True)
+    ok("切替成功でeditor権威・妥当JSON", r1["ok"] and r1["switched"]
+       and sd.get("editorModelAuthority") == "editor")
+    ok("切替は冪等（2回目はno-op）", r2["ok"] and r2.get("switched") is False)
+
+
 # ===== 実データ：legacy/editor の meta 等価性（機械比較） =====
 
 def test_real_data_legacy_editor_meta_equivalence():
@@ -365,6 +573,13 @@ if __name__ == "__main__":
     test_place_image_add_or_replace()
     test_move_replace_range_delete()
     test_pad_zero_and_crop_zero_preserved()
+    test_asset_id_no_reuse()
+    test_cue_id_no_reuse()
+    test_id_counter_persists_through_save()
+    test_ops_reject_invalid_asset()
+    test_ops_reject_start_collision()
+    test_ops_reject_reversed_range()
+    test_delete_readd_roundtrip()
     test_normalize_dedup_orphan_reversed()
     test_normalize_idempotent()
     test_reconcile_turn_delete_relocates()
@@ -382,5 +597,10 @@ if __name__ == "__main__":
     test_switch_then_legacy_change_ignored()
     test_legacy_authority_uses_legacy_meta_path()
     test_save_reload_resave_idempotent_editor()
+    test_editor_credits_used_only_dedup()
+    test_editor_credits_txt_for_added_asset()
+    test_atomic_write_and_failure_preserves_original()
+    test_switch_failure_keeps_legacy_file()
+    test_switch_success_atomic_and_idempotent()
     test_real_data_legacy_editor_meta_equivalence()
     print(f"ALL PASS ({passed} checks)")
