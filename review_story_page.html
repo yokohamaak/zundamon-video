@@ -1633,14 +1633,14 @@ function seekRemotionToSelection(){
   if(window.remotionEditorPlayer) window.remotionEditorPlayer.seekToTurn(selGi);
 }
 
-function selectTurn(gi){
+function selectTurn(gi, scrollTl=true){
   if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
   if(selGi!==gi) selectedTextRange=null;
   selGi=gi; const tn=DATA.script[gi]; const seg=vizSegForTurn(gi);   // 共通読取（editor=visualSegments）
   if(seg) selSeg=seg.id;
   markSel(); renderPreviewPane(); seekRemotionToSelection(); renderRight(); renderTimeline();
   const row=document.querySelector('.line[data-gi="'+gi+'"]'); if(row) row.scrollIntoView({block:'nearest'});
-  scrollTimelineToTurn(gi);
+  if(scrollTl) scrollTimelineToTurn(gi);   // タイムライン由来のクリックでは左端へ寄せない（scrollTl=false）
 }
 // 選択セリフをタイムラインの可視範囲へ横スクロール（renderTimeline後に呼ぶ＝両方向の連動用）。
 function scrollTimelineToTurn(gi){
@@ -1848,7 +1848,7 @@ function startKfDrag(ev,gi,a,m){
   const finish=()=>{
     document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.removeEventListener('pointercancel',cancel);
     document.body.classList.remove('tl-resizing'); if(m) m.classList.remove('dragging'); clearHi(); if(caret){ caret.remove(); caret=null; }
-    if(!moved){ selectTurn(gi); return; }                          // 閾値未満＝クリック＝セリフ選択
+    if(!moved){ selectTurn(gi,false); return; }                          // 閾値未満＝クリック＝セリフ選択（タイムライン由来＝左端へ寄せない）
     if(tgtGi===gi){ setVizPointPos(srcTn,a,pos); markDirty(); }    // 同セリフ＝文字位置変更
     else { const err=anchorPlacementError(ci,kseg,DATA.script[tgtGi],a,tgtGi,'move');   // 別セリフ＝所属移動
       if(!err){ moveAnchorToTurn(srcTn,DATA.script[tgtGi],a,pos); markDirty(); } else alert(err); }
@@ -1875,7 +1875,7 @@ function renderTimeline(){
   const [turnRow,turnTrack]=timelineRow('セリフ');
   const zMult=tlLevelOf(timelineLevel).mult;   // 詳細時は列幅に比例して文字も拡大（拡大しないと読めず縦線位置もズレるため）
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
-    c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.style.paddingLeft=TL_TURN_GUTTER+'px'; c.onclick=()=>selectTurn(gi);
+    c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.style.paddingLeft=TL_TURN_GUTTER+'px'; c.onclick=()=>selectTurn(gi,false);
     const no=document.createElement('span'); no.className='tl-no'; no.textContent=(gi+1); c.appendChild(no);   // 行番号は本文に混ぜず固定幅バッジに
     const tx=document.createElement('span'); tx.className='tl-tx'; tx.textContent=(tn.text||'(空)'); c.appendChild(tx);
     if(timelineDetail){ const fs=Math.round(10*zMult); tx.style.fontSize=fs+'px'; c.style.height=Math.max(46,fs+22)+'px'; }
@@ -1896,7 +1896,7 @@ function renderTimeline(){
       const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了セリフをドラッグ';
       hs.onpointerdown=e=>startCueResize(e,c.id,'s',b); he.onpointerdown=e=>startCueResize(e,c.id,'e',b);
       b.appendChild(hs); b.appendChild(he);
-      b.onclick=()=>{ rtab='image'; selectTurn(sp.s); };
+      b.onclick=()=>{ rtab='image'; selectTurn(sp.s,false); };
       imgTrack.appendChild(b); });
     if(!spans.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='画像キューなし（画像/素材タブで配置）'; imgTrack.appendChild(e); }
     body.appendChild(imgRow);
@@ -1916,7 +1916,7 @@ function renderTimeline(){
     hs.onpointerdown=e=>startTimelineResize(e,ci,seg.id,'s',b);
     he.onpointerdown=e=>startTimelineResize(e,ci,seg.id,'e',b);
     b.appendChild(hs); b.appendChild(he);
-    b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s); }; mainTrack.appendChild(b); });
+    b.onclick=()=>{ selSeg=seg.id; rtab='viz'; selectTurn(rng.s,false); }; mainTrack.appendChild(b); });
   if(!mainSegs.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし'; mainTrack.appendChild(e); } body.appendChild(mainRow);
   // 変化点トラック（選択中の大演出の出現・変化タイミング）。現状は読み取り専用＝一覧表示。
   const [kfRow,kfTrack]=timelineRow('変化点'); let kfCount=0;
@@ -1957,7 +1957,7 @@ function renderTimeline(){
         sel.onchange=()=>{ const opt=unplaced[+sel.value]; if(!opt||addGi<0)return;
           const err=anchorPlacementError(kfCh,_seg,DATA.script[addGi],{type:opt.type,value:opt.value},addGi,'add');
           if(err){ alert(err); renderTimeline(); return; }
-          addAnchorToTurn(kfCh,_seg,DATA.script[addGi],opt); selectTurn(addGi); markDirty(); renderTimeline(); };
+          addAnchorToTurn(kfCh,_seg,DATA.script[addGi],opt); selectTurn(addGi,false); markDirty(); renderTimeline(); };
         const lab=kfRow.querySelector('.tl-label'); if(lab) lab.appendChild(sel);
       }
     }
@@ -1975,12 +1975,12 @@ function renderTimeline(){
       hs.onpointerdown=e=>startTextEffectResize(e,gi,fx.id,'s',group,b);
       he.onpointerdown=e=>startTextEffectResize(e,gi,fx.id,'e',group,b);
       b.appendChild(hs); b.appendChild(he);
-      b.onclick=()=>{ rtab='small'; selectTurn(gi); }; group.appendChild(b); }); textTrack.appendChild(group); });
+      b.onclick=()=>{ rtab='small'; selectTurn(gi,false); }; group.appendChild(b); }); textTrack.appendChild(group); });
   if(!textCount){ const textEmpty=document.createElement('span'); textEmpty.className='tl-empty'; textEmpty.textContent='文字を選択して小演出を追加'; textTrack.appendChild(textEmpty); }
   body.appendChild(textRow);
   const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）','small-effects');
   DATA.script.forEach((tn,gi)=>{ const group=document.createElement('div'); group.className='tl-small-group'; group.style.gridColumn=(gi+1)+' / span 1';
-    group.title='クリックして小演出を編集'; group.onclick=()=>{ rtab='small'; selectTurn(gi); };
+    group.title='クリックして小演出を編集'; group.onclick=()=>{ rtab='small'; selectTurn(gi,false); };
     if(tn.telop){ const b=document.createElement('div'); b.className='tl-small-effect telop'; b.textContent='テロップ: '+tn.telop; group.appendChild(b); }
     if(tn.reaction){ const b=document.createElement('div'); b.className='tl-small-effect reaction'; b.textContent='リアクション: '+tn.reaction; group.appendChild(b); }
     if(!tn.telop&&!tn.reaction&&gi===selGi){ const add=document.createElement('span'); add.className='tl-small-add'; add.textContent='＋小演出'; group.appendChild(add); }
@@ -2053,7 +2053,7 @@ function renderEditorVizTracks(body){
     const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了セリフをドラッグ';
     hs.onpointerdown=e=>startVizResize(e,s.id,'s',bar); he.onpointerdown=e=>startVizResize(e,s.id,'e',bar);
     bar.appendChild(hs); bar.appendChild(he);
-    bar.onclick=()=>{ selSeg=s.id; rtab='viz'; selectTurn(b[0]); }; mainTrack.appendChild(bar); });
+    bar.onclick=()=>{ selSeg=s.id; rtab='viz'; selectTurn(b[0],false); }; mainTrack.appendChild(bar); });
   if(!items.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='大演出なし（右ペインで追加）'; mainTrack.appendChild(e); }
   body.appendChild(mainRow);
   // 変化点（選択中セグメントのkeyframes）
@@ -2122,7 +2122,7 @@ function startVizKfDrag(ev,segId,kf,m){
   const finish=async()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.removeEventListener('pointercancel',cancel); document.body.classList.remove('tl-resizing'); clearHi(); if(caret){ caret.remove(); caret=null; }
     if(!moved){ selSeg=segId; const now=Date.now();
       if(_lastKfClick.id===kf.id && (now-_lastKfClick.t)<350){ _lastKfClick={id:null,t:0}; focusKfEditor(segId,kf.id); return; }   // ダブルクリック＝詳細編集へ
-      _lastKfClick={id:kf.id,t:now}; const gi=turnGi(kf.turnId); if(gi>=0) selectTurn(gi); return; }
+      _lastKfClick={id:kf.id,t:now}; const gi=turnGi(kf.turnId); if(gi>=0) selectTurn(gi,false); return; }
     const ok=await vizOp({op:'moveKf',segId,kfId:kf.id,turnId:DATA.script[tgtGi].id,pos:pos},{silent:true}); renderTimeline(); };
   const cancel=()=>{ moved=false; finish(); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
@@ -2132,7 +2132,7 @@ function focusKfEditor(segId,kfId){
   const seg=findSeg(segId); if(!seg) return; selSeg=segId; rtab='viz';
   const bd=segBoundsGi(seg); const kf=(seg.keyframes||[]).find(k=>k.id===kfId);
   const gi=kf?turnGi(kf.turnId):(bd?bd[0]:-1);
-  if(gi>=0) selectTurn(gi); else renderRight();   // selectTurn が renderRight/renderTimeline を呼ぶ
+  if(gi>=0) selectTurn(gi,false); else renderRight();   // selectTurn が renderRight/renderTimeline を呼ぶ（タイムライン由来＝左端へ寄せない）
   const inp=document.getElementById('kfpos-'+kfId);
   if(inp){ inp.scrollIntoView({block:'nearest'}); inp.focus(); inp.select(); }
 }
