@@ -533,6 +533,58 @@ def test_switch_success_atomic_and_idempotent():
     ok("切替は冪等（2回目はno-op）", r2["ok"] and r2.get("switched") is False)
 
 
+# ===== authority切替でtheme等が維持される / 素材API往復 =====
+
+def test_switch_preserves_theme_and_script():
+    base = {"theme": "マイテーマ", "chapters": [{"image_cuts": [{"image_query": "q"}]}],
+            "script": [{"speaker": "四国めたん", "text": "やあ", "chapter": 0, "cut": 0}]}
+    ed = em.switch_to_editor(base, {"cuts": [{"ch": 0, "ci": 0, "image": "a.jpg"}]})
+    ok("切替後もthemeを維持", ed.get("theme") == "マイテーマ")
+    ok("切替後もscript本文を維持", ed["script"][0]["text"] == "やあ")
+    ok("editor権威が立つ", ed["editorModelAuthority"] == "editor")
+
+
+def test_asset_api_roundtrip():
+    import base64 as _b64
+    import shutil as _sh
+    import tempfile as _tf
+    import review_server as rs
+    d = _tf.mkdtemp(); bk = _tf.mkdtemp()
+    json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
+    json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
+    png = ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQ"
+           "DwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+    old = rs.DIR
+    try:
+        rs.DIR = d
+        r0 = rs.do_switch_to_editor(backups_root=bk)
+        data = json.load(open(os.path.join(d, "script.json")))
+        n0 = len(data["assets"])
+        # 追加（直後に件数/ファイルを確定。後続のdeleteが同一dictを破壊的に変えるため）。
+        ra = rs.do_asset_add({"data": data, "dataB64": png, "filename": "x.png", "query": "t"})
+        add_ok = ra["ok"]; new_id = ra.get("assetId")
+        added = next((a for a in ra["data"]["assets"] if a["id"] == new_id), {}) if add_ok else {}
+        n_after_add = len(ra["data"]["assets"]) if add_ok else -1
+        file_exists = os.path.exists(os.path.join(d, added.get("file") or "_none_"))
+        # 未使用削除（追加したものを消す）
+        rd = rs.do_asset_delete({"data": ra["data"], "assetId": new_id})
+        n_after_del = len(rd["data"]["assets"]) if rd["ok"] else -1
+        # 使用中削除拒否
+        used_id = next(c["assetId"] for c in rd["data"]["imageCues"] if c.get("assetId"))
+        rdu = rs.do_asset_delete({"data": rd["data"], "assetId": used_id})
+        # legacyデータでは追加拒否
+        leg = {k: v for k, v in rd["data"].items() if k != "editorModelAuthority"}
+        rl = rs.do_asset_add({"data": leg, "dataB64": png, "filename": "y.png"})
+    finally:
+        rs.DIR = old
+        _sh.rmtree(d, ignore_errors=True); _sh.rmtree(bk, ignore_errors=True)
+    ok("切替成功", r0["ok"] and r0["switched"])
+    ok("asset追加でID採番・ファイル保存", add_ok and n_after_add == n0 + 1 and file_exists)
+    ok("未使用asset削除", rd["ok"] and n_after_del == n0)
+    ok("使用中asset削除は拒否（参照cue返却）", rdu["ok"] is False and len(rdu.get("used", [])) >= 1)
+    ok("legacyデータでは追加拒否", rl["ok"] is False)
+
+
 # ===== 実データ：legacy/editor の meta 等価性（機械比較） =====
 
 def test_real_data_legacy_editor_meta_equivalence():
@@ -609,5 +661,7 @@ if __name__ == "__main__":
     test_atomic_write_and_failure_preserves_original()
     test_switch_failure_keeps_legacy_file()
     test_switch_success_atomic_and_idempotent()
+    test_switch_preserves_theme_and_script()
+    test_asset_api_roundtrip()
     test_real_data_legacy_editor_meta_equivalence()
     print(f"ALL PASS ({passed} checks)")
