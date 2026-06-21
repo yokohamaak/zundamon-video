@@ -718,6 +718,29 @@ function buildCand(ci,k,cut){ const ky=ci+'_'+k; const st=candState[ky]||{};
 function cssFilter(f){ return f?`brightness(${f.brightness??1}) contrast(${f.contrast??1}) grayscale(${f.grayscale??0})`:''; }
 function contentRect(img,box){ const nw=img.naturalWidth,nh=img.naturalHeight; if(!nw||!nh) return {x:0,y:0,w:box.width,h:box.height};
   const s=Math.min(box.width/nw,box.height/nh),w=nw*s,h=nh*s; return {x:(box.width-w)/2,y:(box.height-h)/2,w,h}; }
+// crop要素外でボタンを離しても確定するよう、ドラッグ中だけwindowでpointerを追跡する。
+// 終了・キャンセル時に必ず解除するため、再描画を繰り返してもlistenerは蓄積しない。
+function bindCropDrag(crop,imgEl,rectEl,onCommit,drawCrop){
+  let drag=null;
+  const cleanup=()=>{ if(drag){ try{ crop.releasePointerCapture(drag.pointerId); }catch(_){} }
+    window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',finish); window.removeEventListener('pointercancel',cancel); };
+  const move=(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+    rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
+    rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; };
+  const finish=(e)=>{ if(!drag){ cleanup(); return; } const d=drag,rr=d.r,x=e.clientX-d.box.left,y=e.clientY-d.box.top;
+    drag=null; cleanup();
+    const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
+    let [l,t]=nm(Math.min(d.x0,x),Math.min(d.y0,y)), [r,b]=nm(Math.max(d.x0,x),Math.max(d.y0,y));
+    const c={l:cl(l),t:cl(t),r:cl(r),b:cl(b)};
+    if(c.r-c.l<0.02||c.b-c.t<0.02){ drawCrop(); return; }
+    onCommit(c); };
+  const cancel=()=>{ drag=null; cleanup(); drawCrop(); };
+  crop.style.touchAction='none';
+  crop.onpointerdown=(e)=>{ if(e.button!=null&&e.button!==0)return; e.preventDefault(); cleanup();
+    const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top,pointerId:e.pointerId};
+    try{ crop.setPointerCapture(e.pointerId); }catch(_){}
+    window.addEventListener('pointermove',move); window.addEventListener('pointerup',finish); window.addEventListener('pointercancel',cancel); };
+}
 function mkrange(min,max,step,val){ const s=document.createElement('input'); s.type='range'; s.min=min; s.max=max; s.step=step; s.value=val; return s; }
 // スライダーに −/＋ ボタンを付けて返す（ボタンは input/change を発火＝既存ハンドラを流用）。
 function stepWrap(slider){
@@ -858,19 +881,7 @@ function buildAdjust(ci,k){
     rectEl.style.display='block'; rectEl.style.left=(rr.x+cut.crop.l*rr.w)+'px'; rectEl.style.top=(rr.y+cut.crop.t*rr.h)+'px';
     rectEl.style.width=((cut.crop.r-cut.crop.l)*rr.w)+'px'; rectEl.style.height=((cut.crop.b-cut.crop.t)*rr.h)+'px'; }
   if(imgEl){ imgEl.complete?drawCrop():(imgEl.onload=drawCrop);
-    let drag=null;
-    // pointerイベント＋setPointerCaptureで完結（window listenerを足さない＝再描画でリーク/多重発火しない）。
-    crop.style.touchAction='none';
-    crop.onpointerdown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; try{crop.setPointerCapture(e.pointerId);}catch(_){} };
-    crop.onpointermove=(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
-      rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
-      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; };
-    crop.onpointerup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
-      try{crop.releasePointerCapture(e.pointerId);}catch(_){}
-      const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
-      let [l,t]=nm(Math.min(drag.x0,x),Math.min(drag.y0,y)), [rr2,bb]=nm(Math.max(drag.x0,x),Math.max(drag.y0,y));
-      const c={l:cl(l),t:cl(t),r:cl(rr2),b:cl(bb)}; drag=null;
-      if(c.r-c.l<0.02||c.b-c.t<0.02){ drawCrop(); return; } cut.crop=c; setOpt(key,{crop:c}); render(); };  // render()で行サムネにもクロップ反映
+    bindCropDrag(crop,imgEl,rectEl,(c)=>{ cut.crop=c; setOpt(key,{crop:c}); render(); },drawCrop);  // render()で行サムネにもクロップ反映
     crop.addEventListener('dragover',e=>{e.preventDefault(); crop.style.outline='2px dashed #ffd84d';});
     crop.addEventListener('dragleave',()=>crop.style.outline='');
     crop.addEventListener('drop',async(e)=>{ e.preventDefault(); crop.style.outline='';
@@ -2768,19 +2779,8 @@ function buildEditorAdjust(cue, asset){
     const box=crop.getBoundingClientRect(), rr=contentRect(imgEl,box);
     rectEl.style.display='block'; rectEl.style.left=(rr.x+cue.crop.l*rr.w)+'px'; rectEl.style.top=(rr.y+cue.crop.t*rr.h)+'px';
     rectEl.style.width=((cue.crop.r-cue.crop.l)*rr.w)+'px'; rectEl.style.height=((cue.crop.b-cue.crop.t)*rr.h)+'px'; }
-  if(imgEl){ imgEl.complete?drawCrop():(imgEl.onload=drawCrop); let drag=null;
-    // pointerイベント＋setPointerCaptureで完結（window listenerを足さない＝再描画でリークしない）。
-    crop.style.touchAction='none';
-    crop.onpointerdown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; try{crop.setPointerCapture(e.pointerId);}catch(_){} };
-    crop.onpointermove=(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
-      rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
-      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; };
-    crop.onpointerup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
-      try{crop.releasePointerCapture(e.pointerId);}catch(_){}
-      const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
-      let [l,t]=nm(Math.min(drag.x0,x),Math.min(drag.y0,y)), [r2v,b2]=nm(Math.max(drag.x0,x),Math.max(drag.y0,y));
-      const c={l:cl(l),t:cl(t),r:cl(r2v),b:cl(b2)}; drag=null;
-      if(c.r-c.l<0.02||c.b-c.t<0.02){ drawCrop(); return; } commit({crop:c}); }; }
+  if(imgEl){ imgEl.complete?drawCrop():(imgEl.onload=drawCrop);
+    bindCropDrag(crop,imgEl,rectEl,(c)=>commit({crop:c}),drawCrop); }
   return wrap;
 }
 

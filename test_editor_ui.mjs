@@ -85,10 +85,13 @@ t('hideToggle: 非hideの開始cue→hide:true / 開始無し→add hide', () =>
   assert.equal(add.op, 'add'); assert.equal(add.assetId, null); assert.equal(add.opts.hide, true);
 });
 
-// --- cropドラッグ：window mousemove を使わない（再描画でリークしない） ---
-t('crop drag は window mousemove listener を足さない', () => {
+// --- cropドラッグ：一時pointer listenerを終了時に必ず外す ---
+t('crop drag は終了をwindowで捕捉しlistenerを解除する', () => {
   assert.ok(!/window\.addEventListener\(\s*['"]mousemove/.test(html), 'window mousemove未使用');
-  assert.ok((html.match(/setPointerCapture/g) || []).length >= 2, 'crop2箇所がpointer captureで完結');
+  assert.ok(/window\.addEventListener\(\s*['"]pointerup['"]\s*,\s*finish/.test(html), 'pointerupを確実に捕捉');
+  assert.ok(/window\.removeEventListener\(\s*['"]pointermove['"]\s*,\s*move/.test(html), 'pointermoveを解除');
+  assert.ok(/window\.removeEventListener\(\s*['"]pointerup['"]\s*,\s*finish/.test(html), 'pointerupを解除');
+  assert.equal((html.match(/bindCropDrag\(crop,imgEl,rectEl,\(c\)=>/g)||[]).length,2,'legacy/editorの両方で共通処理');
 });
 
 // --- runMigrate ---

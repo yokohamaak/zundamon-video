@@ -31,6 +31,15 @@ def _data(n=4, chapter=0):
             "assets": [], "imageCues": []}
 
 
+def _write_real_legacy_fixture(directory):
+    """実データの内容を使いつつ、現在のauthorityに依存しないlegacy fixtureを書き出す。"""
+    data = json.load(open("docs/story/script.json"))
+    data.pop("editorModelAuthority", None)
+    json.dump(data, open(os.path.join(directory, "script.json"), "w"))
+    json.dump(json.load(open("docs/story/review.json")),
+              open(os.path.join(directory, "review.json"), "w"))
+
+
 # ===== 共通 asset 操作 =====
 
 def test_add_asset_unique_id():
@@ -511,8 +520,7 @@ def test_switch_success_atomic_and_idempotent():
     unrelated_root = _tf.mkdtemp()           # 「触ってはいけない別の退避場所」を模したtempdir
     sentinel = os.path.join(unrelated_root, "editor-authority-pre-SENTINEL")
     os.makedirs(sentinel, exist_ok=True)
-    json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
-    json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
+    _write_real_legacy_fixture(d)
     old = rs.DIR
     try:
         rs.DIR = d
@@ -578,8 +586,7 @@ def test_cue_op_endpoint_roundtrip():
     import tempfile as _tf
     import review_server as rs
     d = _tf.mkdtemp(); bk = _tf.mkdtemp()
-    json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
-    json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
+    _write_real_legacy_fixture(d)
     old = rs.DIR
     try:
         rs.DIR = d
@@ -638,8 +645,7 @@ def test_asset_api_roundtrip():
     import tempfile as _tf
     import review_server as rs
     d = _tf.mkdtemp(); bk = _tf.mkdtemp()
-    json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
-    json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
+    _write_real_legacy_fixture(d)
     png = ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQ"
            "DwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
     old = rs.DIR
@@ -704,7 +710,9 @@ def test_real_data_legacy_editor_meta_equivalence():
     tl = wt(base)
     legacy = ms.build_chapter_topics(story_script.assign_sections_to_turns(tl), tl, chapters,
                                      img, attr, opts)
-    ed = em.migrate(script_data, review); ed["editorModelAuthority"] = "editor"
+    legacy_source = dict(script_data)
+    legacy_source.pop("editorModelAuthority", None)  # 現在の実データがeditorでも旧形式から比較用に再導出
+    ed = em.migrate(legacy_source, review); ed["editorModelAuthority"] = "editor"
     te = wt(ed["script"])
     ti = em.resolve_turn_images(te, ed["assets"], ed["imageCues"])
     editor = ms.build_chapter_topics(story_script.assign_sections_to_turns(te), te, chapters,
