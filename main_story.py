@@ -18,6 +18,7 @@ VOICEVOXは自己ホストで課金なし、Gemini(text)・画像庫(Wikimedia/P
   Phase 2（未実装）: 画像取得（Wikimedia/Pexels/Pixabay）→ image_fetch
 """
 import argparse
+import copy
 import json
 import logging
 from datetime import datetime, timezone, timedelta
@@ -830,14 +831,20 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
     # editor権威なら assets/imageCues を「正」として画像を解決（legacy の image_cuts/cut は使わない）。
     # 非editor（legacy）は従来どおり image_files/cut_opts/cut アンカー経路。
     # クレジットも editor では「使用中cueが参照するassetのattribution」だけから作る（未使用は除外）。
+    # 大演出も editor では visualSegments を「正」とし、legacy(vizList+turnフラグ)へ復元して
+    # 既存 _resolve_viz_segments へ渡す（resolver再利用で等価保証）。topics 用にコピーへ復元する。
     turn_image = None
     credit_attr = attributions
+    viz_turns, viz_chapters = script, chapters
     if script_result.get("editorModelAuthority") == "editor":
         from src import editor_model
         turn_image = editor_model.resolve_turn_images(
             script, script_result.get("assets") or [], script_result.get("imageCues") or [])
         credit_attr = editor_model.editor_attributions(
             script_result.get("assets") or [], script_result.get("imageCues") or [])
+        viz_turns, viz_chapters = copy.deepcopy(script), copy.deepcopy(chapters)
+        editor_model.reconstruct_legacy_viz(
+            viz_turns, viz_chapters, script_result.get("visualSegments") or [])
 
     return {
         "generated_at": now_iso,
@@ -845,7 +852,8 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
         "speakers": speakers,
         # script(merged) は timing(start/end) と cut(台本由来)の両方を持つ。turns(TTS)は cut を
         # 持たないので必ず script を渡す（C-1のcutアンカーを効かせるため）。
-        "topics": build_chapter_topics(segments, script, chapters, image_files, attributions,
+        # editor時は大演出を visualSegments から復元した viz_turns/viz_chapters を使う。
+        "topics": build_chapter_topics(segments, viz_turns, viz_chapters, image_files, attributions,
                                        cut_opts, turn_image=turn_image),
         "credits": build_credits(config, credit_attr),
         "audio": build_audio(config, script),

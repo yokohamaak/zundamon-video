@@ -728,6 +728,142 @@ def test_asset_api_roundtrip():
     ok("legacyデータでは追加拒否", rl["ok"] is False)
 
 
+# ===== Phase 3: visualSegments / keyframes 共通操作・復元アダプタ =====
+
+def _segdata(n=5):
+    d = _data(n); d["editorModelAuthority"] = "editor"; d["visualSegments"] = []; return d
+
+
+def test_add_segment_range_delete():
+    d = _segdata(5)
+    s = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0002",
+                              end_turn_id="turn-0004", config={"quiz": {"question": "q"}})
+    ok("セグメント追加(active/範囲/config)", s["status"] == "active" and s["startTurnId"] == "turn-0002"
+       and s["endTurnId"] == "turn-0004" and s["config"]["quiz"]["question"] == "q")
+    try:
+        em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0004", end_turn_id="turn-0002")
+        ok("セグメント範囲逆転を拒否", False)
+    except ValueError:
+        ok("セグメント範囲逆転を拒否", True)
+    em.set_segment_range(d, s["id"], start_turn_id="turn-0001", end_turn_id="turn-0003")
+    s2 = em.find_segment(d, s["id"])
+    ok("範囲変更", s2["startTurnId"] == "turn-0001" and s2["endTurnId"] == "turn-0003")
+    em.delete_visual_segment(d, s["id"])
+    ok("セグメント削除", not d["visualSegments"])
+
+
+def test_segment_id_no_reuse():
+    d = _segdata(5)
+    a = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0001")
+    b = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0002")
+    em.delete_visual_segment(d, b["id"])
+    c = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0002")
+    ok("segment ID再利用しない", c["id"] != b["id"] and c["id"] != a["id"])
+
+
+def test_keyframe_ops_preserve_pos0_value():
+    d = _segdata(5)
+    s = em.add_visual_segment(d, seg_type="panel", start_turn_id="turn-0001", end_turn_id="turn-0004",
+                              config={"panel": {"items": [{"text": "a"}]}})
+    k = em.add_keyframe(d, s["id"], turn_id="turn-0002", kf_type="panel_item", value=0, pos=0)
+    ok("keyframe pos:0/value:0 を保持", k.get("pos") == 0 and k.get("value") == 0)
+    try:
+        em.add_keyframe(d, s["id"], turn_id="turn-0005", kf_type="reveal")  # 範囲外
+        ok("範囲外keyframeを拒否", False)
+    except ValueError:
+        ok("範囲外keyframeを拒否", True)
+    em.move_keyframe(d, s["id"], k["id"], turn_id="turn-0003", pos=5)
+    kk = em.find_segment(d, s["id"])["keyframes"][0]
+    ok("keyframe移動(turn/pos)", kk["turnId"] == "turn-0003" and kk["pos"] == 5)
+    em.delete_keyframe(d, s["id"], k["id"])
+    ok("keyframe削除", not em.find_segment(d, s["id"])["keyframes"])
+
+
+def test_segment_range_trims_outside_keyframes():
+    d = _segdata(5)
+    s = em.add_visual_segment(d, seg_type="panel", start_turn_id="turn-0001", end_turn_id="turn-0005",
+                              config={})
+    em.add_keyframe(d, s["id"], turn_id="turn-0004", kf_type="reveal")
+    em.set_segment_range(d, s["id"], start_turn_id="turn-0001", end_turn_id="turn-0002")
+    ok("範囲縮小で範囲外keyframeを除去", not em.find_segment(d, s["id"])["keyframes"])
+
+
+def test_normalize_segment_orphaned():
+    d = _segdata(3)
+    d["visualSegments"] = [{"id": "visual-00-s9", "type": "quiz", "status": "active",
+                            "startTurnId": "turn-9999", "endTurnId": "turn-0002",
+                            "config": {}, "keyframes": [], "sourceChapter": 0}]
+    em.normalize_visual_segments(d)
+    s = d["visualSegments"][0]
+    ok("解決不能セグメントはorphaned・アンカーNone", s["status"] == "orphaned" and s["startTurnId"] is None)
+
+
+def test_reconcile_segments_turn_delete():
+    d = _segdata(5)
+    s = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0002", end_turn_id="turn-0004")
+    em.add_keyframe(d, s["id"], turn_id="turn-0003", kf_type="reveal")
+    prev = [t["id"] for t in d["script"]]
+    d["script"] = [t for t in d["script"] if t["id"] != "turn-0003"]   # keyframeのturnを削除
+    em.reconcile_visual_segments(d, prev_turn_ids=prev)
+    seg = em.find_segment(d, s["id"])
+    ok("reconcileでkeyframeが生存セリフへ整合", seg["status"] == "active"
+       and all(em._turn_index(d["script"]).get(k["turnId"]) is not None for k in seg["keyframes"]))
+
+
+def test_reconstruct_legacy_viz_roundtrip():
+    turns = [{"id": "turn-0001", "chapter": 0}, {"id": "turn-0002", "chapter": 0},
+             {"id": "turn-0003", "chapter": 0}]
+    chapters = [{"title": "c0"}]
+    segs = [{"id": "visual-00-s1", "type": "quiz", "status": "active",
+             "startTurnId": "turn-0001", "endTurnId": "turn-0002", "sourceChapter": 0,
+             "config": {"quiz": {"question": "q"}},
+             "keyframes": [{"id": "kf-001", "turnId": "turn-0002", "type": "reveal"},
+                           {"id": "kf-002", "turnId": "turn-0001", "type": "panel_item", "value": 0, "pos": 0}]},
+            {"id": "visual-00-s9", "type": "quiz", "status": "orphaned",
+             "startTurnId": None, "endTurnId": None, "sourceChapter": 0,
+             "config": {"quiz": {"question": "x"}}, "keyframes": []}]
+    em.reconstruct_legacy_viz(turns, chapters, segs)
+    ok("vizList復元(orphanedは含めない)", len(chapters[0]["vizList"]) == 1 and chapters[0]["vizList"][0]["id"] == "s1")
+    ok("membership復元(vizSeg)", turns[0]["vizSeg"] == "s1" and turns[1]["vizSeg"] == "s1")
+    ok("flag復元(reveal)", turns[1].get("reveal") is True)
+    ok("vizPoint復元(pos:0/value:0保持)", turns[0]["vizPoints"][0]["pos"] == 0 and turns[0]["vizPoints"][0]["value"] == 0)
+
+
+def test_meta_orphaned_segment_not_activated():
+    import copy as _c
+    d = _data(3); d["editorModelAuthority"] = "editor"
+    d["visualSegments"] = [{"id": "visual-00-s9", "type": "quiz", "status": "orphaned",
+                            "startTurnId": None, "endTurnId": None, "sourceChapter": 0,
+                            "config": {"quiz": {"question": "q"}}, "keyframes": []}]
+    vt, vc = _c.deepcopy(_timed(d["script"])), _c.deepcopy(d["chapters"])
+    em.reconstruct_legacy_viz(vt, vc, d["visualSegments"])
+    ok("orphanedはvizList復元されない＝突然有効化しない", not vc[0].get("vizList"))
+
+
+def test_real_data_build_meta_viz_equivalence():
+    import copy as _c
+    sp, rp, mp = ("docs/story/script.json", "docs/story/review.json", "docs/story/meta.json")
+    if not all(os.path.exists(p) for p in (sp, rp, mp)):
+        ok("実データ build_meta viz等価（skip）", True); return
+    sd = json.load(open(sp)); sd.pop("editorModelAuthority", None)
+    rv = json.load(open(rp)); meta = json.load(open(mp))
+    if len(sd["script"]) != len(meta["script"]):
+        ok("実データ build_meta viz等価（skip:ターン数不一致）", True); return
+    config = {"characters_gender": {}, "tts_voicevox": {"speakers": {}}}
+    turns = [{"start": t["start"], "end": t["end"], "sentences": t.get("sentences", [])}
+             for t in meta["script"]]
+    img, attr, opts = ms.load_images_from_review("docs/story")
+    leg = _c.deepcopy(sd); story_script.normalize_turns(leg["script"], leg["chapters"])
+    legacy_meta = ms.build_meta(leg, turns, config, "X", img, attr, opts)
+    ed = em.switch_to_editor(sd, rv); story_script.normalize_turns(ed["script"], ed["chapters"])
+    editor_meta = ms.build_meta(ed, turns, config, "X", img, attr, opts)
+    ok(f"実データ build_meta: legacy/editor topics完全一致(viz/vizFrom/画像抑制込み {len(legacy_meta['topics'])})",
+       legacy_meta["topics"] == editor_meta["topics"])
+    # 冪等: 同じeditorデータで2回build_metaしてもtopics不変
+    again = ms.build_meta(_c.deepcopy(ed), turns, config, "X", img, attr, opts)
+    ok("editor build_meta は冪等", again["topics"] == editor_meta["topics"])
+
+
 # ===== 実データ：legacy/editor の meta 等価性（機械比較） =====
 
 def test_real_data_legacy_editor_meta_equivalence():
@@ -799,6 +935,15 @@ if __name__ == "__main__":
     test_meta_bigeffect_suppresses_background()
     test_meta_bigeffect_keeps_image_data()
     test_chapter_crossing_cue()
+    test_add_segment_range_delete()
+    test_segment_id_no_reuse()
+    test_keyframe_ops_preserve_pos0_value()
+    test_segment_range_trims_outside_keyframes()
+    test_normalize_segment_orphaned()
+    test_reconcile_segments_turn_delete()
+    test_reconstruct_legacy_viz_roundtrip()
+    test_meta_orphaned_segment_not_activated()
+    test_real_data_build_meta_viz_equivalence()
     test_switch_to_editor_atomic()
     test_switch_then_legacy_change_ignored()
     test_legacy_authority_uses_legacy_meta_path()

@@ -885,3 +885,271 @@ def switch_to_editor(script_data, review_data=None):
     # 全 cue 検証通過後にのみ権威を切替（原子的）。
     data[AUTHORITY_FIELD] = "editor"
     return data
+
+
+# ============================================================================
+# Phase 3: 大演出（visualSegments / keyframes）の共通操作・正規化・meta解決アダプタ
+# ----------------------------------------------------------------------------
+# 方針:
+#   - editor権威時、大演出の「正」は top-level visualSegments（章所有 vizList ではない）。
+#   - meta解決は「visualSegments → legacy(vizList+turnフラグ) へ復元 → 既存 _resolve_viz_segments」
+#     のアダプタで行う＝歴戦の resolver を再利用し等価性を構造的に保証する（二重実装しない）。
+#   - keyframe の type/value/pos:0 を保持する（0 と未指定を区別）。orphaned は復元しない（突然有効化しない）。
+# ============================================================================
+
+# segment の type 別ペイロード（config に入る本体キー）。
+_SEG_PAYLOAD_KEYS = ("panel", "quiz", "compare", "stat", "callouts")
+
+
+def _seg_local_id(seg_id):
+    """visual-CC-<sid> から元のローカル vizSeg id を取り出す（復元時に turn.vizSeg と一致させる）。"""
+    m = re.match(r"visual-\d+-(.+)$", str(seg_id or ""))
+    return m.group(1) if m else (seg_id or "")
+
+
+def find_segment(data, seg_id):
+    return next((s for s in data.get("visualSegments") or [] if s.get("id") == seg_id), None)
+
+
+def _seg_bounds(idx, seg):
+    """segment の [startIdx, endIdx]（script index）。解決不能や orphaned は None を返す。"""
+    if seg.get("status") == "orphaned":
+        return None
+    s, e = idx.get(seg.get("startTurnId")), idx.get(seg.get("endTurnId"))
+    if s is None or e is None or e < s:
+        return None
+    return (s, e)
+
+
+# ---- visualSegments 共通操作 ----
+
+def add_visual_segment(data, *, seg_type, start_turn_id, end_turn_id=None, config=None, mode=None):
+    """大演出セグメントを追加。turnId は実在必須、開始<=終了。ID は最大連番+1で再利用しない。"""
+    idx = _turn_index(data.get("script") or [])
+    if start_turn_id not in idx:
+        raise ValueError(f"startTurnId {start_turn_id} がスクリプトに存在しません")
+    end_turn_id = end_turn_id or start_turn_id
+    if end_turn_id not in idx:
+        raise ValueError(f"endTurnId {end_turn_id} がスクリプトに存在しません")
+    if idx[end_turn_id] < idx[start_turn_id]:
+        raise ValueError("終了が開始より前です（範囲逆転）")
+    segs = data.setdefault("visualSegments", [])
+    sid = _issue_seq_id(data, "visualSegments", "visual-", "visualSegment")
+    seg = {"id": sid, "type": seg_type, "mode": mode or _TYPE_TO_MODE.get(seg_type, "replace"),
+           "status": "active", "startTurnId": start_turn_id, "endTurnId": end_turn_id,
+           "config": dict(config or {}), "keyframes": []}
+    segs.append(seg)
+    return seg
+
+
+def set_segment_range(data, seg_id, *, start_turn_id=None, end_turn_id=None):
+    """セグメントの開始/終了セリフを変更（タイムライン端ドラッグ）。検証通過後のみ適用（部分適用しない）。"""
+    seg = find_segment(data, seg_id)
+    if seg is None:
+        raise ValueError(f"segment {seg_id} がありません")
+    idx = _turn_index(data.get("script") or [])
+    ns = start_turn_id if start_turn_id is not None else seg.get("startTurnId")
+    ne = end_turn_id if end_turn_id is not None else seg.get("endTurnId")
+    if ns not in idx:
+        raise ValueError(f"startTurnId {ns} がスクリプトに存在しません")
+    if ne not in idx:
+        raise ValueError(f"endTurnId {ne} がスクリプトに存在しません")
+    if idx[ne] < idx[ns]:
+        raise ValueError("終了が開始より前です（範囲逆転）")
+    seg["startTurnId"], seg["endTurnId"] = ns, ne
+    seg["status"] = "active"
+    # 範囲外へ出た keyframe は捨てる（端を縮めたら外側の変化点は無効）。
+    lo, hi = idx[ns], idx[ne]
+    seg["keyframes"] = [k for k in seg.get("keyframes") or []
+                        if idx.get(k.get("turnId")) is not None and lo <= idx[k["turnId"]] <= hi]
+    return seg
+
+
+def delete_visual_segment(data, seg_id):
+    """セグメントを削除。"""
+    before = data.get("visualSegments") or []
+    data["visualSegments"] = [s for s in before if s.get("id") != seg_id]
+    return len(data["visualSegments"]) != len(before)
+
+
+def set_segment_config(data, seg_id, config):
+    """セグメントの種類別設定(config)を差し替える（パネル項目・クイズ文面など）。"""
+    seg = find_segment(data, seg_id)
+    if seg is None:
+        raise ValueError(f"segment {seg_id} がありません")
+    seg["config"] = dict(config or {})
+    return seg
+
+
+# ---- keyframe 共通操作（type/value/pos:0 を保持） ----
+
+def _kf_next_id(seg):
+    mx = 0
+    for k in seg.get("keyframes") or []:
+        m = re.fullmatch(r"kf-(\d+)", str(k.get("id") or ""))
+        if m:
+            mx = max(mx, int(m.group(1)))
+    return f"kf-{mx + 1:03d}"
+
+
+def add_keyframe(data, seg_id, *, turn_id, kf_type, value=None, pos=None):
+    """変化点を追加。turnId はセグメント範囲内必須。pos:0 と未指定(None)を区別して保持。"""
+    seg = find_segment(data, seg_id)
+    if seg is None:
+        raise ValueError(f"segment {seg_id} がありません")
+    idx = _turn_index(data.get("script") or [])
+    b = _seg_bounds(idx, seg)
+    if b is None:
+        raise ValueError("セグメントの範囲が無効です")
+    if turn_id not in idx or not (b[0] <= idx[turn_id] <= b[1]):
+        raise ValueError("turnId がセグメント範囲外です")
+    kf = {"id": _kf_next_id(seg), "turnId": turn_id, "type": kf_type}
+    if value is not None:
+        kf["value"] = value
+    if pos is not None:                       # pos:0 を欠損扱いしない
+        kf["pos"] = pos
+    seg.setdefault("keyframes", []).append(kf)
+    return kf
+
+
+def move_keyframe(data, seg_id, kf_id, *, turn_id=None, pos="__keep__"):
+    """変化点を別セリフ／文字位置へ移す。範囲外 turnId は拒否。pos="__keep__"=据え置き。"""
+    seg = find_segment(data, seg_id)
+    if seg is None:
+        raise ValueError(f"segment {seg_id} がありません")
+    kf = next((k for k in seg.get("keyframes") or [] if k.get("id") == kf_id), None)
+    if kf is None:
+        raise ValueError(f"keyframe {kf_id} がありません")
+    idx = _turn_index(data.get("script") or [])
+    b = _seg_bounds(idx, seg)
+    if turn_id is not None:
+        if b is None or turn_id not in idx or not (b[0] <= idx[turn_id] <= b[1]):
+            raise ValueError("turnId がセグメント範囲外です")
+        kf["turnId"] = turn_id
+    if pos != "__keep__":
+        if pos is None:
+            kf.pop("pos", None)
+        else:
+            kf["pos"] = pos
+    return kf
+
+
+def delete_keyframe(data, seg_id, kf_id):
+    seg = find_segment(data, seg_id)
+    if seg is None:
+        raise ValueError(f"segment {seg_id} がありません")
+    before = seg.get("keyframes") or []
+    seg["keyframes"] = [k for k in before if k.get("id") != kf_id]
+    return len(seg["keyframes"]) != len(before)
+
+
+# ---- normalize / reconcile ----
+
+def normalize_visual_segments(data):
+    """visualSegments を正規化（in-place）。冪等。
+
+    - 範囲解決不能（turnId 欠落・逆転）→ status="orphaned"・アンカー None（突然有効化しない）。
+    - keyframe: turnId 欠落 or 範囲外は除去。type/value/pos:0 は保持。
+    - 開始セリフ順にソート（active のみ。orphaned は末尾）。
+    """
+    idx = _turn_index(data.get("script") or [])
+    for seg in data.get("visualSegments") or []:
+        s, e = idx.get(seg.get("startTurnId")), idx.get(seg.get("endTurnId"))
+        if seg.get("status") == "orphaned" or s is None or e is None or e < s:
+            seg["status"] = "orphaned"
+            seg["startTurnId"] = None
+            seg["endTurnId"] = None
+            seg["keyframes"] = []
+            continue
+        seg["status"] = "active"
+        seg["keyframes"] = [k for k in seg.get("keyframes") or []
+                            if idx.get(k.get("turnId")) is not None and s <= idx[k["turnId"]] <= e]
+    data["visualSegments"] = sorted(
+        data["visualSegments"],
+        key=lambda sg: idx.get(sg.get("startTurnId"), 1 << 30))
+    return data
+
+
+def reconcile_visual_segments(data, prev_turn_ids=None):
+    """turn 削除・並べ替えに追従してセグメント／keyframe を整合（in-place）。冪等。
+
+    prev_turn_ids があれば、消えた端点・keyframe を「元の並びで次に残るセリフ」へ寄せる。
+    端点が消えて寄せ先も無ければ orphaned 化（突然有効化も消失もしない＝保持）。
+    """
+    idx = _turn_index(data.get("script") or [])
+    if prev_turn_ids:
+        succ = _successor_map(prev_turn_ids, set(idx))
+        for seg in data.get("visualSegments") or []:
+            for key in ("startTurnId", "endTurnId"):
+                if seg.get(key) is not None and seg.get(key) not in idx:
+                    seg[key] = succ.get(seg[key])
+            for k in seg.get("keyframes") or []:
+                if k.get("turnId") not in idx:
+                    k["turnId"] = succ.get(k.get("turnId"))
+    return normalize_visual_segments(data)
+
+
+# ---- editor → legacy(vizList + turnフラグ) 復元アダプタ（meta解決用・等価保証） ----
+
+def reconstruct_legacy_viz(turns, chapters, visual_segments):
+    """visualSegments から legacy の vizList(章) と turnフラグ/vizPoints を復元する（in-place）。
+
+    editor権威の meta 生成で、既存 _resolve_viz_segments をそのまま使うためのアダプタ。
+    visualSegments は移行で vizList+フラグから導出されたため、その逆変換は元を再現し meta 等価になる。
+    orphaned セグメントは復元しない（突然有効化しない）。turns/chapters は呼び出し側のコピーを渡すこと。
+    """
+    idx = {t.get("id"): i for i, t in enumerate(turns) if t.get("id") is not None}
+    VIZ_FIELDS = ("vizSeg", "reveal", "viz_start", "viz_end", "panel_event",
+                  "panel_item", "callout_item", "compare_item", "vizPoints")
+    for t in turns:
+        for f in VIZ_FIELDS:
+            t.pop(f, None)
+    for ch in chapters:
+        for k in (*_SEG_PAYLOAD_KEYS, "calloutStyle", "vizList"):
+            ch.pop(k, None)
+    panel_items = {}   # turn index -> [panel_item値,...]（配列復元用）
+    for seg in visual_segments or []:
+        b = _seg_bounds(idx, seg)
+        if b is None or not (0 <= (seg.get("sourceChapter") or 0) < len(chapters)):
+            continue
+        ch = chapters[seg["sourceChapter"]]
+        sid = _seg_local_id(seg.get("id"))
+        vtype = seg.get("type")
+        cfg = seg.get("config") or {}
+        if sid == "legacy":
+            # 旧・単一形式：章直下へ payload を戻す（vizSeg なし＝resolver の else 分岐）。
+            for k in (*_SEG_PAYLOAD_KEYS, "calloutStyle"):
+                if k in cfg:
+                    ch[k] = cfg[k]
+        else:
+            entry = {"id": sid, "type": vtype}
+            for k in (*_SEG_PAYLOAD_KEYS, "calloutStyle"):
+                if k in cfg:
+                    entry[k] = cfg[k]
+            ch.setdefault("vizList", []).append(entry)
+            for i in range(b[0], b[1] + 1):           # 連続メンバーシップを復元
+                if turns[i].get("chapter", 0) == seg["sourceChapter"]:
+                    turns[i]["vizSeg"] = sid
+        for kf in seg.get("keyframes") or []:
+            ti = idx.get(kf.get("turnId"))
+            if ti is None or not (b[0] <= ti <= b[1]):
+                continue
+            t = turns[ti]
+            ktype, kval, kpos = kf.get("type"), kf.get("value"), kf.get("pos")
+            if kpos is not None:                       # vizPoint（文字位置つき）
+                vp = {"type": ktype, "pos": kpos}
+                if isinstance(kval, int) and not isinstance(kval, bool):
+                    vp["value"] = kval
+                t.setdefault("vizPoints", []).append(vp)
+            elif ktype == "reveal":
+                t["reveal"] = True
+            elif ktype == "panel_event":
+                t["panel_event"] = "shrink"
+            elif ktype == "panel_item" and isinstance(kval, int) and not isinstance(kval, bool):
+                panel_items.setdefault(ti, []).append(kval)
+            elif ktype in ("callout_item", "compare_item") and isinstance(kval, int) and not isinstance(kval, bool):
+                t[ktype] = kval
+    for ti, vals in panel_items.items():               # panel_item は単数 int / 複数は配列
+        vals = sorted(set(vals))
+        turns[ti]["panel_item"] = vals[0] if len(vals) == 1 else vals
+    return turns, chapters
