@@ -859,11 +859,14 @@ function buildAdjust(ci,k){
     rectEl.style.width=((cut.crop.r-cut.crop.l)*rr.w)+'px'; rectEl.style.height=((cut.crop.b-cut.crop.t)*rr.h)+'px'; }
   if(imgEl){ imgEl.complete?drawCrop():(imgEl.onload=drawCrop);
     let drag=null;
-    crop.onmousedown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; };
-    window.addEventListener('mousemove',(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+    // pointerイベント＋setPointerCaptureで完結（window listenerを足さない＝再描画でリーク/多重発火しない）。
+    crop.style.touchAction='none';
+    crop.onpointerdown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; try{crop.setPointerCapture(e.pointerId);}catch(_){} };
+    crop.onpointermove=(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
       rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
-      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; });
-    crop.onmouseup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; };
+    crop.onpointerup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      try{crop.releasePointerCapture(e.pointerId);}catch(_){}
       const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
       let [l,t]=nm(Math.min(drag.x0,x),Math.min(drag.y0,y)), [rr2,bb]=nm(Math.max(drag.x0,x),Math.max(drag.y0,y));
       const c={l:cl(l),t:cl(t),r:cl(rr2),b:cl(bb)}; drag=null;
@@ -2607,6 +2610,16 @@ function _turnIndexMap(){ const m={}; (DATA&&DATA.script||[]).forEach((t,i)=>{ i
 function turnGi(turnId){ const m=_turnIndexMap(); return (turnId in m)?m[turnId]:-1; }
 function cueAtJS(turnId){ return (DATA&&DATA.imageCues||[]).find(c=>c.turnId===turnId)||null; }
 function findCueById(id){ return (DATA&&DATA.imageCues||[]).find(c=>c.id===id)||null; }
+// 「画像なし(hide)」トグルの操作を決める純関数（テスト可能）。
+// 解除時：素材を持たない hide cue は削除して前画像の継続へ戻す／素材ありは hide を外して表示する。
+function hideToggleOp(startCue, turnId){
+  if(startCue && startCue.hide){
+    return (startCue.assetId==null) ? {op:'delete', cueId:startCue.id}
+                                    : {op:'setOpts', cueId:startCue.id, opts:{hide:false}};
+  }
+  if(startCue) return {op:'setOpts', cueId:startCue.id, opts:{hide:true}};
+  return {op:'add', turnId:turnId, assetId:null, opts:{hide:true}};
+}
 function resolveCueJS(cue, assetBy){
   const res={cueId:cue.id};
   if(cue.hide){ res.blank=true; return res; }
@@ -2679,9 +2692,7 @@ function renderEditorImageTab(r,tn){
   // 画像なし(hide)
   const hrow=document.createElement('div'); hrow.style.cssText='margin-bottom:10px';
   hrow.appendChild(vMini((startCue&&startCue.hide)?'画像なしを解除':'このセリフから画像なし(黒板)', async()=>{
-    let ok; if(startCue) ok=await cueOp({op:'setOpts', cueId:startCue.id, opts:{hide:!startCue.hide}});
-    else ok=await cueOp({op:'add', turnId:tn.id, assetId:null, opts:{hide:true}});
-    if(ok) renderRight(); }));
+    const ok=await cueOp(hideToggleOp(startCue, tn.id)); if(ok) renderRight(); }));
   r.appendChild(hrow);
   // キュー管理＋表示調整
   if(startCue){
@@ -2758,11 +2769,14 @@ function buildEditorAdjust(cue, asset){
     rectEl.style.display='block'; rectEl.style.left=(rr.x+cue.crop.l*rr.w)+'px'; rectEl.style.top=(rr.y+cue.crop.t*rr.h)+'px';
     rectEl.style.width=((cue.crop.r-cue.crop.l)*rr.w)+'px'; rectEl.style.height=((cue.crop.b-cue.crop.t)*rr.h)+'px'; }
   if(imgEl){ imgEl.complete?drawCrop():(imgEl.onload=drawCrop); let drag=null;
-    crop.onmousedown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; };
-    window.addEventListener('mousemove',(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+    // pointerイベント＋setPointerCaptureで完結（window listenerを足さない＝再描画でリークしない）。
+    crop.style.touchAction='none';
+    crop.onpointerdown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; try{crop.setPointerCapture(e.pointerId);}catch(_){} };
+    crop.onpointermove=(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
       rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
-      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; });
-    crop.onmouseup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; };
+    crop.onpointerup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      try{crop.releasePointerCapture(e.pointerId);}catch(_){}
       const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
       let [l,t]=nm(Math.min(drag.x0,x),Math.min(drag.y0,y)), [r2v,b2]=nm(Math.max(drag.x0,x),Math.max(drag.y0,y));
       const c={l:cl(l),t:cl(t),r:cl(r2v),b:cl(b2)}; drag=null;

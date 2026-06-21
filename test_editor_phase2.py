@@ -535,6 +535,31 @@ def test_switch_success_atomic_and_idempotent():
 
 # ===== set_cue_opts（表示調整） =====
 
+def test_hide_cue_continuation_lifecycle():
+    # 継続位置に hide cue を足すと黒板、その hide cue(素材無し)を削除すると前画像が継続復元。
+    d = _data(4)
+    a = em.add_asset(d, file="0.jpg")
+    em.add_cue(d, "turn-0001", a["id"])
+    hc = em.add_cue(d, "turn-0003", None, hide=True)
+    plan = em.resolve_turn_images(d["script"], d["assets"], d["imageCues"])
+    ok("継続位置のhideでblank・手前は前画像", plan[2].get("blank") is True and plan[1]["image"] == "0.jpg")
+    em.delete_cue(d, hc["id"])     # UIの「解除」は素材無しhideをdeleteする
+    plan = em.resolve_turn_images(d["script"], d["assets"], d["imageCues"])
+    ok("hide cue削除で前画像が継続復元", plan[2]["image"] == "0.jpg")
+
+
+def test_hide_with_asset_unhide_keeps_cue():
+    # 素材ありの hide cue は解除(hide:false)で cue を保持し画像を表示する（deleteしない）。
+    d = _data(2)
+    a = em.add_asset(d, file="0.jpg")
+    c = em.add_cue(d, "turn-0001", a["id"], hide=True)
+    p1 = em.resolve_turn_images(d["script"], d["assets"], d["imageCues"])
+    em.set_cue_opts(d, c["id"], hide=False)
+    p2 = em.resolve_turn_images(d["script"], d["assets"], d["imageCues"])
+    ok("素材ありhide解除でcue保持・画像表示",
+       p1[0].get("blank") is True and em.find_cue(d, c["id"]) is not None and p2[0]["image"] == "0.jpg")
+
+
 def test_set_cue_opts():
     d = _data(2)
     a = em.add_asset(d, file="x.jpg")
@@ -726,6 +751,8 @@ if __name__ == "__main__":
     test_switch_success_atomic_and_idempotent()
     test_switch_preserves_theme_and_script()
     test_asset_api_roundtrip()
+    test_hide_cue_continuation_lifecycle()
+    test_hide_with_asset_unhide_keeps_cue()
     test_set_cue_opts()
     test_cue_op_endpoint_roundtrip()
     test_real_data_legacy_editor_meta_equivalence()

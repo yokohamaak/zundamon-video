@@ -19,7 +19,7 @@ function extractFn(name) {
   return html.slice(idx, j);
 }
 
-const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate',
+const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate', 'hideToggleOp',
   '_turnIndexMap', 'resolveCueJS', 'computeImagePlan'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
@@ -68,6 +68,27 @@ t('hide→blank / 先頭cue無し→null / subjectはcontain', () => {
   assert.equal(p[0], null, '先頭cue無し→画像なし');
   assert.equal(p[1].fit, 'contain', 'subjectはcontain既定');
   assert.equal(p[2].blank, true, 'hide→blank');
+});
+
+// --- hideToggleOp（解除の分岐） ---
+t('hideToggle: 素材無しhide解除→delete（前画像継続へ）', () => {
+  const op = hideToggleOp({ id: 'c', hide: true, assetId: null }, 't2');
+  assert.equal(op.op, 'delete'); assert.equal(op.cueId, 'c');
+});
+t('hideToggle: 素材ありhide解除→setOpts(hide:false)で保持', () => {
+  const op = hideToggleOp({ id: 'c', hide: true, assetId: 'a0' }, 't2');
+  assert.equal(op.op, 'setOpts'); assert.equal(op.opts.hide, false);
+});
+t('hideToggle: 非hideの開始cue→hide:true / 開始無し→add hide', () => {
+  assert.equal(hideToggleOp({ id: 'c', hide: false, assetId: 'a0' }, 't2').opts.hide, true);
+  const add = hideToggleOp(null, 't2');
+  assert.equal(add.op, 'add'); assert.equal(add.assetId, null); assert.equal(add.opts.hide, true);
+});
+
+// --- cropドラッグ：window mousemove を使わない（再描画でリークしない） ---
+t('crop drag は window mousemove listener を足さない', () => {
+  assert.ok(!/window\.addEventListener\(\s*['"]mousemove/.test(html), 'window mousemove未使用');
+  assert.ok((html.match(/setPointerCapture/g) || []).length >= 2, 'crop2箇所がpointer captureで完結');
 });
 
 // --- runMigrate ---
