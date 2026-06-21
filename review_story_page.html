@@ -1871,8 +1871,10 @@ function renderTimeline(){
   const body=document.createElement('div'); body.className='tl-body'; body.style.width=timelineBodyWidth()+'px';
   scroll.appendChild(body); pane.appendChild(scroll);
   const [turnRow,turnTrack]=timelineRow('セリフ');
+  const zMult=tlLevelOf(timelineLevel).mult;   // 詳細時は列幅に比例して文字も拡大（拡大しないと読めず縦線位置もズレるため）
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi);
+    if(timelineDetail){ const fs=Math.round(10*zMult); c.style.fontSize=fs+'px'; c.style.height=Math.max(46,fs+22)+'px'; }
     turnTrack.appendChild(c); }); body.appendChild(turnRow);
   // 画像トラック（editor権威のみ）：imageCueの区間を表示・端ドラッグで開始/終了セリフを変更。
   if(isEditorAuthority()){

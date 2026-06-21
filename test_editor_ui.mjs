@@ -260,6 +260,12 @@ t('zoom: 旧OFF/ONボタンは廃止しselectへ／旧設定を引き継ぐ', ()
   assert.ok(/reviewTimelineDetail.*\?'fit':'overview'/.test(html), '旧reviewTimelineDetailから引き継ぐ');
   assert.ok(!/setTimelineDetail/.test(html), '旧トグル関数は撤去');
 });
+t('zoom: 詳細時はセルの文字サイズも倍率に比例して拡大する', () => {
+  // 列幅だけ広げても文字が固定だと読めず縦線位置もズレるため、fontSizeをmultに比例させる。
+  assert.ok(/const zMult=tlLevelOf\(timelineLevel\)\.mult/.test(html), '倍率を取得');
+  assert.ok(/c\.style\.fontSize=fs\+'px'/.test(html) && /Math\.round\(10\*zMult\)/.test(html),
+    'fontSize=10*mult／行高も拡大');
+});
 
 // --- runMigrate ---
 async function runTests() {
