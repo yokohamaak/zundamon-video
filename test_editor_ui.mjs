@@ -22,7 +22,7 @@ function extractFn(name) {
 const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate', 'hideToggleOp',
   '_turnIndexMap', 'resolveCueJS', 'computeImagePlan', 'createAsyncQueue',
   'cueSpans', 'endDragIsContinue', 'spanUnderViz',
-  'vizTabKind', 'vizAnchorOptions', 'vizDefaultConfig'];
+  'vizTabKind', 'vizAnchorOptions', 'vizDefaultConfig', 'groupKeyframesByTurn'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 
@@ -138,6 +138,18 @@ t('vizTabKind: editor=新エディタ / legacy=旧', () => {
   assert.equal(vizTabKind('editor'), 'editor');
   assert.equal(vizTabKind(undefined), 'legacy');
 });
+t('groupKeyframesByTurn: 同一turnIdを1グループへ集約・出現順維持', () => {
+  const g = groupKeyframesByTurn([
+    { id: 'k1', turnId: 't1', type: 'panel_item', value: 0 },
+    { id: 'k2', turnId: 't1', type: 'panel_item', value: 1 },   // 同一セリフに複数
+    { id: 'k3', turnId: 't2', type: 'reveal' }]);
+  assert.equal(g.length, 2, 't1とt2の2グループ');
+  const t1 = g.find(x => x.turnId === 't1');
+  assert.equal(t1.kfs.length, 2, '同一turnIdの2変化点を集約');
+  assert.deepEqual(t1.kfs.map(k => k.value), [0, 1], '出現順を維持');
+  assert.deepEqual(groupKeyframesByTurn([]), [], '空でも安全');
+});
+
 t('cue/viz/asset書込は同一キューで直列化', () => {
   // 古い応答が新しい編集を上書きしないよう、全editor書込が共有キューを通ること（ソース確認）。
   assert.ok(/const enqueueEditorWrite=createAsyncQueue\(\)/.test(html), '共有キューを定義');

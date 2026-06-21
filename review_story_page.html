@@ -338,6 +338,7 @@
   .tl-bar.image { background:linear-gradient(90deg,#1f5fa6,#3a86d6); }
   .tl-bar.image.hide { background:linear-gradient(90deg,#454b54,#6b7280); }
   .tl-bar.image.sel { outline:2px solid #cfe0ff; }
+  .tl-bar.main.sel { outline:2px solid #d8c8ff; }
   /* replace/layout大演出に隠れる区間は薄く＝「設定済みだが演出で隠れる」ことを示す(plan 5.2) */
   .tl-bar.image.under-viz { opacity:.45; }
   .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
@@ -2275,16 +2276,20 @@ function renderEditorVizTracks(body){
   // 変化点（選択中セグメントのkeyframes）
   const [kfRow,kfTrack]=timelineRow('変化点'); const cur=findSeg(selSeg); let kfCount=0;
   if(cur && cur.status!=='orphaned'){ const bd=segBoundsGi(cur);
-    (cur.keyframes||[]).forEach(kf=>{ const gi=turnGi(kf.turnId); if(gi<0)return;
-      const tn=DATA.script[gi]; const len=Math.max(1,(tn.text||'').length); const placed=(kf.pos!=null); const pos=placed?kf.pos:0;
+    groupKeyframesByTurn(cur.keyframes).forEach(({turnId,kfs})=>{ const gi=turnGi(turnId); if(gi<0)return;
+      const tn=DATA.script[gi]; const len=Math.max(1,(tn.text||'').length);
       const group=document.createElement('div'); group.className='tl-kf-group'; group.style.gridColumn=(gi+1)+' / span 1';
-      const m=document.createElement('div'); m.className='tl-kf'+(placed?' placed':' auto'); m.style.left=(Math.min(len,pos)/len*100)+'%';
-      m.textContent='◆'+kfLabel(cur,kf); m.style.cursor='grab';
-      m.title=(placed?('文字位置 '+pos):'セリフ先頭')+'／ドラッグで移動・×で削除';
-      m.onpointerdown=(e)=>startVizKfDrag(e,cur.id,kf,m);
-      const xb=document.createElement('span'); xb.className='kf-del'; xb.textContent='×'; xb.onpointerdown=(e)=>e.stopPropagation();
-      xb.onclick=async(e)=>{ e.stopPropagation(); const ok=await vizOp({op:'delKf',segId:cur.id,kfId:kf.id}); if(ok) renderTimeline(); };
-      m.appendChild(xb); group.appendChild(m); kfTrack.appendChild(group); kfCount++; });
+      let autoN=0;   // pos未指定（セリフ先頭）の◆は重ならないよう横へずらす
+      kfs.forEach(kf=>{ const placed=(kf.pos!=null); const pos=placed?kf.pos:0;
+        const m=document.createElement('div'); m.className='tl-kf'+(placed?' placed':' auto');
+        if(placed){ m.style.left=(Math.min(len,pos)/len*100)+'%'; } else { m.style.left='0%'; m.style.marginLeft=(autoN++*54)+'px'; }
+        m.textContent='◆'+kfLabel(cur,kf); m.style.cursor='grab';
+        m.title=(placed?('文字位置 '+pos):'セリフ先頭')+'／ドラッグで移動・×で削除';
+        m.onpointerdown=(e)=>startVizKfDrag(e,cur.id,kf,m);
+        const xb=document.createElement('span'); xb.className='kf-del'; xb.textContent='×'; xb.onpointerdown=(e)=>e.stopPropagation();
+        xb.onclick=async(e)=>{ e.stopPropagation(); const ok=await vizOp({op:'delKf',segId:cur.id,kfId:kf.id}); if(ok) renderTimeline(); };
+        m.appendChild(xb); group.appendChild(m); kfCount++; });
+      kfTrack.appendChild(group); });
     const placedSet=new Set((cur.keyframes||[]).map(k=>k.type+':'+(k.value==null?'':k.value)));
     const un=vizAnchorOptions(cur).filter(o=>!placedSet.has(o.type+':'+(o.value==null?'':o.value)));
     if(un.length && bd && bd[0]<=selGi && selGi<=bd[1]){ const sel=document.createElement('select'); sel.className='vchip'; sel.style.marginLeft='6px';
@@ -2983,6 +2988,10 @@ function vizAnchorOptions(seg){ const t=seg.type, cfg=seg.config||{};
   return []; }
 function kfLabel(seg,kf){ const opt=vizAnchorOptions(seg).find(o=>o.type===kf.type && (o.value==null||o.value===kf.value));
   return (opt?opt.label:kf.type)+(kf.pos!=null?('（文字'+kf.pos+'）'):''); }
+// 変化点を turnId ごとにまとめる（同一セリフの複数変化点を1つのtl-kf-groupへ集約）。出現順を維持。
+function groupKeyframesByTurn(keyframes){ const map=new Map();
+  (keyframes||[]).forEach(kf=>{ const a=map.get(kf.turnId)||[]; a.push(kf); map.set(kf.turnId,a); });
+  return [...map.entries()].map(([turnId,kfs])=>({turnId,kfs})); }
 // turnId がその章の有効セリフなら返し、無効なら章の最初の有効セリフIDへ解決（orphaned修復の送信値用）。
 function resolveTurnInChapter(turnId,ci){ const m=_turnIndexMap();
   if((turnId in m) && (DATA.script[m[turnId]]||{}).chapter===ci) return turnId;
