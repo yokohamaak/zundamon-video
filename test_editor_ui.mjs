@@ -19,28 +19,55 @@ function extractFn(name) {
   return html.slice(idx, j);
 }
 
-const names = ['rightTabs', 'rightDefaultTab', 'runMigrate'];
+const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate',
+  '_turnIndexMap', 'resolveCueJS', 'computeImagePlan'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 
 let pass = 0;
 function t(name, fn) { fn(); pass++; console.log('  ' + name + ' OK'); }
 
-// --- rightTabs / rightDefaultTab ---
+// --- rightTabs / rightDefaultTab / imageTabKind ---
 t('legacy: 画像タブを含む・素材タブは無い', () => {
   const ks = rightTabs(undefined, false, 0, 0).map(x => x[0]);
-  assert.ok(ks.includes('image'), '画像あり');
-  assert.ok(!ks.includes('assets'), '素材なし');
+  assert.ok(ks.includes('image') && !ks.includes('assets'));
 });
-t('editor: 旧画像タブを出さない・素材タブを出す', () => {
+t('editor: 画像タブ(新)＋素材タブ・画像中身はeditor', () => {
   const ks = rightTabs('editor', false, 0, 3).map(x => x[0]);
-  assert.ok(!ks.includes('image'), 'editorで画像タブ無し');
-  assert.ok(ks.includes('assets'), 'editorで素材タブあり');
+  assert.ok(ks.includes('image') && ks.includes('assets'));
+  assert.equal(imageTabKind('editor'), 'editor');   // 旧 image_cuts/review 編集には行かない
+  assert.equal(imageTabKind(undefined), 'legacy');
 });
-t('既定タブ: legacy=image / editor=image以外', () => {
+t('既定タブ: image（演出中はviz）', () => {
   assert.equal(rightDefaultTab(undefined, false), 'image');
-  assert.notEqual(rightDefaultTab('editor', false), 'image');
-  assert.equal(rightDefaultTab('editor', true), 'viz');   // 演出中はviz
+  assert.equal(rightDefaultTab('editor', false), 'image');
+  assert.equal(rightDefaultTab('editor', true), 'viz');
+});
+
+// --- computeImagePlan（Python resolve_turn_images と同じ規則） ---
+t('継続: 画像は次cueまで継続', () => {
+  globalThis.DATA = { script: [{ id: 't1' }, { id: 't2' }, { id: 't3' }, { id: 't4' }],
+    assets: [{ id: 'a0', file: '0.jpg' }, { id: 'a1', file: '1.jpg' }],
+    imageCues: [{ id: 'c1', turnId: 't1', assetId: 'a0' }, { id: 'c2', turnId: 't3', assetId: 'a1' }] };
+  const p = computeImagePlan();
+  assert.equal(p[0].image, '0.jpg'); assert.equal(p[1].image, '0.jpg');
+  assert.equal(p[2].image, '1.jpg'); assert.equal(p[3].image, '1.jpg');
+});
+t('endTurnId: 区切り後は画像なし(null)', () => {
+  globalThis.DATA = { script: [{ id: 't1' }, { id: 't2' }, { id: 't3' }],
+    assets: [{ id: 'a0', file: '0.jpg' }],
+    imageCues: [{ id: 'c1', turnId: 't1', assetId: 'a0', endTurnId: 't1' }] };
+  const p = computeImagePlan();
+  assert.equal(p[0].image, '0.jpg'); assert.equal(p[1], null); assert.equal(p[2], null);
+});
+t('hide→blank / 先頭cue無し→null / subjectはcontain', () => {
+  globalThis.DATA = { script: [{ id: 't1' }, { id: 't2' }, { id: 't3' }],
+    assets: [{ id: 'a0', file: '0.jpg', kind: 'subject' }],
+    imageCues: [{ id: 'c1', turnId: 't2', assetId: 'a0' }, { id: 'c2', turnId: 't3', assetId: 'a0', hide: true }] };
+  const p = computeImagePlan();
+  assert.equal(p[0], null, '先頭cue無し→画像なし');
+  assert.equal(p[1].fit, 'contain', 'subjectはcontain既定');
+  assert.equal(p[2].blank, true, 'hide→blank');
 });
 
 // --- runMigrate ---

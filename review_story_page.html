@@ -434,8 +434,7 @@ function isEditorAuthority(){ return !!(DATA && DATA.editorModelAuthority==='edi
 // （＝editor時に章単位の image_cuts/review.json を編集できる経路を残さない）。
 function rightTabs(authority, inViz, nseg, nassets){
   const editor=(authority==='editor');
-  const tabs=[];
-  if(!editor) tabs.push(['image','画像']);          // legacyのみ旧画像タブ
+  const tabs=[['image','画像']];                     // editor時はセリフ基準の新エディタ／legacyは旧UI
   tabs.push(['viz', nseg?('大演出 '+nseg):'大演出']);
   tabs.push(['small','小演出']);
   if(editor) tabs.push(['assets', nassets?('素材 '+nassets):'素材']);  // editorのみ素材ライブラリ
@@ -444,8 +443,11 @@ function rightTabs(authority, inViz, nseg, nassets){
 }
 function rightDefaultTab(authority, inViz){
   if(inViz) return 'viz';
-  return authority==='editor' ? 'assets' : 'image';
+  return 'image';
 }
+// 画像タブの中身：editor=新(cueベース) / legacy=旧(image_cuts/review)。
+// editor時に旧 renderImageTab(image_cuts/review編集)へ到達させないための分岐キー（テスト可能）。
+function imageTabKind(authority){ return authority==='editor' ? 'editor' : 'legacy'; }
 // 移行の手順（純関数・テスト可能）：確認→現DATA保存→成功時のみ移行→reload。
 // 保存失敗時は移行せずreloadもしない（中途半端な状態を作らない）。di依存を排しI/Oは注入。
 async function runMigrate(confirmFn, saveFn, migrateFn, reloadFn, alertFn){
@@ -2513,7 +2515,7 @@ function renderRight(){
     const sn=document.createElement('div'); sn.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px'; sn.textContent='クリックで配置（上の「○を配置」で対象切替）。位置/大きさ/色/長さを反映・本番はポップ/バーストで動く。';
     smallPanel.appendChild(sn);
   }
-  if(cur==='image') renderImageTab(r,tn,ch,ci);
+  if(cur==='image'){ if(imageTabKind((DATA||{}).editorModelAuthority)==='editor') renderEditorImageTab(r,tn); else renderImageTab(r,tn,ch,ci); }
   else if(cur==='viz') renderVizTab(r,tn,ch,ci);
   else if(cur==='small') r.appendChild(smallPanel);
   else if(cur==='assets') renderAssetTab(r);
@@ -2597,6 +2599,175 @@ function renderAssetTab(r){
     grid.appendChild(card);
   });
   r.appendChild(grid);
+}
+
+// ===== Phase2 1-B：セリフ基準の画像編集（editor権威・cueベース） =====
+// imageCues→各セリフの有効画像を解決（Python editor_model.resolve_turn_images と同じ規則）。
+function _turnIndexMap(){ const m={}; (DATA&&DATA.script||[]).forEach((t,i)=>{ if(t&&t.id!=null && !(t.id in m)) m[t.id]=i; }); return m; }
+function turnGi(turnId){ const m=_turnIndexMap(); return (turnId in m)?m[turnId]:-1; }
+function cueAtJS(turnId){ return (DATA&&DATA.imageCues||[]).find(c=>c.turnId===turnId)||null; }
+function findCueById(id){ return (DATA&&DATA.imageCues||[]).find(c=>c.id===id)||null; }
+function resolveCueJS(cue, assetBy){
+  const res={cueId:cue.id};
+  if(cue.hide){ res.blank=true; return res; }
+  const a=assetBy[cue.assetId];
+  if(a && a.file){ res.image=a.file; res.asset=a;
+    if(cue.fit) res.fit=cue.fit; else if(a.kind==='subject') res.fit='contain';
+    ['crop','filter','pad','bg'].forEach(k=>{ if(cue[k]) res[k]=cue[k]; });
+    if(a.attribution) res.credit=a.attribution;
+  } else if(a){ res.note=a.query; res.asset=a; }
+  else res.blank=true;
+  return res;
+}
+function computeImagePlan(){
+  const script=(DATA&&DATA.script)||[], assets=(DATA&&DATA.assets)||[], cues=(DATA&&DATA.imageCues)||[];
+  const idx=_turnIndexMap(); const assetBy={}; assets.forEach(a=>assetBy[a.id]=a);
+  let arr=[]; cues.forEach(c=>{ const si=idx[c.turnId]; if(si==null)return;
+    const ei=(c.endTurnId!=null && idx[c.endTurnId]!=null)?idx[c.endTurnId]:null; arr.push({si,ei,c}); });
+  arr.sort((a,b)=>a.si-b.si);
+  const seen=new Set(), uniq=[]; arr.forEach(x=>{ if(seen.has(x.si))return; seen.add(x.si); uniq.push(x); });
+  const n=script.length, plan=new Array(n).fill(null);
+  uniq.forEach((x,k)=>{ const nextStart=k+1<uniq.length?uniq[k+1].si:n;
+    let end=(x.ei!=null && x.ei>=x.si)?Math.min(x.ei,nextStart-1):nextStart-1;
+    const res=resolveCueJS(x.c, assetBy);
+    for(let i=x.si;i<=Math.min(end,n-1);i++) plan[i]=res; });
+  return plan;
+}
+function nextCueStartIdx(startIdx){ const idx=_turnIndexMap(); let best=(DATA.script||[]).length;
+  (DATA.imageCues||[]).forEach(c=>{ const si=idx[c.turnId]; if(si!=null && si>startIdx && si<best) best=si; }); return best; }
+// すべてのcue編集はサーバの editor_model 共通op経由（制約・正規化はPython側を正とする＝JS/Python不一致を作らない）。
+async function cueOp(params){
+  const r=await api('/api/editor/cue-op', Object.assign({data:DATA}, params));
+  if(!r||!r.ok){ alert('画像操作に失敗しました: '+((r&&r.message)||'不明')); return null; }
+  DATA=r.data; markVisualStale(); return r;
+}
+function editorFramePrev(entry){
+  const box=document.createElement('div'); box.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0c0f15;border:1px solid var(--line)';
+  const msg=t=>{ box.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px">'+t+'</div>'; return box; };
+  if(!entry) return msg('画像なし（未配置）');
+  if(entry.blank) return msg('画像なし（黒板＋立ち絵のみ）');
+  if(!entry.image) return msg('未取得（差し替えが必要）');
+  const fit=entry.fit||'cover'; const im=document.createElement('img'); im.src='/img-file/'+encodeURIComponent(entry.image);
+  let css='width:100%;height:100%;object-fit:'+fit+';'; if(entry.filter)css+='filter:'+cssFilter(entry.filter)+';';
+  if(fit==='contain'&&entry.bg)css+='background:'+entry.bg+';'; im.style.cssText=css; box.appendChild(im); return box;
+}
+function renderEditorImageTab(r,tn){
+  const plan=computeImagePlan(); const entry=plan[selGi]; const startCue=cueAtJS(tn.id);
+  const assets=DATA.assets||[];
+  r.appendChild(lblDiv('このセリフで表示される画像'));
+  const pv=editorFramePrev(entry); pv.style.maxWidth='260px'; pv.style.margin='6px auto'; r.appendChild(pv);
+  // 状態
+  const status=document.createElement('div'); status.style.cssText='font-size:11px;color:var(--sub);margin:4px 0 8px';
+  if(startCue){ status.textContent='このセリフがキュー開始です。'; }
+  else if(entry&&entry.cueId){ status.appendChild(document.createTextNode('前のキューから画像が継続中。'));
+    status.appendChild(document.createTextNode(' ')); status.appendChild(vMini('開始セリフへ',()=>{ const c=findCueById(entry.cueId); const gi=c?turnGi(c.turnId):-1; if(gi>=0) selectTurn(gi); })); }
+  else { status.textContent='ここから先、まだ画像がありません。'; }
+  r.appendChild(status);
+  // 配置/差し替え
+  r.appendChild(lblDiv('画像を配置 / 差し替え（素材タブで選択した素材を使用）'));
+  const selA=selectedAssetId?assets.find(a=>a.id===selectedAssetId):null;
+  const prow=document.createElement('div'); prow.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
+  if(selA){ const t=document.createElement('div'); t.style.cssText='width:48px;height:30px;border-radius:4px;overflow:hidden;background:#11151c;flex:none';
+    if(selA.file){ const im=document.createElement('img'); im.src='/img-file/'+encodeURIComponent(selA.file); im.style.cssText='width:100%;height:100%;object-fit:cover'; t.appendChild(im); }
+    prow.appendChild(t); const nm=document.createElement('span'); nm.style.cssText='font-size:11px;color:#cdd6e2'; nm.textContent=(selA.queryJa||selA.query||selA.id); prow.appendChild(nm); }
+  else { const w=document.createElement('span'); w.style.cssText='font-size:11px;color:var(--sub)'; w.textContent='未選択'; prow.appendChild(w); }
+  prow.appendChild(vMini(startCue?'選択素材に差し替え':'選択素材をここに配置', async()=>{
+    if(!selectedAssetId){ alert('「素材」タブで使う素材を選んでください。'); return; }
+    const ok=await cueOp({op:'place', turnId:tn.id, assetId:selectedAssetId}); if(ok) renderRight(); }));
+  prow.appendChild(vMini('素材タブ→',()=>{ rtab='assets'; renderRight(); }));
+  r.appendChild(prow);
+  // 画像なし(hide)
+  const hrow=document.createElement('div'); hrow.style.cssText='margin-bottom:10px';
+  hrow.appendChild(vMini((startCue&&startCue.hide)?'画像なしを解除':'このセリフから画像なし(黒板)', async()=>{
+    let ok; if(startCue) ok=await cueOp({op:'setOpts', cueId:startCue.id, opts:{hide:!startCue.hide}});
+    else ok=await cueOp({op:'add', turnId:tn.id, assetId:null, opts:{hide:true}});
+    if(ok) renderRight(); }));
+  r.appendChild(hrow);
+  // キュー管理＋表示調整
+  if(startCue){
+    r.appendChild(lblDiv('このキュー（範囲・削除・表示調整）'));
+    // 範囲（終了セリフ）
+    const startIdx=turnGi(startCue.turnId); const limit=nextCueStartIdx(startIdx);
+    const rr=vRow('終了'); const es=document.createElement('select');
+    const o0=document.createElement('option'); o0.value=''; o0.textContent='次のキューまで継続'; es.appendChild(o0);
+    for(let i=startIdx;i<limit && i<(DATA.script||[]).length;i++){ const t=DATA.script[i]; const o=document.createElement('option'); o.value=t.id;
+      const within=(DATA.script||[]).filter((x,j)=>x.chapter===t.chapter&&j<=i).length;
+      o.textContent='#'+within+' '+((t.text||'').slice(0,12)); es.appendChild(o); }
+    es.value=startCue.endTurnId||'';
+    es.onchange=async()=>{ const v=es.value; const ok=await cueOp(v?{op:'range',cueId:startCue.id,endTurnId:v}:{op:'range',cueId:startCue.id,clearEnd:true}); if(ok) renderRight(); };
+    rr.appendChild(es); r.appendChild(rr);
+    const drow=document.createElement('div'); drow.style.cssText='margin:6px 0';
+    drow.appendChild(vMini('このキューを削除',async()=>{ if(!confirm('このキューを削除しますか？（前の画像が継続します）'))return; const ok=await cueOp({op:'delete',cueId:startCue.id}); if(ok) renderRight(); }));
+    r.appendChild(drow);
+    const asset=assets.find(a=>a.id===startCue.assetId);
+    r.appendChild(buildEditorAdjust(startCue, asset));
+  } else if(entry&&entry.cueId){
+    const cue=findCueById(entry.cueId); const asset=cue?assets.find(a=>a.id===cue.assetId):null;
+    const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:8px 0 4px'; note.textContent='表示調整は継続中のキュー全体に適用されます。'; r.appendChild(note);
+    if(cue) r.appendChild(buildEditorAdjust(cue, asset));
+  }
+}
+// cue用の表示調整ウィジェット（fit/crop/filter/pad/bg/hide）。コミットは cueOp setOpts（Python共通op）。
+function buildEditorAdjust(cue, asset){
+  const wrap=document.createElement('div'); wrap.className='adjust';
+  const crop=document.createElement('div'); crop.className='crop';
+  const u=(asset&&asset.file)?('/img-file/'+encodeURIComponent(asset.file)):null;
+  crop.innerHTML=u?('<img src="'+u+'">'):'<div class="hint" style="display:flex;height:100%;align-items:center;justify-content:center">画像なし（素材を配置/差し替え）</div>';
+  const rectEl=document.createElement('div'); rectEl.className='croprect'; rectEl.style.display='none'; crop.appendChild(rectEl);
+  const imgEl=crop.querySelector('img');
+  const ctl=document.createElement('div'); ctl.className='ctl';
+  const commit=async(opts)=>{ const ok=await cueOp({op:'setOpts', cueId:cue.id, opts}); if(ok) renderRight(); };
+  // fit
+  const fr=document.createElement('div'); fr.className='row'; fr.innerHTML='<span class="hint">収め方</span>';
+  const fit=document.createElement('select');
+  fit.innerHTML='<option value="">自動（種別で決定）</option><option value="cover">cover：枠を埋める</option><option value="contain">contain：全体を収める</option>';
+  fit.value=cue.fit||''; fit.onchange=()=>commit({fit:fit.value||null}); fr.appendChild(fit);
+  // filters
+  const filt=document.createElement('div'); filt.className='filters';
+  const fb=mkrange(0.3,1.5,0.05,(cue.filter&&cue.filter.brightness)||1);
+  const fc=mkrange(0.5,1.5,0.05,(cue.filter&&cue.filter.contrast)||1);
+  const fg=mkrange(0,1,0.05,(cue.filter&&cue.filter.grayscale)||0);
+  filt.innerHTML='<span>明るさ</span>'; filt.appendChild(stepWrap(fb));
+  filt.insertAdjacentHTML('beforeend','<span>コントラスト</span>'); filt.appendChild(stepWrap(fc));
+  filt.insertAdjacentHTML('beforeend','<span>白黒</span>'); filt.appendChild(stepWrap(fg));
+  const curFilter=()=>({brightness:+fb.value,contrast:+fc.value,grayscale:+fg.value});
+  const liveFilter=()=>{ if(imgEl) imgEl.style.filter=cssFilter(curFilter()); };
+  [fb,fc,fg].forEach(s=>{ s.oninput=liveFilter; s.onchange=()=>commit({filter:curFilter()}); });
+  if(imgEl) imgEl.style.filter=cssFilter(cue.filter);
+  const fclr=document.createElement('button'); fclr.className='mini'; fclr.textContent='補正解除';
+  fclr.onclick=()=>{ fb.value=1; fc.value=1; fg.value=0; if(imgEl)imgEl.style.filter=''; commit({filter:null}); };
+  // 余白/背景/画像なし
+  const r2=document.createElement('div'); r2.className='row'; r2.innerHTML='<span class="hint">余白(px)</span>';
+  const pad=document.createElement('input'); pad.type='number'; pad.min=0; pad.max=400; pad.step=4; pad.value=cue.pad||0; pad.style.width='62px';
+  pad.onchange=()=>commit({pad:parseInt(pad.value)||0});
+  const bg=document.createElement('input'); bg.type='color'; bg.value=cue.bg||'#eef1f5'; bg.title='余白の背景色';
+  bg.onchange=()=>commit({bg:bg.value});
+  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='余白色クリア'; bgc.onclick=()=>commit({bg:null});
+  const hideL=document.createElement('label'); hideL.className='chk';
+  const hide=document.createElement('input'); hide.type='checkbox'; hide.checked=!!cue.hide; hide.onchange=()=>commit({hide:hide.checked});
+  hideL.appendChild(hide); hideL.appendChild(document.createTextNode(' 画像なし'));
+  r2.appendChild(pad); r2.appendChild(bg); r2.appendChild(bgc); r2.appendChild(hideL);
+  const cclr=document.createElement('button'); cclr.className='mini'; cclr.textContent='クロップ解除'; cclr.onclick=()=>commit({crop:null});
+  const clrRow=document.createElement('div'); clrRow.className='row'; clrRow.appendChild(cclr); clrRow.appendChild(fclr);
+  const hint=document.createElement('div'); hint.className='hint'; hint.textContent='画像をドラッグ＝クロップ。設定はこのキュー全体に適用・即時保存。';
+  ctl.appendChild(fr); ctl.appendChild(filt); ctl.appendChild(r2); ctl.appendChild(clrRow); ctl.appendChild(hint);
+  wrap.appendChild(crop); wrap.appendChild(ctl);
+  // クロップ枠＋ドラッグ
+  function drawCrop(){ if(!cue.crop||!imgEl){ rectEl.style.display='none'; return; }
+    const box=crop.getBoundingClientRect(), rr=contentRect(imgEl,box);
+    rectEl.style.display='block'; rectEl.style.left=(rr.x+cue.crop.l*rr.w)+'px'; rectEl.style.top=(rr.y+cue.crop.t*rr.h)+'px';
+    rectEl.style.width=((cue.crop.r-cue.crop.l)*rr.w)+'px'; rectEl.style.height=((cue.crop.b-cue.crop.t)*rr.h)+'px'; }
+  if(imgEl){ imgEl.complete?drawCrop():(imgEl.onload=drawCrop); let drag=null;
+    crop.onmousedown=(e)=>{ const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top}; };
+    window.addEventListener('mousemove',(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
+      rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; });
+    crop.onmouseup=(e)=>{ if(!drag)return; const rr=drag.r,x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+      const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
+      let [l,t]=nm(Math.min(drag.x0,x),Math.min(drag.y0,y)), [r2v,b2]=nm(Math.max(drag.x0,x),Math.max(drag.y0,y));
+      const c={l:cl(l),t:cl(t),r:cl(r2v),b:cl(b2)}; drag=null;
+      if(c.r-c.l<0.02||c.b-c.t<0.02){ drawCrop(); return; } commit({crop:c}); }; }
+  return wrap;
 }
 
 function framePrev(ci,k,cut){

@@ -987,6 +987,51 @@ def do_asset_delete(body):
     return {"ok": True, "data": norm, "removedCues": removed}
 
 
+def do_cue_op(body):
+    """imageCue の編集操作を editor_model の共通opへ集約して適用・保存する（editor権威のみ）。
+
+    クライアントは現在の編集モデル全体(data)と op/引数を送る。検証はすべて editor_model 側
+    （不正assetId・開始位置衝突・範囲逆転を拒否）。成功時のみ原子的に保存し正規化結果を返す。
+    op: place|add|replace|move|range|setOpts|delete。Returns: {ok, data?} か {ok:False,message}。
+    """
+    from src import editor_model as em
+    data = body.get("data") or {}
+    if data.get("editorModelAuthority") != "editor":
+        return {"ok": False, "message": "editor権威ではありません"}
+    op = body.get("op")
+    try:
+        if op == "place":
+            em.place_image(data, body["turnId"], body.get("assetId"), **(body.get("opts") or {}))
+        elif op == "add":
+            em.add_cue(data, body["turnId"], body.get("assetId"),
+                       end_turn_id=body.get("endTurnId"), **(body.get("opts") or {}))
+        elif op == "replace":
+            em.replace_cue_asset(data, body["cueId"], body.get("assetId"))
+        elif op == "move":
+            em.move_cue(data, body["cueId"], body["turnId"])
+        elif op == "range":
+            kw = {}
+            if "startTurnId" in body:
+                kw["start_turn_id"] = body["startTurnId"]
+            if body.get("clearEnd"):
+                kw["end_turn_id"] = None
+            elif "endTurnId" in body:
+                kw["end_turn_id"] = body["endTurnId"]
+            em.set_cue_range(data, body["cueId"], **kw)
+        elif op == "setOpts":
+            em.set_cue_opts(data, body["cueId"], **(body.get("opts") or {}))
+        elif op == "delete":
+            em.delete_cue(data, body["cueId"])
+        else:
+            return {"ok": False, "message": f"unknown op: {op}"}
+    except (ValueError, KeyError) as e:
+        return {"ok": False, "message": str(e)}
+    ok, msg, norm = _save_editor_data(data)
+    if not ok:
+        return {"ok": False, "message": msg}
+    return {"ok": True, "data": norm}
+
+
 def cut_key(cut):
     return f"{cut['ch']}_{cut['ci']}"
 
@@ -2081,6 +2126,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/editor/asset-delete":
             self._json(do_asset_delete(body))
+            return
+        if path == "/api/editor/cue-op":
+            self._json(do_cue_op(body))
             return
         if path == "/api/approve":
             ok = apply_approve(review, body.get("key"), body.get("approved", True))

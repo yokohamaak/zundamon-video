@@ -533,6 +533,69 @@ def test_switch_success_atomic_and_idempotent():
     ok("切替は冪等（2回目はno-op）", r2["ok"] and r2.get("switched") is False)
 
 
+# ===== set_cue_opts（表示調整） =====
+
+def test_set_cue_opts():
+    d = _data(2)
+    a = em.add_asset(d, file="x.jpg")
+    c = em.add_cue(d, "turn-0001", a["id"])
+    em.set_cue_opts(d, c["id"], fit="contain", pad=0, crop={"l": 0, "t": 0, "r": 0.5, "b": 0.5}, hide=True)
+    cc = em.find_cue(d, c["id"])
+    ok("fit/crop/pad:0/hide を反映（0を欠損扱いしない）",
+       cc["fit"] == "contain" and cc["pad"] == 0 and cc["crop"]["l"] == 0 and cc["hide"] is True)
+    em.set_cue_opts(d, c["id"], fit=None, crop=None, hide=False)
+    cc = em.find_cue(d, c["id"])
+    ok("None指定でクリア", cc["fit"] is None and cc["crop"] is None and cc["hide"] is False)
+
+
+def test_cue_op_endpoint_roundtrip():
+    import shutil as _sh
+    import tempfile as _tf
+    import review_server as rs
+    d = _tf.mkdtemp(); bk = _tf.mkdtemp()
+    json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
+    json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
+    old = rs.DIR
+    try:
+        rs.DIR = d
+        rs.do_switch_to_editor(backups_root=bk)
+        data = json.load(open(os.path.join(d, "script.json")))
+        t0, t1, t2 = data["script"][0]["id"], data["script"][1]["id"], data["script"][2]["id"]
+        a0 = data["assets"][0]["id"]
+        # 先頭cueはt0にあるはず。setOpts→fit反映
+        c0 = next(c for c in data["imageCues"] if c["turnId"] == t0)
+        r = rs.do_cue_op({"data": data, "op": "setOpts", "cueId": c0["id"], "opts": {"fit": "contain", "pad": 0}})
+        data = r["data"]; c0n = next(c for c in data["imageCues"] if c["id"] == c0["id"])
+        set_ok = r["ok"] and c0n["fit"] == "contain" and c0n["pad"] == 0
+        # range設定→範囲逆転は拒否（不正は保存されない）
+        rbad = rs.do_cue_op({"data": data, "op": "range", "cueId": c0["id"], "endTurnId": t0,
+                             "startTurnId": t2})  # end(t0)<start(t2)
+        reversed_rejected = rbad["ok"] is False
+        # delete先頭cue→件数-1
+        n_before = len(data["imageCues"])
+        rdel = rs.do_cue_op({"data": data, "op": "delete", "cueId": c0["id"]})
+        del_ok = rdel["ok"] and len(rdel["data"]["imageCues"]) == n_before - 1
+        data = rdel["data"]
+        # place at t0 (再配置・add-or-replace)
+        rpl = rs.do_cue_op({"data": data, "op": "place", "turnId": t0, "assetId": a0})
+        place_ok = rpl["ok"] and any(c["turnId"] == t0 for c in rpl["data"]["imageCues"])
+        # 不正assetId→拒否
+        rbad2 = rs.do_cue_op({"data": rpl["data"], "op": "place", "turnId": t1, "assetId": "asset-zzz"})
+        bad_asset_rejected = rbad2["ok"] is False
+        # legacyデータ拒否
+        leg = {k: v for k, v in rpl["data"].items() if k != "editorModelAuthority"}
+        leg_rejected = rs.do_cue_op({"data": leg, "op": "delete", "cueId": "x"})["ok"] is False
+    finally:
+        rs.DIR = old
+        _sh.rmtree(d, ignore_errors=True); _sh.rmtree(bk, ignore_errors=True)
+    ok("cue-op setOpts反映", set_ok)
+    ok("cue-op 範囲逆転を拒否", reversed_rejected)
+    ok("cue-op delete", del_ok)
+    ok("cue-op place(add-or-replace)", place_ok)
+    ok("cue-op 不正assetIdを拒否", bad_asset_rejected)
+    ok("cue-op legacyデータ拒否", leg_rejected)
+
+
 # ===== authority切替でtheme等が維持される / 素材API往復 =====
 
 def test_switch_preserves_theme_and_script():
@@ -663,5 +726,7 @@ if __name__ == "__main__":
     test_switch_success_atomic_and_idempotent()
     test_switch_preserves_theme_and_script()
     test_asset_api_roundtrip()
+    test_set_cue_opts()
+    test_cue_op_endpoint_roundtrip()
     test_real_data_legacy_editor_meta_equivalence()
     print(f"ALL PASS ({passed} checks)")

@@ -704,6 +704,18 @@ def set_cue_range(data, cue_id, *, start_turn_id=None, end_turn_id="__keep__"):
     return cue
 
 
+def set_cue_opts(data, cue_id, **opts):
+    """cue の表示調整(fit/crop/filter/pad/bg/hide)を更新する。0/None/空を区別して保持。
+
+    指定キーのみ上書き（fit=None でクリア、pad=0 で0を保持、hide は bool 化）。
+    """
+    cue = find_cue(data, cue_id)
+    if cue is None:
+        raise ValueError(f"cue {cue_id} がありません")
+    _apply_cue_opts(cue, opts)
+    return cue
+
+
 def delete_cue(data, cue_id):
     """cue を削除（素材ファイルは消さない＝直前の画像が継続）。"""
     before = data.get("imageCues") or []
