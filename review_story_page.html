@@ -2612,7 +2612,7 @@ async function addAssetFromFile(file){
     try{ const durl=await shrinkImage(URL.createObjectURL(file),1920,5*1024*1024); b64=durl.split(',')[1]; fn='resized.jpg'; }
     catch(e){ b64=await _fileToB64(file); }
   } else { b64=await _fileToB64(file); }
-  const r=await api('/api/editor/asset-add',{data:DATA, dataB64:b64, filename:fn});
+  const r=await enqueueEditorWrite(()=>api('/api/editor/asset-add',{data:DATA, dataB64:b64, filename:fn}));
   if(!r||!r.ok){ alert('素材の追加に失敗しました: '+((r&&r.message)||'不明')); return; }
   DATA=r.data; selectedAssetId=r.assetId; dirty=false; markVisualStale(); updateAuthorityUI(); renderRight();
 }
@@ -2620,7 +2620,7 @@ async function deleteAsset(aid){
   const used=assetUsageMap()[aid]||0;
   if(used){ alert('この素材は使用中です（'+used+'件のcueが参照）。\\n配置を外してから削除してください。'); return; }
   if(!confirm('この素材を削除しますか？（画像ファイル自体は残します）')) return;
-  const r=await api('/api/editor/asset-delete',{data:DATA, assetId:aid});
+  const r=await enqueueEditorWrite(()=>api('/api/editor/asset-delete',{data:DATA, assetId:aid}));
   if(!r||!r.ok){ alert('削除に失敗しました: '+((r&&r.message)||'不明')); return; }
   DATA=r.data; if(selectedAssetId===aid) selectedAssetId=null; dirty=false; markVisualStale(); updateAuthorityUI(); renderRight();
 }
@@ -2727,10 +2727,11 @@ function nextCueStartIdx(startIdx){ const idx=_turnIndexMap(); let best=(DATA.sc
 // 即時保存を直列化する。cropやsliderを続けて操作しても、古い応答が後からDATAを上書きしない。
 function createAsyncQueue(){ let tail=Promise.resolve(); return run=>{ const current=tail.then(run,run);
   tail=current.then(()=>undefined,()=>undefined); return current; }; }
-const enqueueCueOp=createAsyncQueue();
+// 全editor書込（cue/viz/asset）を1本のキューで直列化＝古い応答が新しい編集を上書きしない。
+const enqueueEditorWrite=createAsyncQueue();
 // すべてのcue編集はサーバの editor_model 共通op経由（制約・正規化はPython側を正とする＝JS/Python不一致を作らない）。
 async function cueOp(params, opts){
-  return enqueueCueOp(async()=>{
+  return enqueueEditorWrite(async()=>{
     const r=await api('/api/editor/cue-op', Object.assign({data:DATA}, params));
     if(!r||!r.ok){ if(!(opts&&opts.silent)) alert('画像操作に失敗しました: '+((r&&r.message)||'不明')); return null; }
     DATA=r.data; markVisualStale(); return r;
@@ -2888,9 +2889,11 @@ function vizDefaultConfig(type){ return ({
   panel:{panel:{items:[{text:''}]}}, compare:{compare:{left:{label:''},right:{label:''}}},
   callouts:{callouts:[{text:''}]} })[type]||{}; }
 async function vizOp(params){
-  const r=await api('/api/editor/viz-op', Object.assign({data:DATA}, params));
-  if(!r||!r.ok){ alert('大演出の操作に失敗: '+((r&&r.message)||'不明')); return null; }
-  DATA=r.data; markVisualStale(); return r;
+  return enqueueEditorWrite(async()=>{
+    const r=await api('/api/editor/viz-op', Object.assign({data:DATA}, params));
+    if(!r||!r.ok){ alert('大演出の操作に失敗: '+((r&&r.message)||'不明')); return null; }
+    DATA=r.data; markVisualStale(); return r;
+  });
 }
 function segBoundsGi(seg){ const m=_turnIndexMap(); const s=m[seg.startTurnId], e=m[seg.endTurnId]; return (s==null||e==null)?null:[s,e]; }
 function findSeg(id){ return (DATA.visualSegments||[]).find(s=>s.id===id)||null; }
@@ -2905,6 +2908,10 @@ function vizAnchorOptions(seg){ const t=seg.type, cfg=seg.config||{};
   return []; }
 function kfLabel(seg,kf){ const opt=vizAnchorOptions(seg).find(o=>o.type===kf.type && (o.value==null||o.value===kf.value));
   return (opt?opt.label:kf.type)+(kf.pos!=null?('（文字'+kf.pos+'）'):''); }
+// turnId がその章の有効セリフなら返し、無効なら章の最初の有効セリフIDへ解決（orphaned修復の送信値用）。
+function resolveTurnInChapter(turnId,ci){ const m=_turnIndexMap();
+  if((turnId in m) && (DATA.script[m[turnId]]||{}).chapter===ci) return turnId;
+  const f=(DATA.script||[]).find(t=>t.chapter===ci); return f?f.id:null; }
 function vizTurnSelect(ci,currentId,onPick){ const sel=document.createElement('select');
   (DATA.script||[]).forEach((t,gi)=>{ if(t.chapter!==ci)return; const o=document.createElement('option'); o.value=t.id;
     const within=(DATA.script||[]).filter((x,j)=>x.chapter===ci&&j<=gi).length;
@@ -2928,7 +2935,8 @@ function vizConfigEditor(seg){
     const lab=document.createElement('div'); lab.style.cssText='font-size:11px;color:var(--sub)'; lab.textContent=isPanel?'パネル項目':'注釈'; wrap.appendChild(lab);
     list.forEach((it,k)=>{ const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;margin:3px 0';
       const i=document.createElement('input'); i.type='text'; i.value=it.text||''; i.style.flex='1'; i.onchange=()=>{ it.text=i.value; commit(); };
-      const del=document.createElement('button'); del.className='mini'; del.textContent='×'; del.onclick=()=>{ list.splice(k,1); commit(); };
+      const del=document.createElement('button'); del.className='mini'; del.textContent='×';
+      del.onclick=async()=>{ const ok=await vizOp({op:'delItem', segId:seg.id, index:k}); if(ok) renderRight(); };  // keyframe value整合つき
       row.appendChild(i); row.appendChild(del); wrap.appendChild(row); });
     const add=document.createElement('button'); add.className='mini'; add.textContent=isPanel?'＋項目':'＋注釈'; add.onclick=()=>{ list.push({text:''}); commit(); }; wrap.appendChild(add);
   }
@@ -2948,7 +2956,7 @@ function renderEditorVizTab(r,tn){
   orphaned.forEach(s=>{ const w=document.createElement('div'); w.style.cssText='border:1px solid #b5532a;border-radius:6px;padding:6px;margin-bottom:6px;font-size:11px;color:#e0a060';
     w.textContent='⚠ 無効な大演出（'+(VIZ_TYPE_LABEL[s.type]||s.type)+'・理由:'+(s.orphanReason||'?')+'）。範囲を直すと復活します。';
     const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap';
-    let st=s.startTurnId, en=s.endTurnId;
+    let st=resolveTurnInChapter(s.startTurnId, ci), en=resolveTurnInChapter(s.endTurnId, ci);  // 無効な旧turnIdは有効値へ
     row.appendChild(document.createTextNode('開始')); row.appendChild(vizTurnSelect(ci, st, v=>st=v));
     row.appendChild(document.createTextNode('終了')); row.appendChild(vizTurnSelect(ci, en, v=>en=v));
     row.appendChild(vMini('修復', async()=>{ const ok=await vizOp({op:'setRange', segId:s.id, startTurnId:st, endTurnId:en}); if(ok){ selSeg=s.id; renderRight(); } }));

@@ -1029,6 +1029,41 @@ def set_segment_config(data, seg_id, config):
     return seg
 
 
+def delete_segment_item(data, seg_id, index):
+    """panel/callouts の index 番目の項目を削除し、対応 keyframe の value を整合（in-place・原子的）。
+
+    同 index の keyframe(panel_item/callout_item)を削除、index より大きい value を -1 する
+    （項目削除で番号がずれて別項目を指すのを防ぐ）。config と keyframes を同時に更新。
+    """
+    seg = find_segment(data, seg_id)
+    if seg is None:
+        raise ValueError(f"segment {seg_id} がありません")
+    t = seg.get("type")
+    cfg = seg.setdefault("config", {})
+    if t == "panel":
+        items = (cfg.setdefault("panel", {})).setdefault("items", [])
+        kf_type = "panel_item"
+    elif t == "callouts":
+        items = cfg.setdefault("callouts", [])
+        kf_type = "callout_item"
+    else:
+        raise ValueError("項目を持たないセグメントです（panel/callouts のみ）")
+    if not (0 <= index < len(items)):
+        raise ValueError("index が範囲外です")
+    items.pop(index)
+    out = []
+    for k in seg.get("keyframes") or []:
+        v = k.get("value")
+        if k.get("type") == kf_type and isinstance(v, int) and not isinstance(v, bool):
+            if v == index:
+                continue                       # 削除した項目の keyframe は除去
+            if v > index:
+                k = {**k, "value": v - 1}       # 後ろの項目番号を繰り下げ
+        out.append(k)
+    seg["keyframes"] = out
+    return seg
+
+
 # ---- keyframe 共通操作（type/value/pos:0 を保持） ----
 
 def _kf_next_id(seg):

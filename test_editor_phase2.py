@@ -1001,6 +1001,37 @@ def test_real_data_build_meta_viz_equivalence():
     ok("editor build_meta は冪等", again["topics"] == editor_meta["topics"])
 
 
+def test_delete_segment_item_reindexes_keyframes():
+    d = _segdata(5)
+    s = em.add_visual_segment(d, seg_type="panel", start_turn_id="turn-0001", end_turn_id="turn-0004",
+                              config={"panel": {"items": [{"text": "a"}, {"text": "b"}, {"text": "c"}]}})
+    em.add_keyframe(d, s["id"], turn_id="turn-0001", kf_type="panel_item", value=0)
+    em.add_keyframe(d, s["id"], turn_id="turn-0002", kf_type="panel_item", value=1)
+    em.add_keyframe(d, s["id"], turn_id="turn-0003", kf_type="panel_item", value=2)
+    em.delete_segment_item(d, s["id"], 1)   # 真ん中(b)を削除
+    seg = em.find_segment(d, s["id"])
+    items = seg["config"]["panel"]["items"]
+    vals = sorted(k["value"] for k in seg["keyframes"] if k["type"] == "panel_item")
+    ok("項目削除でconfig更新", [it["text"] for it in items] == ["a", "c"])
+    ok("削除indexのkeyframe除去・後続value-1", vals == [0, 1])
+    try:
+        em.delete_segment_item(d, s["id"], 9)
+        ok("範囲外indexを拒否", False)
+    except ValueError:
+        ok("範囲外indexを拒否", True)
+
+
+def test_delete_segment_item_callouts():
+    d = _segdata(4)
+    s = em.add_visual_segment(d, seg_type="callouts", start_turn_id="turn-0001", end_turn_id="turn-0003",
+                              config={"callouts": [{"text": "x"}, {"text": "y"}]})
+    em.add_keyframe(d, s["id"], turn_id="turn-0002", kf_type="callout_item", value=1)
+    em.delete_segment_item(d, s["id"], 0)   # 先頭削除→残り注釈のvalueは1→0
+    seg = em.find_segment(d, s["id"])
+    ok("callouts項目削除＋value繰り下げ",
+       len(seg["config"]["callouts"]) == 1 and seg["keyframes"][0]["value"] == 0)
+
+
 def test_viz_op_endpoint_roundtrip():
     import shutil as _sh
     import tempfile as _tf
@@ -1140,6 +1171,8 @@ if __name__ == "__main__":
     test_normalize_resolves_overlap_and_kf_dup()
     test_orphaned_segment_repair_keeps_inrange_keyframes()
     test_chapter2_segment_renders_in_meta()
+    test_delete_segment_item_reindexes_keyframes()
+    test_delete_segment_item_callouts()
     test_viz_op_endpoint_roundtrip()
     test_real_data_build_meta_viz_equivalence()
     test_switch_to_editor_atomic()

@@ -1058,6 +1058,8 @@ def do_viz_op(body):
             em.delete_visual_segment(data, body["segId"])
         elif op == "setConfig":
             em.set_segment_config(data, body["segId"], body.get("config") or {})
+        elif op == "delItem":
+            em.delete_segment_item(data, body["segId"], body["index"])
         elif op == "addKf":
             em.add_keyframe(data, body["segId"], turn_id=body["turnId"], kf_type=body["kfType"],
                             value=body.get("value"), pos=body.get("pos"))

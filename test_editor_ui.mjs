@@ -138,6 +138,12 @@ t('vizTabKind: editor=新エディタ / legacy=旧', () => {
   assert.equal(vizTabKind('editor'), 'editor');
   assert.equal(vizTabKind(undefined), 'legacy');
 });
+t('cue/viz/asset書込は同一キューで直列化', () => {
+  // 古い応答が新しい編集を上書きしないよう、全editor書込が共有キューを通ること（ソース確認）。
+  assert.ok(/const enqueueEditorWrite=createAsyncQueue\(\)/.test(html), '共有キューを定義');
+  assert.ok((html.match(/enqueueEditorWrite\(/g) || []).length >= 4,
+    'cueOp/vizOp/asset-add/asset-delete が共有キュー経由');
+});
 t('vizDefaultConfig: 型ごとの初期config', () => {
   assert.ok(vizDefaultConfig('quiz').quiz);
   assert.ok(vizDefaultConfig('panel').panel.items.length === 1);
