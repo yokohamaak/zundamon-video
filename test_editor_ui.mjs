@@ -85,15 +85,24 @@ t('hideToggle: 非hideの開始cue→hide:true / 開始無し→add hide', () =>
   assert.equal(add.op, 'add'); assert.equal(add.assetId, null); assert.equal(add.opts.hide, true);
 });
 
-// --- cropドラッグ：一時pointer listenerを終了時に必ず外す ---
+// --- cropドラッグ：一時mouse listenerを終了時に必ず外す ---
 t('crop drag は終了をwindowで捕捉しlistenerを解除する', () => {
-  assert.ok(!/window\.addEventListener\(\s*['"]mousemove/.test(html), 'window mousemove未使用');
-  assert.ok(/window\.addEventListener\(\s*['"]pointerup['"]\s*,\s*finish/.test(html), 'pointerupを確実に捕捉');
-  assert.ok(/window\.removeEventListener\(\s*['"]pointermove['"]\s*,\s*move/.test(html), 'pointermoveを解除');
-  assert.ok(/window\.removeEventListener\(\s*['"]pointerup['"]\s*,\s*finish/.test(html), 'pointerupを解除');
+  const cropDragSrc=extractFn('bindCropDrag');
+  assert.ok(/window\.addEventListener\(\s*['"]mouseup['"]\s*,\s*finish/.test(html), 'mouseupを確実に捕捉');
+  assert.ok(/window\.removeEventListener\(\s*['"]mousemove['"]\s*,\s*move/.test(html), 'mousemoveを解除');
+  assert.ok(/window\.removeEventListener\(\s*['"]mouseup['"]\s*,\s*finish/.test(html), 'mouseupを解除');
   assert.equal((html.match(/bindCropDrag\(crop,imgEl,rectEl,\(c\)=>/g)||[]).length,2,'legacy/editorの両方で共通処理');
   assert.ok(/const d=drag,rr=d\.r,x=d\.x,y=d\.y/.test(html), '確定には最後のmove座標を使う');
-  assert.ok(!/x=e\.clientX-d\.box\.left,y=e\.clientY-d\.box\.top/.test(html), 'pointerup座標で確定しない');
+  assert.ok(!/onpointerdown|addEventListener\(\s*['"]pointer/.test(cropDragSrc), 'cropはpointerイベントに依存しない');
+});
+
+// --- crop枠の再描画タイミング（保存済みクロップが消えないこと） ---
+t('crop枠は添付後に描く（requestAnimationFrameで遅延）', () => {
+  // /img-file はキャッシュされ imgEl.complete=true で来るため、同期描画だと未添付box=0で枠が消える。
+  // legacy/editor 両方の crop バインドで rAF 遅延描画していることを確認（保存済みクロップの可視化）。
+  assert.ok((html.match(/requestAnimationFrame\(drawCrop\)/g) || []).length >= 2,
+    'legacy/editor両方でrAF遅延描画');
+  assert.ok(!/imgEl\.complete\?drawCrop\(\)/.test(html), '同期drawCrop()呼び出しは残っていない');
 });
 
 // --- runMigrate ---
