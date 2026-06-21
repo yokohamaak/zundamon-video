@@ -261,10 +261,22 @@ t('zoom: 旧OFF/ONボタンは廃止しselectへ／旧設定を引き継ぐ', ()
   assert.ok(!/setTimelineDetail/.test(html), '旧トグル関数は撤去');
 });
 t('zoom: 詳細時はセルの文字サイズも倍率に比例して拡大する', () => {
-  // 列幅だけ広げても文字が固定だと読めず縦線位置もズレるため、fontSizeをmultに比例させる。
+  // 列幅だけ広げても文字が固定だと読めず縦線位置もズレるため、本文spanのfontSizeをmultに比例させる。
   assert.ok(/const zMult=tlLevelOf\(timelineLevel\)\.mult/.test(html), '倍率を取得');
-  assert.ok(/c\.style\.fontSize=fs\+'px'/.test(html) && /Math\.round\(10\*zMult\)/.test(html),
-    'fontSize=10*mult／行高も拡大');
+  assert.ok(/tx\.style\.fontSize=fs\+'px'/.test(html) && /Math\.round\(10\*zMult\)/.test(html),
+    '本文spanのfontSize=10*mult／行高も拡大');
+});
+t('prefix: 行番号は本文に連結せず固定幅バッジ(.tl-no)に分離する', () => {
+  // 旧: textContent=(gi+1)+'. '+text → 本文位置がズレ・ズームで番号も巨大化して邪魔。
+  assert.ok(!/textContent=\(gi\+1\)\+'\. '/.test(html), '本文への番号連結は廃止');
+  assert.ok(/className='tl-no'/.test(html) && /\.tl-turn \.tl-no\s*\{[^}]*position:absolute/.test(html),
+    '行番号は絶対配置の固定バッジ');
+  assert.ok(/paddingLeft=TL_TURN_GUTTER/.test(html), '本文はバッジ分の左余白を空ける');
+});
+t('caret: 縦線/posは本文領域(行番号バッジ分を除く)基準で計算する', () => {
+  const fn = extractFn('startVizKfDrag');
+  assert.ok(/padL=TL_TURN_GUTTER/.test(fn), '左オフセットに行番号バッジ幅を使う');
+  assert.ok(/cr\.width-padL-9/.test(fn), '本文幅=セル幅-バッジ-右余白');
 });
 
 // --- runMigrate ---
