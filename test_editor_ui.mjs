@@ -217,6 +217,26 @@ t('vizAnchorOptions: 型ごとの変化点候補', () => {
   assert.deepEqual(cmp.map(o => o.value), [0, 1]);
 });
 
+// --- Phase 3-D: 変化点の移動UX（縦線ゴースト・移動先ハイライト・ダブルクリック詳細編集）の配線が消えていないこと ---
+// 根本原因（リファクタで機能が黙って撤去された）の再発防止のため、ソース上の配線存在を検証する。
+t('3-D: 変化点ドラッグ中に縦線(kf-caret)と移動先ハイライト(kf-drop)を出す', () => {
+  const fn = extractFn('startVizKfDrag');
+  assert.ok(/kf-caret/.test(fn), 'editorの変化点ドラッグに縦線(kf-caret)がある');
+  assert.ok(/kf-drop/.test(fn), '移動先セリフのハイライト(kf-drop)がある');
+  assert.ok(/\.kf-caret\s*\{/.test(html), 'kf-caret のCSSが残っている');
+});
+t('3-D: 変化点◆のダブルクリックで詳細編集へフォーカス', () => {
+  const fn = extractFn('startVizKfDrag');
+  assert.ok(/focusKfEditor\(/.test(fn), 'ダブルクリックで focusKfEditor を呼ぶ');
+  const fe = extractFn('focusKfEditor');
+  assert.ok(/rtab='viz'/.test(fe) && /kfpos-/.test(fe), '大演出タブを開きpos入力へフォーカス');
+});
+t('3-D: 右ペインに文字位置(pos)の数値入力があり moveKf 保存する', () => {
+  assert.ok(/id='kfpos-'\+kf\.id/.test(html), 'pos入力に kfpos-<id> がある（ダブルクリックの着地先）');
+  assert.ok(/op:'moveKf', segId:cur\.id, kfId:kf\.id, turnId:kf\.turnId, pos:n/.test(html),
+    'pos数値入力は同セリフ内で moveKf(pos) を送る');
+});
+
 // --- runMigrate ---
 async function runTests() {
   // 即時保存を連続実行しても、開始・完了順が入れ替わらない。
