@@ -507,11 +507,9 @@ def test_switch_success_atomic_and_idempotent():
     import tempfile as _tf
     import review_server as rs
     d = _tf.mkdtemp()
-    bk = _tf.mkdtemp()                       # 退避先もtempdir（本番 .backups を一切触らない）
-    # 本番 .backups に既存退避を模した sentinel を置き、テスト後も残ることを検証する。
-    real_backups = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".backups")
-    os.makedirs(real_backups, exist_ok=True)
-    sentinel = os.path.join(real_backups, "editor-authority-pre-SENTINEL-DONOTDELETE")
+    bk = _tf.mkdtemp()                       # 退避先（tempdir）
+    unrelated_root = _tf.mkdtemp()           # 「触ってはいけない別の退避場所」を模したtempdir
+    sentinel = os.path.join(unrelated_root, "editor-authority-pre-SENTINEL")
     os.makedirs(sentinel, exist_ok=True)
     json.dump(json.load(open("docs/story/script.json")), open(os.path.join(d, "script.json"), "w"))
     json.dump(json.load(open("docs/story/review.json")), open(os.path.join(d, "review.json"), "w"))
@@ -527,11 +525,11 @@ def test_switch_success_atomic_and_idempotent():
         rs.DIR = old
         _sh.rmtree(d, ignore_errors=True)
         _sh.rmtree(bk, ignore_errors=True)
-        _sh.rmtree(sentinel, ignore_errors=True)        # テスト自身が作った sentinel のみ撤去
+        _sh.rmtree(unrelated_root, ignore_errors=True)  # 作成したtempdirだけ削除
     ok("切替成功でeditor権威・妥当JSON", r1["ok"] and r1["switched"]
        and sd.get("editorModelAuthority") == "editor")
-    ok("退避は指定backups_root配下に作られる", any(b.startswith("editor-authority-pre-") for b in bk_dirs))
-    ok("本番 .backups の既存退避(sentinel)はテスト後も残る", sentinel_survives)
+    ok("退避は指定backups_root配下にだけ作られる", any(b.startswith("editor-authority-pre-") for b in bk_dirs))
+    ok("backups_root外の退避(sentinel)は触らない", sentinel_survives)
     ok("切替は冪等（2回目はno-op）", r2["ok"] and r2.get("switched") is False)
 
 
