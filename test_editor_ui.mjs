@@ -22,7 +22,9 @@ function extractFn(name) {
 const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate', 'hideToggleOp',
   '_turnIndexMap', 'resolveCueJS', 'computeImagePlan', 'createAsyncQueue',
   'cueSpans', 'endDragIsContinue', 'spanUnderViz',
-  'vizTabKind', 'vizAnchorOptions', 'vizDefaultConfig', 'groupKeyframesByTurn'];
+  'vizTabKind', 'vizAnchorOptions', 'vizDefaultConfig', 'groupKeyframesByTurn',
+  'isEditorAuthority', 'segBoundsGi', 'segCoversGi', 'segOf', 'chSegs', 'segRange',
+  'vizSegForTurn', 'chapterVizCount', 'vizSuppressRanges'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 
@@ -131,6 +133,42 @@ t('crop枠は添付後に描く（requestAnimationFrameで遅延）', () => {
   assert.ok((html.match(/requestAnimationFrame\(drawCrop\)/g) || []).length >= 2,
     'legacy/editor両方でrAF遅延描画');
   assert.ok(!/imgEl\.complete\?drawCrop\(\)/.test(html), '同期drawCrop()呼び出しは残っていない');
+});
+
+// --- authority対応の大演出読取: stale vizList/vizSeg と visualSegments を不一致にして確認 ---
+// 旧(vizList=ch0に1件・vizSegはturn-1のみ・type=quiz) と 新(visualSegments=turn-2..3のpanel) を意図的に食い違わせる。
+function _mismatchData() {
+  return {
+    script: [{ id: 't1', chapter: 0, vizSeg: 'sOld', text: 'aaaa' },
+             { id: 't2', chapter: 0, text: 'bbbb' },
+             { id: 't3', chapter: 0, text: 'cccc' }],
+    chapters: [{ vizList: [{ id: 'sOld', type: 'quiz', quiz: { question: 'STALE' } }] }],
+    visualSegments: [{ id: 'visual-00-sNew', type: 'panel', status: 'active',
+                       startTurnId: 't2', endTurnId: 't3', sourceChapter: 0,
+                       config: { panel: { items: [] } }, keyframes: [] }],
+  };
+}
+t('editor: 行のviz判定はvisualSegments基準(stale vizSegを無視)', () => {
+  globalThis.DATA = { ...(_mismatchData()), editorModelAuthority: 'editor' };
+  assert.equal(vizSegForTurn(0), null, 't1はstale vizSegだが新では非該当');
+  assert.ok(vizSegForTurn(2) && vizSegForTurn(2).id === 'visual-00-sNew', 't3は新segに含む');
+});
+t('legacy: 行のviz判定は従来vizSeg基準(挙動不変)', () => {
+  globalThis.DATA = _mismatchData();   // authority未設定=legacy
+  assert.ok(vizSegForTurn(0) && vizSegForTurn(0).id === 'sOld', 'legacyはvizSeg基準');
+  assert.equal(vizSegForTurn(2), null, 'legacyではt3にvizSegなし');
+});
+t('章見出し件数: editor=visualSegments / legacy=vizList', () => {
+  globalThis.DATA = { ...(_mismatchData()), editorModelAuthority: 'editor' };
+  assert.equal(chapterVizCount(0), 1, 'editorは新segを数える');
+  globalThis.DATA = _mismatchData();
+  assert.equal(chapterVizCount(0), 1, 'legacyはvizListを数える');
+});
+t('vizSuppressRanges: editor=新panel区間 / legacy=旧区間', () => {
+  globalThis.DATA = { ...(_mismatchData()), editorModelAuthority: 'editor' };
+  assert.deepEqual(vizSuppressRanges(), [[1, 2]], 'editorは新panel(t2..t3)の抑制区間');
+  globalThis.DATA = _mismatchData();   // legacy: sOldはquiz(overlay)＝抑制なし
+  assert.deepEqual(vizSuppressRanges(), [], 'legacyはquizなので抑制区間なし');
 });
 
 // --- 大演出(visualSegments)エディタの純関数 ---

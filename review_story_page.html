@@ -1859,7 +1859,7 @@ function seekRemotionToSelection(){
 function selectTurn(gi){
   if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
   if(selGi!==gi) selectedTextRange=null;
-  selGi=gi; const tn=DATA.script[gi]; const ch=(DATA.chapters||[])[tn.chapter]||{}; const seg=segOf(tn,ch);
+  selGi=gi; const tn=DATA.script[gi]; const seg=vizSegForTurn(gi);   // 共通読取（editor=visualSegments）
   if(seg) selSeg=seg.id;
   markSel(); renderPreviewPane(); seekRemotionToSelection(); renderRight(); renderTimeline();
   const row=document.querySelector('.line[data-gi="'+gi+'"]'); if(row) row.scrollIntoView({block:'nearest'});
@@ -2405,7 +2405,7 @@ function chapterDivider(ch,ci){
   // 章単位の再生成は廃止（深掘りストーリーは章＝物語ビートが連続し前後依存するため）。作り直しは「全体を作り直す」のみ。
   const badge=document.createElement('span'); badge.className='badge'; badge.textContent=sectionLabel(ch,ci); d.appendChild(badge);
   if(ch.section==='trivia'&&ch.confidence){ const c=document.createElement('span'); c.className='conf '+ch.confidence; c.textContent=confLabel(ch.confidence); d.appendChild(c); }
-  const ns=chSegs(ch).length; if(ns){ const v=document.createElement('span'); v.className='vizb'; v.textContent='▣ 演出'+(ns>1?('×'+ns):''); d.appendChild(v); }
+  const ns=chapterVizCount(ci); if(ns){ const v=document.createElement('span'); v.className='vizb'; v.textContent='▣ 演出'+(ns>1?('×'+ns):''); d.appendChild(v); }
   const t=document.createElement('span'); t.className='ttl'; t.textContent=ch.title||'(無題)'; t.style.cursor='pointer'; t.onclick=toggle; d.appendChild(t);
   // 行数（畳んだ時だけCSSで表示）。常に生成しておく。
   const n=(DATA.script||[]).filter(x=>x.chapter===ci).length;
@@ -2416,9 +2416,10 @@ function chapterDivider(ch,ci){
 }
 
 function lineRow(tn,gi,ch,ci,inViz){
-  const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(inViz?' vizrow':''); row.dataset.gi=gi;
+  const seg=vizSegForTurn(gi);                 // editor=visualSegments / legacy=vizSeg（共通読取）
+  const isViz=isEditorAuthority()?!!seg:!!tn.vizSeg;   // legacyは従来どおり tn.vizSeg 有無で判定
+  const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(isViz?' vizrow':''); row.dataset.gi=gi;
   const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
-  const seg=segOf(tn,ch);
   // アイコン（話者色の丸＋頭文字）
   const av=document.createElement('div'); av.className='av'; av.style.background=col; av.textContent=(tn.speaker||'?').slice(0,1);
   // 名前＋本文（縦並び）
@@ -2838,6 +2839,10 @@ function endDragIsContinue(target,nextStart,n){ return target>=nextStart-1 || ta
 // 通常画像を隠す大演出(replace=compare / layout=panel)のセリフ区間[s,e](全章横断・グローバルgi)。
 // overlay(quiz/stat/callouts)は通常画像と併用＝隠さないので含めない（plan 4 描画優先順位）。
 function vizSuppressRanges(){
+  if(isEditorAuthority()){   // editor=visualSegments(active, replace/layout=compare/panel)
+    const out=[]; (DATA.visualSegments||[]).forEach(s=>{ if(s.status==='orphaned')return;
+      if(s.type==='panel'||s.type==='compare'){ const b=segBoundsGi(s); if(b) out.push([b[0],b[1]]); } }); return out;
+  }
   const out=[]; (DATA.chapters||[]).forEach((ch,ci)=>{ chSegs(ch).forEach(seg=>{
     if(seg.type==='panel'||seg.type==='compare'){ const r=segRange(ci,seg.id); if(r.s>=0) out.push([r.s,r.e]); } }); });
   return out;
@@ -2982,6 +2987,15 @@ async function vizOp(params, opts){
 function segBoundsGi(seg){ const m=_turnIndexMap(); const s=m[seg.startTurnId], e=m[seg.endTurnId]; return (s==null||e==null)?null:[s,e]; }
 function findSeg(id){ return (DATA.visualSegments||[]).find(s=>s.id===id)||null; }
 function segCoversGi(seg,gi){ const b=segBoundsGi(seg); return !!(b && seg.status!=='orphaned' && b[0]<=gi && gi<=b[1]); }
+// === authority対応の大演出 読取API（editor=visualSegments / legacy=vizList+vizSeg。legacy挙動は不変） ===
+// 発言giを含む大演出（{id,type,...}）。無ければnull。
+function vizSegForTurn(gi){ const tn=(DATA.script||[])[gi]; if(!tn) return null;
+  if(isEditorAuthority()) return (DATA.visualSegments||[]).find(s=>segCoversGi(s,gi))||null;
+  const ch=(DATA.chapters||[])[tn.chapter]||{}; return segOf(tn,ch); }
+// 章ciの大演出件数（バッジ用）。editor=active visualSegments / legacy=vizList。
+function chapterVizCount(ci){
+  if(isEditorAuthority()) return (DATA.visualSegments||[]).filter(s=>s.sourceChapter===ci && s.status!=='orphaned').length;
+  const ch=(DATA.chapters||[])[ci]||{}; return chSegs(ch).length; }
 // セグメント種別ごとの変化点候補（keyframeの追加メニュー用）。
 function vizAnchorOptions(seg){ const t=seg.type, cfg=seg.config||{};
   if(t==='panel'){ const items=(cfg.panel&&cfg.panel.items)||[]; const o=items.map((it,k)=>({type:'panel_item',value:k,label:'項目'+(k+1)})); o.push({type:'panel_event',label:'縮小'}); return o; }
