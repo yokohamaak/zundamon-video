@@ -1666,7 +1666,7 @@ function renderLegacy(){  // 旧アコーディオン版（未使用・参考保
         row.appendChild(sp); row.appendChild(ta); row.appendChild(pick); row.appendChild(acts);
         dl.appendChild(row);
         // 中身エディタ：この発言の✎中身が開いていればインライン展開。
-        if(vizOpenGi===gi && vizOf(ch)){ const ce=document.createElement('div'); ce.className='vizcontent';
+        if(vizOpenGi===gi && vizOf(ch) && !isEditorAuthority()){ const ce=document.createElement('div'); ce.className='vizcontent';
           vizContent(ce, ch, ci); dl.appendChild(ce); }
       });
       body.appendChild(dl);
@@ -1782,7 +1782,7 @@ function render(){
   // 章＝セクション。選択行のある章を active 表示。intro→ネタ→outro 連続。
   const selCi=(DATA.script[selGi]||{}).chapter;
   (DATA.chapters||[]).forEach((ch,ci)=>{
-    migrateViz(ch,ci);   // 旧単一形式→vizListへ（初回のみ）
+    if(!isEditorAuthority()) migrateViz(ch,ci);   // 旧単一形式→vizListへ（legacyのみ・editorはvisualSegmentsが正）
     const sec=document.createElement('div'); sec.className='chsec'+(ci===selCi?' active':'')+(collapsed.has(ci)?' collapsed':''); sec.dataset.ci=ci;
     sec.appendChild(chapterDivider(ch,ci));
     // 行は常に生成し、折りたたみはCSSで隠す（全再描画せずスクロール位置を保つため）。
@@ -2588,7 +2588,11 @@ function renderRight(){
   wb.onclick=()=>setWide(!rwide); wbar.appendChild(wb); r.appendChild(wbar);
   const tn=DATA.script[selGi]; if(!tn){ r.appendChild(document.createTextNode('左で行を選択してください')); return; }
   const ci=tn.chapter; const ch=(DATA.chapters||[])[ci]||{};
-  const inViz=!!tn.vizSeg; const nseg=chSegs(ch).length;
+  // editor時は大演出の正＝visualSegments。タブ数/inViz もそちらから（legacy vizListは参照しない）。
+  const editorAuth=isEditorAuthority();
+  const chSegsEditor=editorAuth?(DATA.visualSegments||[]).filter(s=>s.sourceChapter===ci && s.status!=='orphaned'):null;
+  const inViz=editorAuth?(DATA.visualSegments||[]).some(s=>segCoversGi(s,selGi)):!!tn.vizSeg;
+  const nseg=editorAuth?chSegsEditor.length:chSegs(ch).length;
   const tabs=rightTabs((DATA||{}).editorModelAuthority, inViz, nseg, (DATA.assets||[]).length);
   let cur=rtab; if(!cur||!tabs.some(t=>t[0]===cur)) cur=rightDefaultTab((DATA||{}).editorModelAuthority, inViz);
   const tb=document.createElement('div'); tb.className='rtabs';

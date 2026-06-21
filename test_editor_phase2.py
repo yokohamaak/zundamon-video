@@ -977,6 +977,43 @@ def test_meta_orphaned_segment_not_activated():
     ok("orphanedはvizList復元されない＝突然有効化しない", not vc[0].get("vizList"))
 
 
+def test_editor_meta_ignores_stale_legacy_vizlist():
+    # editor権威: 大演出の正は visualSegments。chapters[].vizList に古い別物が残っていても
+    # meta は visualSegments で解決し、stale vizList は無視される（旧編集経路の影響を断つ）。
+    import copy as _c
+    d = _data(3); d["editorModelAuthority"] = "editor"
+    d["chapters"][0]["vizList"] = [{"id": "old", "type": "quiz", "quiz": {"question": "STALE"}}]
+    d["script"][0]["vizSeg"] = "old"  # 旧フラグも残存させる
+    d["visualSegments"] = [{"id": "visual-00-s1", "type": "quiz", "status": "active",
+                            "startTurnId": "turn-0001", "endTurnId": "turn-0002", "sourceChapter": 0,
+                            "config": {"quiz": {"question": "NEW"}}, "keyframes": []}]
+    turns = _timed(d["script"])
+    vt, vc = _c.deepcopy(turns), _c.deepcopy(d["chapters"])
+    em.reconstruct_legacy_viz(vt, vc, d["visualSegments"])
+    topics = ms.build_chapter_topics(story_script.assign_sections_to_turns(turns), vt, vc, {}, {}, {},
+                                     turn_image=em.resolve_turn_images(turns, d["assets"], d["imageCues"]))
+    quizzes = [t["quiz"]["question"] for t in topics if t.get("quiz")]
+    ok("editor metaはvisualSegmentsで解決(stale vizList無視)",
+       "NEW" in quizzes and "STALE" not in quizzes)
+
+
+def test_editor_meta_keyframe_pos0_timing():
+    # pos:0 の reveal keyframe → reconstruct で vizPoint(pos:0) → revealAt はそのセリフ先頭(start)。
+    import copy as _c
+    d = _data(3); d["editorModelAuthority"] = "editor"
+    d["visualSegments"] = [{"id": "visual-00-s1", "type": "quiz", "status": "active",
+                            "startTurnId": "turn-0001", "endTurnId": "turn-0003", "sourceChapter": 0,
+                            "config": {"quiz": {"question": "q", "answer": "a"}},
+                            "keyframes": [{"id": "kf-001", "turnId": "turn-0002", "type": "reveal", "pos": 0}]}]
+    turns = _timed(d["script"], dur=2.0)   # turn-0002 は start=2.0
+    vt, vc = _c.deepcopy(turns), _c.deepcopy(d["chapters"])
+    em.reconstruct_legacy_viz(vt, vc, d["visualSegments"])
+    topics = ms.build_chapter_topics(story_script.assign_sections_to_turns(turns), vt, vc, {}, {}, {},
+                                     turn_image=em.resolve_turn_images(turns, d["assets"], d["imageCues"]))
+    quiz = next((t["quiz"] for t in topics if t.get("quiz")), None)
+    ok("pos:0 keyframe→revealAtがそのセリフ先頭(2.0)", quiz and abs(quiz.get("revealAt", -1) - 2.0) < 1e-6)
+
+
 def test_real_data_build_meta_viz_equivalence():
     import copy as _c
     sp, rp, mp = ("docs/story/script.json", "docs/story/review.json", "docs/story/meta.json")
@@ -1181,6 +1218,8 @@ if __name__ == "__main__":
     test_delete_segment_item_reindexes_keyframes()
     test_delete_segment_item_callouts()
     test_viz_op_endpoint_roundtrip()
+    test_editor_meta_ignores_stale_legacy_vizlist()
+    test_editor_meta_keyframe_pos0_timing()
     test_real_data_build_meta_viz_equivalence()
     test_switch_to_editor_atomic()
     test_switch_then_legacy_change_ignored()
