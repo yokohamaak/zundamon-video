@@ -374,6 +374,43 @@ def test_meta_bigeffect_suppresses_background():
     ok("大演出区間にvizFrom/vizUntilが付く（背後画像をゲート）", len(viz) >= 1)
 
 
+def test_meta_bigeffect_keeps_image_data():
+    # replace/layout大演出(compare)区間でも背景画像(cueデータ)は topic に残り、vizでゲートされる。
+    # ＝「描画時だけ抑制・cueデータ自体は保持」(増分3)。
+    d = _data(3)
+    a = em.add_asset(d, file="0.jpg")
+    em.add_cue(d, "turn-0001", a["id"])
+    d["script"][1]["vizSeg"] = "s1"
+    d["chapters"][0]["vizList"] = [{"id": "s1", "type": "compare",
+                                    "compare": {"left": {"label": "L"}, "right": {"label": "R"}}}]
+    turns = _timed(d["script"])
+    ti = em.resolve_turn_images(turns, d["assets"], d["imageCues"])
+    segs = story_script.assign_sections_to_turns(turns)
+    topics = ms.build_chapter_topics(segs, turns, d["chapters"], {}, {}, {}, turn_image=ti)
+    gated = [t for t in topics if t.get("vizFrom") is not None]
+    ok("大演出区間のtopicは背景画像を保持＋vizゲート", gated and gated[0].get("image") == "0.jpg")
+    ok("imageCueは大演出区間でも削除されない", len(d["imageCues"]) == 1)
+
+
+def test_chapter_crossing_cue():
+    # ch0先頭にcueのみ・ch1にcue無し＝ch0画像がch1へ継続（章跨ぎcueをeditorは許可）。
+    script = [{"speaker": "A", "text": "a", "chapter": 0, "id": "turn-0001"},
+              {"speaker": "A", "text": "b", "chapter": 0, "id": "turn-0002"},
+              {"speaker": "A", "text": "c", "chapter": 1, "id": "turn-0003"},
+              {"speaker": "A", "text": "d", "chapter": 1, "id": "turn-0004"}]
+    d = {"script": script, "chapters": [{"image_cuts": []}, {"image_cuts": []}],
+         "assets": [{"id": "a0", "file": "0.jpg", "kind": "ambient"}],
+         "imageCues": [{"id": "image-cue-0001", "turnId": "turn-0001", "assetId": "a0"}],
+         "editorModelAuthority": "editor"}
+    plan = em.resolve_turn_images(d["script"], d["assets"], d["imageCues"])
+    ok("章跨ぎでch1も同じ画像が継続", all(p and p.get("image") == "0.jpg" for p in plan))
+    turns = _timed(d["script"])
+    topics = ms.build_chapter_topics(story_script.assign_sections_to_turns(turns), turns,
+                                     d["chapters"], {}, {}, {},
+                                     turn_image=em.resolve_turn_images(turns, d["assets"], d["imageCues"]))
+    ok("両章のtopicが同じ画像を持つ", {t.get("image") for t in topics} == {"0.jpg"})
+
+
 # ===== authority 切替 =====
 
 def test_switch_to_editor_atomic():
@@ -760,6 +797,8 @@ if __name__ == "__main__":
     test_resolve_empty()
     test_meta_cue_boundary_switches_image()
     test_meta_bigeffect_suppresses_background()
+    test_meta_bigeffect_keeps_image_data()
+    test_chapter_crossing_cue()
     test_switch_to_editor_atomic()
     test_switch_then_legacy_change_ignored()
     test_legacy_authority_uses_legacy_meta_path()

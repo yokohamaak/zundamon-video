@@ -338,6 +338,8 @@
   .tl-bar.image { background:linear-gradient(90deg,#1f5fa6,#3a86d6); }
   .tl-bar.image.hide { background:linear-gradient(90deg,#454b54,#6b7280); }
   .tl-bar.image.sel { outline:2px solid #cfe0ff; }
+  /* replace/layout大演出に隠れる区間は薄く＝「設定済みだが演出で隠れる」ことを示す(plan 5.2) */
+  .tl-bar.image.under-viz { opacity:.45; }
   .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
   .tl-row.small-effects { min-height:52px; }
   .tl-small-group { position:relative; height:46px; margin:3px; border-radius:5px; cursor:pointer; }
@@ -2096,11 +2098,14 @@ function renderTimeline(){
   if(isEditorAuthority()){
     const [imgRow,imgTrack]=timelineRow('画像');
     const assetBy={}; (DATA.assets||[]).forEach(a=>assetBy[a.id]=a);
+    const suppress=vizSuppressRanges();
     const spans=cueSpans();
     spans.forEach(sp=>{ const c=sp.cue, a=assetBy[c.assetId];
-      const b=document.createElement('div'); b.className='tl-bar image'+(c.hide?' hide':'')+(turnGi(c.turnId)===selGi?' sel':'');
+      const under=spanUnderViz(sp.s,sp.e,suppress);
+      const b=document.createElement('div'); b.className='tl-bar image'+(c.hide?' hide':'')+(under?' under-viz':'')+(turnGi(c.turnId)===selGi?' sel':'');
       b.style.gridColumn=(sp.s+1)+' / '+(sp.e+2);
       const label=document.createElement('span'); label.textContent=c.hide?'画像なし':(a&&a.file?(a.queryJa||a.query||'画像'):'(未取得)'); b.appendChild(label);
+      if(under) b.title='この区間は大演出(全面/パネル)で通常画像が隠れます（設定は保持）';
       const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始セリフをドラッグ';
       const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了セリフをドラッグ';
       hs.onpointerdown=e=>startCueResize(e,c.id,'s',b); he.onpointerdown=e=>startCueResize(e,c.id,'e',b);
@@ -2743,6 +2748,14 @@ function cueSpans(){
 }
 // 終了端を「次cue直前/末尾」まで伸ばしたか＝継続(endTurnIdクリア)にすべきか（純関数）。
 function endDragIsContinue(target,nextStart,n){ return target>=nextStart-1 || target>=n-1; }
+// 通常画像を隠す大演出(replace=compare / layout=panel)のセリフ区間[s,e](全章横断・グローバルgi)。
+// overlay(quiz/stat/callouts)は通常画像と併用＝隠さないので含めない（plan 4 描画優先順位）。
+function vizSuppressRanges(){
+  const out=[]; (DATA.chapters||[]).forEach((ch,ci)=>{ chSegs(ch).forEach(seg=>{
+    if(seg.type==='panel'||seg.type==='compare'){ const r=segRange(ci,seg.id); if(r.s>=0) out.push([r.s,r.e]); } }); });
+  return out;
+}
+function spanUnderViz(s,e,ranges){ return (ranges||[]).some(([a,b])=> e>=a && s<=b); }
 function editorFramePrev(entry){
   const box=document.createElement('div'); box.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0c0f15;border:1px solid var(--line)';
   const msg=t=>{ box.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px">'+t+'</div>'; return box; };

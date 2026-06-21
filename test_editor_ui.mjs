@@ -21,7 +21,7 @@ function extractFn(name) {
 
 const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate', 'hideToggleOp',
   '_turnIndexMap', 'resolveCueJS', 'computeImagePlan', 'createAsyncQueue',
-  'cueSpans', 'endDragIsContinue'];
+  'cueSpans', 'endDragIsContinue', 'spanUnderViz'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 
@@ -114,6 +114,13 @@ t('endDragIsContinue: 次cue直前/末尾まで伸ばしたら継続', () => {
   assert.equal(endDragIsContinue(3, 5, 10), false);
   assert.equal(endDragIsContinue(4, 5, 10), true);   // nextStart-1
   assert.equal(endDragIsContinue(9, 5, 10), true);   // 末尾 n-1
+});
+t('spanUnderViz: 大演出区間との重なり判定', () => {
+  const rg = [[2, 4], [7, 8]];
+  assert.equal(spanUnderViz(0, 1, rg), false);  // 手前
+  assert.equal(spanUnderViz(4, 6, rg), true);   // 端で重なる
+  assert.equal(spanUnderViz(5, 6, rg), false);  // 隙間
+  assert.equal(spanUnderViz(0, 9, rg), true);   // 全体を覆う
 });
 
 // --- crop枠の再描画タイミング（保存済みクロップが消えないこと） ---
