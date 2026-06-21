@@ -734,6 +734,112 @@ def _segdata(n=5):
     d = _data(n); d["editorModelAuthority"] = "editor"; d["visualSegments"] = []; return d
 
 
+def _multichapter(n_per=3):
+    script = []
+    for ch in range(2):
+        for i in range(n_per):
+            script.append({"speaker": "A", "text": f"c{ch}t{i}", "chapter": ch,
+                           "id": f"turn-{ch * n_per + i + 1:04d}"})
+    return {"script": script, "chapters": [{"image_cuts": []}, {"image_cuts": []}],
+            "assets": [], "imageCues": [], "visualSegments": [], "editorModelAuthority": "editor"}
+
+
+def test_segment_rejects_cross_chapter():
+    d = _multichapter()  # ch0=turn-0001..3, ch1=turn-0004..6
+    try:
+        em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0003", end_turn_id="turn-0004")
+        ok("章跨ぎ範囲を拒否(add)", False)
+    except ValueError:
+        ok("章跨ぎ範囲を拒否(add)", True)
+    s = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0001", end_turn_id="turn-0002")
+    try:
+        em.set_segment_range(d, s["id"], end_turn_id="turn-0004")
+        ok("章跨ぎ範囲を拒否(set_range)", False)
+    except ValueError:
+        ok("章跨ぎ範囲を拒否(set_range)", True)
+
+
+def test_segment_rejects_overlap():
+    d = _multichapter()
+    em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0001", end_turn_id="turn-0002")
+    try:
+        em.add_visual_segment(d, seg_type="panel", start_turn_id="turn-0002", end_turn_id="turn-0003")
+        ok("active範囲重複を拒否(add)", False)
+    except ValueError:
+        ok("active範囲重複を拒否(add)", True)
+    s2 = em.add_visual_segment(d, seg_type="panel", start_turn_id="turn-0003", end_turn_id="turn-0003")
+    ok("隣接(非重複)は許可", s2 is not None)
+    try:
+        em.set_segment_range(d, s2["id"], start_turn_id="turn-0002")  # turn-0002は既存と重複
+        ok("active範囲重複を拒否(set_range)", False)
+    except ValueError:
+        ok("active範囲重複を拒否(set_range)", True)
+
+
+def test_segment_sourcechapter_set_and_maintained():
+    d = _multichapter()
+    s = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0004", end_turn_id="turn-0005")  # ch1
+    ok("addでsourceChapter=開始章", s["sourceChapter"] == 1)
+    em.set_segment_range(d, s["id"], start_turn_id="turn-0005", end_turn_id="turn-0006")
+    ok("set_rangeでsourceChapter維持", em.find_segment(d, s["id"])["sourceChapter"] == 1)
+
+
+def test_keyframe_dup_rejected():
+    d = _segdata(5)
+    s = em.add_visual_segment(d, seg_type="panel", start_turn_id="turn-0001", end_turn_id="turn-0004",
+                              config={})
+    em.add_keyframe(d, s["id"], turn_id="turn-0001", kf_type="panel_item", value=0)
+    try:
+        em.add_keyframe(d, s["id"], turn_id="turn-0002", kf_type="panel_item", value=0)
+        ok("keyframe重複(type,value)を拒否", False)
+    except ValueError:
+        ok("keyframe重複(type,value)を拒否", True)
+    ok("別valueは許可", em.add_keyframe(d, s["id"], turn_id="turn-0002", kf_type="panel_item", value=1))
+    em.add_keyframe(d, s["id"], turn_id="turn-0001", kf_type="reveal")
+    try:
+        em.add_keyframe(d, s["id"], turn_id="turn-0003", kf_type="reveal")
+        ok("reveal重複(value無し)を拒否", False)
+    except ValueError:
+        ok("reveal重複(value無し)を拒否", True)
+
+
+def test_normalize_resolves_overlap_and_kf_dup():
+    d = _segdata(5)
+    # 外部混入: 範囲が重なる active 2つ＋同一(type,value)keyframe 2つ
+    d["visualSegments"] = [
+        {"id": "visual-00-a", "type": "quiz", "status": "active", "startTurnId": "turn-0001",
+         "endTurnId": "turn-0003", "sourceChapter": 0, "config": {},
+         "keyframes": [{"id": "kf-001", "turnId": "turn-0003", "type": "reveal"},
+                       {"id": "kf-002", "turnId": "turn-0002", "type": "reveal"}]},
+        {"id": "visual-00-b", "type": "panel", "status": "active", "startTurnId": "turn-0002",
+         "endTurnId": "turn-0004", "sourceChapter": 0, "config": {}, "keyframes": []}]
+    em.normalize_visual_segments(d)
+    a = em.find_segment(d, "visual-00-a"); b = em.find_segment(d, "visual-00-b")
+    ok("重複は開始が早い方を残し後続をorphaned", a["status"] == "active" and b["status"] == "orphaned")
+    reveals = [k for k in a["keyframes"] if k["type"] == "reveal"]
+    ok("同一(type,value)keyframeを1つへ・最小turn index採用",
+       len(reveals) == 1 and reveals[0]["turnId"] == "turn-0002")
+    # 冪等
+    snap = json.dumps(d["visualSegments"], sort_keys=True)
+    em.normalize_visual_segments(d)
+    ok("normalize_visual_segments冪等", json.dumps(d["visualSegments"], sort_keys=True) == snap)
+
+
+def test_chapter2_segment_renders_in_meta():
+    import copy as _c
+    d = _multichapter()
+    s = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0004", end_turn_id="turn-0005",
+                              config={"quiz": {"question": "q2"}})
+    turns = _timed(d["script"])
+    vt, vc = _c.deepcopy(turns), _c.deepcopy(d["chapters"])
+    em.reconstruct_legacy_viz(vt, vc, d["visualSegments"])
+    ok("第2章のvizListへ復元", any(e["id"] == em._seg_local_id(s["id"]) for e in vc[1].get("vizList", [])))
+    topics = ms.build_chapter_topics(story_script.assign_sections_to_turns(turns), vt, vc, {}, {}, {},
+                                     turn_image=em.resolve_turn_images(turns, d["assets"], d["imageCues"]))
+    ch1_quiz = [t for t in topics if t.get("chapter") == 1 and t.get("quiz")]
+    ok("第2章の新規segmentがmeta描画される", ch1_quiz and ch1_quiz[0]["quiz"].get("question") == "q2")
+
+
 def test_add_segment_range_delete():
     d = _segdata(5)
     s = em.add_visual_segment(d, seg_type="quiz", start_turn_id="turn-0002",
@@ -943,6 +1049,12 @@ if __name__ == "__main__":
     test_reconcile_segments_turn_delete()
     test_reconstruct_legacy_viz_roundtrip()
     test_meta_orphaned_segment_not_activated()
+    test_segment_rejects_cross_chapter()
+    test_segment_rejects_overlap()
+    test_segment_sourcechapter_set_and_maintained()
+    test_keyframe_dup_rejected()
+    test_normalize_resolves_overlap_and_kf_dup()
+    test_chapter2_segment_renders_in_meta()
     test_real_data_build_meta_viz_equivalence()
     test_switch_to_editor_atomic()
     test_switch_then_legacy_change_ignored()

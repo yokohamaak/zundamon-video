@@ -923,27 +923,67 @@ def _seg_bounds(idx, seg):
 
 # ---- visualSegments 共通操作 ----
 
+def _range_chapter(data, s_idx, e_idx):
+    """[s,e] 内の全 turn が同一章ならその章番号、章を跨ぐなら None（章跨ぎ禁止判定）。"""
+    script = data.get("script") or []
+    ch = script[s_idx].get("chapter", 0)
+    for i in range(s_idx, e_idx + 1):
+        if script[i].get("chapter", 0) != ch:
+            return None
+    return ch
+
+
+def _active_overlap(data, s_idx, e_idx, ignore_id):
+    """[s,e] が他の active セグメント範囲と重なるなら、その segment ID を返す（重複禁止判定）。"""
+    idx = _turn_index(data.get("script") or [])
+    for seg in data.get("visualSegments") or []:
+        if seg.get("id") == ignore_id:
+            continue
+        b = _seg_bounds(idx, seg)
+        if b is not None and e_idx >= b[0] and s_idx <= b[1]:
+            return seg.get("id")
+    return None
+
+
+def _kf_dupe_key(kf_type, value):
+    """keyframe の同一性キー (type, value)。値なし種別は value=None。"""
+    return (kf_type, value if (isinstance(value, int) and not isinstance(value, bool)) else None)
+
+
 def add_visual_segment(data, *, seg_type, start_turn_id, end_turn_id=None, config=None, mode=None):
-    """大演出セグメントを追加。turnId は実在必須、開始<=終了。ID は最大連番+1で再利用しない。"""
+    """大演出セグメントを追加。turnId は実在必須、開始<=終了、章跨ぎ・active重複は拒否。
+
+    sourceChapter は開始セリフの章で確定（章をまたぐ範囲は不可＝単一章）。ID は最大連番+1で再利用しない。
+    """
     idx = _turn_index(data.get("script") or [])
     if start_turn_id not in idx:
         raise ValueError(f"startTurnId {start_turn_id} がスクリプトに存在しません")
     end_turn_id = end_turn_id or start_turn_id
     if end_turn_id not in idx:
         raise ValueError(f"endTurnId {end_turn_id} がスクリプトに存在しません")
-    if idx[end_turn_id] < idx[start_turn_id]:
+    si, ei = idx[start_turn_id], idx[end_turn_id]
+    if ei < si:
         raise ValueError("終了が開始より前です（範囲逆転）")
+    ch = _range_chapter(data, si, ei)
+    if ch is None:
+        raise ValueError("大演出の範囲が章を跨いでいます（単一章に収めてください）")
+    ov = _active_overlap(data, si, ei, None)
+    if ov is not None:
+        raise ValueError(f"他の大演出({ov})と範囲が重複します")
     segs = data.setdefault("visualSegments", [])
     sid = _issue_seq_id(data, "visualSegments", "visual-", "visualSegment")
     seg = {"id": sid, "type": seg_type, "mode": mode or _TYPE_TO_MODE.get(seg_type, "replace"),
            "status": "active", "startTurnId": start_turn_id, "endTurnId": end_turn_id,
-           "config": dict(config or {}), "keyframes": []}
+           "config": dict(config or {}), "keyframes": [], "sourceChapter": ch}
     segs.append(seg)
     return seg
 
 
 def set_segment_range(data, seg_id, *, start_turn_id=None, end_turn_id=None):
-    """セグメントの開始/終了セリフを変更（タイムライン端ドラッグ）。検証通過後のみ適用（部分適用しない）。"""
+    """セグメントの開始/終了セリフを変更。章跨ぎ・active重複・範囲逆転は拒否。検証通過後のみ適用。
+
+    sourceChapter は新しい開始セリフの章へ更新（単一章に収まる前提）。
+    """
     seg = find_segment(data, seg_id)
     if seg is None:
         raise ValueError(f"segment {seg_id} がありません")
@@ -954,14 +994,21 @@ def set_segment_range(data, seg_id, *, start_turn_id=None, end_turn_id=None):
         raise ValueError(f"startTurnId {ns} がスクリプトに存在しません")
     if ne not in idx:
         raise ValueError(f"endTurnId {ne} がスクリプトに存在しません")
-    if idx[ne] < idx[ns]:
+    si, ei = idx[ns], idx[ne]
+    if ei < si:
         raise ValueError("終了が開始より前です（範囲逆転）")
+    ch = _range_chapter(data, si, ei)
+    if ch is None:
+        raise ValueError("大演出の範囲が章を跨いでいます（単一章に収めてください）")
+    ov = _active_overlap(data, si, ei, seg_id)
+    if ov is not None:
+        raise ValueError(f"他の大演出({ov})と範囲が重複します")
     seg["startTurnId"], seg["endTurnId"] = ns, ne
     seg["status"] = "active"
+    seg["sourceChapter"] = ch
     # 範囲外へ出た keyframe は捨てる（端を縮めたら外側の変化点は無効）。
-    lo, hi = idx[ns], idx[ne]
     seg["keyframes"] = [k for k in seg.get("keyframes") or []
-                        if idx.get(k.get("turnId")) is not None and lo <= idx[k["turnId"]] <= hi]
+                        if idx.get(k.get("turnId")) is not None and si <= idx[k["turnId"]] <= ei]
     return seg
 
 
@@ -1003,6 +1050,9 @@ def add_keyframe(data, seg_id, *, turn_id, kf_type, value=None, pos=None):
         raise ValueError("セグメントの範囲が無効です")
     if turn_id not in idx or not (b[0] <= idx[turn_id] <= b[1]):
         raise ValueError("turnId がセグメント範囲外です")
+    dk = _kf_dupe_key(kf_type, value)
+    if any(_kf_dupe_key(k.get("type"), k.get("value")) == dk for k in seg.get("keyframes") or []):
+        raise ValueError(f"同じ変化点({kf_type},{value}) が既にあります")
     kf = {"id": _kf_next_id(seg), "turnId": turn_id, "type": kf_type}
     if value is not None:
         kf["value"] = value
@@ -1045,28 +1095,54 @@ def delete_keyframe(data, seg_id, kf_id):
 
 # ---- normalize / reconcile ----
 
-def normalize_visual_segments(data):
-    """visualSegments を正規化（in-place）。冪等。
+def _orphan_segment(seg):
+    seg["status"] = "orphaned"
+    seg["startTurnId"] = None
+    seg["endTurnId"] = None
+    seg["keyframes"] = []
 
-    - 範囲解決不能（turnId 欠落・逆転）→ status="orphaned"・アンカー None（突然有効化しない）。
-    - keyframe: turnId 欠落 or 範囲外は除去。type/value/pos:0 は保持。
-    - 開始セリフ順にソート（active のみ。orphaned は末尾）。
+
+def normalize_visual_segments(data):
+    """visualSegments を正規化（in-place）。冪等・決定的。
+
+    - 範囲解決不能（turnId 欠落・逆転）／章跨ぎ → orphaned・アンカー None（突然有効化しない）。
+    - keyframe: turnId 欠落 or 範囲外は除去。同一(type,value)は最小turn indexの1つだけ残す（決定的）。
+      type/value/pos:0 は保持。
+    - active 同士の範囲重複は「開始が早い→ID昇順」を優先し、重なる後続を orphaned（決定的に競合解消）。
+    - 開始セリフ順にソート（orphaned は末尾）。
     """
     idx = _turn_index(data.get("script") or [])
-    for seg in data.get("visualSegments") or []:
+    segs = data.get("visualSegments") or []
+    # 1) 範囲・章の妥当性 → active/orphaned。keyframe を範囲内へトリム＋(type,value)重複除去。
+    for seg in segs:
         s, e = idx.get(seg.get("startTurnId")), idx.get(seg.get("endTurnId"))
-        if seg.get("status") == "orphaned" or s is None or e is None or e < s:
-            seg["status"] = "orphaned"
-            seg["startTurnId"] = None
-            seg["endTurnId"] = None
-            seg["keyframes"] = []
+        if seg.get("status") == "orphaned" or s is None or e is None or e < s \
+                or _range_chapter(data, s, e) is None:
+            _orphan_segment(seg)
             continue
         seg["status"] = "active"
-        seg["keyframes"] = [k for k in seg.get("keyframes") or []
-                            if idx.get(k.get("turnId")) is not None and s <= idx[k["turnId"]] <= e]
-    data["visualSegments"] = sorted(
-        data["visualSegments"],
-        key=lambda sg: idx.get(sg.get("startTurnId"), 1 << 30))
+        seg["sourceChapter"] = _range_chapter(data, s, e)
+        kfs = sorted((k for k in seg.get("keyframes") or []
+                      if idx.get(k.get("turnId")) is not None and s <= idx[k["turnId"]] <= e),
+                     key=lambda k: idx[k["turnId"]])
+        seen, out = set(), []
+        for k in kfs:
+            dk = _kf_dupe_key(k.get("type"), k.get("value"))
+            if dk in seen:
+                continue
+            seen.add(dk)
+            out.append(k)
+        seg["keyframes"] = out
+    # 2) active 重複の決定的解消（開始が早い→ID昇順を残し、重なる後続を orphaned）。
+    accepted = []
+    for seg in sorted([s for s in segs if s.get("status") == "active"],
+                      key=lambda sg: (idx[sg["startTurnId"]], str(sg.get("id") or ""))):
+        b = (idx[seg["startTurnId"]], idx[seg["endTurnId"]])
+        if any(b[0] <= ab[1] and ab[0] <= b[1] for ab in accepted):
+            _orphan_segment(seg)
+        else:
+            accepted.append(b)
+    data["visualSegments"] = sorted(segs, key=lambda sg: idx.get(sg.get("startTurnId"), 1 << 30))
     return data
 
 
