@@ -1638,7 +1638,7 @@ function followPlaybackTurn(gi){
   if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
   if(gi===selGi) return;
   selGi=gi; selectedTextRange=null; const seg=vizSegForTurn(gi); if(seg) selSeg=seg.id;
-  markSel(); renderTimeline();
+  markSel(); renderRight(); renderTimeline();   // 右ペインも現在行へ追従
   const row=document.querySelector('.line[data-gi="'+gi+'"]'); if(row) row.scrollIntoView({block:'nearest'});
   scrollTimelineToTurn(gi);   // 再生に合わせてタイムラインを進める
 }
