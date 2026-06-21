@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from "react";
 import {createRoot, type Root} from "react-dom/client";
-import {Player, type PlayerRef} from "@remotion/player";
+import {Player, type PlayerRef, type CallbackListener} from "@remotion/player";
 import {DialogueVideo} from "./DialogueVideo";
 import type {Meta} from "./types";
 
@@ -48,6 +48,7 @@ async function loadMeta(): Promise<Meta> {
 
 const ReviewPlayer: React.FC<{meta: Meta}> = ({meta: initialMeta}) => {
   const ref = useRef<PlayerRef>(null);
+  const lastTurnRef = useRef(-1);
   const [meta, setMeta] = useState(initialMeta);
   const [ready, setReady] = useState(false);
   const duration = Math.max(
@@ -59,7 +60,24 @@ const ReviewPlayer: React.FC<{meta: Meta}> = ({meta: initialMeta}) => {
     playerRef = ref.current;
     setMetaState = setMeta;
     setReady(true);
+    // 逆連携: 再生/シークの現在フレーム→セリフindexを逆算し editor 側へ通知（追従ハイライト用）。
+    const player = ref.current;
+    const onFrame: CallbackListener<"frameupdate"> = (e) => {
+      const script = loadedMeta?.script;
+      if (!script || !script.length) return;
+      const t = (e.detail.frame ?? 0) / FPS;
+      let turnIndex = 0;
+      for (let i = script.length - 1; i >= 0; i--) {
+        if ((script[i].start ?? 0) <= t + 1e-6) { turnIndex = i; break; }
+      }
+      if (turnIndex !== lastTurnRef.current) {
+        lastTurnRef.current = turnIndex;
+        window.dispatchEvent(new CustomEvent("remotion-turn-change", {detail: {turnIndex}}));
+      }
+    };
+    player?.addEventListener("frameupdate", onFrame);
     return () => {
+      player?.removeEventListener("frameupdate", onFrame);
       playerRef = null;
       setMetaState = null;
     };

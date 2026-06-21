@@ -1632,6 +1632,17 @@ function renderSimplePreview(viewport,tn,ci){
 function seekRemotionToSelection(){
   if(window.remotionEditorPlayer) window.remotionEditorPlayer.seekToTurn(selGi);
 }
+// 逆連携: プレビュー再生/シークに合わせてセリフ・タイムラインの選択を追従させる。
+// 再シーク(seekRemotionToSelection)は呼ばない＝再生を止めない。同じ行なら無視＝ループ防止。
+function followPlaybackTurn(gi){
+  if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
+  if(gi===selGi) return;
+  selGi=gi; selectedTextRange=null; const seg=vizSegForTurn(gi); if(seg) selSeg=seg.id;
+  markSel(); renderTimeline();
+  const row=document.querySelector('.line[data-gi="'+gi+'"]'); if(row) row.scrollIntoView({block:'nearest'});
+  scrollTimelineToTurn(gi);   // 再生に合わせてタイムラインを進める
+}
+window.addEventListener('remotion-turn-change',e=>{ const gi=e&&e.detail&&e.detail.turnIndex; if(typeof gi==='number') followPlaybackTurn(gi); });
 
 function selectTurn(gi, scrollTl=true){
   if(!DATA||!DATA.script||gi<0||gi>=DATA.script.length) return;
