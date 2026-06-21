@@ -611,11 +611,21 @@ def test_cue_op_endpoint_roundtrip():
         # place at t0 (再配置・add-or-replace)
         rpl = rs.do_cue_op({"data": data, "op": "place", "turnId": t0, "assetId": a0})
         place_ok = rpl["ok"] and any(c["turnId"] == t0 for c in rpl["data"]["imageCues"])
+        # move: t0のcueを「cueの無い空きセリフ」へ移動（タイムライン左端ドラッグ相当）
+        ct0 = next(c for c in rpl["data"]["imageCues"] if c["turnId"] == t0)
+        occupied0 = {c["turnId"] for c in rpl["data"]["imageCues"]}
+        free = next(t["id"] for t in rpl["data"]["script"] if t["id"] not in occupied0)
+        rmv = rs.do_cue_op({"data": rpl["data"], "op": "move", "cueId": ct0["id"], "turnId": free})
+        move_ok = rmv["ok"] and any(c["id"] == ct0["id"] and c["turnId"] == free for c in rmv["data"]["imageCues"])
+        # move先に別cueがあれば衝突拒否
+        other = next(c["turnId"] for c in rmv["data"]["imageCues"] if c["id"] != ct0["id"])
+        rcol = rs.do_cue_op({"data": rmv["data"], "op": "move", "cueId": ct0["id"], "turnId": other})
+        move_collision_rejected = rcol["ok"] is False
         # 不正assetId→拒否
-        rbad2 = rs.do_cue_op({"data": rpl["data"], "op": "place", "turnId": t1, "assetId": "asset-zzz"})
+        rbad2 = rs.do_cue_op({"data": rmv["data"], "op": "place", "turnId": t0, "assetId": "asset-zzz"})
         bad_asset_rejected = rbad2["ok"] is False
         # legacyデータ拒否
-        leg = {k: v for k, v in rpl["data"].items() if k != "editorModelAuthority"}
+        leg = {k: v for k, v in rmv["data"].items() if k != "editorModelAuthority"}
         leg_rejected = rs.do_cue_op({"data": leg, "op": "delete", "cueId": "x"})["ok"] is False
     finally:
         rs.DIR = old
@@ -624,6 +634,8 @@ def test_cue_op_endpoint_roundtrip():
     ok("cue-op 範囲逆転を拒否", reversed_rejected)
     ok("cue-op delete", del_ok)
     ok("cue-op place(add-or-replace)", place_ok)
+    ok("cue-op move", move_ok)
+    ok("cue-op move衝突を拒否", move_collision_rejected)
     ok("cue-op 不正assetIdを拒否", bad_asset_rejected)
     ok("cue-op legacyデータ拒否", leg_rejected)
 

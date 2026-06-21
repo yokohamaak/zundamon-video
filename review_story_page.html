@@ -335,6 +335,9 @@
             border-radius:5px; color:#fff; font-size:10px; font-weight:700; white-space:nowrap; text-overflow:ellipsis;
             cursor:pointer; position:relative; user-select:none; }
   .tl-bar.main { background:linear-gradient(90deg,#6940a5,#8b5cf6); }
+  .tl-bar.image { background:linear-gradient(90deg,#1f5fa6,#3a86d6); }
+  .tl-bar.image.hide { background:linear-gradient(90deg,#454b54,#6b7280); }
+  .tl-bar.image.sel { outline:2px solid #cfe0ff; }
   .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
   .tl-row.small-effects { min-height:52px; }
   .tl-small-group { position:relative; height:46px; margin:3px; border-radius:5px; cursor:pointer; }
@@ -2089,6 +2092,24 @@ function renderTimeline(){
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.textContent=(gi+1)+'. '+(tn.text||'(空)'); c.onclick=()=>selectTurn(gi);
     turnTrack.appendChild(c); }); body.appendChild(turnRow);
+  // 画像トラック（editor権威のみ）：imageCueの区間を表示・端ドラッグで開始/終了セリフを変更。
+  if(isEditorAuthority()){
+    const [imgRow,imgTrack]=timelineRow('画像');
+    const assetBy={}; (DATA.assets||[]).forEach(a=>assetBy[a.id]=a);
+    const spans=cueSpans();
+    spans.forEach(sp=>{ const c=sp.cue, a=assetBy[c.assetId];
+      const b=document.createElement('div'); b.className='tl-bar image'+(c.hide?' hide':'')+(turnGi(c.turnId)===selGi?' sel':'');
+      b.style.gridColumn=(sp.s+1)+' / '+(sp.e+2);
+      const label=document.createElement('span'); label.textContent=c.hide?'画像なし':(a&&a.file?(a.queryJa||a.query||'画像'):'(未取得)'); b.appendChild(label);
+      const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始セリフをドラッグ';
+      const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了セリフをドラッグ';
+      hs.onpointerdown=e=>startCueResize(e,c.id,'s',b); he.onpointerdown=e=>startCueResize(e,c.id,'e',b);
+      b.appendChild(hs); b.appendChild(he);
+      b.onclick=()=>{ rtab='image'; selectTurn(sp.s); };
+      imgTrack.appendChild(b); });
+    if(!spans.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='画像キューなし（画像/素材タブで配置）'; imgTrack.appendChild(e); }
+    body.appendChild(imgRow);
+  }
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
   // 開始位置の昇順に並べてから追加する。Gridの自動配置は開始列が左へ戻ると新しい行を作るため、
   // 章順のまま追加すると重なっていなくても段が増えてしまう（重なった時だけ段が増えるようにする）。
@@ -2191,6 +2212,41 @@ function timelineTurnAtX(clientX,ci){
   return best;
 }
 
+// 全章横断でx座標→最寄りセリフ列（cueは章をまたぐためグローバル版）。
+function timelineTurnAtXAny(clientX){ let best=-1,dist=Infinity;
+  document.querySelectorAll('.tl-turn').forEach(el=>{ const gi=+el.dataset.gi; if(!DATA.script[gi])return;
+    const r=el.getBoundingClientRect();
+    if(clientX>=r.left&&clientX<=r.right){best=gi;dist=0;return;}
+    const d=Math.min(Math.abs(clientX-r.left),Math.abs(clientX-r.right)); if(d<dist){dist=d;best=gi;} });
+  return best; }
+// 画像cueバーの端ドラッグ：開始=move / 終了=range。セリフ境界へスナップ。
+// 衝突・範囲逆転はサーバ(editor_model)が拒否→保存されず元の表示へ戻す（silentで再描画）。
+function startCueResize(ev,cueId,edge,bar){
+  ev.preventDefault(); ev.stopPropagation();
+  const sp=cueSpans().find(x=>x.cue.id===cueId); if(!sp)return;
+  const n=(DATA.script||[]).length; let target=edge==='s'?sp.s:sp.e;
+  const handle=ev.currentTarget; handle.classList.add('dragging'); bar.classList.add('dragging'); document.body.classList.add('tl-resizing');
+  const dragLabel=document.createElement('span'); dragLabel.className='tl-drag-label'; bar.appendChild(dragLabel);
+  const upd=()=>{ const s=edge==='s'?target:sp.s, e=edge==='e'?target:sp.e; bar.style.gridColumn=(s+1)+' / '+(e+2);
+    dragLabel.textContent=(edge==='s'?'開始 ':'終了 ')+(target+1)+'行目'; }; upd();
+  const move=e=>{ const scroll=document.querySelector('.tl-scroll');
+    if(scroll){ const r=scroll.getBoundingClientRect(); if(e.clientX<r.left+36)scroll.scrollLeft-=18; else if(e.clientX>r.right-36)scroll.scrollLeft+=18; }
+    const gi=timelineTurnAtXAny(e.clientX); if(gi<0)return;
+    target=edge==='s'?Math.min(gi,sp.e):Math.max(gi,sp.s); target=Math.max(0,Math.min(n-1,target)); upd(); };
+  const finish=async()=>{
+    document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.removeEventListener('pointercancel',cancel);
+    document.body.classList.remove('tl-resizing');
+    const orig=edge==='s'?sp.s:sp.e;
+    if(target===orig){ renderTimeline(); return; }       // 変化なし＝元の表示へ
+    let r;
+    if(edge==='s') r=await cueOp({op:'move', cueId, turnId:DATA.script[target].id}, {silent:true});
+    else if(endDragIsContinue(target,sp.nextStart,n)) r=await cueOp({op:'range', cueId, clearEnd:true}, {silent:true});
+    else r=await cueOp({op:'range', cueId, endTurnId:DATA.script[target].id}, {silent:true});
+    if(r) render(); else renderTimeline();               // 失敗(衝突/逆転)は保存されず元へ
+  };
+  const cancel=()=>{ target=edge==='s'?sp.s:sp.e; finish(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
+}
 function startTimelineResize(ev,ci,id,edge,bar){
   ev.preventDefault(); ev.stopPropagation();
   const original=segRange(ci,id); if(original.s<0)return;
@@ -2666,13 +2722,27 @@ function createAsyncQueue(){ let tail=Promise.resolve(); return run=>{ const cur
   tail=current.then(()=>undefined,()=>undefined); return current; }; }
 const enqueueCueOp=createAsyncQueue();
 // すべてのcue編集はサーバの editor_model 共通op経由（制約・正規化はPython側を正とする＝JS/Python不一致を作らない）。
-async function cueOp(params){
+async function cueOp(params, opts){
   return enqueueCueOp(async()=>{
     const r=await api('/api/editor/cue-op', Object.assign({data:DATA}, params));
-    if(!r||!r.ok){ alert('画像操作に失敗しました: '+((r&&r.message)||'不明')); return null; }
+    if(!r||!r.ok){ if(!(opts&&opts.silent)) alert('画像操作に失敗しました: '+((r&&r.message)||'不明')); return null; }
     DATA=r.data; markVisualStale(); return r;
   });
 }
+// cue区間（imageCueの開始〜終了）。終了未指定は次cue直前まで継続（computeImagePlanと同規則）。
+function cueSpans(){
+  const idx=_turnIndexMap(); const cues=(DATA&&DATA.imageCues)||[];
+  let arr=[]; cues.forEach(c=>{ const s=idx[c.turnId]; if(s==null)return;
+    arr.push({c,s,e0:(c.endTurnId!=null&&idx[c.endTurnId]!=null)?idx[c.endTurnId]:null}); });
+  arr.sort((a,b)=>a.s-b.s);
+  const seen=new Set(),uniq=[]; arr.forEach(x=>{ if(seen.has(x.s))return; seen.add(x.s); uniq.push(x); });
+  const n=((DATA&&DATA.script)||[]).length;
+  return uniq.map((x,k)=>{ const nextStart=k+1<uniq.length?uniq[k+1].s:n;
+    const e=(x.e0!=null&&x.e0>=x.s)?Math.min(x.e0,nextStart-1):nextStart-1;
+    return {cue:x.c, s:x.s, e:Math.min(e,n-1), nextStart}; });
+}
+// 終了端を「次cue直前/末尾」まで伸ばしたか＝継続(endTurnIdクリア)にすべきか（純関数）。
+function endDragIsContinue(target,nextStart,n){ return target>=nextStart-1 || target>=n-1; }
 function editorFramePrev(entry){
   const box=document.createElement('div'); box.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0c0f15;border:1px solid var(--line)';
   const msg=t=>{ box.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:12px">'+t+'</div>'; return box; };

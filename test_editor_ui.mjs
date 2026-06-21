@@ -20,7 +20,8 @@ function extractFn(name) {
 }
 
 const names = ['rightTabs', 'rightDefaultTab', 'imageTabKind', 'runMigrate', 'hideToggleOp',
-  '_turnIndexMap', 'resolveCueJS', 'computeImagePlan', 'createAsyncQueue'];
+  '_turnIndexMap', 'resolveCueJS', 'computeImagePlan', 'createAsyncQueue',
+  'cueSpans', 'endDragIsContinue'];
 const src = names.map(extractFn).join('\n\n');
 new Function('g', src + '\nObject.assign(g,{' + names.join(',') + '});')(globalThis);
 
@@ -94,6 +95,25 @@ t('crop drag は終了をwindowで捕捉しlistenerを解除する', () => {
   assert.equal((html.match(/bindCropDrag\(crop,imgEl,rectEl,\(c\)=>/g)||[]).length,2,'legacy/editorの両方で共通処理');
   assert.ok(/const d=drag,rr=d\.r,x=d\.x,y=d\.y/.test(html), '確定には最後のmove座標を使う');
   assert.ok(!/onpointerdown|addEventListener\(\s*['"]pointer/.test(cropDragSrc), 'cropはpointerイベントに依存しない');
+});
+
+// --- cueSpans / endDragIsContinue（画像タイムライン） ---
+t('cueSpans: 終了未指定は次cue直前まで／endTurnIdで区切る', () => {
+  globalThis.DATA = { script: [{ id: 't1' }, { id: 't2' }, { id: 't3' }, { id: 't4' }],
+    assets: [{ id: 'a0', file: '0.jpg' }, { id: 'a1', file: '1.jpg' }],
+    imageCues: [{ id: 'c1', turnId: 't1', assetId: 'a0' }, { id: 'c2', turnId: 't3', assetId: 'a1' }] };
+  const sp = cueSpans();
+  assert.equal(sp.length, 2);
+  assert.deepEqual([sp[0].s, sp[0].e], [0, 1]);   // c1: 0..(c2の直前)
+  assert.deepEqual([sp[1].s, sp[1].e], [2, 3]);   // c2: 2..末尾
+  globalThis.DATA.imageCues[0].endTurnId = 't1';
+  const sp2 = cueSpans();
+  assert.deepEqual([sp2[0].s, sp2[0].e], [0, 0]);  // endTurnIdで1行に
+});
+t('endDragIsContinue: 次cue直前/末尾まで伸ばしたら継続', () => {
+  assert.equal(endDragIsContinue(3, 5, 10), false);
+  assert.equal(endDragIsContinue(4, 5, 10), true);   // nextStart-1
+  assert.equal(endDragIsContinue(9, 5, 10), true);   // 末尾 n-1
 });
 
 // --- crop枠の再描画タイミング（保存済みクロップが消えないこと） ---
