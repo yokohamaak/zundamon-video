@@ -274,6 +274,7 @@
                    border:1px solid #2c3543; border-radius:999px; background:#1a212c; color:var(--sub); cursor:pointer; }
   .tl-detail-btn:hover { color:var(--fg); }
   .tl-detail-btn.on { background:#2a2440; color:#d7caff; border-color:#3a2d62; }
+  .tl-zoom { margin-left:auto; flex:none; display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--sub); }
   .tl-scroll { flex:1; min-height:0; overflow:auto; }
   .tl-body { min-width:900px; }
   .tl-row { display:grid; grid-template-columns:150px minmax(750px,1fr); min-height:42px;
@@ -427,10 +428,20 @@ let previewState='synced';  // プレビュー状態：synced（更新済）/ vi
 let timelineScrollLeft=0;  // 全体再描画を挟んでもタイムラインの横位置を維持する。
 // 詳細モード：各セリフ列をセリフ全文が1行で収まる幅（文字数比例＝尺の代理）にする。
 // 将来セリフ単位で演出を指定する運用に向けた細かい粒度。localStorageに保存。
-let timelineDetail=localStorage.getItem('reviewTimelineDetail')==='1';
 const TL_CHAR_PX=11;   // 1文字あたりの想定幅（10pxフォントの全角＋余裕）。見て微調整する係数。
-function tlColWidth(t){ return Math.max(72, Math.round(((t&&t.text||'').length)*TL_CHAR_PX)+30); }
-function setTimelineDetail(on){ timelineDetail=!!on; localStorage.setItem('reviewTimelineDetail',timelineDetail?'1':'0'); renderTimeline(); }
+// タイムラインの横ズーム段階。大きいほど変化点◆や文字位置が見やすい（detail=全文1文字単位 / mult=詳細時の倍率）。
+const TL_ZOOM_LEVELS=[
+  {key:'overview', label:'俯瞰（標準）', detail:false, mult:1},
+  {key:'fit',      label:'全文 ×1',     detail:true,  mult:1},
+  {key:'x1.5',     label:'全文 ×1.5',   detail:true,  mult:1.5},
+  {key:'x2',       label:'全文 ×2',     detail:true,  mult:2},
+  {key:'x3',       label:'全文 ×3',     detail:true,  mult:3},
+];
+function tlLevelOf(k){ return TL_ZOOM_LEVELS.find(l=>l.key===k)||TL_ZOOM_LEVELS[0]; }
+let timelineLevel=localStorage.getItem('reviewTimelineZoom')||(localStorage.getItem('reviewTimelineDetail')==='1'?'fit':'overview');  // 旧OFF/ON設定から引き継ぎ
+let timelineDetail=tlLevelOf(timelineLevel).detail;   // 互換: 既存参照はこの真偽値を見る
+function tlColWidth(t){ return Math.max(72, Math.round(((t&&t.text||'').length)*TL_CHAR_PX*tlLevelOf(timelineLevel).mult)+30); }
+function setTimelineZoom(key){ timelineLevel=key; timelineDetail=tlLevelOf(key).detail; localStorage.setItem('reviewTimelineZoom',key); renderTimeline(); }
 let selectedTextRange=null;  // {gi,start,end,text}。小演出タブの文字選択をボタン操作まで保持。
 // 編集モデル(Phase2)：素材ライブラリの状態。editor権威のときだけ素材タブを使う。
 let assetFilter='all';       // 'all' | 'used' | 'unused'
@@ -1851,9 +1862,11 @@ function renderTimeline(){
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
   const hint=document.createElement('span'); hint.className='tl-hint';
   hint.textContent=timelineDetail?'演出バー＝範囲を調整／変化点◆や演出点をドラッグで文字位置・別セリフへ移動':'演出バーの両端で範囲を調整／変化点◆をドラッグで移動'; head.appendChild(hint);
-  const detailBtn=document.createElement('button'); detailBtn.type='button'; detailBtn.className='tl-detail-btn'+(timelineDetail?' on':'');
-  detailBtn.textContent=timelineDetail?'詳細表示: ON':'詳細表示: OFF'; detailBtn.title='セリフ全文が1行で収まる細かい粒度に切り替える';
-  detailBtn.onclick=()=>setTimelineDetail(!timelineDetail); head.appendChild(detailBtn); pane.appendChild(head);
+  const zoomWrap=document.createElement('label'); zoomWrap.className='tl-zoom'; zoomWrap.textContent='粒度 ';
+  const zoomSel=document.createElement('select'); zoomSel.className='tl-detail-btn'+(timelineDetail?' on':'');
+  zoomSel.title='タイムラインの横ズーム。大きいほど変化点◆や文字位置が見やすくなる';
+  TL_ZOOM_LEVELS.forEach(l=>{ const o=document.createElement('option'); o.value=l.key; o.textContent=l.label; if(l.key===timelineLevel)o.selected=true; zoomSel.appendChild(o); });
+  zoomSel.onchange=()=>setTimelineZoom(zoomSel.value); zoomWrap.appendChild(zoomSel); head.appendChild(zoomWrap); pane.appendChild(head);
   const scroll=document.createElement('div'); scroll.className='tl-scroll'; scroll.onscroll=()=>{ timelineScrollLeft=scroll.scrollLeft; };
   const body=document.createElement('div'); body.className='tl-body'; body.style.width=timelineBodyWidth()+'px';
   scroll.appendChild(body); pane.appendChild(scroll);
