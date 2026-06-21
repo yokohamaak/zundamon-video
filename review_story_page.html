@@ -724,10 +724,13 @@ function bindCropDrag(crop,imgEl,rectEl,onCommit,drawCrop){
   let drag=null;
   const cleanup=()=>{ if(drag){ try{ crop.releasePointerCapture(drag.pointerId); }catch(_){} }
     window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',finish); window.removeEventListener('pointercancel',cancel); };
-  const move=(e)=>{ if(!drag)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+  const move=(e)=>{ if(!drag||e.pointerId!==drag.pointerId)return; const x=e.clientX-drag.box.left,y=e.clientY-drag.box.top;
+    if(!Number.isFinite(x)||!Number.isFinite(y))return; drag.x=x; drag.y=y;
     rectEl.style.display='block'; rectEl.style.left=Math.min(drag.x0,x)+'px'; rectEl.style.top=Math.min(drag.y0,y)+'px';
     rectEl.style.width=Math.abs(x-drag.x0)+'px'; rectEl.style.height=Math.abs(y-drag.y0)+'px'; };
-  const finish=(e)=>{ if(!drag){ cleanup(); return; } const d=drag,rr=d.r,x=e.clientX-d.box.left,y=e.clientY-d.box.top;
+  // pointerupのclient座標は環境によって0へ落ちることがあるため、最後のpointermove座標で確定する。
+  const finish=(e)=>{ if(!drag){ cleanup(); return; } if(e.pointerId!==drag.pointerId)return;
+    const d=drag,rr=d.r,x=d.x,y=d.y;
     drag=null; cleanup();
     const nm=(px,py)=>[(px-rr.x)/rr.w,(py-rr.y)/rr.h], cl=v=>Math.max(0,Math.min(1,v));
     let [l,t]=nm(Math.min(d.x0,x),Math.min(d.y0,y)), [r,b]=nm(Math.max(d.x0,x),Math.max(d.y0,y));
@@ -737,7 +740,8 @@ function bindCropDrag(crop,imgEl,rectEl,onCommit,drawCrop){
   const cancel=()=>{ drag=null; cleanup(); drawCrop(); };
   crop.style.touchAction='none';
   crop.onpointerdown=(e)=>{ if(e.button!=null&&e.button!==0)return; e.preventDefault(); cleanup();
-    const box=crop.getBoundingClientRect(); drag={box,r:contentRect(imgEl,box),x0:e.clientX-box.left,y0:e.clientY-box.top,pointerId:e.pointerId};
+    const box=crop.getBoundingClientRect(),x0=e.clientX-box.left,y0=e.clientY-box.top;
+    drag={box,r:contentRect(imgEl,box),x0,y0,x:x0,y:y0,pointerId:e.pointerId};
     try{ crop.setPointerCapture(e.pointerId); }catch(_){}
     window.addEventListener('pointermove',move); window.addEventListener('pointerup',finish); window.addEventListener('pointercancel',cancel); };
 }

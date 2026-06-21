@@ -92,6 +92,8 @@ t('crop drag は終了をwindowで捕捉しlistenerを解除する', () => {
   assert.ok(/window\.removeEventListener\(\s*['"]pointermove['"]\s*,\s*move/.test(html), 'pointermoveを解除');
   assert.ok(/window\.removeEventListener\(\s*['"]pointerup['"]\s*,\s*finish/.test(html), 'pointerupを解除');
   assert.equal((html.match(/bindCropDrag\(crop,imgEl,rectEl,\(c\)=>/g)||[]).length,2,'legacy/editorの両方で共通処理');
+  assert.ok(/const d=drag,rr=d\.r,x=d\.x,y=d\.y/.test(html), '確定には最後のmove座標を使う');
+  assert.ok(!/x=e\.clientX-d\.box\.left,y=e\.clientY-d\.box\.top/.test(html), 'pointerup座標で確定しない');
 });
 
 // --- runMigrate ---
