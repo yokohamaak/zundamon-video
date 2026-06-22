@@ -27,6 +27,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
@@ -78,6 +79,54 @@ def preview_asset_path(relative):
     except ValueError:
         return None
     return path if os.path.isfile(path) else None
+
+
+_PREVIEW_AUDIO_LOCK = threading.Lock()
+
+
+def preview_digest_path():
+    """プレビューPlayer用にシーク精度の高いCBR版 digest.mp3 のパスを返す。
+
+    digest.mp3 は VBR（Xingヘッダ）でブラウザ<audio>の深いシークが不正確になり、後半ほど音声が
+    遅れて聞こえる。ffmpeg で CBR(128k)へ変換しキャッシュして配信する（render用の元ファイルは不変・
+    課金なしのローカル変換）。ffmpeg 不在/失敗時は元のVBRファイルにフォールバック。
+    キャッシュは temp に元mtimeキーで置く（不変なら再利用・OSが掃除）。
+    """
+    src = os.path.join(DIR, "digest.mp3")
+    if not os.path.isfile(src):
+        return src
+    ff = shutil.which("ffmpeg")
+    if not ff:
+        return src
+    try:
+        key = int(os.path.getmtime(src))
+    except OSError:
+        return src
+    dst = os.path.join(tempfile.gettempdir(), f"preview-digest-{key}.mp3")
+    if os.path.isfile(dst) and os.path.getsize(dst) > 0:
+        return dst
+    with _PREVIEW_AUDIO_LOCK:
+        if os.path.isfile(dst) and os.path.getsize(dst) > 0:
+            return dst
+        tmp = dst + ".tmp"
+        try:
+            print("[preview] digest.mp3 をCBR変換中（シーク精度向上・初回のみ）...", flush=True)
+            r = subprocess.run(
+                [ff, "-y", "-i", src, "-c:a", "libmp3lame", "-b:a", "128k", "-write_xing", "0",
+                 "-f", "mp3", tmp],   # 出力は拡張子(.tmp)でなく -f で明示
+                capture_output=True, timeout=300)
+            if r.returncode == 0 and os.path.isfile(tmp) and os.path.getsize(tmp) > 0:
+                os.replace(tmp, dst)
+                return dst
+        except Exception:
+            pass
+        finally:
+            if os.path.exists(tmp):
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+    return src
 
 
 def list_bgm_files():
@@ -2134,7 +2183,11 @@ class Handler(BaseHTTPRequestHandler):
             self._json(depth_manifest())
             return
         if path.startswith("/preview-assets/"):
-            self._file(preview_asset_path(path[len("/preview-assets/"):]))
+            rel = path[len("/preview-assets/"):]
+            if rel == "digest.mp3":   # プレビューはCBR版を配信（VBRの深いシークズレ対策）
+                self._file(preview_digest_path())
+                return
+            self._file(preview_asset_path(rel))
             return
         if path == "/shorts":
             self._html(SHORTS_PAGE.replace("__CSS__", _BASE_CSS))
