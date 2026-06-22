@@ -1560,13 +1560,14 @@ function render(){
   left.appendChild(bar);
   // 章＝セクション。選択行のある章を active 表示。intro→ネタ→outro 連続。
   const selCi=(DATA.script[selGi]||{}).chapter;
+  const imgPlan=isEditorAuthority()?computeImagePlan():null;   // 左サムネ用にimageCues解決を1回だけ計算
   (DATA.chapters||[]).forEach((ch,ci)=>{
     if(!isEditorAuthority()) migrateViz(ch,ci);   // 旧単一形式→vizListへ（legacyのみ・editorはvisualSegmentsが正）
     const sec=document.createElement('div'); sec.className='chsec'+(ci===selCi?' active':'')+(collapsed.has(ci)?' collapsed':''); sec.dataset.ci=ci;
     sec.appendChild(chapterDivider(ch,ci));
     // 行は常に生成し、折りたたみはCSSで隠す（全再描画せずスクロール位置を保つため）。
     (DATA.script||[]).forEach((tn,gi)=>{ if(tn.chapter!==ci) return;
-      sec.appendChild(lineRow(tn,gi,ch,ci,!!tn.vizSeg));
+      sec.appendChild(lineRow(tn,gi,ch,ci,!!tn.vizSeg,imgPlan));
     });
     left.appendChild(sec);
   });
@@ -2234,7 +2235,7 @@ function chapterDivider(ch,ci){
 // サーバの is_managed_closing と同じ判定。音声に関わる編集(本文/分割/削除)を不可にするのに使う。
 function isManagedClosing(tn){ if(!tn) return false; const txt=tn.text||'';
   return !!(tn.closing||tn.chorus||(tn.section==='outro'&&(txt.includes('チャンネル登録')||txt.includes('高評価')))); }
-function lineRow(tn,gi,ch,ci,inViz){
+function lineRow(tn,gi,ch,ci,inViz,imgPlan){
   const seg=vizSegForTurn(gi);                 // editor=visualSegments / legacy=vizSeg（共通読取）
   const isViz=isEditorAuthority()?!!seg:!!tn.vizSeg;   // legacyは従来どおり tn.vizSeg 有無で判定
   const locked=isManagedClosing(tn);           // アウトロ自動生成枠＝音声に関わる編集を抑止
@@ -2257,7 +2258,11 @@ function lineRow(tn,gi,ch,ci,inViz){
   lc.appendChild(nm); lc.appendChild(tx);
   // 右肩：演出マーク＋今出る画像のミニサムネ
   const mk=document.createElement('div'); mk.className='mk';
-  const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
+  // editor=imageCues解決(computeImagePlan)の画像 / legacy=従来cut。editorで旧cutを見ると画像削除/継続が反映されない。
+  let u;
+  if(isEditorAuthority()){ const r=imgPlan&&imgPlan[gi]; u=(r&&r.image)?('/img-file/'+encodeURIComponent(r.image)):null; }
+  else u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
+  if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
   // 選択行に出る操作（編集・分割／削除）。削除は誤操作防止のため区切りで離す。
   const la=document.createElement('div'); la.className='lacts';
   if(locked){ const note=document.createElement('span'); note.style.cssText='font-size:11px;color:var(--sub)';
@@ -2634,6 +2639,17 @@ function computeImagePlan(){
     for(let i=x.si;i<=Math.min(end,n-1);i++) plan[i]=res; });
   return plan;
 }
+// editor: 左セリフのサムネを imageCues 解決で更新（cue編集後に renderRight だけだと旧画像のまま残るため）。
+function refreshLineThumbs(){
+  if(!isEditorAuthority()) return;
+  const plan=computeImagePlan();
+  document.querySelectorAll('.line').forEach(row=>{ const gi=+row.dataset.gi; const mk=row.querySelector('.mk'); if(!mk)return;
+    const r=plan[gi]; const u=(r&&r.image)?('/img-file/'+encodeURIComponent(r.image)):null;
+    let im=mk.querySelector('img');
+    if(u){ if(!im){ im=document.createElement('img'); mk.appendChild(im); } if(im.getAttribute('src')!==u) im.src=u; }
+    else if(im){ im.remove(); }
+  });
+}
 function nextCueStartIdx(startIdx){ const idx=_turnIndexMap(); let best=(DATA.script||[]).length;
   (DATA.imageCues||[]).forEach(c=>{ const si=idx[c.turnId]; if(si!=null && si>startIdx && si<best) best=si; }); return best; }
 // 即時保存を直列化する。cropやsliderを続けて操作しても、古い応答が後からDATAを上書きしない。
@@ -2646,7 +2662,7 @@ async function cueOp(params, opts){
   return enqueueEditorWrite(async()=>{
     const r=await api('/api/editor/cue-op', Object.assign({data:DATA}, params));
     if(!r||!r.ok){ if(!(opts&&opts.silent)) alert('画像操作に失敗しました: '+((r&&r.message)||'不明')); return null; }
-    DATA=r.data; markVisualStale(); return r;
+    DATA=r.data; markVisualStale(); refreshLineThumbs(); return r;   // 左サムネも即更新（renderRightだけでは左が旧画像のまま）
   });
 }
 // cue区間（imageCueの開始〜終了）。終了未指定は次cue直前まで継続（computeImagePlanと同規則）。
