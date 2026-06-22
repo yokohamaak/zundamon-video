@@ -33,6 +33,18 @@ t("chapter変更→再生成(True)", rs.audio_affecting_changed(base, [{**base[0
 t("chorus変更→再生成(True)", rs.audio_affecting_changed(base, [{**base[0], "chorus": True}, base[1]]) is True)
 t("ターン数変更→再生成(True)", rs.audio_affecting_changed(base, [base[0]]) is True)
 
+# 3. 締めCTA/ユニゾン等のパイプライン固定ターンは比較から除外（手編集しても再生成で上書き＝永久audio-staleを防ぐ）
+#    meta側=固定CTA、script側=手編集（高評価を含む別文）でも audio-stale にしない。
+meta_close = base + [{"speaker": "A", "text": "次のテーマはコメントで。高評価も嬉しいわ。", "chapter": 0, "section": "outro", "closing": True}]
+edit_close = base + [{"speaker": "A", "text": "この話どう思った？高評価とコメントで教えてね。", "chapter": 0, "section": "outro", "closing": True}]
+t("締めターンの差は音声影響にしない(False)", rs.audio_affecting_changed(meta_close, edit_close) is False)
+t("締めターンを除けば本編一致でFalse", rs.audio_affecting_changed(meta_close, base + [{"speaker": "B", "text": "ばいばい", "chapter": 0, "chorus": True}]) is False)
+t("本編の差は締め除外後も検出(True)", rs.audio_affecting_changed(meta_close, [base[0], {**base[1], "text": "ちがう"}, edit_close[2]]) is True)
+from main_story import is_managed_closing
+t("is_managed_closing: closingフラグ", is_managed_closing({"closing": True}) is True)
+t("is_managed_closing: outroの高評価CTA", is_managed_closing({"section": "outro", "text": "高評価よろしく"}) is True)
+t("is_managed_closing: 通常本編はFalse", is_managed_closing({"section": "trivia", "text": "高評価"}) is False)
+
 # 3. meta-only失敗時に旧meta.jsonが維持される（subprocessをモックして失敗させる）
 d = tempfile.mkdtemp()
 old_dir = rs.DIR

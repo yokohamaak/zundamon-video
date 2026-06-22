@@ -730,6 +730,18 @@ def select_closing_lines(config, rotation):
     return s.get("closing_lines") or []
 
 
+def is_managed_closing(turn):
+    """append_closing_chorus が毎回作り直す締めターンか（純関数）。
+    closing/chorus フラグ付き、または outro に書かれた定型CTA（高評価/チャンネル登録）。
+    プレビュー状態判定（review_server.audio_affecting_changed）でも音声影響の比較から
+    除外するために共有する＝ここはパイプラインが固定生成する枠で、手編集しても再生成で
+    上書きされるため、差分が残り続けて永久に audio-stale になるのを防ぐ。"""
+    txt = turn.get("text") or ""
+    return bool(turn.get("closing") or turn.get("chorus")
+                or (turn.get("section") == "outro"
+                    and ("チャンネル登録" in txt or "高評価" in txt)))
+
+
 def append_closing_chorus(script_result, config, rotation=None):
     """締めに固定エンディングを足す：締めCTA(コメント誘導/高評価/登録) → 二人同時(closing_chorus)。
 
@@ -743,23 +755,18 @@ def append_closing_chorus(script_result, config, rotation=None):
         from src import topic_history
         rotation = len(topic_history.used_themes(topic_history.genre_of(config)))
 
-    def _is_cta(t):
-        # Geminiがoutroに書いてしまった定型CTA（高評価/チャンネル登録）も除去＝固定CTAと重複させない。
-        txt = t.get("text") or ""
-        return t.get("section") == "outro" and ("チャンネル登録" in txt or "高評価" in txt)
-
     # 作り直し前に、締め行へ人手で付けた小演出(テロップ/リアクション/声/間)をテキストで控え、新行へ引き継ぐ。
     _CARRY = ("textEffects", "telop", "telopSize", "telopX", "telopY", "telopDur", "telopColor", "telopBg", "telopBorder",
               "reaction", "reactionSize", "reactionX", "reactionY", "reactionDur", "voice", "pause")
     old_fx = {}
     for t in (script_result.get("script") or []):
-        if t.get("closing") or t.get("chorus") or _is_cta(t):
+        if is_managed_closing(t):   # 既存の締め＝固定CTA/ユニゾン/旧定型を作り直し対象に
             txt = (t.get("text") or "").strip()
             fx = {k: t[k] for k in _CARRY if k in t}
             if txt and fx:
                 old_fx[txt] = fx
     script = [t for t in (script_result.get("script") or [])
-              if not (t.get("closing") or t.get("chorus") or _is_cta(t))]
+              if not is_managed_closing(t)]
     last = script[-1] if script else {}
     ch, cut = last.get("chapter", 0), last.get("cut", 0)
     explainer = s.get("explainer", story_script.DEFAULT_EXPLAINER)

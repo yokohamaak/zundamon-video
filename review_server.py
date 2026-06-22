@@ -761,7 +761,13 @@ def _norm_text_for_audio(t):
 def audio_affecting_changed(old_script, new_script):
     """保存済みmetaのscriptと新scriptで、音声(VOICEVOX)に影響する差分があるか（純関数）。
     比較対象：ターン数/順序・speaker・text・voice・pause・chapter・chorus。
-    演出/vizPoints/textEffects/画像設定/色/配置だけの差なら False（meta-only更新で足りる）。"""
+    演出/vizPoints/textEffects/画像設定/色/配置だけの差なら False（meta-only更新で足りる）。
+    締めCTA/ユニゾン等のパイプライン固定生成ターン（main_story.append_closing_chorus が
+    毎回作り直す）は比較から除外する＝手編集しても再生成で上書きされ、差分が残り続けて
+    永久に audio-stale になるのを防ぐ。"""
+    from main_story import is_managed_closing
+    old_script = [t for t in old_script if not is_managed_closing(t)]
+    new_script = [t for t in new_script if not is_managed_closing(t)]
     if len(old_script) != len(new_script):
         return True
     for o, n in zip(old_script, new_script):
