@@ -207,6 +207,34 @@ def test_build_audio():
     print("  build_audio: SEを章境界の無音へ前出し/聞き手surprise限定/outro優先 OK")
 
 
+def test_build_audio_bgm_segments():
+    # turnアンカーの bgmSegments を秒区間へ解決。未設定(None)は無音=出さない。終了未指定は次セグメント直前まで継続。
+    script = [
+        {"id": "turn-0001", "start": 0.0, "end": 4.0},
+        {"id": "turn-0002", "start": 4.0, "end": 8.0},
+        {"id": "turn-0003", "start": 8.0, "end": 12.0},
+        {"id": "turn-0004", "start": 12.0, "end": 16.0},
+    ]
+    segs = [
+        {"id": "b1", "startTurnId": "turn-0001", "bgm": "a.mp3", "fadeIn": 0.6},          # 次(b2)直前まで＝t0001..t0002末
+        {"id": "b2", "startTurnId": "turn-0003", "bgm": None},                            # 未設定＝無音(出さない)
+        {"id": "b3", "startTurnId": "turn-0004", "bgm": "b.mp3", "fadeOut": 1.0},
+    ]
+    # config.audio 無しでも bgmSegments があれば audio ブロックを返す
+    a = m.build_audio({}, script, segs)
+    assert a is not None and a["bgm"] is None
+    assert a["bgmSegments"] == [
+        {"file": "a.mp3", "start": 0.0, "end": 8.0, "fadeIn": 0.6},
+        {"file": "b.mp3", "start": 12.0, "end": 16.0, "fadeOut": 1.0},
+    ], a["bgmSegments"]
+    # endTurnId 明示でその発言の end まで
+    a2 = m.build_audio({}, script, [{"id": "x", "startTurnId": "turn-0001", "endTurnId": "turn-0002", "bgm": "a.mp3"}])
+    assert a2["bgmSegments"] == [{"file": "a.mp3", "start": 0.0, "end": 8.0}], a2["bgmSegments"]
+    # bgmSegments 無しなら従来どおり None（config.audioも無い）
+    assert m.build_audio({}, script, None) is None
+    print("  build_audio: bgmSegmentsをturnアンカー→秒解決・未設定は無音 OK")
+
+
 def test_append_closing_chorus():
     sr = {"script": [{"speaker": "四国めたん", "text": "まとめ", "chapter": 2, "section": "outro", "cut": 1}]}
     cfg = {"story": {"explainer": "四国めたん",
@@ -523,6 +551,7 @@ if __name__ == "__main__":
     test_append_closing_chorus()
     test_select_closing_lines_rotation()
     test_build_audio()
+    test_build_audio_bgm_segments()
     test_build_chapter_topics_coverage()
     test_build_chapter_topics_placeholder()
     test_build_chapter_topics_ready_image_and_credit()

@@ -663,8 +663,48 @@ def write_credits_txt(out_dir, config, attributions):
     (out_dir / "credits.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def build_audio(config, script):
+def _resolve_bgm_segments(script, bgm_segments):
+    """turnアンカーの bgmSegments を {file,start,end,fadeIn?,fadeOut?} の秒区間へ解決（純関数）。
+
+    - startTurnId の start 〜 endTurnId の end。endTurnId未指定は次セグメント直前まで継続（imageCuesと同規則）。
+    - bgm=None（未設定）区間は無音＝出力しない。
+    - 並びは開始セリフ順。idが見つからないセグメントは無視。
+    """
+    if not bgm_segments:
+        return None
+    idx = {t.get("id"): i for i, t in enumerate(script) if t.get("id") is not None}
+    arr = []
+    for seg in bgm_segments:
+        si = idx.get(seg.get("startTurnId"))
+        if si is None:
+            continue
+        ei = idx.get(seg.get("endTurnId")) if seg.get("endTurnId") is not None else None
+        arr.append((si, ei, seg))
+    arr.sort(key=lambda x: x[0])
+    n = len(script)
+    out = []
+    for k, (si, ei, seg) in enumerate(arr):
+        next_start = arr[k + 1][0] if k + 1 < len(arr) else n
+        end_i = ei if (ei is not None and ei >= si) else next_start - 1
+        end_i = min(end_i, n - 1)
+        if not seg.get("bgm"):
+            continue                                  # 未設定＝無音（出さない）
+        start_t = float(script[si].get("start", 0.0) or 0.0)
+        end_t = float(script[end_i].get("end", start_t) or start_t)
+        if end_t <= start_t:
+            continue
+        o = {"file": seg["bgm"], "start": round(start_t, 3), "end": round(end_t, 3)}
+        if seg.get("fadeIn"):
+            o["fadeIn"] = float(seg["fadeIn"])
+        if seg.get("fadeOut"):
+            o["fadeOut"] = float(seg["fadeOut"])
+        out.append(o)
+    return out or None
+
+
+def build_audio(config, script, bgm_segments=None):
     """meta.audio を組み立てる（純関数）。BGM設定＋SEイベント列（発言timingに同期）。
+    bgm_segments（turnアンカー・任意）があれば meta.audio.bgmSegments へ秒解決する（章/区間ごとBGM）。
 
     SEイベントは既存の effect/emotion/section と timing から導出する（追加データ不要）:
       - intro:    動画冒頭(t=0)
@@ -676,8 +716,9 @@ def build_audio(config, script):
     config.audio が無ければ None（=BGM/SEなし）。
     """
     ac = config.get("audio") or {}
-    if not ac:
-        return None
+    resolved_bgm = _resolve_bgm_segments(script, bgm_segments)
+    if not ac and not resolved_bgm:
+        return None                                   # config.audioもbgm区間も無ければ音声ブロックなし
     se_files = ac.get("se") or {}
     questioner = config.get("story", {}).get("questioner", "ずんだもん")
     min_gap = float(ac.get("se_min_gap", 0.8))
@@ -711,7 +752,8 @@ def build_audio(config, script):
         events.append({"t": round(t, 3), "se": se})
 
     return {
-        "bgm": ac.get("bgm"),                       # {file, volume, fade} or None（prepが欠損を除去）
+        "bgm": ac.get("bgm"),                       # {file, volume, fade} or None（全体BGM＝音量/末尾fadeの基準・後方互換）
+        "bgmSegments": resolved_bgm,                 # 区間ごとBGM [{file,start,end,fadeIn?,fadeOut?}] or None（あれば優先）
         "se_volume": float(ac.get("se_volume", 0.5)),
         "se": se_files,                             # トリガー名 → ファイル名
         "events": events,                           # [{t, se}]（時刻順）
@@ -863,7 +905,7 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
         "topics": build_chapter_topics(segments, viz_turns, viz_chapters, image_files, attributions,
                                        cut_opts, turn_image=turn_image),
         "credits": build_credits(config, credit_attr),
-        "audio": build_audio(config, script),
+        "audio": build_audio(config, script, script_result.get("bgmSegments")),
         "script": script,
     }
 

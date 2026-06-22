@@ -302,7 +302,9 @@ export type Meta = {
   depthMaps?: string[];
   // BGM / 効果音(SE)。main_story.build_audio が出力し、prep.mjs が未配置ファイルを除去（無ければ無音）。
   audio?: {
-    bgm?: { file: string; volume?: number; fade?: number } | null;  // 全体ループBGM
+    bgm?: { file: string; volume?: number; fade?: number } | null;  // 全体ループBGM（音量/末尾fadeの基準）
+    // 区間ごとBGM（章/手動分割）。あればこちらを優先再生。未設定区間は無音＝含めない。
+    bgmSegments?: { file: string; start: number; end: number; fadeIn?: number; fadeOut?: number }[] | null;
     se_volume?: number;                                              // SE全体の音量
     se?: Record<string, string>;                                    // トリガー名→ファイル名（se/配下）
     events?: { t: number; se: string }[];                          // 鳴らすSEイベント（時刻順）

@@ -742,7 +742,7 @@ def apply_save_script(data):
         out["chapters"] = data["chapters"]
     # 編集モデルのトップレベルフィールドは保存時に保持（Phase 1 では UI 未送出だが前方互換）。
     # idCounters は ID 再利用防止の発番カウンタ（削除後も再利用しないため必ず持ち越す）。
-    for k in ("schemaVersion", "assets", "imageCues", "visualSegments", "idCounters"):
+    for k in ("schemaVersion", "assets", "imageCues", "visualSegments", "bgmSegments", "idCounters"):
         if k in data:
             out[k] = data[k]
     # 移行の「正」フラグ。editor のとき編集モデルを正とし再導出で上書きしない（Phase 2以降）。
