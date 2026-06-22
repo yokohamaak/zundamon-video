@@ -370,6 +370,7 @@
                 font-weight:800; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
   .tl-overlay.sel { outline:2px solid #d6f3f8; box-shadow:0 0 8px rgba(86,200,218,.6); }
   .tl-overlay.dragging { overflow:visible; outline:2px solid #d6f3f8; box-shadow:0 0 12px rgba(86,200,218,.6); }
+  .drop-hot { outline:2px dashed #5a8dd6; outline-offset:-2px; background:rgba(90,141,214,.08); }
   .tl-kf-group { position:relative; height:22px; margin:4px 3px; }
   .tl-kf { position:absolute; top:50%; transform:translate(-50%,-50%); font-size:9px; font-weight:800;
            white-space:nowrap; padding:1px 5px; border-radius:9px; cursor:pointer; line-height:1.4; }
@@ -691,6 +692,10 @@ async function pasteClipboard(ky, ci, k){
 document.addEventListener('paste', async (e)=>{
   const items=(e.clipboardData&&e.clipboardData.items)||[];
   for(const it of items){ if(it.type && it.type.startsWith('image/')){
+    // editor: 素材ライブラリを開いている / 貼付ボタンで武装済み なら素材として追加（任意で配置）。
+    if(isEditorAuthority() && (assetLibOpen || assetPasteArmed)){ e.preventDefault(); const blob=it.getAsFile();
+      const cb=assetPasteOnAdded; assetPasteArmed=false; assetPasteOnAdded=null;
+      const id=await addAssetFromBlob(blob,'clipboard.png'); if(id&&cb) await cb(id); return; }
     let tgt=pasteTarget;
     if(!tgt){ const open=[...adjustOpen]; if(open.length===1){ const [a,b]=open[0].split('_').map(Number); tgt={ky:open[0],ci:a,k:b}; } }
     if(tgt){ e.preventDefault(); const blob=it.getAsFile(); pasteTarget=null; await importImageBlob(tgt.ky,tgt.ci,tgt.k,blob); }
@@ -2559,8 +2564,16 @@ function assetOverlayPicker(tn,ov){
     card.appendChild(th);
     card.onclick=()=>{ if(!a.file){ alert('この素材はまだ画像が無いため使用できません。'); return; } ov.assetId=a.id; markDirty(); markVisualStale(); renderTimeline(); renderRight(); };
     grid.appendChild(card); });
-  if(!(DATA.assets||[]).length){ const e=document.createElement('div'); e.style.cssText='font-size:10px;color:var(--sub);padding:4px'; e.textContent='素材がありません。画像タブの「＋追加」で取り込めます。'; grid.appendChild(e); }
-  wrap.appendChild(grid); return wrap;
+  if(!(DATA.assets||[]).length){ const e=document.createElement('div'); e.style.cssText='font-size:10px;color:var(--sub);padding:4px'; e.textContent='素材がありません。下の貼付/ドロップや画像タブの「＋追加」で取り込めます。'; grid.appendChild(e); }
+  wrap.appendChild(grid);
+  // 追加して即このオーバーレイへ設定（スクショ貼付／D&D）。
+  const setNew=(aid)=>{ if(!aid) return; ov.assetId=aid; markDirty(); markVisualStale(); renderTimeline(); renderRight(); };
+  const tb=document.createElement('div'); tb.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px';
+  tb.appendChild(vMini('📋 スクショ貼付',()=>pasteAssetFromClipboard(setNew)));
+  const dh=document.createElement('span'); dh.style.cssText='font-size:10px;color:var(--sub)'; dh.textContent='／ 画像・URLをドロップでも追加＋設定'; tb.appendChild(dh);
+  wrap.appendChild(tb);
+  makeAssetDropzone(wrap, setNew);   // このピッカーへドロップ＝追加して即このオーバーレイへ
+  return wrap;
 }
 // プレビュー：背景＝現在の中央画像、その上にオーバーレイ画像をdir位置・size幅で表示。端の○ハンドルでサイズドラッグ。
 function overlayPreview(tn,ov){
@@ -2977,16 +2990,69 @@ function renderRight(){
 
 // ===== Phase2 1-A：素材ライブラリ（editor権威時の右ペイン「素材」タブ） =====
 function _fileToB64(file){ return new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res((rd.result+'').split(',')[1]); rd.readAsDataURL(file); }); }
+// 素材追加の共通コミット（dataB64 か url を渡す）。成功で DATA 更新・選択・再描画して r を返す。
+async function commitAssetAdd(payload){
+  const r=await enqueueEditorWrite(()=>api('/api/editor/asset-add',Object.assign({data:DATA},payload)));
+  if(!r||!r.ok){ alert('素材の追加に失敗しました: '+((r&&r.message)||'不明')); return null; }
+  DATA=r.data; selectedAssetId=r.assetId; dirty=false; markVisualStale(); updateAuthorityUI(); rerenderAssets();
+  return r;
+}
+// 画像File → 縮小してb64化 → 素材追加。assetId を返す。
 async function addAssetFromFile(file){
-  if(!file) return;
-  let b64, fn=file.name;
-  if(file.size>8*1024*1024){  // 大きい画像は手元で縮小してから登録（既存D&Dと同方針）
+  if(!file) return null;
+  let b64, fn=file.name||'image.jpg';
+  if(file.size>8*1024*1024){  // 大きい画像は手元で縮小してから登録（15MB制限/重さ対策）
     try{ const durl=await shrinkImage(URL.createObjectURL(file),1920,5*1024*1024); b64=durl.split(',')[1]; fn='resized.jpg'; }
     catch(e){ b64=await _fileToB64(file); }
   } else { b64=await _fileToB64(file); }
-  const r=await enqueueEditorWrite(()=>api('/api/editor/asset-add',{data:DATA, dataB64:b64, filename:fn}));
-  if(!r||!r.ok){ alert('素材の追加に失敗しました: '+((r&&r.message)||'不明')); return; }
-  DATA=r.data; selectedAssetId=r.assetId; dirty=false; markVisualStale(); updateAuthorityUI(); rerenderAssets();
+  const r=await commitAssetAdd({dataB64:b64, filename:fn}); return r&&r.assetId;
+}
+// クリップボード等の画像Blob → 素材追加。assetId を返す。
+async function addAssetFromBlob(blob, filename){
+  if(!blob) return null;
+  let b64, fn=filename||'clipboard.png';
+  if(blob.size>8*1024*1024){ try{ const durl=await shrinkImage(URL.createObjectURL(blob),1920,5*1024*1024); b64=durl.split(',')[1]; fn='clipboard.jpg'; }
+    catch(e){ b64=await _fileToB64(blob); } }
+  else { b64=await _fileToB64(blob); }
+  const r=await commitAssetAdd({dataB64:b64, filename:fn}); return r&&r.assetId;
+}
+// http(s)/data URL → 素材追加（http(s)はサーバ側DL）。assetId を返す。
+async function addAssetFromUrl(url){
+  if(!url) return null;
+  if(url.startsWith('data:image')){ const r=await commitAssetAdd({dataB64:url.split(',')[1], filename:'drop.png'}); return r&&r.assetId; }
+  const r=await commitAssetAdd({url}); return r&&r.assetId;
+}
+// DataTransfer(ファイル/URL/画像)から素材追加。最後に追加した assetId を返す（複数ファイルは全件追加）。
+async function addAssetFromDrop(dt){
+  let last=null;
+  if(dt.files && dt.files.length){
+    for(const f of dt.files){ if(f.type && f.type.startsWith('image/')){ const id=await addAssetFromFile(f); if(id) last=id; } }
+    if(last) return last;
+  }
+  const url=(dt.getData('text/uri-list')||dt.getData('text/plain')||'').split('\n').find(s=>s&&!s.startsWith('#'))||'';
+  if(url) last=await addAssetFromUrl(url);
+  return last;
+}
+// 要素をドロップ取り込み対応に。onAdded(assetId)＝追加後の配置等に使う（任意）。
+function makeAssetDropzone(el, onAdded){
+  el.addEventListener('dragover',e=>{ const ty=[...((e.dataTransfer&&e.dataTransfer.types)||[])];
+    if(ty.some(t=>t==='Files'||t.includes('uri')||t==='text/plain')){ e.preventDefault(); el.classList.add('drop-hot'); } });
+  el.addEventListener('dragleave',()=>el.classList.remove('drop-hot'));
+  el.addEventListener('drop',async e=>{ e.preventDefault(); el.classList.remove('drop-hot');
+    const id=await addAssetFromDrop(e.dataTransfer); if(id&&onAdded) await onAdded(id); });
+}
+// クリップボードのスクショを素材追加。直接読めれば即追加、不可ならCmd+V待ちへ武装。onAdded＝追加後の配置等（任意）。
+let assetPasteArmed=false, assetPasteOnAdded=null;
+async function pasteAssetFromClipboard(onAdded){
+  if(navigator.clipboard && navigator.clipboard.read){
+    try{ const items=await navigator.clipboard.read();
+      for(const it of items){ const ty=(it.types||[]).find(t=>t.startsWith('image/'));
+        if(ty){ const blob=await it.getType(ty); const id=await addAssetFromBlob(blob,'clipboard.png'); if(id&&onAdded) await onAdded(id); return; } }
+      alert('クリップボードに画像がありません（先にスクショ Cmd+Ctrl+Shift+4 を撮ってください）'); return;
+    }catch(e){ /* 権限拒否/非対応 → ②フォールバックへ */ }
+  }
+  assetPasteArmed=true; assetPasteOnAdded=onAdded||null;
+  alert('貼り付け先にしました。そのまま Cmd+V を押してください。');
 }
 async function deleteAsset(aid){
   const used=assetUsageMap()[aid]||0;
@@ -3049,7 +3115,11 @@ function renderAssetTab(r){
   fi.onchange=()=>{ if(fi.files&&fi.files[0]) addAssetFromFile(fi.files[0]); fi.value=''; };
   const addBtn=document.createElement('button'); addBtn.className='mini'; addBtn.textContent='＋ ファイルから素材を追加';
   addBtn.onclick=()=>fi.click();
-  addRow.appendChild(addBtn); addRow.appendChild(fi); r.appendChild(addRow);
+  addRow.appendChild(addBtn); addRow.appendChild(fi);
+  addRow.appendChild(vMini('📋 スクショ貼付',()=>pasteAssetFromClipboard()));   // クリップボードのスクショを素材追加
+  const dzHint=document.createElement('span'); dzHint.style.cssText='font-size:10px;color:var(--sub)'; dzHint.textContent='／ 画像・ファイル・URLをここへドロップでも追加';
+  addRow.appendChild(dzHint); r.appendChild(addRow);
+  makeAssetDropzone(r);   // 素材タブ全体をドロップ取り込み対応（追加のみ）
   // APIで画像を検索して取り込む（Wikimedia/Pexels/Pixabay・無料枠）
   r.appendChild(buildAssetSearch());
   // フィルタ（全/使用中/未使用）
@@ -3220,14 +3290,22 @@ function assetPickerGrid(tn, startCue, entry){
       const ok=await cueOp({op:'place', turnId:tn.id, assetId:a.id}); if(ok) renderRight(); };   // クリック＝即配置/差し替え
     grid.appendChild(card);
   });
-  // ＋追加タイル（ファイルから素材追加→そのままクリックで配置）
+  // 追加して即このセリフへ配置（ファイル/スクショ/D&D 共通）。
+  const placeNew=async(aid)=>{ if(!aid) return; const ok=await cueOp({op:'place', turnId:tn.id, assetId:aid}); if(ok) renderRight(); };
+  // ＋追加タイル（ファイルから素材追加→即配置）
   const add=document.createElement('div'); add.style.cssText='border:2px dashed var(--line);border-radius:7px;display:flex;align-items:center;justify-content:center;min-height:64px;color:var(--sub);font-size:11px;cursor:pointer';
-  add.textContent='＋追加'; add.title='ファイルから素材を追加';
+  add.textContent='＋追加'; add.title='ファイルから素材を追加して配置';
   const fi=document.createElement('input'); fi.type='file'; fi.accept='image/*'; fi.style.display='none';
-  fi.onchange=()=>{ if(fi.files&&fi.files[0]) addAssetFromFile(fi.files[0]); fi.value=''; };
+  fi.onchange=async()=>{ if(fi.files&&fi.files[0]){ const id=await addAssetFromFile(fi.files[0]); if(id) await placeNew(id); } fi.value=''; };
   add.onclick=()=>fi.click(); grid.appendChild(add); wrap.appendChild(fi);
+  // スクショ貼付＋D&D（追加して即配置）
+  const tb=document.createElement('div'); tb.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 2px';
+  tb.appendChild(vMini('📋 スクショ貼付',()=>pasteAssetFromClipboard(placeNew)));
+  const dh=document.createElement('span'); dh.style.cssText='font-size:10px;color:var(--sub)'; dh.textContent='／ 画像・ファイル・URLをドロップでも追加＋配置'; tb.appendChild(dh);
+  wrap.appendChild(tb);
   wrap.appendChild(grid);
-  if(!assets.length){ const e=document.createElement('div'); e.style.cssText='font-size:11px;color:var(--sub);margin-top:4px'; e.textContent='素材がありません。「＋追加」で取り込めます。'; wrap.appendChild(e); }
+  makeAssetDropzone(grid, placeNew);   // ピッカーへドロップ＝追加して即配置
+  if(!assets.length){ const e=document.createElement('div'); e.style.cssText='font-size:11px;color:var(--sub);margin-top:4px'; e.textContent='素材がありません。「＋追加」やドロップ/貼付で取り込めます。'; wrap.appendChild(e); }
   const mng=document.createElement('div'); mng.style.cssText='margin-top:6px';
   mng.appendChild(vMini('素材を管理（名称・削除・未使用整理）→',()=>{ assetLibOpen=true; render(); })); wrap.appendChild(mng);
   return wrap;
