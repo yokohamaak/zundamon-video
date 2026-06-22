@@ -420,6 +420,7 @@
   <label id="fblabel" title="ON=primaryモデルが503/枯渇なら別の無料モデルへ自動切替。OFF=primaryのみ（品質固定・失敗を即把握）" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#9fb0c5;cursor:pointer;"><input type="checkbox" id="fallback" checked> フォールバック</label>
   <span id="authBadge" title="画像編集モデルの状態" style="display:none;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;"></span>
   <button id="migrateEditor" style="display:none" title="画像編集を「セリフ基準の編集モデル(assets/imageCues)」へ移行します（章単位の旧形式から変換）。動画の見た目は同じです。">編集モデルへ移行</button>
+  <button id="assetLibBtn" style="display:none" title="画像素材の管理（追加・削除・未使用整理）を全幅で開きます。">素材ライブラリ</button>
   <button class="ok" id="save">保存して更新</button>
 </header>
 <main id="main">読み込み中…</main>
@@ -459,7 +460,7 @@ function rightTabs(authority, inViz, nseg, nassets){
   const tabs=[['image','画像']];                     // editor時はセリフ基準の新エディタ／legacyは旧UI
   tabs.push(['viz','大演出']);   // 件数は出さない（この行に設定があるかはタブ色で示す）
   tabs.push(['small','小演出']);
-  if(editor) tabs.push(['assets', nassets?('素材 '+nassets):'素材']);  // editorのみ素材ライブラリ
+  // 素材ライブラリは per-turn タブから外し、ヘッダーの「素材ライブラリ」全幅ビューへ移動（管理専用）。
   tabs.push(['chapter','章']);
   return tabs;
 }
@@ -487,15 +488,19 @@ async function runMigrate(confirmFn, saveFn, migrateFn, reloadFn, alertFn){
 function assetUsageMap(){ const m={}; (DATA&&DATA.imageCues||[]).forEach(c=>{ if(c.assetId!=null) m[c.assetId]=(m[c.assetId]||0)+1; }); return m; }
 function updateAuthorityUI(){
   const badge=document.getElementById('authBadge'), btn=document.getElementById('migrateEditor');
-  if(!badge||!btn||!DATA){ if(badge)badge.style.display='none'; if(btn)btn.style.display='none'; return; }
+  const libBtn=document.getElementById('assetLibBtn');
+  if(!badge||!btn||!DATA){ if(badge)badge.style.display='none'; if(btn)btn.style.display='none'; if(libBtn)libBtn.style.display='none'; return; }
   if(isEditorAuthority()){
     badge.style.display=''; badge.textContent='編集モデル: 新(editor)';
     badge.style.background='#1f3a2a'; badge.style.color='#7fd6a0';
     btn.style.display='none';
+    if(libBtn){ libBtn.style.display=''; libBtn.classList.toggle('on',assetLibOpen); libBtn.textContent=assetLibOpen?'← 編集に戻る':'素材ライブラリ'; }
   } else {
     badge.style.display=''; badge.textContent='編集モデル: 旧(legacy)';
     badge.style.background='#3a2f1f'; badge.style.color='#e0c07f';
     btn.style.display='';
+    assetLibOpen=false;   // legacyに素材ライブラリは無い
+    if(libBtn) libBtn.style.display='none';
   }
 }
 // 編集モデルへ移行（authority切替）。確認→現DATAを保存→成功時のみ /api/migrate-to-editor。
@@ -517,6 +522,9 @@ async function reloadData(){
 }
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 let workspaceMode=localStorage.getItem('reviewWorkspaceMode')==='script'?'script':'effect';
+let assetLibOpen=false;   // 素材ライブラリの全幅ビュー（同一画面・DATAは1本のまま）
+// 素材操作後の再描画：ライブラリ表示中は全画面を、通常時は右ペインを更新（同じ関数を両文脈で使う）。
+function rerenderAssets(){ if(assetLibOpen) render(); else renderRight(); }
 function applyWorkspaceMode(){
   document.body.classList.toggle('mode-script',workspaceMode==='script');
   document.getElementById('modeScript').classList.toggle('on',workspaceMode==='script');
@@ -524,7 +532,7 @@ function applyWorkspaceMode(){
 }
 function setWorkspaceMode(mode){
   if(mode!=='script' && mode!=='effect')return;
-  workspaceMode=mode; rwide=false; localStorage.setItem('reviewWorkspaceMode',mode); applyWorkspaceMode();
+  workspaceMode=mode; rwide=false; assetLibOpen=false; localStorage.setItem('reviewWorkspaceMode',mode); applyWorkspaceMode();
   if(DATA)render();
 }
 document.getElementById('modeScript').onclick=()=>setWorkspaceMode('script');
@@ -1541,6 +1549,8 @@ function render(){
   if(window.remotionEditorPlayer) window.remotionEditorPlayer.unmount();
   m.innerHTML='';
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
+  updateAuthorityUI();
+  if(assetLibOpen && isEditorAuthority()){ renderAssetLibrary(m); return; }   // 素材ライブラリ全幅ビュー（DATAは1本）
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
   const tp=document.createElement('div'); tp.className='tp'+(workspaceMode==='script'?' mode-script':'');
   const left=document.createElement('div'); left.className='tp-left';
@@ -2539,7 +2549,7 @@ async function addAssetFromFile(file){
   } else { b64=await _fileToB64(file); }
   const r=await enqueueEditorWrite(()=>api('/api/editor/asset-add',{data:DATA, dataB64:b64, filename:fn}));
   if(!r||!r.ok){ alert('素材の追加に失敗しました: '+((r&&r.message)||'不明')); return; }
-  DATA=r.data; selectedAssetId=r.assetId; dirty=false; markVisualStale(); updateAuthorityUI(); renderRight();
+  DATA=r.data; selectedAssetId=r.assetId; dirty=false; markVisualStale(); updateAuthorityUI(); rerenderAssets();
 }
 async function deleteAsset(aid){
   const used=assetUsageMap()[aid]||0;
@@ -2547,7 +2557,18 @@ async function deleteAsset(aid){
   if(!confirm('この素材を削除しますか？（画像ファイル自体は残します）')) return;
   const r=await enqueueEditorWrite(()=>api('/api/editor/asset-delete',{data:DATA, assetId:aid}));
   if(!r||!r.ok){ alert('削除に失敗しました: '+((r&&r.message)||'不明')); return; }
-  DATA=r.data; if(selectedAssetId===aid) selectedAssetId=null; dirty=false; markVisualStale(); updateAuthorityUI(); renderRight();
+  DATA=r.data; if(selectedAssetId===aid) selectedAssetId=null; dirty=false; markVisualStale(); updateAuthorityUI(); rerenderAssets();
+}
+// 素材ライブラリの全幅ビュー（同一画面・DATAは1本のまま＝未保存編集と競合しない）。既存の renderAssetTab を流用。
+function renderAssetLibrary(host){
+  const wrap=document.createElement('div'); wrap.style.cssText='max-width:1100px;margin:0 auto;padding:10px 14px';
+  const bar=document.createElement('div'); bar.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:12px';
+  const back=document.createElement('button'); back.className='mini'; back.textContent='← 編集に戻る';
+  back.onclick=()=>{ assetLibOpen=false; render(); };
+  const h=document.createElement('div'); h.style.cssText='font-size:16px;font-weight:800;color:#cdd6e2'; h.textContent='素材ライブラリ';
+  bar.appendChild(back); bar.appendChild(h); wrap.appendChild(bar);
+  renderAssetTab(wrap);   // 追加・削除・フィルタ・未使用整理（再描画は rerenderAssets が全幅/右ペインを切替）
+  host.appendChild(wrap);
 }
 function renderAssetTab(r){
   if(!isEditorAuthority()){ r.appendChild(document.createTextNode('編集モデルへ移行すると素材ライブラリが使えます。')); return; }
@@ -2569,7 +2590,7 @@ function renderAssetTab(r){
   const fr=document.createElement('div'); fr.style.cssText='display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap';
   [['all','全素材 '+assets.length],['used','使用中 '+usedN],['unused','未使用 '+unusedN]].forEach(([v,t])=>{
     const b=document.createElement('button'); b.type='button'; b.className='vchip'+(assetFilter===v?' on':''); b.textContent=t;
-    b.onclick=()=>{ assetFilter=v; renderRight(); }; fr.appendChild(b); });
+    b.onclick=()=>{ assetFilter=v; rerenderAssets(); }; fr.appendChild(b); });
   r.appendChild(fr);
   if(brokenCues.length){ const w=document.createElement('div'); w.style.cssText='font-size:11px;color:#e88;margin:0 0 8px';
     w.textContent='⚠ 壊れた参照 '+brokenCues.length+'件（存在しない素材を指すcue）。未使用素材とは別物です。'; r.appendChild(w); }
@@ -2583,7 +2604,7 @@ function renderAssetTab(r){
     const card=document.createElement('div');
     card.style.cssText='border:2px solid '+(sel?'#5a8dd6':'var(--line)')+';border-radius:8px;overflow:hidden;background:#0c0f15;cursor:pointer;display:flex;flex-direction:column';
     card.title='クリックで選択'+(a.file?'':'（未取得・画像なし）');
-    card.onclick=()=>{ selectedAssetId=(sel?null:a.id); renderRight(); };
+    card.onclick=()=>{ selectedAssetId=(sel?null:a.id); rerenderAssets(); };
     const th=document.createElement('div'); th.style.cssText='position:relative;width:100%;aspect-ratio:16/9;background:#11151c';
     if(a.file){ const im=document.createElement('img'); im.src='/img-file/'+encodeURIComponent(a.file); im.style.cssText='width:100%;height:100%;object-fit:cover'; th.appendChild(im); }
     else { th.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:11px">未取得</div>'; }
@@ -2741,7 +2762,7 @@ function assetPickerGrid(tn, startCue, entry){
   wrap.appendChild(grid);
   if(!assets.length){ const e=document.createElement('div'); e.style.cssText='font-size:11px;color:var(--sub);margin-top:4px'; e.textContent='素材がありません。「＋追加」で取り込めます。'; wrap.appendChild(e); }
   const mng=document.createElement('div'); mng.style.cssText='margin-top:6px';
-  mng.appendChild(vMini('素材を管理（名称・削除・未使用整理）→',()=>{ rtab='assets'; renderRight(); })); wrap.appendChild(mng);
+  mng.appendChild(vMini('素材を管理（名称・削除・未使用整理）→',()=>{ assetLibOpen=true; render(); })); wrap.appendChild(mng);
   return wrap;
 }
 function renderEditorImageTab(r,tn){
@@ -3277,5 +3298,6 @@ Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>
   updateAuthorityUI(); render(); updateSaveBtn();
 });
 const _migBtn=document.getElementById('migrateEditor'); if(_migBtn) _migBtn.onclick=migrateToEditor;
+const _libBtn=document.getElementById('assetLibBtn'); if(_libBtn) _libBtn.onclick=()=>{ if(!isEditorAuthority())return; assetLibOpen=!assetLibOpen; render(); };
 </script>
 </body></html>

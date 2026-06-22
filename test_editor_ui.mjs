@@ -36,11 +36,17 @@ t('legacy: 画像タブを含む・素材タブは無い', () => {
   const ks = rightTabs(undefined, false, 0, 0).map(x => x[0]);
   assert.ok(ks.includes('image') && !ks.includes('assets'));
 });
-t('editor: 画像タブ(新)＋素材タブ・画像中身はeditor', () => {
+t('editor: 画像タブ(新)・素材はper-turnタブから外しヘッダー全幅ビューへ', () => {
   const ks = rightTabs('editor', false, 0, 3).map(x => x[0]);
-  assert.ok(ks.includes('image') && ks.includes('assets'));
+  assert.ok(ks.includes('image') && !ks.includes('assets'), '素材はper-turnタブに無い');
   assert.equal(imageTabKind('editor'), 'editor');   // 旧 image_cuts/review 編集には行かない
   assert.equal(imageTabKind(undefined), 'legacy');
+});
+t('素材ライブラリ: 全幅ビュー切替の配線(同一画面・DATA1本)', () => {
+  assert.ok(/let assetLibOpen=false/.test(html), '全幅ビュー状態');
+  assert.ok(/function rerenderAssets\(\)\{ if\(assetLibOpen\) render\(\); else renderRight\(\); \}/.test(html), '素材操作後は文脈に応じ再描画');
+  assert.ok(/if\(assetLibOpen && isEditorAuthority\(\)\)\{ renderAssetLibrary\(m\)/.test(html), 'render内で全幅ビューへ分岐');
+  assert.ok(/function renderAssetLibrary/.test(html) && /renderAssetTab\(wrap\)/.test(html), '既存の素材UIを流用');
 });
 t('既定タブ: image（演出中はviz）', () => {
   assert.equal(rightDefaultTab(undefined, false), 'image');
