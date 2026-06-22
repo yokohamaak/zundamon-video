@@ -1922,7 +1922,7 @@ function startKfDrag(ev,gi,a,m){
 }
 function renderTimeline(){
   const pane=document.getElementById('timelinePane'); if(!pane||!DATA||!DATA.script) return;
-  const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; pane.innerHTML='';
+  const old=pane.querySelector('.tl-scroll'); const sx=old?old.scrollLeft:timelineScrollLeft; const sy=old?old.scrollTop:0; pane.innerHTML='';
   const head=document.createElement('div'); head.className='tl-head';
   const title=document.createElement('span'); title.className='tl-title'; title.textContent='タイムライン'; head.appendChild(title);
   const hint=document.createElement('span'); hint.className='tl-hint';
@@ -2050,7 +2050,7 @@ function renderTimeline(){
     smallTrack.appendChild(group); });
   body.appendChild(smallRow);
   if(isEditorAuthority()) renderBgmTrack(body);   // BGMは一番下
-  scroll.scrollLeft=sx; timelineScrollLeft=sx;
+  scroll.scrollLeft=sx; timelineScrollLeft=sx; scroll.scrollTop=sy;   // 縦スクロールも保持（再描画で先頭へ戻さない）
 }
 
 function chapterTurnBounds(ci){
