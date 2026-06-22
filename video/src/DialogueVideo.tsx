@@ -855,33 +855,42 @@ const OverlayImage: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"
   );
 };
 
-// スライドイン画像オーバーレイ（小演出）。dir 方向から入り→静止→同じ向きへ戻る（center=フェード）。
-// in/out=0.4秒（尺が短ければ尺の半分まで）。size=画面幅比（既定0.4）。端寄せで後ろの進行を邪魔しない。
+// 中央基準の translate（d 方向へ off%＝自身サイズ比だけ画面外へずらす。center=中央のまま）。
+function overlayTransform(d: string, off: number): string {
+  if (d === "center") return "translate(-50%,-50%)";
+  if (d === "left") return `translate(calc(-50% - ${off}%),-50%)`;
+  if (d === "right") return `translate(calc(-50% + ${off}%),-50%)`;
+  if (d === "top") return `translate(-50%, calc(-50% - ${off}%))`;
+  return `translate(-50%, calc(-50% + ${off}%))`;
+}
+
+// スライドイン画像オーバーレイ（小演出）。dir＝登場方向から入り→中央で静止→outDir 方向へ退場
+// （outDir 未指定＝登場と同じ＝来た方へ戻る）。center=フェード。in/out=0.4秒（尺が短ければ尺の半分まで）。
 const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"]>[number] }> = ({ ov }) => {
   const { fps } = useVideoConfig();
   const f = useCurrentFrame();
   const clamp = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
   const dur = Math.max(1, Math.round((ov.end - ov.start) * fps));
   const inF = Math.min(Math.round(0.4 * fps), Math.floor(dur / 2));
-  const p = Math.min(
-    interpolate(f, [0, inF], [0, 1], clamp),
-    interpolate(f, [dur - inF, dur], [1, 0], clamp)
-  ); // 0..1 の可視度（イン↗・アウト↘の小さい方）
+  const outF = Math.min(Math.round(0.4 * fps), Math.floor(dur / 2));
+  const inDir = ov.dir;
+  const outDir = ov.outDir ?? ov.dir;   // 退場方向（未指定＝登場と同じ＝戻る）
   const sz = ov.size ?? 0.4;
-  // 静止位置は常に中央。dir＝「登場方向」＝画面外のどこから中央へ入ってくるか（出は逆再生で戻る）。
-  const off = (1 - p) * 200; // 中央から登場方向の画面外へ（自身サイズ比%・pで中央へスライドイン）
-  // frame!==false で枠（角丸＋影）。透過画像は frame:false で矩形の影が出ないようにする。
-  const framed = ov.frame !== false;
+  const framed = ov.frame !== false;    // frame!==false で枠（角丸＋影）。透過画像は frame:false。
   const base: React.CSSProperties = { position: "absolute", left: "50%", top: "50%", width: `${Math.round(sz * 100)}%`, ...(framed ? { borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" } : {}) };
-  let transform: string;
-  let opacity = 1;
-  if (ov.dir === "center") { transform = "translate(-50%,-50%)"; opacity = p; }
-  else if (ov.dir === "left") transform = `translate(calc(-50% - ${off}%),-50%)`;
-  else if (ov.dir === "right") transform = `translate(calc(-50% + ${off}%),-50%)`;
-  else if (ov.dir === "top") transform = `translate(-50%, calc(-50% - ${off}%))`;
-  else transform = `translate(-50%, calc(-50% + ${off}%))`;
+  // フェーズ別に方向・オフセット(自身サイズ比%・200で確実に画面外)・不透明度を決める。
+  let dirNow = inDir, off = 0, opacity = 1;
+  if (f < inF) {                        // 入場：inDir の画面外→中央
+    const pin = interpolate(f, [0, inF], [0, 1], clamp);
+    dirNow = inDir; off = (1 - pin) * 200;
+    if (inDir === "center") { off = 0; opacity = pin; }
+  } else if (f > dur - outF) {          // 退場：中央→outDir の画面外
+    const pout = interpolate(f, [dur - outF, dur], [0, 1], clamp);
+    dirNow = outDir; off = pout * 200;
+    if (outDir === "center") { off = 0; opacity = 1 - pout; }
+  }                                      // それ以外＝中央で静止（off=0, opacity=1）
   return (
-    <div style={{ ...base, transform, opacity }}>
+    <div style={{ ...base, transform: overlayTransform(dirNow, off), opacity }}>
       <OverlayImage ov={ov} />
     </div>
   );

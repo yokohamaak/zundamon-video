@@ -2699,6 +2699,13 @@ function renderOverlaySection(tn){
       OVERLAY_DIRS.forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button'; b.className='vchip'+((ov.dir||'left')===v?' on':''); b.textContent=t;
         b.onclick=()=>{ ov.dir=v; markDirty(); markVisualStale(); renderRight(); }; dr.appendChild(b); });
       item.appendChild(dr);
+      // 退場方向（未指定＝登場と同じ＝来た方へ戻る）。
+      const or2=document.createElement('div'); or2.style.cssText='display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:6px';
+      const ol=document.createElement('span'); ol.textContent='退場方向'; ol.style.cssText='font-size:11px;color:var(--sub);margin-right:2px'; or2.appendChild(ol);
+      [['','登場と同じ(戻る)'],['left','左へ'],['right','右へ'],['top','上へ'],['bottom','下へ'],['center','フェード']].forEach(([v,t])=>{
+        const on=(v===''?(ov.outDir==null):(ov.outDir===v)); const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=t;
+        b.onclick=()=>{ if(v==='') delete ov.outDir; else ov.outDir=v; markDirty(); markVisualStale(); renderRight(); }; or2.appendChild(b); });
+      item.appendChild(or2);
       const szr=document.createElement('div'); szr.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;font-size:11px;color:var(--sub)';
       const sl=document.createElement('input'); sl.type='range'; sl.min='0.1'; sl.max='1'; sl.step='0.05'; sl.value=(ov.size!=null?ov.size:0.4);
       const sv=document.createElement('span'); sv.style.minWidth='42px'; const showSz=()=>sv.textContent=Math.round((ov.size!=null?ov.size:0.4)*100)+'%幅'; showSz();
@@ -2714,7 +2721,10 @@ function renderOverlaySection(tn){
       item.appendChild(assetOverlayPicker(tn,ov));
       item.appendChild(overlayPreview(tn,ov));
       const ph=document.createElement('div'); ph.style.cssText='font-size:10px;color:var(--sub);margin-top:2px';
-      ph.textContent='プレビューは静止状態（中央）。本番は「'+(OVERLAY_DIRS.find(d=>d[0]===(ov.dir||'left'))||['','左から'])[1]+'」中央へスライドイン→静止→戻る（in/out各0.4秒・残りが静止）。右下の○をドラッグでサイズ調整。'; item.appendChild(ph);
+      const _inL=(OVERLAY_DIRS.find(d=>d[0]===(ov.dir||'left'))||['','左から'])[1];
+      const _outMap={left:'左へ',right:'右へ',top:'上へ',bottom:'下へ',center:'フェード'};
+      const _outL=ov.outDir==null?'来た方へ戻る':_outMap[ov.outDir];
+      ph.textContent='プレビューは静止状態（中央）。本番は「'+_inL+'」中央へスライドイン→静止→「'+_outL+'」退場（in/out各0.4秒・残りが静止）。右下の○をドラッグでサイズ調整。'; item.appendChild(ph);
     }
     sec.appendChild(item);
   });

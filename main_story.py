@@ -373,6 +373,8 @@ def _resolve_overlays(turn, assets_by):
         if en <= st:
             continue
         o = {"image": a["file"], "start": st, "end": en, "dir": ov.get("dir") or "left"}
+        if ov.get("outDir"):           # 退場方向（未指定＝登場と同じ＝戻る）。既定は省略。
+            o["outDir"] = ov["outDir"]
         if ov.get("size") is not None:
             o["size"] = float(ov["size"])
         if ov.get("frame") is False:   # 枠/影なし（透過画像向け）。既定(あり)は省略。

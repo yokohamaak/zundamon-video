@@ -261,7 +261,15 @@ def test_resolve_overlays():
          "imageOverlays": [{"assetId": "a3", "start": 0, "end": 5, "dir": "left"}]},
         {"a3": {"file": "c.jpg", "crop": {"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.9}, "filter": {"brightness": 1.2}}})
     assert cf[0].get("crop") == {"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.9} and cf[0].get("filter") == {"brightness": 1.2}, cf
-    print("  _resolve_overlays: 文字位置→秒・asset無し/逆転を除外・frame/crop/filter伝播 OK")
+    # outDir（退場方向）は指定時のみ meta へ。未指定は省略（＝登場と同じ＝戻る）。
+    od = m._resolve_overlays(
+        {"text": "あいうえお", "start": 0.0, "end": 5.0,
+         "imageOverlays": [{"assetId": "a1", "start": 0, "end": 5, "dir": "left", "outDir": "right"}]}, assets)
+    assert od[0].get("outDir") == "right", od
+    assert "outDir" not in m._resolve_overlays(
+        {"text": "あいうえお", "start": 0.0, "end": 5.0,
+         "imageOverlays": [{"assetId": "a1", "start": 0, "end": 5, "dir": "left"}]}, assets)[0]
+    print("  _resolve_overlays: 文字位置→秒・asset無し/逆転を除外・frame/crop/filter/outDir伝播 OK")
 
 
 def test_append_closing_chorus():

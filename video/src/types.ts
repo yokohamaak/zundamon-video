@@ -29,7 +29,7 @@ export type Turn = {
   emotion?: Emotion;
   // スライドイン画像オーバーレイ（小演出）。build が文字位置start/end→絶対秒へ解決して付与。
   // dir=入って戻る向き（center=フェード）。size=画面幅比（既定0.4）。重なりは編集側で禁止。
-  overlays?: { image: string; start: number; end: number; dir: "left" | "right" | "top" | "bottom" | "center"; size?: number; frame?: boolean; crop?: { l: number; t: number; r: number; b: number }; filter?: { brightness?: number; contrast?: number; grayscale?: number } }[];
+  overlays?: { image: string; start: number; end: number; dir: "left" | "right" | "top" | "bottom" | "center"; outDir?: "left" | "right" | "top" | "bottom" | "center"; size?: number; frame?: boolean; crop?: { l: number; t: number; r: number; b: number }; filter?: { brightness?: number; contrast?: number; grayscale?: number } }[];
   // 画面演出 effect（story_script が付与）。Remotionが演出に使う。
   // phase は旧APOD由来で「実は〇〇雑学」では未付与・未使用（型整合のため残置）。
   phase?: Phase;
