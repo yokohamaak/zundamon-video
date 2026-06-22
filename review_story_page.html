@@ -236,8 +236,9 @@
           background:#1a212c; color:var(--sub); cursor:pointer; }
   .rtab.on { background:#2a2440; color:#c4a8ff; }
   .rtab.imgon { background:#23354f; color:#cfe0ff; }
-  /* この行にその要素が設定されている（非選択タブのみ）＝色付き背景＋下線で明示 */
-  .rtab.has { background:#203026; color:#a8e6bd; box-shadow:inset 0 -2px 0 #58c07a; }
+  /* この行にその要素が設定されている＝下線アクセント（選択中タブでも出す）＋非選択時は背景も色付け */
+  .rtab.has { box-shadow:inset 0 -3px 0 #58c07a; }
+  .rtab.has:not(.on):not(.imgon) { background:#203026; color:#a8e6bd; }
   .rhead { position:sticky; top:0; z-index:5; background:var(--bg); padding:2px 0 6px; margin-bottom:4px; border-bottom:1px solid var(--line); }
   .rinfo { font-size:11px; color:var(--sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sec { margin-bottom:14px; }
@@ -2437,7 +2438,7 @@ function renderRight(){
   const hasSmall=(activeFx(tn).length>0)||!!tn.telop||!!tn.reaction;
   const tabHas={ image:hasImg, viz:inViz, small:hasSmall };
   tabs.forEach(([k,label])=>{ const b=document.createElement('button');
-    b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):'')+((cur!==k&&tabHas[k])?' has':''); b.textContent=label;
+    b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):'')+(tabHas[k]?' has':''); b.textContent=label;
     b.onclick=()=>{ rtab=k; renderRight(); const rp=document.getElementById('rpane'); if(rp) rp.scrollTop=0; }; tb.appendChild(b); });
   // 選択中セリフを「章 / 話者 / 番号」で短く（タブとともにスクロール中も固定表示）。
   const info=document.createElement('div'); info.className='rinfo';

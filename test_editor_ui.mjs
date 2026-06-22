@@ -353,7 +353,8 @@ t('タブ: 大演出の件数を廃止し、設定有無を色(.has)で示す', 
   assert.equal(rightTabs('editor', false, 3, 0).find(t => t[0] === 'viz')[1], '大演出', 'ラベルは数字なし');
   // 画像/小演出/大演出に has 判定を付与
   assert.ok(/const tabHas=\{ image:hasImg, viz:inViz, small:hasSmall \}/.test(html), 'image/viz/smallのhas判定');
-  assert.ok(/\(cur!==k&&tabHas\[k\]\)\?' has':''/.test(html), '非選択タブのみhas色を付与(activeと競合させない)');
+  assert.ok(/tabHas\[k\]\?' has':''/.test(html), '設定有無でhasを付与(選択中タブでも)');
+  assert.ok(/\.rtab\.has:not\(\.on\):not\(\.imgon\)/.test(html), '背景色は非選択時のみ・下線は選択中も出す');
   assert.ok(/hasSmall=\(activeFx\(tn\)\.length>0\)\|\|!!tn\.telop\|\|!!tn\.reaction/.test(html), '小演出=textEffects/telop/reaction');
   assert.ok(/\.rtab\.has\s*\{/.test(html), '.rtab.has のCSS');
 });
