@@ -778,6 +778,7 @@ function stepWrap(slider){
 }
 
 function splitTurn(tn,ta){
+  if(isManagedClosing(tn)) return;   // アウトロ自動生成枠は分割不可（ターン数=音声に影響）
   const text=tn.text||'';
   let pos=(ta&&ta.selectionStart)||0;
   if(!(pos>0&&pos<text.length)){
@@ -813,7 +814,8 @@ function splitTurn(tn,ta){
   tn.text=a; ['start','end','sentences'].forEach(k=>delete tn[k]);
   DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
 }
-function delTurn(tn){ const i=DATA.script.indexOf(tn); if(i>=0&&confirm('この発言を削除？')){ DATA.script.splice(i,1); render(); } }
+function delTurn(tn){ if(isManagedClosing(tn)){ alert('アウトロ（自動生成）は削除できません。文言は config の closing_lines / closing_chorus で変更してください。'); return; }
+  const i=DATA.script.indexOf(tn); if(i>=0&&confirm('この発言を削除？')){ DATA.script.splice(i,1); render(); } }
 
 // 画像のインライン調整パネル（fit/クロップ/補正/余白色/画像なし/差し替え/出典）。既存APIを使う。
 function buildAdjust(ci,k){
@@ -2228,9 +2230,14 @@ function chapterDivider(ch,ci){
   return d;
 }
 
+// アウトロの締めCTA/ユニゾンはパイプライン(main_story.append_closing_chorus)が毎回作り直す枠。
+// サーバの is_managed_closing と同じ判定。音声に関わる編集(本文/分割/削除)を不可にするのに使う。
+function isManagedClosing(tn){ if(!tn) return false; const txt=tn.text||'';
+  return !!(tn.closing||tn.chorus||(tn.section==='outro'&&(txt.includes('チャンネル登録')||txt.includes('高評価')))); }
 function lineRow(tn,gi,ch,ci,inViz){
   const seg=vizSegForTurn(gi);                 // editor=visualSegments / legacy=vizSeg（共通読取）
   const isViz=isEditorAuthority()?!!seg:!!tn.vizSeg;   // legacyは従来どおり tn.vizSeg 有無で判定
+  const locked=isManagedClosing(tn);           // アウトロ自動生成枠＝音声に関わる編集を抑止
   const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(isViz?' vizrow':''); row.dataset.gi=gi;
   const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
   // アイコン（話者色の丸＋頭文字）
@@ -2243,14 +2250,19 @@ function lineRow(tn,gi,ch,ci,inViz){
   const sbadge=(txt,bg)=>{ const b=document.createElement('span'); b.textContent=txt; b.style.cssText='font-size:10px;font-weight:700;color:#fff;background:'+bg+';border-radius:4px;padding:1px 5px;line-height:1.5;white-space:nowrap'; return b; };
   if(tn.telop) nm.appendChild(sbadge('💬'+(tn.telop.length>6?tn.telop.slice(0,6)+'…':tn.telop),'#6b6ae0'));
   if(tn.reaction) nm.appendChild(sbadge('😲'+tn.reaction,'#c0497a'));
+  if(locked) nm.appendChild(sbadge('🔒自動','#5a6473'));
   const tx=document.createElement('div'); tx.className='tx'+(tn.text?'':' empty'); tx.textContent=tn.text||'(空・ダブルクリックで入力)';
-  tx.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,tx); };
+  if(!locked) tx.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,tx); };
+  else tx.title='アウトロ（自動生成）。本文・分割・削除はできません。文言は config の story.closing_lines / closing_chorus で変更します。';
   lc.appendChild(nm); lc.appendChild(tx);
   // 右肩：演出マーク＋今出る画像のミニサムネ
   const mk=document.createElement('div'); mk.className='mk';
   const u=imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0)); if(u){ const im=document.createElement('img'); im.src=u; mk.appendChild(im); }
   // 選択行に出る操作（編集・分割／削除）。削除は誤操作防止のため区切りで離す。
   const la=document.createElement('div'); la.className='lacts';
+  if(locked){ const note=document.createElement('span'); note.style.cssText='font-size:11px;color:var(--sub)';
+    note.textContent='🔒 アウトロ自動生成'; note.title='締めCTA/ユニゾンはパイプラインが毎回生成します。文言は config の story.closing_lines / closing_chorus で変更してください。'; la.appendChild(note); }
+  else {
   const be=document.createElement('button'); be.textContent='編集'; be.title='本文を編集（Escで取消・⌘/Ctrl+Enterで確定）';
   be.onclick=(e)=>{ e.stopPropagation(); const cur=row.querySelector('.tx'); if(cur) startEditLine(row,tn,cur); };
   const bs=document.createElement('button'); bs.textContent='分割'; bs.title='セリフを2つに分ける（編集中はカーソル位置）';
@@ -2259,6 +2271,7 @@ function lineRow(tn,gi,ch,ci,inViz){
   const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除'; bd.title='この発言を削除';
   bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
   la.appendChild(be); la.appendChild(bs); la.appendChild(sep); la.appendChild(bd);
+  }
   row.onclick=()=>{
     const chg=(selGi!==gi);
     if(chg){ selGi=gi; }   // タブ(rtab)は維持＝別セリフへ移っても画像/演出/章の表示を保つ
@@ -2292,6 +2305,7 @@ function reconcileTextEffects(tn){
 }
 
 function startEditLine(row,tn,tx){
+  if(isManagedClosing(tn)) return;   // アウトロ自動生成枠は本文編集不可（再生成で上書きされるため）
   if(row._editing) return;   // 二重起動防止（編集ボタンとダブルクリックの併存）
   row._editing=true;
   const wasDirty=dirty;      // 編集開始前の未保存状態（Esc取消時に正しく戻すため）

@@ -308,6 +308,21 @@ t('viz設定: 旧editorのデザイン群を新editorへ移植(色/背景/サイ
   assert.ok(/mkNum\('x'\)/.test(fn) && /it\.arrow=true/.test(fn), 'callouts項目の位置(x/y)と矢印');
 });
 
+t('outro固定: isManagedClosingがサーバ判定と一致し、本文/分割/削除を抑止', () => {
+  const fn = extractFn('isManagedClosing');
+  new Function('g', fn + '\n;g.isManagedClosing=isManagedClosing;')(globalThis);
+  assert.equal(isManagedClosing({ closing: true }), true, 'closingフラグ');
+  assert.equal(isManagedClosing({ chorus: true }), true, 'chorusフラグ');
+  assert.equal(isManagedClosing({ section: 'outro', text: '高評価よろしく' }), true, 'outro高評価CTA');
+  assert.equal(isManagedClosing({ section: 'outro', text: 'チャンネル登録してね' }), true, 'outro登録CTA');
+  assert.equal(isManagedClosing({ section: 'trivia', text: '高評価' }), false, '本編はロックしない');
+  assert.equal(isManagedClosing({ section: 'outro', text: 'まとめると' }), false, 'CTA語が無いoutroは対象外');
+  // 音声に関わる編集経路(本文/分割/削除)に早期ガードがある
+  assert.ok(/function startEditLine[\s\S]{0,120}if\(isManagedClosing\(tn\)\) return/.test(html), 'startEditLineガード');
+  assert.ok(/function splitTurn[\s\S]{0,80}if\(isManagedClosing\(tn\)\) return/.test(html), 'splitTurnガード');
+  assert.ok(/function delTurn[\s\S]{0,120}if\(isManagedClosing\(tn\)\)/.test(html), 'delTurnガード');
+});
+
 // --- runMigrate ---
 async function runTests() {
   // 即時保存を連続実行しても、開始・完了順が入れ替わらない。
