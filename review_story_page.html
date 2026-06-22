@@ -1963,7 +1963,6 @@ function renderTimeline(){
       imgTrack.appendChild(b); });
     if(!spans.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='画像キューなし（画像/素材タブで配置）'; imgTrack.appendChild(e); }
     body.appendChild(imgRow);
-    renderBgmTrack(body);   // BGM行（editor）
   }
   if(isEditorAuthority()){ renderEditorVizTracks(body); } else {
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
@@ -2050,6 +2049,7 @@ function renderTimeline(){
     if(!tn.telop&&!tn.reaction&&gi===selGi){ const add=document.createElement('span'); add.className='tl-small-add'; add.textContent='＋小演出'; group.appendChild(add); }
     smallTrack.appendChild(group); });
   body.appendChild(smallRow);
+  if(isEditorAuthority()) renderBgmTrack(body);   // BGMは一番下
   scroll.scrollLeft=sx; timelineScrollLeft=sx;
 }
 
