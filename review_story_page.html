@@ -3238,10 +3238,18 @@ function renderAssetTab(r){
     const del=document.createElement('button'); del.className='mini'; del.textContent='削除';
     if(used){ del.disabled=true; del.title='使用中（'+used+'件）は削除できません'; del.style.opacity='.5'; }
     del.onclick=(e)=>{ e.stopPropagation(); deleteAsset(a.id); }; foot.appendChild(del);
+    if(a.file){ const adj=document.createElement('button'); adj.className='mini'; adj.textContent=(selectedAssetId===a.id?'▾ 調整':'✏️ 調整'); adj.title='クロップ/明るさ等を調整';
+      adj.onclick=(e)=>{ e.stopPropagation(); selectedAssetId=(selectedAssetId===a.id?null:a.id); rerenderAssets(); }; foot.appendChild(adj); }
     card.appendChild(foot);
     grid.appendChild(card);
   });
   r.appendChild(grid);
+  // 選択中の素材の表示調整（クロップ/補正）。この素材を使う全箇所の既定。
+  const selA=assets.find(a=>a.id===selectedAssetId);
+  if(selA && selA.file){ const sec=document.createElement('div'); sec.style.cssText='margin-top:12px;border-top:1px solid var(--line);padding-top:10px';
+    const t=document.createElement('div'); t.style.cssText='font-size:12px;font-weight:700;color:#cdd6e2;margin-bottom:6px';
+    t.textContent='🎨 表示調整：'+(selA.queryJa||selA.query||selA.id);
+    sec.appendChild(t); sec.appendChild(buildAssetAdjust(selA)); r.appendChild(sec); }
 }
 
 // ===== Phase2 1-B：セリフ基準の画像編集（editor権威・cueベース） =====
@@ -3489,6 +3497,60 @@ function buildEditorAdjust(cue, asset){
     // /img-file はキャッシュされ imgEl.complete=true で来るため、同期描画だと未添付(box=0)で
     // 保存済みクロップ枠が消える。requestAnimationFrameで添付・レイアウト後に必ず描く。
     const sched=()=>requestAnimationFrame(drawCrop);
+    if(imgEl.complete) sched(); else imgEl.onload=sched;
+    bindCropDrag(crop,imgEl,rectEl,(c)=>commit({crop:c}),drawCrop); }
+  return wrap;
+}
+
+// 素材そのものの表示調整（fit/crop/filter/pad/bg）。この素材を使う全箇所（中央画像cue・オーバーレイ）の既定。
+// buildEditorAdjust の素材版（commit先＝/api/editor/asset-setopts・hideは無し）。
+function buildAssetAdjust(asset){
+  const wrap=document.createElement('div'); wrap.className='adjust';
+  const crop=document.createElement('div'); crop.className='crop';
+  const u=(asset&&asset.file)?('/img-file/'+encodeURIComponent(asset.file)):null;
+  crop.innerHTML=u?('<img src="'+u+'">'):'<div class="hint" style="display:flex;height:100%;align-items:center;justify-content:center">画像なし</div>';
+  const rectEl=document.createElement('div'); rectEl.className='croprect'; rectEl.style.display='none'; crop.appendChild(rectEl);
+  const imgEl=crop.querySelector('img');
+  const ctl=document.createElement('div'); ctl.className='ctl';
+  const commit=async(opts)=>{ const r=await enqueueEditorWrite(()=>api('/api/editor/asset-setopts',{data:DATA, assetId:asset.id, opts}));
+    if(r&&r.ok){ DATA=r.data; markVisualStale(); rerenderAssets(); } else alert('調整の保存に失敗: '+((r&&r.message)||'不明')); };
+  // fit
+  const fr=document.createElement('div'); fr.className='row'; fr.innerHTML='<span class="hint">収め方</span>';
+  const fit=document.createElement('select');
+  fit.innerHTML='<option value="">自動（種別で決定）</option><option value="cover">cover：枠を埋める</option><option value="contain">contain：全体を収める</option>';
+  fit.value=asset.fit||''; fit.onchange=()=>commit({fit:fit.value||null}); fr.appendChild(fit);
+  // filters
+  const filt=document.createElement('div'); filt.className='filters';
+  const fb=mkrange(0.3,1.5,0.05,(asset.filter&&asset.filter.brightness)||1);
+  const fc=mkrange(0.5,1.5,0.05,(asset.filter&&asset.filter.contrast)||1);
+  const fg=mkrange(0,1,0.05,(asset.filter&&asset.filter.grayscale)||0);
+  filt.innerHTML='<span>明るさ</span>'; filt.appendChild(stepWrap(fb));
+  filt.insertAdjacentHTML('beforeend','<span>コントラスト</span>'); filt.appendChild(stepWrap(fc));
+  filt.insertAdjacentHTML('beforeend','<span>白黒</span>'); filt.appendChild(stepWrap(fg));
+  const curFilter=()=>({brightness:+fb.value,contrast:+fc.value,grayscale:+fg.value});
+  const liveFilter=()=>{ if(imgEl) imgEl.style.filter=cssFilter(curFilter()); };
+  [fb,fc,fg].forEach(s=>{ s.oninput=liveFilter; s.onchange=()=>commit({filter:curFilter()}); });
+  if(imgEl) imgEl.style.filter=cssFilter(asset.filter);
+  const fclr=document.createElement('button'); fclr.className='mini'; fclr.textContent='補正解除';
+  fclr.onclick=()=>{ fb.value=1; fc.value=1; fg.value=0; if(imgEl)imgEl.style.filter=''; commit({filter:null}); };
+  // 余白/背景（中央画像のcontain時に効く。オーバーレイには無影響）
+  const r2=document.createElement('div'); r2.className='row'; r2.innerHTML='<span class="hint">余白(px)</span>';
+  const pad=document.createElement('input'); pad.type='number'; pad.min=0; pad.max=400; pad.step=4; pad.value=asset.pad||0; pad.style.width='62px';
+  pad.onchange=()=>commit({pad:parseInt(pad.value)||0});
+  const bg=document.createElement('input'); bg.type='color'; bg.value=asset.bg||'#eef1f5'; bg.title='余白の背景色';
+  bg.onchange=()=>commit({bg:bg.value});
+  const bgc=document.createElement('button'); bgc.className='mini'; bgc.textContent='余白色クリア'; bgc.onclick=()=>commit({bg:null});
+  r2.appendChild(pad); r2.appendChild(bg); r2.appendChild(bgc);
+  const cclr=document.createElement('button'); cclr.className='mini'; cclr.textContent='クロップ解除'; cclr.onclick=()=>commit({crop:null});
+  const clrRow=document.createElement('div'); clrRow.className='row'; clrRow.appendChild(cclr); clrRow.appendChild(fclr);
+  const hint=document.createElement('div'); hint.className='hint'; hint.textContent='画像をドラッグ＝クロップ。この素材を使う全箇所（中央画像・オーバーレイ）の既定・即時保存。中央画像はcue側で個別調整すればそちらが優先。';
+  ctl.appendChild(fr); ctl.appendChild(filt); ctl.appendChild(r2); ctl.appendChild(clrRow); ctl.appendChild(hint);
+  wrap.appendChild(crop); wrap.appendChild(ctl);
+  function drawCrop(){ if(!asset.crop||!imgEl){ rectEl.style.display='none'; return; }
+    const box=crop.getBoundingClientRect(), rr=contentRect(imgEl,box);
+    rectEl.style.display='block'; rectEl.style.left=(rr.x+asset.crop.l*rr.w)+'px'; rectEl.style.top=(rr.y+asset.crop.t*rr.h)+'px';
+    rectEl.style.width=((asset.crop.r-asset.crop.l)*rr.w)+'px'; rectEl.style.height=((asset.crop.b-asset.crop.t)*rr.h)+'px'; }
+  if(imgEl){ const sched=()=>requestAnimationFrame(drawCrop);
     if(imgEl.complete) sched(); else imgEl.onload=sched;
     bindCropDrag(crop,imgEl,rectEl,(c)=>commit({crop:c}),drawCrop); }
   return wrap;

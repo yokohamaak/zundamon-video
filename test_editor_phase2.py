@@ -80,6 +80,27 @@ def test_asset_usage_includes_overlays():
        "imageOverlays" not in d["script"][0] and not em.find_asset(d, a["id"]))
 
 
+def test_asset_opts_fallback_and_cue_override():
+    d = _data()
+    a = em.add_asset(d, file="x.jpg")
+    em.set_asset_opts(d, a["id"], crop={"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.9},
+                      filter={"brightness": 1.2}, fit="contain")
+    c = em.add_cue(d, "turn-0001", a["id"])
+    ab = {a["id"]: a}
+    res = em._resolve_cue(c, ab)
+    ok("素材のcrop/filter/fitがcueへフォールバック",
+       res.get("crop") == {"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.9}
+       and res.get("filter") == {"brightness": 1.2} and res.get("fit") == "contain")
+    em.set_cue_opts(d, c["id"], crop={"l": 0, "t": 0, "r": 0.5, "b": 0.5})
+    res2 = em._resolve_cue(em.find_cue(d, c["id"]), ab)
+    ok("cue側調整があればそちらが優先", res2["crop"] == {"l": 0, "t": 0, "r": 0.5, "b": 0.5})
+    try:
+        em.set_asset_opts(d, "asset-missing", crop=None)
+        ok("存在しないassetのopts設定を拒否", False)
+    except ValueError:
+        ok("存在しないassetのopts設定を拒否", True)
+
+
 def test_unused_vs_broken_distinction():
     d = _data()
     a = em.add_asset(d, file="x.jpg")      # 未使用
@@ -1286,6 +1307,7 @@ if __name__ == "__main__":
     test_switch_success_atomic_and_idempotent()
     test_switch_preserves_theme_and_script()
     test_asset_usage_includes_overlays()
+    test_asset_opts_fallback_and_cue_override()
     test_asset_api_roundtrip()
     test_hide_cue_continuation_lifecycle()
     test_hide_with_asset_unhide_keeps_cue()

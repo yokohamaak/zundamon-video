@@ -377,6 +377,10 @@ def _resolve_overlays(turn, assets_by):
             o["size"] = float(ov["size"])
         if ov.get("frame") is False:   # 枠/影なし（透過画像向け）。既定(あり)は省略。
             o["frame"] = False
+        if a.get("crop"):              # 素材ライブラリのクロップ/補正をオーバーレイにも適用
+            o["crop"] = a["crop"]
+        if a.get("filter"):
+            o["filter"] = a["filter"]
         out.append(o)
     return out or None
 

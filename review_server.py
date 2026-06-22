@@ -1048,6 +1048,26 @@ def do_asset_delete(body):
     return {"ok": True, "data": norm, "removedCues": removed}
 
 
+def do_asset_setopts(body):
+    """素材そのものの表示調整(fit/crop/filter/pad/bg)を更新（editor権威のときのみ）。
+
+    設定はその素材を使う全箇所（中央画像cue・オーバーレイ）の既定になる（cue側調整が優先）。
+    Returns: {ok, data?} か {ok:False, message}。
+    """
+    from src import editor_model
+    data = body.get("data") or {}
+    if data.get("editorModelAuthority") != "editor":
+        return {"ok": False, "message": "editor権威ではありません"}
+    try:
+        editor_model.set_asset_opts(data, body.get("assetId"), **(body.get("opts") or {}))
+    except ValueError as e:
+        return {"ok": False, "message": str(e)}
+    ok, msg, norm = _save_editor_data(data)
+    if not ok:
+        return {"ok": False, "message": msg}
+    return {"ok": True, "data": norm}
+
+
 def do_cue_op(body):
     """imageCue の編集操作を editor_model の共通opへ集約して適用・保存する（editor権威のみ）。
 
@@ -2248,6 +2268,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/editor/asset-delete":
             self._json(do_asset_delete(body))
+            return
+        if path == "/api/editor/asset-setopts":
+            self._json(do_asset_setopts(body))
             return
         if path == "/api/editor/cue-op":
             self._json(do_cue_op(body))

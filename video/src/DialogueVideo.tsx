@@ -1,6 +1,8 @@
 import {
   AbsoluteFill,
   Audio,
+  continueRender,
+  delayRender,
   Img,
   interpolate,
   Sequence,
@@ -8,6 +10,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { useEffect, useState } from "react";
 import { useAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
 import { ParallaxImage } from "./ParallaxImage";
@@ -812,6 +815,46 @@ const CalloutOverlay: React.FC<{
   );
 };
 
+// オーバーレイ画像本体。素材ライブラリの crop/filter（asset設定）を適用する。
+// crop は表示アスペクトに元画像の縦横比が要るため delayRender でロードして実測してから描く。
+const OverlayImage: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"]>[number] }> = ({ ov }) => {
+  const flt = ov.filter;
+  const filter = flt
+    ? `brightness(${flt.brightness ?? 1}) contrast(${flt.contrast ?? 1}) grayscale(${flt.grayscale ?? 0})`
+    : undefined;
+  const crop = ov.crop;
+  const [aspect, setAspect] = useState<number | null>(null);
+  useEffect(() => {
+    if (!crop) return;
+    const h = delayRender("overlay-crop");
+    const img = new Image();
+    img.onload = () => { setAspect(img.naturalWidth / Math.max(1, img.naturalHeight)); continueRender(h); };
+    img.onerror = () => { setAspect(1); continueRender(h); };
+    img.src = staticFile(ov.image);
+  }, [crop, ov.image]);
+  if (!crop) {
+    return <Img src={staticFile(ov.image)} style={{ width: "100%", height: "auto", display: "block", filter }} />;
+  }
+  if (aspect == null) return null;   // 実測待ち（delayRender が継続を保留）
+  const cw = Math.max(0.02, crop.r - crop.l), ch = Math.max(0.02, crop.b - crop.t);
+  return (
+    <div style={{ position: "relative", width: "100%", aspectRatio: (aspect * cw) / ch, overflow: "hidden" }}>
+      <Img
+        src={staticFile(ov.image)}
+        style={{
+          position: "absolute",
+          width: `${(100 / cw).toFixed(3)}%`,
+          height: `${(100 / ch).toFixed(3)}%`,
+          left: `${(-crop.l * 100 / cw).toFixed(3)}%`,
+          top: `${(-crop.t * 100 / ch).toFixed(3)}%`,
+          objectFit: "fill",
+          filter,
+        }}
+      />
+    </div>
+  );
+};
+
 // スライドイン画像オーバーレイ（小演出）。dir 方向から入り→静止→同じ向きへ戻る（center=フェード）。
 // in/out=0.4秒（尺が短ければ尺の半分まで）。size=画面幅比（既定0.4）。端寄せで後ろの進行を邪魔しない。
 const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"]>[number] }> = ({ ov }) => {
@@ -839,7 +882,7 @@ const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"
   else transform = `translate(-50%, calc(-50% + ${off}%))`;
   return (
     <div style={{ ...base, transform, opacity }}>
-      <Img src={staticFile(ov.image)} style={{ width: "100%", height: "auto", display: "block" }} />
+      <OverlayImage ov={ov} />
     </div>
   );
 };

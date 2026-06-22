@@ -255,7 +255,13 @@ def test_resolve_overlays():
     assert "frame" not in m._resolve_overlays(
         {"text": "あいうえお", "start": 0.0, "end": 5.0,
          "imageOverlays": [{"assetId": "a1", "start": 0, "end": 5, "dir": "center"}]}, assets)[0]
-    print("  _resolve_overlays: 文字位置→秒・asset無し/逆転を除外・frame伝播 OK")
+    # 素材のcrop/filter（素材ライブラリ設定）はオーバーレイにも伝播。
+    cf = m._resolve_overlays(
+        {"text": "あいうえお", "start": 0.0, "end": 5.0,
+         "imageOverlays": [{"assetId": "a3", "start": 0, "end": 5, "dir": "left"}]},
+        {"a3": {"file": "c.jpg", "crop": {"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.9}, "filter": {"brightness": 1.2}}})
+    assert cf[0].get("crop") == {"l": 0.1, "t": 0.1, "r": 0.9, "b": 0.9} and cf[0].get("filter") == {"brightness": 1.2}, cf
+    print("  _resolve_overlays: 文字位置→秒・asset無し/逆転を除外・frame/crop/filter伝播 OK")
 
 
 def test_append_closing_chorus():

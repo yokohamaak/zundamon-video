@@ -564,6 +564,21 @@ def can_delete_asset(data, asset_id):
     return not asset_usage(data, asset_id)
 
 
+def set_asset_opts(data, asset_id, **opts):
+    """素材そのものの表示調整(fit/crop/filter/pad/bg)を更新する（0/None/空を区別して保持）。
+
+    ここで設定した調整は、その素材を使う全箇所（中央画像cue・オーバーレイ）の既定になる。
+    cue 側に同じ調整があればそちらが優先（_resolve_cue）。指定キーのみ上書き。
+    """
+    asset = find_asset(data, asset_id)
+    if asset is None:
+        raise ValueError(f"asset {asset_id} がありません")
+    for k in CUE_OPT_KEYS:
+        if k in opts:
+            asset[k] = opts[k]
+    return asset
+
+
 def delete_asset(data, asset_id, *, force=False):
     """素材を削除。参照（cue/オーバーレイ）があれば force 必須（明示的な一括解除）。
 
@@ -824,13 +839,18 @@ def _resolve_cue(cue, asset_by):
     asset = asset_by.get(cue.get("assetId"))
     if asset and asset.get("file"):
         res["image"] = asset["file"]
+        # 調整は cue 優先・無ければ asset（素材ライブラリ設定）をフォールバックに使う。
         if cue.get("fit"):
             res["fit"] = cue["fit"]
+        elif asset.get("fit"):
+            res["fit"] = asset["fit"]
         elif asset.get("kind") == "subject":
             res["fit"] = "contain"           # subjectは全体表示（legacyと同じ既定）
         for k in ("crop", "filter", "pad", "bg"):
             if cue.get(k):                    # 0/None/空は載せない（legacyの `if opt.get(k)` と一致）
                 res[k] = cue[k]
+            elif asset.get(k):                # cueに無ければ素材の既定
+                res[k] = asset[k]
         if asset.get("attribution"):
             res["credit"] = asset["attribution"]
     elif asset is not None:
