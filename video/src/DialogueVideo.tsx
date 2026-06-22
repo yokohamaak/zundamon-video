@@ -1777,7 +1777,8 @@ export const DialogueVideo: React.FC<{
         </>
       )}
 
-      {/* スライドイン画像オーバーレイ（小演出）。中央ビジュアル/立ち絵より前・字幕より後ろ（字幕は読めるまま）。 */}
+      {/* スライドイン画像オーバーレイ（小演出）。中央ビジュアル/立ち絵より前・字幕より後ろ（字幕は読めるまま）。
+          配置基準＝中央ビジュアル枠（画像エリア）。静止位置=エリア中央・サイズ=エリア幅比（編集プレビューと一致）。 */}
       {meta.script.flatMap((tn, ti) =>
         (tn.overlays ?? []).map((ov, oi) => (
           <Sequence
@@ -1786,7 +1787,9 @@ export const DialogueVideo: React.FC<{
             durationInFrames={Math.max(1, Math.round((ov.end - ov.start) * fps))}
             name={`overlay:${ov.dir}`}
           >
-            <SlideOverlay ov={ov} />
+            <div style={{ position: "absolute", left: visualLeft, top: visualTop, width: visualBoxW, height: visualBoxH }}>
+              <SlideOverlay ov={ov} />
+            </div>
           </Sequence>
         ))
       )}
