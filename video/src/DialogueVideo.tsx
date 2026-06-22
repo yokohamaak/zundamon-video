@@ -827,16 +827,16 @@ function effectState(
   const clamp = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
   switch (turn.effect) {
     case "zoom_punch":
-      // 開始0.5sで+8%→0へ減衰（グッと寄ってから落ち着く）＋集中線を一瞬バースト
+      // 開始0.5sで+8%→0へ減衰（グッと寄ってから落ち着く）。集中線は当面オフ（fx.focus=0）。
       fx.punchScale = interpolate(since, [0, 0.5], [0.08, 0], clamp);
-      fx.focus = interpolate(since, [0, 0.06, 0.4], [0, 1, 0], clamp);
+      fx.focus = 0;
       break;
     case "shake": {
-      // 開始0.8sで減衰する揺れ。sin/cosで決定論的に振動＋集中線。
+      // 開始0.8sで減衰する揺れ。sin/cosで決定論的に振動。集中線は当面オフ（fx.focus=0）。
       const env = interpolate(since, [0, 0.8], [1, 0], clamp);
       fx.shakeX = Math.sin(frame * 1.7) * 1.2 * env;
       fx.shakeY = Math.cos(frame * 2.3) * 1.2 * env;
-      fx.focus = interpolate(since, [0, 0.06, 0.5], [0, 0.85, 0], clamp);
+      fx.focus = 0;
       break;
     }
     case "flash":
