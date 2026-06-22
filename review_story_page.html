@@ -460,6 +460,7 @@ function tlColWidth(t){ return Math.max(72, Math.round(((t&&t.text||'').length)*
 function setTimelineZoom(key){ timelineLevel=key; timelineDetail=tlLevelOf(key).detail; localStorage.setItem('reviewTimelineZoom',key); renderTimeline(); }
 let selectedTextRange=null;  // {gi,start,end,text}。小演出タブの文字選択をボタン操作まで保持。
 let selectedOverlayId=null;  // 編集中のオーバーレイ画像ID（小演出タブ／タイムラインで選択中を強調）。
+let overlayPickerOpen=true;  // オーバーレイの素材ピッカーを既定で開く（必ず画像を選ぶため・畳み状態は保持）。
 // 編集モデル(Phase2)：素材ライブラリの状態。editor権威のときだけ素材タブを使う。
 let assetFilter='all';       // 'all' | 'used' | 'unused'
 // 素材ライブラリのAPI検索取得（Wikimedia/Pexels/Pixabay・無料枠）。候補はDLせずサムネ表示、採用時のみ取り込み。
@@ -2553,8 +2554,10 @@ function startOverlayResize(ev,gi,id,edge,group,bar){
 // 素材グリッド（このオーバーレイの画像を選択／差し替え）。折りたたみ表示。
 function assetOverlayPicker(tn,ov){
   const wrap=document.createElement('div'); wrap.style.marginBottom='6px';
-  const grid=document.createElement('div'); grid.style.cssText='display:none;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:5px;max-height:170px;overflow:auto;padding:4px 2px';
-  wrap.appendChild(vMini('画像を選ぶ/差し替え ▾',()=>{ grid.style.display=grid.style.display==='none'?'grid':'none'; }));
+  const grid=document.createElement('div'); grid.style.cssText='display:'+(overlayPickerOpen?'grid':'none')+';grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:5px;max-height:170px;overflow:auto;padding:4px 2px';
+  const tg=vMini('画像を選ぶ/差し替え '+(overlayPickerOpen?'▾':'▸'),()=>{ overlayPickerOpen=!overlayPickerOpen;
+    grid.style.display=overlayPickerOpen?'grid':'none'; tg.textContent='画像を選ぶ/差し替え '+(overlayPickerOpen?'▾':'▸'); });
+  wrap.appendChild(tg);
   (DATA.assets||[]).forEach(a=>{ const cur=a.id===ov.assetId;
     const card=document.createElement('div'); card.style.cssText='border:2px solid '+(cur?'#3fb6c8':'var(--line)')+';border-radius:6px;overflow:hidden;cursor:pointer;background:#0c0f15';
     card.title=(a.queryJa||a.query||a.id)+(a.file?'（クリックで設定）':'（未取得・使用不可）');
