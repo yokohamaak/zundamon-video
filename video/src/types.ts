@@ -81,10 +81,12 @@ export type Turn = {
   telopSize?: number;     // 大きさ倍率（既定1）
   telopX?: number;        // 位置x 0..1（未指定=上中央）
   telopY?: number;        // 位置y 0..1
-  telopDur?: "short" | "normal" | "long"; // 表示の長さ（既定normal）
+  telopDur?: "short" | "normal" | "long"; // 旧:表示の長さ（telopStart/Endへ移行・互換のため残置）
+  telopStart?: number;    // 表示区間の開始＝本文の文字位置（未指定=0）
+  telopEnd?: number;      // 表示区間の終了＝本文の文字位置（未指定=末尾）
   telopColor?: string;    // 文字色（既定 #ffd84d）
-  telopBg?: string;       // 背景色（既定 rgba(18,26,40,0.9)）
-  telopBorder?: string;   // 枠色（既定 #ffd84d）
+  telopBg?: string;       // 背景色（既定 transparent）
+  telopBorder?: string;   // 枠色（既定 transparent）
   // リアクション記号（任意・重ねがけ小演出）。発言頭で瞬間的に弾く（既定=話者側）。
   reaction?: string;
   reactionSize?: number;  // 大きさ倍率（既定1）

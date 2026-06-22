@@ -1084,21 +1084,29 @@ export const DialogueVideo: React.FC<{
   const containZoom = portrait ? 0.08 : 0.04;
   const containTransform = freezeImage ? "none" : `scale(${(1 + containZoom * kbProgress).toFixed(4)})` + fxTransform;
   const clampE = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
-  // キーワードテロップ（重ねがけ小演出）：telop を任意位置にポップ。大きさ/位置/長さ/色を指定可。
+  // キーワードテロップ（重ねがけ小演出）：telop を任意位置にポップ。表示区間は文字位置 telopStart/telopEnd（タイムラインでドラッグ）。
   const telopText = activeTurn?.telop ?? "";
-  const telopStart = activeTurn?.start ?? 0;
-  const telopDurSec = activeTurn?.telopDur === "short" ? 1.3 : activeTurn?.telopDur === "long" ? 1e6 : 2.6;
+  const _tts = activeTurn?.start ?? 0;
+  const _tte = activeTurn?.end ?? _tts;
+  const _ttlen = (activeTurn?.text ?? "").length || 1;
+  const _tcs = Math.max(0, Math.min(typeof activeTurn?.telopStart === "number" ? activeTurn.telopStart : 0, _ttlen));
+  const _tce = Math.max(_tcs + 1, Math.min(typeof activeTurn?.telopEnd === "number" ? activeTurn.telopEnd : _ttlen, _ttlen));
+  const telopStart = _tts + (_tte - _tts) * (_tcs / _ttlen);   // 文字位置→絶対秒（_point_time と同基準）
+  const telopShownEnd = _tts + (_tte - _tts) * (_tce / _ttlen);
+  const _tInEnd = Math.min(telopStart + 0.18, (telopStart + telopShownEnd) / 2);
+  const _tOutStart = Math.max(telopShownEnd - 0.3, (telopStart + telopShownEnd) / 2);
   const telopOp = telopText
-    ? interpolate(t, [telopStart, telopStart + 0.18], [0, 1], clampE) *
-      interpolate(t, [telopStart + telopDurSec, telopStart + telopDurSec + 0.3], [1, 0], clampE)
+    ? interpolate(t, [telopStart, _tInEnd], [0, 1], clampE) *
+      interpolate(t, [_tOutStart, telopShownEnd], [1, 0], clampE)
     : 0;
   const telopScale = telopText ? interpolate(t, [telopStart, telopStart + 0.16, telopStart + 0.42], [0.6, 1.08, 1], clampE) : 1;
   const telopFontPx = (portrait ? 46 : 56) * (activeTurn?.telopSize ?? 1);
   const telopX = typeof activeTurn?.telopX === "number" ? activeTurn.telopX : 0.5;
   const telopY = typeof activeTurn?.telopY === "number" ? activeTurn.telopY : (portrait ? 0.16 : 0.12);
   const telopColor = activeTurn?.telopColor || "#ffd84d";
-  const telopBg = activeTurn?.telopBg || "rgba(18,26,40,0.9)";
-  const telopBorder = activeTurn?.telopBorder || "#ffd84d";
+  const telopBg = activeTurn?.telopBg || "transparent";       // 既定は透過（枠/背景なし）
+  const telopBorder = activeTurn?.telopBorder || "transparent";
+  const telopHasBox = telopBg !== "transparent" || telopBorder !== "transparent";   // 箱（背景/枠）が見える時だけ影/枠を出す
   // リアクション記号（重ねがけ）：発言頭で弾けて消える。大きさ/位置/長さを指定可（既定=話者側）。
   const reactionText = activeTurn?.reaction ?? "";
   const rxStart = activeTurn?.start ?? 0;
@@ -1610,7 +1618,7 @@ export const DialogueVideo: React.FC<{
             opacity: telopOp,
             maxWidth: "86%",
             background: telopBg,
-            border: `3px solid ${telopBorder}`,
+            border: telopBorder !== "transparent" ? `3px solid ${telopBorder}` : "none",
             borderRadius: 12,
             padding: portrait ? "8px 20px" : "10px 30px",
             color: telopColor,
@@ -1619,8 +1627,8 @@ export const DialogueVideo: React.FC<{
             lineHeight: 1.25,
             textAlign: "center",
             whiteSpace: "pre-line",
-            textShadow: "0 2px 8px rgba(0,0,0,0.6)",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+            textShadow: "0 2px 10px rgba(0,0,0,0.85), 0 0 4px rgba(0,0,0,0.7)",
+            boxShadow: telopHasBox ? "0 4px 16px rgba(0,0,0,0.45)" : "none",
           }}
         >
           {telopText}

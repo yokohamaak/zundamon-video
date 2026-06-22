@@ -947,6 +947,7 @@ function splitTurn(tn,ta){
   if(ovA.length) tn.imageOverlays=ovA; else delete tn.imageOverlays;
   if(ovB.length){ let i=1; ovB.forEach(o=>o.id='ov'+(i++)); nt.imageOverlays=ovB; }   // 後半はID採番をリセット（重複回避）
   tn.text=a; ['start','end','sentences'].forEach(k=>delete tn[k]);
+  reconcileTelop(tn);   // 前半が短くなるのでテロップ区間をクランプ（telopは前半に残す）
   DATA.script.splice(DATA.script.indexOf(tn)+1,0,nt); render();
 }
 function delTurn(tn){ if(isManagedClosing(tn)){ alert('アウトロ（自動生成）は削除できません。文言は config の closing_lines / closing_chorus で変更してください。'); return; }
@@ -1127,6 +1128,17 @@ function vArea(val,ph,oninput){ const t=document.createElement('textarea'); t.va
   t.style.cssText='flex:1;min-width:160px;resize:vertical;font:inherit;line-height:1.4';
   t.oninput=()=>{ oninput(t.value); }; return t; }
 function vMini(txt,onclick){ const b=document.createElement('button'); b.className='mini'; b.textContent=txt; b.onclick=onclick; return b; }
+// ラベル＋コントロールを途中で改行させない1グループ（設定行のラベルとオブジェクトが分離するのを防ぐ）。
+function _grp(){ const s=document.createElement('span'); s.style.cssText='display:inline-flex;align-items:center;gap:4px;white-space:nowrap';
+  for(let i=0;i<arguments.length;i++){ const n=arguments[i]; s.appendChild(typeof n==='string'?document.createTextNode(n):n); } return s; }
+// CSS色文字列(#hex / rgba / transparent)→ {hex,a}。color input と不透明度スライダ用。
+function parseColor(v){ if(!v||v==='transparent') return {hex:'#000000',a:0};
+  let m=/^#([0-9a-fA-F]{6})$/.exec(v); if(m) return {hex:'#'+m[1].toLowerCase(),a:1};
+  m=/rgba?\(([^)]+)\)/i.exec(v); if(m){ const p=m[1].split(',').map(s=>parseFloat(s.trim())); const a=(p.length>3?p[3]:1);
+    const hex='#'+[p[0],p[1],p[2]].map(n=>('0'+Math.max(0,Math.min(255,Math.round(n||0))).toString(16)).slice(-2)).join(''); return {hex,a:isNaN(a)?1:a}; }
+  return {hex:'#000000',a:1}; }
+function toRgba(hex,a){ const m=/^#?([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(hex)||[];
+  const r=parseInt(m[1]||'0',16),g=parseInt(m[2]||'0',16),b=parseInt(m[3]||'0',16); return 'rgba('+r+','+g+','+b+','+(Math.round(a*100)/100)+')'; }
 // 演出のタイミングflagをセリフ単位で付け外し（同一値は章内で1発言に限定＝重複を外す）。
 function setUniqueFlag(ci,flag,value,tn,turnOn){
   (DATA.script||[]).forEach(t=>{ if(t.chapter===ci && t[flag]===value) delete t[flag]; });
@@ -1794,7 +1806,7 @@ function renderSimplePreview(viewport,tn,ci){
   if(tn.telop){ const tel=document.createElement('div'); tel.className='preview-telop';
     tel.textContent=tn.telop; tel.style.left=((tn.telopX!=null?tn.telopX:.5)*100)+'%';
     tel.style.top=((tn.telopY!=null?tn.telopY:.12)*100)+'%'; tel.style.color=tn.telopColor||'#ffd84d';
-    tel.style.background=tn.telopBg||'#121a28'; tel.style.borderColor=tn.telopBorder||'#ffd84d'; stage.appendChild(tel); }
+    tel.style.background=tn.telopBg||'transparent'; tel.style.borderColor=tn.telopBorder||'transparent'; stage.appendChild(tel); }
   const speaker=document.createElement('div'); speaker.className='preview-speaker'; speaker.style.background=speakerColor(tn.speaker||'');
   speaker.textContent=tn.speaker||''; stage.appendChild(speaker);
   const caption=document.createElement('div'); caption.className='preview-caption'; caption.textContent=tn.text||'(空のセリフ)'; stage.appendChild(caption);
@@ -2183,7 +2195,16 @@ function renderTimeline(){
   const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）','small-effects');
   DATA.script.forEach((tn,gi)=>{ const group=document.createElement('div'); group.className='tl-small-group'; group.style.gridColumn=(gi+1)+' / span 1';
     group.title='クリックして小演出を編集'; group.onclick=()=>{ rtab='small'; selectTurn(gi,false); };
-    if(tn.telop){ const b=document.createElement('div'); b.className='tl-small-effect telop'; b.textContent='テロップ: '+tn.telop; group.appendChild(b); }
+    if(tn.telop){ const len=Math.max(1,(tn.text||'').length);
+      const cs=Math.max(0,Math.min(typeof tn.telopStart==='number'?tn.telopStart:0,len));
+      const ce=Math.max(cs+1,Math.min(typeof tn.telopEnd==='number'?tn.telopEnd:len,len));
+      const b=document.createElement('div'); b.className='tl-small-effect telop';
+      b.style.left=(cs/len*100)+'%'; b.style.right='auto'; b.style.width=((ce-cs)/len*100)+'%';
+      b.textContent='テロップ: '+tn.telop;
+      const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始位置をドラッグ';
+      const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了位置をドラッグ';
+      hs.onpointerdown=e=>startTelopResize(e,gi,'s',group,b); he.onpointerdown=e=>startTelopResize(e,gi,'e',group,b);
+      b.appendChild(hs); b.appendChild(he); group.appendChild(b); }
     if(tn.reaction){ const b=document.createElement('div'); b.className='tl-small-effect reaction'; b.textContent='リアクション: '+tn.reaction; group.appendChild(b); }
     if(!tn.telop&&!tn.reaction&&gi===selGi){ const add=document.createElement('span'); add.className='tl-small-add'; add.textContent='＋小演出'; group.appendChild(add); }
     smallTrack.appendChild(group); });
@@ -2524,6 +2545,14 @@ function reconcileOverlays(tn){
   ovs=ovs.filter(o=>o.end>o.start);
   if(ovs.length) tn.imageOverlays=ovs; else delete tn.imageOverlays;
 }
+// テロップ表示区間（文字位置）を本文長へクランプ。本文が空なら指定を外す。
+function reconcileTelop(tn){
+  if(typeof tn.telopStart!=='number' && typeof tn.telopEnd!=='number') return;
+  const len=(tn.text||'').length;
+  if(!len){ delete tn.telopStart; delete tn.telopEnd; return; }
+  if(typeof tn.telopStart==='number') tn.telopStart=Math.max(0,Math.min(tn.telopStart,len-1));
+  if(typeof tn.telopEnd==='number') tn.telopEnd=Math.max((typeof tn.telopStart==='number'?tn.telopStart:0)+1,Math.min(tn.telopEnd,len));
+}
 
 function startOverlayResize(ev,gi,id,edge,group,bar){
   ev.preventDefault(); ev.stopPropagation();
@@ -2548,6 +2577,33 @@ function startOverlayResize(ev,gi,id,edge,group,bar){
       if(overlayOverlaps(tn,id,ns,ne)){ alert('他のオーバーレイと時間が重なります。重ならない範囲にしてください。'); revertView(); renderTimeline(); return; }
       ov.start=ns; ov.end=ne; selGi=gi; selectedOverlayId=id; markDirty(); markVisualStale(); renderTimeline(); renderRight();
     } else { revertView(); }
+  };
+  const cancel=()=>{ target=edge==='s'?original.start:original.end; finish(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
+}
+
+// テロップ表示区間（文字位置start/end）の端ドラッグ。表示時間＝この区間（本番は秒へ按分）。
+function startTelopResize(ev,gi,edge,group,bar){
+  ev.preventDefault(); ev.stopPropagation();
+  const tn=DATA.script[gi]; const len=(tn.text||'').length; if(!len)return;
+  const cs0=Math.max(0,Math.min(typeof tn.telopStart==='number'?tn.telopStart:0,len));
+  const ce0=Math.max(cs0+1,Math.min(typeof tn.telopEnd==='number'?tn.telopEnd:len,len));
+  const original={start:cs0,end:ce0}; let target=edge==='s'?cs0:ce0;
+  const handle=ev.currentTarget; handle.classList.add('dragging'); bar.classList.add('dragging'); document.body.classList.add('tl-resizing');
+  const dragLabel=document.createElement('span'); dragLabel.className='tl-drag-label'; bar.appendChild(dragLabel);
+  const update=()=>{ const start=edge==='s'?target:original.start, end=edge==='e'?target:original.end;
+    bar.style.left=(start/len*100)+'%'; bar.style.width=((end-start)/len*100)+'%';
+    dragLabel.textContent=(edge==='s'?'開始 ':'終了 ')+(target+1)+'文字目'; }; update();
+  const move=e=>{ const r=group.getBoundingClientRect();
+    const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*len);
+    target=edge==='s'?Math.max(0,Math.min(original.end-1,pos)):Math.max(original.start+1,Math.min(len,pos));
+    update(); };
+  const cleanup=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
+    document.removeEventListener('pointercancel',cancel); document.body.classList.remove('tl-resizing'); };
+  const finish=()=>{ cleanup();
+    const ns=edge==='s'?target:original.start, ne=edge==='e'?target:original.end;
+    if(ns!==original.start||ne!==original.end){ tn.telopStart=ns; tn.telopEnd=ne; selGi=gi; markDirty(); markVisualStale(); renderTimeline(); renderRight(); }
+    else { bar.classList.remove('dragging'); handle.classList.remove('dragging'); dragLabel.remove(); }
   };
   const cancel=()=>{ target=edge==='s'?original.start:original.end; finish(); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
@@ -2806,6 +2862,7 @@ function startEditLine(row,tn,tx){
       staleChanged=reconcileTextEffects(tn);
       reconcileVizPointPos(tn.vizPoints, origText, tn.text||'');   // 演出点の文字位置も編集差分に追従
       reconcileOverlays(tn);   // オーバーレイの文字位置も本文長へクランプ
+      reconcileTelop(tn);      // テロップ表示区間も本文長へクランプ
       if(!(tn.textEffects||[]).length) delete tn.textEffects;
     }
     const nd=document.createElement('div'); nd.className='tx'+(tn.text?'':' empty'); nd.textContent=tn.text||'(空・ダブルクリックで入力)';
@@ -2925,13 +2982,20 @@ function renderRight(){
   const sizeCtl=(row,key)=>{ const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1'; sl.value=(tn[key]!=null?tn[key]:1); sl.style.cssText='width:100px;vertical-align:middle';
     const sv=document.createElement('span'); sv.style.cssText='min-width:30px'; const show=()=>sv.textContent=(tn[key]!=null?tn[key]:1).toFixed(1)+'倍'; show();
     sl.oninput=()=>{ tn[key]=parseFloat(sl.value); show(); markDirty(); }; sl.onchange=()=>renderRight();
-    row.appendChild(document.createTextNode('大きさ')); row.appendChild(stepWrap(sl)); row.appendChild(sv); };
-  const durCtl=(row,key)=>{ row.appendChild(document.createTextNode('長さ'));
+    row.appendChild(_grp('大きさ',stepWrap(sl),sv)); };
+  const durCtl=(row,key)=>{ const g=_grp('長さ');
     [['short','短'],['normal','通常'],['long','長']].forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button'; b.className='vchip'+(((tn[key]||'normal')===v)?' on':''); b.textContent=t;
-      b.onclick=()=>{ if(v==='normal') delete tn[key]; else tn[key]=v; markDirty(); renderRight(); }; row.appendChild(b); }); };
+      b.onclick=()=>{ if(v==='normal') delete tn[key]; else tn[key]=v; markDirty(); renderRight(); }; g.appendChild(b); }); row.appendChild(g); };
   const colCtl=(row,label,key,def)=>{ const cp=document.createElement('input'); cp.type='color'; cp.value=tn[key]||def; cp.title=label;
     cp.oninput=()=>{ tn[key]=cp.value; markDirty(); }; cp.onchange=()=>renderRight();
-    row.appendChild(document.createTextNode(label)); row.appendChild(cp); row.appendChild(vMini('既',()=>{ delete tn[key]; markDirty(); renderRight(); })); };
+    row.appendChild(_grp(label,cp,vMini('既',()=>{ delete tn[key]; markDirty(); renderRight(); }))); };
+  // 色＋不透明度（透過可・既定=透過）。不透明度0で 'transparent'、それ以外は rgba で保存。
+  const colaCtl=(row,label,key)=>{ const cur=parseColor(tn[key]);
+    const cp=document.createElement('input'); cp.type='color'; cp.value=cur.hex; cp.title=label+'の色';
+    const op=document.createElement('input'); op.type='range'; op.min='0'; op.max='1'; op.step='0.05'; op.value=cur.a; op.title=label+'の不透明度'; op.style.cssText='width:60px;vertical-align:middle';
+    const apply=()=>{ const a=parseFloat(op.value); tn[key]=(a<=0)?'transparent':toRgba(cp.value,a); markDirty(); };
+    cp.oninput=apply; op.oninput=apply; cp.onchange=()=>renderRight(); op.onchange=()=>renderRight();
+    row.appendChild(_grp(label,cp,op,vMini('既',()=>{ delete tn[key]; markDirty(); renderRight(); }))); };
   // セクション1：テキスト範囲演出
   const sec1=document.createElement('div'); sec1.className='sec';
   sec1.appendChild(sectionHead('テキスト範囲演出',(tn.textEffects||[]).length));
@@ -2942,8 +3006,10 @@ function renderRight(){
   const tli=vArea(tn.telop,'要所の単語をポップ表示（空=なし・Enterで改行）',v=>{ if(v.trim())tn.telop=v; else delete tn.telop; markDirty(); });
   tli.rows=1; tli.style.width='100%'; tli.style.marginBottom='6px'; tli.onchange=()=>render();   // blurでプレビュー＋左の行バッジを反映
   sec2.appendChild(tli);
-  if(tn.telop){ const r2=ctlRow('大きさ/長さ'); sizeCtl(r2,'telopSize'); durCtl(r2,'telopDur'); sec2.appendChild(r2);
-    const r3=ctlRow('色'); colCtl(r3,'文字','telopColor','#ffd84d'); colCtl(r3,'背景','telopBg','#121a28'); colCtl(r3,'枠','telopBorder','#ffd84d'); sec2.appendChild(r3); }
+  if(tn.telop){ const r2=ctlRow('大きさ'); sizeCtl(r2,'telopSize'); sec2.appendChild(r2);
+    const r3=ctlRow('色'); colCtl(r3,'文字','telopColor','#ffd84d'); colaCtl(r3,'背景','telopBg'); colaCtl(r3,'枠','telopBorder'); sec2.appendChild(r3);
+    const th=document.createElement('div'); th.style.cssText='font-size:10px;color:var(--sub);margin:-2px 0 4px';
+    th.textContent='表示の長さ＝タイムライン「小演出（セリフ全体）」のテロップ帯を端ドラッグで指定。背景/枠は不透明度0で透過（既定）。'; sec2.appendChild(th); }
   smallPanel.appendChild(sec2);
   // セクション3：リアクション（per-line・重ねがけ）
   const sec3=document.createElement('div'); sec3.className='sec';
@@ -2977,7 +3043,7 @@ function renderRight(){
     if(tn.effect==='flash'){ const ff=document.createElement('div'); ff.style.cssText='position:absolute;inset:0;background:#fff;opacity:.45'; sp.appendChild(ff); }
     if(tn.telop){ const tx=(tn.telopX!=null?tn.telopX:0.5), ty=(tn.telopY!=null?tn.telopY:0.12);
       const tc=document.createElement('div');
-      tc.style.cssText='position:absolute;left:'+(tx*100)+'%;top:'+(ty*100)+'%;transform:translate(-50%,-50%);background:'+(tn.telopBg||'rgba(18,26,40,.9)')+';border:2px solid '+(tn.telopBorder||'#ffd84d')+';border-radius:8px;padding:'+(10*S2).toFixed(1)+'px '+(30*S2).toFixed(1)+'px;color:'+(tn.telopColor||'#ffd84d')+';font-weight:900;font-size:'+(56*(tn.telopSize||1)*S2).toFixed(1)+'px;line-height:1.25;white-space:pre-line;text-align:center;max-width:86%';
+      tc.style.cssText='position:absolute;left:'+(tx*100)+'%;top:'+(ty*100)+'%;transform:translate(-50%,-50%);background:'+(tn.telopBg||'transparent')+';border:2px solid '+(tn.telopBorder||'transparent')+';border-radius:8px;padding:'+(10*S2).toFixed(1)+'px '+(30*S2).toFixed(1)+'px;color:'+(tn.telopColor||'#ffd84d')+';font-weight:900;font-size:'+(56*(tn.telopSize||1)*S2).toFixed(1)+'px;line-height:1.25;white-space:pre-line;text-align:center;max-width:86%;text-shadow:0 2px 10px rgba(0,0,0,.85),0 0 4px rgba(0,0,0,.7)';
       tc.textContent=tn.telop; sp.appendChild(tc); }
     if(tn.reaction){ const isR=/ずんだ/.test(tn.speaker||''); const rxx=(tn.reactionX!=null?tn.reactionX:(isR?0.85:0.15)), rxy=(tn.reactionY!=null?tn.reactionY:0.24);
       const rc=document.createElement('div');

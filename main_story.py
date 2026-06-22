@@ -822,7 +822,8 @@ def append_closing_chorus(script_result, config, rotation=None):
         rotation = len(topic_history.used_themes(topic_history.genre_of(config)))
 
     # 作り直し前に、締め行へ人手で付けた小演出(テロップ/リアクション/声/間)をテキストで控え、新行へ引き継ぐ。
-    _CARRY = ("textEffects", "telop", "telopSize", "telopX", "telopY", "telopDur", "telopColor", "telopBg", "telopBorder",
+    _CARRY = ("textEffects", "telop", "telopSize", "telopX", "telopY", "telopDur", "telopStart", "telopEnd",
+              "telopColor", "telopBg", "telopBorder",
               "reaction", "reactionSize", "reactionX", "reactionY", "reactionDur", "voice", "pause")
     old_fx = {}
     for t in (script_result.get("script") or []):
