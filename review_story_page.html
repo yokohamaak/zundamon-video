@@ -236,6 +236,8 @@
           background:#1a212c; color:var(--sub); cursor:pointer; }
   .rtab.on { background:#2a2440; color:#c4a8ff; }
   .rtab.imgon { background:#23354f; color:#cfe0ff; }
+  /* この行にその要素が設定されている＝下線アクセント＋明るい文字（数字バッジの代わり） */
+  .rtab.has { color:#cdd6e2; box-shadow:inset 0 -2px 0 #4a9d6a; }
   .rhead { position:sticky; top:0; z-index:5; background:var(--bg); padding:2px 0 6px; margin-bottom:4px; border-bottom:1px solid var(--line); }
   .rinfo { font-size:11px; color:var(--sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sec { margin-bottom:14px; }
@@ -454,7 +456,7 @@ function isEditorAuthority(){ return !!(DATA && DATA.editorModelAuthority==='edi
 function rightTabs(authority, inViz, nseg, nassets){
   const editor=(authority==='editor');
   const tabs=[['image','画像']];                     // editor時はセリフ基準の新エディタ／legacyは旧UI
-  tabs.push(['viz', nseg?('大演出 '+nseg):'大演出']);
+  tabs.push(['viz','大演出']);   // 件数は出さない（この行に設定があるかはタブ色で示す）
   tabs.push(['small','小演出']);
   if(editor) tabs.push(['assets', nassets?('素材 '+nassets):'素材']);  // editorのみ素材ライブラリ
   tabs.push(['chapter','章']);
@@ -2429,8 +2431,13 @@ function renderRight(){
   const tabs=rightTabs((DATA||{}).editorModelAuthority, inViz, nseg, (DATA.assets||[]).length);
   let cur=rtab; if(!cur||!tabs.some(t=>t[0]===cur)) cur=rightDefaultTab((DATA||{}).editorModelAuthority, inViz);
   const tb=document.createElement('div'); tb.className='rtabs';
+  // この行に各要素が設定されているか＝タブ色で示す（画像=表示画像あり / 小演出=textEffects/テロップ/リアクション / 大演出=範囲内）。
+  const hasImg=editorAuth ? (()=>{ const p=computeImagePlan(); const e=p[selGi]; return !!(e&&e.image); })()
+                          : !!imgUrl(ci,(typeof tn.cut==='number'?tn.cut:0));
+  const hasSmall=(activeFx(tn).length>0)||!!tn.telop||!!tn.reaction;
+  const tabHas={ image:hasImg, viz:inViz, small:hasSmall };
   tabs.forEach(([k,label])=>{ const b=document.createElement('button');
-    b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):''); b.textContent=label;
+    b.className='rtab'+(cur===k?(k==='image'?' imgon':' on'):'')+(tabHas[k]?' has':''); b.textContent=label;
     b.onclick=()=>{ rtab=k; renderRight(); const rp=document.getElementById('rpane'); if(rp) rp.scrollTop=0; }; tb.appendChild(b); });
   // 選択中セリフを「章 / 話者 / 番号」で短く（タブとともにスクロール中も固定表示）。
   const info=document.createElement('div'); info.className='rinfo';
