@@ -63,6 +63,9 @@ const ReviewPlayer: React.FC<{meta: Meta}> = ({meta: initialMeta}) => {
     // 逆連携: 再生/シークの現在フレーム→セリフindexを逆算し editor 側へ通知（追従ハイライト用）。
     const player = ref.current;
     const onFrame: CallbackListener<"frameupdate"> = (e) => {
+      // 再生中のみ追従。mount時のフレーム0や editor→Player のシークechoで選択行/タイムラインが
+      // 先頭へ飛ぶのを防ぐ（保存→更新の再mountで先頭に戻る問題の原因）。
+      if (!player || !player.isPlaying()) return;
       const script = loadedMeta?.script;
       if (!script || !script.length) return;
       const t = (e.detail.frame ?? 0) / FPS;
