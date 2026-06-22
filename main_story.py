@@ -375,6 +375,8 @@ def _resolve_overlays(turn, assets_by):
         o = {"image": a["file"], "start": st, "end": en, "dir": ov.get("dir") or "left"}
         if ov.get("size") is not None:
             o["size"] = float(ov["size"])
+        if ov.get("frame") is False:   # 枠/影なし（透過画像向け）。既定(あり)は省略。
+            o["frame"] = False
         out.append(o)
     return out or None
 

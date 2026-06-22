@@ -827,7 +827,9 @@ const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"
   const sz = ov.size ?? 0.4;
   // 静止位置は常に中央。dir＝「登場方向」＝画面外のどこから中央へ入ってくるか（出は逆再生で戻る）。
   const off = (1 - p) * 200; // 中央から登場方向の画面外へ（自身サイズ比%・pで中央へスライドイン）
-  const base: React.CSSProperties = { position: "absolute", left: "50%", top: "50%", width: `${Math.round(sz * 100)}%`, borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" };
+  // frame!==false で枠（角丸＋影）。透過画像は frame:false で矩形の影が出ないようにする。
+  const framed = ov.frame !== false;
+  const base: React.CSSProperties = { position: "absolute", left: "50%", top: "50%", width: `${Math.round(sz * 100)}%`, ...(framed ? { borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" } : {}) };
   let transform: string;
   let opacity = 1;
   if (ov.dir === "center") { transform = "translate(-50%,-50%)"; opacity = p; }

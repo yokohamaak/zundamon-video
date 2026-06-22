@@ -2588,7 +2588,7 @@ function overlayPreview(tn,ov){
   const frame=document.createElement('div'); frame.style.cssText='position:absolute'; box.appendChild(frame);
   const img=document.createElement('img');
   if(asset&&asset.file) img.src='/img-file/'+encodeURIComponent(asset.file);
-  img.style.cssText='display:block;width:100%;height:auto;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.55)'; frame.appendChild(img);
+  img.style.cssText='display:block;width:100%;height:auto'+((ov.frame!==false)?';border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.55)':''); frame.appendChild(img);
   const handle=document.createElement('div'); handle.style.cssText='position:absolute;right:-7px;bottom:-7px;width:16px;height:16px;border-radius:50%;background:#3fb6c8;border:2px solid #fff;cursor:nwse-resize;z-index:3;touch-action:none'; frame.appendChild(handle);
   // 静止位置は常に中央（dirは登場方向＝本番でどこからスライドインするか）。プレビューは静止状態を中央表示。
   const layout=()=>{ const size=(ov.size!=null?ov.size:0.4); frame.style.width=(size*100)+'%';
@@ -2643,6 +2643,13 @@ function renderOverlaySection(tn){
       const sv=document.createElement('span'); sv.style.minWidth='42px'; const showSz=()=>sv.textContent=Math.round((ov.size!=null?ov.size:0.4)*100)+'%幅'; showSz();
       sl.oninput=()=>{ ov.size=parseFloat(sl.value); showSz(); markDirty(); }; sl.onchange=()=>{ markVisualStale(); renderRight(); };
       szr.appendChild(document.createTextNode('サイズ')); szr.appendChild(stepWrap(sl)); szr.appendChild(sv); item.appendChild(szr);
+      // 枠/影（角丸＋ドロップシャドウ）。透過画像は「なし」推奨。
+      const frw=document.createElement('div'); frw.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;color:var(--sub)';
+      frw.appendChild(document.createTextNode('枠/影'));
+      const fb=document.createElement('button'); fb.type='button'; fb.className='vchip'+((ov.frame!==false)?' on':''); fb.textContent=(ov.frame!==false)?'あり':'なし';
+      fb.onclick=()=>{ if(ov.frame===false) delete ov.frame; else ov.frame=false; markDirty(); markVisualStale(); renderRight(); }; frw.appendChild(fb);
+      const fh=document.createElement('span'); fh.textContent='透過画像はなし推奨'; fh.style.fontSize='10px'; frw.appendChild(fh);
+      item.appendChild(frw);
       item.appendChild(assetOverlayPicker(tn,ov));
       item.appendChild(overlayPreview(tn,ov));
       const ph=document.createElement('div'); ph.style.cssText='font-size:10px;color:var(--sub);margin-top:2px';

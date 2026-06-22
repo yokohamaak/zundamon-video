@@ -246,7 +246,16 @@ def test_resolve_overlays():
     out = m._resolve_overlays(turn, assets)
     assert out == [{"image": "ch_01_00.jpg", "start": 0.0, "end": 5.0, "dir": "left", "size": 0.4}], out
     assert m._resolve_overlays({"imageOverlays": []}, {}) is None
-    print("  _resolve_overlays: 文字位置→秒・asset無し/逆転を除外 OK")
+    # frame:False（枠/影なし・透過画像向け）は meta へ伝播。既定(あり)は省略。
+    fr = m._resolve_overlays(
+        {"text": "あいうえお", "start": 0.0, "end": 5.0,
+         "imageOverlays": [{"assetId": "a1", "start": 0, "end": 5, "dir": "center", "frame": False}]},
+        assets)
+    assert fr == [{"image": "ch_01_00.jpg", "start": 0.0, "end": 5.0, "dir": "center", "frame": False}], fr
+    assert "frame" not in m._resolve_overlays(
+        {"text": "あいうえお", "start": 0.0, "end": 5.0,
+         "imageOverlays": [{"assetId": "a1", "start": 0, "end": 5, "dir": "center"}]}, assets)[0]
+    print("  _resolve_overlays: 文字位置→秒・asset無し/逆転を除外・frame伝播 OK")
 
 
 def test_append_closing_chorus():
