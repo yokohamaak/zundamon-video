@@ -155,6 +155,16 @@ if (meta.audio) {
     metaChanged = true;
     console.log("[prep] BGM未配置のためスキップ");
   }
+  // 区間BGM：public に実ファイルが在る区間だけ残す（欠損ファイルでrenderが壊れない）。
+  if (Array.isArray(meta.audio.bgmSegments)) {
+    const before = meta.audio.bgmSegments.length;
+    meta.audio.bgmSegments = meta.audio.bgmSegments.filter((s) => present("bgm", s.file));
+    if (meta.audio.bgmSegments.length !== before) {
+      metaChanged = true;
+      console.log(`[prep] 未配置BGMの区間 ${before - meta.audio.bgmSegments.length}件をスキップ`);
+    }
+    if (!meta.audio.bgmSegments.length) meta.audio.bgmSegments = null;
+  }
   const se = meta.audio.se ?? {};
   for (const k of Object.keys(se)) {
     if (!present("se", se[k])) { delete se[k]; metaChanged = true; }
