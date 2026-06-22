@@ -2840,8 +2840,16 @@ function vizConfigEditor(seg){
   const field=(label,val,on)=>{ const w=document.createElement('label'); w.style.cssText='display:block;font-size:11px;color:var(--sub);margin:4px 0';
     w.appendChild(document.createTextNode(label)); const i=document.createElement('input'); i.type='text'; i.value=val||''; i.style.cssText='width:100%';
     i.onchange=()=>{ on(i.value); commit(); }; w.appendChild(i); return w; };
+  // 文字サイズ倍率（0.5〜2倍）。ドラッグ中は表示だけ更新し、確定時にだけ保存する。
+  const sizeField=(label,obj,key)=>{ const w=document.createElement('label'); w.style.cssText='display:flex;gap:6px;align-items:center;font-size:11px;color:var(--sub);margin:4px 0';
+    w.appendChild(document.createTextNode(label)); const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
+    sl.value=(obj[key]!=null?obj[key]:1); sl.style.flex='1'; sl.title='文字サイズ倍率';
+    const sv=document.createElement('span'); sv.style.cssText='min-width:32px;text-align:right'; const show=()=>sv.textContent=(obj[key]!=null?obj[key]:1).toFixed(1)+'倍'; show();
+    sl.oninput=()=>{ obj[key]=parseFloat(sl.value); show(); }; sl.onchange=()=>commit();
+    w.appendChild(sl); w.appendChild(sv); w.appendChild(vMini('既定',()=>{ delete obj[key]; commit(); })); return w; };
   const t=seg.type;
-  if(t==='quiz'){ cfg.quiz=cfg.quiz||{}; wrap.appendChild(field('問題文',cfg.quiz.question,v=>cfg.quiz.question=v)); wrap.appendChild(field('答え',cfg.quiz.answer,v=>cfg.quiz.answer=v)); }
+  if(t==='quiz'){ cfg.quiz=cfg.quiz||{}; wrap.appendChild(field('問題文',cfg.quiz.question,v=>cfg.quiz.question=v)); wrap.appendChild(field('答え',cfg.quiz.answer,v=>cfg.quiz.answer=v));
+    wrap.appendChild(sizeField('問いの大きさ',cfg.quiz,'questionSize')); wrap.appendChild(sizeField('答えの大きさ',cfg.quiz,'answerSize')); }
   else if(t==='stat'){ cfg.stat=cfg.stat||{}; wrap.appendChild(field('数値',cfg.stat.value,v=>cfg.stat.value=v)); wrap.appendChild(field('単位',cfg.stat.unit,v=>cfg.stat.unit=v)); wrap.appendChild(field('ラベル',cfg.stat.label,v=>cfg.stat.label=v)); }
   else if(t==='compare'){ cfg.compare=cfg.compare||{left:{},right:{}}; cfg.compare.left=cfg.compare.left||{}; cfg.compare.right=cfg.compare.right||{};
     wrap.appendChild(field('左ラベル',cfg.compare.left.label,v=>cfg.compare.left.label=v)); wrap.appendChild(field('右ラベル',cfg.compare.right.label,v=>cfg.compare.right.label=v)); }
