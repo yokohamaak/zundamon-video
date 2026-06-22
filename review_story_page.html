@@ -283,6 +283,8 @@
   .tl-body { min-width:900px; }
   .tl-row { display:grid; grid-template-columns:150px minmax(750px,1fr); min-height:42px;
             width:100%; border-bottom:1px solid #1c232e; }
+  /* セリフ見出し行は縦スクロールしても上部固定（下にスクロールしても列＝どのセリフか分かる） */
+  .tl-row.turns-row { position:sticky; top:0; z-index:8; background:#10141b; box-shadow:0 3px 8px rgba(0,0,0,.35); }
   .tl-label { position:sticky; left:0; z-index:7; display:flex; align-items:center; padding:0 12px;
               background:#12171f; border-right:1px solid #26303d; color:var(--fg); font-size:11px; font-weight:700; }
   .tl-track { display:grid; position:relative; align-items:center;
@@ -2053,7 +2055,7 @@ function renderTimeline(){
   const scroll=document.createElement('div'); scroll.className='tl-scroll'; scroll.onscroll=()=>{ timelineScrollLeft=scroll.scrollLeft; };
   const body=document.createElement('div'); body.className='tl-body'; body.style.width=timelineBodyWidth()+'px';
   scroll.appendChild(body); pane.appendChild(scroll);
-  const [turnRow,turnTrack]=timelineRow('セリフ');
+  const [turnRow,turnTrack]=timelineRow('セリフ','turns-row');   // 縦スクロールでも上部固定（sticky）
   const zMult=tlLevelOf(timelineLevel).mult;   // 詳細時は列幅に比例して文字も拡大（拡大しないと読めず縦線位置もズレるため）
   DATA.script.forEach((tn,gi)=>{ const c=document.createElement('div'); c.className='tl-turn'+(gi===selGi?' sel':'')+(timelineDetail?' detail':'');
     c.dataset.gi=gi; c.style.gridColumn=(gi+1)+' / span 1'; c.style.paddingLeft=TL_TURN_GUTTER+'px'; c.onclick=()=>selectTurn(gi,false);
