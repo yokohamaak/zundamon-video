@@ -840,7 +840,8 @@ function openAddTurnForm(refTn, row){
   const sp=document.createElement('select'); speakerOptions().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sp.appendChild(o); });
   const others=speakerOptions().filter(s=>s!==refTn.speaker); sp.value=others[0]||refTn.speaker||'';   // 既定は会話が交互になる相手話者
   const em=document.createElement('select'); EMOTIONS.forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; em.appendChild(o); }); em.value='normal';
-  top.appendChild(fl('話者',sp)); top.appendChild(fl('表情',em)); form.appendChild(top);
+  const posSel=document.createElement('select'); [['below','この行の下'],['above','この行の上']].forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; posSel.appendChild(o); });
+  top.appendChild(fl('話者',sp)); top.appendChild(fl('表情',em)); top.appendChild(fl('位置',posSel)); form.appendChild(top);
   const ta=document.createElement('textarea'); ta.rows=2; ta.placeholder='セリフ本文'; ta.style.width='100%'; form.appendChild(ta);
   const btns=document.createElement('div'); btns.style.cssText='display:flex;gap:6px';
   const ok=document.createElement('button'); ok.className='mini'; ok.textContent='追加';
@@ -849,7 +850,7 @@ function openAddTurnForm(refTn, row){
   ok.onclick=()=>{ const nt={ id:nextTurnId(), speaker:sp.value, emotion:em.value, text:ta.value.trim() };
     ['chapter','section','effect'].forEach(k=>{ if(refTn[k]!=null) nt[k]=refTn[k]; });   // 章/section/効果を引き継ぐ
     if(nt.chapter==null) nt.chapter=refTn.chapter||0;
-    const i=DATA.script.indexOf(refTn); DATA.script.splice(i+1,0,nt); markDirty();   // ターン数変化＝音声に影響（保存時にaudio-stale）
+    const i=DATA.script.indexOf(refTn); const at=(posSel.value==='above')?i:i+1; DATA.script.splice(at,0,nt); markDirty();   // 上/下に挿入・ターン数変化＝音声影響
     close(); render(); const ni=DATA.script.indexOf(nt); if(ni>=0) selectTurn(ni,false); };
   cancel.onclick=close; btns.appendChild(ok); btns.appendChild(cancel); form.appendChild(btns);
   row.parentNode.insertBefore(form, row.nextSibling); ta.focus();

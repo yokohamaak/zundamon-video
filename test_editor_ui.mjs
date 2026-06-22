@@ -373,7 +373,8 @@ t('セリフ追加: id採番(max+1)・話者候補・分割でなく挿入', () 
   assert.deepEqual(speakerOptions(), ['ずんだもん', '四国めたん'], 'データから話者候補');
   globalThis.DATA = { script: [] };
   assert.deepEqual(speakerOptions(), ['ずんだもん', '四国めたん'], '空ならデフォルト2話者');
-  assert.ok(/DATA\.script\.splice\(i\+1,0,nt\); markDirty\(\)/.test(html), '参照行の下に挿入(分割でない)＋音声影響でmarkDirty');
+  assert.ok(/\[\['below','この行の下'\],\['above','この行の上'\]\]/.test(html), '上/下の位置選択');
+  assert.ok(/const at=\(posSel\.value==='above'\)\?i:i\+1; DATA\.script\.splice\(at,0,nt\); markDirty\(\)/.test(html), '選んだ位置に挿入(分割でない)＋音声影響でmarkDirty');
   assert.ok(/id:nextTurnId\(\), speaker:sp\.value, emotion:em\.value/.test(html), '話者/表情を選んで新ターン生成');
 });
 t('既存行: 編集時に話者/表情セレクタを表示し即時反映・取消で復元', () => {
