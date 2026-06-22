@@ -107,7 +107,9 @@ export type Quiz = {
   answerBg?: string;      // CSS color（例 "#ffd84d"）
   answerBgOpacity?: number; // 0..1（既定 0.96）
   answerTextColor?: string; // 答えの文字色（既定 #1a1f2b）
-  boxWidth?: number;      // 問い土台/答えバナーの横幅（画面比 0.3..1・任意・無指定=内容に応じ自動）
+  boxWidth?: number;      // 問い土台/答えバナー共通の横幅（旧・フォールバック。画面比 0.3..1）
+  questionBoxWidth?: number; // 問い土台の横幅（画面比 0.3..1・任意・無指定=1行に収まる幅へ自動）
+  answerBoxWidth?: number;   // 答えバナーの横幅（同上）
   questionSize?: number;  // 問いの文字サイズ倍率（既定1）
   answerSize?: number;    // 答えの文字サイズ倍率（既定1）
 };

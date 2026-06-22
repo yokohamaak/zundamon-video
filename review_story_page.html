@@ -1182,17 +1182,20 @@ function vizContent(box, vh, ch, ci, onDel){
     // 答えが空＝「問題だけ表示」＝リビールしない（常に問いを出す）。
     const hasAns=!!(q.answer&&q.answer.trim());
     const revealed = hasAns && (!qSel ? true : (revGi==null ? true : selGi>=revGi));
-    const qbw=q.boxWidth?(Math.round(q.boxWidth*100)+'%'):null;  // 枠幅（任意）
+    // 枠幅：個別(question/answer)→共通(boxWidth)。未指定は max-content＝1行に収める（長文のみ折返し）。
+    const _qbwQ=(q.questionBoxWidth!=null?q.questionBoxWidth:q.boxWidth), _qbwA=(q.answerBoxWidth!=null?q.answerBoxWidth:q.boxWidth);
+    const wcssQ=(_qbwQ!=null?('width:'+Math.round(_qbwQ*100)+'%;max-width:92%'):'width:max-content;max-width:92%');
+    const wcssA=(_qbwA!=null?('width:'+Math.round(_qbwA*100)+'%;max-width:90%'):'width:max-content;max-width:90%');
     const prev=document.createElement('div'); prev.style.cssText='position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:'+pbg+';margin-bottom:6px'; const PW=(((document.getElementById('rpane')||{}).clientWidth)||480)-28, S=PW/1179;
     if(u){ const im=document.createElement('img'); im.src=u; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:'+pfit; prev.appendChild(im); }
     // ？・問い 土台パネル（中央）。幅/余白/文字は本番比率(1920基準)に合わせ、折り返し位置を一致させる。
-    const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:'+(30*S).toFixed(1)+'px '+(52*S).toFixed(1)+'px;box-sizing:border-box;'+(qbw?('width:'+qbw+';max-width:92%'):'max-width:92%');
+    const pnl=document.createElement('div'); pnl.style.cssText='position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:12px;padding:'+(30*S).toFixed(1)+'px '+(52*S).toFixed(1)+'px;box-sizing:border-box;'+wcssQ;
     const pbgl=document.createElement('div'); pbgl.style.cssText='position:absolute;inset:0;border-radius:12px;background:'+(q.bg||'#0f141e')+';opacity:'+(q.bgOpacity!=null?q.bgOpacity:0.62); pnl.appendChild(pbgl);
     const qm=document.createElement('div'); qm.style.cssText='position:relative;color:#ffd84d;font-weight:900;font-size:'+pv(34)+'px;line-height:1'; qm.textContent='？'; pnl.appendChild(qm);
     const qt=document.createElement('div'); qt.style.cssText='position:relative;color:'+(q.textColor||'#ffffff')+';font-weight:800;font-size:'+(56*(q.questionSize||1)*S).toFixed(1)+'px;text-align:center;white-space:pre-line'; qt.textContent=q.question||'問い'; pnl.appendChild(qt);
     if(!revealed) prev.appendChild(pnl);   // 答え前＝問いだけ
     // 答えバナー（下部）
-    const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:'+(12*S).toFixed(1)+'px '+(34*S).toFixed(1)+'px;box-sizing:border-box;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4);'+(qbw?('width:'+qbw+';max-width:92%'):'max-width:90%');
+    const ans=document.createElement('div'); ans.style.cssText='position:absolute;left:50%;bottom:8%;transform:translateX(-50%);border-radius:9px;padding:'+(12*S).toFixed(1)+'px '+(34*S).toFixed(1)+'px;box-sizing:border-box;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.4);'+wcssA;
     const abgl=document.createElement('div'); abgl.style.cssText='position:absolute;inset:0;border-radius:9px;background:'+(q.answerBg||'#ffd84d')+';opacity:'+(q.answerBgOpacity!=null?q.answerBgOpacity:0.96); ans.appendChild(abgl);
     const at=document.createElement('div'); at.style.cssText='position:relative;color:'+(q.answerTextColor||'#1a1f2b')+';font-weight:900;font-size:'+(66*(q.answerSize||1)*S).toFixed(1)+'px;text-align:center;white-space:pre-line'; at.textContent=q.answer||'答え'; ans.appendChild(at);
     if(revealed) prev.appendChild(ans);   // 答え以降＝答えバナー
@@ -3115,10 +3118,13 @@ function vizConfigEditor(seg){
     wrap.appendChild(bgRow('問いの背景',q,'#0f141e',0.62)); wrap.appendChild(colorRow('問いの文字色',q,'textColor','#ffffff'));
     wrap.appendChild(bgRow('答えの背景',q,'#ffd84d',0.96,'answerBg','answerBgOpacity')); wrap.appendChild(colorRow('答えの文字色',q,'answerTextColor','#1a1f2b'));
     wrap.appendChild(sizeField('問いの大きさ',q,'questionSize')); wrap.appendChild(sizeField('答えの大きさ',q,'answerSize'));
-    // ボックス幅（％・未指定=自動）
-    const wr=dRow('ボックス幅'); const wsl=document.createElement('input'); wsl.type='range'; wsl.min='0.3'; wsl.max='1'; wsl.step='0.05'; wsl.value=(q.boxWidth!=null?q.boxWidth:0.8); wsl.style.flex='1';
-    const wsv=document.createElement('span'); wsv.style.cssText='min-width:40px;text-align:right'; const wsh=()=>wsv.textContent=(q.boxWidth!=null?Math.round(q.boxWidth*100)+'%':'自動'); wsh();
-    wsl.oninput=()=>{ q.boxWidth=parseFloat(wsl.value); wsh(); }; wsl.onchange=commit; wr.appendChild(wsl); wr.appendChild(wsv); wr.appendChild(vMini('自動',()=>{ delete q.boxWidth; commit(); })); wrap.appendChild(wr); }
+    // ボックス幅（問い/答え個別・％・未指定=自動＝1行に収まる幅）。旧boxWidthがあれば初期値に流用。
+    const widthRow=(label,key)=>{ const r=dRow(label); const cur=(q[key]!=null?q[key]:q.boxWidth);
+      const sl=document.createElement('input'); sl.type='range'; sl.min='0.3'; sl.max='1'; sl.step='0.05'; sl.value=(cur!=null?cur:0.8); sl.style.flex='1';
+      const sv=document.createElement('span'); sv.style.cssText='min-width:40px;text-align:right'; const sh=()=>sv.textContent=(q[key]!=null?Math.round(q[key]*100)+'%':'自動'); sh();
+      sl.oninput=()=>{ q[key]=parseFloat(sl.value); sh(); }; sl.onchange=commit;
+      r.appendChild(sl); r.appendChild(sv); r.appendChild(vMini('自動',()=>{ delete q[key]; commit(); })); return r; };
+    wrap.appendChild(widthRow('問いの幅','questionBoxWidth')); wrap.appendChild(widthRow('答えの幅','answerBoxWidth')); }
   else if(t==='stat'){ const s=cfg.stat=cfg.stat||{};
     wrap.appendChild(field('数値',s.value,v=>s.value=v)); wrap.appendChild(field('単位',s.unit,v=>s.unit=v)); wrap.appendChild(field('ラベル',s.label,v=>s.label=v));
     wrap.appendChild(colorRow('強調色（数字）',s,'color','#ffd84d')); wrap.appendChild(sizeField('大きさ',s,'size',0.3,2)); wrap.appendChild(bgRow('背景',s,'#0f141e',0.5));

@@ -538,7 +538,11 @@ const QuizVisual: React.FC<{
   const panelOp = quiz.bgOpacity ?? 0.62;
   const qTextColor = quiz.textColor || "#fff";
   const ansTextColor = quiz.answerTextColor || "#1a1f2b";
-  const qBoxW = quiz.boxWidth ? `${Math.round(quiz.boxWidth * 100)}%` : undefined; // 枠の横幅（任意）
+  // 枠の横幅。個別(question/answer)→共通(boxWidth)の順。未指定は max-content＝1行に収まる幅（長文のみ折返し）。
+  const _qbwQ = quiz.questionBoxWidth ?? quiz.boxWidth;
+  const _qbwA = quiz.answerBoxWidth ?? quiz.boxWidth;
+  const qBoxW = _qbwQ != null ? `${Math.round(_qbwQ * 100)}%` : "max-content";
+  const aBoxW = _qbwA != null ? `${Math.round(_qbwA * 100)}%` : "max-content";
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       {/* リビール前：？＋問題を中央に。背後が写真でも黒板でも読めるよう半透明の角丸パネルに収める
@@ -565,7 +569,7 @@ const QuizVisual: React.FC<{
             borderRadius: 24,
             padding: portrait ? "24px 32px" : "30px 52px",
             width: qBoxW,
-            maxWidth: qBoxW ? "100%" : "92%",
+            maxWidth: _qbwQ != null ? "100%" : "92%",
             boxSizing: "border-box",
             overflow: "hidden",
           }}
@@ -614,7 +618,7 @@ const QuizVisual: React.FC<{
           transform: `translateY(${((1 - ansPop) * 20).toFixed(1)}px)`,
         }}
       >
-        <div style={{ position: "relative", overflow: "hidden", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.45)", padding: portrait ? "10px 26px" : "12px 34px", width: qBoxW, maxWidth: "100%", boxSizing: "border-box", textAlign: "center" }}>
+        <div style={{ position: "relative", overflow: "hidden", borderRadius: 14, boxShadow: "0 6px 20px rgba(0,0,0,0.45)", padding: portrait ? "10px 26px" : "12px 34px", width: aBoxW, maxWidth: _qbwA != null ? "100%" : "90%", boxSizing: "border-box", textAlign: "center" }}>
           {/* 答えバナーの背景（色＋不透明度・別レイヤー）。既定＝黄色のほぼ不透明。 */}
           <div style={{ position: "absolute", inset: 0, background: quiz.answerBg || "#ffd84d", opacity: quiz.answerBgOpacity ?? 0.96, borderRadius: 14 }} />
           <div style={{ position: "relative", color: ansTextColor, fontWeight: 900, fontSize: (portrait ? 50 : 66) * (quiz.answerSize ?? 1), textAlign: "center", lineHeight: 1.2, whiteSpace: "pre-line" }}>{quiz.answer}</div>
