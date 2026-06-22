@@ -336,6 +336,17 @@ t('左サムネ: editorはimageCues解決を使い、cue編集後に更新する
     'refreshLineThumbsはimageCues解決で更新');
 });
 
+t('画像選択: 画像タブにインライン素材ピッカー(クリックで即place)', () => {
+  // 旧: 素材タブで選択→画像タブで「選択素材に差し替え」の2段階。新: 画像タブで素材クリック＝即配置。
+  const fn = extractFn('assetPickerGrid');
+  assert.ok(/op:'place', turnId:tn\.id, assetId:a\.id/.test(fn), 'サムネクリックで即place(配置/差し替え)');
+  assert.ok(/curId/.test(fn) && /使用中/.test(fn), '現在使用中の素材を強調');
+  assert.ok(/addAssetFromFile/.test(fn), '＋追加タイルから素材取り込み');
+  const tab = extractFn('renderEditorImageTab');
+  assert.ok(/assetPickerGrid\(tn, startCue, entry\)/.test(tab), '画像タブがピッカーを描画');
+  assert.ok(!/選択素材に差し替え/.test(html), '旧「選択素材に差し替え」導線は廃止');
+});
+
 // --- runMigrate ---
 async function runTests() {
   // 即時保存を連続実行しても、開始・完了順が入れ替わらない。

@@ -2547,7 +2547,7 @@ function renderAssetTab(r){
   const assetIds=new Set(assets.map(a=>a.id));
   const brokenCues=(DATA.imageCues||[]).filter(c=>c.assetId!=null && !assetIds.has(c.assetId));
   const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin:2px 0 8px';
-  note.textContent='動画全体で使う画像素材。一覧・追加・削除ができます（セリフへの配置は次段で実装）。';
+  note.textContent='動画全体で使う画像素材の管理（追加・削除・未使用整理）。セリフへの配置は各セリフの「画像」タブで素材をクリックして行います。';
   r.appendChild(note);
   // 追加（ファイル）
   const addRow=document.createElement('div'); addRow.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
@@ -2701,6 +2701,41 @@ function editorFramePrev(entry){
   let css='width:100%;height:100%;object-fit:'+fit+';'; if(entry.filter)css+='filter:'+cssFilter(entry.filter)+';';
   if(fit==='contain'&&entry.bg)css+='background:'+entry.bg+';'; im.style.cssText=css; box.appendChild(im); return box;
 }
+// 画像タブ内の素材ピッカー：サムネをクリック＝即このセリフへ配置/差し替え（素材タブ往復・選択状態を廃止）。
+function assetPickerGrid(tn, startCue, entry){
+  const wrap=document.createElement('div');
+  const assets=DATA.assets||[];
+  const curId=(entry&&entry.asset&&entry.asset.id)||null;   // この行で今使われている素材
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:6px;max-height:240px;overflow:auto;padding:2px';
+  assets.forEach(a=>{
+    const cur=(a.id===curId);
+    const card=document.createElement('div');
+    card.style.cssText='border:2px solid '+(cur?'#5a8dd6':'var(--line)')+';border-radius:7px;overflow:hidden;background:#0c0f15;cursor:pointer';
+    card.title=(a.queryJa||a.query||a.id)+(a.file?'（クリックで配置）':'（未取得・配置不可）');
+    const th=document.createElement('div'); th.style.cssText='position:relative;width:100%;aspect-ratio:16/9;background:#11151c';
+    if(a.file){ const im=document.createElement('img'); im.src='/img-file/'+encodeURIComponent(a.file); im.style.cssText='width:100%;height:100%;object-fit:cover'; th.appendChild(im); }
+    else { th.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:var(--sub);font-size:10px">未取得</div>'; }
+    if(cur){ const m=document.createElement('span'); m.textContent='使用中'; m.style.cssText='position:absolute;left:3px;top:3px;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:rgba(40,70,120,.92);color:#bcd6ff'; th.appendChild(m); }
+    card.appendChild(th);
+    const cap=document.createElement('div'); cap.style.cssText='padding:3px 5px;font-size:10px;color:#cdd6e2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+    cap.textContent=(a.queryJa||a.query||'(名称なし)'); card.appendChild(cap);
+    card.onclick=async()=>{ if(!a.file){ alert('この素材はまだ画像が無いため配置できません。'); return; }
+      const ok=await cueOp({op:'place', turnId:tn.id, assetId:a.id}); if(ok) renderRight(); };   // クリック＝即配置/差し替え
+    grid.appendChild(card);
+  });
+  // ＋追加タイル（ファイルから素材追加→そのままクリックで配置）
+  const add=document.createElement('div'); add.style.cssText='border:2px dashed var(--line);border-radius:7px;display:flex;align-items:center;justify-content:center;min-height:64px;color:var(--sub);font-size:11px;cursor:pointer';
+  add.textContent='＋追加'; add.title='ファイルから素材を追加';
+  const fi=document.createElement('input'); fi.type='file'; fi.accept='image/*'; fi.style.display='none';
+  fi.onchange=()=>{ if(fi.files&&fi.files[0]) addAssetFromFile(fi.files[0]); fi.value=''; };
+  add.onclick=()=>fi.click(); grid.appendChild(add); wrap.appendChild(fi);
+  wrap.appendChild(grid);
+  if(!assets.length){ const e=document.createElement('div'); e.style.cssText='font-size:11px;color:var(--sub);margin-top:4px'; e.textContent='素材がありません。「＋追加」で取り込めます。'; wrap.appendChild(e); }
+  const mng=document.createElement('div'); mng.style.cssText='margin-top:6px';
+  mng.appendChild(vMini('素材を管理（名称・削除・未使用整理）→',()=>{ rtab='assets'; renderRight(); })); wrap.appendChild(mng);
+  return wrap;
+}
 function renderEditorImageTab(r,tn){
   const plan=computeImagePlan(); const entry=plan[selGi]; const startCue=cueAtJS(tn.id);
   const assets=DATA.assets||[];
@@ -2713,19 +2748,9 @@ function renderEditorImageTab(r,tn){
     status.appendChild(document.createTextNode(' ')); status.appendChild(vMini('開始セリフへ',()=>{ const c=findCueById(entry.cueId); const gi=c?turnGi(c.turnId):-1; if(gi>=0) selectTurn(gi); })); }
   else { status.textContent='ここから先、まだ画像がありません。'; }
   r.appendChild(status);
-  // 配置/差し替え
-  r.appendChild(lblDiv('画像を配置 / 差し替え（素材タブで選択した素材を使用）'));
-  const selA=selectedAssetId?assets.find(a=>a.id===selectedAssetId):null;
-  const prow=document.createElement('div'); prow.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px';
-  if(selA){ const t=document.createElement('div'); t.style.cssText='width:48px;height:30px;border-radius:4px;overflow:hidden;background:#11151c;flex:none';
-    if(selA.file){ const im=document.createElement('img'); im.src='/img-file/'+encodeURIComponent(selA.file); im.style.cssText='width:100%;height:100%;object-fit:cover'; t.appendChild(im); }
-    prow.appendChild(t); const nm=document.createElement('span'); nm.style.cssText='font-size:11px;color:#cdd6e2'; nm.textContent=(selA.queryJa||selA.query||selA.id); prow.appendChild(nm); }
-  else { const w=document.createElement('span'); w.style.cssText='font-size:11px;color:var(--sub)'; w.textContent='未選択'; prow.appendChild(w); }
-  prow.appendChild(vMini(startCue?'選択素材に差し替え':'選択素材をここに配置', async()=>{
-    if(!selectedAssetId){ alert('「素材」タブで使う素材を選んでください。'); return; }
-    const ok=await cueOp({op:'place', turnId:tn.id, assetId:selectedAssetId}); if(ok) renderRight(); }));
-  prow.appendChild(vMini('素材タブ→',()=>{ rtab='assets'; renderRight(); }));
-  r.appendChild(prow);
+  // 画像を選ぶ：素材グリッドをここに表示し、クリック＝即このセリフへ配置/差し替え（タブ往復・選択状態は不要）。
+  r.appendChild(lblDiv(startCue?'画像を差し替え（素材をクリックで即反映）':'画像を配置（素材をクリックで即反映）'));
+  r.appendChild(assetPickerGrid(tn, startCue, entry));
   // 画像なし(hide)
   const hrow=document.createElement('div'); hrow.style.cssText='margin-bottom:10px';
   hrow.appendChild(vMini((startCue&&startCue.hide)?'画像なしを解除':'このセリフから画像なし(黒板)', async()=>{
