@@ -357,6 +357,28 @@ def _resolve_viz_segments(meta_ch, idxs, turns, seg_start, seg_end, image_files,
     return [seg] if (len(seg) > 2) else []
 
 
+def _resolve_overlays(turn, assets_by):
+    """turn.imageOverlays（文字位置start/end・assetId・dir・size）を meta 用へ解決（純関数）。
+
+    start/end は本文文字位置→絶対秒（_point_time 按分）。assetId→assets の file。
+    file 無し / 逆転（end<=start）は除外。Returns: [{image,start,end,dir,size?}] or None。
+    """
+    out = []
+    for ov in (turn.get("imageOverlays") or []):
+        a = assets_by.get(ov.get("assetId"))
+        if not (a and a.get("file")):
+            continue
+        st = _point_time(turn, ov.get("start", 0))
+        en = _point_time(turn, ov.get("end", ov.get("start", 0)))
+        if en <= st:
+            continue
+        o = {"image": a["file"], "start": st, "end": en, "dir": ov.get("dir") or "left"}
+        if ov.get("size") is not None:
+            o["size"] = float(ov["size"])
+        out.append(o)
+    return out or None
+
+
 def _point_time(turn, pos):
     """Turn内の文字位置 pos を絶対秒へ線形按分（純関数）。start〜end を text 長で割る。
 
@@ -847,6 +869,7 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
     if len(turns) != len(base):
         raise ValueError(f"ターン数とタイムスタンプ数が不一致: {len(base)} != {len(turns)}")
 
+    assets_by = {a.get("id"): a for a in (script_result.get("assets") or [])}
     script = []
     for turn, t in zip(base, turns):
         merged = {**turn, "start": t["start"], "end": t["end"], "sentences": t["sentences"]}
@@ -859,6 +882,11 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
                 merged["textEffects"] = active
             else:
                 merged.pop("textEffects", None)
+        # スライドイン画像オーバーレイ（小演出）：文字位置→絶対秒へ解決し meta へ。raw は meta から外す。
+        ov = _resolve_overlays(merged, assets_by)   # merged は imageOverlays＋start/end/text を持つ
+        merged.pop("imageOverlays", None)
+        if ov:
+            merged["overlays"] = ov
         script.append(merged)
 
     # speakers の並び順 = 動画の画面配置（[0]=左 / [1]=右）。

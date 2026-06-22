@@ -812,6 +812,34 @@ const CalloutOverlay: React.FC<{
   );
 };
 
+// スライドイン画像オーバーレイ（小演出）。dir 方向から入り→静止→同じ向きへ戻る（center=フェード）。
+// in/out=0.4秒（尺が短ければ尺の半分まで）。size=画面幅比（既定0.4）。端寄せで後ろの進行を邪魔しない。
+const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"]>[number] }> = ({ ov }) => {
+  const { fps } = useVideoConfig();
+  const f = useCurrentFrame();
+  const clamp = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
+  const dur = Math.max(1, Math.round((ov.end - ov.start) * fps));
+  const inF = Math.min(Math.round(0.4 * fps), Math.floor(dur / 2));
+  const p = Math.min(
+    interpolate(f, [0, inF], [0, 1], clamp),
+    interpolate(f, [dur - inF, dur], [1, 0], clamp)
+  ); // 0..1 の可視度（イン↗・アウト↘の小さい方）
+  const sz = ov.size ?? 0.4;
+  const off = (1 - p) * 130; // 自身サイズ比%で画面外→静止位置へ
+  const base: React.CSSProperties = { position: "absolute", width: `${Math.round(sz * 100)}%`, borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" };
+  let pos: React.CSSProperties;
+  if (ov.dir === "center") pos = { left: "50%", top: "50%", transform: "translate(-50%,-50%)", opacity: p };
+  else if (ov.dir === "left") pos = { left: "3%", top: "50%", transform: `translate(${-off}%,-50%)` };
+  else if (ov.dir === "right") pos = { right: "3%", top: "50%", transform: `translate(${off}%,-50%)` };
+  else if (ov.dir === "top") pos = { top: "3%", left: "50%", transform: `translate(-50%,${-off}%)` };
+  else pos = { bottom: "3%", left: "50%", transform: `translate(-50%,${off}%)` };
+  return (
+    <div style={{ ...base, ...pos }}>
+      <Img src={staticFile(ov.image)} style={{ width: "100%", height: "auto", display: "block" }} />
+    </div>
+  );
+};
+
 // 重ねエフェクト（台本 turn.effect）。kenburns は基準（追加なし）。
 // zoom_punch/shake は中央画像 transform に合成、flash/glow_pulse は重ねレイヤーで表現。
 // ターン開始(turn.start)からの経過で発火・減衰させ、決定論的に（sin/cosで）算出する。
@@ -1745,6 +1773,20 @@ export const DialogueVideo: React.FC<{
             />
           </div>
         </>
+      )}
+
+      {/* スライドイン画像オーバーレイ（小演出）。中央ビジュアル/立ち絵より前・字幕より後ろ（字幕は読めるまま）。 */}
+      {meta.script.flatMap((tn, ti) =>
+        (tn.overlays ?? []).map((ov, oi) => (
+          <Sequence
+            key={`ov-${ti}-${oi}`}
+            from={Math.round((ov.start - clipStartSec) * fps)}
+            durationInFrames={Math.max(1, Math.round((ov.end - ov.start) * fps))}
+            name={`overlay:${ov.dir}`}
+          >
+            <SlideOverlay ov={ov} />
+          </Sequence>
+        ))
       )}
 
       {/* 字幕（最前面）：ほぼ白の角丸ボックス＋枠＋濃色太字。キーワードは黄色強調。
