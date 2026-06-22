@@ -404,6 +404,13 @@ t('BGM: 区間解決(初期=全体1本未設定/分割で後ろが新区間)・i
   assert.ok(/function bgmSplitAt/.test(html) && /function openBgmAssign/.test(html), '分割とBGM割当/フェードUI');
   assert.ok(/\/api\/bgm-list/.test(html), 'BGMファイル一覧API');
 });
+t('BGM管理: 全幅ライブラリ(追加/削除/試聴)の配線', () => {
+  assert.ok(/let bgmLibOpen=false/.test(html), 'BGMライブラリ全幅ビュー状態');
+  assert.ok(/if\(bgmLibOpen && isEditorAuthority\(\)\)\{ renderBgmLibrary\(m\)/.test(html), 'render内で全幅ビューへ分岐');
+  assert.ok(/function renderBgmLibrary/.test(html) && /function addBgmFromFile/.test(html) && /function deleteBgm/.test(html), '管理UI関数');
+  assert.ok(/\/api\/bgm-add/.test(html) && /\/api\/bgm-delete/.test(html), '追加/削除API');
+  assert.ok(/used\.has\(f\)/.test(html), '使用中は削除不可');
+});
 
 // --- runMigrate ---
 async function runTests() {

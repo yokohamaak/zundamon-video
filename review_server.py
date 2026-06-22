@@ -88,6 +88,51 @@ def list_bgm_files():
     return [f for f in sorted(os.listdir(root)) if os.path.splitext(f)[1].lower() in exts]
 
 
+def _safe_audio_ext(name):
+    ext = os.path.splitext(name or "")[1].lower()
+    return ext if ext in {".mp3", ".m4a", ".wav", ".ogg", ".aac"} else None
+
+
+def do_bgm_add(body):
+    """BGMファイルを video/assets/bgm/ へ追加（dataB64）。同名は連番回避。Returns {ok, files, file}。"""
+    name = os.path.basename((body.get("filename") or "").strip())
+    if not _safe_audio_ext(name):
+        return {"ok": False, "message": "対応音声(.mp3/.m4a/.wav/.ogg/.aac)を選んでください"}
+    try:
+        raw = base64.b64decode(body.get("dataB64") or "")
+    except Exception:
+        return {"ok": False, "message": "invalid base64"}
+    if not raw:
+        return {"ok": False, "message": "空のデータ"}
+    root = os.path.join(VIDEO_ASSETS_DIR, "bgm")
+    os.makedirs(root, exist_ok=True)
+    base, ext = os.path.splitext(name)
+    dest = os.path.join(root, name)
+    k = 1
+    while os.path.exists(dest):
+        dest = os.path.join(root, f"{base}_{k}{ext}")
+        k += 1
+    with open(dest, "wb") as f:
+        f.write(raw)
+    return {"ok": True, "files": list_bgm_files(), "file": os.path.basename(dest)}
+
+
+def do_bgm_delete(body):
+    """BGMファイルを削除。現 script.json の bgmSegments で使用中なら拒否（パストラバーサル防止）。"""
+    name = os.path.basename((body.get("file") or "").strip())
+    if not name:
+        return {"ok": False, "message": "ファイル名がありません"}
+    used = {s.get("bgm") for s in ((load_script() or {}).get("bgmSegments") or []) if s.get("bgm")}
+    if name in used:
+        return {"ok": False, "message": "このBGMは使用中です（タイムラインで外してから削除）"}
+    root = os.path.realpath(os.path.join(VIDEO_ASSETS_DIR, "bgm"))
+    rp = os.path.realpath(os.path.join(root, name))
+    if os.path.commonpath([rp, root]) != root or not os.path.isfile(rp):
+        return {"ok": False, "message": "見つかりません"}
+    os.remove(rp)
+    return {"ok": True, "files": list_bgm_files()}
+
+
 def avatar_manifest():
     """assets/avatars/<キャラ>/ のパーツ一覧をPlayerへ渡す。"""
     out = {}
@@ -2190,6 +2235,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/migrate-to-editor":
             # 編集モデルを「正」へ明示切替（自動では行わない・ユーザー操作のみ）。
             self._json(do_switch_to_editor())
+            return
+        if path == "/api/bgm-add":
+            self._json(do_bgm_add(body))
+            return
+        if path == "/api/bgm-delete":
+            self._json(do_bgm_delete(body))
             return
         if path == "/api/editor/asset-add":
             self._json(do_asset_add(body))

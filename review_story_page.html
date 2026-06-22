@@ -424,6 +424,7 @@
   <span id="authBadge" title="画像編集モデルの状態" style="display:none;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;"></span>
   <button id="migrateEditor" style="display:none" title="画像編集を「セリフ基準の編集モデル(assets/imageCues)」へ移行します（章単位の旧形式から変換）。動画の見た目は同じです。">編集モデルへ移行</button>
   <button id="assetLibBtn" style="display:none" title="画像素材の管理（追加・削除・未使用整理）を全幅で開きます。">素材ライブラリ</button>
+  <button id="bgmLibBtn" style="display:none" title="BGMファイルの管理（追加・削除・試聴）を全幅で開きます。割り当て・分割はタイムライン。">BGMライブラリ</button>
   <button class="ok" id="save">保存して更新</button>
 </header>
 <main id="main">読み込み中…</main>
@@ -491,19 +492,21 @@ async function runMigrate(confirmFn, saveFn, migrateFn, reloadFn, alertFn){
 function assetUsageMap(){ const m={}; (DATA&&DATA.imageCues||[]).forEach(c=>{ if(c.assetId!=null) m[c.assetId]=(m[c.assetId]||0)+1; }); return m; }
 function updateAuthorityUI(){
   const badge=document.getElementById('authBadge'), btn=document.getElementById('migrateEditor');
-  const libBtn=document.getElementById('assetLibBtn');
-  if(!badge||!btn||!DATA){ if(badge)badge.style.display='none'; if(btn)btn.style.display='none'; if(libBtn)libBtn.style.display='none'; return; }
+  const libBtn=document.getElementById('assetLibBtn'), bgmBtn=document.getElementById('bgmLibBtn');
+  if(!badge||!btn||!DATA){ if(badge)badge.style.display='none'; if(btn)btn.style.display='none'; if(libBtn)libBtn.style.display='none'; if(bgmBtn)bgmBtn.style.display='none'; return; }
   if(isEditorAuthority()){
     badge.style.display=''; badge.textContent='編集モデル: 新(editor)';
     badge.style.background='#1f3a2a'; badge.style.color='#7fd6a0';
     btn.style.display='none';
     if(libBtn){ libBtn.style.display=''; libBtn.classList.toggle('on',assetLibOpen); libBtn.textContent=assetLibOpen?'← 編集に戻る':'素材ライブラリ'; }
+    if(bgmBtn){ bgmBtn.style.display=''; bgmBtn.classList.toggle('on',bgmLibOpen); bgmBtn.textContent=bgmLibOpen?'← 編集に戻る':'BGMライブラリ'; }
   } else {
     badge.style.display=''; badge.textContent='編集モデル: 旧(legacy)';
     badge.style.background='#3a2f1f'; badge.style.color='#e0c07f';
     btn.style.display='';
-    assetLibOpen=false;   // legacyに素材ライブラリは無い
+    assetLibOpen=false; bgmLibOpen=false;   // legacyにライブラリは無い
     if(libBtn) libBtn.style.display='none';
+    if(bgmBtn) bgmBtn.style.display='none';
   }
 }
 // 編集モデルへ移行（authority切替）。確認→現DATAを保存→成功時のみ /api/migrate-to-editor。
@@ -526,6 +529,7 @@ async function reloadData(){
 let placeMode='telop';  // 小演出プレビューのクリック配置対象: 'telop' | 'reaction'
 let workspaceMode=localStorage.getItem('reviewWorkspaceMode')==='script'?'script':'effect';
 let assetLibOpen=false;   // 素材ライブラリの全幅ビュー（同一画面・DATAは1本のまま）
+let bgmLibOpen=false;     // BGMライブラリの全幅ビュー
 // 素材操作後の再描画：ライブラリ表示中は全画面を、通常時は右ペインを更新（同じ関数を両文脈で使う）。
 function rerenderAssets(){ if(assetLibOpen) render(); else renderRight(); }
 function applyWorkspaceMode(){
@@ -1582,6 +1586,7 @@ function render(){
   if(!DATA||!DATA.script||!DATA.script.length){ m.textContent='台本がありません'; return; }
   updateAuthorityUI();
   if(assetLibOpen && isEditorAuthority()){ renderAssetLibrary(m); return; }   // 素材ライブラリ全幅ビュー（DATAは1本）
+  if(bgmLibOpen && isEditorAuthority()){ renderBgmLibrary(m); return; }       // BGMライブラリ全幅ビュー
   if(selGi<0||selGi>=DATA.script.length) selGi=0;
   const tp=document.createElement('div'); tp.className='tp'+(workspaceMode==='script'?' mode-script':'');
   const left=document.createElement('div'); left.className='tp-left';
@@ -2706,6 +2711,33 @@ function renderAssetLibrary(host){
   renderAssetTab(wrap);   // 追加・削除・フィルタ・未使用整理（再描画は rerenderAssets が全幅/右ペインを切替）
   host.appendChild(wrap);
 }
+// BGMライブラリ全幅ビュー（追加・削除・▶試聴）。割り当て/分割/フェードはタイムライン側。
+function addBgmFromFile(file){ if(!file)return; const rd=new FileReader();
+  rd.onload=async()=>{ const r=await api('/api/bgm-add',{filename:file.name, dataB64:rd.result.split(',')[1]});
+    if(!r||!r.ok){ alert('追加に失敗: '+((r&&r.message)||'不明')); return; } BGM_FILES=r.files||null; render(); };
+  rd.readAsDataURL(file); }
+async function deleteBgm(file){ if(!confirm('「'+file+'」を削除しますか？'))return;
+  const r=await api('/api/bgm-delete',{file}); if(!r||!r.ok){ alert('削除に失敗: '+((r&&r.message)||'不明')); return; } BGM_FILES=r.files||null; render(); }
+function renderBgmLibrary(host){
+  const wrap=document.createElement('div'); wrap.style.cssText='max-width:900px;margin:0 auto;padding:10px 14px;height:100%;overflow-y:auto;box-sizing:border-box';
+  const bar=document.createElement('div'); bar.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:12px';
+  const back=document.createElement('button'); back.className='mini'; back.textContent='← 編集に戻る'; back.onclick=()=>{ bgmLibOpen=false; render(); };
+  const h=document.createElement('div'); h.style.cssText='font-size:16px;font-weight:800;color:#cdd6e2'; h.textContent='BGMライブラリ'; bar.appendChild(back); bar.appendChild(h); wrap.appendChild(bar);
+  const note=document.createElement('div'); note.style.cssText='font-size:11px;color:var(--sub);margin-bottom:8px'; note.textContent='BGMファイルの管理（追加・削除・試聴）。各セリフ区間への割り当て・分割・フェードはタイムラインのBGM行で行います。'; wrap.appendChild(note);
+  const addRow=document.createElement('div'); addRow.style.cssText='margin-bottom:10px';
+  const fi=document.createElement('input'); fi.type='file'; fi.accept='audio/*'; fi.style.display='none'; fi.onchange=()=>{ if(fi.files&&fi.files[0]) addBgmFromFile(fi.files[0]); fi.value=''; };
+  const addBtn=document.createElement('button'); addBtn.className='mini'; addBtn.textContent='＋ BGMを追加'; addBtn.onclick=()=>fi.click(); addRow.appendChild(addBtn); addRow.appendChild(fi); wrap.appendChild(addRow);
+  const listDiv=document.createElement('div'); wrap.appendChild(listDiv);
+  const used=new Set(((DATA&&DATA.bgmSegments)||[]).filter(s=>s.bgm).map(s=>s.bgm));
+  const fill=(files)=>{ listDiv.innerHTML=''; if(!files.length){ listDiv.textContent='BGMがありません。「＋ BGMを追加」で取り込めます。'; listDiv.style.cssText='font-size:12px;color:var(--sub)'; return; }
+    files.forEach(f=>{ const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px';
+      const nm=document.createElement('span'); nm.style.cssText='flex:1;font-size:13px;color:#cdd6e2'; nm.textContent='♪ '+f+(used.has(f)?'（使用中）':''); row.appendChild(nm);
+      let au=null; const play=document.createElement('button'); play.className='mini'; play.textContent='▶試聴'; play.onclick=()=>{ if(au){au.pause();au=null;play.textContent='▶試聴';return;} au=new Audio('/preview-assets/bgm/'+encodeURIComponent(f)); au.volume=0.5; au.play().catch(()=>{}); play.textContent='⏸停止'; au.onended=()=>{play.textContent='▶試聴';au=null;}; }; row.appendChild(play);
+      const del=document.createElement('button'); del.className='mini'; del.textContent='削除'; if(used.has(f)){ del.disabled=true; del.title='使用中は削除不可'; del.style.opacity='.5'; } else del.onclick=()=>deleteBgm(f); row.appendChild(del);
+      listDiv.appendChild(row); }); };
+  if(BGM_FILES){ fill(BGM_FILES); } else { loadBgmFiles(fill); }
+  host.appendChild(wrap);
+}
 function renderAssetTab(r){
   if(!isEditorAuthority()){ r.appendChild(document.createTextNode('編集モデルへ移行すると素材ライブラリが使えます。')); return; }
   const assets=DATA.assets||[]; const usage=assetUsageMap();
@@ -3434,6 +3466,7 @@ Promise.all([fetch('/api/script').then(r=>r.json()), fetch('/api/cuts').then(r=>
   updateAuthorityUI(); render(); updateSaveBtn();
 });
 const _migBtn=document.getElementById('migrateEditor'); if(_migBtn) _migBtn.onclick=migrateToEditor;
-const _libBtn=document.getElementById('assetLibBtn'); if(_libBtn) _libBtn.onclick=()=>{ if(!isEditorAuthority())return; assetLibOpen=!assetLibOpen; render(); };
+const _libBtn=document.getElementById('assetLibBtn'); if(_libBtn) _libBtn.onclick=()=>{ if(!isEditorAuthority())return; assetLibOpen=!assetLibOpen; bgmLibOpen=false; render(); };
+const _bgmLibBtn=document.getElementById('bgmLibBtn'); if(_bgmLibBtn) _bgmLibBtn.onclick=()=>{ if(!isEditorAuthority())return; bgmLibOpen=!bgmLibOpen; assetLibOpen=false; render(); };
 </script>
 </body></html>
