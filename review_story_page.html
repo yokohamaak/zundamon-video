@@ -828,6 +828,33 @@ function splitTurn(tn,ta){
 function delTurn(tn){ if(isManagedClosing(tn)){ alert('アウトロ（自動生成）は削除できません。文言は config の closing_lines / closing_chorus で変更してください。'); return; }
   const i=DATA.script.indexOf(tn); if(i>=0&&confirm('この発言を削除？')){ DATA.script.splice(i,1); render(); } }
 
+// 新規セリフ追加（分割ではなく挿入）。turn ID は server の assign_turn_ids と同形式で採番（max+1）。
+function nextTurnId(){ let mx=0; (DATA.script||[]).forEach(t=>{ const m=/^turn-(\d+)$/.exec((t&&t.id)||''); if(m){ const n=+m[1]; if(n>mx)mx=n; } }); return 'turn-'+String(mx+1).padStart(4,'0'); }
+function speakerOptions(){ const s=[...new Set((DATA.script||[]).map(t=>t&&t.speaker).filter(Boolean))]; if(!s.length) s.push('ずんだもん','四国めたん'); return s; }
+const EMOTIONS=[['normal','普通'],['happy','喜'],['sad','悲'],['surprise','驚'],['angry','怒']];
+// 指定セリフの「下」に新セリフを追加するインラインフォーム（話者・表情を選択）。
+function openAddTurnForm(refTn, row){
+  if(row._adding) return; row._adding=true;
+  const form=document.createElement('div'); form.style.cssText='margin:2px 0 10px 40px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#0f141b;display:flex;flex-direction:column;gap:6px';
+  const top=document.createElement('div'); top.style.cssText='display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap';
+  const sp=document.createElement('select'); speakerOptions().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sp.appendChild(o); });
+  const others=speakerOptions().filter(s=>s!==refTn.speaker); sp.value=others[0]||refTn.speaker||'';   // 既定は会話が交互になる相手話者
+  const em=document.createElement('select'); EMOTIONS.forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; em.appendChild(o); }); em.value='normal';
+  top.appendChild(fl('話者',sp)); top.appendChild(fl('表情',em)); form.appendChild(top);
+  const ta=document.createElement('textarea'); ta.rows=2; ta.placeholder='セリフ本文'; ta.style.width='100%'; form.appendChild(ta);
+  const btns=document.createElement('div'); btns.style.cssText='display:flex;gap:6px';
+  const ok=document.createElement('button'); ok.className='mini'; ok.textContent='追加';
+  const cancel=document.createElement('button'); cancel.className='mini'; cancel.textContent='キャンセル';
+  const close=()=>{ row._adding=false; form.remove(); };
+  ok.onclick=()=>{ const nt={ id:nextTurnId(), speaker:sp.value, emotion:em.value, text:ta.value.trim() };
+    ['chapter','section','effect'].forEach(k=>{ if(refTn[k]!=null) nt[k]=refTn[k]; });   // 章/section/効果を引き継ぐ
+    if(nt.chapter==null) nt.chapter=refTn.chapter||0;
+    const i=DATA.script.indexOf(refTn); DATA.script.splice(i+1,0,nt); markDirty();   // ターン数変化＝音声に影響（保存時にaudio-stale）
+    close(); render(); const ni=DATA.script.indexOf(nt); if(ni>=0) selectTurn(ni,false); };
+  cancel.onclick=close; btns.appendChild(ok); btns.appendChild(cancel); form.appendChild(btns);
+  row.parentNode.insertBefore(form, row.nextSibling); ta.focus();
+}
+
 // 画像のインライン調整パネル（fit/クロップ/補正/余白色/画像なし/差し替え/出典）。既存APIを使う。
 function buildAdjust(ci,k){
   const key=ci+'_'+k;
@@ -2285,10 +2312,12 @@ function lineRow(tn,gi,ch,ci,inViz,imgPlan){
   be.onclick=(e)=>{ e.stopPropagation(); const cur=row.querySelector('.tx'); if(cur) startEditLine(row,tn,cur); };
   const bs=document.createElement('button'); bs.textContent='分割'; bs.title='セリフを2つに分ける（編集中はカーソル位置）';
   bs.onclick=(e)=>{ e.stopPropagation(); splitTurn(tn, row.querySelector('textarea')); };
+  const ba=document.createElement('button'); ba.textContent='＋追加'; ba.title='このセリフの下に新しいセリフを追加（話者・表情を選択）';
+  ba.onclick=(e)=>{ e.stopPropagation(); openAddTurnForm(tn, row); };
   const sep=document.createElement('span'); sep.className='lacts-sep';
   const bd=document.createElement('button'); bd.className='del'; bd.textContent='削除'; bd.title='この発言を削除';
   bd.onclick=(e)=>{ e.stopPropagation(); delTurn(tn); };
-  la.appendChild(be); la.appendChild(bs); la.appendChild(sep); la.appendChild(bd);
+  la.appendChild(be); la.appendChild(bs); la.appendChild(ba); la.appendChild(sep); la.appendChild(bd);
   }
   row.onclick=()=>{
     const chg=(selGi!==gi);

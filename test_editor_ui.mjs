@@ -365,6 +365,18 @@ t('タブ: 大演出の件数を廃止し、設定有無を色(.has)で示す', 
   assert.ok(/\.rtab\.has\s*\{/.test(html), '.rtab.has のCSS');
 });
 
+t('セリフ追加: id採番(max+1)・話者候補・分割でなく挿入', () => {
+  const src = extractFn('nextTurnId') + '\n' + extractFn('speakerOptions');
+  new Function('g', src + '\n;g.nextTurnId=nextTurnId;g.speakerOptions=speakerOptions;')(globalThis);
+  globalThis.DATA = { script: [{ id: 'turn-0001', speaker: 'ずんだもん' }, { id: 'turn-0007', speaker: '四国めたん' }] };
+  assert.equal(nextTurnId(), 'turn-0008', 'max+1で4桁ゼロ詰め');
+  assert.deepEqual(speakerOptions(), ['ずんだもん', '四国めたん'], 'データから話者候補');
+  globalThis.DATA = { script: [] };
+  assert.deepEqual(speakerOptions(), ['ずんだもん', '四国めたん'], '空ならデフォルト2話者');
+  assert.ok(/DATA\.script\.splice\(i\+1,0,nt\); markDirty\(\)/.test(html), '参照行の下に挿入(分割でない)＋音声影響でmarkDirty');
+  assert.ok(/id:nextTurnId\(\), speaker:sp\.value, emotion:em\.value/.test(html), '話者/表情を選んで新ターン生成');
+});
+
 // --- runMigrate ---
 async function runTests() {
   // 即時保存を連続実行しても、開始・完了順が入れ替わらない。
