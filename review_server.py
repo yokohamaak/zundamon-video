@@ -79,6 +79,15 @@ def preview_asset_path(relative):
     return path if os.path.isfile(path) else None
 
 
+def list_bgm_files():
+    """video/assets/bgm/ 内の音声ファイル一覧（BGM選択用）。"""
+    root = os.path.join(VIDEO_ASSETS_DIR, "bgm")
+    if not os.path.isdir(root):
+        return []
+    exts = {".mp3", ".m4a", ".wav", ".ogg", ".aac"}
+    return [f for f in sorted(os.listdir(root)) if os.path.splitext(f)[1].lower() in exts]
+
+
 def avatar_manifest():
     """assets/avatars/<キャラ>/ のパーツ一覧をPlayerへ渡す。"""
     out = {}
@@ -2090,6 +2099,9 @@ class Handler(BaseHTTPRequestHandler):
                 from src import editor_model
                 data = editor_model.migrate(data, load_review())
             self._json(data if data else {"error": "script.json がありません（先に台本生成）"})
+            return
+        if path == "/api/bgm-list":
+            self._json({"files": list_bgm_files()})
             return
         if path == "/api/cuts":
             review = load_review()

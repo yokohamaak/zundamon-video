@@ -347,6 +347,9 @@
   /* replace/layout大演出に隠れる区間は薄く＝「設定済みだが演出で隠れる」ことを示す(plan 5.2) */
   .tl-bar.image.under-viz { opacity:.45; }
   .tl-bar.small { background:linear-gradient(90deg,#167f82,#25a6a0); }
+  .tl-bar.bgm { background:linear-gradient(90deg,#7a4fae,#9a6fce); }
+  .tl-bar.bgm.unset { background:repeating-linear-gradient(45deg,#2a3340,#2a3340 6px,#222a36 6px,#222a36 12px); color:#8693a5; }
+  .tl-bar.bgm.sel { outline:2px solid #d8c8ff; }
   .tl-row.small-effects { min-height:52px; }
   .tl-small-group { position:relative; height:46px; margin:3px; border-radius:5px; cursor:pointer; }
   .tl-small-group:hover { background:rgba(255,255,255,.035); }
@@ -1955,6 +1958,7 @@ function renderTimeline(){
       imgTrack.appendChild(b); });
     if(!spans.length){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='画像キューなし（画像/素材タブで配置）'; imgTrack.appendChild(e); }
     body.appendChild(imgRow);
+    renderBgmTrack(body);   // BGM行（editor）
   }
   if(isEditorAuthority()){ renderEditorVizTracks(body); } else {
   const [mainRow,mainTrack]=timelineRow('大演出（メイン）');
@@ -2096,6 +2100,91 @@ function startCueResize(ev,cueId,edge,bar){
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
 }
 // ===== Phase3 3-B：タイムラインの大演出/変化点を visualSegments/keyframes から描画・編集 =====
+// ===== BGMトラック（editor・turnアンカー区間。未設定=無音／分割・ドラッグ・ダブルクリックで割当+フェード） =====
+let selBgm=null;       // 選択中BGM区間のID（暗黙先頭はnull）
+let BGM_FILES=null;    // /api/bgm-list キャッシュ
+function loadBgmFiles(cb){ if(BGM_FILES){ cb(BGM_FILES); return; }
+  fetch('/api/bgm-list').then(r=>r.json()).then(d=>{ BGM_FILES=d.files||[]; cb(BGM_FILES); }).catch(()=>{ BGM_FILES=[]; cb([]); }); }
+function nextBgmId(){ let mx=0; ((DATA&&DATA.bgmSegments)||[]).forEach(s=>{ const m=/^bgm-(\d+)$/.exec((s&&s.id)||''); if(m){const n=+m[1]; if(n>mx)mx=n;} }); return 'bgm-'+String(mx+1).padStart(4,'0'); }
+// 区間を [0..n-1] を隙間なく覆う [{seg,s,e}] へ（segは未設定でnull可。先頭未設定は暗黙）。
+function bgmSpans(){ const idx=_turnIndexMap(); const n=((DATA&&DATA.script)||[]).length; if(!n) return [];
+  let arr=((DATA&&DATA.bgmSegments)||[]).map(s=>({s,si:idx[s.startTurnId]})).filter(x=>x.si!=null).sort((a,b)=>a.si-b.si);
+  const seen=new Set(); arr=arr.filter(x=>{ if(seen.has(x.si))return false; seen.add(x.si); return true; });
+  if(!arr.length||arr[0].si>0) arr.unshift({s:null,si:0});   // 必ず0始まり（先頭未設定）
+  return arr.map((x,k)=>({ seg:x.s, s:x.si, e:(k+1<arr.length?arr[k+1].si-1:n-1) }));
+}
+function bgmLabel(seg){ return (seg&&seg.bgm)?seg.bgm:'未設定'; }
+// 区間にBGM/フェードを適用（segが暗黙先頭ならその位置に区間を実体化）。fileが空なら未設定化。
+function bgmAssign(span, file, fadeIn, fadeOut){
+  let seg=span.seg;
+  if(!seg){ if(!file) return; seg={ id:nextBgmId(), startTurnId:DATA.script[span.s].id }; (DATA.bgmSegments=DATA.bgmSegments||[]).push(seg); selBgm=seg.id; }
+  if(file) seg.bgm=file; else delete seg.bgm;
+  if(fadeIn>0) seg.fadeIn=fadeIn; else delete seg.fadeIn;
+  if(fadeOut>0) seg.fadeOut=fadeOut; else delete seg.fadeOut;
+  markDirty();
+}
+function bgmSplitAt(gi){ if(gi<=0) return; const id=DATA.script[gi].id; const segs=(DATA.bgmSegments=DATA.bgmSegments||[]);
+  if(segs.some(s=>s.startTurnId===id)) return;   // 既に分割点
+  const seg={ id:nextBgmId(), startTurnId:id }; segs.push(seg); selBgm=seg.id; markDirty(); renderTimeline(); }   // 後ろ＝未設定
+function bgmDeleteSplit(seg){ if(!seg) return; DATA.bgmSegments=(DATA.bgmSegments||[]).filter(s=>s!==seg); if(selBgm===seg.id)selBgm=null; markDirty(); }
+function renderBgmTrack(body){
+  const [row,track]=timelineRow('BGM'); const spans=bgmSpans(); const n=((DATA&&DATA.script)||[]).length;
+  const lab=row.querySelector('.tl-label');
+  if(lab){ const b=document.createElement('button'); b.type='button'; b.className='vchip'; b.style.marginLeft='6px'; b.textContent='✂分割'; b.title='選択中のセリフでBGMを分割（後ろは未設定）';
+    b.onclick=()=>bgmSplitAt(selGi); lab.appendChild(b); }
+  spans.forEach(sp=>{ const seg=sp.seg, set=!!(seg&&seg.bgm);
+    const bar=document.createElement('div'); bar.className='tl-bar bgm'+(set?'':' unset')+((seg&&selBgm===seg.id)?' sel':'');
+    bar.style.gridColumn=(sp.s+1)+' / '+(sp.e+2);
+    const t=document.createElement('span'); t.textContent='♪ '+bgmLabel(seg)+((seg&&seg.fadeIn)?(' ↗'+seg.fadeIn):'')+((seg&&seg.fadeOut)?(' ↘'+seg.fadeOut):''); bar.appendChild(t);
+    if(seg){ const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='分割位置をドラッグ'; hs.onpointerdown=e=>startBgmResize(e,seg,bar); bar.appendChild(hs); }
+    bar.onclick=()=>{ selBgm=seg?seg.id:null; renderTimeline(); };
+    bar.ondblclick=()=>openBgmAssign(sp);
+    bar.title='ダブルクリックでBGM選択・フェード設定';
+    track.appendChild(bar); });
+  if(!n){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='台本なし'; track.appendChild(e); }
+  body.appendChild(row);
+}
+function startBgmResize(ev,seg,bar){ ev.preventDefault(); ev.stopPropagation();
+  const idx=_turnIndexMap(); const segs=(DATA.bgmSegments||[]).map(s=>({s,si:idx[s.startTurnId]})).filter(x=>x.si!=null).sort((a,b)=>a.si-b.si);
+  const me=segs.findIndex(x=>x.s===seg); const nTurns=(DATA.script||[]).length;
+  const lo=(me>0?segs[me-1].si+1:1), hi=(me+1<segs.length?segs[me+1].si-1:nTurns-1);
+  let target=idx[seg.startTurnId]; const orig=target;
+  document.body.classList.add('tl-resizing'); bar.classList.add('dragging');
+  const dl=document.createElement('span'); dl.className='tl-drag-label'; bar.appendChild(dl);
+  const upd=()=>{ const right=(me+1<segs.length?segs[me+1].si:nTurns); bar.style.gridColumn=(target+1)+' / '+(right+1); dl.textContent=(target+1)+'行目'; }; upd();
+  const move=e=>{ const sc=document.querySelector('.tl-scroll'); if(sc){const r=sc.getBoundingClientRect(); if(e.clientX<r.left+36)sc.scrollLeft-=18; else if(e.clientX>r.right-36)sc.scrollLeft+=18;}
+    const gi=timelineTurnAtXAny(e.clientX); if(gi<0)return; target=Math.max(lo,Math.min(hi,gi)); upd(); };
+  const finish=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish); document.body.classList.remove('tl-resizing');
+    if(target!==orig){ seg.startTurnId=DATA.script[target].id; markDirty(); } renderTimeline(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
+}
+const BGM_FADES=[['0','なし'],['0.3','0.3秒'],['0.6','0.6秒'],['1','1秒'],['2','2秒'],['3','3秒']];
+function openBgmAssign(span){
+  loadBgmFiles(files=>{
+    const seg=span.seg;
+    const ov=document.createElement('div'); ov.className='vpe-overlay'; ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+    const mo=document.createElement('div'); mo.className='vpe-modal'; mo.style.cssText='width:min(420px,92vw);max-height:none;padding:14px'; ov.appendChild(mo);
+    const h=document.createElement('div'); h.style.cssText='font-weight:800;color:#cdd6e2;margin-bottom:10px'; h.textContent='BGM設定（'+(span.s+1)+'〜'+(span.e+1)+'行目）'; mo.appendChild(h);
+    const fl2=(t,el)=>{ const w=document.createElement('label'); w.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--sub)'; w.appendChild(document.createTextNode(t)); w.appendChild(el); return w; };
+    const fileSel=document.createElement('select'); const o0=document.createElement('option'); o0.value=''; o0.textContent='未設定（無音）'; fileSel.appendChild(o0);
+    files.forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; fileSel.appendChild(o); }); fileSel.value=(seg&&seg.bgm)||'';
+    let au=null; const play=document.createElement('button'); play.className='mini'; play.type='button'; play.textContent='▶試聴';
+    play.onclick=()=>{ const f=fileSel.value; if(!f)return; if(au){au.pause();au=null;} au=new Audio('/preview-assets/bgm/'+encodeURIComponent(f)); au.volume=0.5; au.play().catch(()=>{}); };
+    const fileRow=document.createElement('div'); fileRow.style.cssText='display:flex;gap:6px;align-items:center;flex:1'; fileSel.style.flex='1'; fileRow.appendChild(fileSel); fileRow.appendChild(play);
+    mo.appendChild(fl2('BGM',fileRow));
+    const fiSel=document.createElement('select'); BGM_FADES.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;fiSel.appendChild(o);}); fiSel.value=String((seg&&seg.fadeIn)||0);
+    const foSel=document.createElement('select'); BGM_FADES.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;foSel.appendChild(o);}); foSel.value=String((seg&&seg.fadeOut)||0);
+    mo.appendChild(fl2('フェードイン',fiSel)); mo.appendChild(fl2('フェードアウト',foSel));
+    const btns=document.createElement('div'); btns.style.cssText='display:flex;gap:6px;margin-top:12px;justify-content:flex-end;align-items:center';
+    if(seg){ const del=document.createElement('button'); del.className='mini'; del.type='button'; del.textContent='分割を削除'; del.style.cssText='margin-right:auto;background:transparent;color:#d66;border:1px solid #6b3a3a';
+      del.onclick=()=>{ if(au)au.pause(); bgmDeleteSplit(seg); ov.remove(); renderTimeline(); }; btns.appendChild(del); }
+    const cancel=document.createElement('button'); cancel.className='mini'; cancel.type='button'; cancel.textContent='キャンセル'; cancel.onclick=()=>{ if(au)au.pause(); ov.remove(); };
+    const ok=document.createElement('button'); ok.className='mini'; ok.type='button'; ok.textContent='適用';
+    ok.onclick=()=>{ if(au)au.pause(); bgmAssign(span, fileSel.value, parseFloat(fiSel.value)||0, parseFloat(foSel.value)||0); ov.remove(); renderTimeline(); };
+    btns.appendChild(cancel); btns.appendChild(ok); mo.appendChild(btns);
+    document.body.appendChild(ov);
+  });
+}
 function renderEditorVizTracks(body){
   const [mainRow,mainTrack]=timelineRow('大演出');
   const items=(DATA.visualSegments||[]).filter(s=>s.status!=='orphaned')
