@@ -825,16 +825,18 @@ const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"
     interpolate(f, [dur - inF, dur], [1, 0], clamp)
   ); // 0..1 の可視度（イン↗・アウト↘の小さい方）
   const sz = ov.size ?? 0.4;
-  const off = (1 - p) * 130; // 自身サイズ比%で画面外→静止位置へ
-  const base: React.CSSProperties = { position: "absolute", width: `${Math.round(sz * 100)}%`, borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" };
-  let pos: React.CSSProperties;
-  if (ov.dir === "center") pos = { left: "50%", top: "50%", transform: "translate(-50%,-50%)", opacity: p };
-  else if (ov.dir === "left") pos = { left: "3%", top: "50%", transform: `translate(${-off}%,-50%)` };
-  else if (ov.dir === "right") pos = { right: "3%", top: "50%", transform: `translate(${off}%,-50%)` };
-  else if (ov.dir === "top") pos = { top: "3%", left: "50%", transform: `translate(-50%,${-off}%)` };
-  else pos = { bottom: "3%", left: "50%", transform: `translate(-50%,${off}%)` };
+  // 静止位置は常に中央。dir＝「登場方向」＝画面外のどこから中央へ入ってくるか（出は逆再生で戻る）。
+  const off = (1 - p) * 200; // 中央から登場方向の画面外へ（自身サイズ比%・pで中央へスライドイン）
+  const base: React.CSSProperties = { position: "absolute", left: "50%", top: "50%", width: `${Math.round(sz * 100)}%`, borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" };
+  let transform: string;
+  let opacity = 1;
+  if (ov.dir === "center") { transform = "translate(-50%,-50%)"; opacity = p; }
+  else if (ov.dir === "left") transform = `translate(calc(-50% - ${off}%),-50%)`;
+  else if (ov.dir === "right") transform = `translate(calc(-50% + ${off}%),-50%)`;
+  else if (ov.dir === "top") transform = `translate(-50%, calc(-50% - ${off}%))`;
+  else transform = `translate(-50%, calc(-50% + ${off}%))`;
   return (
-    <div style={{ ...base, ...pos }}>
+    <div style={{ ...base, transform, opacity }}>
       <Img src={staticFile(ov.image)} style={{ width: "100%", height: "auto", display: "block" }} />
     </div>
   );

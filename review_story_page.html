@@ -2478,7 +2478,7 @@ function startTextEffectResize(ev,gi,id,edge,group,bar){
 }
 
 // ===== オーバーレイ画像（小演出）編集 =====
-const OVERLAY_DIRS=[['left','←左'],['right','右→'],['top','↑上'],['bottom','下↓'],['center','✦中央']];
+const OVERLAY_DIRS=[['left','左から'],['right','右から'],['top','上から'],['bottom','下から'],['center','中央(フェード)']];
 
 function nextOverlayId(tn){ const used=new Set((tn.imageOverlays||[]).map(o=>o.id)); let i=1; while(used.has('ov'+i))i++; return 'ov'+i; }
 // 同セリフ内で id 以外のオーバーレイと時間（文字位置）が重なるか。
@@ -2574,14 +2574,10 @@ function overlayPreview(tn,ov){
   if(asset&&asset.file) img.src='/img-file/'+encodeURIComponent(asset.file);
   img.style.cssText='display:block;width:100%;height:auto;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.55)'; frame.appendChild(img);
   const handle=document.createElement('div'); handle.style.cssText='position:absolute;right:-7px;bottom:-7px;width:16px;height:16px;border-radius:50%;background:#3fb6c8;border:2px solid #fff;cursor:nwse-resize;z-index:3;touch-action:none'; frame.appendChild(handle);
+  // 静止位置は常に中央（dirは登場方向＝本番でどこからスライドインするか）。プレビューは静止状態を中央表示。
   const layout=()=>{ const size=(ov.size!=null?ov.size:0.4); frame.style.width=(size*100)+'%';
-    frame.style.top=frame.style.bottom=frame.style.left=frame.style.right=''; frame.style.transform='';
-    const dir=ov.dir||'left';
-    if(dir==='left'){ frame.style.left='3%'; frame.style.top='50%'; frame.style.transform='translateY(-50%)'; }
-    else if(dir==='right'){ frame.style.right='3%'; frame.style.top='50%'; frame.style.transform='translateY(-50%)'; }
-    else if(dir==='top'){ frame.style.top='3%'; frame.style.left='50%'; frame.style.transform='translateX(-50%)'; }
-    else if(dir==='bottom'){ frame.style.bottom='3%'; frame.style.left='50%'; frame.style.transform='translateX(-50%)'; }
-    else { frame.style.left='50%'; frame.style.top='50%'; frame.style.transform='translate(-50%,-50%)'; } };
+    frame.style.right=''; frame.style.bottom='';
+    frame.style.left='50%'; frame.style.top='50%'; frame.style.transform='translate(-50%,-50%)'; };
   layout();
   handle.onpointerdown=(e)=>{ e.preventDefault(); e.stopPropagation();
     const b=box.getBoundingClientRect(), fr=frame.getBoundingClientRect();
@@ -2601,7 +2597,7 @@ function renderOverlaySection(tn){
   if(cnt){ const c=document.createElement('span'); c.className='sec-count'; c.textContent=cnt+'件'; h.appendChild(c); }
   sec.appendChild(h);
   const note=document.createElement('div'); note.style.cssText='font-size:10px;color:var(--sub);margin:0 0 8px';
-  note.textContent='画像が端からスライドイン→静止→戻る小演出。表示区間は文字位置で指定（タイムライン「オーバーレイ画像」行を端ドラッグ）。同一セリフ内で時間は重ねられません。'; sec.appendChild(note);
+  note.textContent='画像が画面外から中央へスライドイン→中央で静止→戻る小演出。静止位置は中央固定で、方向は「登場方向」（どこから入るか）です。表示区間は文字位置で指定（タイムライン「オーバーレイ画像」行を端ドラッグ）。同一セリフ内で時間は重ねられません。'; sec.appendChild(note);
   const len=(tn.text||'').length||1;
   (tn.imageOverlays||[]).slice().sort((a,b)=>a.start-b.start).forEach(ov=>{
     const sel=ov.id===selectedOverlayId;
@@ -2621,7 +2617,8 @@ function renderOverlaySection(tn){
     top.appendChild(vMini('削除',()=>{ tn.imageOverlays=(tn.imageOverlays||[]).filter(o=>o.id!==ov.id); if(selectedOverlayId===ov.id)selectedOverlayId=null; syncOverlays(tn); }));
     item.appendChild(top);
     if(sel){
-      const dr=document.createElement('div'); dr.style.cssText='display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px';
+      const dr=document.createElement('div'); dr.style.cssText='display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:6px';
+      const dl=document.createElement('span'); dl.textContent='登場方向'; dl.style.cssText='font-size:11px;color:var(--sub);margin-right:2px'; dr.appendChild(dl);
       OVERLAY_DIRS.forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button'; b.className='vchip'+((ov.dir||'left')===v?' on':''); b.textContent=t;
         b.onclick=()=>{ ov.dir=v; markDirty(); markVisualStale(); renderRight(); }; dr.appendChild(b); });
       item.appendChild(dr);
@@ -2632,7 +2629,8 @@ function renderOverlaySection(tn){
       szr.appendChild(document.createTextNode('サイズ')); szr.appendChild(stepWrap(sl)); szr.appendChild(sv); item.appendChild(szr);
       item.appendChild(assetOverlayPicker(tn,ov));
       item.appendChild(overlayPreview(tn,ov));
-      const ph=document.createElement('div'); ph.style.cssText='font-size:10px;color:var(--sub);margin-top:2px'; ph.textContent='右下の○をドラッグでサイズ調整。入→静止→出（in/out各0.4秒・残りが静止）。本番は端からスライドイン。'; item.appendChild(ph);
+      const ph=document.createElement('div'); ph.style.cssText='font-size:10px;color:var(--sub);margin-top:2px';
+      ph.textContent='プレビューは静止状態（中央）。本番は「'+(OVERLAY_DIRS.find(d=>d[0]===(ov.dir||'left'))||['','左から'])[1]+'」中央へスライドイン→静止→戻る（in/out各0.4秒・残りが静止）。右下の○をドラッグでサイズ調整。'; item.appendChild(ph);
     }
     sec.appendChild(item);
   });
