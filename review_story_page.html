@@ -501,7 +501,10 @@ async function runMigrate(confirmFn, saveFn, migrateFn, reloadFn, alertFn){
   return {migrated:true, switched:r.switched, message:r.message};
 }
 // 各assetの参照cue数を {assetId:count} で返す（使用中/未使用の判定・表示）。
-function assetUsageMap(){ const m={}; (DATA&&DATA.imageCues||[]).forEach(c=>{ if(c.assetId!=null) m[c.assetId]=(m[c.assetId]||0)+1; }); return m; }
+function assetUsageMap(){ const m={};
+  (DATA&&DATA.imageCues||[]).forEach(c=>{ if(c.assetId!=null) m[c.assetId]=(m[c.assetId]||0)+1; });
+  (DATA&&DATA.script||[]).forEach(t=>{ (t.imageOverlays||[]).forEach(ov=>{ if(ov.assetId!=null) m[ov.assetId]=(m[ov.assetId]||0)+1; }); });   // オーバーレイ(小演出)も使用にカウント
+  return m; }
 function updateAuthorityUI(){
   const badge=document.getElementById('authBadge'), btn=document.getElementById('migrateEditor');
   const libBtn=document.getElementById('assetLibBtn'), bgmBtn=document.getElementById('bgmLibBtn');

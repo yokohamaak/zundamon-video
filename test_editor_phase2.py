@@ -63,6 +63,23 @@ def test_asset_usage_and_delete():
     ok("force削除で参照cueも一括解除", removed and not em.find_asset(d, a["id"]) and not d["imageCues"])
 
 
+def test_asset_usage_includes_overlays():
+    d = _data()
+    a = em.add_asset(d, file="ov.jpg")
+    # imageOverlays(小演出)でだけ参照（cueには無い）→ 使用中扱い・未使用に出ない
+    d["script"][0]["imageOverlays"] = [{"id": "ov1", "assetId": a["id"], "start": 0, "end": 3, "dir": "left"}]
+    ok("オーバーレイ参照を使用中に数える", em.asset_usage(d, a["id"]) and not em.can_delete_asset(d, a["id"]))
+    ok("オーバーレイ参照assetは未使用に出ない", a["id"] not in em.unused_assets(d))
+    try:
+        em.delete_asset(d, a["id"])
+        ok("オーバーレイ使用中の無条件削除を拒否", False)
+    except ValueError:
+        ok("オーバーレイ使用中の無条件削除を拒否", True)
+    em.delete_asset(d, a["id"], force=True)
+    ok("force削除でオーバーレイ参照も解除",
+       "imageOverlays" not in d["script"][0] and not em.find_asset(d, a["id"]))
+
+
 def test_unused_vs_broken_distinction():
     d = _data()
     a = em.add_asset(d, file="x.jpg")      # 未使用
@@ -1268,6 +1285,7 @@ if __name__ == "__main__":
     test_switch_failure_keeps_legacy_file()
     test_switch_success_atomic_and_idempotent()
     test_switch_preserves_theme_and_script()
+    test_asset_usage_includes_overlays()
     test_asset_api_roundtrip()
     test_hide_cue_continuation_lifecycle()
     test_hide_with_asset_unhide_keeps_cue()

@@ -536,37 +536,64 @@ def add_asset(data, *, file=None, query=None, queryJa=None, kind=None,
     return asset
 
 
+def _overlay_asset_ids(data):
+    """script の imageOverlays が参照する assetId を列挙（重複あり・None除外）。"""
+    out = []
+    for t in data.get("script") or []:
+        for ov in t.get("imageOverlays") or []:
+            if ov.get("assetId") is not None:
+                out.append(ov.get("assetId"))
+    return out
+
+
 def asset_usage(data, asset_id):
-    """その asset を参照している imageCue の ID 一覧（使用中判定・削除可否・共有判定に使う）。"""
-    return [c.get("id") for c in data.get("imageCues") or [] if c.get("assetId") == asset_id]
+    """その asset を参照している箇所の一覧（imageCue ID ＋ オーバーレイ参照マーカー）。
+
+    使用中判定・削除可否・共有判定に使う。オーバーレイ(小演出)も使用にカウントする。
+    """
+    used = [c.get("id") for c in data.get("imageCues") or [] if c.get("assetId") == asset_id]
+    for t in data.get("script") or []:
+        for ov in t.get("imageOverlays") or []:
+            if ov.get("assetId") == asset_id:
+                used.append(f"overlay:{t.get('id')}:{ov.get('id')}")
+    return used
 
 
 def can_delete_asset(data, asset_id):
-    """参照 cue が無ければ削除可。使用中の素材は無条件削除しない（plan 5.1）。"""
+    """参照（cue/オーバーレイ）が無ければ削除可。使用中の素材は無条件削除しない（plan 5.1）。"""
     return not asset_usage(data, asset_id)
 
 
 def delete_asset(data, asset_id, *, force=False):
-    """素材を削除。参照 cue があれば force 必須（明示的な一括解除）。
+    """素材を削除。参照（cue/オーバーレイ）があれば force 必須（明示的な一括解除）。
 
-    force のとき参照 cue も削除する（ファイル本体は消さない＝呼び出し側の責務）。
-    Returns: 削除した cue ID 一覧。参照ありで force=False なら ValueError。
+    force のとき参照 cue・オーバーレイも解除する（ファイル本体は消さない＝呼び出し側の責務）。
+    Returns: 削除した参照一覧。参照ありで force=False なら ValueError。
     """
     used = asset_usage(data, asset_id)
     if used and not force:
-        raise ValueError(f"asset {asset_id} は {len(used)} 件の cue から参照中（force 指定で一括解除）")
+        raise ValueError(f"asset {asset_id} は {len(used)} 件（cue/オーバーレイ）から参照中（force 指定で一括解除）")
     removed = []
     if force and used:
-        keep = [c for c in data.get("imageCues") or [] if c.get("assetId") != asset_id]
+        data["imageCues"] = [c for c in data.get("imageCues") or [] if c.get("assetId") != asset_id]
+        for t in data.get("script") or []:   # オーバーレイ参照も解除
+            ovs = t.get("imageOverlays")
+            if not ovs:
+                continue
+            kept = [ov for ov in ovs if ov.get("assetId") != asset_id]
+            if kept:
+                t["imageOverlays"] = kept
+            else:
+                t.pop("imageOverlays", None)
         removed = used
-        data["imageCues"] = keep
     data["assets"] = [a for a in data.get("assets") or [] if a.get("id") != asset_id]
     return removed
 
 
 def unused_assets(data):
-    """どの cue からも参照されていない asset の ID 一覧（「未使用」フィルタ用）。"""
+    """どの cue / オーバーレイからも参照されていない asset の ID 一覧（「未使用」フィルタ用）。"""
     used = {c.get("assetId") for c in data.get("imageCues") or []}
+    used |= set(_overlay_asset_ids(data))
     return [a.get("id") for a in data.get("assets") or [] if a.get("id") not in used]
 
 
