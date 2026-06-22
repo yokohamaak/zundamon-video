@@ -2840,28 +2840,72 @@ function vizConfigEditor(seg){
   const field=(label,val,on)=>{ const w=document.createElement('label'); w.style.cssText='display:block;font-size:11px;color:var(--sub);margin:4px 0';
     w.appendChild(document.createTextNode(label)); const i=document.createElement('input'); i.type='text'; i.value=val||''; i.style.cssText='width:100%';
     i.onchange=()=>{ on(i.value); commit(); }; w.appendChild(i); return w; };
-  // 文字サイズ倍率（0.5〜2倍）。ドラッグ中は表示だけ更新し、確定時にだけ保存する。
-  const sizeField=(label,obj,key)=>{ const w=document.createElement('label'); w.style.cssText='display:flex;gap:6px;align-items:center;font-size:11px;color:var(--sub);margin:4px 0';
-    w.appendChild(document.createTextNode(label)); const sl=document.createElement('input'); sl.type='range'; sl.min='0.5'; sl.max='2'; sl.step='0.1';
-    sl.value=(obj[key]!=null?obj[key]:1); sl.style.flex='1'; sl.title='文字サイズ倍率';
+  // サイズ倍率（既定1）。ドラッグ中は表示だけ更新し、確定時にだけ保存する。
+  const sizeField=(label,obj,key,min,max)=>{ const w=document.createElement('label'); w.style.cssText='display:flex;gap:6px;align-items:center;font-size:11px;color:var(--sub);margin:4px 0';
+    w.appendChild(document.createTextNode(label)); const sl=document.createElement('input'); sl.type='range'; sl.min=String(min!=null?min:0.5); sl.max=String(max!=null?max:2); sl.step='0.1';
+    sl.value=(obj[key]!=null?obj[key]:1); sl.style.flex='1'; sl.title='大きさ倍率';
     const sv=document.createElement('span'); sv.style.cssText='min-width:32px;text-align:right'; const show=()=>sv.textContent=(obj[key]!=null?obj[key]:1).toFixed(1)+'倍'; show();
     sl.oninput=()=>{ obj[key]=parseFloat(sl.value); show(); }; sl.onchange=()=>commit();
     w.appendChild(sl); w.appendChild(sv); w.appendChild(vMini('既定',()=>{ delete obj[key]; commit(); })); return w; };
+  // 色/背景+透過/モード切替の共通行（いずれも変更確定で setConfig 保存）。旧editorのデザイン群を移植。
+  const dRow=(label)=>{ const r=document.createElement('div'); r.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--sub);margin:4px 0'; if(label)r.appendChild(document.createTextNode(label)); return r; };
+  const colorRow=(label,obj,key,def)=>{ const r=dRow(label); const cp=document.createElement('input'); cp.type='color'; cp.value=obj[key]||def; cp.title='色'; cp.oninput=()=>{obj[key]=cp.value;}; cp.onchange=commit; r.appendChild(cp); r.appendChild(vMini('既定',()=>{ delete obj[key]; commit(); })); return r; };
+  const bgRow=(label,obj,defC,defO,bgKey,opKey)=>{ bgKey=bgKey||'bg'; opKey=opKey||'bgOpacity'; defO=(defO!=null?defO:1); const r=dRow(label);
+    const cp=document.createElement('input'); cp.type='color'; cp.value=obj[bgKey]||defC; cp.title='背景色'; cp.oninput=()=>{ obj[bgKey]=cp.value; if(obj[opKey]==null)obj[opKey]=defO; }; cp.onchange=commit; r.appendChild(cp);
+    const op=document.createElement('input'); op.type='range'; op.min='0'; op.max='1'; op.step='0.05'; op.value=(obj[opKey]!=null?obj[opKey]:defO); op.style.flex='1'; op.title='不透明度（左ほど透ける）';
+    const ov=document.createElement('span'); ov.style.cssText='min-width:34px;text-align:right'; const sh=()=>ov.textContent=Math.round((obj[opKey]!=null?obj[opKey]:defO)*100)+'%'; sh();
+    op.oninput=()=>{ obj[opKey]=parseFloat(op.value); if(obj[bgKey]==null)obj[bgKey]=cp.value||defC; sh(); }; op.onchange=commit;
+    r.appendChild(document.createTextNode('透過')); r.appendChild(op); r.appendChild(ov); r.appendChild(vMini('既定',()=>{ delete obj[bgKey]; delete obj[opKey]; commit(); })); return r; };
+  const modeRow=(label,obj,key,opts,defVal)=>{ const r=dRow(label); opts.forEach(([v,tx])=>{ const b=document.createElement('button'); b.type='button'; const cur=(obj[key]!=null?obj[key]:defVal); b.className='vchip'+(cur===v?' on':''); b.textContent=tx; b.onclick=()=>{ if(v===defVal) delete obj[key]; else obj[key]=v; commit(); }; r.appendChild(b); }); return r; };
   const t=seg.type;
-  if(t==='quiz'){ cfg.quiz=cfg.quiz||{}; wrap.appendChild(field('問題文',cfg.quiz.question,v=>cfg.quiz.question=v)); wrap.appendChild(field('答え',cfg.quiz.answer,v=>cfg.quiz.answer=v));
-    wrap.appendChild(sizeField('問いの大きさ',cfg.quiz,'questionSize')); wrap.appendChild(sizeField('答えの大きさ',cfg.quiz,'answerSize')); }
-  else if(t==='stat'){ cfg.stat=cfg.stat||{}; wrap.appendChild(field('数値',cfg.stat.value,v=>cfg.stat.value=v)); wrap.appendChild(field('単位',cfg.stat.unit,v=>cfg.stat.unit=v)); wrap.appendChild(field('ラベル',cfg.stat.label,v=>cfg.stat.label=v)); }
-  else if(t==='compare'){ cfg.compare=cfg.compare||{left:{},right:{}}; cfg.compare.left=cfg.compare.left||{}; cfg.compare.right=cfg.compare.right||{};
-    wrap.appendChild(field('左ラベル',cfg.compare.left.label,v=>cfg.compare.left.label=v)); wrap.appendChild(field('右ラベル',cfg.compare.right.label,v=>cfg.compare.right.label=v)); }
+  if(t==='quiz'){ const q=cfg.quiz=cfg.quiz||{};
+    wrap.appendChild(field('問題文',q.question,v=>q.question=v)); wrap.appendChild(field('答え',q.answer,v=>q.answer=v));
+    wrap.appendChild(bgRow('問いの背景',q,'#0f141e',0.62)); wrap.appendChild(colorRow('問いの文字色',q,'textColor','#ffffff'));
+    wrap.appendChild(bgRow('答えの背景',q,'#ffd84d',0.96,'answerBg','answerBgOpacity')); wrap.appendChild(colorRow('答えの文字色',q,'answerTextColor','#1a1f2b'));
+    wrap.appendChild(sizeField('問いの大きさ',q,'questionSize')); wrap.appendChild(sizeField('答えの大きさ',q,'answerSize'));
+    // ボックス幅（％・未指定=自動）
+    const wr=dRow('ボックス幅'); const wsl=document.createElement('input'); wsl.type='range'; wsl.min='0.3'; wsl.max='1'; wsl.step='0.05'; wsl.value=(q.boxWidth!=null?q.boxWidth:0.8); wsl.style.flex='1';
+    const wsv=document.createElement('span'); wsv.style.cssText='min-width:40px;text-align:right'; const wsh=()=>wsv.textContent=(q.boxWidth!=null?Math.round(q.boxWidth*100)+'%':'自動'); wsh();
+    wsl.oninput=()=>{ q.boxWidth=parseFloat(wsl.value); wsh(); }; wsl.onchange=commit; wr.appendChild(wsl); wr.appendChild(wsv); wr.appendChild(vMini('自動',()=>{ delete q.boxWidth; commit(); })); wrap.appendChild(wr); }
+  else if(t==='stat'){ const s=cfg.stat=cfg.stat||{};
+    wrap.appendChild(field('数値',s.value,v=>s.value=v)); wrap.appendChild(field('単位',s.unit,v=>s.unit=v)); wrap.appendChild(field('ラベル',s.label,v=>s.label=v));
+    wrap.appendChild(colorRow('強調色（数字）',s,'color','#ffd84d')); wrap.appendChild(sizeField('大きさ',s,'size',0.3,2)); wrap.appendChild(bgRow('背景',s,'#0f141e',0.5));
+    wrap.appendChild(modeRow('カウント速度',s,'countSpeed',[['fast','速い'],['normal','標準'],['slow','ゆっくり']],'normal')); }
+  else if(t==='compare'){ const c=cfg.compare=cfg.compare||{left:{},right:{}}; c.left=c.left||{}; c.right=c.right||{};
+    wrap.appendChild(field('左ラベル',c.left.label,v=>c.left.label=v)); wrap.appendChild(field('右ラベル',c.right.label,v=>c.right.label=v));
+    wrap.appendChild(colorRow('ラベル背景',c,'labelColor','#141a26')); wrap.appendChild(colorRow('ラベル文字',c,'labelTextColor','#ffffff'));
+    wrap.appendChild(sizeField('ラベル大きさ',c,'labelSize',0.3,2)); wrap.appendChild(colorRow('分割線',c,'dividerColor','#ffffff')); }
   else if(t==='panel'||t==='callouts'){
     const isPanel=t==='panel'; const list=isPanel?((cfg.panel=cfg.panel||{items:[]}).items=cfg.panel.items||[]):(cfg.callouts=cfg.callouts||[]);
     const lab=document.createElement('div'); lab.style.cssText='font-size:11px;color:var(--sub)'; lab.textContent=isPanel?'パネル項目':'注釈'; wrap.appendChild(lab);
-    list.forEach((it,k)=>{ const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;margin:3px 0';
-      const i=document.createElement('input'); i.type='text'; i.value=it.text||''; i.style.flex='1'; i.onchange=()=>{ it.text=i.value; commit(); };
+    list.forEach((it,k)=>{ const row=document.createElement('div'); row.style.cssText='display:flex;gap:4px;align-items:center;margin:3px 0;flex-wrap:wrap';
+      const i=document.createElement('input'); i.type='text'; i.value=it.text||''; i.style.flex='1'; i.style.minWidth='120px'; i.onchange=()=>{ it.text=i.value; commit(); }; row.appendChild(i);
+      if(!isPanel){ const mkNum=(key)=>{ const n=document.createElement('input'); n.type='number'; n.step='0.05'; n.min='0'; n.max='1'; n.value=(it[key]!=null?it[key]:0.5); n.style.width='56px'; n.title=key+'（0〜1）';
+          n.onchange=()=>{ const v=parseFloat(n.value); if(!isNaN(v)){ it[key]=Math.max(0,Math.min(1,v)); commit(); } }; return n; };
+        row.appendChild(document.createTextNode('x')); row.appendChild(mkNum('x')); row.appendChild(document.createTextNode('y')); row.appendChild(mkNum('y'));
+        const al=document.createElement('label'); al.style.cssText='display:inline-flex;gap:2px;align-items:center'; const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!it.arrow; ac.onchange=()=>{ if(ac.checked)it.arrow=true; else delete it.arrow; commit(); }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); row.appendChild(al);
+      } else if(k>0){ const al=document.createElement('label'); al.style.cssText='display:inline-flex;gap:2px;align-items:center'; const ac=document.createElement('input'); ac.type='checkbox'; ac.checked=!!it.arrow_from_prev; ac.onchange=()=>{ if(ac.checked)it.arrow_from_prev=true; else delete it.arrow_from_prev; commit(); }; al.appendChild(ac); al.appendChild(document.createTextNode('矢印')); row.appendChild(al); }
       const del=document.createElement('button'); del.className='mini'; del.textContent='×';
       del.onclick=async()=>{ const ok=await vizOp({op:'delItem', segId:seg.id, index:k}); if(ok) renderRight(); };  // keyframe value整合つき
-      row.appendChild(i); row.appendChild(del); wrap.appendChild(row); });
-    const add=document.createElement('button'); add.className='mini'; add.textContent=isPanel?'＋項目':'＋注釈'; add.onclick=()=>{ list.push({text:''}); commit(); }; wrap.appendChild(add);
+      row.appendChild(del); wrap.appendChild(row); });
+    const max=isPanel?99:4;
+    if(list.length<max){ const add=document.createElement('button'); add.className='mini'; add.textContent=isPanel?'＋項目':'＋注釈'; add.onclick=()=>{ list.push(isPanel?{text:''}:{text:'',x:0.5,y:0.5}); commit(); }; wrap.appendChild(add); }
+    if(isPanel){ const p=cfg.panel;
+      wrap.appendChild(field('見出し（任意）',p.heading,v=>{ if(v&&v.trim())p.heading=v; else delete p.heading; }));
+      const dispRow=dRow('表示'); [['','縮小して横に開く'],['overlay','縮小なし(テロップ)']].forEach(([v,tx])=>{ const b=document.createElement('button'); b.type='button'; const on=(v==='overlay')===(!!p.overlay); b.className='vchip'+(on?' on':''); b.textContent=tx; b.onclick=()=>{ if(v==='overlay')p.overlay=true; else delete p.overlay; delete p.pos; commit(); }; dispRow.appendChild(b); }); wrap.appendChild(dispRow);
+      const posOpts=p.overlay?[['','下(既定)'],['top','上'],['center','中央']]:[['','右(既定)'],['left','左']];
+      wrap.appendChild(modeRow('位置',p,'pos',posOpts,''));
+      wrap.appendChild(bgRow('文字側の背景',p,'#1a2740',1));
+      wrap.appendChild(modeRow('マーカー',p,'markerType',[['check','✔'],['square','■'],['dot','●']],'check'));
+      wrap.appendChild(colorRow('マーカー色',p,'markerColor','#ffd84d')); wrap.appendChild(sizeField('マーカー大きさ',p,'markerSize',0.3,2));
+      wrap.appendChild(colorRow('テキスト色',p,'textColor','#ffffff')); wrap.appendChild(sizeField('テキスト大きさ',p,'textSize',0.3,2));
+    } else { const st=cfg.calloutStyle=cfg.calloutStyle||{};
+      wrap.appendChild(colorRow('マーカー色',st,'markerColor','#ff5a6a')); wrap.appendChild(sizeField('マーカー大きさ',st,'markerSize',0.3,2));
+      wrap.appendChild(colorRow('ラベル背景',st,'labelColor','#14233a')); wrap.appendChild(sizeField('ラベル大きさ',st,'labelSize',0.3,2));
+      wrap.appendChild(colorRow('ラベル文字',st,'labelTextColor','#ffffff')); wrap.appendChild(colorRow('ラベル外枠',st,'labelBorderColor','#ffffff'));
+      wrap.appendChild(sizeField('矢印大きさ',st,'arrowSize',0.3,3));
+      wrap.appendChild(modeRow('矢印形',st,'arrowShape',[['normal','標準'],['sharp','シャープ'],['thick','太め'],['dot','ドット']],'normal'));
+    }
   }
   return wrap;
 }
