@@ -40,11 +40,13 @@ def test_preview_assets():
     old = R.DIR
     R.DIR = tmp
     try:
-        for name in ("meta.json", "digest.mp3", "ch_00_00.png", "ch_00_00.depth.png"):
+        for name in ("meta.json", "digest.mp3", "ch_00_00.png", "ch_00_00.depth.png", "asset-0001.jpg"):
             with open(os.path.join(tmp, name), "wb") as f:
                 f.write(b"x")
         assert R.preview_asset_path("meta.json") == os.path.join(tmp, "meta.json")
         assert R.preview_asset_path("ch_00_00.png") == os.path.join(tmp, "ch_00_00.png")
+        # 素材ライブラリ画像(asset-*)もプレビュー配信対象（オーバーレイ/中央画像で参照）。
+        assert R.preview_asset_path("asset-0001.jpg") == os.path.join(tmp, "asset-0001.jpg")
         assert R.preview_asset_path("../../.env") is None
         assert R.preview_asset_path("unknown/file.txt") is None
         assert R.depth_manifest() == ["ch_00_00.png"]

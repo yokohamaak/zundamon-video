@@ -66,7 +66,8 @@ def preview_asset_path(relative):
     if parts[0] in _PREVIEW_ASSET_DIRS:
         base = VIDEO_ASSETS_DIR
     elif len(parts) == 1 and (rel in {"meta.json", "digest.mp3"} or
-                              rel.startswith("ch_") or rel.startswith("manual_")):
+                              rel.startswith("ch_") or rel.startswith("manual_") or
+                              rel.startswith("asset-")):  # 素材ライブラリ画像(オーバーレイ/中央)もプレビュー配信
         base = os.path.abspath(DIR)
     else:
         return None
