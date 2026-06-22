@@ -2561,7 +2561,8 @@ async function deleteAsset(aid){
 }
 // 素材ライブラリの全幅ビュー（同一画面・DATAは1本のまま＝未保存編集と競合しない）。既存の renderAssetTab を流用。
 function renderAssetLibrary(host){
-  const wrap=document.createElement('div'); wrap.style.cssText='max-width:1100px;margin:0 auto;padding:10px 14px';
+  // #main は固定高(body overflow:hidden)なので、このビュー自身をスクロール可能にする。
+  const wrap=document.createElement('div'); wrap.style.cssText='max-width:1100px;margin:0 auto;padding:10px 14px;height:100%;overflow-y:auto;box-sizing:border-box';
   const bar=document.createElement('div'); bar.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:12px';
   const back=document.createElement('button'); back.className='mini'; back.textContent='← 編集に戻る';
   back.onclick=()=>{ assetLibOpen=false; render(); };
