@@ -1134,9 +1134,37 @@ export const DialogueVideo: React.FC<{
         }
       />
 
-      {/* BGM（全体ループ・薄く）。フェードインは無し（冒頭から定常音量）・末尾のみフェードアウト。
-          prep が未配置なら meta.audio.bgm=null で無音。 */}
-      {meta.audio?.bgm ? (
+      {/* BGM。bgmSegments があれば区間ごとに再生（未設定区間は無音＝含まれない）。
+          各区間は fadeIn/fadeOut（重ねない＝境界で一旦下がる）。最後の区間は fadeOut 未指定なら
+          全体の末尾フェード(config fade)を適用。volume の基準は meta.audio.bgm.volume。
+          bgmSegments が無ければ従来の全体ループBGM（末尾のみフェードアウト）。 */}
+      {meta.audio?.bgmSegments?.length ? (
+        meta.audio.bgmSegments.map((seg, i) => {
+          const segs = meta.audio!.bgmSegments!;
+          const v = meta.audio?.bgm?.volume ?? 0.07;
+          const from = Math.round((seg.start - clipStartSec) * fps);
+          const dur = Math.max(1, Math.round((seg.end - seg.start) * fps));
+          const fi = Math.round((seg.fadeIn ?? 0) * fps);
+          const isLast = i === segs.length - 1;
+          const fo = Math.round((seg.fadeOut ?? (isLast ? meta.audio?.bgm?.fade ?? 0 : 0)) * fps);
+          return (
+            <Sequence key={`bgm-${i}`} from={from} durationInFrames={dur} name={`bgm:${seg.file}`}>
+              <Audio
+                src={staticFile(`bgm/${seg.file}`)}
+                loop
+                volume={(f) => {
+                  let vol = v;
+                  if (fi > 0)
+                    vol = Math.min(vol, interpolate(f, [0, fi], [0, v], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
+                  if (fo > 0)
+                    vol = Math.min(vol, interpolate(f, [dur - fo, dur], [v, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }));
+                  return vol;
+                }}
+              />
+            </Sequence>
+          );
+        })
+      ) : meta.audio?.bgm ? (
         <Audio
           src={staticFile(`bgm/${meta.audio.bgm.file}`)}
           loop
