@@ -2359,21 +2359,34 @@ function startEditLine(row,tn,tx){
   const origText=tn.text||'';
   const origEffects=JSON.parse(JSON.stringify(tn.textEffects||[]));   // 取消用スナップショット
   const origVizPoints=JSON.parse(JSON.stringify(tn.vizPoints||[]));   // 演出点も取消用に保持
+  const origSpeaker=tn.speaker, origEmotion=tn.emotion;              // 話者/表情も取消用
   const ta=document.createElement('textarea'); ta.value=origText;
   tx.replaceWith(ta); autosize(ta); ta.focus();
   // カーソルを末尾へ
   const n=ta.value.length; try{ ta.setSelectionRange(n,n); }catch(e){}
+  // 話者・表情の編集（追加フォームと同じセレクタ）。変更は即時反映＝音声に影響するためmarkDirty。
+  const setSpkVisual=()=>{ const col=speakerColor(tn.speaker); const av=row.querySelector('.av'), nms=row.querySelector('.nm > span');
+    if(av){ av.style.background=col; av.textContent=(tn.speaker||'?').slice(0,1); } if(nms){ nms.style.color=col; nms.textContent=tn.speaker||''; } row.style.borderLeftColor=col; };
+  const ctrls=document.createElement('div'); ctrls.style.cssText='display:flex;gap:8px;margin:2px 0 4px';
+  const spSel=document.createElement('select'); speakerOptions().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; spSel.appendChild(o); }); spSel.value=tn.speaker||'';
+  spSel.onchange=()=>{ tn.speaker=spSel.value; setSpkVisual(); markDirty(); renderPreviewPane(); };
+  const emSel=document.createElement('select'); EMOTIONS.forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; emSel.appendChild(o); }); emSel.value=tn.emotion||'normal';
+  emSel.onchange=()=>{ tn.emotion=emSel.value; markDirty(); renderPreviewPane(); };
+  ctrls.appendChild(fl('話者',spSel)); ctrls.appendChild(fl('表情',emSel));
+  if(ta.parentNode) ta.parentNode.insertBefore(ctrls, ta);
   // 編集中は本文だけ追従。演出位置は勝手に動かさず、確定時にまとめて整合する。
   ta.oninput=()=>{ tn.text=ta.value; autosize(ta); refreshEst(); markDirty(); renderPreviewPane(); renderTimeline(); };
   let done=false;
   // revert=true で編集前へ巻き戻し。抜ける時は全再描画せずその行だけ表示へ戻す（スクロール/フォーカス飛び防止）。
   const finish=(revert)=>{
     if(done) return; done=true; row._editing=false;
+    if(ctrls.parentNode) ctrls.remove();   // 話者/表情セレクタを撤去
     let staleChanged=false;
     if(revert){
       tn.text=origText;
       if(origEffects.length) tn.textEffects=origEffects; else delete tn.textEffects;
       if(origVizPoints.length) tn.vizPoints=origVizPoints; else delete tn.vizPoints;
+      tn.speaker=origSpeaker; if(origEmotion==null) delete tn.emotion; else tn.emotion=origEmotion; setSpkVisual();
     } else {
       staleChanged=reconcileTextEffects(tn);
       reconcileVizPointPos(tn.vizPoints, origText, tn.text||'');   // 演出点の文字位置も編集差分に追従

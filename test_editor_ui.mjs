@@ -376,6 +376,12 @@ t('セリフ追加: id採番(max+1)・話者候補・分割でなく挿入', () 
   assert.ok(/DATA\.script\.splice\(i\+1,0,nt\); markDirty\(\)/.test(html), '参照行の下に挿入(分割でない)＋音声影響でmarkDirty');
   assert.ok(/id:nextTurnId\(\), speaker:sp\.value, emotion:em\.value/.test(html), '話者/表情を選んで新ターン生成');
 });
+t('既存行: 編集時に話者/表情セレクタを表示し即時反映・取消で復元', () => {
+  const fn = extractFn('startEditLine');
+  assert.ok(/spSel\.onchange=\(\)=>\{ tn\.speaker=spSel\.value/.test(fn) && /emSel\.onchange=\(\)=>\{ tn\.emotion=emSel\.value/.test(fn), '話者/表情を即時反映');
+  assert.ok(/const origSpeaker=tn\.speaker, origEmotion=tn\.emotion/.test(fn), '取消用スナップショット');
+  assert.ok(/tn\.speaker=origSpeaker;.*origEmotion/.test(fn), 'revertで話者/表情を復元');
+});
 
 // --- runMigrate ---
 async function runTests() {
