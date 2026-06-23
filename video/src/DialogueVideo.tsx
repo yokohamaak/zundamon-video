@@ -817,7 +817,7 @@ const CalloutOverlay: React.FC<{
 
 // オーバーレイ画像本体。素材ライブラリの crop/filter（asset設定）を適用する。
 // crop は表示アスペクトに元画像の縦横比が要るため delayRender でロードして実測してから描く。
-const OverlayImage: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"]>[number] }> = ({ ov }) => {
+const OverlayImage: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"]>[number]; maxW?: number; maxH?: number }> = ({ ov, maxW, maxH }) => {
   const flt = ov.filter;
   const filter = flt
     ? `brightness(${flt.brightness ?? 1}) contrast(${flt.contrast ?? 1}) grayscale(${flt.grayscale ?? 0})`
@@ -833,12 +833,18 @@ const OverlayImage: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"
     img.src = staticFile(ov.image);
   }, [crop, ov.image]);
   if (!crop) {
-    return <Img src={staticFile(ov.image)} style={{ width: "100%", height: "auto", display: "block", filter }} />;
+    return <Img src={staticFile(ov.image)} style={{ maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", display: "block", filter }} />;
   }
   if (aspect == null) return null;   // 実測待ち（delayRender が継続を保留）
   const cw = Math.max(0.02, crop.r - crop.l), ch = Math.max(0.02, crop.b - crop.t);
+  const cropAR = (aspect * cw) / ch;
+  // crop画像も縦長の場合に maxH を超えないよう幅を制限
+  let divW: number | string = "100%";
+  if (maxW != null && maxH != null && maxW / cropAR > maxH) {
+    divW = Math.round(maxH * cropAR);  // 高さ制約時: 幅=maxH*AR
+  }
   return (
-    <div style={{ position: "relative", width: "100%", aspectRatio: (aspect * cw) / ch, overflow: "hidden" }}>
+    <div style={{ position: "relative", width: divW, aspectRatio: cropAR, overflow: "hidden" }}>
       <Img
         src={staticFile(ov.image)}
         style={{
@@ -867,7 +873,7 @@ function overlayTransform(d: string, off: number): string {
 // スライドイン画像オーバーレイ（小演出）。dir＝登場方向から入り→中央で静止→outDir 方向へ退場
 // （outDir 未指定＝登場と同じ＝来た方へ戻る）。center=フェード。in/out=0.4秒（尺が短ければ尺の半分まで）。
 const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"]>[number] }> = ({ ov }) => {
-  const { fps } = useVideoConfig();
+  const { fps, width: videoW, height: videoH } = useVideoConfig();
   const f = useCurrentFrame();
   const clamp = { extrapolateLeft: "clamp" as const, extrapolateRight: "clamp" as const };
   const dur = Math.max(1, Math.round((ov.end - ov.start) * fps));
@@ -877,7 +883,10 @@ const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"
   const outDir = ov.outDir ?? ov.dir;   // 退場方向（未指定＝登場と同じ＝戻る）
   const sz = ov.size ?? 0.4;
   const framed = ov.frame !== false;    // frame!==false で枠（角丸＋影）。透過画像は frame:false。
-  const base: React.CSSProperties = { position: "absolute", left: "50%", top: "50%", width: `${Math.round(sz * 100)}%`, ...(framed ? { borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" } : {}) };
+  // 縦長画像がフレームからはみ出ないよう maxW×maxH の固定ボックスで収める
+  const maxW = Math.round(sz * videoW);
+  const maxH = Math.round(sz * videoH);
+  const base: React.CSSProperties = { position: "absolute", left: "50%", top: "50%", width: maxW, height: maxH, display: "flex", alignItems: "center", justifyContent: "center", ...(framed ? { borderRadius: 18, overflow: "hidden", boxShadow: "0 10px 40px rgba(0,0,0,0.55)" } : {}) };
   // フェーズ別に方向・オフセット(自身サイズ比%・200で確実に画面外)・不透明度を決める。
   let dirNow = inDir, off = 0, opacity = 1;
   if (f < inF) {                        // 入場：inDir の画面外→中央
@@ -891,7 +900,7 @@ const SlideOverlay: React.FC<{ ov: NonNullable<Meta["script"][number]["overlays"
   }                                      // それ以外＝中央で静止（off=0, opacity=1）
   return (
     <div style={{ ...base, transform: overlayTransform(dirNow, off), opacity }}>
-      <OverlayImage ov={ov} />
+      <OverlayImage ov={ov} maxW={maxW} maxH={maxH} />
     </div>
   );
 };

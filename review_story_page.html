@@ -2649,18 +2649,28 @@ function overlayPreview(tn,ov){
   const frame=document.createElement('div'); frame.style.cssText='position:absolute'; box.appendChild(frame);
   const img=document.createElement('img');
   if(asset&&asset.file) img.src='/img-file/'+encodeURIComponent(asset.file);
-  img.style.cssText='display:block;width:100%;height:auto'+((ov.frame!==false)?';border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.55)':''); frame.appendChild(img);
+  img.style.cssText='display:block;width:100%;height:100%;object-fit:contain'+((ov.frame!==false)?';border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.55)':''); frame.appendChild(img);
   const handle=document.createElement('div'); handle.style.cssText='position:absolute;right:-7px;bottom:-7px;width:16px;height:16px;border-radius:50%;background:#3fb6c8;border:2px solid #fff;cursor:nwse-resize;z-index:3;touch-action:none'; frame.appendChild(handle);
+  // 縦長画像がはみ出ないよう、AR考慮でframe寸法を計算（size = maxW/videoW = maxH/videoH の上限）
+  const applySize=(size)=>{
+    const ar=img.naturalWidth>0?(img.naturalWidth/img.naturalHeight):null;
+    const b=box.getBoundingClientRect(); if(!b.width) return;
+    const maxH=b.height; const maxW=size*b.width;
+    let fw=maxW, fh=ar?maxW/ar:maxW*(9/16);
+    if(fh>maxH){ fh=maxH; fw=ar?maxH*ar:maxH*(16/9); }
+    frame.style.width=fw+'px'; frame.style.height=fh+'px';
+  };
   // 静止位置は常に中央（dirは登場方向＝本番でどこからスライドインするか）。プレビューは静止状態を中央表示。
-  const layout=()=>{ const size=(ov.size!=null?ov.size:0.4); frame.style.width=(size*100)+'%';
+  const layout=()=>{ const size=(ov.size!=null?ov.size:0.4); applySize(size);
     frame.style.right=''; frame.style.bottom='';
     frame.style.left='50%'; frame.style.top='50%'; frame.style.transform='translate(-50%,-50%)'; };
+  img.onload=layout;
   layout();
   handle.onpointerdown=(e)=>{ e.preventDefault(); e.stopPropagation();
     const b=box.getBoundingClientRect(), fr=frame.getBoundingClientRect();
     const leftPx=fr.left-b.left, topPx=fr.top-b.top;   // ドラッグ中はpx固定アンカー＝中央/右寄せの再センター暴走を防ぐ
     frame.style.transform=''; frame.style.right=''; frame.style.bottom=''; frame.style.left=leftPx+'px'; frame.style.top=topPx+'px';
-    const move=(ev)=>{ let s=(ev.clientX-b.left-leftPx)/Math.max(1,b.width); s=Math.max(0.1,Math.min(1,s)); ov.size=Math.round(s*100)/100; frame.style.width=(ov.size*100)+'%'; };
+    const move=(ev)=>{ let s=(ev.clientX-b.left-leftPx)/Math.max(1,b.width); s=Math.max(0.1,Math.min(1,s)); ov.size=Math.round(s*100)/100; applySize(ov.size); };
     const up=()=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); markDirty(); markVisualStale(); renderRight(); };
     window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); };
   return box;
