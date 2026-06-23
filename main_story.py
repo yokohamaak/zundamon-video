@@ -357,10 +357,11 @@ def _resolve_viz_segments(meta_ch, idxs, turns, seg_start, seg_end, image_files,
     return [seg] if (len(seg) > 2) else []
 
 
-def _resolve_overlays(turn, assets_by):
+def _resolve_overlays(turn, assets_by, all_turns=None, turn_gi=None):
     """turn.imageOverlays（文字位置start/end・assetId・dir・size）を meta 用へ解決（純関数）。
 
     start/end は本文文字位置→絶対秒（_point_time 按分）。assetId→assets の file。
+    endTurnGi が指定されている場合は別セリフの文字位置で終了（セリフ跨ぎ）。
     file 無し / 逆転（end<=start）は除外。Returns: [{image,start,end,dir,size?}] or None。
     """
     out = []
@@ -369,7 +370,14 @@ def _resolve_overlays(turn, assets_by):
         if not (a and a.get("file")):
             continue
         st = _point_time(turn, ov.get("start", 0))
-        en = _point_time(turn, ov.get("end", ov.get("start", 0)))
+        # endTurnGi: セリフ跨ぎ終了（指定があれば別セリフの文字位置を使用）
+        end_turn_gi = ov.get("endTurnGi")
+        if (end_turn_gi is not None and all_turns is not None
+                and 0 <= end_turn_gi < len(all_turns) and end_turn_gi != turn_gi):
+            end_turn = all_turns[end_turn_gi]
+        else:
+            end_turn = turn
+        en = _point_time(end_turn, ov.get("end", ov.get("start", 0)))
         if en <= st:
             continue
         o = {"image": a["file"], "start": st, "end": en, "dir": ov.get("dir") or "left"}
@@ -879,8 +887,11 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
         raise ValueError(f"ターン数とタイムスタンプ数が不一致: {len(base)} != {len(turns)}")
 
     assets_by = {a.get("id"): a for a in (script_result.get("assets") or [])}
+    # セリフ跨ぎ終了に使う全セリフのタイミング＋テキスト（_resolve_overlays の endTurnGi 解決用）
+    all_turns = [{"start": t["start"], "end": t["end"], "text": b.get("text", "")}
+                 for b, t in zip(base, turns)]
     script = []
-    for turn, t in zip(base, turns):
+    for i, (turn, t) in enumerate(zip(base, turns)):
         merged = {**turn, "start": t["start"], "end": t["end"], "sentences": t["sentences"]}
         # 範囲が特定できない(stale)文字演出は動画へ出さない（誤った位置の強調を防ぐ）。
         # staleはレビューUI用に script.json には残るが、meta には含めない。
@@ -892,7 +903,7 @@ def build_meta(script_result, turns, config, now_iso, image_files=None, attribut
             else:
                 merged.pop("textEffects", None)
         # スライドイン画像オーバーレイ（小演出）：文字位置→絶対秒へ解決し meta へ。raw は meta から外す。
-        ov = _resolve_overlays(merged, assets_by)   # merged は imageOverlays＋start/end/text を持つ
+        ov = _resolve_overlays(merged, assets_by, all_turns=all_turns, turn_gi=i)
         merged.pop("imageOverlays", None)
         if ov:
             merged["overlays"] = ov

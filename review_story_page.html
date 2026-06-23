@@ -372,6 +372,8 @@
                 font-weight:800; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; }
   .tl-overlay.sel { outline:2px solid #d6f3f8; box-shadow:0 0 8px rgba(86,200,218,.6); }
   .tl-overlay.dragging { overflow:visible; outline:2px solid #d6f3f8; box-shadow:0 0 12px rgba(86,200,218,.6); }
+  .tl-overlay.cross { border-right:3px dashed #3fb6c8; }
+  .tl-overlay.cross::after { content:'→'; position:absolute; right:3px; top:50%; transform:translateY(-50%); font-size:10px; pointer-events:none; }
   .drop-hot { outline:2px dashed #5a8dd6; outline-offset:-2px; background:rgba(90,141,214,.08); }
   .tl-kf-group { position:relative; height:22px; margin:4px 3px; }
   .tl-kf { position:absolute; top:50%; transform:translate(-50%,-50%); font-size:9px; font-weight:800;
@@ -2185,14 +2187,17 @@ function renderTimeline(){
     const group=document.createElement('div'); group.className='tl-text-group'; group.style.gridColumn=(gi+1)+' / span 1';
     const len=Math.max(1,(tn.text||'').length);
     ovs.slice().sort((a,b)=>a.start-b.start).forEach(ov=>{ const b=document.createElement('div');
-      b.className='tl-overlay'+(ov.id===selectedOverlayId&&gi===selGi?' sel':'');
-      b.style.left=(Math.max(0,ov.start)/len*100)+'%'; b.style.width=(Math.max(1,ov.end-ov.start)/len*100)+'%';
+      const isCross=ov.endTurnGi!=null&&ov.endTurnGi!==gi;
+      b.className='tl-overlay'+(ov.id===selectedOverlayId&&gi===selGi?' sel':'')+(isCross?' cross':'');
+      b.style.left=(Math.max(0,ov.start)/len*100)+'%';
+      b.style.width=(isCross?(len-ov.start)/len*100:Math.max(1,ov.end-ov.start)/len*100)+'%';
       const asset=(DATA.assets||[]).find(a=>a.id===ov.assetId);
       b.textContent='🖼'+(asset?(asset.queryJa||asset.query||''):'(未設定)');
       const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始文字をドラッグ';
-      const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了文字をドラッグ';
+      const he=document.createElement('button'); he.type='button'; he.className='tl-handle end';
       hs.onpointerdown=e=>startOverlayResize(e,gi,ov.id,'s',group,b);
-      he.onpointerdown=e=>startOverlayResize(e,gi,ov.id,'e',group,b);
+      if(!isCross){ he.title='終了文字をドラッグ'; he.onpointerdown=e=>startOverlayResize(e,gi,ov.id,'e',group,b); }
+      else he.style.pointerEvents='none'; // cross-turn: 終了位置は右パネルで調整
       b.appendChild(hs); b.appendChild(he);
       b.onclick=()=>{ rtab='small'; selectTurn(gi,false); selectedOverlayId=ov.id; renderRight(); renderTimeline(); };   // selectTurn後にIDを立てる(行変更でクリアされるため)
       group.appendChild(b); }); ovTrack.appendChild(group); });
@@ -2516,8 +2521,15 @@ function startTextEffectResize(ev,gi,id,edge,group,bar){
 const OVERLAY_DIRS=[['left','左から'],['right','右から'],['top','上から'],['bottom','下から'],['center','中央(フェード)']];
 
 function nextOverlayId(tn){ const used=new Set((tn.imageOverlays||[]).map(o=>o.id)); let i=1; while(used.has('ov'+i))i++; return 'ov'+i; }
-// 同セリフ内で id 以外のオーバーレイと時間（文字位置）が重なるか。
-function overlayOverlaps(tn,id,start,end){ return (tn.imageOverlays||[]).some(o=>o.id!==id && o.end>start && o.start<end); }
+// 同セリフ内で id 以外のオーバーレイと時間（文字位置）が重なるか。クロスセリフは現セリフ末端まで占有とみなす。
+function overlayOverlaps(tn,id,start,end){
+  const len=(tn.text||'').length;
+  return (tn.imageOverlays||[]).some(o=>{
+    if(o.id===id) return false;
+    const oEnd=(o.endTurnGi!=null&&o.endTurnGi!==selGi)?len:o.end;
+    return oEnd>start && o.start<end;
+  });
+}
 // 既存オーバーレイと重ならない空き文字範囲を先頭から探す（無ければ null）。
 function freeOverlayRange(tn){
   const len=(tn.text||'').length||1;
@@ -2547,8 +2559,25 @@ function addImageOverlay(tn){
 function reconcileOverlays(tn){
   const len=(tn.text||'').length;
   let ovs=(tn.imageOverlays||[]);
-  ovs.forEach(o=>{ o.start=Math.max(0,Math.min(o.start,len)); o.end=Math.max(0,Math.min(o.end,len)); });
-  ovs=ovs.filter(o=>o.end>o.start);
+  const total=DATA.script.length;
+  ovs.forEach(o=>{
+    o.start=Math.max(0,Math.min(o.start,len));
+    if(o.endTurnGi!=null){
+      // クロスセリフ: endTurnGi を有効範囲へクランプ。end は対象セリフの本文長でクランプ。
+      o.endTurnGi=Math.max(0,Math.min(o.endTurnGi,total-1));
+      const endTn=DATA.script[o.endTurnGi];
+      const endLen=(endTn?.text||'').length;
+      o.end=Math.max(0,Math.min(o.end,endLen));
+      // 同セリフになったら cross を解除
+      if(o.endTurnGi===DATA.script.indexOf(tn)) delete o.endTurnGi;
+    } else {
+      o.end=Math.max(0,Math.min(o.end,len));
+    }
+  });
+  ovs=ovs.filter(o=>{
+    if(o.endTurnGi!=null) return true; // cross は start<endTurn で常に有効
+    return o.end>o.start;
+  });
   if(ovs.length) tn.imageOverlays=ovs; else delete tn.imageOverlays;
 }
 // テロップ表示区間（文字位置）を本文長へクランプ。本文が空なら指定を外す。
@@ -2700,7 +2729,8 @@ function renderOverlaySection(tn){
     th.title='クリックで選択'; th.onclick=()=>{ selectedOverlayId=ov.id; renderRight(); };
     top.appendChild(th);
     const meta=document.createElement('div'); meta.style.cssText='flex:1;min-width:0;font-size:11px;color:#cdd6e2;cursor:pointer';
-    meta.innerHTML='<div>'+(ov.start+1)+'〜'+ov.end+'文字目 ／ '+(OVERLAY_DIRS.find(d=>d[0]===(ov.dir||'left'))||['','左'])[1]+' ／ '+Math.round((ov.size!=null?ov.size:0.4)*100)+'%幅</div>'
+    const crossStr=ov.endTurnGi!=null&&ov.endTurnGi!==selGi?' → +'+(ov.endTurnGi-selGi)+'セリフ':'';
+    meta.innerHTML='<div>'+(ov.start+1)+'〜'+ov.end+'文字目'+crossStr+' ／ '+(OVERLAY_DIRS.find(d=>d[0]===(ov.dir||'left'))||['','左'])[1]+' ／ '+Math.round((ov.size!=null?ov.size:0.4)*100)+'%幅</div>'
       +'<div style="color:var(--sub);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(asset?(asset.queryJa||asset.query||asset.id):'(素材を選択)')+'</div>';
     meta.onclick=()=>{ selectedOverlayId=ov.id; renderRight(); };
     top.appendChild(meta);
@@ -2731,6 +2761,30 @@ function renderOverlaySection(tn){
       fb.onclick=()=>{ if(ov.frame===false) delete ov.frame; else ov.frame=false; markDirty(); markVisualStale(); renderRight(); }; frw.appendChild(fb);
       const fh=document.createElement('span'); fh.textContent='透過画像はなし推奨'; fh.style.fontSize='10px'; frw.appendChild(fh);
       item.appendChild(frw);
+      // 終了セリフ選択（クロスセリフ区間）。
+      const curEndGi=ov.endTurnGi!=null?ov.endTurnGi:selGi;
+      const endRow=document.createElement('div'); endRow.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;font-size:11px;color:var(--sub)';
+      endRow.appendChild(document.createTextNode('終了セリフ'));
+      const prevBtn=document.createElement('button'); prevBtn.type='button'; prevBtn.className='mini'; prevBtn.textContent='←'; prevBtn.disabled=curEndGi<=selGi;
+      prevBtn.onclick=()=>{ const ng=curEndGi-1; if(ng===selGi) delete ov.endTurnGi; else ov.endTurnGi=ng; const et=DATA.script[ng]; ov.end=(et?.text||'').length; markDirty(); markVisualStale(); renderRight(); };
+      const elLabel=document.createElement('span'); elLabel.style.cssText='font-size:11px;color:#cdd6e2;min-width:70px;text-align:center';
+      elLabel.textContent=curEndGi===selGi?'同セリフ':'+'+(curEndGi-selGi)+'セリフ先';
+      const nextBtn=document.createElement('button'); nextBtn.type='button'; nextBtn.className='mini'; nextBtn.textContent='→'; nextBtn.disabled=curEndGi>=DATA.script.length-1;
+      nextBtn.onclick=()=>{ const ng=curEndGi+1; ov.endTurnGi=ng; const et=DATA.script[ng]; ov.end=(et?.text||'').length; markDirty(); markVisualStale(); renderRight(); };
+      endRow.appendChild(prevBtn); endRow.appendChild(elLabel); endRow.appendChild(nextBtn);
+      item.appendChild(endRow);
+      // クロスセリフ時：対象セリフ内の終了文字位置スライダー。
+      if(curEndGi!==selGi){
+        const endTn=DATA.script[curEndGi]; const endLen=(endTn?.text||'').length||1;
+        const epRow=document.createElement('div'); epRow.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;font-size:11px;color:var(--sub)';
+        const epSl=document.createElement('input'); epSl.type='range'; epSl.min='1'; epSl.max=String(endLen); epSl.step='1'; epSl.value=String(Math.max(1,Math.min(ov.end||endLen,endLen)));
+        const epSv=document.createElement('span'); epSv.style.minWidth='50px';
+        const showEp=()=>epSv.textContent=epSl.value+'/'+endLen+'文字'; showEp();
+        epSl.oninput=()=>{ ov.end=parseInt(epSl.value); showEp(); markDirty(); };
+        epSl.onchange=()=>{ markVisualStale(); renderRight(); };
+        epRow.appendChild(document.createTextNode('終了位置')); epRow.appendChild(stepWrap(epSl)); epRow.appendChild(epSv);
+        item.appendChild(epRow);
+      }
       item.appendChild(assetOverlayPicker(tn,ov));
       item.appendChild(overlayPreview(tn,ov));
       const ph=document.createElement('div'); ph.style.cssText='font-size:10px;color:var(--sub);margin-top:2px';
