@@ -311,7 +311,7 @@ export type Meta = {
   audio?: {
     bgm?: { file: string; volume?: number; fade?: number } | null;  // 全体ループBGM（音量/末尾fadeの基準）
     // 区間ごとBGM（章/手動分割）。あればこちらを優先再生。未設定区間は無音＝含めない。
-    bgmSegments?: { file: string; start: number; end: number; fadeIn?: number; fadeOut?: number }[] | null;
+    bgmSegments?: { file: string; start: number; end: number; fadeIn?: number; fadeOut?: number; volume?: number }[] | null;  // volume＝区間ごとの音量（省略時は全体bgm.volume）
     se_volume?: number;                                              // SE全体の音量
     se?: Record<string, string>;                                    // トリガー名→ファイル名（se/配下）
     events?: { t: number; se: string }[];                          // 鳴らすSEイベント（時刻順）

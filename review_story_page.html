@@ -2318,12 +2318,14 @@ function bgmSpans(){ const idx=_turnIndexMap(); const n=((DATA&&DATA.script)||[]
 }
 function bgmLabel(seg){ return (seg&&seg.bgm)?seg.bgm:'未設定'; }
 // 区間にBGM/フェードを適用（segが暗黙先頭ならその位置に区間を実体化）。fileが空なら未設定化。
-function bgmAssign(span, file, fadeIn, fadeOut){
+function bgmAssign(span, file, fadeIn, fadeOut, volume){
   let seg=span.seg;
   if(!seg){ if(!file) return; seg={ id:nextBgmId(), startTurnId:DATA.script[span.s].id }; (DATA.bgmSegments=DATA.bgmSegments||[]).push(seg); selBgm=seg.id; }
   if(file) seg.bgm=file; else delete seg.bgm;
   if(fadeIn>0) seg.fadeIn=fadeIn; else delete seg.fadeIn;
   if(fadeOut>0) seg.fadeOut=fadeOut; else delete seg.fadeOut;
+  // 音量は既定(BGM_DEFAULT_VOL)と異なる時だけ保存（既定運用はクリーンに保つ）。
+  if(volume!=null && Math.abs(volume-BGM_DEFAULT_VOL)>1e-6) seg.volume=Math.round(volume*100)/100; else delete seg.volume;
   markDirty();
 }
 function bgmSplitAt(gi){ if(gi<=0) return; const id=DATA.script[gi].id; const segs=(DATA.bgmSegments=DATA.bgmSegments||[]);
@@ -2338,7 +2340,7 @@ function renderBgmTrack(body){
   spans.forEach(sp=>{ const seg=sp.seg, set=!!(seg&&seg.bgm);
     const bar=document.createElement('div'); bar.className='tl-bar bgm'+(set?'':' unset')+((seg&&selBgm===seg.id)?' sel':'');
     bar.style.gridColumn=(sp.s+1)+' / '+(sp.e+2);
-    const t=document.createElement('span'); t.textContent='♪ '+bgmLabel(seg)+((seg&&seg.fadeIn)?(' ↗'+seg.fadeIn):'')+((seg&&seg.fadeOut)?(' ↘'+seg.fadeOut):''); bar.appendChild(t);
+    const t=document.createElement('span'); t.textContent='♪ '+bgmLabel(seg)+((seg&&seg.fadeIn)?(' ↗'+seg.fadeIn):'')+((seg&&seg.fadeOut)?(' ↘'+seg.fadeOut):'')+((seg&&seg.volume!=null)?(' '+Math.round(seg.volume*100)+'%'):''); bar.appendChild(t);
     if(seg){ const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='分割位置をドラッグ'; hs.onpointerdown=e=>startBgmResize(e,seg,bar); bar.appendChild(hs); }
     bar.onclick=()=>{ selBgm=seg?seg.id:null; renderTimeline(); };
     bar.ondblclick=()=>openBgmAssign(sp);
@@ -2362,6 +2364,7 @@ function startBgmResize(ev,seg,bar){ ev.preventDefault(); ev.stopPropagation();
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish);
 }
 const BGM_FADES=[['0','なし'],['0.3','0.3秒'],['0.6','0.6秒'],['1','1秒'],['2','2秒'],['3','3秒']];
+const BGM_DEFAULT_VOL=0.07;   // 区間音量の既定（DialogueVideoのフォールバックと一致）。これと同値なら保存しない
 function openBgmAssign(span){
   loadBgmFiles(files=>{
     const seg=span.seg;
@@ -2378,12 +2381,22 @@ function openBgmAssign(span){
     const fiSel=document.createElement('select'); BGM_FADES.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;fiSel.appendChild(o);}); fiSel.value=String((seg&&seg.fadeIn)||0);
     const foSel=document.createElement('select'); BGM_FADES.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;foSel.appendChild(o);}); foSel.value=String((seg&&seg.fadeOut)||0);
     mo.appendChild(fl2('フェードイン',fiSel)); mo.appendChild(fl2('フェードアウト',foSel));
+    // 音量（区間ごと。既定=BGM_DEFAULT_VOL）。range＋%表示で微調整。
+    const volWrap=document.createElement('div'); volWrap.style.cssText='display:flex;gap:8px;align-items:center;flex:1';
+    const volSld=document.createElement('input'); volSld.type='range'; volSld.min='0'; volSld.max='0.3'; volSld.step='0.01'; volSld.style.flex='1';
+    volSld.value=String((seg&&seg.volume!=null)?seg.volume:BGM_DEFAULT_VOL);
+    const volNum=document.createElement('span'); volNum.style.cssText='min-width:54px;text-align:right;color:#cdd6e2;font-variant-numeric:tabular-nums';
+    const fmtVol=x=>Math.round(x*100)+'%'+(Math.abs(x-BGM_DEFAULT_VOL)<1e-6?'(既定)':'');
+    volNum.textContent=fmtVol(parseFloat(volSld.value));
+    volSld.oninput=()=>{ volNum.textContent=fmtVol(parseFloat(volSld.value)); };
+    volWrap.appendChild(volSld); volWrap.appendChild(volNum);
+    mo.appendChild(fl2('音量',volWrap));
     const btns=document.createElement('div'); btns.style.cssText='display:flex;gap:6px;margin-top:12px;justify-content:flex-end;align-items:center';
     if(seg){ const del=document.createElement('button'); del.className='mini'; del.type='button'; del.textContent='分割を削除'; del.style.cssText='margin-right:auto;background:transparent;color:#d66;border:1px solid #6b3a3a';
       del.onclick=()=>{ if(au)au.pause(); bgmDeleteSplit(seg); ov.remove(); renderTimeline(); }; btns.appendChild(del); }
     const cancel=document.createElement('button'); cancel.className='mini'; cancel.type='button'; cancel.textContent='キャンセル'; cancel.onclick=()=>{ if(au)au.pause(); ov.remove(); };
     const ok=document.createElement('button'); ok.className='mini'; ok.type='button'; ok.textContent='適用';
-    ok.onclick=()=>{ if(au)au.pause(); bgmAssign(span, fileSel.value, parseFloat(fiSel.value)||0, parseFloat(foSel.value)||0); ov.remove(); renderTimeline(); };
+    ok.onclick=()=>{ if(au)au.pause(); bgmAssign(span, fileSel.value, parseFloat(fiSel.value)||0, parseFloat(foSel.value)||0, parseFloat(volSld.value)); ov.remove(); renderTimeline(); };
     btns.appendChild(cancel); btns.appendChild(ok); mo.appendChild(btns);
     document.body.appendChild(ov);
   });

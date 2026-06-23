@@ -1246,7 +1246,7 @@ export const DialogueVideo: React.FC<{
       {meta.audio?.bgmSegments?.length ? (
         meta.audio.bgmSegments.map((seg, i) => {
           const segs = meta.audio!.bgmSegments!;
-          const v = meta.audio?.bgm?.volume ?? 0.07;
+          const v = seg.volume ?? meta.audio?.bgm?.volume ?? 0.07;  // 区間ごとの音量を優先（省略時は全体bgm.volume）
           const from = Math.round((seg.start - clipStartSec) * fps);
           const dur = Math.max(1, Math.round((seg.end - seg.start) * fps));
           const fi = Math.round((seg.fadeIn ?? 0) * fps);

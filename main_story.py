@@ -736,6 +736,8 @@ def _resolve_bgm_segments(script, bgm_segments):
             o["fadeIn"] = float(seg["fadeIn"])
         if seg.get("fadeOut"):
             o["fadeOut"] = float(seg["fadeOut"])
+        if seg.get("volume") is not None:
+            o["volume"] = float(seg["volume"])
         out.append(o)
     return out or None
 
