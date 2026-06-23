@@ -28,6 +28,8 @@ let root: Root | null = null;
 let playerRef: PlayerRef | null = null;
 let loadedMeta: Meta | null = null;
 let setMetaState: React.Dispatch<React.SetStateAction<Meta>> | null = null;
+// mount() の Promise を playerRef セット後（useEffect 後）に resolve するためのコールバック。
+let onPlayerReady: (() => void) | null = null;
 
 async function loadMeta(): Promise<Meta> {
   const response = await fetch("/preview-assets/meta.json", {cache: "no-store"});
@@ -62,6 +64,9 @@ const ReviewPlayer: React.FC<{meta: Meta}> = ({meta: initialMeta}) => {
     playerRef = ref.current;
     setMetaState = setMeta;
     setReady(true);
+    // playerRef がセットされた＝mount() の Promise を resolve してよいタイミング。
+    onPlayerReady?.();
+    onPlayerReady = null;
     // 逆連携: 再生/シークの現在フレーム→セリフindexを逆算し editor 側へ通知（追従ハイライト用）。
     const player = ref.current;
     const onFrame: CallbackListener<"frameupdate"> = (e) => {
@@ -120,11 +125,18 @@ window.remotionEditorPlayer = {
     if (root) root.unmount();
     root = null;
     playerRef = null;
+    onPlayerReady = null;
     loadedMeta = await loadMeta();
     root = createRoot(element);
-    root.render(<ReviewPlayer meta={loadedMeta} />);
+    // root.render() は非同期なので useEffect が走るまで待ってから resolve する。
+    // これにより .then() の時点で playerRef が確実にセット済みになる。
+    await new Promise<void>((resolve) => {
+      onPlayerReady = resolve;
+      root!.render(<ReviewPlayer meta={loadedMeta!} />);
+    });
   },
   unmount() {
+    onPlayerReady = null;
     if (root) root.unmount();
     root = null;
     playerRef = null;
