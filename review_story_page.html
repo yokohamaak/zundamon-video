@@ -2636,14 +2636,17 @@ function startOverlayResize(ev,gi,id,edge,group,bar){
       dragLabel.textContent='+'+(curEndGi-gi)+'セリフ先 / '+target+'文字';
     }
   }; update();
-  // マウスX→グローバルセリフindex＋セリフ内文字位置を返す。gi以降のみ（'e'エッジ用）。
+  // マウスX→セリフindex＋文字位置。gi以降のみ（'e'エッジ用）。
+  // .tl-turn[data-gi] は timelineTurnAtXAny と同じ要素を使うため確実に見つかる。
   const resolvePos=(clientX)=>{
     let targetGi=timelineTurnAtXAny(clientX);
     if(targetGi<gi) targetGi=gi;
-    const g=document.querySelector('.tl-text-group[data-gi="'+targetGi+'"]');
-    const r=(g||group).getBoundingClientRect();
+    const cell=document.querySelector('.tl-turn[data-gi="'+targetGi+'"]');
+    const r=cell?cell.getBoundingClientRect():group.getBoundingClientRect();
     const eLen=Math.max(1,(DATA.script[targetGi]?.text||'').length);
-    const pos=Math.round((clientX-r.left)/Math.max(1,r.width)*eLen);
+    const textLeft=r.left+(cell?TL_TURN_GUTTER:0);
+    const textW=Math.max(1,r.width-(cell?TL_TURN_GUTTER:0));
+    const pos=Math.round((clientX-textLeft)/textW*eLen);
     const minPos=targetGi===gi?original.start+1:1;
     return {newGi:targetGi, newPos:Math.max(minPos,Math.min(eLen,pos))};
   };
@@ -2693,13 +2696,17 @@ function startOverlayCrossEndResize(ev,gi,id,endGi,endGroup,bar){
     dragLabel.textContent=curGi===endGi?('終了 '+curPos+'文字目'):curGi===gi?('同セリフへ縮小'):('+'+(curGi-gi)+'セリフ先 / '+curPos+'文字');
   }; update();
   const move=e=>{
+    const scroll=document.querySelector('.tl-scroll');
+    if(scroll){ const sr=scroll.getBoundingClientRect(); if(e.clientX<sr.left+36)scroll.scrollLeft-=18; else if(e.clientX>sr.right-36)scroll.scrollLeft+=18; }
     let targetGi=timelineTurnAtXAny(e.clientX);
     if(targetGi<gi) targetGi=gi;
     curGi=targetGi;
-    const g=document.querySelector('.tl-text-group[data-gi="'+targetGi+'"]');
-    const r=(g||endGroup).getBoundingClientRect();
+    const cell=document.querySelector('.tl-turn[data-gi="'+targetGi+'"]');
+    const r=cell?cell.getBoundingClientRect():endGroup.getBoundingClientRect();
     const eLen=Math.max(1,(DATA.script[targetGi]?.text||'').length);
-    const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*eLen);
+    const textLeft=r.left+(cell?TL_TURN_GUTTER:0);
+    const textW=Math.max(1,r.width-(cell?TL_TURN_GUTTER:0));
+    const pos=Math.round((e.clientX-textLeft)/textW*eLen);
     curPos=Math.max(1,Math.min(eLen,pos));
     update();
   };
