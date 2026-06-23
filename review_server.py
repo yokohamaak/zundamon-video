@@ -2171,7 +2171,7 @@ class Handler(BaseHTTPRequestHandler):
             self._html(READ_PAGE.replace("__CSS__", _BASE_CSS))
             return
         if path == "/story":
-            self._html(STORY_PAGE.replace("__CSS__", _BASE_CSS))
+            self._html(_load_page("review_story_page.html").replace("__CSS__", _BASE_CSS))
             return
         if path == "/preview/player.js":
             self._file(os.path.join(VIDEO_PUBLIC_DIR, "review-player.js"), "text/javascript; charset=utf-8")
@@ -2412,14 +2412,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", default="docs/story", help="レビュー対象（review.json/画像のあるディレクトリ）")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default="127.0.0.1", help="待受ホスト（既定はローカル限定）")
     args = parser.parse_args()
     DIR = args.dir
     BASE_DIR = args.dir  # 本編＝ショートのネタ元（起動時の対象を基準にする）
     if not os.path.exists(os.path.join(DIR, "review.json")):
         print(f"[review] {DIR}/review.json がありません。先に "
               f"`python main_story.py --stop-after-images` を実行してください。")
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"[review] http://127.0.0.1:{args.port}/  （対象: {DIR}） Ctrl+C で停止")
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+    print(f"[review] http://{args.host}:{args.port}/  （対象: {DIR}） Ctrl+C で停止")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -2636,30 +2636,31 @@ function startOverlayResize(ev,gi,id,edge,group,bar){
       dragLabel.textContent='+'+(curEndGi-gi)+'セリフ先 / '+target+'文字';
     }
   }; update();
-  // マウスX→セリフindex＋文字位置。gi以降のみ（'e'エッジ用）。
-  // .tl-turn[data-gi] は timelineTurnAtXAny と同じ要素を使うため確実に見つかる。
-  const resolvePos=(clientX)=>{
-    let targetGi=timelineTurnAtXAny(clientX);
-    if(targetGi<gi) targetGi=gi;
-    const cell=document.querySelector('.tl-turn[data-gi="'+targetGi+'"]');
-    const r=cell?cell.getBoundingClientRect():group.getBoundingClientRect();
-    const eLen=Math.max(1,(DATA.script[targetGi]?.text||'').length);
-    const textLeft=r.left+(cell?TL_TURN_GUTTER:0);
-    const textW=Math.max(1,r.width-(cell?TL_TURN_GUTTER:0));
-    const pos=Math.round((clientX-textLeft)/textW*eLen);
-    const minPos=targetGi===gi?original.start+1:1;
-    return {newGi:targetGi, newPos:Math.max(minPos,Math.min(eLen,pos))};
-  };
   const move=e=>{
     const scroll=document.querySelector('.tl-scroll');
     if(scroll){ const sr=scroll.getBoundingClientRect(); if(e.clientX<sr.left+36)scroll.scrollLeft-=18; else if(e.clientX>sr.right-36)scroll.scrollLeft+=18; }
-    const r=group.getBoundingClientRect();
+    const gr=group.getBoundingClientRect();
     if(edge==='s'){
-      const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*len);
+      const pos=Math.round((e.clientX-gr.left)/Math.max(1,gr.width)*len);
       target=Math.max(0,Math.min(original.end-1,pos)); update(); return;
     }
-    const {newGi,newPos}=resolvePos(e.clientX);
-    curEndGi=newGi; target=newPos; update(); };
+    if(e.clientX<=gr.right){
+      // 同セリフ内（元の単純計算）
+      const pos=Math.round((e.clientX-gr.left)/Math.max(1,gr.width)*len);
+      target=Math.max(original.start+1,Math.min(len,pos)); curEndGi=gi;
+    } else {
+      // セリフ境界を越えた → cross-turn
+      const tgi=timelineTurnAtXAny(e.clientX);
+      curEndGi=Math.max(gi+1, tgi<0?gi+1:tgi);
+      const cell=document.querySelector('.tl-turn[data-gi="'+curEndGi+'"]');
+      if(cell){
+        const r2=cell.getBoundingClientRect();
+        const eLen=Math.max(1,(DATA.script[curEndGi]?.text||'').length);
+        const pos=Math.round((e.clientX-r2.left-TL_TURN_GUTTER)/Math.max(1,r2.width-TL_TURN_GUTTER)*eLen);
+        target=Math.max(1,Math.min(eLen,pos));
+      } else { target=Math.max(1,(DATA.script[curEndGi]?.text||'').length); }
+    }
+    update(); };
   const cleanup=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
     document.removeEventListener('pointercancel',cancel); document.body.classList.remove('tl-resizing'); };
   const revertView=()=>{ bar.classList.remove('dragging'); handle.classList.remove('dragging'); dragLabel.remove(); };
@@ -2698,16 +2699,27 @@ function startOverlayCrossEndResize(ev,gi,id,endGi,endGroup,bar){
   const move=e=>{
     const scroll=document.querySelector('.tl-scroll');
     if(scroll){ const sr=scroll.getBoundingClientRect(); if(e.clientX<sr.left+36)scroll.scrollLeft-=18; else if(e.clientX>sr.right-36)scroll.scrollLeft+=18; }
-    let targetGi=timelineTurnAtXAny(e.clientX);
-    if(targetGi<gi) targetGi=gi;
-    curGi=targetGi;
-    const cell=document.querySelector('.tl-turn[data-gi="'+targetGi+'"]');
-    const r=cell?cell.getBoundingClientRect():endGroup.getBoundingClientRect();
-    const eLen=Math.max(1,(DATA.script[targetGi]?.text||'').length);
-    const textLeft=r.left+(cell?TL_TURN_GUTTER:0);
-    const textW=Math.max(1,r.width-(cell?TL_TURN_GUTTER:0));
-    const pos=Math.round((e.clientX-textLeft)/textW*eLen);
-    curPos=Math.max(1,Math.min(eLen,pos));
+    const egr=endGroup.getBoundingClientRect();
+    if(e.clientX>=egr.left&&e.clientX<=egr.right){
+      // 終了セリフ内（単純計算）
+      const pos=Math.round((e.clientX-egr.left)/Math.max(1,egr.width)*endLen);
+      curGi=endGi; curPos=Math.max(1,Math.min(endLen,pos));
+    } else {
+      const tgi=timelineTurnAtXAny(e.clientX);
+      curGi=Math.max(gi, tgi<0?endGi:tgi);
+      if(curGi===endGi){
+        const pos=Math.round((e.clientX-egr.left)/Math.max(1,egr.width)*endLen);
+        curPos=Math.max(1,Math.min(endLen,pos));
+      } else {
+        const cell=document.querySelector('.tl-turn[data-gi="'+curGi+'"]');
+        if(cell){
+          const r2=cell.getBoundingClientRect();
+          const eLen2=Math.max(1,(DATA.script[curGi]?.text||'').length);
+          const pos=Math.round((e.clientX-r2.left-TL_TURN_GUTTER)/Math.max(1,r2.width-TL_TURN_GUTTER)*eLen2);
+          curPos=Math.max(1,Math.min(eLen2,pos));
+        }
+      }
+    }
     update();
   };
   const cleanup=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
