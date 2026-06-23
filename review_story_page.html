@@ -466,6 +466,7 @@ function tlColWidth(t){ return Math.max(72, Math.round(((t&&t.text||'').length)*
 function setTimelineZoom(key){ timelineLevel=key; timelineDetail=tlLevelOf(key).detail; localStorage.setItem('reviewTimelineZoom',key); renderTimeline(); }
 let selectedTextRange=null;  // {gi,start,end,text}。小演出タブの文字選択をボタン操作まで保持。
 let selectedOverlayId=null;  // 編集中のオーバーレイ画像ID（小演出タブ／タイムラインで選択中を強調）。
+let _ovGroupMap=new Map();   // gi→tl-text-group要素。renderTimeline後にモジュールレベルで保持（cross-turnドラッグの座標計算用）。
 let overlayPickerOpen=true;  // オーバーレイの素材ピッカーを既定で開く（必ず画像を選ぶため・畳み状態は保持）。
 // 編集モデル(Phase2)：素材ライブラリの状態。editor権威のときだけ素材タブを使う。
 let assetFilter='all';       // 'all' | 'used' | 'unused'
@@ -2227,6 +2228,7 @@ function renderTimeline(){
     });
   });
   if(!ovCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='小演出タブでオーバーレイ画像を追加'; ovTrack.appendChild(e); }
+  _ovGroupMap=ovGroupMap;  // モジュールレベルに公開（cross-turnドラッグの座標計算で参照）
   body.appendChild(ovRow);
   const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）','small-effects');
   DATA.script.forEach((tn,gi)=>{ const group=document.createElement('div'); group.className='tl-small-group'; group.style.gridColumn=(gi+1)+' / span 1';
@@ -2652,13 +2654,13 @@ function startOverlayResize(ev,gi,id,edge,group,bar){
       // セリフ境界を越えた → cross-turn
       const tgi=timelineTurnAtXAny(e.clientX);
       curEndGi=Math.max(gi+1, tgi<0?gi+1:tgi);
-      const cell=document.querySelector('.tl-turn[data-gi="'+curEndGi+'"]');
-      if(cell){
-        const r2=cell.getBoundingClientRect();
-        const eLen=Math.max(1,(DATA.script[curEndGi]?.text||'').length);
-        const pos=Math.round((e.clientX-r2.left-TL_TURN_GUTTER)/Math.max(1,r2.width-TL_TURN_GUTTER)*eLen);
+      const eLen=Math.max(1,(DATA.script[curEndGi]?.text||'').length);
+      const g2=_ovGroupMap.get(curEndGi);
+      if(g2){
+        const r2=g2.getBoundingClientRect();
+        const pos=Math.round((e.clientX-r2.left)/Math.max(1,r2.width)*eLen);
         target=Math.max(1,Math.min(eLen,pos));
-      } else { target=Math.max(1,(DATA.script[curEndGi]?.text||'').length); }
+      } else { target=Math.max(1,eLen); }
     }
     update(); };
   const cleanup=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
@@ -2711,11 +2713,11 @@ function startOverlayCrossEndResize(ev,gi,id,endGi,endGroup,bar){
         const pos=Math.round((e.clientX-egr.left)/Math.max(1,egr.width)*endLen);
         curPos=Math.max(1,Math.min(endLen,pos));
       } else {
-        const cell=document.querySelector('.tl-turn[data-gi="'+curGi+'"]');
-        if(cell){
-          const r2=cell.getBoundingClientRect();
-          const eLen2=Math.max(1,(DATA.script[curGi]?.text||'').length);
-          const pos=Math.round((e.clientX-r2.left-TL_TURN_GUTTER)/Math.max(1,r2.width-TL_TURN_GUTTER)*eLen2);
+        const eLen2=Math.max(1,(DATA.script[curGi]?.text||'').length);
+        const g2=_ovGroupMap.get(curGi);
+        if(g2){
+          const r2=g2.getBoundingClientRect();
+          const pos=Math.round((e.clientX-r2.left)/Math.max(1,r2.width)*eLen2);
           curPos=Math.max(1,Math.min(eLen2,pos));
         }
       }
