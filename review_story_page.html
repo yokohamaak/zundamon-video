@@ -374,6 +374,8 @@
   .tl-overlay.dragging { overflow:visible; outline:2px solid #d6f3f8; box-shadow:0 0 12px rgba(86,200,218,.6); }
   .tl-overlay.cross { border-right:3px dashed #3fb6c8; }
   .tl-overlay.cross::after { content:'→'; position:absolute; right:3px; top:50%; transform:translateY(-50%); font-size:10px; pointer-events:none; }
+  .tl-overlay.cross-end { background:#3da8b8; border-left:3px dashed #3fb6c8; }
+  .tl-overlay.cross-end::before { content:'←'; position:absolute; left:3px; top:50%; transform:translateY(-50%); font-size:10px; pointer-events:none; }
   .drop-hot { outline:2px dashed #5a8dd6; outline-offset:-2px; background:rgba(90,141,214,.08); }
   .tl-kf-group { position:relative; height:22px; margin:4px 3px; }
   .tl-kf { position:absolute; top:50%; transform:translate(-50%,-50%); font-size:9px; font-weight:800;
@@ -2183,8 +2185,12 @@ function renderTimeline(){
   body.appendChild(textRow);
   // オーバーレイ画像（小演出）：文字位置start/endのバー。端ドラッグで尺調整・同セリフ内で時間重複は不可。
   const [ovRow,ovTrack]=timelineRow('オーバーレイ画像'); let ovCount=0;
-  DATA.script.forEach((tn,gi)=>{ const ovs=(tn.imageOverlays||[]); if(!ovs.length)return; ovCount+=ovs.length;
-    const group=document.createElement('div'); group.className='tl-text-group'; group.style.gridColumn=(gi+1)+' / span 1';
+  const ovGroupMap=new Map();  // gi -> group element（クロスエンドバー追加に使う）
+  DATA.script.forEach((tn,gi)=>{ const ovs=(tn.imageOverlays||[]);
+    const group=document.createElement('div'); group.className='tl-text-group'; group.dataset.gi=gi; group.style.gridColumn=(gi+1)+' / span 1';
+    ovGroupMap.set(gi,group);
+    if(!ovs.length){ ovTrack.appendChild(group); return; }
+    ovCount+=ovs.length;
     const len=Math.max(1,(tn.text||'').length);
     ovs.slice().sort((a,b)=>a.start-b.start).forEach(ov=>{ const b=document.createElement('div');
       const isCross=ov.endTurnGi!=null&&ov.endTurnGi!==gi;
@@ -2196,11 +2202,30 @@ function renderTimeline(){
       const hs=document.createElement('button'); hs.type='button'; hs.className='tl-handle start'; hs.title='開始文字をドラッグ';
       const he=document.createElement('button'); he.type='button'; he.className='tl-handle end';
       hs.onpointerdown=e=>startOverlayResize(e,gi,ov.id,'s',group,b);
-      if(!isCross){ he.title='終了文字をドラッグ'; he.onpointerdown=e=>startOverlayResize(e,gi,ov.id,'e',group,b); }
-      else he.style.pointerEvents='none'; // cross-turn: 終了位置は右パネルで調整
+      he.title=isCross?'右にドラッグで延長 / 左へ縮小':'終了文字をドラッグ（右に引くと次セリフへ延長）';
+      he.onpointerdown=e=>startOverlayResize(e,gi,ov.id,'e',group,b);
       b.appendChild(hs); b.appendChild(he);
-      b.onclick=()=>{ rtab='small'; selectTurn(gi,false); selectedOverlayId=ov.id; renderRight(); renderTimeline(); };   // selectTurn後にIDを立てる(行変更でクリアされるため)
+      b.onclick=()=>{ rtab='small'; selectTurn(gi,false); selectedOverlayId=ov.id; renderRight(); renderTimeline(); };
       group.appendChild(b); }); ovTrack.appendChild(group); });
+  // クロスエンドバー：別セリフで始まるオーバーレイの終了位置をそのセリフ列に表示＋ドラッグ可。
+  DATA.script.forEach((endTn,endGi)=>{
+    DATA.script.forEach((tn,gi)=>{
+      if(gi>=endGi) return;
+      (tn.imageOverlays||[]).filter(ov=>ov.endTurnGi===endGi).forEach(ov=>{
+        const endLen=Math.max(1,(endTn.text||'').length);
+        const endGroup=ovGroupMap.get(endGi); if(!endGroup) return;
+        const b=document.createElement('div');
+        b.className='tl-overlay cross-end'+(ov.id===selectedOverlayId&&gi===selGi?' sel':'');
+        b.style.left='0%'; b.style.width=(Math.max(1,Math.min(ov.end,endLen))/endLen*100)+'%';
+        const he=document.createElement('button'); he.type='button'; he.className='tl-handle end'; he.title='終了文字をドラッグ（左に戻すとクロス解除）';
+        he.onpointerdown=e=>startOverlayCrossEndResize(e,gi,ov.id,endGi,endGroup,b);
+        b.appendChild(he);
+        b.onclick=()=>{ rtab='small'; selectTurn(gi,false); selectedOverlayId=ov.id; renderRight(); renderTimeline(); };
+        ovCount++;
+        endGroup.appendChild(b);
+      });
+    });
+  });
   if(!ovCount){ const e=document.createElement('span'); e.className='tl-empty'; e.textContent='小演出タブでオーバーレイ画像を追加'; ovTrack.appendChild(e); }
   body.appendChild(ovRow);
   const [smallRow,smallTrack]=timelineRow('小演出（セリフ全体）','small-effects');
@@ -2589,31 +2614,111 @@ function reconcileTelop(tn){
   if(typeof tn.telopEnd==='number') tn.telopEnd=Math.max((typeof tn.telopStart==='number'?tn.telopStart:0)+1,Math.min(tn.telopEnd,len));
 }
 
+// オーバーレイバー端ドラッグ。'e'エッジはセリフをまたぐ cross-turn にも対応。
 function startOverlayResize(ev,gi,id,edge,group,bar){
   ev.preventDefault(); ev.stopPropagation();
   const tn=DATA.script[gi], ov=(tn.imageOverlays||[]).find(o=>o.id===id); if(!ov)return;
   const len=(tn.text||'').length; if(!len)return;
-  const original={start:ov.start,end:ov.end}; let target=edge==='s'?original.start:original.end;
+  const original={start:ov.start,end:ov.end,endTurnGi:ov.endTurnGi??null};
+  let target=edge==='s'?original.start:original.end;
+  let curEndGi=original.endTurnGi??gi;  // 'e'エッジのみ使用
   const handle=ev.currentTarget; handle.classList.add('dragging'); bar.classList.add('dragging'); document.body.classList.add('tl-resizing');
   const dragLabel=document.createElement('span'); dragLabel.className='tl-drag-label'; bar.appendChild(dragLabel);
-  const update=()=>{ const start=edge==='s'?target:original.start, end=edge==='e'?target:original.end;
-    bar.style.left=(start/len*100)+'%'; bar.style.width=((end-start)/len*100)+'%';
-    dragLabel.textContent=(edge==='s'?'開始 ':'終了 ')+(target+1)+'文字目'; }; update();
+  const update=()=>{
+    if(edge==='s'){
+      bar.style.left=(target/len*100)+'%'; bar.style.width=((original.end-target)/len*100)+'%';
+      dragLabel.textContent='開始 '+(target+1)+'文字目';
+    } else if(curEndGi===gi){
+      bar.style.left=(original.start/len*100)+'%'; bar.style.width=((target-original.start)/len*100)+'%';
+      dragLabel.textContent='終了 '+target+'文字目';
+    } else {
+      bar.style.left=(original.start/len*100)+'%'; bar.style.width=((len-original.start)/len*100)+'%';
+      dragLabel.textContent='+'+(curEndGi-gi)+'セリフ先 / '+target+'文字';
+    }
+  }; update();
+  // マウスX→グローバルセリフindex＋セリフ内文字位置を返す。gi以降のみ（'e'エッジ用）。
+  const resolvePos=(clientX)=>{
+    let foundGi=gi, foundGroup=group;
+    document.querySelectorAll('.tl-text-group[data-gi]').forEach(g=>{
+      const ggi=+g.dataset.gi; if(ggi<gi) return;
+      const r=g.getBoundingClientRect();
+      if(clientX>=r.left){ foundGi=ggi; foundGroup=g; }
+    });
+    const r=foundGroup.getBoundingClientRect();
+    const eLen=Math.max(1,(DATA.script[foundGi]?.text||'').length);
+    const pos=Math.round((clientX-r.left)/Math.max(1,r.width)*eLen);
+    const minPos=foundGi===gi?original.start+1:1;
+    return {newGi:foundGi, newPos:Math.max(minPos,Math.min(eLen,pos))};
+  };
   const move=e=>{ const r=group.getBoundingClientRect();
-    const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*len);
-    target=edge==='s'?Math.max(0,Math.min(original.end-1,pos)):Math.max(original.start+1,Math.min(len,pos));
-    update(); };
+    if(edge==='s'){
+      const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*len);
+      target=Math.max(0,Math.min(original.end-1,pos)); update(); return;
+    }
+    const {newGi,newPos}=resolvePos(e.clientX);
+    curEndGi=newGi; target=newPos; update(); };
   const cleanup=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
     document.removeEventListener('pointercancel',cancel); document.body.classList.remove('tl-resizing'); };
   const revertView=()=>{ bar.classList.remove('dragging'); handle.classList.remove('dragging'); dragLabel.remove(); };
   const finish=()=>{ cleanup();
-    const ns=edge==='s'?target:original.start, ne=edge==='e'?target:original.end;
-    if(ns!==original.start||ne!==original.end){
-      if(overlayOverlaps(tn,id,ns,ne)){ alert('他のオーバーレイと時間が重なります。重ならない範囲にしてください。'); revertView(); renderTimeline(); return; }
-      ov.start=ns; ov.end=ne; selGi=gi; selectedOverlayId=id; markDirty(); markVisualStale(); renderTimeline(); renderRight();
+    if(edge==='s'){
+      const ns=target, ne=original.end;
+      if(ns!==original.start){
+        if(overlayOverlaps(tn,id,ns,ne)){ alert('他のオーバーレイと時間が重なります。重ならない範囲にしてください。'); revertView(); renderTimeline(); return; }
+        ov.start=ns; ov.end=ne; selGi=gi; selectedOverlayId=id; markDirty(); markVisualStale(); renderTimeline(); renderRight();
+      } else { revertView(); }
+    } else {
+      const changed=target!==original.end||curEndGi!==(original.endTurnGi??gi);
+      if(changed){
+        if(curEndGi===gi){ delete ov.endTurnGi; ov.end=target; }
+        else { ov.endTurnGi=curEndGi; ov.end=target; }
+        selGi=gi; selectedOverlayId=id; markDirty(); markVisualStale(); renderTimeline(); renderRight();
+      } else { revertView(); }
+    }
+  };
+  const cancel=()=>{ target=edge==='s'?original.start:original.end; curEndGi=original.endTurnGi??gi; finish(); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
+}
+// クロスエンドバー（終了側セリフ）の終端ドラッグ：このセリフ内で位置調整 or 左にドラッグでクロス縮小。
+function startOverlayCrossEndResize(ev,gi,id,endGi,endGroup,bar){
+  ev.preventDefault(); ev.stopPropagation();
+  const tn=DATA.script[gi], ov=(tn.imageOverlays||[]).find(o=>o.id===id); if(!ov)return;
+  const endTn=DATA.script[endGi]; const endLen=Math.max(1,(endTn?.text||'').length);
+  const original={end:ov.end,endTurnGi:endGi};
+  let curPos=ov.end; let curGi=endGi;
+  const handle=ev.currentTarget; handle.classList.add('dragging'); bar.classList.add('dragging'); document.body.classList.add('tl-resizing');
+  const dragLabel=document.createElement('span'); dragLabel.className='tl-drag-label'; bar.appendChild(dragLabel);
+  const update=()=>{
+    bar.style.width=(Math.max(1,curGi===endGi?curPos:endLen)/endLen*100)+'%';
+    dragLabel.textContent=curGi===endGi?('終了 '+curPos+'文字目'):curGi===gi?('同セリフへ縮小'):('+'+(curGi-gi)+'セリフ先 / '+curPos+'文字');
+  }; update();
+  const move=e=>{
+    // 右側：次ターンへ延長
+    let foundGi=endGi, foundGroup=endGroup;
+    document.querySelectorAll('.tl-text-group[data-gi]').forEach(g=>{
+      const ggi=+g.dataset.gi; if(ggi<gi) return;
+      const r=g.getBoundingClientRect();
+      if(e.clientX>=r.left){ foundGi=ggi; foundGroup=g; }
+    });
+    const r=foundGroup.getBoundingClientRect();
+    const eLen=Math.max(1,(DATA.script[foundGi]?.text||'').length);
+    const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*eLen);
+    curGi=foundGi;
+    curPos=Math.max(foundGi===gi?1:1, Math.min(eLen,pos));
+    update();
+  };
+  const cleanup=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
+    document.removeEventListener('pointercancel',cancel); document.body.classList.remove('tl-resizing'); };
+  const revertView=()=>{ bar.classList.remove('dragging'); handle.classList.remove('dragging'); dragLabel.remove(); };
+  const finish=()=>{ cleanup();
+    const changed=curPos!==original.end||curGi!==endGi;
+    if(changed){
+      if(curGi===gi){ delete ov.endTurnGi; ov.end=curPos; }
+      else { ov.endTurnGi=curGi; ov.end=curPos; }
+      selGi=gi; selectedOverlayId=id; markDirty(); markVisualStale(); renderTimeline(); renderRight();
     } else { revertView(); }
   };
-  const cancel=()=>{ target=edge==='s'?original.start:original.end; finish(); };
+  const cancel=()=>{ curPos=original.end; curGi=endGi; finish(); };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',finish); document.addEventListener('pointercancel',cancel);
 }
 
@@ -2729,8 +2834,8 @@ function renderOverlaySection(tn){
     th.title='クリックで選択'; th.onclick=()=>{ selectedOverlayId=ov.id; renderRight(); };
     top.appendChild(th);
     const meta=document.createElement('div'); meta.style.cssText='flex:1;min-width:0;font-size:11px;color:#cdd6e2;cursor:pointer';
-    const crossStr=ov.endTurnGi!=null&&ov.endTurnGi!==selGi?' → +'+(ov.endTurnGi-selGi)+'セリフ':'';
-    meta.innerHTML='<div>'+(ov.start+1)+'〜'+ov.end+'文字目'+crossStr+' ／ '+(OVERLAY_DIRS.find(d=>d[0]===(ov.dir||'left'))||['','左'])[1]+' ／ '+Math.round((ov.size!=null?ov.size:0.4)*100)+'%幅</div>'
+    const crossStr=ov.endTurnGi!=null&&ov.endTurnGi!==selGi?' ～ +'+(ov.endTurnGi-selGi)+'セリフ '+ov.end+'文字':'';
+    meta.innerHTML='<div>'+(ov.start+1)+'〜'+(crossStr||ov.end+'文字目')+' ／ '+(OVERLAY_DIRS.find(d=>d[0]===(ov.dir||'left'))||['','左'])[1]+' ／ '+Math.round((ov.size!=null?ov.size:0.4)*100)+'%幅</div>'
       +'<div style="color:var(--sub);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(asset?(asset.queryJa||asset.query||asset.id):'(素材を選択)')+'</div>';
     meta.onclick=()=>{ selectedOverlayId=ov.id; renderRight(); };
     top.appendChild(meta);
@@ -2761,30 +2866,6 @@ function renderOverlaySection(tn){
       fb.onclick=()=>{ if(ov.frame===false) delete ov.frame; else ov.frame=false; markDirty(); markVisualStale(); renderRight(); }; frw.appendChild(fb);
       const fh=document.createElement('span'); fh.textContent='透過画像はなし推奨'; fh.style.fontSize='10px'; frw.appendChild(fh);
       item.appendChild(frw);
-      // 終了セリフ選択（クロスセリフ区間）。
-      const curEndGi=ov.endTurnGi!=null?ov.endTurnGi:selGi;
-      const endRow=document.createElement('div'); endRow.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;font-size:11px;color:var(--sub)';
-      endRow.appendChild(document.createTextNode('終了セリフ'));
-      const prevBtn=document.createElement('button'); prevBtn.type='button'; prevBtn.className='mini'; prevBtn.textContent='←'; prevBtn.disabled=curEndGi<=selGi;
-      prevBtn.onclick=()=>{ const ng=curEndGi-1; if(ng===selGi) delete ov.endTurnGi; else ov.endTurnGi=ng; const et=DATA.script[ng]; ov.end=(et?.text||'').length; markDirty(); markVisualStale(); renderRight(); };
-      const elLabel=document.createElement('span'); elLabel.style.cssText='font-size:11px;color:#cdd6e2;min-width:70px;text-align:center';
-      elLabel.textContent=curEndGi===selGi?'同セリフ':'+'+(curEndGi-selGi)+'セリフ先';
-      const nextBtn=document.createElement('button'); nextBtn.type='button'; nextBtn.className='mini'; nextBtn.textContent='→'; nextBtn.disabled=curEndGi>=DATA.script.length-1;
-      nextBtn.onclick=()=>{ const ng=curEndGi+1; ov.endTurnGi=ng; const et=DATA.script[ng]; ov.end=(et?.text||'').length; markDirty(); markVisualStale(); renderRight(); };
-      endRow.appendChild(prevBtn); endRow.appendChild(elLabel); endRow.appendChild(nextBtn);
-      item.appendChild(endRow);
-      // クロスセリフ時：対象セリフ内の終了文字位置スライダー。
-      if(curEndGi!==selGi){
-        const endTn=DATA.script[curEndGi]; const endLen=(endTn?.text||'').length||1;
-        const epRow=document.createElement('div'); epRow.style.cssText='display:flex;align-items:center;gap:5px;margin-bottom:6px;font-size:11px;color:var(--sub)';
-        const epSl=document.createElement('input'); epSl.type='range'; epSl.min='1'; epSl.max=String(endLen); epSl.step='1'; epSl.value=String(Math.max(1,Math.min(ov.end||endLen,endLen)));
-        const epSv=document.createElement('span'); epSv.style.minWidth='50px';
-        const showEp=()=>epSv.textContent=epSl.value+'/'+endLen+'文字'; showEp();
-        epSl.oninput=()=>{ ov.end=parseInt(epSl.value); showEp(); markDirty(); };
-        epSl.onchange=()=>{ markVisualStale(); renderRight(); };
-        epRow.appendChild(document.createTextNode('終了位置')); epRow.appendChild(stepWrap(epSl)); epRow.appendChild(epSv);
-        item.appendChild(epRow);
-      }
       item.appendChild(assetOverlayPicker(tn,ov));
       item.appendChild(overlayPreview(tn,ov));
       const ph=document.createElement('div'); ph.style.cssText='font-size:10px;color:var(--sub);margin-top:2px';
