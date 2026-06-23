@@ -2638,19 +2638,19 @@ function startOverlayResize(ev,gi,id,edge,group,bar){
   }; update();
   // マウスX→グローバルセリフindex＋セリフ内文字位置を返す。gi以降のみ（'e'エッジ用）。
   const resolvePos=(clientX)=>{
-    let foundGi=gi, foundGroup=group;
-    document.querySelectorAll('.tl-text-group[data-gi]').forEach(g=>{
-      const ggi=+g.dataset.gi; if(ggi<gi) return;
-      const r=g.getBoundingClientRect();
-      if(clientX>=r.left){ foundGi=ggi; foundGroup=g; }
-    });
-    const r=foundGroup.getBoundingClientRect();
-    const eLen=Math.max(1,(DATA.script[foundGi]?.text||'').length);
+    let targetGi=timelineTurnAtXAny(clientX);
+    if(targetGi<gi) targetGi=gi;
+    const g=document.querySelector('.tl-text-group[data-gi="'+targetGi+'"]');
+    const r=(g||group).getBoundingClientRect();
+    const eLen=Math.max(1,(DATA.script[targetGi]?.text||'').length);
     const pos=Math.round((clientX-r.left)/Math.max(1,r.width)*eLen);
-    const minPos=foundGi===gi?original.start+1:1;
-    return {newGi:foundGi, newPos:Math.max(minPos,Math.min(eLen,pos))};
+    const minPos=targetGi===gi?original.start+1:1;
+    return {newGi:targetGi, newPos:Math.max(minPos,Math.min(eLen,pos))};
   };
-  const move=e=>{ const r=group.getBoundingClientRect();
+  const move=e=>{
+    const scroll=document.querySelector('.tl-scroll');
+    if(scroll){ const sr=scroll.getBoundingClientRect(); if(e.clientX<sr.left+36)scroll.scrollLeft-=18; else if(e.clientX>sr.right-36)scroll.scrollLeft+=18; }
+    const r=group.getBoundingClientRect();
     if(edge==='s'){
       const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*len);
       target=Math.max(0,Math.min(original.end-1,pos)); update(); return;
@@ -2693,18 +2693,14 @@ function startOverlayCrossEndResize(ev,gi,id,endGi,endGroup,bar){
     dragLabel.textContent=curGi===endGi?('終了 '+curPos+'文字目'):curGi===gi?('同セリフへ縮小'):('+'+(curGi-gi)+'セリフ先 / '+curPos+'文字');
   }; update();
   const move=e=>{
-    // 右側：次ターンへ延長
-    let foundGi=endGi, foundGroup=endGroup;
-    document.querySelectorAll('.tl-text-group[data-gi]').forEach(g=>{
-      const ggi=+g.dataset.gi; if(ggi<gi) return;
-      const r=g.getBoundingClientRect();
-      if(e.clientX>=r.left){ foundGi=ggi; foundGroup=g; }
-    });
-    const r=foundGroup.getBoundingClientRect();
-    const eLen=Math.max(1,(DATA.script[foundGi]?.text||'').length);
+    let targetGi=timelineTurnAtXAny(e.clientX);
+    if(targetGi<gi) targetGi=gi;
+    curGi=targetGi;
+    const g=document.querySelector('.tl-text-group[data-gi="'+targetGi+'"]');
+    const r=(g||endGroup).getBoundingClientRect();
+    const eLen=Math.max(1,(DATA.script[targetGi]?.text||'').length);
     const pos=Math.round((e.clientX-r.left)/Math.max(1,r.width)*eLen);
-    curGi=foundGi;
-    curPos=Math.max(foundGi===gi?1:1, Math.min(eLen,pos));
+    curPos=Math.max(1,Math.min(eLen,pos));
     update();
   };
   const cleanup=()=>{ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',finish);
