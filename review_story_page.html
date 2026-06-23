@@ -1764,7 +1764,7 @@ function render(){
   window.scrollTo(0,sy);
 }
 
-function renderPreviewPane(){
+function renderPreviewPane(restoreFrame=null){
   if(workspaceMode!=='effect') return;
   const p=document.getElementById('previewPane'); if(!p||!DATA||!DATA.script) return;
   if(p.dataset.playerMounted==='1'){
@@ -1791,7 +1791,10 @@ function renderPreviewPane(){
   const mount=()=>{
     if(!window.remotionEditorPlayer){ fallback('簡易プレビュー'); return; }
     window.remotionEditorPlayer.mount(host).then(()=>{ settled=true; delete p.dataset.playerLoading;
-      p.dataset.playerMounted='1'; window.remotionEditorPlayer.syncTextEffects(DATA.script.map(t=>activeFx(t))); seekRemotionToSelection(); })
+      p.dataset.playerMounted='1'; window.remotionEditorPlayer.syncTextEffects(DATA.script.map(t=>activeFx(t)));
+      // 保存→更新でシーク位置が復元できる場合はそちらを優先、なければ選択セリフへ
+      if(restoreFrame!=null && window.remotionEditorPlayer.seekToFrame) window.remotionEditorPlayer.seekToFrame(restoreFrame);
+      else seekRemotionToSelection(); })
       .catch(()=>fallback('meta未生成・簡易表示'));
   };
   if(window.remotionEditorPlayer) mount();
@@ -3920,13 +3923,15 @@ function renderChapterTab(r,ch,ci){
 async function saveAndPreview(){
   const b=document.getElementById('save'); if(!b||b.disabled) return;
   b.disabled=true; b.textContent='更新中…';
+  // 更新前のシークバー位置を保存（再mount後に同じ位置へ復元する）
+  const savedFrame = window.remotionEditorPlayer?.getCurrentFrame?.() ?? null;
   let r; try{ r=await api('/api/preview-refresh', DATA); }catch(e){ r={ok:false,message:String(e)}; }
   if(r&&r.ok){ dirty=false;
     if(r.metaUpdated){
-      // 新しいmeta.jsonでRemotion Playerを再読込（再mount＝loadMeta→選択セリフへseek）。
+      // 新しいmeta.jsonでRemotion Playerを再読込（再mount＝loadMeta→シーク位置を復元）。
       const p=document.getElementById('previewPane');
       if(window.remotionEditorPlayer && p && p.dataset.playerMounted==='1'){
-        window.remotionEditorPlayer.unmount(); delete p.dataset.playerMounted; p.innerHTML=''; renderPreviewPane();
+        window.remotionEditorPlayer.unmount(); delete p.dataset.playerMounted; p.innerHTML=''; renderPreviewPane(savedFrame);
       }
       setPreviewState('synced');
     } else { setPreviewState('audio-stale'); alert(r.message||'音声の再生成が必要です'); }

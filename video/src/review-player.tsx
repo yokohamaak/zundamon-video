@@ -12,6 +12,8 @@ type EditorPlayerApi = {
   mount: (element: HTMLElement) => Promise<void>;
   unmount: () => void;
   seekToTurn: (turnIndex: number) => void;
+  seekToFrame: (frame: number) => void;
+  getCurrentFrame: () => number | null;
   updateTextEffects: (turnIndex: number, effects: Meta["script"][number]["textEffects"]) => void;
   syncTextEffects: (effects: Array<Meta["script"][number]["textEffects"]>) => void;
 };
@@ -135,6 +137,13 @@ window.remotionEditorPlayer = {
     // 開始時刻以上の最初のフレーム（＝そのセリフの先頭フレーム）へ。
     // round だと丸め方向次第で1フレーム手前に乗り、pickActive が前のセリフを表示してしまう。
     playerRef.seekTo(Math.max(0, Math.ceil((turn.start ?? 0) * FPS)));
+  },
+  seekToFrame(frame) {
+    if (!playerRef) return;
+    playerRef.seekTo(Math.max(0, frame));
+  },
+  getCurrentFrame() {
+    return playerRef?.getCurrentFrame() ?? null;
   },
   updateTextEffects(turnIndex, effects) {
     if (!loadedMeta?.script?.[turnIndex]) return;
