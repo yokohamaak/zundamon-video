@@ -166,35 +166,20 @@ cmd_projects() {
   fi
 }
 
-cmd_switch() {  # $1=name
-  local name=""
-  if [ -n "${1-}" ]; then
-    name="$1"
-  else
-    cmd_projects
-    read -rp "切り替え先プロジェクト名: " name || name=""
-  fi
-  [ -n "$name" ] || { echo "× 名前が入力されませんでした" >&2; exit 1; }
-  local target="$STORIES/$name"
+cmd_switch() {  # $1=name（必須）
+  local target="$STORIES/$1"
   [ -d "$target" ] || { echo "× $target が存在しません（./run projects で一覧確認）" >&2; exit 1; }
-  ln -sfn "stories/$name" "$STORY"
-  echo "✓ アクティブ → $name"
+  ln -sfn "stories/$1" "$STORY"
+  echo "✓ アクティブ → $1"
 }
 
-cmd_new() {  # $1=name
-  local name=""
-  if [ -n "${1-}" ]; then
-    name="$1"
-  else
-    read -rp "新しいプロジェクト名（例: tokyo-tower）: " name || name=""
-  fi
-  [ -n "$name" ] || { echo "× 名前が入力されませんでした" >&2; exit 1; }
-  local target="$STORIES/$name"
+cmd_new() {  # $1=name（必須）
+  local target="$STORIES/$1"
   [ ! -d "$target" ] || { echo "× $target は既に存在します" >&2; exit 1; }
   mkdir -p "$target"
   [ -f "config/config.story.yaml" ] && cp "config/config.story.yaml" "$target/config.story.yaml"
-  ln -sfn "stories/$name" "$STORY"
-  echo "✓ 新規プロジェクト作成: $name（アクティブに設定済み）"
+  ln -sfn "stories/$1" "$STORY"
+  echo "✓ 新規プロジェクト作成: $1（アクティブに設定済み）"
   echo "  次: ./run script でスクリプト生成"
 }
 
@@ -217,8 +202,8 @@ if [ $# -gt 0 ]; then
     s-render) cmd_s_render "${2:?slug を指定}" ;;
     s-build)  cmd_s_build "${2:?slug を指定}" ;;
     projects) cmd_projects ;;
-    new)      cmd_new "${2:-}" ;;
-    switch)   cmd_switch "${2:-}" ;;
+    new)      if [ -n "${2-}" ]; then cmd_new "$2"; else read -rp "新しいプロジェクト名（例: tokyo-tower）: " _pn; cmd_new "$_pn"; fi ;;
+    switch)   if [ -n "${2-}" ]; then cmd_switch "$2"; else cmd_projects; read -rp "切り替え先プロジェクト名: " _pn; cmd_switch "$_pn"; fi ;;
     help|-h|--help) cmd_help ;;
     *) echo "不明なコマンド: $1"; echo; cmd_help; exit 1 ;;
   esac
@@ -272,7 +257,7 @@ case "$n" in
   15) read -rp "slug: " s; cmd_s_render "$s" ;;
   16) read -rp "slug: " s; cmd_s_build "$s" ;;
   17) cmd_projects ;;
-  18) cmd_new "" ;;
-  19) cmd_switch "" ;;
+  18) read -rp "新しいプロジェクト名（例: tokyo-tower）: " _pn; cmd_new "$_pn" ;;
+  19) cmd_projects; read -rp "切り替え先プロジェクト名: " _pn; cmd_switch "$_pn" ;;
   0|*) cmd_help ;;
 esac
