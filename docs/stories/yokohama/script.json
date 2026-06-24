@@ -1,0 +1,3027 @@
+{
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "ねえ、「日本のサグラダ・ファミリア」って呼ばれている駅があるの、知ってた？世界遺産じゃなくて、普通の駅なのよ。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0001"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "サグラダ・ファミリア！？スペインにある、着工から140年以上たっても完成しない、あの巨大な教会のことなのだ？",
+      "emotion": "surprise",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "id": "turn-0002",
+      "imageOverlays": [
+        {
+          "id": "ov1",
+          "assetId": "asset-0001",
+          "start": 15,
+          "end": 44,
+          "dir": "top",
+          "size": 0.57,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。その不名誉なあだ名で呼ばれているのが、神奈川県の玄関口、横浜駅なの。いつ行っても、どこかが工事中なのよ。",
+      "emotion": "happy",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "reveal": true,
+      "id": "turn-0003"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "横浜駅か…。ぼくも何度か行ったけど、行くたびに出口がわからなくなって、必ず迷子になるのだ。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "id": "turn-0004",
+      "imageOverlays": [
+        {
+          "id": "ov1",
+          "assetId": "asset-0002",
+          "start": 16,
+          "end": 2,
+          "dir": "center",
+          "size": 0.41,
+          "frame": false,
+          "endTurnGi": 4
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その「いつも工事中で、いつも迷う」には、ちゃんとした理由があるの。今日はその謎を、駅の生い立ちから解き明かしていくわ。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "id": "turn-0005",
+      "imageOverlays": [
+        {
+          "id": "ov1",
+          "assetId": "asset-0008",
+          "start": 7,
+          "end": 54,
+          "dir": "top",
+          "size": 0.4,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "迷宮の謎解きなんて、ワクワクするのだ！よろしくお願いするのだ。",
+      "emotion": "happy",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "telopX": 0.513,
+      "telopY": 0.21,
+      "reactionX": 0.513,
+      "reactionY": 0.621,
+      "id": "turn-0006"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "まずね、横浜駅がどれだけ巨大な駅か知ってほしいの。乗り入れている鉄道会社の数、当ててみて。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s3",
+      "id": "turn-0007"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "えーと…JRと、あとは私鉄が1つか2つくらいなのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s3",
+      "id": "turn-0008"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "答えは、なんと6社。ひとつの駅に6社も集まるのは、日本の駅でもトップクラスの多さなのよ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "reveal": true,
+      "vizSeg": "s1",
+      "vizPoints": [
+        {
+          "id": "vp1",
+          "type": "reveal",
+          "pos": 7
+        }
+      ],
+      "id": "turn-0009"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "6社！？たったひとつの駅に、6つも別々の会社が乗り入れているのだ？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0010"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。JR、京急、相鉄、東急、みなとみらい線、横浜市営地下鉄よ",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "panel_event": "shrink",
+      "vizSeg": "s2",
+      "panel_item": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "vizPoints": [
+        {
+          "id": "vp1",
+          "type": "panel_item",
+          "pos": 23,
+          "value": 5
+        },
+        {
+          "id": "vp2",
+          "type": "panel_item",
+          "pos": 15,
+          "value": 4
+        },
+        {
+          "id": "vp3",
+          "type": "panel_item",
+          "pos": 12,
+          "value": 3
+        },
+        {
+          "id": "vp4",
+          "type": "panel_item",
+          "pos": 9,
+          "value": 2
+        },
+        {
+          "id": "vp5",
+          "type": "panel_item",
+          "pos": 6,
+          "value": 1
+        },
+        {
+          "id": "vp6",
+          "type": "panel_item",
+          "pos": 3,
+          "value": 0
+        },
+        {
+          "id": "vp7",
+          "type": "panel_event",
+          "pos": 1
+        }
+      ],
+      "id": "turn-0011"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "名前を聞くだけでお腹いっぱいなのだ…。会社が多いと、改札もホームも、その分だけ増えるのだね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0012"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その通りなの。横浜は東京と神奈川じゅうの路線が集まる結節点だから、どの会社にとっても外せない駅なのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0013"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "みんなが乗り入れたがる、人気の場所なのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0014",
+      "imageOverlays": [
+        {
+          "id": "ov1",
+          "assetId": "asset-0004",
+          "start": 6,
+          "end": 21,
+          "dir": "left",
+          "size": 0.55
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "特に京急は、羽田空港と横浜を結ぶ大事な路線。空港から来た人も、みんなこの駅で乗り換えるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 2,
+      "compare_item": 0,
+      "vizSeg": "s5",
+      "id": "turn-0015"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "飛行機で来た人まで、横浜駅に集まってくるのだ…！どうりで、いつも混んでいるわけなのだ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s5",
+      "compare_item": 1,
+      "id": "turn-0016",
+      "telopSize": 2,
+      "telopX": 0.5,
+      "telopY": 0.5,
+      "telopColor": "#ffe224"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "1日に行き交う人は、6社あわせておよそ230万人。世界でも指折りの、超巨大ターミナルなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "reveal": true,
+      "vizSeg": "s4",
+      "id": "turn-0017"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "230万人！？ちょっとした県の人口くらいの人が、毎日あの駅を通っているのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s4",
+      "id": "turn-0018"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "JRだけで見ても、横浜駅は全国でも有数の乗車人員をほこる、東日本を代表する駅のひとつなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 3,
+      "id": "turn-0019",
+      "imageOverlays": [
+        {
+          "id": "ov1",
+          "assetId": "asset-0003",
+          "start": 0,
+          "end": 45,
+          "dir": "left",
+          "size": 0.55,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "東京の駅にも負けないくらい、たくさんの人が使っているのだね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 3,
+      "id": "turn-0020"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そんな巨大な横浜駅だけど、こんなに複雑になったのは、実は生まれた時からの宿命だったの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "flash",
+      "cut": 0,
+      "id": "turn-0021"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "生まれた時から？駅なんて、できた時はシンプルなものじゃないのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0022"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それがね、横浜駅はこれまでに、駅の場所そのものを3回も引っ越しているのよ。同じ名前なのに、立っていた場所が違うの。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "vizSeg": "s1",
+      "reveal": true,
+      "id": "turn-0023"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "駅が引っ越す！？線路の上を、建物ごと別の場所に動くなんて、聞いたことがないのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0024"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "初代の横浜駅は1872年、日本で初めての鉄道の終着駅としてできたの。今の桜木町あたりにあったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0025"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "日本で一番最初の駅のひとつだったのだ！すごい歴史なのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0026"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その初代の駅から新橋までを、汽車がおよそ50分かけて走ったの。今の電車より遅いけれど、当時は大革命だったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0027",
+      "imageOverlays": [
+        {
+          "id": "ov1",
+          "assetId": "asset-0007",
+          "start": 13,
+          "end": 39,
+          "dir": "right",
+          "size": 0.73,
+          "outDir": "left"
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "50分！今ならもっと速いけど、当時の人にはきっと魔法みたいに見えたのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0028"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ところがその場所だと、線路を東京方面へまっすぐ延ばすのに邪魔だったの。そこで2代目へ移したけれど、関東大震災で焼けてしまったのよ。",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0029"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "せっかく移したのに、地震で燃えてしまったなんて、不運すぎるのだ…。",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0030"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そして1928年、ようやく今の場所に3代目が完成したの。引っ越しを繰り返した末に、やっとたどり着いた土地なのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s2",
+      "panel_item": 2,
+      "id": "turn-0031"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "落ち着く場所を探して、さまよい続けた末にできた駅だったのだね…。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s2",
+      "id": "turn-0032"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "でも、ようやく場所が決まったなら、あとはみんなできれいに作ればよかったのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0033"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ところが、ここからが迷宮の本番なの。乗り入れる会社が、てんでバラバラに自分の駅を作っていったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0034"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "みんなで話し合って、ひとつの設計図でまとめて作らなかったのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0035",
+      "imageOverlays": [
+        {
+          "id": "ov1",
+          "assetId": "asset-0011",
+          "start": 0,
+          "end": 31,
+          "dir": "bottom",
+          "size": 0.65,
+          "frame": false,
+          "outDir": "center"
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しなかったの。会社ごとに、別々の時代に、別々の高さや向きで、ホームや改札を継ぎ足していったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "flash",
+      "cut": 0,
+      "panel_event": "shrink",
+      "vizSeg": "s1",
+      "id": "turn-0036"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "全体をまとめる大きな設計図が無いまま、つぎはぎでどんどん巨大化した。それが、入り組んだ通路の正体なの。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "panel_item": 0,
+      "vizSeg": "s2",
+      "id": "turn-0037"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "だから急に階段を上らされたり、通路がカクカク曲がったりして、方向感覚を失うのだね…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0038"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "有名なのが、相鉄の改札からJRへ向かう道。一度上の階まで上がって、また下りていく、不思議な造りなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0039"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "まっすぐ繋げばいいのに、わざわざ遠回りさせられるのだ…！まるでダンジョンなのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0040"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しかもホームの高さも、会社ごとにバラバラ。地上を走る線もあれば、高架の上や、地下を走る線もあるの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 2,
+      "id": "turn-0041"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "上に下に行ったり来たりで、自分が今どの階にいるのかも、わからなくなるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0042"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そうなの。それぞれの会社が、自分の都合に合わせて作った通路が、何層にも積み重なっているからなのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0043"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "案内板をたどって歩いても、別の会社のエリアに入ったとたん、案内のデザインまで変わることがあるの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 3,
+      "id": "turn-0044"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "道しるべまでバラバラなんて、ますますぼくたちを迷わせにくるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0045"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しかもね、横浜駅をややこしくしているのは、鉄道だけじゃないの。もうひとつ、大きな犯人がいるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "flash",
+      "cut": 1,
+      "vizSeg": "s1",
+      "id": "turn-0046"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "電車以外にも、ぼくたちを迷わせてくるものがいるのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0047"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ええ。横浜駅で迷う理由は、大きく3つに整理できるの。1つ目は、今話した『各社バラバラの増築』ね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0048"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "2つ目は、駅に直結した巨大な駅ビル。相鉄ジョイナスや高島屋、ルミネ、シァルが、駅とぴったり重なっているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "panel_item": 1,
+      "id": "turn-0049"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "3つ目は、一体化した地下街。ポルタやダイヤモンド地下街の通路が、駅の通路と見分けつかないほど混ざり合っているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s1",
+      "panel_item": 2,
+      "id": "turn-0050"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "買い物の道と、電車の道が、完全にごちゃ混ぜなのだ！それは迷って当たり前なのだ…。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s1",
+      "id": "turn-0051"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しかも西口は、戦後しばらく何もない裏口扱いだったのに、今では高島屋を中心にした一大ショッピング街なの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "flash",
+      "cut": 2,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0052"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "もともと裏側だった所が、後から立派になったのだ？発展した順番までバラバラなのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s2",
+      "id": "turn-0053"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "反対の東口も、かつてはそごうという大きな百貨店を中心に発展したの。東と西で、別々に街が育っていったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0054"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "東と西で、まるで別の街みたいに発展したのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s2",
+      "id": "turn-0055"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。だから頭の中で「こっちが東口、こっちが西口」と地図を描こうとしても、なかなか描けないのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s2",
+      "id": "turn-0056"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "地下街のポルタが開いたのは1980年。それ以来ずっと、地上でも地下でも、街が広がり続けているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "vizSeg": "s3",
+      "reveal": true,
+      "id": "turn-0057"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "地面の下にまで、街が広がっているのだ。横浜駅は、立体的すぎるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s3",
+      "id": "turn-0058"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ここで問題よ。これだけ複雑な横浜駅だけど、その工事が何十年も終わらないのは、なぜだと思う？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0059"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "うーん…工事をしている人たちが、のんびり、ゆっくりやっているからなのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0060"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ふふ、サボっているわけじゃないの。答えは『利用者が増え続けて、駅がいつまでも手狭になり続けるから』。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "vizSeg": "s1",
+      "reveal": true,
+      "id": "turn-0061"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "広げても広げても、その間にまた人が増えるから、いつまでたっても追いつかないのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0062"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "横浜駅の利用者は、何十年も前と比べてもずっと増えているの。減るどころか、便利になるほど集まってくるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0063"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "人が減らないなら、工事が終わる日も来ないわけなのだ…。",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0064"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その上、2019年と2023年には、相鉄が都心への直通運転を始めて、新しい線路やホームまで増えたの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0065"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "相鉄に乗ったまま、新宿や渋谷まで行けるようになったやつなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0066"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。街が便利になって人が集まるほど、駅はもっと大きく、もっと複雑になっていく。だから終わりがないのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0067"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "便利さと迷いやすさが、セットで増えていくのだね…。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0068"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ホームが手狭になると、線路の上に通路を継ぎ足して広げる。そんな離れ業の工事も、何度も繰り返してきたの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 2,
+      "id": "turn-0069"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "230万人を運びながら、その真上で工事をするなんて、神業すぎるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0070"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "だから横浜駅では、作っては直し、直しては足し。工事そのものが、もう『日常の風景』になっているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0071"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "じゃあ横浜駅は、本当に永遠に完成しないのだ…？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "flash",
+      "cut": 2,
+      "vizSeg": "s1",
+      "id": "turn-0072"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "いいところに気づいたわね。今は『エキサイトよこはま22』という、駅の周りを丸ごと作り変える大計画が動いているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0073"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "エキサイトよこはま22！？なんだか元気な名前なのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "id": "turn-0074"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "駅ビルや駅前広場、歩行者デッキを一体で整えて、人の流れをわかりやすくする狙いなの。迷宮を、少しでも解こうとしているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "id": "turn-0075"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その第一歩として、2020年にJR横浜タワーという大きな駅ビルが完成して、ひとつの区切りはついたわ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "panel_item": 1,
+      "id": "turn-0076"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その中には、ニュウマンやシァルといったお店、それに映画館まで入っていて、駅そのものが大きな街みたいなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "panel_item": 2,
+      "id": "turn-0077"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "もはや駅というより、屋根のついたひとつの街なのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "id": "turn-0078"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "おお、じゃあ少しはスッキリして、迷わなくなったのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "flash",
+      "cut": 2,
+      "vizSeg": "s2",
+      "id": "turn-0079"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それが、西口でも東口でも、まだ次の工事が控えているの。やっぱり迷宮は、まだまだ健在なのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0080"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "結局、横浜のサグラダ・ファミリアは、まだ終わらないのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0081"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "完成予想図では、もっとすっきりした駅になる計画なの。でも、全部が終わるのは、まだ何年も先の話よ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "vizSeg": "s2",
+      "reveal": true,
+      "id": "turn-0082"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "完成した横浜駅を、ぼくは生きているうちに見られるのだ…？",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0083"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それでも横浜の人たちは、この終わらない工事を、どこか誇らしく「サグラダ・ファミリア」と呼んでいるの。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0084"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "困りものなのに、ちょっぴり愛されているのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0085"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "でもね、工事を続けながらも、毎日230万人の電車を一度も止めずに動かしているの。これは本当にすごいことなのよ。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "flash",
+      "cut": 0,
+      "panel_event": "shrink",
+      "panel_item": [
+        0,
+        1,
+        2
+      ],
+      "id": "turn-0086"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "迷うのは複雑だから。でもその複雑さは、横浜という街が止まらず発展し続けてきた、歴史そのものなの。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "panel_item": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "id": "turn-0087"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "なるほどなのだ。今度横浜駅で迷ったら、",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0088"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "「この街、めっちゃ成長してるな〜」って思うことにするのだ！",
+      "chapter": 7,
+      "section": "outro",
+      "cut": 0,
+      "emotion": "happy",
+      "effect": "kenburns",
+      "vizSeg": "s1",
+      "id": "turn-0089"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "この話、どう思った？高評価とコメントで感想を教えてね。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "vizSeg": "s1",
+      "telopX": 0.322,
+      "telopY": 0.673,
+      "telopSize": 0.9,
+      "telopDur": "long",
+      "id": "turn-0090"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "panel_item": [
+        0,
+        1,
+        2
+      ],
+      "telop": "最後まで見てくれて\nありがとう！",
+      "telopColor": "#f7f7f7",
+      "telopBorder": "#f7f7f7",
+      "telopX": 0.5,
+      "telopY": 0.5,
+      "telopSize": 1,
+      "id": "turn-0091"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それじゃあ、また見てね〜〜",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "chorus": true,
+      "telop": "チャンネル登録も\nよろしくね！",
+      "telopX": 0.5,
+      "telopY": 0.5,
+      "telopBorder": "#ffffff",
+      "telopColor": "#f3f3f1",
+      "telopDur": "long",
+      "telopSize": 1,
+      "id": "turn-0092"
+    }
+  ],
+  "theme": "なぜ横浜駅は迷宮なのか？",
+  "chapters": [
+    {
+      "section": "intro",
+      "title": "なぜ横浜駅は迷宮なのか",
+      "summary": "「日本のサグラダ・ファミリア」と呼ばれ、いつも工事中で迷う横浜駅。その理由を歴史から解き明かす導入。",
+      "image_cuts": [
+        {
+          "image_query": "Sagrada Familia Barcelona",
+          "image_kind": "ambient",
+          "image_query_ja": "サグラダ・ファミリア"
+        },
+        {
+          "image_query": "Yokohama Station building",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜駅"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient"
+        }
+      ],
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "quiz",
+          "quiz": {
+            "question": "日本のサグラダファミリア駅？",
+            "answer": "横浜駅（神奈川県横浜市）",
+            "boxWidth": 0.8,
+            "questionSize": 0.9
+          }
+        },
+        {
+          "id": "s2",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": ""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "6社が集まる巨大ターミナル",
+      "summary": "横浜駅は6社が乗り入れ、1日約230万人が利用する日本有数の巨大ターミナル。",
+      "image_cuts": [
+        {
+          "image_query": "Yokohama Station crowd concourse",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜駅の人混み"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient",
+          "image_query_ja": "羽田空港"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜駅"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "横浜駅の乗り入れ各社・各社の乗降客数の公表データ",
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "stat",
+          "stat": {
+            "value": "6",
+            "unit": "社",
+            "label": "乗り入れる鉄道会社",
+            "bgOpacity": 0.8,
+            "bg": "#0f141e",
+            "size": 1.3,
+            "countSpeed": "slow"
+          }
+        },
+        {
+          "id": "s2",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "JR"
+              },
+              {
+                "text": "京浜急行電鉄"
+              },
+              {
+                "text": "相模鉄道"
+              },
+              {
+                "text": "東急"
+              },
+              {
+                "text": "みなとみらい線"
+              },
+              {
+                "text": "横浜市営地下鉄"
+              }
+            ],
+            "markerType": "dot"
+          }
+        },
+        {
+          "id": "s3",
+          "type": "quiz",
+          "quiz": {
+            "question": "乗り入れる\n鉄道会社の数は？",
+            "answer": ""
+          }
+        },
+        {
+          "id": "s4",
+          "type": "stat",
+          "stat": {
+            "value": "2,300,000",
+            "unit": "人",
+            "label": "1日の乗降人数",
+            "size": 1.1,
+            "countSpeed": "slow"
+          }
+        },
+        {
+          "id": "s5",
+          "type": "compare",
+          "compare": {
+            "left": {
+              "label": "羽田空港",
+              "cut": 2
+            },
+            "right": {
+              "label": "横浜",
+              "cut": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "複雑になる宿命？",
+      "summary": "初代1872年(桜木町付近)、2代目は関東大震災で焼失、1928年に現在地へ3代目。移転を繰り返した。",
+      "image_cuts": [
+        {
+          "image_query": "Yokohama railway opening 1872 ukiyoe",
+          "image_kind": "ambient",
+          "image_query_ja": "1872年 鉄道開業の錦絵"
+        },
+        {
+          "image_query": "Great Kanto earthquake 1923",
+          "image_kind": "subject",
+          "image_query_ja": "関東大震災"
+        },
+        {
+          "image_query": "Yokohama Station 1930s",
+          "image_kind": "ambient",
+          "image_query_ja": "昭和初期の横浜駅"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "1872年鉄道開業・横浜駅の変遷・1928年三代目横浜駅",
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "quiz",
+          "quiz": {
+            "question": "横浜駅は引っ越して\n今の場所にある？",
+            "answer": "A.今の場所は３代目横浜駅",
+            "questionSize": 0.8
+          }
+        },
+        {
+          "id": "s2",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "初代1872年 桜木町"
+              },
+              {
+                "text": "2代目 震災で焼失",
+                "arrow_from_prev": true
+              },
+              {
+                "text": "3代目1928年 現在地",
+                "arrow_from_prev": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "各社バラバラの継ぎ足し",
+      "summary": "全体の設計図が無いまま、各鉄道会社が別々の時代・向きでホームや改札を継ぎ足し巨大化した。",
+      "image_cuts": [
+        {
+          "image_query": "train station underground passage stairs",
+          "image_kind": "ambient",
+          "image_query_ja": "駅の地下通路と階段"
+        },
+        {
+          "image_query": "complex station corridor signs",
+          "image_kind": "ambient",
+          "image_query_ja": "入り組んだ駅の通路"
+        }
+      ],
+      "confidence": "medium",
+      "source_hint": "横浜駅の増改築の経緯・各社別々の拡張",
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "quiz",
+          "quiz": {
+            "question": "なぜこんなに\n入り組んでる？",
+            "answer": ""
+          }
+        },
+        {
+          "id": "s2",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "別会社が継ぎ足し"
+              },
+              {
+                "text": "まるでダンジョン"
+              },
+              {
+                "text": "ホーム高さもバラバラ"
+              },
+              {
+                "text": "案内板もバラバラ"
+              }
+            ],
+            "markerType": "dot"
+          }
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "駅ビルと地下街の一体化",
+      "summary": "迷う理由は3つ。各社の増築・直結する駅ビル(ジョイナス等)・一体化した地下街(ポルタ等)。",
+      "image_cuts": [
+        {
+          "image_query": "Yokohama Station department store building",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜駅の駅ビル"
+        },
+        {
+          "image_query": "underground shopping mall corridor",
+          "image_kind": "ambient",
+          "image_query_ja": "ダイヤモンド地下街"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "相鉄ジョイナス・横浜高島屋・地下街ポルタ/ダイヤモンド",
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "各社バラバラの増築"
+              },
+              {
+                "text": "直結する駅ビル"
+              },
+              {
+                "text": "一体化した地下街"
+              }
+            ],
+            "markerType": "dot"
+          }
+        },
+        {
+          "id": "s2",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "西口 高島屋"
+              },
+              {
+                "text": "東口 そごう"
+              }
+            ],
+            "markerType": "dot",
+            "heading": "東西で別々に発展"
+          }
+        },
+        {
+          "id": "s3",
+          "type": "stat",
+          "stat": {
+            "value": "1980",
+            "unit": "年",
+            "label": "地下街ポルタ開業"
+          }
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "工事が終わらない理由",
+      "summary": "利用者が増え続け駅が手狭になり続けるのが核心。相鉄の都心直通(2019/2023)で線路やホームも増えた。",
+      "image_cuts": [
+        {
+          "image_query": "Yokohama Station",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜駅"
+        },
+        {
+          "image_query": "Sotetsu railway train",
+          "image_kind": "subject",
+          "image_query_ja": "相鉄の電車"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient"
+        }
+      ],
+      "confidence": "medium",
+      "source_hint": "横浜駅の改良工事・相鉄JR直通2019・相鉄東急直通2023",
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "quiz",
+          "quiz": {
+            "question": "工事が何十年も\n終わらないのはなぜ？",
+            "answer": "利用者が増え続け\n駅が手狭になるから",
+            "boxWidth": 0.65,
+            "answerSize": 0.7
+          }
+        },
+        {
+          "id": "s2",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "利用者が増え続ける"
+              },
+              {
+                "text": "直通でホーム増設",
+                "arrow_from_prev": true
+              },
+              {
+                "text": "走らせながら継ぎ足し",
+                "arrow_from_prev": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "今も続く大改造",
+      "summary": "エキサイトよこはま22で駅周辺を大改造。2020年JR横浜タワー完成で一区切りも、西口東口で工事は続く。",
+      "image_cuts": [
+        {
+          "image_query": "JR Yokohama Tower building",
+          "image_kind": "ambient",
+          "image_query_ja": "JR横浜タワー"
+        },
+        {
+          "image_query": "Yokohama Station west exit street",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜駅西口"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient"
+        },
+        {
+          "image_query": "",
+          "image_kind": "ambient"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "エキサイトよこはま22・JR横浜タワー2020年開業",
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "エキサイトよこはま22"
+              },
+              {
+                "text": "JR横浜タワー 2020",
+                "arrow_from_prev": true
+              },
+              {
+                "text": "駅が一つの街に",
+                "arrow_from_prev": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "s2",
+          "type": "quiz",
+          "quiz": {
+            "question": "横浜駅、いつ完成する？",
+            "answer": "A.まだ何年も先",
+            "answerBg": "#29db97",
+            "answerBgOpacity": 0.96,
+            "boxWidth": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "section": "outro",
+      "title": "まとめ",
+      "summary": "迷宮は横浜が止まらず発展し続けた歴史の証、という締め。",
+      "image_cuts": [
+        {
+          "image_query": "Yokohama Minato Mirai skyline",
+          "image_kind": "ambient",
+          "image_query_ja": "横浜みなとみらいの街並み"
+        }
+      ],
+      "vizList": [
+        {
+          "id": "s1",
+          "type": "panel",
+          "panel": {
+            "items": [
+              {
+                "text": "6社が乗り入れ"
+              },
+              {
+                "text": "各社が継ぎ足し"
+              },
+              {
+                "text": "駅ビルと地下街、終わらない工事"
+              },
+              {
+                "text": "成長し続けている街、横浜"
+              }
+            ],
+            "heading": "日本のサグラダファミリアの正体まとめ",
+            "textSize": 1.2,
+            "markerSize": 0.8,
+            "markerType": "dot",
+            "overlay": true,
+            "pos": "top"
+          }
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 2,
+  "assets": [
+    {
+      "id": "asset-00-00",
+      "file": "ch_00_00.jpg",
+      "query": "Sagrada Familia Barcelona",
+      "queryJa": "サグラダ・ファミリア",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 0
+    },
+    {
+      "id": "asset-00-01",
+      "file": "ch_00_01.jpg",
+      "query": "Yokohama Station building",
+      "queryJa": "横浜駅",
+      "kind": "ambient",
+      "attribution": "横浜市震災記念館 / Public domain",
+      "sourceChapter": 0
+    },
+    {
+      "id": "asset-00-02",
+      "file": "ch_00_02.jpg",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 0
+    },
+    {
+      "id": "asset-01-00",
+      "file": "ch_01_00.jpeg",
+      "query": "Yokohama Station crowd concourse",
+      "queryJa": "横浜駅の人混み",
+      "kind": "ambient",
+      "attribution": "Satoshi Hirayama / Pexels",
+      "sourceChapter": 1
+    },
+    {
+      "id": "asset-01-01",
+      "file": "ch_01_01.jpg",
+      "query": null,
+      "queryJa": "横浜",
+      "kind": "ambient",
+      "attribution": "reitetsu mou / Pexels",
+      "sourceChapter": 1
+    },
+    {
+      "id": "asset-01-02",
+      "file": "ch_01_02.jpg",
+      "query": null,
+      "queryJa": "羽田空港",
+      "kind": "ambient",
+      "attribution": "Guohua Song / Pexels",
+      "sourceChapter": 1
+    },
+    {
+      "id": "asset-01-03",
+      "file": "ch_01_03.jpg",
+      "query": null,
+      "queryJa": "横浜駅",
+      "kind": "ambient",
+      "attribution": "Huu Huynh / Pexels",
+      "sourceChapter": 1
+    },
+    {
+      "id": "asset-02-00",
+      "file": "ch_02_00.png",
+      "query": "Yokohama railway opening 1872 ukiyoe",
+      "queryJa": "1872年 鉄道開業の錦絵",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 2
+    },
+    {
+      "id": "asset-02-01",
+      "file": "ch_02_01.jpg",
+      "query": "Great Kanto earthquake 1923",
+      "queryJa": "関東大震災",
+      "kind": "subject",
+      "attribution": "東京市 / Public domain",
+      "sourceChapter": 2
+    },
+    {
+      "id": "asset-02-02",
+      "file": "ch_02_02.jpeg",
+      "query": "Yokohama Station 1930s",
+      "queryJa": "昭和初期の横浜駅",
+      "kind": "ambient",
+      "attribution": "Huu Huynh / Pexels",
+      "sourceChapter": 2
+    },
+    {
+      "id": "asset-03-00",
+      "file": "ch_03_00.jpeg",
+      "query": "train station underground passage stairs",
+      "queryJa": "駅の地下通路と階段",
+      "kind": "ambient",
+      "attribution": "Joerg Hartmann / Pexels",
+      "sourceChapter": 3
+    },
+    {
+      "id": "asset-03-01",
+      "file": "ch_03_01.jpeg",
+      "query": "complex station corridor signs",
+      "queryJa": "入り組んだ駅の通路",
+      "kind": "ambient",
+      "attribution": "Stanzin  Dawa / Pexels",
+      "sourceChapter": 3
+    },
+    {
+      "id": "asset-04-00",
+      "file": "ch_04_00.jpeg",
+      "query": "Yokohama Station department store building",
+      "queryJa": "横浜駅の駅ビル",
+      "kind": "ambient",
+      "attribution": "Huu Huynh / Pexels",
+      "sourceChapter": 4
+    },
+    {
+      "id": "asset-04-01",
+      "file": "ch_04_01.jpg",
+      "query": "underground shopping mall corridor",
+      "queryJa": "ダイヤモンド地下街",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 4
+    },
+    {
+      "id": "asset-04-02",
+      "file": "ch_04_02.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 4
+    },
+    {
+      "id": "asset-04-03",
+      "file": "ch_04_03.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 4
+    },
+    {
+      "id": "asset-05-00",
+      "file": "ch_05_00.jpeg",
+      "query": "Yokohama Station",
+      "queryJa": "横浜駅",
+      "kind": "ambient",
+      "attribution": "Huu Huynh / Pexels",
+      "sourceChapter": 5
+    },
+    {
+      "id": "asset-05-01",
+      "file": "ch_05_01.jpg",
+      "query": "Sotetsu railway train",
+      "queryJa": "相鉄の電車",
+      "kind": "subject",
+      "attribution": "Yoh-Plus / CC BY 4.0",
+      "sourceChapter": 5
+    },
+    {
+      "id": "asset-06-01",
+      "file": "ch_06_01.jpeg",
+      "query": "Yokohama Station west exit street",
+      "queryJa": "横浜駅西口",
+      "kind": "ambient",
+      "attribution": "Pete Miller Portraits / Pexels",
+      "sourceChapter": 6
+    },
+    {
+      "id": "asset-06-02",
+      "file": "ch_06_02.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 6
+    },
+    {
+      "id": "asset-06-03",
+      "file": "ch_06_03.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 6
+    },
+    {
+      "id": "asset-07-00",
+      "file": "ch_07_00.jpeg",
+      "query": "Yokohama Minato Mirai skyline",
+      "queryJa": "横浜みなとみらいの街並み",
+      "kind": "ambient",
+      "attribution": "Huu Huynh / Pexels",
+      "sourceChapter": 7
+    },
+    {
+      "id": "asset-0001",
+      "file": "asset-0001.jpg",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": null
+    },
+    {
+      "id": "asset-0002",
+      "file": "asset-0002.jpeg",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": null
+    },
+    {
+      "id": "asset-0003",
+      "file": "asset-0003.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": null
+    },
+    {
+      "id": "asset-0004",
+      "file": "asset-0004.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": null
+    },
+    {
+      "id": "asset-0007",
+      "file": "asset-0007.jpg",
+      "query": "steam train",
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": "Wolfgang Weiser / Pexels",
+      "sourceChapter": null
+    },
+    {
+      "id": "asset-0008",
+      "file": "asset-0008.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": null,
+      "crop": null
+    },
+    {
+      "id": "asset-0009",
+      "file": "asset-0009.jpg",
+      "query": "迷路",
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": "Soulful Pizza / Pexels",
+      "sourceChapter": null
+    },
+    {
+      "id": "asset-0010",
+      "file": "asset-0010.jpg",
+      "query": "赤ちゃん",
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": "LML 6768 / Pexels",
+      "sourceChapter": null
+    },
+    {
+      "id": "asset-0011",
+      "file": "asset-0011.png",
+      "query": null,
+      "queryJa": null,
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": null
+    }
+  ],
+  "imageCues": [
+    {
+      "id": "image-cue-0003",
+      "turnId": "turn-0003",
+      "assetId": "asset-00-02",
+      "fit": null,
+      "crop": {
+        "l": 0.1337117533486463,
+        "t": 0.17639348506059896,
+        "r": 0.9196494863361634,
+        "b": 0.8753193136173261
+      },
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0004",
+      "turnId": "turn-0007",
+      "assetId": "asset-01-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0005",
+      "turnId": "turn-0015",
+      "assetId": "asset-01-02",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0006",
+      "turnId": "turn-0017",
+      "assetId": "asset-01-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0007",
+      "turnId": "turn-0019",
+      "assetId": "asset-01-03",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0008",
+      "turnId": "turn-0023",
+      "assetId": "asset-02-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0009",
+      "turnId": "turn-0029",
+      "assetId": "asset-02-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0010",
+      "turnId": "turn-0031",
+      "assetId": "asset-02-02",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0011",
+      "turnId": "turn-0033",
+      "assetId": "asset-03-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0012",
+      "turnId": "turn-0037",
+      "assetId": "asset-03-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0013",
+      "turnId": "turn-0046",
+      "assetId": "asset-04-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0014",
+      "turnId": "turn-0047",
+      "assetId": "asset-04-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0015",
+      "turnId": "turn-0050",
+      "assetId": "asset-04-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0016",
+      "turnId": "turn-0052",
+      "assetId": "asset-04-02",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0017",
+      "turnId": "turn-0054",
+      "assetId": "asset-04-03",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0018",
+      "turnId": "turn-0057",
+      "assetId": "asset-04-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0019",
+      "turnId": "turn-0059",
+      "assetId": "asset-05-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0020",
+      "turnId": "turn-0065",
+      "assetId": "asset-05-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0021",
+      "turnId": "turn-0072",
+      "assetId": "asset-06-02",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0022",
+      "turnId": "turn-0073",
+      "assetId": "asset-06-03",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0023",
+      "turnId": "turn-0076",
+      "assetId": "asset-06-02",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0024",
+      "turnId": "turn-0078",
+      "assetId": "asset-06-03",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0025",
+      "turnId": "turn-0079",
+      "assetId": "asset-06-02",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0026",
+      "turnId": "turn-0080",
+      "assetId": "asset-06-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0027",
+      "turnId": "turn-0086",
+      "assetId": "asset-07-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0028",
+      "turnId": "turn-0001",
+      "assetId": "asset-00-00",
+      "fit": null,
+      "crop": {
+        "l": 0.030549408834878024,
+        "t": 0.01790392068001828,
+        "r": 0.9731688235778712,
+        "b": 0.96860589154282
+      },
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0029",
+      "turnId": "turn-0021",
+      "assetId": "asset-0009",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false,
+      "endTurnId": "turn-0021"
+    },
+    {
+      "id": "image-cue-0030",
+      "turnId": "turn-0022",
+      "assetId": "asset-0010",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    }
+  ],
+  "visualSegments": [
+    {
+      "id": "visual-00-s1",
+      "type": "quiz",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0003",
+      "endTurnId": "turn-0005",
+      "config": {
+        "quiz": {
+          "question": "日本のサグラダファミリア駅？",
+          "answer": "横浜駅（神奈川県横浜市）",
+          "boxWidth": 0.6,
+          "answerSize": 0.6,
+          "questionSize": 0.7,
+          "bgOpacity": 1,
+          "bg": "#0f141e"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0003",
+          "type": "reveal",
+          "pos": 28
+        }
+      ],
+      "sourceChapter": 0
+    },
+    {
+      "id": "visual-01-s1",
+      "type": "stat",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0009",
+      "endTurnId": "turn-0010",
+      "config": {
+        "stat": {
+          "value": "6",
+          "unit": "社",
+          "label": "乗り入れる鉄道会社",
+          "bgOpacity": 0.8,
+          "bg": "#0f141e",
+          "size": 1.5
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0009",
+          "type": "reveal",
+          "pos": 7
+        }
+      ],
+      "sourceChapter": 1
+    },
+    {
+      "id": "visual-01-s2",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0011",
+      "endTurnId": "turn-0013",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "JR"
+            },
+            {
+              "text": "京浜急行電鉄"
+            },
+            {
+              "text": "相模鉄道"
+            },
+            {
+              "text": "東急"
+            },
+            {
+              "text": "みなとみらい線"
+            },
+            {
+              "text": "横浜市営地下鉄"
+            }
+          ],
+          "markerType": "dot"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0011",
+          "type": "panel_item",
+          "pos": 21,
+          "value": 5
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0011",
+          "type": "panel_item",
+          "pos": 15,
+          "value": 4
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0011",
+          "type": "panel_item",
+          "pos": 12,
+          "value": 3
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0011",
+          "type": "panel_item",
+          "pos": 9,
+          "value": 2
+        },
+        {
+          "id": "kf-005",
+          "turnId": "turn-0011",
+          "type": "panel_item",
+          "pos": 6,
+          "value": 1
+        },
+        {
+          "id": "kf-006",
+          "turnId": "turn-0011",
+          "type": "panel_item",
+          "pos": 3,
+          "value": 0
+        },
+        {
+          "id": "kf-007",
+          "turnId": "turn-0011",
+          "type": "panel_event",
+          "pos": 1
+        }
+      ],
+      "sourceChapter": 1
+    },
+    {
+      "id": "visual-01-s3",
+      "type": "quiz",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0007",
+      "endTurnId": "turn-0008",
+      "config": {
+        "quiz": {
+          "question": "乗り入れる\n鉄道会社の数は？",
+          "answer": ""
+        }
+      },
+      "keyframes": [],
+      "sourceChapter": 1
+    },
+    {
+      "id": "visual-01-s4",
+      "type": "stat",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0017",
+      "endTurnId": "turn-0018",
+      "config": {
+        "stat": {
+          "value": "2,300,000",
+          "unit": "人",
+          "label": "1日の乗降人数",
+          "size": 1.1,
+          "countSpeed": "slow"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0017",
+          "type": "reveal"
+        }
+      ],
+      "sourceChapter": 1
+    },
+    {
+      "id": "visual-01-s5",
+      "type": "compare",
+      "mode": "replace",
+      "status": "active",
+      "startTurnId": "turn-0015",
+      "endTurnId": "turn-0016",
+      "config": {
+        "compare": {
+          "left": {
+            "label": "羽田空港",
+            "cut": 2
+          },
+          "right": {
+            "label": "横浜",
+            "cut": 1
+          }
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-002",
+          "turnId": "turn-0015",
+          "type": "compare_item",
+          "value": 1,
+          "pos": 11
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0015",
+          "type": "compare_item",
+          "value": 0,
+          "pos": 6
+        }
+      ],
+      "sourceChapter": 1
+    },
+    {
+      "id": "visual-02-s1",
+      "type": "quiz",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0023",
+      "endTurnId": "turn-0024",
+      "config": {
+        "quiz": {
+          "question": "複雑になる宿命？",
+          "answer": "今の場所は３代目横浜駅",
+          "questionSize": 0.8
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0023",
+          "type": "reveal",
+          "pos": 33
+        }
+      ],
+      "sourceChapter": 2
+    },
+    {
+      "id": "visual-02-s2",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0025",
+      "endTurnId": "turn-0032",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "● 初代1872年 桜木町"
+            },
+            {
+              "text": "● 2代目 関東大震災で焼失",
+              "arrow_from_prev": true
+            },
+            {
+              "text": "● 3代目1928年 現在地",
+              "arrow_from_prev": true
+            }
+          ],
+          "textSize": 0.9
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0025",
+          "type": "panel_event",
+          "value": "shrink"
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0025",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0029",
+          "type": "panel_item",
+          "value": 1,
+          "pos": 44
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0031",
+          "type": "panel_item",
+          "value": 2
+        }
+      ],
+      "sourceChapter": 2
+    },
+    {
+      "id": "visual-03-s1",
+      "type": "quiz",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0033",
+      "endTurnId": "turn-0036",
+      "config": {
+        "quiz": {
+          "question": "なぜこんなに\n入り組んでる？",
+          "answer": ""
+        }
+      },
+      "keyframes": [],
+      "sourceChapter": 3
+    },
+    {
+      "id": "visual-03-s2",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0037",
+      "endTurnId": "turn-0045",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "別会社が継ぎ足し"
+            },
+            {
+              "text": "まるでダンジョン"
+            },
+            {
+              "text": "ホーム高さもバラバラ"
+            },
+            {
+              "text": "案内板もバラバラ"
+            }
+          ],
+          "markerType": "dot"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0037",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0040",
+          "type": "panel_item",
+          "value": 1
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0041",
+          "type": "panel_item",
+          "value": 2
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0044",
+          "type": "panel_item",
+          "value": 3
+        }
+      ],
+      "sourceChapter": 3
+    },
+    {
+      "id": "visual-04-s1",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0046",
+      "endTurnId": "turn-0051",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "各社バラバラの増築"
+            },
+            {
+              "text": "直結する駅ビル"
+            },
+            {
+              "text": "一体化した地下街"
+            }
+          ],
+          "markerType": "dot"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0048",
+          "type": "panel_event",
+          "value": "shrink"
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0048",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0049",
+          "type": "panel_item",
+          "value": 1
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0050",
+          "type": "panel_item",
+          "value": 2
+        }
+      ],
+      "sourceChapter": 4
+    },
+    {
+      "id": "visual-04-s2",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0052",
+      "endTurnId": "turn-0056",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "西口 高島屋"
+            },
+            {
+              "text": "東口 そごう"
+            }
+          ],
+          "markerType": "dot",
+          "heading": "東西で別々に発展"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0052",
+          "type": "panel_event",
+          "value": "shrink"
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0052",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0054",
+          "type": "panel_item",
+          "value": 1
+        }
+      ],
+      "sourceChapter": 4
+    },
+    {
+      "id": "visual-04-s3",
+      "type": "stat",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0057",
+      "endTurnId": "turn-0058",
+      "config": {
+        "stat": {
+          "value": "1980",
+          "unit": "年",
+          "label": "地下街ポルタ開業"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0057",
+          "type": "reveal"
+        }
+      ],
+      "sourceChapter": 4
+    },
+    {
+      "id": "visual-05-s1",
+      "type": "quiz",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0059",
+      "endTurnId": "turn-0062",
+      "config": {
+        "quiz": {
+          "question": "工事が何十年も\n終わらないのはなぜ？",
+          "answer": "利用者が増え続け\n駅が手狭になるから",
+          "boxWidth": 0.65,
+          "answerSize": 0.7
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0061",
+          "type": "reveal"
+        }
+      ],
+      "sourceChapter": 5
+    },
+    {
+      "id": "visual-05-s2",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0063",
+      "endTurnId": "turn-0071",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "利用者が増え続ける"
+            },
+            {
+              "text": "直通でホーム増設",
+              "arrow_from_prev": true
+            },
+            {
+              "text": "走らせながら継ぎ足し",
+              "arrow_from_prev": true
+            }
+          ]
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0063",
+          "type": "panel_event",
+          "value": "shrink"
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0063",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0065",
+          "type": "panel_item",
+          "value": 1
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0069",
+          "type": "panel_item",
+          "value": 2
+        }
+      ],
+      "sourceChapter": 5
+    },
+    {
+      "id": "visual-06-s1",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0072",
+      "endTurnId": "turn-0078",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "エキサイトよこはま22"
+            },
+            {
+              "text": "JR横浜タワー 2020",
+              "arrow_from_prev": true
+            },
+            {
+              "text": "駅が一つの街に",
+              "arrow_from_prev": true
+            }
+          ]
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0073",
+          "type": "panel_event",
+          "value": "shrink"
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0073",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0076",
+          "type": "panel_item",
+          "value": 1
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0077",
+          "type": "panel_item",
+          "value": 2
+        }
+      ],
+      "sourceChapter": 6
+    },
+    {
+      "id": "visual-06-s2",
+      "type": "quiz",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0079",
+      "endTurnId": "turn-0085",
+      "config": {
+        "quiz": {
+          "question": "横浜駅、いつ完成する？",
+          "answer": "A.まだ何年も先",
+          "answerBg": "#29db97",
+          "answerBgOpacity": 0.96,
+          "boxWidth": 0.8
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0082",
+          "type": "reveal"
+        }
+      ],
+      "sourceChapter": 6
+    },
+    {
+      "id": "visual-07-s1",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0086",
+      "endTurnId": "turn-0090",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "6社が乗り入れ"
+            },
+            {
+              "text": "各社が継ぎ足し"
+            },
+            {
+              "text": "駅ビルと地下街、終わらない工事"
+            },
+            {
+              "text": "成長し続けている街、横浜"
+            },
+            {
+              "text": "いうえお"
+            }
+          ],
+          "heading": "日本のサグラダファミリアの正体まとめ",
+          "textSize": 1.2,
+          "markerSize": 0.8,
+          "markerType": "dot",
+          "overlay": true,
+          "pos": "top"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0087",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0087",
+          "type": "panel_item",
+          "value": 1
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0087",
+          "type": "panel_item",
+          "value": 2
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0087",
+          "type": "panel_item",
+          "value": 3
+        }
+      ],
+      "sourceChapter": 7
+    }
+  ],
+  "bgmSegments": [
+    {
+      "id": "bgm-0001",
+      "startTurnId": "turn-0007",
+      "bgm": "bgm.mp3",
+      "fadeOut": 0.6
+    },
+    {
+      "id": "bgm-0002",
+      "startTurnId": "turn-0001",
+      "bgm": "bgm1.mp3",
+      "fadeOut": 0.6
+    }
+  ],
+  "idCounters": {
+    "imageCue": 30,
+    "asset": 11
+  },
+  "editorModelAuthority": "editor"
+}
