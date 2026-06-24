@@ -167,8 +167,11 @@ cmd_projects() {
 }
 
 cmd_switch() {  # $1=name
-  local name="${1:-}"
-  [ -n "$name" ] || { cmd_projects; read -rp "切り替え先プロジェクト名: " name; }
+  local name="$1"
+  if [ -z "$name" ]; then
+    cmd_projects
+    read -rp "切り替え先プロジェクト名: " name
+  fi
   local target="$STORIES/$name"
   [ -d "$target" ] || { echo "× $target が存在しません（./run projects で一覧確認）" >&2; exit 1; }
   ln -sfn "stories/$name" "$STORY"
@@ -176,8 +179,10 @@ cmd_switch() {  # $1=name
 }
 
 cmd_new() {  # $1=name
-  local name="${1:-}"
-  [ -n "$name" ] || { read -rp "新しいプロジェクト名（例: tokyo-tower）: " name; }
+  local name="$1"
+  if [ -z "$name" ]; then
+    read -rp "新しいプロジェクト名（例: tokyo-tower）: " name
+  fi
   local target="$STORIES/$name"
   [ ! -d "$target" ] || { echo "× $target は既に存在します" >&2; exit 1; }
   mkdir -p "$target"
