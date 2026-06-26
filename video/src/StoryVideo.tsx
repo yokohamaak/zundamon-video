@@ -276,11 +276,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const anchorName = anchorOf[charId] ?? "center";
     const anchor = sceneDef.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
     const isSpeaker = charId === active.speaker;
-    // 向き: 台本の face 指定 > 立ち位置からの自動（中央を向く）。
+    // 向き: 台本の face 指定 > x座標からの自動（中央を向く）。
     // 立ち絵素材は「画面左向き」が素なので、右を向かせるときだけ反転する。
-    // 左配置=右(中央)向き=反転 / 右配置=左(中央)向き=素 / 中央=素。
-    const want: "left" | "right" | null =
-      active.face?.[charId] ?? (anchorName === "left" ? "right" : "left");
+    // 画面左半分(x<0.5)のキャラは右＝中央向き、右半分は左＝中央向き。x を動かせば向きも自動追従。
+    const want: "left" | "right" =
+      active.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
     const flip = want === "right";
     const emotion = EXPRESSION_TO_EMOTION[active.expression ?? "normal"];
     return (
