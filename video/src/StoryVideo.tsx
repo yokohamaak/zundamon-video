@@ -174,6 +174,17 @@ const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOutCubic = (x: number) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
+// その時刻に吹き出しへ出す文字列（sentences があれば文単位で小出し・§4.4）。
+function bubbleTextAt(turn: StoryTurn, t: number): string {
+  if (turn.sentences && turn.sentences.length) {
+    const s =
+      turn.sentences.find((x) => x.start <= t && t < x.end) ??
+      turn.sentences[turn.sentences.length - 1];
+    return s.text;
+  }
+  return turn.text;
+}
+
 // 仮想カメラの目標（s=ズーム / cx,cy=注視点・ステージ正規化座標）。
 type Cam = { s: number; cx: number; cy: number };
 
@@ -256,15 +267,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const ty = clamp(height / 2 - cam.cy * height * cam.s, height * (1 - cam.s), 0);
   const stageTransform = `translate(${tx}px, ${ty}px) scale(${cam.s})`;
 
-  // ── 吹き出しテキスト（sentences があれば文単位で小出し・§4.4） ──
-  let bubbleText = active.text;
-  if (active.sentences && active.sentences.length) {
-    const s =
-      active.sentences.find((x) => x.start <= t && t < x.end) ??
-      active.sentences[active.sentences.length - 1];
-    bubbleText = s.text;
-  }
-
   // ── 話者のフェイク音量（Phase1は音声無し→口パクに生気だけ与える） ──
   const speakerAmp = 0.16 + 0.1 * Math.sin(frame * 0.8);
 
@@ -309,12 +311,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
 
-  // 吹き出しは話者の足元。カメラで動くので話者の「画面上の位置」を計算して追従させる。
-  const speakerAnchorName = anchorOf[active.speaker] ?? "center";
-  const speakerAnchor =
-    sceneDef.anchors[speakerAnchorName] ?? { x: 0.5, y: 1.02 };
-  const bubbleColor =
-    CHARACTERS[active.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
   // 吹き出しは「移動後の最終カメラ(Tcur)」基準で位置を決め、移動中も固定表示する。
   // → 移動中に位置が動かない＝変形・ガタつき無し・途中で消えない。
   const stx = clamp(
@@ -322,16 +318,54 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     width * (1 - Tcur.s),
     0
   );
-  const speakerScreenX = clamp(
-    stx + speakerAnchor.x * width * Tcur.s,
-    width * 0.22,
-    width * 0.78
-  );
   // 吹き出しの高さ：ズーム時は顔が大きいので、より下げて顔に被らないようにする。
   const bubbleTopRatio = interpolate(Tcur.s, [1.0, 1.4], [0.82, 0.88], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+
+  // 1つの吹き出しを描く（話者の足元・話者色）。
+  const renderBubble = (turn: StoryTurn, key: string) => {
+    const aName = anchorOf[turn.speaker] ?? "center";
+    const a = sceneDef.anchors[aName] ?? { x: 0.5, y: 1.02 };
+    const sx = clamp(stx + a.x * width * Tcur.s, width * 0.22, width * 0.78);
+    const color = CHARACTERS[turn.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
+    return (
+      <div
+        key={key}
+        style={{
+          position: "absolute",
+          left: sx,
+          top: height * bubbleTopRatio,
+          transform: "translateX(-50%)",
+          maxWidth: width * 0.46,
+          background: "#ffffff",
+          color: "#1b1b1f",
+          padding: "18px 28px",
+          borderRadius: 16,
+          border: `5px solid ${color}`,
+          fontSize: 42,
+          lineHeight: 1.35,
+          fontWeight: 700,
+          fontFamily: "sans-serif",
+          boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+          textAlign: "center",
+        }}
+      >
+        {bubbleTextAt(turn, t)}
+      </div>
+    );
+  };
+
+  // 直前のセリフ（別話者・同一シーン）は、相手が喋り出してから OVERLAP 秒だけ残して消す。
+  const OVERLAP = 0.6;
+  const activeIdx = script.findIndex((x) => x.id === active.id);
+  const prevTurn = activeIdx > 0 ? script[activeIdx - 1] : null;
+  const showPrev =
+    !!prevTurn &&
+    prevTurn.scene === active.scene &&
+    prevTurn.speaker !== active.speaker &&
+    t - active.start < OVERLAP;
 
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
@@ -368,30 +402,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         ) : null}
       </AbsoluteFill>
 
-      {/* 吹き出し（話者の足元・小型ボックス・名前ラベルなし）。
+      {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
           位置は最終カメラ基準で固定＝移動中も消えず動かない。 */}
-      <div
-        style={{
-          position: "absolute",
-          left: speakerScreenX,
-          top: height * bubbleTopRatio, // 足元寄り（ズーム時はさらに下げて顔を避ける）
-          transform: "translateX(-50%)",
-          maxWidth: width * 0.46,
-          background: "#ffffff", // 不透過
-          color: "#1b1b1f",
-          padding: "18px 28px",
-          borderRadius: 16,
-          border: `5px solid ${bubbleColor}`, // 話者で枠色を変える
-          fontSize: 42,
-          lineHeight: 1.35,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
-          textAlign: "center",
-        }}
-      >
-        {bubbleText}
-      </div>
+      {showPrev ? renderBubble(prevTurn as StoryTurn, "bubble-prev") : null}
+      {renderBubble(active, "bubble-active")}
     </AbsoluteFill>
   );
 };
