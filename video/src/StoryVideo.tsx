@@ -318,17 +318,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     width * (1 - Tcur.s),
     0
   );
-  // 吹き出しの高さ：ズーム時は顔が大きいので、より下げて顔に被らないようにする。
-  const bubbleTopRatio = interpolate(Tcur.s, [1.0, 1.4], [0.82, 0.88], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
   // 1つの吹き出しを描く（話者の足元・話者色）。
+  // 下端を固定(translateY -100%)して上に伸ばす＝行が増えても画面下にはみ出ない。
   const renderBubble = (turn: StoryTurn, key: string) => {
     const aName = anchorOf[turn.speaker] ?? "center";
     const a = sceneDef.anchors[aName] ?? { x: 0.5, y: 1.02 };
-    const sx = clamp(stx + a.x * width * Tcur.s, width * 0.22, width * 0.78);
+    // 横幅が広いので、左右端で見切れないよう中心xを内側にクランプする。
+    const sx = clamp(stx + a.x * width * Tcur.s, width * 0.31, width * 0.69);
     const color = CHARACTERS[turn.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
     return (
       <div
@@ -336,12 +332,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         style={{
           position: "absolute",
           left: sx,
-          top: height * bubbleTopRatio,
-          transform: "translateX(-50%)",
-          maxWidth: width * 0.46,
+          top: height * 0.95, // 吹き出しの「下端」をこの位置に置き、上方向に伸ばす
+          transform: "translate(-50%, -100%)",
+          maxWidth: width * 0.56, // 横幅広め＝2行に収まりやすく
           background: "#ffffff",
           color: "#1b1b1f",
-          padding: "18px 28px",
+          padding: "18px 30px",
           borderRadius: 16,
           border: `5px solid ${color}`,
           fontSize: 42,
