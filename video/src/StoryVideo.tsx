@@ -246,8 +246,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const Tcur = targetCam(presentAt(times[idx]), anchorOf, sceneDef);
   const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOf, sceneDef) : Tcur;
   const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
-  // カメラ移動中は吹き出しを出さない（移動完了後に出す）。動いてる間の見づらさ回避。
-  const cameraMoving = idx > 0 && t - times[idx] < TRANS;
   const cam: Cam = {
     s: lerp(Tprev.s, Tcur.s, k),
     cx: lerp(Tprev.cx, Tcur.cx, k),
@@ -317,14 +315,20 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     sceneDef.anchors[speakerAnchorName] ?? { x: 0.5, y: 1.02 };
   const bubbleColor =
     CHARACTERS[active.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
-  // 画面上のx（クランプして枠が見切れないように）。
+  // 吹き出しは「移動後の最終カメラ(Tcur)」基準で位置を決め、移動中も固定表示する。
+  // → 移動中に位置が動かない＝変形・ガタつき無し・途中で消えない。
+  const stx = clamp(
+    width / 2 - Tcur.cx * width * Tcur.s,
+    width * (1 - Tcur.s),
+    0
+  );
   const speakerScreenX = clamp(
-    tx + speakerAnchor.x * width * cam.s,
+    stx + speakerAnchor.x * width * Tcur.s,
     width * 0.22,
     width * 0.78
   );
   // 吹き出しの高さ：ズーム時は顔が大きいので、より下げて顔に被らないようにする。
-  const bubbleTopRatio = interpolate(cam.s, [1.0, 1.4], [0.82, 0.88], {
+  const bubbleTopRatio = interpolate(Tcur.s, [1.0, 1.4], [0.82, 0.88], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -364,9 +368,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         ) : null}
       </AbsoluteFill>
 
-      {/* 吹き出し（話者の足元・小型ボックス・名前ラベルなし・カメラに追従）。
-          カメラ移動中は非表示にして、移動完了後に出す。 */}
-      {!cameraMoving ? (
+      {/* 吹き出し（話者の足元・小型ボックス・名前ラベルなし）。
+          位置は最終カメラ基準で固定＝移動中も消えず動かない。 */}
       <div
         style={{
           position: "absolute",
@@ -389,7 +392,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       >
         {bubbleText}
       </div>
-      ) : null}
     </AbsoluteFill>
   );
 };

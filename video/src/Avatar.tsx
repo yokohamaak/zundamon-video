@@ -26,6 +26,22 @@ import type { Emotion, Gender } from "./types";
 
 type Manifest = Record<string, string>;
 
+// 焦り(panic)時に追加する汗ドロップの位置（キャラ別・キャンバス比%）。
+// 元の汗の位置を基準に、目に被らない側へずらす。
+const SWEAT_EXTRA: Record<string, { dx: number; dy: number; s: number }[]> = {
+  // ずんだもん：汗は右こめかみ・目は左寄り → 右上方向へ寄せる。
+  zundamon: [
+    { dx: 5, dy: -9, s: 0.9 },
+    { dx: 9, dy: -3, s: 0.72 },
+    { dx: 0, dy: -15, s: 0.8 },
+  ],
+  // めたん：汗は左頬（目の下）→ 頬まわりに2つ。
+  metan: [
+    { dx: -4, dy: 3, s: 0.9 },
+    { dx: 5, dy: -2, s: 0.72 },
+  ],
+};
+
 // 口の開き判定しきい値（amplitude=波形RMS×LIPSYNC_GAIN, 0..1）。
 // 発話中の実測レンジ(≈0.10〜0.33)に合わせる。無音/語間は閉じ。
 const MOUTH_HALF = 0.06;
@@ -246,14 +262,15 @@ export const Avatar: React.FC<{
       {eyeSrc ? layer(eyeSrc, "eye") : null}
       {mouthSrc ? layer(mouthSrc, "mouth") : null}
       {fxSrc ? layer(fxSrc, "fx") : null}
-      {/* 焦り(panic)：汗を増やす。同じ汗ドロップを位置/サイズを変えて複数重ねる。 */}
-      {emotion === "panic" && fxSrc ? (
-        <>
-          {layer(fxSrc, "fx-b", { transform: "translate(7%, -4%) scale(0.95)" })}
-          {layer(fxSrc, "fx-c", { transform: "translate(-9%, 4%) scale(0.8)" })}
-          {layer(fxSrc, "fx-d", { transform: "translate(13%, 6%) scale(0.7)" })}
-        </>
-      ) : null}
+      {/* 焦り(panic)：汗を増やす。同じ汗ドロップを位置/サイズ違いで複数重ねる。
+          位置はキャラごと（目に被らないよう調整）。dx/dyはキャンバス比%。 */}
+      {emotion === "panic" && fxSrc
+        ? (SWEAT_EXTRA[dir ?? ""] ?? []).map((o, i) =>
+            layer(fxSrc, `fx-${i}`, {
+              transform: `translate(${o.dx}%, ${o.dy}%) scale(${o.s})`,
+            })
+          )
+        : null}
     </>
   );
 };
