@@ -7,8 +7,12 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import { useAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
 import type { Emotion, Gender } from "./types";
+
+// リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
+const LIPSYNC_GAIN = 5;
 
 // ───────────────────────────────────────────────────────────
 // ストーリー調 会話劇動画（新ツール Phase 1）の描画。
@@ -328,8 +332,28 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   }
   fadeOpacity = clamp(fadeOpacity, 0, 1);
 
-  // ── 話者のフェイク音量（Phase1は音声無し→口パクに生気だけ与える） ──
-  const speakerAmp = 0.16 + 0.1 * Math.sin(frame * 0.8);
+  // ── 話者の音量（実音声の波形RMS）→ リップシンク。DialogueVideo と同方式。 ──
+  // 音声(story-01.wav)の現フレーム付近のRMSを口の開きに使う。発話者のみに適用。
+  // useAudioData は string 必須のため、audio 未指定時もダミーで呼ぶ（フックは無条件呼び出し）。
+  // 実際のリップシンクは audio がある時だけ行う。
+  const audioData = useAudioData(staticFile(audio ?? "story-01.wav"));
+  let speakerAmp = 0;
+  if (audio && audioData) {
+    const wave = audioData.channelWaveforms[0];
+    const sr = audioData.sampleRate;
+    const center = Math.floor(t * sr);
+    const win = Math.floor(sr / fps); // 1フレーム分の窓
+    let sum = 0;
+    let n = 0;
+    for (let i = center - win / 2; i < center + win / 2; i++) {
+      if (i >= 0 && i < wave.length) {
+        sum += wave[i] * wave[i];
+        n++;
+      }
+    }
+    const rms = Math.sqrt(sum / Math.max(1, n));
+    speakerAmp = Math.min(1, rms * LIPSYNC_GAIN);
+  }
 
   const renderAvatar = (charId: string) => {
     const cdef = CHARACTERS[charId];
