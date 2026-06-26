@@ -4,13 +4,13 @@
     "office": {
       "label": "オフィス",
       "bg": "background/office.png",
-      "front": null,
+      "front": "background/office_front.png",
       "shot": "duo",
       "camera": "static",
       "anchors": {
-        "center": { "x": 0.5, "y": 1.02 },
-        "left": { "x": 0.27, "y": 1.04 },
-        "right": { "x": 0.73, "y": 1.04 }
+        "center": { "x": 0.5, "y": 0.82 },
+        "left": { "x": 0.2, "y": 0.84 },
+        "right": { "x": 0.8, "y": 0.84 }
       }
     },
     "home": {
