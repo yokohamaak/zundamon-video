@@ -149,6 +149,50 @@ function assignAnchors(chars: string[]): Record<string, string> {
   return map;
 }
 
+// segment 全体で登場する全キャラ（登場順）。立ち位置を区間中ずっと固定するため最終集合で決める。
+function segmentRoster(seg: Segment): string[] {
+  const order: string[] = [];
+  for (const turn of seg.turns) {
+    for (const c of turn.enter ?? []) if (!order.includes(c)) order.push(c);
+    if (!order.includes(turn.speaker)) order.push(turn.speaker);
+  }
+  return order;
+}
+
+// 各キャラが segment 内で初めて画面に出る時刻（秒）。
+function entranceTimes(seg: Segment): Record<string, number> {
+  const e: Record<string, number> = {};
+  for (const turn of seg.turns) {
+    for (const c of turn.enter ?? []) if (!(c in e)) e[c] = turn.start;
+    if (!(turn.speaker in e)) e[turn.speaker] = turn.start;
+  }
+  return e;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+const easeInOutCubic = (x: number) =>
+  x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+
+// 仮想カメラの目標（s=ズーム / cx,cy=注視点・ステージ正規化座標）。
+type Cam = { s: number; cx: number; cy: number };
+
+function targetCam(
+  chars: string[],
+  anchorOf: Record<string, string>,
+  sceneDef: SceneDef
+): Cam {
+  const ax = (c: string) =>
+    (sceneDef.anchors[anchorOf[c] ?? "center"] ?? { x: 0.5 }).x;
+  if (chars.length <= 1) {
+    // 単独：その人に寄る（背景もアップになる）。
+    return { s: 1.55, cx: chars[0] ? ax(chars[0]) : 0.5, cy: 0.46 };
+  }
+  // 複数：全員が収まる引き。
+  const xs = chars.map(ax);
+  return { s: 1.0, cx: (Math.min(...xs) + Math.max(...xs)) / 2, cy: 0.5 };
+}
+
 export const StoryVideo: React.FC<StoryVideoProps> = ({
   story,
   scenes,
@@ -184,21 +228,32 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   }
 
-  // ── 背景の Ken Burns（slow-zoom はゆっくり寄る / static は静止） ──
-  const segDur = Math.max(0.001, seg.end - seg.start);
-  const p = interpolate(t, [seg.start, seg.end], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const isZoom = (sceneDef.camera ?? "static") === "slow-zoom";
-  const bgScale = isZoom ? 1.0 + 0.06 * p : 1.0;
-  const bgX = isZoom ? interpolate(p, [0, 1], [-1.2, 1.2]) : 0; // ごく弱いパン(%)
-  const bgTransform = `scale(${bgScale}) translateX(${bgX}%)`;
-
-  // ── 登場キャラと立ち位置 ──
-  const present = presentChars(seg, active);
-  const anchorOf = assignAnchors(present);
   const avScale = sceneDef.scale ?? 1.9;
+
+  // ── 立ち位置は区間中ずっと固定（後から登場する人ぶんも最初から確保） ──
+  const roster = segmentRoster(seg);
+  const anchorOf = assignAnchors(roster);
+  const entrance = entranceTimes(seg);
+  const presentNow = roster.filter((c) => entrance[c] <= t + 1e-6);
+
+  // ── 仮想カメラ：登場のたびに「寄り↔引き」を滑らかに遷移（カットしない） ──
+  const TRANS = 0.8; // 遷移にかける秒数
+  const times = [...new Set(roster.map((c) => entrance[c]))].sort((a, b) => a - b);
+  let idx = 0;
+  for (let i = 0; i < times.length; i++) if (times[i] <= t + 1e-6) idx = i;
+  const presentAt = (tb: number) => roster.filter((c) => entrance[c] <= tb + 1e-6);
+  const Tcur = targetCam(presentAt(times[idx]), anchorOf, sceneDef);
+  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOf, sceneDef) : Tcur;
+  const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
+  const cam: Cam = {
+    s: lerp(Tprev.s, Tcur.s, k),
+    cx: lerp(Tprev.cx, Tcur.cx, k),
+    cy: lerp(Tprev.cy, Tcur.cy, k),
+  };
+  // ステージ変換（端が見切れて黒が出ないようクランプ）。
+  const tx = clamp(width / 2 - cam.cx * width * cam.s, width * (1 - cam.s), 0);
+  const ty = clamp(height / 2 - cam.cy * height * cam.s, height * (1 - cam.s), 0);
+  const stageTransform = `translate(${tx}px, ${ty}px) scale(${cam.s})`;
 
   // ── 吹き出しテキスト（sentences があれば文単位で小出し・§4.4） ──
   let bubbleText = active.text;
@@ -253,53 +308,59 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
 
-  // 吹き出しは話者の足元（anchor.x を基準に下寄り）。
+  // 吹き出しは話者の足元。カメラで動くので話者の「画面上の位置」を計算して追従させる。
   const speakerAnchorName = anchorOf[active.speaker] ?? "center";
   const speakerAnchor =
     sceneDef.anchors[speakerAnchorName] ?? { x: 0.5, y: 1.02 };
   const bubbleColor =
     CHARACTERS[active.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
+  // 画面上のx（クランプして枠が見切れないように）。
+  const speakerScreenX = clamp(
+    tx + speakerAnchor.x * width * cam.s,
+    width * 0.22,
+    width * 0.78
+  );
 
   return (
-    <AbsoluteFill style={{ background: "#000" }}>
-      {/* 背景（back） */}
-      <AbsoluteFill style={{ overflow: "hidden" }}>
+    <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
+      {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る） */}
+      <AbsoluteFill style={{ transform: stageTransform, transformOrigin: "0 0" }}>
+        {/* 背景（back） */}
         <Img
           src={staticFile(sceneDef.bg)}
           style={{
+            position: "absolute",
+            inset: 0,
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            transform: bgTransform,
-            transformOrigin: "center center",
           }}
         />
-      </AbsoluteFill>
 
-      {/* キャラ（back と front の間） */}
-      {present.map(renderAvatar)}
+        {/* キャラ（back と front の間） */}
+        {presentNow.map(renderAvatar)}
 
-      {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
-      {sceneDef.front ? (
-        <AbsoluteFill style={{ overflow: "hidden", pointerEvents: "none" }}>
+        {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
+        {sceneDef.front ? (
           <Img
             src={staticFile(sceneDef.front)}
             style={{
+              position: "absolute",
+              inset: 0,
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              transform: bgTransform,
-              transformOrigin: "center center",
+              pointerEvents: "none",
             }}
           />
-        </AbsoluteFill>
-      ) : null}
+        ) : null}
+      </AbsoluteFill>
 
-      {/* 吹き出し（話者の足元・小型ボックス・名前ラベルなし） */}
+      {/* 吹き出し（話者の足元・小型ボックス・名前ラベルなし・カメラに追従） */}
       <div
         style={{
           position: "absolute",
-          left: speakerAnchor.x * width,
+          left: speakerScreenX,
           top: height * 0.82, // 足元寄り（顔から離す・§4.4）
           transform: "translateX(-50%)",
           maxWidth: width * 0.42,
