@@ -19,12 +19,12 @@
           "y": 0.82
         },
         "left": {
-          "x": 0.415,
-          "y": 0.92
+          "x": 0.406,
+          "y": 0.572
         },
         "right": {
-          "x": 0.718,
-          "y": 0.983
+          "x": 0.717,
+          "y": 0.681
         }
       }
     },
@@ -32,10 +32,10 @@
       "label": "自宅",
       "bg": "background/room.png",
       "front": null,
-      "shot": "duo",
+      "shot": "solo",
       "camera": "static",
       "figure": "full",
-      "scale": 1.2,
+      "scale": 2.25,
       "anchors": {
         "center": {
           "x": 0.5,
@@ -49,6 +49,9 @@
           "x": 0.73,
           "y": 1.04
         }
+      },
+      "cast": {
+        "zundamon": "left"
       }
     },
     "server_room": {
@@ -58,7 +61,7 @@
       "shot": "duo",
       "camera": "slow-zoom",
       "figure": "full",
-      "scale": 1.1,
+      "scale": 1.4,
       "cast": {
         "zundamon": "right",
         "metan": "left"
@@ -69,12 +72,12 @@
           "y": 0.95
         },
         "left": {
-          "x": 0.4,
-          "y": 0.93
+          "x": 0.333,
+          "y": 0.594
         },
         "right": {
-          "x": 0.6,
-          "y": 0.93
+          "x": 0.711,
+          "y": 0.662
         }
       }
     },
@@ -85,7 +88,7 @@
       "shot": "duo",
       "camera": "slow-zoom",
       "figure": "full",
-      "scale": 1.2,
+      "scale": 1.5,
       "cast": {
         "zundamon": "right",
         "metan": "left"
@@ -96,12 +99,12 @@
           "y": 0.96
         },
         "left": {
-          "x": 0.34,
-          "y": 0.96
+          "x": 0.3,
+          "y": 0.596
         },
         "right": {
-          "x": 0.66,
-          "y": 0.96
+          "x": 0.743,
+          "y": 0.635
         }
       }
     }

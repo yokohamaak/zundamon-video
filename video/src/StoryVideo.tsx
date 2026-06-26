@@ -114,6 +114,13 @@ function fullBoxSize(charId: string): { w: number; h: number } {
   return { w: FULL_BOX_W, h: Math.round(FULL_BOX_W * (c.h / c.w)) };
 }
 
+// ─── モブ判定 ──────────────────────────────────────────────
+// CHARACTERS に定義されていないキャラ＝モブ。
+// モブはレイアウト(ロスター/アンカー/カメラ)から除外し、吹き出し＋声だけで表現する。
+function isKnownChar(charId: string): boolean {
+  return charId in CHARACTERS;
+}
+
 // scene 名が連続する範囲を 1 区間（segment）にまとめる（§4.1）。
 type Segment = { scene: string; turns: StoryTurn[]; start: number; end: number };
 
@@ -142,16 +149,19 @@ function activeTurnAt(script: StoryTurn[], t: number): StoryTurn {
 }
 
 // segment 内で、現時点までに登場したキャラ（enter の累積・登場順を保持）。
+// モブ（CHARACTERS 未定義）はレイアウトから除外する。
 function presentChars(seg: Segment, activeTurn: StoryTurn): string[] {
   const order: string[] = [];
   for (const turn of seg.turns) {
     for (const c of turn.enter ?? []) {
-      if (!order.includes(c)) order.push(c);
+      if (isKnownChar(c) && !order.includes(c)) order.push(c);
     }
     if (turn.id === activeTurn.id) break;
   }
-  // enter 指定が無くても、話者は必ず画面にいる。
-  if (!order.includes(activeTurn.speaker)) order.push(activeTurn.speaker);
+  // 既知キャラが話者の場合のみ追加（モブ話者は追加しない）。
+  if (isKnownChar(activeTurn.speaker) && !order.includes(activeTurn.speaker)) {
+    order.push(activeTurn.speaker);
+  }
   return order;
 }
 
@@ -171,21 +181,29 @@ function assignAnchors(chars: string[]): Record<string, string> {
 }
 
 // segment 全体で登場する全キャラ（登場順）。立ち位置を区間中ずっと固定するため最終集合で決める。
+// モブ（CHARACTERS 未定義）はレイアウトから除外する。
 function segmentRoster(seg: Segment): string[] {
   const order: string[] = [];
   for (const turn of seg.turns) {
-    for (const c of turn.enter ?? []) if (!order.includes(c)) order.push(c);
-    if (!order.includes(turn.speaker)) order.push(turn.speaker);
+    for (const c of turn.enter ?? []) {
+      if (isKnownChar(c) && !order.includes(c)) order.push(c);
+    }
+    if (isKnownChar(turn.speaker) && !order.includes(turn.speaker)) {
+      order.push(turn.speaker);
+    }
   }
   return order;
 }
 
 // 各キャラが segment 内で初めて画面に出る時刻（秒）。
+// モブ（CHARACTERS 未定義）は除外（アバターを持たないのでレイアウト計算に不要）。
 function entranceTimes(seg: Segment): Record<string, number> {
   const e: Record<string, number> = {};
   for (const turn of seg.turns) {
-    for (const c of turn.enter ?? []) if (!(c in e)) e[c] = turn.start;
-    if (!(turn.speaker in e)) e[turn.speaker] = turn.start;
+    for (const c of turn.enter ?? []) {
+      if (isKnownChar(c) && !(c in e)) e[c] = turn.start;
+    }
+    if (isKnownChar(turn.speaker) && !(turn.speaker in e)) e[turn.speaker] = turn.start;
   }
   return e;
 }
