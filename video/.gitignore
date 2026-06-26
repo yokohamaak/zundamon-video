@@ -3,5 +3,5 @@ out/
 .remotion/
 # public/ は全て生成物（prep/make-sample-imagesが再生成）。コミットしない
 public/
-# 立ち絵の元データ(PSD等)は再配布NG素材。ローカル管理し、書き出しPNGのみコミットする
-assets/avatars/*/source/
+# 立ち絵の元データ(PSD)は再配布NG素材。プライベートリポ前提で追跡する。
+# ※リポを公開する場合は必ず source/ と docs/reference の PSD を履歴ごと除去すること。
