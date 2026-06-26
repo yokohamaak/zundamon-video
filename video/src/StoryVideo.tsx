@@ -246,6 +246,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const Tcur = targetCam(presentAt(times[idx]), anchorOf, sceneDef);
   const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOf, sceneDef) : Tcur;
   const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
+  // カメラ移動中は吹き出しを出さない（移動完了後に出す）。動いてる間の見づらさ回避。
+  const cameraMoving = idx > 0 && t - times[idx] < TRANS;
   const cam: Cam = {
     s: lerp(Tprev.s, Tcur.s, k),
     cx: lerp(Tprev.cx, Tcur.cx, k),
@@ -362,20 +364,22 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         ) : null}
       </AbsoluteFill>
 
-      {/* 吹き出し（話者の足元・小型ボックス・名前ラベルなし・カメラに追従） */}
+      {/* 吹き出し（話者の足元・小型ボックス・名前ラベルなし・カメラに追従）。
+          カメラ移動中は非表示にして、移動完了後に出す。 */}
+      {!cameraMoving ? (
       <div
         style={{
           position: "absolute",
           left: speakerScreenX,
           top: height * bubbleTopRatio, // 足元寄り（ズーム時はさらに下げて顔を避ける）
           transform: "translateX(-50%)",
-          maxWidth: width * 0.42,
-          background: "rgba(255,255,255,0.96)",
+          maxWidth: width * 0.46,
+          background: "#ffffff", // 不透過
           color: "#1b1b1f",
-          padding: "16px 24px",
+          padding: "18px 28px",
           borderRadius: 16,
           border: `5px solid ${bubbleColor}`, // 話者で枠色を変える
-          fontSize: 34,
+          fontSize: 42,
           lineHeight: 1.35,
           fontWeight: 700,
           fontFamily: "sans-serif",
@@ -385,6 +389,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       >
         {bubbleText}
       </div>
+      ) : null}
     </AbsoluteFill>
   );
 };

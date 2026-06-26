@@ -246,6 +246,14 @@ export const Avatar: React.FC<{
       {eyeSrc ? layer(eyeSrc, "eye") : null}
       {mouthSrc ? layer(mouthSrc, "mouth") : null}
       {fxSrc ? layer(fxSrc, "fx") : null}
+      {/* 焦り(panic)：汗を増やす。同じ汗ドロップを位置/サイズを変えて複数重ねる。 */}
+      {emotion === "panic" && fxSrc ? (
+        <>
+          {layer(fxSrc, "fx-b", { transform: "translate(7%, -4%) scale(0.95)" })}
+          {layer(fxSrc, "fx-c", { transform: "translate(-9%, 4%) scale(0.8)" })}
+          {layer(fxSrc, "fx-d", { transform: "translate(13%, 6%) scale(0.7)" })}
+        </>
+      ) : null}
     </>
   );
 };
