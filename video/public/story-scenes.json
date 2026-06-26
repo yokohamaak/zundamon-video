@@ -3,7 +3,7 @@
   "scenes": {
     "office": {
       "label": "オフィス",
-      "bg": "background/variant-digital-studio.png",
+      "bg": "background/office.png",
       "front": null,
       "shot": "duo",
       "camera": "slow-zoom",
@@ -15,7 +15,7 @@
     },
     "home": {
       "label": "自宅",
-      "bg": "background/normalbg.png",
+      "bg": "background/room.png",
       "front": null,
       "shot": "duo",
       "camera": "slow-zoom",
