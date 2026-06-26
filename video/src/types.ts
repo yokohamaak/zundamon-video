@@ -1,7 +1,7 @@
 // meta.json の構造（main_story.py の build_meta が出力する形式）
 // 感情。立ち絵の目/効果の差分とオーバーアクションの種別に使う。
 // 任意：未指定なら caption テキストから簡易推定（DialogueVideo側）。
-export type Emotion = "normal" | "surprise" | "happy" | "sad" | "angry";
+export type Emotion = "normal" | "surprise" | "happy" | "sad" | "angry" | "panic";
 
 // 進行フェーズ。演出の強弱に使う。任意（未指定なら "fact" 扱い）。
 export type Phase = "intro" | "fact" | "if" | "outro";

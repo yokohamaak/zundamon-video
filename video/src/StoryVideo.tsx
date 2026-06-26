@@ -30,7 +30,7 @@ const EXPRESSION_TO_EMOTION: Record<StoryExpression, Emotion> = {
   happy: "happy",
   surprise: "surprise",
   trouble: "sad", // 困り：暫定（専用パーツが無ければ通常目にフォールバック）
-  panic: "surprise", // 焦り：暫定（驚きで代用）
+  panic: "panic", // 焦り：汗＋見開き目＋小刻みな揺れ
 };
 
 export type StorySentence = { text: string; start: number; end: number };

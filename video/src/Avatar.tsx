@@ -118,6 +118,11 @@ export const Avatar: React.FC<{
     }
   }
 
+  // 焦り(panic)：小刻みに震える（発話有無に関わらず持続）。
+  if (emotion === "panic") {
+    rotate += Math.sin(time * Math.PI * 2 * 3.5) * 0.9;
+  }
+
   // 発話者だけ柔らかい影で手前に浮かせる（区別は透明化ではなくポップ＋影で表現）。
   const filter = active
     ? "drop-shadow(0 8px 16px rgba(0,0,0,0.45))"
@@ -196,14 +201,22 @@ export const Avatar: React.FC<{
   const smileFresh = reactT >= 0 && reactT < EYE_SMILE_DUR;
   let eyeStem = "eye_open";
   if (emotion === "surprise" && part("eye_surprise")) eyeStem = "eye_surprise";
+  // 焦り(panic): 専用の困り目が無ければ見開き目で慌てた表情に寄せる。
+  else if (emotion === "panic" && (part("eye_trouble") || part("eye_surprise")))
+    eyeStem = part("eye_trouble") ? "eye_trouble" : "eye_surprise";
   else if (emotion === "happy" && smileFresh && part("eye_smile")) eyeStem = "eye_smile";
   else if (blinking && part("eye_close")) eyeStem = "eye_close";
   const eyeSrc = part(eyeStem) || part("eye_open");
 
-  // 効果オーバーレイ（驚き時のみ、パーツがあれば）
+  // 効果オーバーレイ。驚き=一瞬だけ / 焦り(panic)=汗を出し続ける。
+  // panic は専用 fx_sweat があれば使い、無ければ fx_surprise(=汗ドロップ)を流用。
   const showFxSurprise =
     emotion === "surprise" && reactT >= 0 && reactT < REACT_DUR;
-  const fxSrc = showFxSurprise ? part("fx_surprise") : null;
+  const fxSrc = showFxSurprise
+    ? part("fx_surprise")
+    : emotion === "panic"
+    ? part("fx_sweat") || part("fx_surprise")
+    : null;
 
   const surprised = emotion === "surprise";
 
