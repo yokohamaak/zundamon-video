@@ -190,7 +190,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const isZoom = (sceneDef.camera ?? "slow-zoom") === "slow-zoom";
+  const isZoom = (sceneDef.camera ?? "static") === "slow-zoom";
   const bgScale = isZoom ? 1.0 + 0.06 * p : 1.0;
   const bgX = isZoom ? interpolate(p, [0, 1], [-1.2, 1.2]) : 0; // ごく弱いパン(%)
   const bgTransform = `scale(${bgScale}) translateX(${bgX}%)`;

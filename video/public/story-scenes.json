@@ -6,7 +6,7 @@
       "bg": "background/office.png",
       "front": null,
       "shot": "duo",
-      "camera": "slow-zoom",
+      "camera": "static",
       "anchors": {
         "center": { "x": 0.5, "y": 1.02 },
         "left": { "x": 0.27, "y": 1.04 },
@@ -18,7 +18,7 @@
       "bg": "background/room.png",
       "front": null,
       "shot": "duo",
-      "camera": "slow-zoom",
+      "camera": "static",
       "anchors": {
         "center": { "x": 0.5, "y": 1.02 },
         "left": { "x": 0.27, "y": 1.04 },
