@@ -67,12 +67,16 @@ export type CharDef = {
   avatar: string; // パーツ立ち絵フォルダ名
   gender: Gender; // フォールバック用
   expressive?: boolean;
+  bubbleColor?: string; // 吹き出し枠の色（話者で色分け）
 };
+
+// モブ／未定義キャラの既定枠色。
+const DEFAULT_BUBBLE_COLOR = "#9aa0a6"; // グレー
 
 // 主役キャラ定義（Phase 1 はインライン。将来はライブラリ化）。
 const CHARACTERS: Record<string, CharDef> = {
-  zundamon: { avatar: "zundamon", gender: "male", expressive: true },
-  metan: { avatar: "metan", gender: "female", expressive: false },
+  zundamon: { avatar: "zundamon", gender: "male", expressive: true, bubbleColor: "#5fb84f" }, // 緑系
+  metan: { avatar: "metan", gender: "female", expressive: false, bubbleColor: "#e87bb0" }, // ピンク系
 };
 
 type Manifest = Record<string, Record<string, string>>;
@@ -246,6 +250,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const speakerAnchorName = anchorOf[active.speaker] ?? "center";
   const speakerAnchor =
     sceneDef.anchors[speakerAnchorName] ?? { x: 0.5, y: 1.02 };
+  const bubbleColor =
+    CHARACTERS[active.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
 
   return (
     <AbsoluteFill style={{ background: "#000" }}>
@@ -294,6 +300,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           color: "#1b1b1f",
           padding: "16px 24px",
           borderRadius: 16,
+          border: `5px solid ${bubbleColor}`, // 話者で枠色を変える
           fontSize: 34,
           lineHeight: 1.35,
           fontWeight: 700,
