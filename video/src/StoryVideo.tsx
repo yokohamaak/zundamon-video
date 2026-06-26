@@ -42,6 +42,9 @@ export type StoryTurn = {
   scene: string;
   expression?: StoryExpression;
   enter?: string[];
+  // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
+  // 例: { "zundamon": "left", "metan": "right" }
+  face?: Record<string, "left" | "right">;
   start: number;
   end: number;
   sentences?: StorySentence[];
@@ -215,8 +218,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const anchorName = anchorOf[charId] ?? "center";
     const anchor = sceneDef.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
     const isSpeaker = charId === active.speaker;
-    // 右側のキャラは中央を向くよう左右反転（素材の向きに応じて調整）。
-    const flip = anchorName === "right";
+    // 向き: 台本の face 指定 > 立ち位置からの自動（中央を向く）。
+    // 立ち絵素材は「画面左向き」が素なので、右を向かせるときだけ反転する。
+    // 左配置=右(中央)向き=反転 / 右配置=左(中央)向き=素 / 中央=素。
+    const want: "left" | "right" | null =
+      active.face?.[charId] ?? (anchorName === "left" ? "right" : "left");
+    const flip = want === "right";
     const emotion = EXPRESSION_TO_EMOTION[active.expression ?? "normal"];
     return (
       <div
