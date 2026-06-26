@@ -8,10 +8,11 @@
       "shot": "duo",
       "camera": "static",
       "scale": 1.4,
+      "cast": { "zundamon": "right", "metan": "left" },
       "anchors": {
         "center": { "x": 0.5, "y": 0.82 },
-        "left": { "x": 1.0, "y": 0.84 },
-        "right": { "x": 0.8, "y": 0.84 }
+        "left": { "x": 0.42, "y": 0.7 },
+        "right": { "x": 0.72, "y": 0.75 }
       }
     },
     "home": {

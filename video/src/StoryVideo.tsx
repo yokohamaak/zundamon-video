@@ -62,6 +62,9 @@ export type SceneDef = {
   camera?: "static" | "slow-zoom";
   scale?: number; // 立ち絵の拡大率（既定 1.9）
   anchors: Record<string, Anchor>;
+  // どのキャラをどのアンカーに置くか（charId→アンカー名）。
+  // 省略時は登場順で left/right を自動割当。
+  cast?: Record<string, string>;
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -173,6 +176,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOutCubic = (x: number) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
 
 // その時刻に吹き出しへ出す文字列（sentences があれば文単位で小出し・§4.4）。
 function bubbleTextAt(turn: StoryTurn, t: number): string {
@@ -244,7 +248,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   // ── 立ち位置は区間中ずっと固定（後から登場する人ぶんも最初から確保） ──
   const roster = segmentRoster(seg);
-  const anchorOf = assignAnchors(roster);
+  // 登場順の自動割当を土台に、シーンの cast（charId→アンカー名）で上書き。
+  const anchorOf = { ...assignAnchors(roster), ...(sceneDef.cast ?? {}) };
   const entrance = entranceTimes(seg);
   const presentNow = roster.filter((c) => entrance[c] <= t + 1e-6);
 
@@ -283,12 +288,24 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       active.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
     const flip = want === "right";
     const emotion = EXPRESSION_TO_EMOTION[active.expression ?? "normal"];
+
+    // 途中で登場するキャラ（区間の頭からいる人ではない）は、自分の側からスライドイン。
+    const entered = entrance[charId] ?? seg.start;
+    const isInitial = entered <= seg.start + 1e-6;
+    let slideOffsetPx = 0;
+    if (!isInitial) {
+      const sp = clamp((t - entered) / 0.5, 0, 1); // 0.5秒で着地
+      const e = easeOutCubic(sp);
+      const fromXNorm = anchor.x < 0.5 ? -0.35 : 1.35; // 画面外（自分側）から
+      slideOffsetPx = (1 - e) * (fromXNorm - anchor.x) * width;
+    }
+
     return (
       <div
         key={charId}
         style={{
           position: "absolute",
-          left: anchor.x * width,
+          left: anchor.x * width + slideOffsetPx,
           top: anchor.y * height,
           transform: "translate(-50%, -100%)",
         }}
