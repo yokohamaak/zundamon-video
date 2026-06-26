@@ -66,6 +66,8 @@ export type SceneDef = {
   // どのキャラをどのアンカーに置くか（charId→アンカー名）。
   // 省略時は登場順で left/right を自動割当。
   cast?: Record<string, string>;
+  // この場面に入るときの切り替え方式（省略時 fade-black）。今後 crossfade 等を追加予定。
+  transition?: "fade-black" | "cut";
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -275,6 +277,25 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const ty = clamp(height / 2 - cam.cy * height * cam.s, height * (1 - cam.s), 0);
   const stageTransform = `translate(${tx}px, ${ty}px) scale(${cam.s})`;
 
+  // ── 場面切り替え演出（今は fade-black＝一瞬暗くする。後で方式を追加可能） ──
+  // 区間境界＝場面切替なので、各区間の頭で暗→明、次区間の直前で明→暗にして黒で隠す。
+  const FADE = 0.3; // 片側の秒数（総遷移 = 2×FADE）
+  const segIndex = segments.findIndex((s) => s === seg);
+  const nextSeg = segments[segIndex + 1];
+  let fadeOpacity = 0;
+  if ((sceneDef.transition ?? "fade-black") !== "cut" && seg.start > 1e-6) {
+    // この場面に入った直後：黒→明
+    fadeOpacity = Math.max(fadeOpacity, 1 - (t - seg.start) / FADE);
+  }
+  if (nextSeg) {
+    const nextTrans = scenes.scenes[nextSeg.scene]?.transition ?? "fade-black";
+    if (nextTrans !== "cut") {
+      // 次の場面の直前：明→黒
+      fadeOpacity = Math.max(fadeOpacity, 1 - (nextSeg.start - t) / FADE);
+    }
+  }
+  fadeOpacity = clamp(fadeOpacity, 0, 1);
+
   // ── 話者のフェイク音量（Phase1は音声無し→口パクに生気だけ与える） ──
   const speakerAmp = 0.16 + 0.1 * Math.sin(frame * 0.8);
 
@@ -424,6 +445,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           位置は最終カメラ基準で固定＝移動中も消えず動かない。 */}
       {showPrev ? renderBubble(prevTurn as StoryTurn, "bubble-prev") : null}
       {renderBubble(active, "bubble-active")}
+
+      {/* 場面切り替えの暗転（fade-black）。全面を覆う。 */}
+      {fadeOpacity > 0 ? (
+        <AbsoluteFill
+          style={{ background: "#000", opacity: fadeOpacity, pointerEvents: "none" }}
+        />
+      ) : null}
     </AbsoluteFill>
   );
 };
