@@ -68,6 +68,8 @@ export type SceneDef = {
   cast?: Record<string, string>;
   // この場面に入るときの切り替え方式（省略時 fade-black）。今後 crossfade 等を追加予定。
   transition?: "fade-black" | "cut";
+  // 立ち絵の画角。"bust"=バストアップ（既定・office）、"full"=全身（server_room/rooftop/home 等）。
+  figure?: "bust" | "full";
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -97,8 +99,20 @@ export type StoryVideoProps = {
   audio?: string; // 音声ファイル（public配下・任意）
 };
 
-// 立ち絵 1 体ぶんの素の箱サイズ（Avatar の wrap と同じ）。
+// 立ち絵ボックスサイズ。バスト用は 445×445（Avatar の既定値と同じ）。
+// 全身用はキャンバスのアスペクト比をバスト幅445に合わせた高さ。
 const AVATAR_BOX = 445;
+// 全身キャンバスサイズ（PSD書き出し時の共通bbox）。
+const FULL_CANVAS = {
+  zundamon: { w: 844, h: 1510 },
+  metan: { w: 858, h: 1791 },
+} as const;
+const FULL_BOX_W = 280; // 全身Avatar表示幅（px）。sceneのavScaleで最終サイズが決まる。
+function fullBoxSize(charId: string): { w: number; h: number } {
+  const c = FULL_CANVAS[charId as keyof typeof FULL_CANVAS];
+  if (!c) return { w: FULL_BOX_W, h: Math.round(FULL_BOX_W * 1.8) };
+  return { w: FULL_BOX_W, h: Math.round(FULL_BOX_W * (c.h / c.w)) };
+}
 
 // scene 名が連続する範囲を 1 区間（segment）にまとめる（§4.1）。
 type Segment = { scene: string; turns: StoryTurn[]; start: number; end: number };
@@ -313,6 +327,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const flip = want === "right";
     const emotion = EXPRESSION_TO_EMOTION[active.expression ?? "normal"];
 
+    // 全身 or バスト の判定。figure="full" のとき全身パーツを使う。
+    const isFull = (sceneDef.figure ?? "bust") === "full";
+    const avatarDir = isFull ? `${cdef.avatar}/full` : cdef.avatar;
+    const manifestKey = isFull ? `${cdef.avatar}_full` : cdef.avatar;
+    const avatarManifest = manifest?.[manifestKey];
+    const box = isFull ? fullBoxSize(cdef.avatar) : { w: AVATAR_BOX, h: AVATAR_BOX };
+
     // 途中で登場するキャラ（区間の頭からいる人ではない）は、自分の側からスライドイン。
     const entered = entrance[charId] ?? seg.start;
     const isInitial = entered <= seg.start + 1e-6;
@@ -336,8 +357,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       >
         <div style={{ transform: `scale(${avScale})`, transformOrigin: "bottom center" }}>
           <Avatar
-            dir={cdef.avatar}
-            manifest={manifest?.[cdef.avatar]}
+            dir={avatarDir}
+            manifest={avatarManifest}
             fallbackGender={cdef.gender}
             active={isSpeaker}
             activatedAtFrame={Math.round(active.start * fps)}
@@ -347,6 +368,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             expressive={!!cdef.expressive}
             flip={flip}
             popScale={false}
+            boxWidth={box.w}
+            boxHeight={box.h}
           />
         </div>
       </div>

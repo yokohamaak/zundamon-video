@@ -7,12 +7,25 @@
       "front": "background/office_front.png",
       "shot": "duo",
       "camera": "static",
+      "figure": "bust",
       "scale": 1.4,
-      "cast": { "zundamon": "right", "metan": "left" },
+      "cast": {
+        "zundamon": "right",
+        "metan": "left"
+      },
       "anchors": {
-        "center": { "x": 0.5, "y": 0.82 },
-        "left": { "x": 0.42, "y": 0.7 },
-        "right": { "x": 0.72, "y": 0.75 }
+        "center": {
+          "x": 0.5,
+          "y": 0.82
+        },
+        "left": {
+          "x": 0.42,
+          "y": 0.7
+        },
+        "right": {
+          "x": 0.72,
+          "y": 0.75
+        }
       }
     },
     "home": {
@@ -21,10 +34,75 @@
       "front": null,
       "shot": "duo",
       "camera": "static",
+      "figure": "full",
+      "scale": 1.2,
       "anchors": {
-        "center": { "x": 0.5, "y": 1.02 },
-        "left": { "x": 0.27, "y": 1.04 },
-        "right": { "x": 0.73, "y": 1.04 }
+        "center": {
+          "x": 0.5,
+          "y": 1.02
+        },
+        "left": {
+          "x": 0.27,
+          "y": 1.04
+        },
+        "right": {
+          "x": 0.73,
+          "y": 1.04
+        }
+      }
+    },
+    "server_room": {
+      "label": "サーバールーム",
+      "bg": "background/サーバ室.png",
+      "front": null,
+      "shot": "duo",
+      "camera": "slow-zoom",
+      "figure": "full",
+      "scale": 1.1,
+      "cast": {
+        "zundamon": "right",
+        "metan": "left"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.95
+        },
+        "left": {
+          "x": 0.4,
+          "y": 0.93
+        },
+        "right": {
+          "x": 0.6,
+          "y": 0.93
+        }
+      }
+    },
+    "rooftop": {
+      "label": "屋上（夕方）",
+      "bg": "background/屋上.png",
+      "front": null,
+      "shot": "duo",
+      "camera": "slow-zoom",
+      "figure": "full",
+      "scale": 1.2,
+      "cast": {
+        "zundamon": "right",
+        "metan": "left"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.96
+        },
+        "left": {
+          "x": 0.34,
+          "y": 0.96
+        },
+        "right": {
+          "x": 0.66,
+          "y": 0.96
+        }
       }
     }
   }

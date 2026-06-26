@@ -31,6 +31,7 @@ for (const [sub, exts, label] of [
 }
 
 // パーツ分け立ち絵 → public/avatars/ ＋ manifest.json（prep.mjs と同方式）。
+// full/ サブディレクトリがある場合は <char>_full キーとして manifest に追加する。
 {
   const PART_EXTS = [".png", ".webp", ".svg"];
   const srcAv = resolve(root, "assets", "avatars");
@@ -48,7 +49,12 @@ for (const [sub, exts, label] of [
       const ddir = resolve(dstAv, dir);
       mkdirSync(ddir, { recursive: true });
       const parts = {};
-      const files = readdirSync(sdir).filter((f) => PART_EXTS.some((e) => f.toLowerCase().endsWith(e)));
+      // トップレベルのパーツファイル（バスト用）
+      const files = readdirSync(sdir).filter((f) => {
+        if (!PART_EXTS.some((e) => f.toLowerCase().endsWith(e))) return false;
+        // ディレクトリは除外（statで確認）
+        return statSync(resolve(sdir, f)).isFile();
+      });
       for (const f of files) {
         copyFileSync(resolve(sdir, f), resolve(ddir, f));
         parts[parsePath(f).name] = f;
@@ -56,6 +62,25 @@ for (const [sub, exts, label] of [
       if (files.length) {
         manifest[dir] = parts;
         console.log(`[prep-story] avatar parts: ${dir} (${files.length}枚)`);
+      }
+      // full/ サブディレクトリがあれば <char>_full として追加
+      const fullSrc = resolve(sdir, "full");
+      const fullDst = resolve(ddir, "full");
+      if (existsSync(fullSrc) && statSync(fullSrc).isDirectory()) {
+        mkdirSync(fullDst, { recursive: true });
+        const fullFiles = readdirSync(fullSrc).filter(
+          (f) => PART_EXTS.some((e) => f.toLowerCase().endsWith(e)) && statSync(resolve(fullSrc, f)).isFile()
+        );
+        const fullParts = {};
+        for (const f of fullFiles) {
+          copyFileSync(resolve(fullSrc, f), resolve(fullDst, f));
+          // dir が "<char>/full" として Avatar に渡されるので、値はファイル名のみ（プレフィックス不要）。
+          fullParts[parsePath(f).name] = f;
+        }
+        if (fullFiles.length) {
+          manifest[`${dir}_full`] = fullParts;
+          console.log(`[prep-story] avatar parts: ${dir}_full (${fullFiles.length}枚)`);
+        }
       }
     }
   }

@@ -76,6 +76,10 @@ export const Avatar: React.FC<{
   flip?: boolean;
   // 発話時に少し拡大する（既存の挙動）。falseで拡大しない。既定true。
   popScale?: boolean;
+  // 立ち絵ボックスのサイズ（任意）。未指定時は 445×445（バスト用・後方互換）。
+  // 全身立ち絵ではキャンバスのアスペクト比に合わせた値を渡す。
+  boxWidth?: number;
+  boxHeight?: number;
 }> = ({
   dir,
   manifest,
@@ -88,6 +92,8 @@ export const Avatar: React.FC<{
   expressive,
   flip,
   popScale = true,
+  boxWidth = 445,
+  boxHeight = 445,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -147,12 +153,12 @@ export const Avatar: React.FC<{
     ? "drop-shadow(0 8px 16px rgba(0,0,0,0.45))"
     : "none";
 
-  // 立ち絵はバストアップ（ほぼ正方形クロップ）。大きめ・下端揃えで左右コーナーに配置。
+  // 立ち絵ボックス。boxWidth/boxHeightが指定されると全身サイズにもなる（後方互換: 既定445×445）。
   const wrap = (children: React.ReactNode) => (
     <div
       style={{
-        width: 445,
-        height: 445,
+        width: boxWidth,
+        height: boxHeight,
         position: "relative",
         filter,
         transform: `translateY(${translateY}px) scale(${scale}) rotate(${rotate}deg) scaleX(${flip ? -1 : 1})`,
@@ -220,6 +226,8 @@ export const Avatar: React.FC<{
   const smileFresh = reactT >= 0 && reactT < EYE_SMILE_DUR;
   let eyeStem = "eye_open";
   if (emotion === "surprise" && part("eye_surprise")) eyeStem = "eye_surprise";
+  // 困り(trouble→sadにマップされる): 専用の困り目があれば使う。無ければ通常目にフォールバック。
+  else if (emotion === "sad" && part("eye_trouble")) eyeStem = "eye_trouble";
   // 焦り(panic): 専用の困り目が無ければ見開き目で慌てた表情に寄せる。
   else if (emotion === "panic" && (part("eye_trouble") || part("eye_surprise")))
     eyeStem = part("eye_trouble") ? "eye_trouble" : "eye_surprise";
