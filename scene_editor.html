@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シーンエディタ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --text: #e2e8f0;
+    --text2: #8892aa;
+    --accent: #5b8dee;
+    --green: #4ade80;
+    --danger: #f87171;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; }
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── ヘッダー ── */
+  .header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+  .scene-select {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); padding: 4px 8px; font-size: 13px; cursor: pointer; min-width: 140px;
+  }
+  .btn {
+    padding: 5px 14px; border-radius: 6px; border: none; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .status { font-size: 12px; color: var(--text2); margin-left: auto; }
+  .status.ok { color: var(--green); }
+  .status.err { color: var(--danger); }
+
+  /* ── メインレイアウト ── */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── プレビューエリア ── */
+  .preview-area {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--bg); padding: 16px; overflow: hidden;
+  }
+  .preview-wrap {
+    position: relative; background: #111;
+    box-shadow: 0 4px 24px rgba(0,0,0,.5);
+    overflow: hidden; cursor: crosshair;
+    /* サイズはJSで設定 */
+  }
+  .stage {
+    position: absolute; top: 0; left: 0;
+    width: 1920px; height: 1080px;
+    transform-origin: top left;
+    /* scaleはJSで設定 */
+  }
+  .stage-bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    background-color: #222;
+  }
+  .stage-front {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    pointer-events: none;
+  }
+  .char-container {
+    position: absolute;
+    /* bottom-centerをanchorに合わせる: left=ax*1920, top=ay*1080, transform=translate(-50%,-100%) */
+    transform-origin: bottom center;
+  }
+  .char-parts {
+    position: relative;
+    width: 445px; height: 445px;
+  }
+  .char-parts img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  .char-missing {
+    position: absolute; inset: 0;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 8px;
+    font-size: 40px; color: rgba(255,255,255,.3);
+  }
+  /* アンカー点 */
+  .anchor-dot {
+    position: absolute;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(91,141,238,.9);
+    border: 2px solid #fff;
+    transform: translate(-50%, -50%);
+    cursor: grab; z-index: 100;
+    transition: transform .1s;
+  }
+  .anchor-dot:hover { transform: translate(-50%,-50%) scale(1.4); }
+  .anchor-dot.dragging { cursor: grabbing; transform: translate(-50%,-50%) scale(1.5); }
+  .anchor-label {
+    position: absolute;
+    font-size: 11px; color: #fff;
+    background: rgba(0,0,0,.7);
+    padding: 1px 4px; border-radius: 3px;
+    transform: translate(-50%, 10px);
+    pointer-events: none; white-space: nowrap;
+    z-index: 101;
+  }
+  .preview-info {
+    margin-top: 8px; font-size: 11px; color: var(--text2);
+    text-align: center;
+  }
+
+  /* ── サイドパネル ── */
+  .side {
+    width: 300px; flex-shrink: 0;
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .side-section {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .side-section:last-child { border-bottom: none; }
+  .section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    color: var(--text2); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .field-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+  .field-row:last-child { margin-bottom: 0; }
+  .field-label { font-size: 12px; color: var(--text2); }
+  .field-input, .field-select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text); padding: 5px 8px;
+    font-size: 13px; width: 100%;
+  }
+  .field-input:focus, .field-select:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  .slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+  .slider-val { font-size: 12px; color: var(--text); min-width: 32px; text-align: right; }
+  .toggle-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .toggle-row input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
+  /* アンカー一覧 */
+  .anchor-list { display: flex; flex-direction: column; gap: 6px; }
+  .anchor-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 6px 10px;
+    display: grid; grid-template-columns: 80px 1fr 1fr; gap: 4px; align-items: center;
+    font-size: 12px;
+  }
+  .anchor-name { color: var(--text2); font-weight: 500; }
+  .anchor-coord { font-family: monospace; font-size: 11px; color: var(--text); }
+
+  /* castテーブル */
+  .cast-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .cast-row:last-child { margin-bottom: 0; }
+  .cast-char { font-size: 12px; color: var(--text2); width: 80px; flex-shrink: 0; }
+  .cast-select {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text); padding: 4px 6px; font-size: 12px;
+  }
+
+  /* シーン追加 */
+  .add-scene-form {
+    display: flex; gap: 6px; margin-top: 8px;
+  }
+  .add-scene-form input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text); padding: 4px 8px; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>シーンエディタ</h1>
+  <select class="scene-select" id="sceneSelect"></select>
+  <button class="btn btn-secondary" id="btnAddScene">＋ シーン追加</button>
+  <button class="btn btn-primary" id="btnSave">保存</button>
+  <span class="status" id="statusMsg"></span>
+</div>
+
+<div class="main">
+  <div class="preview-area" id="previewArea">
+    <div class="preview-wrap" id="previewWrap">
+      <div class="stage" id="stage">
+        <div class="stage-bg" id="stageBg"></div>
+        <!-- キャラはJSで動的生成 -->
+        <div class="stage-front" id="stageFront" style="display:none"></div>
+      </div>
+    </div>
+    <div class="preview-info" id="previewInfo">アンカー点をドラッグして位置を調整</div>
+  </div>
+
+  <div class="side">
+    <div class="side-section">
+      <div class="section-title">シーン基本情報</div>
+      <div class="field-row">
+        <label class="field-label">ラベル（表示名）</label>
+        <input class="field-input" id="fLabel" type="text" placeholder="例: オフィス">
+      </div>
+      <div class="field-row">
+        <label class="field-label">背景画像 (bg)</label>
+        <select class="field-select" id="fBg"></select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">前景画像 (front)</label>
+        <select class="field-select" id="fFront"></select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">ショット</label>
+        <select class="field-select" id="fShot">
+          <option value="duo">duo（2人）</option>
+          <option value="solo">solo（1人寄り）</option>
+          <option value="split">split（分割）</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">カメラ</label>
+        <select class="field-select" id="fCamera">
+          <option value="static">static（固定）</option>
+          <option value="slow-zoom">slow-zoom（ゆっくりズーム）</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">シーン転換</label>
+        <select class="field-select" id="fTransition">
+          <option value="fade-black">fade-black（暗転）</option>
+          <option value="cut">cut（カット）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="section-title">立ち絵スケール</div>
+      <div class="slider-row">
+        <input type="range" id="scaleSlider" min="0.8" max="2.5" step="0.05" value="1.9">
+        <span class="slider-val" id="scaleVal">1.90</span>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="section-title">前景レイヤー表示</div>
+      <label class="toggle-row">
+        <input type="checkbox" id="frontToggle" checked>
+        <span>front 重ねを表示（机に隠れる確認）</span>
+      </label>
+    </div>
+
+    <div class="side-section">
+      <div class="section-title">キャスト割当 (cast)</div>
+      <div id="castRows"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="section-title">アンカー座標</div>
+      <div class="anchor-list" id="anchorList"></div>
+      <button class="btn btn-secondary" id="btnAddAnchor" style="margin-top:8px;width:100%;font-size:12px">＋ アンカー追加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 定数
+// ============================================================
+const STAGE_W = 1920;
+const STAGE_H = 1080;
+const AVATAR_BOX = 445;
+
+// ============================================================
+// 状態
+// ============================================================
+let scenesData = null;       // story-scenes.json 全体
+let assets = null;           // /api/list-assets
+let currentSceneId = null;   // 選択中シーンID
+let stageScale = 1;          // プレビュー縮小率
+let dragging = null;         // { anchorName, dotEl, startX, startY }
+let showFront = true;
+let manifestData = null;     // avatars/manifest.json キャッシュ
+
+// ============================================================
+// 初期化
+// ============================================================
+async function init() {
+  await Promise.all([fetchScenes(), fetchAssets(), fetchManifest()]);
+  populateSceneSelect();
+  populateBgSelects();
+  setupEvents();
+  resizePreview();
+  window.addEventListener('resize', resizePreview);
+  const firstId = Object.keys(scenesData.scenes || {})[0];
+  if (firstId) selectScene(firstId);
+}
+
+async function fetchScenes() {
+  const r = await fetch('/api/scenes');
+  scenesData = await r.json();
+  if (!scenesData.scenes) scenesData.scenes = {};
+}
+
+async function fetchAssets() {
+  const r = await fetch('/api/list-assets');
+  assets = await r.json();
+}
+
+async function fetchManifest() {
+  try {
+    const r = await fetch('/avatars/manifest.json');
+    if (r.ok) manifestData = await r.json();
+  } catch {}
+}
+
+// ============================================================
+// プレビューリサイズ
+// ============================================================
+function resizePreview() {
+  const area = document.getElementById('previewArea');
+  const wrap = document.getElementById('previewWrap');
+  const stage = document.getElementById('stage');
+  const aw = area.clientWidth - 32;
+  const ah = area.clientHeight - 40;
+  const scaleW = aw / STAGE_W;
+  const scaleH = ah / STAGE_H;
+  stageScale = Math.min(scaleW, scaleH, 1);
+  const pw = Math.round(STAGE_W * stageScale);
+  const ph = Math.round(STAGE_H * stageScale);
+  wrap.style.width = pw + 'px';
+  wrap.style.height = ph + 'px';
+  stage.style.transform = `scale(${stageScale})`;
+  renderPreview();
+}
+
+// ============================================================
+// シーン選択
+// ============================================================
+function populateSceneSelect() {
+  const sel = document.getElementById('sceneSelect');
+  sel.innerHTML = '';
+  for (const id of Object.keys(scenesData.scenes)) {
+    const sc = scenesData.scenes[id];
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = `${sc.label || id} (${id})`;
+    sel.appendChild(opt);
+  }
+}
+
+function selectScene(id) {
+  currentSceneId = id;
+  document.getElementById('sceneSelect').value = id;
+  const sc = currentScene();
+  if (!sc) return;
+  document.getElementById('fLabel').value = sc.label || '';
+  document.getElementById('fShot').value = sc.shot || 'duo';
+  document.getElementById('fCamera').value = sc.camera || 'static';
+  document.getElementById('fTransition').value = sc.transition || 'fade-black';
+  const scale = sc.scale != null ? sc.scale : 1.9;
+  document.getElementById('scaleSlider').value = scale;
+  document.getElementById('scaleVal').textContent = scale.toFixed(2);
+  // bg/front セレクト
+  setSelectValue('fBg', sc.bg || '');
+  setSelectValue('fFront', sc.front || '__none__');
+  showFront = document.getElementById('frontToggle').checked;
+  buildCastRows();
+  buildAnchorList();
+  renderPreview();
+}
+
+function currentScene() {
+  return scenesData?.scenes?.[currentSceneId] ?? null;
+}
+
+// ============================================================
+// セレクト入力設定（なければ追加）
+// ============================================================
+function setSelectValue(id, val) {
+  const sel = document.getElementById(id);
+  // 既存optionになければ追加
+  let found = false;
+  for (const opt of sel.options) {
+    if (opt.value === val) { found = true; break; }
+  }
+  if (!found && val) {
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = val;
+    sel.insertBefore(opt, sel.firstChild);
+  }
+  sel.value = val || '__none__';
+}
+
+// ============================================================
+// bg/front セレクト構築
+// ============================================================
+function populateBgSelects() {
+  const bgs = assets?.backgrounds ?? [];
+  const bgSel = document.getElementById('fBg');
+  const frontSel = document.getElementById('fFront');
+  bgSel.innerHTML = '';
+  frontSel.innerHTML = '<option value="__none__">なし</option>';
+  for (const bg of bgs) {
+    const o1 = document.createElement('option');
+    o1.value = bg; o1.textContent = bg;
+    bgSel.appendChild(o1);
+    const o2 = document.createElement('option');
+    o2.value = bg; o2.textContent = bg;
+    frontSel.appendChild(o2);
+  }
+}
+
+// ============================================================
+// キャスト行構築
+// ============================================================
+function buildCastRows() {
+  const sc = currentScene();
+  if (!sc) return;
+  const container = document.getElementById('castRows');
+  container.innerHTML = '';
+  const chars = assets?.characters ?? [];
+  const cast = sc.cast || {};
+  const anchors = Object.keys(sc.anchors || {});
+  for (const ch of chars) {
+    const row = document.createElement('div');
+    row.className = 'cast-row';
+    const lbl = document.createElement('span');
+    lbl.className = 'cast-char'; lbl.textContent = ch;
+    row.appendChild(lbl);
+    const sel = document.createElement('select');
+    sel.className = 'cast-select';
+    const noneOpt = document.createElement('option');
+    noneOpt.value = ''; noneOpt.textContent = '(未割当)';
+    sel.appendChild(noneOpt);
+    for (const an of anchors) {
+      const opt = document.createElement('option');
+      opt.value = an; opt.textContent = an;
+      sel.appendChild(opt);
+    }
+    sel.value = cast[ch] || '';
+    sel.addEventListener('change', () => {
+      const sc2 = currentScene();
+      if (!sc2.cast) sc2.cast = {};
+      if (sel.value) sc2.cast[ch] = sel.value;
+      else delete sc2.cast[ch];
+      renderPreview();
+    });
+    row.appendChild(sel);
+    container.appendChild(row);
+  }
+}
+
+// ============================================================
+// アンカー一覧（サイドパネル）
+// ============================================================
+function buildAnchorList() {
+  const sc = currentScene();
+  if (!sc) return;
+  const container = document.getElementById('anchorList');
+  container.innerHTML = '';
+  for (const [name, coord] of Object.entries(sc.anchors || {})) {
+    const item = document.createElement('div');
+    item.className = 'anchor-item';
+    const nm = document.createElement('span');
+    nm.className = 'anchor-name'; nm.textContent = name;
+    const cx = document.createElement('span');
+    cx.className = 'anchor-coord'; cx.id = `ac-x-${name}`; cx.textContent = `x: ${coord.x.toFixed(3)}`;
+    const cy = document.createElement('span');
+    cy.className = 'anchor-coord'; cy.id = `ac-y-${name}`; cy.textContent = `y: ${coord.y.toFixed(3)}`;
+    item.appendChild(nm); item.appendChild(cx); item.appendChild(cy);
+    container.appendChild(item);
+  }
+}
+
+function updateAnchorList(name, x, y) {
+  const ex = document.getElementById(`ac-x-${name}`);
+  const ey = document.getElementById(`ac-y-${name}`);
+  if (ex) ex.textContent = `x: ${x.toFixed(3)}`;
+  if (ey) ey.textContent = `y: ${y.toFixed(3)}`;
+}
+
+// ============================================================
+// プレビュー描画
+// ============================================================
+function renderPreview() {
+  const sc = currentScene();
+  const stage = document.getElementById('stage');
+
+  // 古いキャラとアンカーを消す
+  for (const el of stage.querySelectorAll('.char-container,.anchor-dot,.anchor-label')) {
+    el.remove();
+  }
+
+  if (!sc) return;
+
+  // 背景
+  const bgEl = document.getElementById('stageBg');
+  bgEl.style.backgroundImage = sc.bg ? `url(/img/${encodePathSegs(sc.bg)})` : 'none';
+
+  // 前景
+  const frontEl = document.getElementById('stageFront');
+  if (sc.front && showFront) {
+    frontEl.style.backgroundImage = `url(/img/${encodePathSegs(sc.front)})`;
+    frontEl.style.display = '';
+  } else {
+    frontEl.style.display = 'none';
+  }
+
+  const scale = sc.scale != null ? sc.scale : 1.9;
+  const cast = sc.cast || {};
+  // アンカー名→charId の逆引き
+  const anchorToChar = {};
+  for (const [ch, an] of Object.entries(cast)) {
+    anchorToChar[an] = ch;
+  }
+
+  // アンカーごとにキャラ＋ドットを描画
+  for (const [name, coord] of Object.entries(sc.anchors || {})) {
+    const ax = coord.x * STAGE_W;
+    const ay = coord.y * STAGE_H;
+    const charId = anchorToChar[name];
+    const flip = coord.x < 0.5;
+
+    // キャラコンテナ（bottom-centerをanchorに合わせる）
+    const container = document.createElement('div');
+    container.className = 'char-container';
+    container.style.position = 'absolute';
+    container.style.left = ax + 'px';
+    container.style.top = ay + 'px';
+    container.style.transform = `translate(-50%, -100%) scale(${scale})`;
+    container.style.transformOrigin = 'bottom center';
+
+    const parts = document.createElement('div');
+    parts.className = 'char-parts';
+    if (flip) {
+      parts.style.transform = 'scaleX(-1)';
+    }
+
+    if (charId && manifestData && manifestData[charId]) {
+      const layers = ['base', 'eye_open', 'mouth_close'];
+      for (const layer of layers) {
+        if (manifestData[charId][layer]) {
+          const img = document.createElement('img');
+          img.src = `/avatars/${charId}/${manifestData[charId][layer]}`;
+          img.alt = layer;
+          // エラー時は静かに無視
+          img.onerror = () => { img.style.display = 'none'; };
+          parts.appendChild(img);
+        }
+      }
+    } else if (charId) {
+      // manifest未読込でもbase.pngを試みる
+      const img = document.createElement('img');
+      img.src = `/avatars/${charId}/base.png`;
+      img.onerror = () => { img.style.display = 'none'; };
+      parts.appendChild(img);
+    } else {
+      const miss = document.createElement('div');
+      miss.className = 'char-missing';
+      miss.textContent = name;
+      parts.appendChild(miss);
+    }
+
+    container.appendChild(parts);
+    // frontの前に挿入（frontはstageの最後）
+    const frontEl2 = document.getElementById('stageFront');
+    stage.insertBefore(container, frontEl2);
+
+    // アンカードット（ステージ座標でそのまま配置）
+    const dot = document.createElement('div');
+    dot.className = 'anchor-dot';
+    dot.dataset.anchorName = name;
+    dot.style.left = ax + 'px';
+    dot.style.top = ay + 'px';
+    dot.title = name;
+    stage.appendChild(dot);
+
+    const dotLabel = document.createElement('div');
+    dotLabel.className = 'anchor-label';
+    dotLabel.style.left = ax + 'px';
+    dotLabel.style.top = ay + 'px';
+    dotLabel.textContent = name + (charId ? ` (${charId})` : '');
+    stage.appendChild(dotLabel);
+  }
+}
+
+function encodePathSegs(path) {
+  return path.split('/').map(s => encodeURIComponent(s)).join('/');
+}
+
+// ============================================================
+// ドラッグ（アンカー移動）
+// ============================================================
+function setupDrag() {
+  const wrap = document.getElementById('previewWrap');
+
+  wrap.addEventListener('mousedown', e => {
+    const dot = e.target.closest('.anchor-dot');
+    if (!dot) return;
+    e.preventDefault();
+    const name = dot.dataset.anchorName;
+    dot.classList.add('dragging');
+    dragging = { name, dot };
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const wrap = document.getElementById('previewWrap');
+    const rect = wrap.getBoundingClientRect();
+    // ステージ座標に変換
+    const sx = (e.clientX - rect.left) / stageScale;
+    const sy = (e.clientY - rect.top) / stageScale;
+    // クランプ 0..1
+    const nx = Math.max(0, Math.min(1, sx / STAGE_W));
+    const ny = Math.max(0, Math.min(1, sy / STAGE_H));
+    const sc = currentScene();
+    if (!sc || !sc.anchors[dragging.name]) return;
+    sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
+    sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
+    updateAnchorList(dragging.name, sc.anchors[dragging.name].x, sc.anchors[dragging.name].y);
+    renderPreview();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (dragging) {
+      dragging.dot.classList.remove('dragging');
+      dragging = null;
+    }
+  });
+}
+
+// ============================================================
+// イベント設定
+// ============================================================
+function setupEvents() {
+  setupDrag();
+
+  document.getElementById('sceneSelect').addEventListener('change', e => {
+    selectScene(e.target.value);
+  });
+
+  document.getElementById('scaleSlider').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    document.getElementById('scaleVal').textContent = v.toFixed(2);
+    const sc = currentScene();
+    if (sc) { sc.scale = v; renderPreview(); }
+  });
+
+  document.getElementById('frontToggle').addEventListener('change', e => {
+    showFront = e.target.checked;
+    renderPreview();
+  });
+
+  document.getElementById('fLabel').addEventListener('input', e => {
+    const sc = currentScene();
+    if (sc) { sc.label = e.target.value; refreshSceneSelectLabel(); }
+  });
+
+  document.getElementById('fBg').addEventListener('change', e => {
+    const sc = currentScene();
+    if (sc) { sc.bg = e.target.value; renderPreview(); }
+  });
+
+  document.getElementById('fFront').addEventListener('change', e => {
+    const sc = currentScene();
+    if (sc) {
+      sc.front = e.target.value === '__none__' ? null : e.target.value;
+      renderPreview();
+    }
+  });
+
+  document.getElementById('fShot').addEventListener('change', e => {
+    const sc = currentScene();
+    if (sc) sc.shot = e.target.value;
+  });
+
+  document.getElementById('fCamera').addEventListener('change', e => {
+    const sc = currentScene();
+    if (sc) sc.camera = e.target.value;
+  });
+
+  document.getElementById('fTransition').addEventListener('change', e => {
+    const sc = currentScene();
+    if (sc) sc.transition = e.target.value;
+  });
+
+  document.getElementById('btnSave').addEventListener('click', saveScenes);
+
+  document.getElementById('btnAddScene').addEventListener('click', addScene);
+
+  document.getElementById('btnAddAnchor').addEventListener('click', addAnchor);
+}
+
+function refreshSceneSelectLabel() {
+  const sel = document.getElementById('sceneSelect');
+  const sc = currentScene();
+  if (!sc) return;
+  for (const opt of sel.options) {
+    if (opt.value === currentSceneId) {
+      opt.textContent = `${sc.label || currentSceneId} (${currentSceneId})`;
+    }
+  }
+}
+
+// ============================================================
+// 保存
+// ============================================================
+async function saveScenes() {
+  const statusEl = document.getElementById('statusMsg');
+  statusEl.className = 'status';
+  statusEl.textContent = '保存中...';
+  try {
+    const r = await fetch('/api/scenes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(scenesData)
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      statusEl.className = 'status ok';
+      statusEl.textContent = '保存しました';
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    } else {
+      statusEl.className = 'status err';
+      statusEl.textContent = result.error || '保存失敗';
+    }
+  } catch (e) {
+    statusEl.className = 'status err';
+    statusEl.textContent = '通信エラー';
+  }
+}
+
+// ============================================================
+// シーン追加
+// ============================================================
+function addScene() {
+  const id = prompt('新しいシーンID（英数字・ハイフン）:');
+  if (!id || !id.match(/^[a-zA-Z0-9_-]+$/)) { alert('不正なID'); return; }
+  if (scenesData.scenes[id]) { alert('同名のシーンが既に存在します'); return; }
+  const bgs = assets?.backgrounds ?? [];
+  scenesData.scenes[id] = {
+    label: id,
+    bg: bgs[0] || '',
+    front: null,
+    shot: 'duo',
+    camera: 'static',
+    scale: 1.9,
+    transition: 'fade-black',
+    cast: {},
+    anchors: {
+      center: { x: 0.5, y: 0.9 },
+      left: { x: 0.3, y: 0.9 },
+      right: { x: 0.7, y: 0.9 }
+    }
+  };
+  const sel = document.getElementById('sceneSelect');
+  const opt = document.createElement('option');
+  opt.value = id;
+  opt.textContent = `${id} (${id})`;
+  sel.appendChild(opt);
+  selectScene(id);
+}
+
+// ============================================================
+// アンカー追加
+// ============================================================
+function addAnchor() {
+  const sc = currentScene();
+  if (!sc) return;
+  const name = prompt('アンカー名:');
+  if (!name || !name.match(/^[a-zA-Z0-9_-]+$/)) { alert('不正な名前'); return; }
+  if (sc.anchors[name]) { alert('同名のアンカーが既に存在します'); return; }
+  if (!sc.anchors) sc.anchors = {};
+  sc.anchors[name] = { x: 0.5, y: 0.85 };
+  buildCastRows();
+  buildAnchorList();
+  renderPreview();
+}
+
+// ============================================================
+// エントリポイント
+// ============================================================
+init().catch(e => {
+  document.getElementById('statusMsg').className = 'status err';
+  document.getElementById('statusMsg').textContent = '初期化失敗: ' + e.message;
+  console.error(e);
+});
+</script>
+</body>
+</html>
