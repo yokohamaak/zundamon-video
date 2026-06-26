@@ -1,0 +1,29 @@
+{
+  "_note": "Phase1のシーンライブラリ(仮)。背景は既存画像を流用したプレースホルダ。anchorは正規化座標(0..1, yは足元位置)。frontを指定すると back→キャラ→front の重ね(layered)。shot/cameraはライブラリ既定。docs/next-animation-editor-spec.md §4.2/§4.5。",
+  "scenes": {
+    "office": {
+      "label": "オフィス",
+      "bg": "background/variant-digital-studio.png",
+      "front": null,
+      "shot": "duo",
+      "camera": "slow-zoom",
+      "anchors": {
+        "center": { "x": 0.5, "y": 1.02 },
+        "left": { "x": 0.27, "y": 1.04 },
+        "right": { "x": 0.73, "y": 1.04 }
+      }
+    },
+    "home": {
+      "label": "自宅",
+      "bg": "background/normalbg.png",
+      "front": null,
+      "shot": "duo",
+      "camera": "slow-zoom",
+      "anchors": {
+        "center": { "x": 0.5, "y": 1.02 },
+        "left": { "x": 0.27, "y": 1.04 },
+        "right": { "x": 0.73, "y": 1.04 }
+      }
+    }
+  }
+}

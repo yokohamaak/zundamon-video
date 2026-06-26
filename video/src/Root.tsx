@@ -1,8 +1,28 @@
 import { Composition, staticFile } from "remotion";
 import { getAudioDurationInSeconds } from "@remotion/media-utils";
 import { DialogueVideo } from "./DialogueVideo";
+import { StoryVideo } from "./StoryVideo";
+import type {
+  StoryScript,
+  SceneLibrary,
+  StoryVideoProps,
+} from "./StoryVideo";
 import "./fonts"; // import時に日本語フォントのロードを開始（豆腐防止）
 import type { Meta, Turn } from "./types";
+
+// ストーリー調エディタ（新ツール Phase1）用の固定入力を読み込む。
+async function loadStory(): Promise<StoryVideoProps> {
+  const story: StoryScript = await (await fetch(staticFile("story-sample.json"))).json();
+  const scenes: SceneLibrary = await (await fetch(staticFile("story-scenes.json"))).json();
+  let manifest: Record<string, Record<string, string>> | undefined;
+  try {
+    const mres = await fetch(staticFile("avatars/manifest.json"));
+    if (mres.ok) manifest = await mres.json();
+  } catch {
+    // manifest 未生成でも単一画像フォールバックで描画継続
+  }
+  return { story, scenes, manifest };
+}
 
 export const FPS = 30;
 const WIDTH = 1920;
@@ -85,6 +105,27 @@ const DEFAULT_SHORT_CTA = "続きは本編でも解説！\nチャンネル登録
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      {/* ストーリー調 会話劇動画（新ツール Phase1）。固定入力 story-sample.json で見た目を確認する。 */}
+      <Composition
+        id="StoryVideo"
+        component={StoryVideo}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        defaultProps={{
+          story: undefined as unknown as StoryScript,
+          scenes: undefined as unknown as SceneLibrary,
+        }}
+        calculateMetadata={async () => {
+          const props = await loadStory();
+          const end = props.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
+          return {
+            durationInFrames: Math.max(1, Math.ceil((end + 0.6) * FPS)),
+            props,
+          };
+        }}
+      />
+
       <Composition
         id="DialogueVideo"
         component={DialogueVideo}

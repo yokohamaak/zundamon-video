@@ -1,0 +1,77 @@
+{
+  "title": "どじっ子SEずんだもん",
+  "_note": "Phase1の固定入力サンプル。スキーマは docs/next-animation-editor-spec.md §4.1。start/endは本来は音声化で付与されるが、Phase1は手書きで仮置き。",
+  "script": [
+    {
+      "id": "turn-0001",
+      "speaker": "zundamon",
+      "text": "またビルドが通らないっす…",
+      "scene": "office",
+      "expression": "trouble",
+      "enter": ["zundamon"],
+      "start": 0.0,
+      "end": 2.6
+    },
+    {
+      "id": "turn-0002",
+      "speaker": "metan",
+      "text": "ずんだもん、今度は何やったの？",
+      "scene": "office",
+      "expression": "normal",
+      "enter": ["metan"],
+      "start": 2.6,
+      "end": 5.2
+    },
+    {
+      "id": "turn-0003",
+      "speaker": "zundamon",
+      "text": "本番サーバーに直接コミットしちゃったかもなのだ…",
+      "scene": "office",
+      "expression": "panic",
+      "start": 5.2,
+      "end": 8.6
+    },
+    {
+      "id": "turn-0004",
+      "speaker": "metan",
+      "text": "ええっ！？それはまずいよ！",
+      "scene": "office",
+      "expression": "surprise",
+      "start": 8.6,
+      "end": 11.0
+    },
+    {
+      "id": "turn-0005",
+      "speaker": "zundamon",
+      "text": "家に帰っても落ち込むっす…。もうエンジニア向いてないのだ。",
+      "scene": "home",
+      "expression": "trouble",
+      "enter": ["zundamon"],
+      "start": 11.0,
+      "end": 15.0,
+      "sentences": [
+        { "text": "家に帰っても落ち込むっす…", "start": 11.0, "end": 13.0 },
+        { "text": "もうエンジニア向いてないのだ。", "start": 13.0, "end": 15.0 }
+      ]
+    },
+    {
+      "id": "turn-0006",
+      "speaker": "metan",
+      "text": "大丈夫。バックアップから戻せば元どおりだよ。",
+      "scene": "home",
+      "expression": "normal",
+      "enter": ["metan"],
+      "start": 15.0,
+      "end": 18.4
+    },
+    {
+      "id": "turn-0007",
+      "speaker": "zundamon",
+      "text": "ほんとっすか！？さすがめたんなのだ！",
+      "scene": "home",
+      "expression": "happy",
+      "start": 18.4,
+      "end": 21.4
+    }
+  ]
+}
