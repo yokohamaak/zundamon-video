@@ -1,5 +1,6 @@
 import {
   AbsoluteFill,
+  Audio,
   Img,
   interpolate,
   staticFile,
@@ -50,7 +51,7 @@ export type StoryTurn = {
   sentences?: StorySentence[];
 };
 
-export type StoryScript = { title?: string; script: StoryTurn[] };
+export type StoryScript = { title?: string; audio?: string; script: StoryTurn[] };
 
 type Anchor = { x: number; y: number };
 
@@ -91,6 +92,7 @@ export type StoryVideoProps = {
   story: StoryScript;
   scenes: SceneLibrary;
   manifest?: Manifest;
+  audio?: string; // 音声ファイル（public配下・任意）
 };
 
 // 立ち絵 1 体ぶんの素の箱サイズ（Avatar の wrap と同じ）。
@@ -213,6 +215,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   story,
   scenes,
   manifest,
+  audio,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -383,6 +386,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
+      {audio ? <Audio src={staticFile(audio)} /> : null}
       {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る） */}
       <AbsoluteFill style={{ transform: stageTransform, transformOrigin: "0 0" }}>
         {/* 背景（back） */}

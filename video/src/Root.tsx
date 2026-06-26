@@ -21,7 +21,7 @@ async function loadStory(): Promise<StoryVideoProps> {
   } catch {
     // manifest 未生成でも単一画像フォールバックで描画継続
   }
-  return { story, scenes, manifest };
+  return { story, scenes, manifest, audio: story.audio };
 }
 
 export const FPS = 30;
