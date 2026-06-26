@@ -50,6 +50,10 @@ export type StoryTurn = {
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
   face?: Record<string, "left" | "right">;
+  // 話者プッシュイン演出（emphasis=true のターン中、話者寄りへズームイン）。
+  emphasis?: boolean;
+  // カメラシェイク演出（shake=true のターン中、ターン開始からの減衰振動オフセットを加算）。
+  shake?: boolean;
   start: number;
   end: number;
   sentences?: StorySentence[];
@@ -308,10 +312,85 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     cx: lerp(Tprev.cx, Tcur.cx, k),
     cy: lerp(Tprev.cy, Tcur.cy, k),
   };
+  // ── カメラ追加演出 ─────────────────────────────────────────
+  // 1. 常時スロードリフト（slow-zoom）: sceneDef.camera !== "static" のとき区間中ずっと微速プッシュイン。
+  let driftS = 1.0;
+  if (sceneDef.camera !== "static") {
+    const segDur = Math.max(seg.end - seg.start, 0.001);
+    const p = clamp((t - seg.start) / segDur, 0, 1);
+    driftS = 1 + 0.05 * p;
+  }
+  cam.s *= driftS;
+
+  // 2 & 3. 話者プッシュイン（emphasis）＋リアクション寄り（surprise/panic）。
+  // 既知キャラが話者で、emphasis===true または expression が surprise/panic のとき focus。
+  const isFocusTurn =
+    isKnownChar(active.speaker) &&
+    (active.emphasis === true ||
+      active.expression === "surprise" ||
+      active.expression === "panic");
+  if (isFocusTurn) {
+    const anchorName = anchorOf[active.speaker] ?? "center";
+    const speakerAnchor = sceneDef.anchors[anchorName] ?? { x: 0.5 };
+    const focusTarget: Cam = {
+      s: cam.s + 0.3,
+      cx: speakerAnchor.x,
+      cy: 0.46,
+    };
+    // ターン開始から 0.5s でイーズイン、ターン終了 0.5s 前からイーズアウト（台形）。
+    const turnDur = active.end - active.start;
+    const elapsed = t - active.start;
+    const fadeInDur = Math.min(0.5, turnDur * 0.5);
+    const fadeOutDur = Math.min(0.5, turnDur * 0.5);
+    const inK = clamp(elapsed / fadeInDur, 0, 1);
+    const outK = clamp((active.end - t) / fadeOutDur, 0, 1);
+    const focusK = easeInOutCubic(Math.min(inK, outK));
+    cam.s = lerp(cam.s, focusTarget.s, focusK);
+    cam.cx = lerp(cam.cx, focusTarget.cx, focusK);
+    cam.cy = lerp(cam.cy, focusTarget.cy, focusK);
+  }
+
   // ステージ変換（端が見切れて黒が出ないようクランプ）。
   const tx = clamp(width / 2 - cam.cx * width * cam.s, width * (1 - cam.s), 0);
   const ty = clamp(height / 2 - cam.cy * height * cam.s, height * (1 - cam.s), 0);
-  const stageTransform = `translate(${tx}px, ${ty}px) scale(${cam.s})`;
+
+  // 4. カメラシェイク（shake===true のターン中、減衰振動オフセットを translate に加算）。
+  // 振幅 ~7px、周波数 ~16Hz、ターン開始からの経過で減衰（1→0）。
+  // s=1.0 など余裕ゼロのシーンでも振幅が出るよう、shake アクティブ時はスケールを最低 1.02 に嵩上げ。
+  // 黒縁が出ないよう、嵩上げ後の translate clamp 余裕内に振幅を制限する。
+  let shakeX = 0;
+  let shakeY = 0;
+  if (active.shake) {
+    // shake 中は最低 1.02 スケール確保（嵩上げ分でシェイク余裕を作る）。
+    const shakeS = Math.max(cam.s, 1.02);
+    const turnDur = Math.max(active.end - active.start, 0.001);
+    const elapsed = t - active.start;
+    const decayRaw = 1 - clamp(elapsed / turnDur, 0, 1);
+    // スケール超過分がシェイク余裕（ステージが画面より shakeS-1 の割合だけ大きい）。
+    // 各軸の余裕 = (shakeS - 1) * 画面サイズ / 2 で clamp 前に均等に使える。
+    const availX = (shakeS - 1) * width * 0.5;
+    const availY = (shakeS - 1) * height * 0.5;
+    const maxAmp = Math.min(7, availX, availY);
+    const amp = maxAmp * decayRaw;
+    shakeX = amp * Math.sin(t * 2 * Math.PI * 16);
+    shakeY = amp * Math.sin(t * 2 * Math.PI * 16 * 1.3 + 1);
+    // 嵩上げ後のスケール・translate で描画する。
+    cam.s = shakeS;
+  }
+
+  // shake も含めた最終 translate（shake 時は嵩上げ後 cam.s で再計算）。
+  const finalTx = active.shake
+    ? clamp(width / 2 - cam.cx * width * cam.s, width * (1 - cam.s), 0)
+    : tx;
+  const finalTy = active.shake
+    ? clamp(height / 2 - cam.cy * height * cam.s, height * (1 - cam.s), 0)
+    : ty;
+
+  // shakeX/Y を加算した最終値をスケール clamp 内に収める（端がクランプ済みの場合に超過しないよう）。
+  const sfx = clamp(finalTx + shakeX, width * (1 - cam.s), 0);
+  const sfy = clamp(finalTy + shakeY, height * (1 - cam.s), 0);
+
+  const stageTransform = `translate(${sfx}px, ${sfy}px) scale(${cam.s})`;
 
   // ── 場面切り替え演出（今は fade-black＝一瞬暗くする。後で方式を追加可能） ──
   // 区間境界＝場面切替なので、各区間の頭で暗→明、次区間の直前で明→暗にして黒で隠す。

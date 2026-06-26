@@ -6,7 +6,7 @@
       "bg": "background/office.png",
       "front": "background/office_front.png",
       "shot": "duo",
-      "camera": "static",
+      "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.05,
       "cast": {
@@ -35,11 +35,11 @@
       "shot": "solo",
       "camera": "static",
       "figure": "full",
-      "scale": 2.25,
+      "scale": 1.4,
       "anchors": {
         "center": {
-          "x": 0.5,
-          "y": 1.02
+          "x": 0.514,
+          "y": 0.652
         },
         "left": {
           "x": 0.27,
@@ -51,7 +51,7 @@
         }
       },
       "cast": {
-        "zundamon": "left"
+        "zundamon": "center"
       }
     },
     "server_room": {
@@ -88,7 +88,7 @@
       "shot": "duo",
       "camera": "slow-zoom",
       "figure": "full",
-      "scale": 1.5,
+      "scale": 1.4,
       "cast": {
         "zundamon": "right",
         "metan": "left"
