@@ -107,7 +107,7 @@ const FULL_CANVAS = {
   zundamon: { w: 783, h: 1473 },
   metan: { w: 858, h: 1769 },
 } as const;
-const FULL_BOX_W = 280; // 全身Avatar表示幅（px）。sceneのavScaleで最終サイズが決まる。
+const FULL_BOX_W = 445; // 全身Avatar表示幅（px）。scene_editor.html と同値にする（WYSIWYG）。sceneのavScaleで最終サイズが決まる。
 function fullBoxSize(charId: string): { w: number; h: number } {
   const c = FULL_CANVAS[charId as keyof typeof FULL_CANVAS];
   if (!c) return { w: FULL_BOX_W, h: Math.round(FULL_BOX_W * 1.8) };

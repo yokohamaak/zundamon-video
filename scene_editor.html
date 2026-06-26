@@ -278,11 +278,17 @@ const STAGE_W = 1920;
 const STAGE_H = 1080;
 // バスト(bust): 820×780 → 445×423、全身(full): 幅を445基準に統一して縦は比率で決める
 // ずんだもん full: 844×1510 ≒ 0.559 (w/h)、めたん full: 858×1791 ≒ 0.479 (w/h)
-// 全身は幅445px固定で縦を比率から計算する。最大高を1791比率で統一。
+// 立ち絵ボックス（StoryVideo の AVATAR_BOX / FULL_BOX_W / FULL_CANVAS と一致させること＝WYSIWYG）。
 const BUST_W = 445;
 const BUST_H = 445; // 820×780はほぼ正方形なので正方形枠で object-fit:contain に任せる
-const FULL_W = 445;
-const FULL_H = 840; // 幅445に対して 844/1510≈0.559 → 445/0.559≈796、安全に840を使用
+const FULL_BOX_W = 445; // 全身の基準幅。render(StoryVideo.FULL_BOX_W)と同値にする。
+// 全身キャンバス寸法（assets/avatars/<char>/full/_box.json と一致）。キャラ別アスペクトで高さを出す。
+const FULL_CANVAS = { zundamon: { w: 783, h: 1473 }, metan: { w: 858, h: 1769 } };
+function fullBoxSize(charId) {
+  const c = FULL_CANVAS[charId];
+  const h = c ? Math.round(FULL_BOX_W * (c.h / c.w)) : Math.round(FULL_BOX_W * 1.8);
+  return { w: FULL_BOX_W, h };
+}
 
 // ============================================================
 // 状態
@@ -557,9 +563,10 @@ function renderPreview() {
       ? `/avatars/${charId}/full/`
       : `/avatars/${charId}/`;
 
-    // char-parts のサイズを figure に応じて設定
-    parts.style.width = (isFull ? FULL_W : BUST_W) + 'px';
-    parts.style.height = (isFull ? FULL_H : BUST_H) + 'px';
+    // char-parts のサイズを figure に応じて設定（全身はキャラ別アスペクト＝renderと一致）
+    const pbox = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
+    parts.style.width = pbox.w + 'px';
+    parts.style.height = pbox.h + 'px';
 
     if (charId && manifestData && manifestData[manifestKey]) {
       const layers = ['base', 'eye_open', 'mouth_close'];
