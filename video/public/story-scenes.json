@@ -19,8 +19,8 @@
           "y": 0.82
         },
         "left": {
-          "x": 0.42,
-          "y": 0.7
+          "x": 0.39,
+          "y": 0.675
         },
         "right": {
           "x": 0.72,
@@ -53,7 +53,7 @@
     },
     "server_room": {
       "label": "サーバールーム",
-      "bg": "background/サーバ室.png",
+      "bg": "background/server_room.png",
       "front": null,
       "shot": "duo",
       "camera": "slow-zoom",
@@ -80,7 +80,7 @@
     },
     "rooftop": {
       "label": "屋上（夕方）",
-      "bg": "background/屋上.png",
+      "bg": "background/rooftop.png",
       "front": null,
       "shot": "duo",
       "camera": "slow-zoom",
