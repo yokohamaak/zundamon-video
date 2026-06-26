@@ -185,8 +185,9 @@ function targetCam(
   const ax = (c: string) =>
     (sceneDef.anchors[anchorOf[c] ?? "center"] ?? { x: 0.5 }).x;
   if (chars.length <= 1) {
-    // 単独：その人に寄る（背景もアップになる）。
-    return { s: 1.55, cx: chars[0] ? ax(chars[0]) : 0.5, cy: 0.46 };
+    // 単独：その人に寄る（背景もアップ）。cy を下げ気味にして胴まで見せ、
+    // 顔を画面上側に置く＝足元の吹き出しスペースを確保する。
+    return { s: 1.4, cx: chars[0] ? ax(chars[0]) : 0.5, cy: 0.58 };
   }
   // 複数：全員が収まる引き。
   const xs = chars.map(ax);
@@ -320,6 +321,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     width * 0.22,
     width * 0.78
   );
+  // 吹き出しの高さ：ズーム時は顔が大きいので、より下げて顔に被らないようにする。
+  const bubbleTopRatio = interpolate(cam.s, [1.0, 1.4], [0.82, 0.88], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
 
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
@@ -361,7 +367,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         style={{
           position: "absolute",
           left: speakerScreenX,
-          top: height * 0.82, // 足元寄り（顔から離す・§4.4）
+          top: height * bubbleTopRatio, // 足元寄り（ズーム時はさらに下げて顔を避ける）
           transform: "translateX(-50%)",
           maxWidth: width * 0.42,
           background: "rgba(255,255,255,0.96)",
