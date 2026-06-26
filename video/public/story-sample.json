@@ -1,6 +1,6 @@
 {
   "title": "どじっ子SEずんだもん",
-  "_note": "Phase1の固定入力サンプル。スキーマは docs/next-animation-editor-spec.md §4.1。start/endは本来は音声化で付与されるが、Phase1は手書きで仮置き。",
+  "_note": "Phase1の固定入力サンプル。スキーマは docs/next-animation-editor-spec.md §4.1。start/endは本来は音声化で付与されるが、Phase1は手書きで仮置き。ターン間に「間」を入れてある（喋り終わっても次のセリフまで吹き出しが残る挙動の確認用）。",
   "script": [
     {
       "id": "turn-0001",
@@ -19,8 +19,8 @@
       "scene": "office",
       "expression": "normal",
       "enter": ["metan"],
-      "start": 2.6,
-      "end": 5.2
+      "start": 3.6,
+      "end": 6.2
     },
     {
       "id": "turn-0003",
@@ -28,8 +28,8 @@
       "text": "本番サーバーに直接コミットしちゃったかもなのだ…",
       "scene": "office",
       "expression": "panic",
-      "start": 5.2,
-      "end": 8.6
+      "start": 7.0,
+      "end": 10.4
     },
     {
       "id": "turn-0004",
@@ -37,8 +37,8 @@
       "text": "ええっ！？それはまずいよ！",
       "scene": "office",
       "expression": "surprise",
-      "start": 8.6,
-      "end": 11.0
+      "start": 11.2,
+      "end": 13.6
     },
     {
       "id": "turn-0005",
@@ -47,11 +47,11 @@
       "scene": "home",
       "expression": "trouble",
       "enter": ["zundamon"],
-      "start": 11.0,
-      "end": 15.0,
+      "start": 14.8,
+      "end": 18.8,
       "sentences": [
-        { "text": "家に帰っても落ち込むっす…", "start": 11.0, "end": 13.0 },
-        { "text": "もうエンジニア向いてないのだ。", "start": 13.0, "end": 15.0 }
+        { "text": "家に帰っても落ち込むっす…", "start": 14.8, "end": 16.8 },
+        { "text": "もうエンジニア向いてないのだ。", "start": 16.8, "end": 18.8 }
       ]
     },
     {
@@ -61,8 +61,8 @@
       "scene": "home",
       "expression": "normal",
       "enter": ["metan"],
-      "start": 15.0,
-      "end": 18.4
+      "start": 19.8,
+      "end": 23.2
     },
     {
       "id": "turn-0007",
@@ -70,8 +70,8 @@
       "text": "ほんとっすか！？さすがめたんなのだ！",
       "scene": "home",
       "expression": "happy",
-      "start": 18.4,
-      "end": 21.4
+      "start": 24.2,
+      "end": 27.2
     }
   ]
 }
