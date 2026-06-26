@@ -189,13 +189,14 @@ if (mode === "build-full") {
   // step1: 全buildパーツの不透明領域のunion bboxを算出
   console.log(`[build-full] ${charName}: 全パーツbbox算出中...`);
   let uMinX = W, uMinY = H, uMaxX = 0, uMaxY = 0;
-  const allPaths = [];
+  const allParts = [];
   for (const [stem, sel] of Object.entries(cfg.build)) {
-    const paths = sel === "BODY" ? BODY : [...BODY, ...sel];
-    allPaths.push({ stem, paths });
+    allParts.push({ stem, sel });
   }
-  // union bbox計算のためにすべてのパーツを合成して不透明領域を取得
-  for (const { stem, paths } of allPaths) {
+  // union bbox計算：bbox算出は土台込み([...BODY,...sel])で合成し、全身の最大範囲を得る。
+  // （※書き出しは別。パーツ単体で出す＝下のstep2）
+  for (const { stem, sel } of allParts) {
+    const paths = sel === "BODY" ? BODY : [...BODY, ...sel];
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext("2d");
     for (const p of paths) {
@@ -216,11 +217,15 @@ if (mode === "build-full") {
   const fullCrop = { x: uMinX, y: uMinY, w: uMaxX - uMinX + 1, h: uMaxY - uMinY + 1 };
   console.log(`[build-full] union bbox: x=${fullCrop.x} y=${fullCrop.y} w=${fullCrop.w} h=${fullCrop.h}`);
 
-  // step2: 全パーツを同一cropで書き出す
+  // step2: 全パーツを同一cropで書き出す。
+  // ★重要: bustのbuildと同様、書き出しはパーツ単体(sel)。baseのみBODY。
+  //   土台を含めて出すと eye/mouth が全身フル絵になり、重ねたとき下を塗り潰して
+  //   目や口が消える（のっぺらぼう）。base(顔空白) + eye(目だけ) + mouth(口だけ) を重ねる前提。
   const dir = resolve(root, `assets/avatars/${charName}/full`);
   mkdirSync(dir, { recursive: true });
   const stems = [];
-  for (const { stem, paths } of allPaths) {
+  for (const { stem, sel } of allParts) {
+    const paths = sel === "BODY" ? BODY : sel;
     const buf = composeWithCrop(paths, fullCrop);
     writeFileSync(resolve(dir, `${stem}.png`), buf);
     stems.push(stem);
