@@ -1,0 +1,73 @@
+// ストーリー調エディタ（新ツール）用の準備ステップ。
+// 既存 prep.mjs と違い、本編の meta.json / digest.mp3 を要求しない。
+// StoryVideo が必要とする静的アセットだけを assets/ → public/ にコピーし、
+// 立ち絵 manifest.json を生成する。
+//   - avatars（パーツ立ち絵）＋ manifest.json
+//   - background（シーン背景）
+//   - fonts（日本語フォント）
+// story-sample.json / story-scenes.json は public/ に直接置く運用（git追跡済み）。
+import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { resolve, parse as parsePath } from "node:path";
+
+const root = resolve(import.meta.dirname, "..");
+const pubDir = resolve(root, "public");
+mkdirSync(pubDir, { recursive: true });
+
+// 単純なディレクトリ単位コピー（拡張子フィルタ）。
+for (const [sub, exts, label] of [
+  ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts"],
+  ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image"],
+]) {
+  const s = resolve(root, "assets", sub);
+  const d = resolve(pubDir, sub);
+  if (!existsSync(s)) {
+    console.warn(`[prep-story] ${sub} が見つかりません: ${s}`);
+    continue;
+  }
+  mkdirSync(d, { recursive: true });
+  const files = readdirSync(s).filter((f) => exts.some((e) => f.toLowerCase().endsWith(e)));
+  for (const f of files) copyFileSync(resolve(s, f), resolve(d, f));
+  console.log(`[prep-story] copied ${files.length} ${label}`);
+}
+
+// パーツ分け立ち絵 → public/avatars/ ＋ manifest.json（prep.mjs と同方式）。
+{
+  const PART_EXTS = [".png", ".webp", ".svg"];
+  const srcAv = resolve(root, "assets", "avatars");
+  const dstAv = resolve(pubDir, "avatars");
+  const manifest = {};
+  if (existsSync(srcAv)) {
+    // ルート直下の単一画像フォールバック（gender_open/close）もコピー。
+    for (const f of readdirSync(srcAv).filter((f) => f.toLowerCase().endsWith(".png"))) {
+      mkdirSync(dstAv, { recursive: true });
+      copyFileSync(resolve(srcAv, f), resolve(dstAv, f));
+    }
+    const subdirs = readdirSync(srcAv).filter((f) => statSync(resolve(srcAv, f)).isDirectory());
+    for (const dir of subdirs) {
+      const sdir = resolve(srcAv, dir);
+      const ddir = resolve(dstAv, dir);
+      mkdirSync(ddir, { recursive: true });
+      const parts = {};
+      const files = readdirSync(sdir).filter((f) => PART_EXTS.some((e) => f.toLowerCase().endsWith(e)));
+      for (const f of files) {
+        copyFileSync(resolve(sdir, f), resolve(ddir, f));
+        parts[parsePath(f).name] = f;
+      }
+      if (files.length) {
+        manifest[dir] = parts;
+        console.log(`[prep-story] avatar parts: ${dir} (${files.length}枚)`);
+      }
+    }
+  }
+  mkdirSync(dstAv, { recursive: true });
+  writeFileSync(resolve(dstAv, "manifest.json"), JSON.stringify(manifest, null, 2));
+  console.log(`[prep-story] avatar manifest: ${Object.keys(manifest).length}キャラ`);
+}
+
+// 固定入力の存在チェック（無ければ警告のみ。描画側でも未登録fallbackする）。
+for (const f of ["story-sample.json", "story-scenes.json"]) {
+  if (!existsSync(resolve(pubDir, f))) {
+    console.warn(`[prep-story] ${f} が public/ にありません（git追跡済みのはず）`);
+  }
+}
+console.log("[prep-story] done");
