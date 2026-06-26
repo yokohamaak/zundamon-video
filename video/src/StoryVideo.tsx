@@ -305,6 +305,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             emotionAtFrame={Math.round(active.start * fps)}
             expressive={!!cdef.expressive}
             flip={flip}
+            popScale={false}
           />
         </div>
       </div>

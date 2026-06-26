@@ -32,16 +32,13 @@ const SWEAT_EXTRA: Record<string, { dx: number; dy: number; s: number }[]> = {
   // ずんだもん：元の汗は右こめかみ(0.60,0.34)。目の下〜口の高さの右頬に収める。
   // （あご下=y0.55超に行くと空中に浮くので dy は控えめに）
   zundamon: [
-    { dx: -1, dy: 12, s: 0.85 }, // 右頬・上（≈0.59,0.48）
+    { dx: -5, dy: 12, s: 0.85 }, // 右頬・上（≈0.59,0.48）
     { dx: -6, dy: 15, s: 0.75 }, // 右頬（≈0.55,0.50）
-    { dx: -10, dy: 13, s: 0.7 }, // 右頬・内（≈0.51,0.49）
   ],
   // めたん：元の汗は左頬(0.40,0.50)。左頬に小さく散らす（目y0.41・口y0.47の下側）。
   metan: [
-    { dx: 3, dy: 2, s: 0.8 }, // ≈0.43,0.51
-    { dx: -4, dy: 4, s: 0.75 }, // ≈0.36,0.53
-    { dx: 5, dy: 6, s: 0.7 }, // ≈0.46,0.55
-    { dx: -2, dy: 8, s: 0.65 }, // ≈0.39,0.58
+    { dx: -7, dy: -2, s: 0.8 }, // ≈0.43,0.51
+    { dx: -4, dy: -4, s: 0.75 }, // ≈0.36,0.53
   ],
 };
 
@@ -77,6 +74,8 @@ export const Avatar: React.FC<{
   expressive: boolean;
   // 立ち絵を左右反転（向きが逆の素材用）
   flip?: boolean;
+  // 発話時に少し拡大する（既存の挙動）。falseで拡大しない。既定true。
+  popScale?: boolean;
 }> = ({
   dir,
   manifest,
@@ -88,6 +87,7 @@ export const Avatar: React.FC<{
   emotionAtFrame,
   expressive,
   flip,
+  popScale = true,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -116,7 +116,7 @@ export const Avatar: React.FC<{
 
   let translateY = breath - bounce * 8 + nod;
   // 発話者は少し手前にポップ（拡大）。非発話者は等倍（透明化・減光はしない）。
-  let scale = active ? 1.04 + interpolate(bounce, [0, 1], [0, 0.04]) : 1.0;
+  let scale = active && popScale ? 1.04 + interpolate(bounce, [0, 1], [0, 0.04]) : 1.0;
   let rotate = sway;
 
   // オーバーアクション（expressive＋発話者）。surprise: 跳ねて伸縮＋減衰ウォブル。happy: 小さくホップ。
