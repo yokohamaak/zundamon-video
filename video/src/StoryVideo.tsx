@@ -287,7 +287,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         style={{
           position: "absolute",
           left: speakerAnchor.x * width,
-          top: height * 0.66,
+          top: height * 0.82, // 足元寄り（顔から離す・§4.4）
           transform: "translateX(-50%)",
           maxWidth: width * 0.42,
           background: "rgba(255,255,255,0.96)",
