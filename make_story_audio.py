@@ -53,7 +53,18 @@ def main():
     data = json.load(open(STORY, encoding="utf-8"))
     script = [{"speaker": t["speaker"], "text": t["text"]} for t in data["script"]]
 
+    total = len(script)
+    url = os.environ.get("VOICEVOX_URL") or "http://localhost:50021"
+    print(f"VOICEVOX合成開始: {total}ターン (接続先 {url})", flush=True)
+
+    def on_progress(idx, n, turn):
+        head = turn["text"][:18].replace("\n", " ")
+        print(f"[{idx + 1:>3}/{n}] {turn['speaker']}: {head}…", flush=True)
+
+    CONFIG["tts_voicevox"]["on_progress"] = on_progress
+
     pcm, turns, (channels, width, rate) = synthesize_dialogue(script, CONFIG)
+    print(f"合成完了 → WAV書き出し: {OUT_WAV}", flush=True)
 
     with wave.open(OUT_WAV, "wb") as wf:
         wf.setnchannels(channels)

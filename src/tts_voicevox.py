@@ -435,9 +435,12 @@ def synthesize_dialogue(script, config):
     ref_pitch_cache = {}  # 話者→自然な声の高さ（全無声の相づちを有声化する基準・実測キャッシュ）
 
     chorus_names = list(speakers_map.keys())  # ユニゾン時に声を重ねる話者（設定の全キャラ）
+    on_progress = vc.get("on_progress")  # 任意: 進捗コールバック on_progress(idx, total, turn)
 
     for idx, turn in enumerate(script):
         speaker = turn["speaker"]
+        if callable(on_progress):
+            on_progress(idx, len(script), turn)
         speaker_id = _resolve_speaker_id(speaker, speakers_map)
         vp = _effective_voice(_resolve_voice_params(vc, speaker), turn)  # 話者＋台詞ごとの声上書き
         # chorus=True のターンは設定の全話者で同じ文を合成して重ねる（二人同時発話＝締めの挨拶等）。
