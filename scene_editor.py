@@ -70,7 +70,8 @@ def _list_assets():
     if os.path.exists(MANIFEST_JSON):
         with open(MANIFEST_JSON, encoding="utf-8") as f:
             manifest = json.load(f)
-        characters = sorted(manifest.keys())
+        # _full サフィックスは内部用キーのため除外。ベースcharIdのみ返す
+        characters = sorted(k for k in manifest.keys() if not k.endswith('_full'))
     else:
         if os.path.isdir(AVATARS_DIR):
             for entry in sorted(os.listdir(AVATARS_DIR)):

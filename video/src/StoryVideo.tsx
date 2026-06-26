@@ -102,10 +102,10 @@ export type StoryVideoProps = {
 // 立ち絵ボックスサイズ。バスト用は 445×445（Avatar の既定値と同じ）。
 // 全身用はキャンバスのアスペクト比をバスト幅445に合わせた高さ。
 const AVATAR_BOX = 445;
-// 全身キャンバスサイズ（PSD書き出し時の共通bbox）。
+// 全身キャンバスサイズ（PSD書き出し時の共通bbox＝assets/avatars/<char>/full/_box.json と一致）。
 const FULL_CANVAS = {
-  zundamon: { w: 844, h: 1510 },
-  metan: { w: 858, h: 1791 },
+  zundamon: { w: 783, h: 1473 },
+  metan: { w: 858, h: 1769 },
 } as const;
 const FULL_BOX_W = 280; // 全身Avatar表示幅（px）。sceneのavScaleで最終サイズが決まる。
 function fullBoxSize(charId: string): { w: number; h: number } {
@@ -352,10 +352,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           position: "absolute",
           left: anchor.x * width + slideOffsetPx,
           top: anchor.y * height,
-          transform: "translate(-50%, -100%)",
+          // anchor.y は立ち絵の「中央(体の中心)」位置（足元ではない）。
+          // 全身は背が高く足元基準だと初期表示で画面外に出て配置しづらいため中央基準。
+          transform: "translate(-50%, -50%)",
         }}
       >
-        <div style={{ transform: `scale(${avScale})`, transformOrigin: "bottom center" }}>
+        <div style={{ transform: `scale(${avScale})`, transformOrigin: "center" }}>
           <Avatar
             dir={avatarDir}
             manifest={avatarManifest}

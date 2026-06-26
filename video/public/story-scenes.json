@@ -7,11 +7,11 @@
       "front": "background/office_front.png",
       "shot": "duo",
       "camera": "static",
-      "figure": "bust",
-      "scale": 1.4,
+      "figure": "full",
+      "scale": 1.05,
       "cast": {
-        "zundamon": "right",
-        "metan": "left"
+        "metan": "left",
+        "zundamon": "right"
       },
       "anchors": {
         "center": {
@@ -19,12 +19,12 @@
           "y": 0.82
         },
         "left": {
-          "x": 0.39,
-          "y": 0.675
+          "x": 0.415,
+          "y": 0.92
         },
         "right": {
-          "x": 0.72,
-          "y": 0.75
+          "x": 0.718,
+          "y": 0.983
         }
       }
     },

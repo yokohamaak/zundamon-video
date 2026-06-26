@@ -81,7 +81,7 @@
   }
   .char-parts {
     position: relative;
-    width: 445px; height: 445px;
+    /* サイズはJSで figure に応じて動的設定 */
   }
   .char-parts img {
     position: absolute; inset: 0; width: 100%; height: 100%;
@@ -276,7 +276,13 @@
 // ============================================================
 const STAGE_W = 1920;
 const STAGE_H = 1080;
-const AVATAR_BOX = 445;
+// バスト(bust): 820×780 → 445×423、全身(full): 幅を445基準に統一して縦は比率で決める
+// ずんだもん full: 844×1510 ≒ 0.559 (w/h)、めたん full: 858×1791 ≒ 0.479 (w/h)
+// 全身は幅445px固定で縦を比率から計算する。最大高を1791比率で統一。
+const BUST_W = 445;
+const BUST_H = 445; // 820×780はほぼ正方形なので正方形枠で object-fit:contain に任せる
+const FULL_W = 445;
+const FULL_H = 840; // 幅445に対して 844/1510≈0.559 → 445/0.559≈796、安全に840を使用
 
 // ============================================================
 // 状態
@@ -529,14 +535,14 @@ function renderPreview() {
     const charId = anchorToChar[name];
     const flip = coord.x < 0.5;
 
-    // キャラコンテナ（bottom-centerをanchorに合わせる）
+    // キャラコンテナ（中央(体の中心)をanchorに合わせる＝renderと一致）
     const container = document.createElement('div');
     container.className = 'char-container';
     container.style.position = 'absolute';
     container.style.left = ax + 'px';
     container.style.top = ay + 'px';
-    container.style.transform = `translate(-50%, -100%) scale(${scale})`;
-    container.style.transformOrigin = 'bottom center';
+    container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    container.style.transformOrigin = 'center center';
 
     const parts = document.createElement('div');
     parts.className = 'char-parts';
@@ -544,12 +550,23 @@ function renderPreview() {
       parts.style.transform = 'scaleX(-1)';
     }
 
-    if (charId && manifestData && manifestData[charId]) {
+    // figure に応じて manifest キーとパスを切り替える
+    const isFull = (sc.figure ?? 'bust') === 'full';
+    const manifestKey = isFull ? charId + '_full' : charId;
+    const avatarBasePath = isFull
+      ? `/avatars/${charId}/full/`
+      : `/avatars/${charId}/`;
+
+    // char-parts のサイズを figure に応じて設定
+    parts.style.width = (isFull ? FULL_W : BUST_W) + 'px';
+    parts.style.height = (isFull ? FULL_H : BUST_H) + 'px';
+
+    if (charId && manifestData && manifestData[manifestKey]) {
       const layers = ['base', 'eye_open', 'mouth_close'];
       for (const layer of layers) {
-        if (manifestData[charId][layer]) {
+        if (manifestData[manifestKey][layer]) {
           const img = document.createElement('img');
-          img.src = `/avatars/${charId}/${manifestData[charId][layer]}`;
+          img.src = avatarBasePath + manifestData[manifestKey][layer];
           img.alt = layer;
           // エラー時は静かに無視
           img.onerror = () => { img.style.display = 'none'; };
@@ -559,7 +576,7 @@ function renderPreview() {
     } else if (charId) {
       // manifest未読込でもbase.pngを試みる
       const img = document.createElement('img');
-      img.src = `/avatars/${charId}/base.png`;
+      img.src = avatarBasePath + 'base.png';
       img.onerror = () => { img.style.display = 'none'; };
       parts.appendChild(img);
     } else {

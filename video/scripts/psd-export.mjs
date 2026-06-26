@@ -1,8 +1,9 @@
 // 立ち絵PSDからパーツPNGを書き出す（ずんだもん/四国めたん）。
 // 全部位を同一キャンバスに配置するので重ねれば位置が合う。
 // 使い方:
-//   node scripts/psd-export.mjs preview <char>   … base+口/目候補をout/psd_preview_<char>/へ
-//   node scripts/psd-export.mjs build   <char>   … 最終パーツをassets/avatars/<char>/へ
+//   node scripts/psd-export.mjs preview    <char>   … base+口/目候補をout/psd_preview_<char>/へ
+//   node scripts/psd-export.mjs build      <char>   … 最終パーツをassets/avatars/<char>/へ
+//   node scripts/psd-export.mjs build-full <char>   … 全身クロップをassets/avatars/<char>/full/へ
 //   <char> = zundamon | metan
 import { readPsd, initializeCanvas } from "ag-psd";
 import { createCanvas } from "@napi-rs/canvas";
@@ -103,6 +104,7 @@ function find(path, layers = psd.children) {
   return rest.length ? find(rest, node.children) : node;
 }
 
+// バスト用: cfg.cropを使って書き出す
 function compose(paths) {
   const full = createCanvas(W, H);
   const ctx = full.getContext("2d");
@@ -118,6 +120,45 @@ function compose(paths) {
     out.getContext("2d").drawImage(full, -x, -y);
   }
   return out.encodeSync ? out.encodeSync("png") : out.toBuffer("image/png");
+}
+
+// 全身用: 任意のcropを受け取る（build-fullで使う）
+function composeWithCrop(paths, crop) {
+  const full = createCanvas(W, H);
+  const ctx = full.getContext("2d");
+  for (const p of paths) {
+    const l = find(p);
+    if (l.canvas) ctx.drawImage(l.canvas, l.left || 0, l.top || 0);
+  }
+  if (crop) {
+    const { x, y, w, h } = crop;
+    const out = createCanvas(w, h);
+    out.getContext("2d").drawImage(full, -x, -y);
+    return out.encodeSync ? out.encodeSync("png") : out.toBuffer("image/png");
+  }
+  return full.encodeSync ? full.encodeSync("png") : full.toBuffer("image/png");
+}
+
+// キャンバスの不透明ピクセルbboxを取得する。
+function opaqueBbox(canvas) {
+  const ctx = canvas.getContext("2d");
+  const { width, height } = canvas;
+  const imgData = ctx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+  let minX = width, minY = height, maxX = 0, maxY = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const a = data[(y * width + x) * 4 + 3];
+      if (a > 0) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (minX > maxX || minY > maxY) return null; // 全透明
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
 }
 
 const BODY = cfg.body;
@@ -142,4 +183,53 @@ if (mode === "build") {
     console.log(`[build] ${charName}/${stem}.png`);
   }
   console.log(`[build] ${Object.keys(cfg.build).length}部位を書き出し: ${dir}`);
+}
+
+if (mode === "build-full") {
+  // step1: 全buildパーツの不透明領域のunion bboxを算出
+  console.log(`[build-full] ${charName}: 全パーツbbox算出中...`);
+  let uMinX = W, uMinY = H, uMaxX = 0, uMaxY = 0;
+  const allPaths = [];
+  for (const [stem, sel] of Object.entries(cfg.build)) {
+    const paths = sel === "BODY" ? BODY : [...BODY, ...sel];
+    allPaths.push({ stem, paths });
+  }
+  // union bbox計算のためにすべてのパーツを合成して不透明領域を取得
+  for (const { stem, paths } of allPaths) {
+    const canvas = createCanvas(W, H);
+    const ctx = canvas.getContext("2d");
+    for (const p of paths) {
+      const l = find(p);
+      if (l.canvas) ctx.drawImage(l.canvas, l.left || 0, l.top || 0);
+    }
+    const bb = opaqueBbox(canvas);
+    if (bb) {
+      if (bb.x < uMinX) uMinX = bb.x;
+      if (bb.y < uMinY) uMinY = bb.y;
+      if (bb.x + bb.w - 1 > uMaxX) uMaxX = bb.x + bb.w - 1;
+      if (bb.y + bb.h - 1 > uMaxY) uMaxY = bb.y + bb.h - 1;
+      console.log(`[build-full]   ${stem}: bbox x=${bb.x} y=${bb.y} w=${bb.w} h=${bb.h}`);
+    } else {
+      console.log(`[build-full]   ${stem}: 不透明ピクセルなし(スキップ)`);
+    }
+  }
+  const fullCrop = { x: uMinX, y: uMinY, w: uMaxX - uMinX + 1, h: uMaxY - uMinY + 1 };
+  console.log(`[build-full] union bbox: x=${fullCrop.x} y=${fullCrop.y} w=${fullCrop.w} h=${fullCrop.h}`);
+
+  // step2: 全パーツを同一cropで書き出す
+  const dir = resolve(root, `assets/avatars/${charName}/full`);
+  mkdirSync(dir, { recursive: true });
+  const stems = [];
+  for (const { stem, paths } of allPaths) {
+    const buf = composeWithCrop(paths, fullCrop);
+    writeFileSync(resolve(dir, `${stem}.png`), buf);
+    stems.push(stem);
+    console.log(`[build-full] ${charName}/full/${stem}.png`);
+  }
+
+  // step3: _box.json を書き出す
+  const box = { w: fullCrop.w, h: fullCrop.h };
+  writeFileSync(resolve(dir, "_box.json"), JSON.stringify(box, null, 2));
+  console.log(`[build-full] _box.json: ${JSON.stringify(box)}`);
+  console.log(`[build-full] done: ${stems.length}部位 → ${dir}`);
 }
