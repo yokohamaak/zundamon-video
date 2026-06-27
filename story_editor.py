@@ -194,20 +194,69 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
     }
 
     def _send_file(self, path, content_type=None):
-        """任意のファイルを返す。path が None または存在しない場合は 404。"""
+        """任意のファイルを返す。path が None または存在しない場合は 404。
+
+        音声/動画のシーク再生にはブラウザが HTTP Range リクエストを使うため、
+        Range ヘッダ(206 Partial Content)に対応する。未対応だと <audio>/<Audio>
+        が数百ms再生して破綻する（プレビュー音声が止まる原因）。
+        """
         if path is None or not os.path.isfile(path):
             self._send_error_json(404, "Not Found")
             return
         if content_type is None:
             ext = os.path.splitext(path)[1].lower()
             content_type = self._MIME.get(ext, "application/octet-stream")
+
+        file_size = os.path.getsize(path)
+        range_header = self.headers.get("Range")
+        start, end = 0, file_size - 1
+        is_partial = False
+
+        if range_header and range_header.startswith("bytes="):
+            spec = range_header[len("bytes="):].split(",")[0].strip()
+            try:
+                if spec.startswith("-"):
+                    # bytes=-N → 末尾 N バイト
+                    suffix = int(spec[1:])
+                    if suffix > 0:
+                        start = max(0, file_size - suffix)
+                        end = file_size - 1
+                        is_partial = True
+                else:
+                    s, _, e = spec.partition("-")
+                    start = int(s)
+                    end = int(e) if e else file_size - 1
+                    end = min(end, file_size - 1)
+                    if start <= end and start < file_size:
+                        is_partial = True
+            except ValueError:
+                is_partial = False
+
+        if is_partial and start > end:
+            # 範囲不正
+            self.send_response(416)
+            self.send_header("Content-Range", "bytes */%d" % file_size)
+            self.end_headers()
+            return
+
+        length = (end - start + 1) if is_partial else file_size
         with open(path, "rb") as f:
-            body = f.read()
-        self.send_response(200)
+            if is_partial:
+                f.seek(start)
+            body = f.read(length)
+
+        self.send_response(206 if is_partial else 200)
         self.send_header("Content-Type", content_type)
+        self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Length", str(len(body)))
+        if is_partial:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, file_size))
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            # メディアのシークでブラウザが接続を切るのは正常。ログを汚さない。
+            pass
 
     def do_GET(self):
         parsed = urlparse(self.path)
