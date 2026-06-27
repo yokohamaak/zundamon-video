@@ -11,6 +11,12 @@ import { useAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
 import type { Emotion, Gender } from "./types";
 
+// ─── PC画面インサート型定義 ──────────────────────────────────
+export type StoryInsert =
+  | { kind: "warning"; title?: string; text: string }
+  | { kind: "chat"; user: string; ai: string[]; highlight?: number }
+  | { kind: "ok"; text?: string };
+
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
 
@@ -69,6 +75,8 @@ export type StoryTurn = {
   telop?: string;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
   pause?: number;
+  // PC画面インサート演出（このターン中に全画面PC画面UIを重ねる）。
+  insert?: StoryInsert;
   // 退場するキャラ。このターンの終わり（end）にスライドアウトして以後は非表示。
   exit?: string[];
   // 退場方向（"left"/"right"）。省略時は自分の居る側（近い画面端）へ。
@@ -266,6 +274,241 @@ const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOutCubic = (x: number) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+
+// ─── PC画面インサートコンポーネント ─────────────────────────
+
+const INSERT_BG = "#11151c";
+
+/** 警告ダイアログ */
+const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }> }> = ({ insert }) => {
+  const title = insert.title ?? "警告";
+  return (
+    <div
+      style={{
+        background: "#1a1d24",
+        border: "3px solid #e05a2b",
+        borderRadius: 16,
+        padding: "48px 64px",
+        maxWidth: 860,
+        width: "100%",
+        boxShadow: "0 0 0 1px rgba(224,90,43,0.25), 0 24px 64px rgba(0,0,0,0.6)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 28,
+      }}
+    >
+      {/* タイトルバー */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 20,
+        }}
+      >
+        <span style={{ fontSize: 56, lineHeight: 1 }}>⚠</span>
+        <span
+          style={{
+            fontSize: 44,
+            fontWeight: 700,
+            color: "#e87b3a",
+            fontFamily: "sans-serif",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {title}
+        </span>
+      </div>
+      {/* 区切り */}
+      <div style={{ height: 2, background: "rgba(224,90,43,0.35)", borderRadius: 1 }} />
+      {/* 本文 */}
+      <div
+        style={{
+          fontSize: 48,
+          color: "#e8e0d6",
+          fontFamily: "sans-serif",
+          lineHeight: 1.5,
+          fontWeight: 400,
+          letterSpacing: "0.03em",
+        }}
+      >
+        {insert.text}
+      </div>
+    </div>
+  );
+};
+
+/** チャットアプリ */
+const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> = ({ insert }) => {
+  return (
+    <div
+      style={{
+        background: "#181c24",
+        border: "2px solid #2a3040",
+        borderRadius: 20,
+        width: 920,
+        overflow: "hidden",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.65)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* ヘッダー */}
+      <div
+        style={{
+          background: "#1e2535",
+          padding: "20px 32px",
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          borderBottom: "1.5px solid #2a3040",
+        }}
+      >
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #4f8ef0, #7c5bf5)",
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontSize: 34,
+            fontWeight: 600,
+            color: "#c8d0e0",
+            fontFamily: "sans-serif",
+            letterSpacing: "0.04em",
+          }}
+        >
+          AI アシスタント
+        </span>
+      </div>
+      {/* メッセージ本体 */}
+      <div
+        style={{
+          padding: "28px 32px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+        }}
+      >
+        {/* ユーザーメッセージ（右寄せ） */}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div
+            style={{
+              background: "#4060c8",
+              color: "#fff",
+              borderRadius: "18px 4px 18px 18px",
+              padding: "16px 24px",
+              fontSize: 38,
+              fontFamily: "sans-serif",
+              lineHeight: 1.5,
+              maxWidth: "76%",
+              fontWeight: 500,
+            }}
+          >
+            {insert.user}
+          </div>
+        </div>
+        {/* AI返答（左寄せ）。複数行。highlight 番号の吹き出しを強調。 */}
+        {insert.ai.map((msg, i) => {
+          const isHighlighted = typeof insert.highlight === "number" && insert.highlight === i;
+          return (
+            <div key={i} style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div
+                style={{
+                  background: isHighlighted ? "#2c1a08" : "#232a38",
+                  color: isHighlighted ? "#f0e0c0" : "#c8d0e0",
+                  borderRadius: "4px 18px 18px 18px",
+                  padding: "16px 24px",
+                  fontSize: 38,
+                  fontFamily: "sans-serif",
+                  lineHeight: 1.5,
+                  maxWidth: "76%",
+                  fontWeight: 400,
+                  border: isHighlighted ? "2.5px solid #e07840" : "2px solid #2f3a50",
+                  boxShadow: isHighlighted ? "0 0 0 4px rgba(224,120,64,0.18)" : "none",
+                }}
+              >
+                {msg}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/** ステータスOK画面 */
+const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ insert }) => {
+  const text = insert.text ?? "正常";
+  return (
+    <div
+      style={{
+        background: "#141e18",
+        border: "3px solid #2ea86a",
+        borderRadius: 20,
+        padding: "56px 80px",
+        maxWidth: 640,
+        width: "100%",
+        boxShadow: "0 0 0 1px rgba(46,168,106,0.2), 0 24px 64px rgba(0,0,0,0.6)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 32,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 96,
+          color: "#2ea86a",
+          lineHeight: 1,
+          fontFamily: "sans-serif",
+          fontWeight: 700,
+        }}
+      >
+        ✓
+      </div>
+      <div
+        style={{
+          fontSize: 56,
+          color: "#a0e8c0",
+          fontFamily: "sans-serif",
+          fontWeight: 600,
+          letterSpacing: "0.06em",
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * PC画面インサートのルートオーバーレイ。
+ * opacity でフェードイン/アウトする（外側でアニメーション値を渡す）。
+ */
+const InsertOverlay: React.FC<{ insert: StoryInsert; opacity: number }> = ({ insert, opacity }) => {
+  return (
+    <AbsoluteFill
+      style={{
+        background: INSERT_BG,
+        opacity,
+        alignItems: "center",
+        justifyContent: "center",
+        // ごく薄いビネット
+        boxShadow: "inset 0 0 120px rgba(0,0,0,0.4)",
+        pointerEvents: "none",
+      }}
+    >
+      {insert.kind === "warning" && <InsertWarning insert={insert} />}
+      {insert.kind === "chat" && <InsertChat insert={insert} />}
+      {insert.kind === "ok" && <InsertOk insert={insert} />}
+    </AbsoluteFill>
+  );
+};
 
 // その時刻に吹き出しへ出す文字列（sentences があれば文単位で小出し・§4.4）。
 function bubbleTextAt(turn: StoryTurn, t: number): string {
@@ -691,6 +934,31 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     ? `saturate(${FB_SATURATE}) brightness(${FB_BRIGHTNESS})`
     : undefined;
 
+  // ── PC画面インサート フェード計算 ─────────────────────────
+  // INSERT_FADE: フェードイン/アウトの片側秒数。
+  const INSERT_FADE = 0.2;
+  const activeInsert = active.insert ?? null;
+  // 前のターンの insert を取得（連続同種かどうかの判定）。
+  const activeIdx2 = script.findIndex((x) => x.id === active.id);
+  const prevInsertKind = activeIdx2 > 0 ? (script[activeIdx2 - 1].insert?.kind ?? null) : null;
+  // 次のターンの insert を取得（消え際フェードアウト用）。
+  const nextTurn2 = activeIdx2 < script.length - 1 ? script[activeIdx2 + 1] : null;
+  const nextInsertKind = nextTurn2?.insert?.kind ?? null;
+  let insertOpacity = 0;
+  if (activeInsert) {
+    // フェードイン: ターン開始直後。直前ターンと同種なら即 1（チラつかせない）。
+    const isContinuous = prevInsertKind === activeInsert.kind;
+    const fadeInProgress = isContinuous
+      ? 1
+      : clamp((t - active.start) / INSERT_FADE, 0, 1);
+    // フェードアウト: ターン終了直前。次のターンも同種なら即消えない（そのまま 1）。
+    const isContinuousNext = nextInsertKind === activeInsert.kind;
+    const fadeOutProgress = isContinuousNext
+      ? 1
+      : clamp((active.end - t) / INSERT_FADE, 0, 1);
+    insertOpacity = Math.min(fadeInProgress, fadeOutProgress);
+  }
+
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       {audio ? <Audio src={staticFile(audio)} /> : null}
@@ -748,8 +1016,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         />
       ) : null}
 
+      {/* PC画面インサート（ステージより前面・吹き出しより後面）。
+          z順: ステージ → インサート → 吹き出し */}
+      {activeInsert && insertOpacity > 0 ? (
+        <InsertOverlay insert={activeInsert} opacity={insertOpacity} />
+      ) : null}
+
       {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
-          位置は最終カメラ基準で固定＝移動中も消えず動かない。 */}
+          位置は最終カメラ基準で固定＝移動中も消えず動かない。インサートより前面。 */}
       {showPrev ? renderBubble(prevTurn as StoryTurn, "bubble-prev") : null}
       {renderBubble(active, "bubble-active")}
 

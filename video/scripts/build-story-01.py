@@ -23,6 +23,9 @@ TURNS = [
     # ── 前日の回想(office) ──
     ("metan", "今日はわたし外出だから。設定の変更作業は、しないでね。", "office", "normal", None, False, False, True, "― 前日 ―", 0),
     ("zundamon", "わかったのだ！ 留守番はまかせるのだ！", "office", "happy", None, False, False, True, None, 1.2),  # 後でめたん退場＋間
+    # ── 一人になって気が緩む→通知で気づく（設定変更のきっかけ） ──
+    ("zundamon", "さーて……今日はぼく一人で、るすばんなのだ♪", "office", "happy", None, False, False, True, None, 0.8),
+    ("zundamon", "……ん？ なんか画面に出てるのだ。", "office", "normal", None, False, False, True, None, 0),
     ("zundamon", "むむ……『設定ファイルが古い』って出てるのだ。", "office", "normal", None, False, False, True, None, 0),
     ("zundamon", "古いなら、新しくした方がいいに決まってるのだ。", "office", "normal", None, False, False, True, None, 0),
     # ── AIに相談(office・回想中) ──
@@ -78,6 +81,22 @@ TURNS = [
 EXIT_AT = {9: ["metan"]}  # 「留守番はまかせるのだ」の後、めたんが右へ退場
 EXIT_DIR = {9: "right"}   # 退場方向
 
+# PC画面インサート：turn番号(1始まり) → 全画面PC UI の内容。
+_WARN = {"kind": "warning", "title": "システム警告", "text": "設定ファイルが古い形式です"}
+_CHAT = {
+    "kind": "chat",
+    "user": "この設定を新しい書き方に変えても大丈夫？",
+    "ai": ["一般的な構成では、問題ありません。", "ただし、ご利用の環境によっては、異なる場合があります。"],
+}
+_OK = {"kind": "ok", "text": "正常"}
+INSERT_AT = {
+    11: _WARN,                       # 「ん？ なんか画面に出てるのだ。」
+    12: _WARN,                       # 「設定ファイルが古い」
+    15: _CHAT,                       # AI「一般的な構成では問題ありません」
+    16: {**_CHAT, "highlight": 1},   # AI「ただし…」を強調
+    19: _OK,                         # 「ヨシ！ 今日も平和なのだ！」
+}
+
 script = []
 cursor = 0.0
 prev_scene = None
@@ -105,6 +124,8 @@ for i, row in enumerate(TURNS, 1):
         turn["exit"] = EXIT_AT[i]
     if i in EXIT_DIR:
         turn["exitDir"] = EXIT_DIR[i]
+    if i in INSERT_AT:
+        turn["insert"] = INSERT_AT[i]
     turn["start"] = round(cursor, 2)
     turn["end"] = round(cursor + dur, 2)
     script.append(turn)
