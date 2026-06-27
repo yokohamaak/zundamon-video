@@ -206,22 +206,35 @@ export const Avatar: React.FC<{
   };
 
   // 口：発話者は音量で開き具合を決定。非発話者は待機口(mouth_idle、無ければmouth_close)。
+  // happy(笑顔)は専用の笑顔口に置換（閉じ=mouth_smile_close / 開き=mouth_smile_open）。
+  const isHappy = emotion === "happy";
   let mouthSrc: string | null;
   if (!active) {
-    mouthSrc = part("mouth_idle") || part("mouth_close");
+    mouthSrc =
+      (isHappy ? part("mouth_smile_close") : null) ||
+      part("mouth_idle") ||
+      part("mouth_close");
   } else {
     let mouthStem = "mouth_close";
     if (amplitude >= MOUTH_OPEN) mouthStem = "mouth_open";
     else if (amplitude >= MOUTH_HALF) mouthStem = "mouth_half";
-    mouthSrc = part(mouthStem) || part("mouth_close") || part("mouth_open");
+    if (isHappy) {
+      // 開き口(half/open)=笑い口、閉じ口(語間/待機)=ニコ口。無ければ通常口へフォールバック。
+      const happyStem =
+        mouthStem === "mouth_close" ? "mouth_smile_close" : "mouth_smile_open";
+      mouthSrc =
+        part(happyStem) || part(mouthStem) || part("mouth_close") || part("mouth_open");
+    } else {
+      mouthSrc = part(mouthStem) || part("mouth_close") || part("mouth_open");
+    }
   }
 
   // 目：感情差分 > まばたき > 通常。
   const phase = hash(dir!) % BLINK_CYCLE;
   const blinking = (frame + phase) % BLINK_CYCLE >= BLINK_CYCLE - BLINK_DUR;
-  // 笑顔の目(eye_smile)は閉じ目素材なので、happyが続く間ずっと出すと目を閉じっぱなしに見える。
-  // → 感情発生から短い間だけ表示し、過ぎたら通常の開き目＋まばたきへ戻す。
-  // 驚き目(eye_surprise)は開いた表情なので固定でも問題なし＝従来どおり。
+  // happy(笑顔)は閉じ笑顔目(eye_happy=^^)を区間中ずっと表示する（参照画像に準拠）。
+  // 閉じ目なのでまばたきは無効（happy分岐が先に確定し、下のblink分岐に入らない）。
+  // eye_happy 未配置キャラは従来挙動（eye_smileを一瞬だけ）にフォールバック。
   const EYE_SMILE_DUR = Math.round(fps * 1.0);
   const smileFresh = reactT >= 0 && reactT < EYE_SMILE_DUR;
   let eyeStem = "eye_open";
@@ -231,6 +244,7 @@ export const Avatar: React.FC<{
   // 焦り(panic): 専用の困り目が無ければ見開き目で慌てた表情に寄せる。
   else if (emotion === "panic" && (part("eye_trouble") || part("eye_surprise")))
     eyeStem = part("eye_trouble") ? "eye_trouble" : "eye_surprise";
+  else if (emotion === "happy" && part("eye_happy")) eyeStem = "eye_happy";
   else if (emotion === "happy" && smileFresh && part("eye_smile")) eyeStem = "eye_smile";
   else if (blinking && part("eye_close")) eyeStem = "eye_close";
   const eyeSrc = part(eyeStem) || part("eye_open");
