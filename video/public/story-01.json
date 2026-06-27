@@ -38,7 +38,16 @@
           "end": 4.147
         }
       ],
-      "expression": "panic"
+      "expression": "panic",
+      "insert": {
+        "kind": "teamchat",
+        "channel": "障害対応",
+        "messages": [
+          { "from": "営業", "text": "サイト、つながらないです！" },
+          { "from": "部長", "text": "原因は？ あと何分で戻る？", "highlight": true },
+          { "from": "zundamon", "text": "今、確認してるのだ……！" }
+        ]
+      }
     },
     {
       "id": "turn-0003",

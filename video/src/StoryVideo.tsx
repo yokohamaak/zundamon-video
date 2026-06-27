@@ -16,7 +16,8 @@ import type { Emotion, Gender } from "./types";
 export type StoryInsert =
   | { kind: "warning"; title?: string; text: string }
   | { kind: "chat"; user: string; ai: string[]; highlight?: number }
-  | { kind: "ok"; text?: string };
+  | { kind: "ok"; text?: string }
+  | { kind: "teamchat"; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] };
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
@@ -520,6 +521,221 @@ const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ 
   );
 };
 
+// teamchat 用: キャラID → 表示名。
+const TEAMCHAT_DISPLAY: Record<string, string> = {
+  zundamon: "ずんだもん",
+  metan: "四国めたん",
+};
+
+// teamchat 用: 発言者情報（アイコン画像URL・名前・名前色）を解決するヘルパー。
+function resolveTeamChatSender(from: string): {
+  imgSrc: string | null;
+  name: string;
+  nameColor: string;
+} {
+  if (from in CHARACTERS) {
+    const cdef = CHARACTERS[from];
+    return {
+      imgSrc: staticFile(`avatars/${cdef.avatar}/base.png`),
+      name: TEAMCHAT_DISPLAY[from] ?? from,
+      nameColor: cdef.bubbleColor ?? DEFAULT_BUBBLE_COLOR,
+    };
+  }
+  if (from in MOBS) {
+    const m = MOBS[from];
+    return {
+      imgSrc: staticFile(m.images.normal),
+      name: from,
+      nameColor: DEFAULT_BUBBLE_COLOR,
+    };
+  }
+  return { imgSrc: null, name: from, nameColor: DEFAULT_BUBBLE_COLOR };
+}
+
+/** 社内チャット（Teams/Slack 風・汎用ブランドレス） */
+const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat" }> }> = ({
+  insert,
+}) => {
+  const channel = insert.channel ?? "general";
+  return (
+    <div
+      style={{
+        background: "#1a1e28",
+        border: "2px solid #2a3040",
+        borderRadius: 20,
+        width: 980,
+        overflow: "hidden",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.65)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* ヘッダー */}
+      <div
+        style={{
+          background: "#1e2535",
+          padding: "18px 32px",
+          display: "flex",
+          alignItems: "center",
+          gap: 18,
+          borderBottom: "1.5px solid #2a3040",
+        }}
+      >
+        {/* ワークスペースアイコン（汎用グリッドロゴ風） */}
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: "linear-gradient(135deg, #3a8ef0 0%, #6b5cf5 100%)",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 4,
+              width: 20,
+              height: 20,
+            }}
+          >
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: 2,
+                  background: "rgba(255,255,255,0.9)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        {/* チャンネル名 */}
+        <span
+          style={{
+            fontSize: 36,
+            fontWeight: 700,
+            color: "#c8d0e0",
+            fontFamily: "sans-serif",
+            letterSpacing: "0.03em",
+          }}
+        >
+          # {channel}
+        </span>
+        {/* 仕切り */}
+        <div
+          style={{ width: 1.5, height: 28, background: "#3a4258", marginLeft: 4, marginRight: 4 }}
+        />
+        <span style={{ fontSize: 28, color: "#6a7490", fontFamily: "sans-serif" }}>
+          チーム
+        </span>
+      </div>
+
+      {/* メッセージ一覧 */}
+      <div
+        style={{
+          padding: "24px 32px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+        }}
+      >
+        {insert.messages.map((msg, i) => {
+          const { imgSrc, name, nameColor } = resolveTeamChatSender(msg.from);
+          return (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: 20,
+                padding: "14px 16px",
+                borderRadius: 10,
+                background: msg.highlight
+                  ? "rgba(255,210,100,0.06)"
+                  : "transparent",
+                borderLeft: msg.highlight
+                  ? "4px solid #f0b840"
+                  : "4px solid transparent",
+                marginBottom: 4,
+              }}
+            >
+              {/* 丸アバターアイコン */}
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  background: imgSrc ? "transparent" : nameColor,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {imgSrc ? (
+                  <img
+                    src={imgSrc}
+                    onError={(e) => {
+                      const el = e.currentTarget as HTMLImageElement;
+                      el.style.display = "none";
+                      // 親の div を nameColor で塗りつぶす（onError 後は img 非表示）
+                      if (el.parentElement) {
+                        el.parentElement.style.background = nameColor;
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: "center 10%",
+                      display: "block",
+                    }}
+                  />
+                ) : null}
+              </div>
+
+              {/* 名前 ＋ 本文 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                <span
+                  style={{
+                    fontSize: 30,
+                    fontWeight: 700,
+                    color: nameColor,
+                    fontFamily: "sans-serif",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {name}
+                </span>
+                <span
+                  style={{
+                    fontSize: 40,
+                    color: "#d0d8ec",
+                    fontFamily: "sans-serif",
+                    lineHeight: 1.45,
+                    fontWeight: 400,
+                  }}
+                >
+                  {msg.text}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 /**
  * PC画面インサートのルートオーバーレイ。
  * opacity でフェードイン/アウトする（外側でアニメーション値を渡す）。
@@ -540,6 +756,7 @@ const InsertOverlay: React.FC<{ insert: StoryInsert; opacity: number }> = ({ ins
       {insert.kind === "warning" && <InsertWarning insert={insert} />}
       {insert.kind === "chat" && <InsertChat insert={insert} />}
       {insert.kind === "ok" && <InsertOk insert={insert} />}
+      {insert.kind === "teamchat" && <InsertTeamChat insert={insert} />}
     </AbsoluteFill>
   );
 };
