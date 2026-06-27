@@ -62,7 +62,19 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
     setPropsState = setProps;
     onPlayerReady?.();
     onPlayerReady = null;
+    // フレーム更新を window イベントで通知（エディタが再生に合わせて台本を選択する用）。
+    const player = ref.current;
+    const onFrame = (e: { detail: { frame: number } }) => {
+      const playing = player ? player.isPlaying() : false;
+      window.dispatchEvent(
+        new CustomEvent("story-player-frame", {
+          detail: { frame: e.detail.frame, playing },
+        })
+      );
+    };
+    player?.addEventListener("frameupdate", onFrame);
     return () => {
+      player?.removeEventListener("frameupdate", onFrame);
       playerRef = null;
       setPropsState = null;
     };

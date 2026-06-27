@@ -396,6 +396,15 @@ function sizePlayerWrap() {
 }
 window.addEventListener("resize", sizePlayerWrap);
 
+// 逆方向の同期：再生中、Playerの現在フレームに対応するターンを選択（ターン境界でのみ更新）。
+// クリック→シークのecho（playing=false）では追従しない＝暴れない。
+window.addEventListener("story-player-frame", (e) => {
+  const d = e.detail || {};
+  if (!d.playing) return;
+  const idx = turnIndexAtTime((d.frame || 0) / 30);
+  if (idx >= 0 && idx !== selectedIdx) selectTurn(idx, false);
+});
+
 function initPlayer() {
   const statusEl = document.getElementById("playerStatus");
 
@@ -606,11 +615,23 @@ function fallbackIcon(speaker) {
 // ============================================================
 // ターン選択
 // ============================================================
-function selectTurn(idx) {
+function selectTurn(idx, doSeek = true) {
   selectedIdx = idx;
   renderList();
   renderDetail();
-  seekPlayer(idx);
+  const sel = document.querySelector(".turn-row.selected");
+  if (sel) sel.scrollIntoView({ block: "nearest" });
+  if (doSeek) seekPlayer(idx);
+}
+
+// 時刻(秒)に対応する turn の index（start <= t の最後のターン）。
+function turnIndexAtTime(t) {
+  const s = storyData ? storyData.script : [];
+  let idx = -1;
+  for (let i = 0; i < s.length; i++) {
+    if ((s[i].start || 0) <= t + 1e-6) idx = i; else break;
+  }
+  return idx;
 }
 
 // ============================================================
