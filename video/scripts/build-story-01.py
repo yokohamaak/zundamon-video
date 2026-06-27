@@ -22,7 +22,7 @@ TURNS = [
     ("zundamon", "昨日……？", "office", "trouble", None, False, False, False, None, 1.0),  # 回想への一拍
     # ── 前日の回想(office) ──
     ("metan", "今日はわたし外出だから。設定の変更作業は、しないでね。", "office", "normal", None, False, False, True, "― 前日 ―", 0),
-    ("zundamon", "わかったのだ！ 留守番はまかせるのだ！", "office", "happy", None, False, False, True, None, 0),
+    ("zundamon", "わかったのだ！ 留守番はまかせるのだ！", "office", "happy", None, False, False, True, None, 1.2),  # 後でめたん退場＋間
     ("zundamon", "むむ……『設定ファイルが古い』って出てるのだ。", "office", "normal", None, False, False, True, None, 0),
     ("zundamon", "古いなら、新しくした方がいいに決まってるのだ。", "office", "normal", None, False, False, True, None, 0),
     # ── AIに相談(office・回想中) ──
@@ -74,6 +74,9 @@ TURNS = [
     ("zundamon", "……うっ。善処するのだ……。", "rooftop", "happy", None, False, False, False, None, 0),
 ]
 
+# 退場：turn番号(1始まり) → そのターンの end で退場するキャラ。
+EXIT_AT = {9: ["metan"]}  # 「留守番はまかせるのだ」の後、めたんが右へ退場
+
 script = []
 cursor = 0.0
 prev_scene = None
@@ -97,6 +100,8 @@ for i, row in enumerate(TURNS, 1):
         turn["telop"] = telop
     if pause:
         turn["pause"] = pause
+    if i in EXIT_AT:
+        turn["exit"] = EXIT_AT[i]
     turn["start"] = round(cursor, 2)
     turn["end"] = round(cursor + dur, 2)
     script.append(turn)

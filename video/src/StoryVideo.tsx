@@ -69,6 +69,8 @@ export type StoryTurn = {
   telop?: string;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
   pause?: number;
+  // 退場するキャラ。このターンの終わり（end）に自分の側へスライドアウトして以後は非表示。
+  exit?: string[];
   start: number;
   end: number;
   sentences?: StorySentence[];
@@ -231,6 +233,20 @@ function entranceTimes(seg: Segment): Record<string, number> {
   return e;
 }
 
+// 各キャラの退場時刻（秒）。turn.exit で指定されたキャラは、そのターンの end で退場する。
+function exitTimes(seg: Segment): Record<string, number> {
+  const e: Record<string, number> = {};
+  for (const turn of seg.turns) {
+    for (const c of turn.exit ?? []) {
+      if (isKnownChar(c)) e[c] = turn.end;
+    }
+  }
+  return e;
+}
+
+// スライドイン/アウトにかける秒数。
+const SLIDE_DUR = 0.5;
+
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOutCubic = (x: number) =>
@@ -311,14 +327,30 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // 登場順の自動割当を土台に、シーンの cast（charId→アンカー名）で上書き。
   const anchorOf = { ...assignAnchors(roster), ...(sceneDef.cast ?? {}) };
   const entrance = entranceTimes(seg);
-  const presentNow = roster.filter((c) => entrance[c] <= t + 1e-6);
+  const exit = exitTimes(seg);
+  // 表示中＝登場済み かつ（退場していない or 退場スライド中）。
+  const presentNow = roster.filter(
+    (c) =>
+      entrance[c] <= t + 1e-6 &&
+      (exit[c] === undefined || t < exit[c] + SLIDE_DUR)
+  );
 
-  // ── 仮想カメラ：登場のたびに「寄り↔引き」を滑らかに遷移（カットしない） ──
+  // ── 仮想カメラ：登場/退場のたびに「寄り↔引き」を滑らかに遷移（カットしない） ──
   const TRANS = 0.8; // 遷移にかける秒数
-  const times = [...new Set(roster.map((c) => entrance[c]))].sort((a, b) => a - b);
+  // 境界時刻＝登場時刻＋退場時刻（退場で人数が減ればカメラも寄りへ遷移する）。
+  const times = [
+    ...new Set([
+      ...roster.map((c) => entrance[c]),
+      ...Object.values(exit),
+    ]),
+  ].sort((a, b) => a - b);
   let idx = 0;
   for (let i = 0; i < times.length; i++) if (times[i] <= t + 1e-6) idx = i;
-  const presentAt = (tb: number) => roster.filter((c) => entrance[c] <= tb + 1e-6);
+  // tb 時点で「画面にいる」キャラ＝登場済み かつ 退場時刻前。
+  const presentAt = (tb: number) =>
+    roster.filter(
+      (c) => entrance[c] <= tb + 1e-6 && (exit[c] === undefined || tb + 1e-6 < exit[c])
+    );
   const Tcur = targetCam(presentAt(times[idx]), anchorOf, sceneDef);
   const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOf, sceneDef) : Tcur;
   const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
@@ -475,10 +507,18 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const isInitial = entered <= seg.start + 1e-6;
     let slideOffsetPx = 0;
     if (!isInitial) {
-      const sp = clamp((t - entered) / 0.5, 0, 1); // 0.5秒で着地
+      const sp = clamp((t - entered) / SLIDE_DUR, 0, 1); // 0.5秒で着地
       const e = easeOutCubic(sp);
       const fromXNorm = anchor.x < 0.5 ? -0.35 : 1.35; // 画面外（自分側）から
       slideOffsetPx = (1 - e) * (fromXNorm - anchor.x) * width;
+    }
+    // 退場：exit 時刻になったら自分の側へスライドアウト（0.5秒で画面外へ）。
+    const leaving = exit[charId];
+    if (leaving !== undefined && t >= leaving) {
+      const sp = clamp((t - leaving) / SLIDE_DUR, 0, 1);
+      const e = easeInOutCubic(sp);
+      const toXNorm = anchor.x < 0.5 ? -0.35 : 1.35; // 画面外（自分側）へ
+      slideOffsetPx = e * (toXNorm - anchor.x) * width;
     }
 
     return (

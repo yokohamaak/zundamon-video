@@ -164,7 +164,11 @@
           "end": 22.459
         }
       ],
-      "flashback": true
+      "flashback": true,
+      "exit": [
+        "metan"
+      ],
+      "pause": 1.2
     },
     {
       "id": "turn-0010",
