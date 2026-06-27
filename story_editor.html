@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ストーリーエディタ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --text: #e2e8f0;
+    --text2: #8892aa;
+    --accent: #5b8dee;
+    --green: #4ade80;
+    --danger: #f87171;
+    --yellow: #fbbf24;
+    --left-w: 320px;
+    --right-w: 360px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; }
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── ヘッダー ── */
+  .header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 14px; font-weight: 600; letter-spacing: .02em; margin-right: 4px; }
+  .header-title-edit {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); padding: 3px 8px; font-size: 13px; min-width: 200px;
+  }
+  .header-title-edit:focus { outline: none; border-color: var(--accent); }
+  .btn {
+    padding: 5px 12px; border-radius: 6px; border: none; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: opacity .15s; white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { opacity: .82; }
+  .btn:disabled { opacity: .38; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .btn-sm { padding: 3px 8px; font-size: 12px; }
+  .status { font-size: 12px; color: var(--text2); margin-left: auto; min-width: 100px; text-align: right; }
+  .status.ok { color: var(--green); }
+  .status.err { color: var(--danger); }
+  .status.dirty { color: var(--yellow); }
+
+  /* ── 3ペインレイアウト ── */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── 左ペイン: 台本一覧 ── */
+  .pane-left {
+    width: var(--left-w); flex-shrink: 0;
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .pane-left-toolbar {
+    display: flex; gap: 4px; padding: 6px 8px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .script-list {
+    flex: 1; overflow-y: auto; padding: 4px 0;
+  }
+  /* シーングループ見出し */
+  .scene-group-header {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 10px 2px;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    color: var(--text2); text-transform: uppercase;
+    border-top: 1px solid var(--border); margin-top: 4px;
+  }
+  .scene-group-header:first-child { border-top: none; margin-top: 0; }
+  /* ターン行 */
+  .turn-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; cursor: pointer; border-radius: 0;
+    transition: background .1s;
+  }
+  .turn-row:hover { background: var(--surface2); }
+  .turn-row.selected { background: rgba(91,141,238,.18); border-left: 3px solid var(--accent); padding-left: 7px; }
+  .turn-icon {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; background: var(--surface2);
+  }
+  .turn-icon-fallback {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff;
+  }
+  .turn-body { flex: 1; min-width: 0; }
+  .turn-speaker { font-size: 11px; font-weight: 600; color: var(--text2); }
+  .turn-text { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .turn-badges { display: flex; gap: 3px; margin-top: 2px; flex-wrap: wrap; }
+  .badge {
+    font-size: 10px; padding: 1px 4px; border-radius: 3px;
+    background: var(--surface2); color: var(--text2); border: 1px solid var(--border);
+  }
+  .badge-insert { background: rgba(91,141,238,.2); color: var(--accent); }
+  .badge-fx { background: rgba(251,191,36,.15); color: var(--yellow); }
+
+  /* ── 中央ペイン: プレビュー(プレースホルダ) ── */
+  .pane-center {
+    flex: 1; background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden; padding: 20px;
+  }
+  .preview-frame {
+    width: 100%; max-width: 640px;
+    aspect-ratio: 16/9;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    color: var(--text2); font-size: 13px;
+    padding: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.5);
+  }
+  .preview-frame .preview-label {
+    font-size: 11px; color: var(--text2); margin-bottom: 4px;
+    text-align: center; opacity: .6;
+  }
+  .preview-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px;
+    width: 100%; max-width: 400px;
+  }
+  .preview-card-speaker { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  .preview-card-text { font-size: 14px; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
+  .preview-card-meta { font-size: 11px; color: var(--text2); display: flex; gap: 8px; flex-wrap: wrap; }
+  .preview-card-insert {
+    margin-top: 8px; font-size: 11px; color: var(--accent);
+    border-top: 1px solid var(--border); padding-top: 8px;
+  }
+
+  /* ── 右ペイン: 詳細 ── */
+  .pane-right {
+    width: var(--right-w); flex-shrink: 0;
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .detail-empty {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--text2); font-size: 13px;
+  }
+  /* タブ */
+  .tabs {
+    display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1; padding: 8px 0; background: none; border: none;
+    color: var(--text2); font-size: 13px; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: color .15s;
+  }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+  .tab-content { flex: 1; overflow-y: auto; }
+  .tab-panel { display: none; padding: 12px 14px; }
+  .tab-panel.active { display: block; }
+
+  /* フォーム部品 */
+  .field-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+  .field-row:last-child { margin-bottom: 0; }
+  .field-label { font-size: 11px; color: var(--text2); font-weight: 600; letter-spacing: .04em; }
+  .field-input, .field-select, .field-textarea {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text); padding: 5px 8px;
+    font-size: 13px; width: 100%;
+  }
+  .field-textarea { resize: vertical; min-height: 72px; font-family: inherit; line-height: 1.5; }
+  .field-input:focus, .field-select:focus, .field-textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .toggle-row { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+  .toggle-row input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+  .section-divider {
+    font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text2); padding: 8px 0 4px; border-top: 1px solid var(--border);
+    margin-top: 8px; margin-bottom: 4px;
+  }
+  .section-divider:first-child { border-top: none; margin-top: 0; }
+  .fx-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+
+  /* enter/exit マルチセレクト */
+  .multi-select-wrap {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 4px;
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .multi-check {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 6px; border-radius: 4px; font-size: 12px; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .multi-check:hover { background: var(--surface); }
+  .multi-check input { accent-color: var(--accent); cursor: pointer; }
+  .exit-dir-row { display: flex; gap: 6px; align-items: center; margin-top: 4px; font-size: 12px; color: var(--text2); }
+
+  /* insert フォーム */
+  .insert-array-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 8px; margin-bottom: 6px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .insert-array-item:last-child { margin-bottom: 0; }
+  .insert-item-header { display: flex; align-items: center; justify-content: space-between; }
+  .insert-item-idx { font-size: 11px; color: var(--text2); }
+  .insert-add-btn {
+    margin-top: 6px; width: 100%; padding: 5px;
+    background: transparent; border: 1px dashed var(--border);
+    color: var(--text2); border-radius: 5px; cursor: pointer; font-size: 12px;
+  }
+  .insert-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ストーリーエディタ</h1>
+  <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
+  <button class="btn btn-primary" id="btnSave">💾 保存</button>
+  <button class="btn btn-secondary" disabled title="次フェーズ（音声生成）">🔊 音声生成</button>
+  <button class="btn btn-secondary" disabled title="次フェーズ（書き出し）">🎬 書き出し</button>
+  <span class="status" id="statusMsg"></span>
+</div>
+
+<div class="main">
+  <!-- 左ペイン: 台本一覧 -->
+  <div class="pane-left">
+    <div class="pane-left-toolbar">
+      <button class="btn btn-secondary btn-sm" id="btnAdd" title="選択行の後ろに空ターンを挿入">＋ 追加</button>
+      <button class="btn btn-danger btn-sm" id="btnDelete" title="選択ターンを削除">🗑</button>
+      <button class="btn btn-secondary btn-sm" id="btnUp" title="上へ">↑</button>
+      <button class="btn btn-secondary btn-sm" id="btnDown" title="下へ">↓</button>
+    </div>
+    <div class="script-list" id="scriptList"></div>
+  </div>
+
+  <!-- 中央ペイン: プレビュー（プレースホルダ） -->
+  <div class="pane-center">
+    <div class="preview-frame" id="previewFrame">
+      <div class="preview-label">プレビューは次フェーズ（Remotion Player 埋め込み予定）</div>
+      <div class="preview-card" id="previewCard" style="display:none">
+        <div class="preview-card-speaker" id="previewSpeaker"></div>
+        <div class="preview-card-text" id="previewText"></div>
+        <div class="preview-card-meta" id="previewMeta"></div>
+        <div class="preview-card-insert" id="previewInsert" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右ペイン: 詳細 -->
+  <div class="pane-right">
+    <div class="detail-empty" id="detailEmpty">ターンを選択してください</div>
+    <div id="detailPanel" style="display:none; display:flex; flex-direction:column; height:100%; overflow:hidden;">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="basic">基本</button>
+        <button class="tab-btn" data-tab="insert">インサート</button>
+      </div>
+      <div class="tab-content">
+        <!-- 基本タブ -->
+        <div class="tab-panel active" id="tabBasic">
+          <div class="field-row">
+            <label class="field-label">話者</label>
+            <select class="field-select" id="fSpeaker"></select>
+          </div>
+          <div class="field-row">
+            <label class="field-label">セリフ</label>
+            <textarea class="field-textarea" id="fText"></textarea>
+          </div>
+          <div class="field-row">
+            <label class="field-label">シーン</label>
+            <select class="field-select" id="fScene"></select>
+          </div>
+          <div class="field-row">
+            <label class="field-label">表情</label>
+            <select class="field-select" id="fExpression">
+              <option value="">(なし)</option>
+            </select>
+          </div>
+
+          <div class="section-divider">演出</div>
+          <div class="fx-grid" style="margin-bottom:10px">
+            <label class="toggle-row">
+              <input type="checkbox" id="fEmphasis">
+              <span>emphasis</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fShake">
+              <span>shake</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fFlashback">
+              <span>flashback</span>
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field-label">テロップ (telop)</label>
+            <input type="text" class="field-input" id="fTelop" placeholder="例: ― 前日 ―">
+          </div>
+          <div class="field-row">
+            <label class="field-label">ポーズ秒 (pause)</label>
+            <input type="number" class="field-input" id="fPause" min="0" step="0.1" placeholder="0.0">
+          </div>
+
+          <div class="section-divider">登退場</div>
+          <div class="field-row">
+            <label class="field-label">enter（このセリフで登場）</label>
+            <div class="multi-select-wrap" id="fEnter"></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">exit（このセリフ後に退場）</label>
+            <div class="multi-select-wrap" id="fExit"></div>
+            <div class="exit-dir-row">
+              退場方向:
+              <select class="field-select" id="fExitDir" style="width:auto;padding:2px 6px;font-size:12px">
+                <option value="">(自動)</option>
+                <option value="left">left</option>
+                <option value="right">right</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- インサートタブ -->
+        <div class="tab-panel" id="tabInsert">
+          <div class="field-row">
+            <label class="field-label">種別 (insert.kind)</label>
+            <select class="field-select" id="fInsertKind">
+              <option value="">(なし)</option>
+              <option value="warning">warning（警告ダイアログ）</option>
+              <option value="ok">ok（OKダイアログ）</option>
+              <option value="chat">chat（AI チャット）</option>
+              <option value="teamchat">teamchat（チームチャット）</option>
+            </select>
+          </div>
+          <!-- 種別に応じた入力欄 -->
+          <div id="insertFields"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 状態
+// ============================================================
+let storyData = null;    // story-01.json 全体 { title, audio, script, ... }
+let meta = null;         // /api/meta { speakers, speakerIcons, scenes, expressions, insertKinds }
+let selectedIdx = -1;    // 選択中ターンのインデックス
+let isDirty = false;     // 未保存変更フラグ
+
+// 話者→背景色（アイコン未設定時の色丸）
+const SPEAKER_COLORS = {
+  zundamon: "#4ade80",
+  metan: "#5b8dee",
+  "営業": "#f87171",
+  "部長": "#fbbf24",
+  "AI": "#a78bfa",
+};
+function speakerColor(sp) {
+  return SPEAKER_COLORS[sp] || "#8892aa";
+}
+
+// ============================================================
+// 初期化
+// ============================================================
+async function init() {
+  try {
+    const [storyRes, metaRes] = await Promise.all([
+      fetch("/api/story"),
+      fetch("/api/meta"),
+    ]);
+    storyData = await storyRes.json();
+    meta = await metaRes.json();
+
+    document.getElementById("storyTitle").value = storyData.title || "";
+    buildSpeakerSelect();
+    buildSceneSelect();
+    buildExpressionSelect();
+    buildMultiSpeakers();
+    renderList();
+    setupEvents();
+  } catch (e) {
+    setStatus("err", "初期化失敗: " + e.message);
+  }
+}
+
+// ============================================================
+// セレクト初期構築
+// ============================================================
+function buildSpeakerSelect() {
+  const sel = document.getElementById("fSpeaker");
+  sel.innerHTML = "";
+  for (const sp of meta.speakers) {
+    const o = document.createElement("option");
+    o.value = sp; o.textContent = sp;
+    sel.appendChild(o);
+  }
+}
+
+function buildSceneSelect() {
+  const sel = document.getElementById("fScene");
+  sel.innerHTML = "";
+  for (const sc of meta.scenes) {
+    const o = document.createElement("option");
+    o.value = sc; o.textContent = sc;
+    sel.appendChild(o);
+  }
+  // 自由入力のため datalist も追加
+  const dl = document.createElement("datalist");
+  dl.id = "sceneDatalist";
+  for (const sc of meta.scenes) {
+    const opt = document.createElement("option");
+    opt.value = sc;
+    dl.appendChild(opt);
+  }
+  // select を input に変更してカスタム入力も受け付ける
+  const wrap = sel.parentNode;
+  sel.remove();
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.className = "field-input";
+  inp.id = "fScene"; inp.list = "sceneDatalist"; inp.placeholder = "シーン名";
+  wrap.appendChild(inp);
+  wrap.appendChild(dl);
+}
+
+function buildExpressionSelect() {
+  const sel = document.getElementById("fExpression");
+  // 最初の(なし)は既にある
+  for (const ex of meta.expressions) {
+    const o = document.createElement("option");
+    o.value = ex; o.textContent = ex;
+    sel.appendChild(o);
+  }
+}
+
+function buildMultiSpeakers() {
+  buildMultiSelect("fEnter", meta.speakers);
+  buildMultiSelect("fExit", meta.speakers);
+}
+
+function buildMultiSelect(containerId, speakers) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = "";
+  for (const sp of speakers) {
+    const label = document.createElement("label");
+    label.className = "multi-check";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.value = sp;
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(sp));
+    wrap.appendChild(label);
+  }
+}
+
+// ============================================================
+// 台本一覧レンダリング
+// ============================================================
+function renderList() {
+  const container = document.getElementById("scriptList");
+  container.innerHTML = "";
+  const script = storyData.script;
+  let lastScene = null;
+
+  for (let i = 0; i < script.length; i++) {
+    const turn = script[i];
+
+    // シーングループ見出し
+    if (turn.scene !== lastScene) {
+      const header = document.createElement("div");
+      header.className = "scene-group-header";
+      header.textContent = "▸ " + (turn.scene || "(シーンなし)");
+      container.appendChild(header);
+      lastScene = turn.scene;
+    }
+
+    // ターン行
+    const row = document.createElement("div");
+    row.className = "turn-row" + (i === selectedIdx ? " selected" : "");
+    row.dataset.idx = i;
+
+    // アイコン
+    const icon = speakerIcon(turn.speaker);
+    row.appendChild(icon);
+
+    // 本文
+    const body = document.createElement("div");
+    body.className = "turn-body";
+    const spEl = document.createElement("div");
+    spEl.className = "turn-speaker";
+    spEl.textContent = turn.speaker;
+    const textEl = document.createElement("div");
+    textEl.className = "turn-text";
+    textEl.textContent = turn.text;
+
+    // バッジ
+    const badges = document.createElement("div");
+    badges.className = "turn-badges";
+    if (turn.emphasis) badges.appendChild(makeBadge("emphasis", "fx"));
+    if (turn.shake) badges.appendChild(makeBadge("shake", "fx"));
+    if (turn.flashback) badges.appendChild(makeBadge("flashback", "fx"));
+    if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
+
+    body.appendChild(spEl);
+    body.appendChild(textEl);
+    if (badges.children.length > 0) body.appendChild(badges);
+    row.appendChild(body);
+
+    row.addEventListener("click", () => selectTurn(i));
+    container.appendChild(row);
+  }
+}
+
+function makeBadge(text, type) {
+  const b = document.createElement("span");
+  b.className = "badge badge-" + type;
+  b.textContent = text;
+  return b;
+}
+
+function speakerIcon(speaker) {
+  const iconPath = meta.speakerIcons[speaker];
+  if (iconPath) {
+    const img = document.createElement("img");
+    img.className = "turn-icon";
+    img.src = "/img/" + iconPath;
+    img.onerror = () => {
+      img.replaceWith(fallbackIcon(speaker));
+    };
+    return img;
+  }
+  return fallbackIcon(speaker);
+}
+
+function fallbackIcon(speaker) {
+  const div = document.createElement("div");
+  div.className = "turn-icon-fallback";
+  div.style.background = speakerColor(speaker);
+  div.textContent = speaker.charAt(0).toUpperCase();
+  return div;
+}
+
+// ============================================================
+// ターン選択
+// ============================================================
+function selectTurn(idx) {
+  selectedIdx = idx;
+  renderList();
+  renderDetail();
+  renderPreview();
+}
+
+// ============================================================
+// 詳細ペイン
+// ============================================================
+function renderDetail() {
+  const emptyEl = document.getElementById("detailEmpty");
+  const panelEl = document.getElementById("detailPanel");
+
+  if (selectedIdx < 0 || selectedIdx >= storyData.script.length) {
+    emptyEl.style.display = "";
+    panelEl.style.display = "none";
+    return;
+  }
+
+  emptyEl.style.display = "none";
+  panelEl.style.display = "flex";
+
+  const turn = storyData.script[selectedIdx];
+
+  // ── 基本タブ ──
+  setField("fSpeaker", "select", turn.speaker || "");
+  setField("fText", "textarea", turn.text || "");
+  // scene: input[type=text] になっている
+  document.getElementById("fScene").value = turn.scene || "";
+  setField("fExpression", "select", turn.expression || "");
+  document.getElementById("fEmphasis").checked = !!turn.emphasis;
+  document.getElementById("fShake").checked = !!turn.shake;
+  document.getElementById("fFlashback").checked = !!turn.flashback;
+  document.getElementById("fTelop").value = turn.telop || "";
+  document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
+
+  // enter / exit（チェックボックス群）
+  setMultiSelect("fEnter", turn.enter || []);
+  setMultiSelect("fExit", turn.exit || []);
+  setField("fExitDir", "select", turn.exitDir || "");
+
+  // ── インサートタブ ──
+  const kind = turn.insert ? turn.insert.kind : "";
+  document.getElementById("fInsertKind").value = kind;
+  renderInsertFields(turn.insert || null);
+}
+
+function setField(id, type, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (type === "select") {
+    // 選択肢にない値を動的追加
+    let found = false;
+    for (const opt of el.options) {
+      if (opt.value === value) { found = true; break; }
+    }
+    if (!found && value) {
+      const o = document.createElement("option");
+      o.value = value; o.textContent = value;
+      el.insertBefore(o, el.firstChild);
+    }
+    el.value = value;
+  } else {
+    el.value = value;
+  }
+}
+
+function setMultiSelect(containerId, selected) {
+  const wrap = document.getElementById(containerId);
+  for (const label of wrap.querySelectorAll("label.multi-check")) {
+    const cb = label.querySelector("input");
+    cb.checked = selected.includes(cb.value);
+  }
+}
+
+function getMultiSelect(containerId) {
+  const wrap = document.getElementById(containerId);
+  const result = [];
+  for (const cb of wrap.querySelectorAll("input[type=checkbox]")) {
+    if (cb.checked) result.push(cb.value);
+  }
+  return result;
+}
+
+// ── インサートフォーム ──
+function renderInsertFields(insert) {
+  const container = document.getElementById("insertFields");
+  container.innerHTML = "";
+  const kind = insert ? insert.kind : "";
+
+  if (!kind) return;
+
+  if (kind === "warning") {
+    container.appendChild(makeField("title（任意）", "text", "fITitle", insert.title || ""));
+    container.appendChild(makeField("text", "text", "fIText", insert.text || ""));
+  } else if (kind === "ok") {
+    container.appendChild(makeField("text（任意）", "text", "fIText", insert.text || ""));
+  } else if (kind === "chat") {
+    container.appendChild(makeField("user", "text", "fIChatUser", insert.user || ""));
+    // ai: string[]
+    const section = document.createElement("div");
+    section.className = "section-divider";
+    section.textContent = "AI 返答（ai 配列）";
+    container.appendChild(section);
+    const aiWrap = document.createElement("div");
+    aiWrap.id = "fIAiItems";
+    container.appendChild(aiWrap);
+    const aiItems = insert.ai || [];
+    for (let i = 0; i < aiItems.length; i++) {
+      aiWrap.appendChild(makeChatAiItem(i, aiItems[i]));
+    }
+    container.appendChild(makeAddBtn("＋ AI返答を追加", () => {
+      const items = getChatAiItems();
+      items.push("");
+      refreshChatAiItems(items);
+    }));
+    // highlight
+    container.appendChild(makeField("highlight（インデックス・任意）", "number", "fIChatHighlight",
+      insert.highlight != null ? insert.highlight : ""));
+  } else if (kind === "teamchat") {
+    container.appendChild(makeField("channel（任意）", "text", "fIChannel", insert.channel || ""));
+    const section = document.createElement("div");
+    section.className = "section-divider";
+    section.textContent = "メッセージ（messages 配列）";
+    container.appendChild(section);
+    const msgWrap = document.createElement("div");
+    msgWrap.id = "fIMessages";
+    container.appendChild(msgWrap);
+    const msgs = insert.messages || [];
+    for (let i = 0; i < msgs.length; i++) {
+      msgWrap.appendChild(makeTeamchatItem(i, msgs[i]));
+    }
+    container.appendChild(makeAddBtn("＋ メッセージを追加", () => {
+      const items = getTeamchatMessages();
+      const turn = storyData.script[selectedIdx];
+      const lastSpeaker = items.length > 0 ? items[items.length - 1].from
+        : (turn ? turn.speaker : "");
+      items.push({ from: lastSpeaker, text: "", highlight: false });
+      refreshTeamchatItems(items);
+    }));
+  }
+}
+
+function makeField(labelText, inputType, id, value) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label"; lbl.textContent = labelText;
+  const inp = document.createElement("input");
+  inp.type = inputType; inp.className = "field-input";
+  inp.id = id; inp.value = value;
+  inp.addEventListener("change", collectInsert);
+  wrap.appendChild(lbl); wrap.appendChild(inp);
+  return wrap;
+}
+
+function makeAddBtn(text, onClick) {
+  const btn = document.createElement("button");
+  btn.className = "insert-add-btn";
+  btn.textContent = text;
+  btn.addEventListener("click", onClick);
+  return btn;
+}
+
+function makeChatAiItem(idx, value) {
+  const item = document.createElement("div");
+  item.className = "insert-array-item";
+  item.dataset.idx = idx;
+  const header = document.createElement("div");
+  header.className = "insert-item-header";
+  const lbl = document.createElement("span");
+  lbl.className = "insert-item-idx";
+  lbl.textContent = "ai[" + idx + "]";
+  const del = document.createElement("button");
+  del.className = "btn btn-danger btn-sm"; del.textContent = "削除";
+  del.addEventListener("click", () => {
+    const items = getChatAiItems();
+    items.splice(idx, 1);
+    refreshChatAiItems(items);
+  });
+  header.appendChild(lbl); header.appendChild(del);
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.className = "field-input"; inp.value = value;
+  inp.dataset.field = "ai"; inp.dataset.idx = idx;
+  inp.addEventListener("change", collectInsert);
+  item.appendChild(header); item.appendChild(inp);
+  return item;
+}
+
+function makeTeamchatItem(idx, msg) {
+  const item = document.createElement("div");
+  item.className = "insert-array-item";
+  item.dataset.idx = idx;
+  const header = document.createElement("div");
+  header.className = "insert-item-header";
+  const lbl = document.createElement("span");
+  lbl.className = "insert-item-idx";
+  lbl.textContent = "msg[" + idx + "]";
+  const del = document.createElement("button");
+  del.className = "btn btn-danger btn-sm"; del.textContent = "削除";
+  del.addEventListener("click", () => {
+    const items = getTeamchatMessages();
+    items.splice(idx, 1);
+    refreshTeamchatItems(items);
+  });
+  header.appendChild(lbl); header.appendChild(del);
+
+  // from: speakers から選択
+  const fromRow = document.createElement("div");
+  fromRow.className = "field-row";
+  const fromLbl = document.createElement("label");
+  fromLbl.className = "field-label"; fromLbl.textContent = "from";
+  const fromSel = document.createElement("select");
+  fromSel.className = "field-select"; fromSel.dataset.field = "from"; fromSel.dataset.idx = idx;
+  for (const sp of meta.speakers) {
+    const o = document.createElement("option");
+    o.value = sp; o.textContent = sp;
+    fromSel.appendChild(o);
+  }
+  // speakers にない値も保持
+  if (msg.from && !meta.speakers.includes(msg.from)) {
+    const o = document.createElement("option");
+    o.value = msg.from; o.textContent = msg.from;
+    fromSel.insertBefore(o, fromSel.firstChild);
+  }
+  fromSel.value = msg.from || "";
+  fromSel.addEventListener("change", collectInsert);
+  fromRow.appendChild(fromLbl); fromRow.appendChild(fromSel);
+
+  const textRow = document.createElement("div");
+  textRow.className = "field-row";
+  const textLbl = document.createElement("label");
+  textLbl.className = "field-label"; textLbl.textContent = "text";
+  const textInp = document.createElement("input");
+  textInp.type = "text"; textInp.className = "field-input";
+  textInp.value = msg.text || "";
+  textInp.dataset.field = "text"; textInp.dataset.idx = idx;
+  textInp.addEventListener("change", collectInsert);
+  textRow.appendChild(textLbl); textRow.appendChild(textInp);
+
+  const hlRow = document.createElement("div");
+  hlRow.className = "field-row";
+  const hlLbl = document.createElement("label");
+  hlLbl.className = "toggle-row";
+  const hlCb = document.createElement("input");
+  hlCb.type = "checkbox";
+  hlCb.checked = !!msg.highlight;
+  hlCb.dataset.field = "highlight"; hlCb.dataset.idx = idx;
+  hlCb.addEventListener("change", collectInsert);
+  hlLbl.appendChild(hlCb);
+  hlLbl.appendChild(document.createTextNode("highlight"));
+  hlRow.appendChild(hlLbl);
+
+  item.appendChild(header); item.appendChild(fromRow); item.appendChild(textRow); item.appendChild(hlRow);
+  return item;
+}
+
+function getChatAiItems() {
+  const wrap = document.getElementById("fIAiItems");
+  if (!wrap) return [];
+  const inputs = wrap.querySelectorAll("input[type=text]");
+  return Array.from(inputs).map(inp => inp.value);
+}
+
+function refreshChatAiItems(items) {
+  const wrap = document.getElementById("fIAiItems");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  for (let i = 0; i < items.length; i++) {
+    const el = makeChatAiItem(i, items[i]);
+    // イベント再バインドは makeChatAiItem 内で行われる
+    wrap.appendChild(el);
+  }
+  collectInsert();
+}
+
+function getTeamchatMessages() {
+  const wrap = document.getElementById("fIMessages");
+  if (!wrap) return [];
+  const items = wrap.querySelectorAll(".insert-array-item");
+  return Array.from(items).map(item => {
+    const fromSel = item.querySelector("select[data-field=from]");
+    const textInp = item.querySelector("input[data-field=text]");
+    const hlCb = item.querySelector("input[data-field=highlight]");
+    return {
+      from: fromSel ? fromSel.value : "",
+      text: textInp ? textInp.value : "",
+      highlight: hlCb ? hlCb.checked : false,
+    };
+  });
+}
+
+function refreshTeamchatItems(items) {
+  const wrap = document.getElementById("fIMessages");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  for (let i = 0; i < items.length; i++) {
+    wrap.appendChild(makeTeamchatItem(i, items[i]));
+  }
+  collectInsert();
+}
+
+// ============================================================
+// フォームから turn を収集してメモリ更新
+// ============================================================
+function collectBasic() {
+  if (selectedIdx < 0) return;
+  const turn = storyData.script[selectedIdx];
+  turn.speaker = document.getElementById("fSpeaker").value;
+  turn.text = document.getElementById("fText").value;
+  turn.scene = document.getElementById("fScene").value;
+
+  const expr = document.getElementById("fExpression").value;
+  if (expr) turn.expression = expr;
+  else delete turn.expression;
+
+  turn.emphasis = document.getElementById("fEmphasis").checked || undefined;
+  if (!turn.emphasis) delete turn.emphasis;
+  turn.shake = document.getElementById("fShake").checked || undefined;
+  if (!turn.shake) delete turn.shake;
+  turn.flashback = document.getElementById("fFlashback").checked || undefined;
+  if (!turn.flashback) delete turn.flashback;
+
+  const telop = document.getElementById("fTelop").value;
+  if (telop) turn.telop = telop; else delete turn.telop;
+
+  const pauseVal = document.getElementById("fPause").value;
+  if (pauseVal !== "") turn.pause = parseFloat(pauseVal);
+  else delete turn.pause;
+
+  const enter = getMultiSelect("fEnter");
+  if (enter.length > 0) turn.enter = enter; else delete turn.enter;
+
+  const exit = getMultiSelect("fExit");
+  if (exit.length > 0) turn.exit = exit; else delete turn.exit;
+
+  const exitDir = document.getElementById("fExitDir").value;
+  if (exitDir) turn.exitDir = exitDir; else delete turn.exitDir;
+
+  markDirty();
+  renderList(); // バッジ等を更新
+  renderPreview();
+}
+
+function collectInsert() {
+  if (selectedIdx < 0) return;
+  const turn = storyData.script[selectedIdx];
+  const kind = document.getElementById("fInsertKind").value;
+
+  if (!kind) {
+    delete turn.insert;
+    markDirty();
+    renderList();
+    renderPreview();
+    return;
+  }
+
+  let ins = { kind };
+
+  if (kind === "warning") {
+    const title = document.getElementById("fITitle");
+    const text = document.getElementById("fIText");
+    if (title && title.value) ins.title = title.value;
+    if (text) ins.text = text.value;
+  } else if (kind === "ok") {
+    const text = document.getElementById("fIText");
+    if (text && text.value) ins.text = text.value;
+  } else if (kind === "chat") {
+    const user = document.getElementById("fIChatUser");
+    if (user) ins.user = user.value;
+    ins.ai = getChatAiItems();
+    const hl = document.getElementById("fIChatHighlight");
+    if (hl && hl.value !== "") ins.highlight = parseInt(hl.value, 10);
+  } else if (kind === "teamchat") {
+    const ch = document.getElementById("fIChannel");
+    if (ch && ch.value) ins.channel = ch.value;
+    const msgs = getTeamchatMessages();
+    // highlight=false は省略（JSONを汚さない）
+    ins.messages = msgs.map(m => {
+      const obj = { from: m.from, text: m.text };
+      if (m.highlight) obj.highlight = true;
+      return obj;
+    });
+  }
+
+  turn.insert = ins;
+  markDirty();
+  renderList();
+  renderPreview();
+}
+
+// ============================================================
+// プレビューカード更新
+// ============================================================
+function renderPreview() {
+  const card = document.getElementById("previewCard");
+  if (selectedIdx < 0 || selectedIdx >= storyData.script.length) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "";
+  const turn = storyData.script[selectedIdx];
+  document.getElementById("previewSpeaker").textContent = turn.speaker;
+  document.getElementById("previewText").textContent = turn.text;
+
+  const meta2 = [];
+  if (turn.scene) meta2.push("scene: " + turn.scene);
+  if (turn.expression) meta2.push("expr: " + turn.expression);
+  if (turn.emphasis) meta2.push("emphasis");
+  if (turn.shake) meta2.push("shake");
+  if (turn.flashback) meta2.push("flashback");
+  document.getElementById("previewMeta").textContent = meta2.join(" / ");
+
+  const insertEl = document.getElementById("previewInsert");
+  if (turn.insert) {
+    insertEl.style.display = "";
+    const ins = turn.insert;
+    let desc = "insert: " + ins.kind;
+    if (ins.kind === "warning") desc += ` "${ins.text || ""}"`;
+    else if (ins.kind === "ok") desc += ins.text ? ` "${ins.text}"` : "";
+    else if (ins.kind === "chat") desc += ` (ai: ${(ins.ai || []).length} 件)`;
+    else if (ins.kind === "teamchat") desc += ` #${ins.channel || ""} (${(ins.messages || []).length} msgs)`;
+    insertEl.textContent = desc;
+  } else {
+    insertEl.style.display = "none";
+  }
+}
+
+// ============================================================
+// ターン操作（追加・削除・移動）
+// ============================================================
+function addTurnAfter() {
+  const script = storyData.script;
+  const refTurn = selectedIdx >= 0 && selectedIdx < script.length
+    ? script[selectedIdx] : null;
+  const newTurn = {
+    id: generateId(script),
+    speaker: refTurn ? refTurn.speaker : (meta.speakers[0] || ""),
+    text: "",
+    scene: refTurn ? refTurn.scene : (meta.scenes[0] || ""),
+    start: 0,
+    end: 0,
+  };
+  const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : script.length;
+  script.splice(insertAt, 0, newTurn);
+  markDirty();
+  selectedIdx = insertAt;
+  renderList();
+  renderDetail();
+  renderPreview();
+}
+
+function deleteTurn() {
+  if (selectedIdx < 0) return;
+  const script = storyData.script;
+  if (!confirm("ターンを削除しますか？")) return;
+  script.splice(selectedIdx, 1);
+  if (selectedIdx >= script.length) selectedIdx = script.length - 1;
+  markDirty();
+  renderList();
+  renderDetail();
+  renderPreview();
+}
+
+function moveUp() {
+  if (selectedIdx <= 0) return;
+  const script = storyData.script;
+  const tmp = script[selectedIdx - 1];
+  script[selectedIdx - 1] = script[selectedIdx];
+  script[selectedIdx] = tmp;
+  selectedIdx--;
+  markDirty();
+  renderList();
+  renderPreview();
+}
+
+function moveDown() {
+  const script = storyData.script;
+  if (selectedIdx < 0 || selectedIdx >= script.length - 1) return;
+  const tmp = script[selectedIdx + 1];
+  script[selectedIdx + 1] = script[selectedIdx];
+  script[selectedIdx] = tmp;
+  selectedIdx++;
+  markDirty();
+  renderList();
+  renderPreview();
+}
+
+function generateId(script) {
+  const nums = script.map(t => {
+    const m = (t.id || "").match(/turn-(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  });
+  const max = nums.length > 0 ? Math.max(...nums) : 0;
+  return "turn-" + String(max + 1).padStart(4, "0");
+}
+
+// ============================================================
+// 保存
+// ============================================================
+async function saveStory() {
+  setStatus("", "保存中...");
+  // タイトル反映
+  storyData.title = document.getElementById("storyTitle").value;
+  try {
+    const r = await fetch("/api/story", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(storyData),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      isDirty = false;
+      setStatus("ok", "保存しました");
+      setTimeout(() => {
+        if (!isDirty) setStatus("", "");
+      }, 3000);
+    } else {
+      setStatus("err", result.error || "保存失敗");
+    }
+  } catch (e) {
+    setStatus("err", "通信エラー");
+  }
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function markDirty() {
+  isDirty = true;
+  setStatus("dirty", "未保存");
+}
+
+function setStatus(cls, msg) {
+  const el = document.getElementById("statusMsg");
+  el.className = "status" + (cls ? " " + cls : "");
+  el.textContent = msg;
+}
+
+// ============================================================
+// イベント設定
+// ============================================================
+function setupEvents() {
+  document.getElementById("btnSave").addEventListener("click", saveStory);
+  document.getElementById("btnAdd").addEventListener("click", addTurnAfter);
+  document.getElementById("btnDelete").addEventListener("click", deleteTurn);
+  document.getElementById("btnUp").addEventListener("click", moveUp);
+  document.getElementById("btnDown").addEventListener("click", moveDown);
+
+  document.getElementById("storyTitle").addEventListener("input", markDirty);
+
+  // タブ切替
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab" + capitalize(btn.dataset.tab)).classList.add("active");
+    });
+  });
+
+  // 基本タブ: 変更をリアルタイム収集
+  const basicIds = ["fSpeaker", "fText", "fScene", "fExpression",
+                    "fEmphasis", "fShake", "fFlashback", "fTelop", "fPause", "fExitDir"];
+  for (const id of basicIds) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const evt = (el.type === "checkbox") ? "change" : "input";
+    el.addEventListener(evt, collectBasic);
+  }
+
+  // enter/exit チェックボックス群は動的生成後に委譲
+  document.getElementById("fEnter").addEventListener("change", collectBasic);
+  document.getElementById("fExit").addEventListener("change", collectBasic);
+
+  // インサートタブ: kind変更でフォーム再構築
+  document.getElementById("fInsertKind").addEventListener("change", () => {
+    if (selectedIdx < 0) return;
+    const kind = document.getElementById("fInsertKind").value;
+    const turn = storyData.script[selectedIdx];
+    // 種別変更時は insert を初期値にリセット
+    if (!kind) {
+      delete turn.insert;
+    } else {
+      turn.insert = buildDefaultInsert(kind, turn.insert);
+    }
+    renderInsertFields(turn.insert || null);
+    markDirty();
+    renderList();
+    renderPreview();
+  });
+}
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function buildDefaultInsert(kind, prev) {
+  if (kind === "warning") {
+    return {
+      kind: "warning",
+      title: (prev && prev.kind === kind) ? (prev.title || "") : "",
+      text: (prev && prev.kind === kind) ? (prev.text || "") : "",
+    };
+  } else if (kind === "ok") {
+    return {
+      kind: "ok",
+      text: (prev && prev.kind === kind) ? (prev.text || "") : "",
+    };
+  } else if (kind === "chat") {
+    return {
+      kind: "chat",
+      user: (prev && prev.kind === kind) ? (prev.user || "") : "",
+      ai: (prev && prev.kind === kind) ? (prev.ai || []) : [],
+    };
+  } else if (kind === "teamchat") {
+    return {
+      kind: "teamchat",
+      channel: (prev && prev.kind === kind) ? (prev.channel || "") : "",
+      messages: (prev && prev.kind === kind) ? (prev.messages || []) : [],
+    };
+  }
+  return { kind };
+}
+
+// ============================================================
+// エントリポイント
+// ============================================================
+init().catch(e => {
+  setStatus("err", "初期化失敗: " + e.message);
+  console.error(e);
+});
+</script>
+</body>
+</html>

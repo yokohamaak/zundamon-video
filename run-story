@@ -52,6 +52,9 @@ cmd_still() {
 # シーンライブラリ編集ツール（anchor/scale をブラウザで調整）。
 cmd_scene() { run "$PY scene_editor.py"; }
 
+# ストーリーエディタ（台本編集ツール）を起動。
+cmd_story() { run "$PY story_editor.py"; }
+
 # 本番フル: build → audio → render（VOICEVOX必要）。
 cmd_all() {
   cmd_build
@@ -68,6 +71,7 @@ cmd_help() {
   dev           Studioで全体プレビュー(HMR)
   render        全体を書き出し → video/out/story.mp4
   still [N]     1フレームだけ静止画 → video/out/still-N.png（確認用）
+  story         ストーリーエディタ(台本編集) を起動
   scene         シーン編集ツール(anchor/scale) を起動
   all           build → audio → render（本番フル・VOICEVOX必要）
   help          この一覧
@@ -85,6 +89,7 @@ if [ $# -gt 0 ]; then
     dev)    cmd_dev ;;
     render) cmd_render ;;
     still)  cmd_still "$(z2h "${2:-0}")" ;;
+    story)  cmd_story ;;
     scene)  cmd_scene ;;
     all)    cmd_all ;;
     help|-h|--help) cmd_help ;;
@@ -100,8 +105,9 @@ echo "  2) audio    音声生成(VOICEVOX)＋実尺書き戻し"
 echo "  3) dev      Studioで全体プレビュー(HMR)"
 echo "  4) render   全体を書き出し → video/out/story.mp4"
 echo "  5) still    1フレーム静止画（フレーム番号を聞く）"
-echo "  6) scene    シーン編集ツール(anchor/scale)"
-echo "  7) all      build→audio→render（本番フル）"
+echo "  6) story    ストーリーエディタ(台本編集)"
+echo "  7) scene    シーン編集ツール(anchor/scale)"
+echo "  8) all      build→audio→render（本番フル）"
 echo "  0) help"
 read -rp "番号: " n
 n="$(z2h "$n")"
@@ -111,7 +117,8 @@ case "$n" in
   3) cmd_dev ;;
   4) cmd_render ;;
   5) read -rp "フレーム番号: " f; cmd_still "$(z2h "$f")" ;;
-  6) cmd_scene ;;
-  7) cmd_all ;;
+  6) cmd_story ;;
+  7) cmd_scene ;;
+  8) cmd_all ;;
   0|*) cmd_help ;;
 esac
