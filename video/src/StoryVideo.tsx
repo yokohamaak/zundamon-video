@@ -7,7 +7,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { useAudioData } from "@remotion/media-utils";
+import { useWindowedAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
 import type { Emotion, Gender } from "./types";
 
@@ -718,16 +718,23 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   }
   fadeOpacity = clamp(fadeOpacity, 0, 1);
 
-  // ── 話者の音量（実音声の波形RMS）→ リップシンク。DialogueVideo と同方式。 ──
-  // 音声(story-01.wav)の現フレーム付近のRMSを口の開きに使う。発話者のみに適用。
-  // useAudioData は string 必須のため、audio 未指定時もダミーで呼ぶ（フックは無条件呼び出し）。
-  // 実際のリップシンクは audio がある時だけ行う。
-  const audioData = useAudioData(staticFile(audio ?? "story-01.wav"));
+  // ── 話者の音量（実音声の波形RMS）→ リップシンク。 ──
+  // useAudioData は音声全体（166秒≒16MBのPCM）をブラウザで丸ごと展開するため、
+  // Studioプレビューで読込中に null を返し続けリップシンクが止まる/重い。
+  // useWindowedAudioData は現フレーム周辺の窓だけ読むので軽く安定する。
+  // ※ windowInSeconds は動的変更不可（固定値）。フックは無条件呼び出し。
+  const { audioData, dataOffsetInSeconds } = useWindowedAudioData({
+    src: staticFile(audio ?? "story-01.wav"),
+    frame,
+    fps,
+    windowInSeconds: 1,
+  });
   let speakerAmp = 0;
   if (audio && audioData) {
     const wave = audioData.channelWaveforms[0];
     const sr = audioData.sampleRate;
-    const center = Math.floor(t * sr);
+    // 窓の先頭が dataOffsetInSeconds。現在時刻 t をその窓内のサンプル位置へ変換。
+    const center = Math.floor((t - dataOffsetInSeconds) * sr);
     const win = Math.floor(sr / fps); // 1フレーム分の窓
     let sum = 0;
     let n = 0;
