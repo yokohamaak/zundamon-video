@@ -30,6 +30,15 @@ for (const [sub, exts, label] of [
   console.log(`[prep-story] copied ${files.length} ${label}`);
 }
 
+// StoryVideo の回想グレイン用ノイズ画像（assets直下 → public直下）。
+{
+  const ns = resolve(root, "assets", "noise.png");
+  if (existsSync(ns)) {
+    copyFileSync(ns, resolve(pubDir, "noise.png"));
+    console.log("[prep-story] copied noise.png");
+  }
+}
+
 // パーツ分け立ち絵 → public/avatars/ ＋ manifest.json（prep.mjs と同方式）。
 // full/ サブディレクトリがある場合は <char>_full キーとして manifest に追加する。
 {

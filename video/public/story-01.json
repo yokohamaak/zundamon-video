@@ -11,12 +11,12 @@
         "zundamon",
         "metan"
       ],
-      "start": 0.0,
+      "start": 0,
       "end": 1.771,
       "sentences": [
         {
           "text": "サイトに……つながりません。",
-          "start": 0.0,
+          "start": 0,
           "end": 1.771
         }
       ],
@@ -118,7 +118,8 @@
           "start": 13.727,
           "end": 14.516
         }
-      ]
+      ],
+      "pause": 1
     },
     {
       "id": "turn-0008",
@@ -139,7 +140,9 @@
           "start": 16.573,
           "end": 19.261
         }
-      ]
+      ],
+      "flashback": true,
+      "telop": "― 前日 ―"
     },
     {
       "id": "turn-0009",
@@ -160,7 +163,8 @@
           "start": 20.667,
           "end": 22.459
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0010",
@@ -176,7 +180,8 @@
           "start": 22.809,
           "end": 27.033
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0011",
@@ -192,7 +197,8 @@
           "start": 27.383,
           "end": 31.223
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0012",
@@ -208,7 +214,8 @@
           "start": 31.573,
           "end": 34.485
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0013",
@@ -223,7 +230,8 @@
           "start": 34.835,
           "end": 37.917
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0014",
@@ -243,7 +251,8 @@
           "start": 40.872,
           "end": 42.662
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0015",
@@ -264,7 +273,8 @@
           "start": 44.356,
           "end": 46.852
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0016",
@@ -280,7 +290,8 @@
           "start": 47.202,
           "end": 50.05
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0017",
@@ -301,7 +312,8 @@
           "start": 50.987,
           "end": 52.501
         }
-      ]
+      ],
+      "flashback": true
     },
     {
       "id": "turn-0018",
@@ -320,7 +332,9 @@
           "start": 52.851,
           "end": 54.323
         }
-      ]
+      ],
+      "flashback": true,
+      "pause": 1
     },
     {
       "id": "turn-0019",
@@ -346,7 +360,8 @@
           "end": 56.572
         }
       ],
-      "emphasis": true
+      "emphasis": true,
+      "telop": "― 現在 ―"
     },
     {
       "id": "turn-0020",

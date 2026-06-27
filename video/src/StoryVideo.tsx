@@ -14,6 +14,15 @@ import type { Emotion, Gender } from "./types";
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
 
+// ─── 回想（flashback）演出の定数 ────────────────────────────
+// 後で調整しやすいよう1箇所にまとめる。
+const FB_SATURATE = 0.7;        // 回想中の彩度（1.0=元のまま・低いほど色が薄い）
+const FB_BRIGHTNESS = 1.02;     // 回想中の輝度（微加）
+const FB_GRAIN_OPACITY = 0.06;  // グレインの不透明度（0.0=なし・0.1で見えてくる）
+const FB_DISSOLVE_SEC = 0.3;    // 白ディゾルブ片側の秒数（合計 2×FB_DISSOLVE_SEC）
+const FB_TELOP_SEC = 1.2;       // テロップの表示秒数
+const FB_TELOP_FADE = 0.25;     // テロップのフェードイン/アウト秒数
+
 // ───────────────────────────────────────────────────────────
 // ストーリー調 会話劇動画（新ツール Phase 1）の描画。
 // 既存の DialogueVideo には触れず、立ち絵 Avatar だけ流用する。
@@ -54,6 +63,12 @@ export type StoryTurn = {
   emphasis?: boolean;
   // カメラシェイク演出（shake=true のターン中、ターン開始からの減衰振動オフセットを加算）。
   shake?: boolean;
+  // 回想フラグ（true のターンが回想区間）。
+  flashback?: boolean;
+  // テロップ（境界付近で短時間表示する時代テキスト。例「― 前日 ―」）。
+  telop?: string;
+  // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
+  pause?: number;
   start: number;
   end: number;
   sentences?: StorySentence[];
@@ -551,11 +566,84 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     prevTurn.speaker !== active.speaker &&
     t - active.start < OVERLAP;
 
+  // ── 回想（flashback）演出 ────────────────────────────────────
+  const isFlashback = !!active.flashback;
+
+  // flashback が切り替わる境界時刻を全ターンから列挙する。
+  // 境界 = 前のターンと flashback 状態が違う最初のターンの start。
+  type FbBoundary = { at: number; entering: boolean; telop?: string };
+  const fbBoundaries: FbBoundary[] = [];
+  for (let i = 1; i < script.length; i++) {
+    const prev = script[i - 1];
+    const cur = script[i];
+    if (!!prev.flashback !== !!cur.flashback) {
+      fbBoundaries.push({
+        at: cur.start,
+        entering: !!cur.flashback,
+        // 回想に入るターンと戻るターンに telop を付ける。
+        telop: cur.telop,
+      });
+    }
+  }
+
+  // 現在時刻から最も近い境界を探す（白ディゾルブの基準）。
+  const nearestBoundary = fbBoundaries.reduce<FbBoundary | null>((best, b) => {
+    if (best === null) return b;
+    return Math.abs(t - b.at) < Math.abs(t - best.at) ? b : best;
+  }, null);
+
+  // 白ディゾルブのオーバーレイ opacity（三角波: 境界中心で1、±FB_DISSOLVE_SEC で 0）。
+  let whiteFadeOpacity = 0;
+  if (nearestBoundary !== null) {
+    const dt = Math.abs(t - nearestBoundary.at);
+    if (dt < FB_DISSOLVE_SEC) {
+      whiteFadeOpacity = clamp(1 - dt / FB_DISSOLVE_SEC, 0, 1);
+    }
+  }
+  // 白ディゾルブが出る間は黒フェードを抑制する（両立させると汚くなるため）。
+  const suppressBlackFade = whiteFadeOpacity > 0;
+
+  // グレインのシードをフレームごとに変えてちらつきを出す（軽量: 数px の位置オフセット）。
+  const grainOffsetX = (frame * 7) % 64;
+  const grainOffsetY = (frame * 13) % 64;
+
+  // テロップ表示: 境界から FB_TELOP_SEC の間、フェードイン/アウトして出す。
+  // 回想に入る境界: その境界の telop を使う。
+  // 「現在」へ戻る境界: 戻り先のターンの telop。
+  let telopText: string | null = null;
+  let telopOpacity = 0;
+  if (nearestBoundary?.telop) {
+    const dt = t - nearestBoundary.at;
+    if (dt >= -FB_TELOP_FADE && dt < FB_TELOP_SEC) {
+      telopText = nearestBoundary.telop;
+      if (dt < FB_TELOP_FADE) {
+        // フェードイン
+        telopOpacity = clamp((dt + FB_TELOP_FADE) / FB_TELOP_FADE, 0, 1);
+      } else if (dt >= FB_TELOP_SEC - FB_TELOP_FADE) {
+        // フェードアウト
+        telopOpacity = clamp((FB_TELOP_SEC - dt) / FB_TELOP_FADE, 0, 1);
+      } else {
+        telopOpacity = 1;
+      }
+    }
+  }
+
+  // 回想中はステージに彩度ダウン＋輝度微加の CSS filter を掛ける。
+  const stageFilter = isFlashback
+    ? `saturate(${FB_SATURATE}) brightness(${FB_BRIGHTNESS})`
+    : undefined;
+
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       {audio ? <Audio src={staticFile(audio)} /> : null}
       {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る） */}
-      <AbsoluteFill style={{ transform: stageTransform, transformOrigin: "0 0" }}>
+      <AbsoluteFill
+        style={{
+          transform: stageTransform,
+          transformOrigin: "0 0",
+          filter: stageFilter,
+        }}
+      >
         {/* 背景（back） */}
         <Img
           src={staticFile(sceneDef.bg)}
@@ -587,15 +675,65 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         ) : null}
       </AbsoluteFill>
 
+      {/* 回想中グレイン（タイル状ノイズを低opacity＋毎フレームずれ）。回想中のみ表示。 */}
+      {isFlashback ? (
+        <AbsoluteFill
+          style={{
+            backgroundImage: `url(${staticFile("noise.png")})`,
+            backgroundRepeat: "repeat",
+            backgroundPosition: `${grainOffsetX}px ${grainOffsetY}px`,
+            backgroundSize: "64px 64px",
+            opacity: FB_GRAIN_OPACITY,
+            pointerEvents: "none",
+            mixBlendMode: "luminosity",
+          }}
+        />
+      ) : null}
+
       {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
           位置は最終カメラ基準で固定＝移動中も消えず動かない。 */}
       {showPrev ? renderBubble(prevTurn as StoryTurn, "bubble-prev") : null}
       {renderBubble(active, "bubble-active")}
 
-      {/* 場面切り替えの暗転（fade-black）。全面を覆う。 */}
-      {fadeOpacity > 0 ? (
+      {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}
+      {telopText && telopOpacity > 0 ? (
+        <AbsoluteFill
+          style={{
+            alignItems: "flex-start",
+            justifyContent: "center",
+            paddingTop: height * 0.12,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(10, 10, 10, 0.52)",
+              color: "#f0ece4",
+              fontSize: 44,
+              fontWeight: 400,
+              fontFamily: "sans-serif",
+              letterSpacing: "0.18em",
+              padding: "14px 48px",
+              borderRadius: 4,
+              opacity: telopOpacity,
+            }}
+          >
+            {telopText}
+          </div>
+        </AbsoluteFill>
+      ) : null}
+
+      {/* 場面切り替えの暗転（fade-black）。白ディゾルブ中は抑制。 */}
+      {fadeOpacity > 0 && !suppressBlackFade ? (
         <AbsoluteFill
           style={{ background: "#000", opacity: fadeOpacity, pointerEvents: "none" }}
+        />
+      ) : null}
+
+      {/* 白ディゾルブ（flashback境界の出入り）。黒fadeより手前に重ねる。 */}
+      {whiteFadeOpacity > 0 ? (
+        <AbsoluteFill
+          style={{ background: "#fff", opacity: whiteFadeOpacity, pointerEvents: "none" }}
         />
       ) : null}
     </AbsoluteFill>

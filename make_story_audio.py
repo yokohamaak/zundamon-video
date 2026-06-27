@@ -51,7 +51,12 @@ CONFIG = {
 
 def main():
     data = json.load(open(STORY, encoding="utf-8"))
-    script = [{"speaker": t["speaker"], "text": t["text"]} for t in data["script"]]
+    # per-turn の pause(台詞後の無音秒)があれば転送する。回想境界の「一拍の間」に使う。
+    script = [
+        {"speaker": t["speaker"], "text": t["text"],
+         **({"pause": t["pause"]} if t.get("pause") else {})}
+        for t in data["script"]
+    ]
 
     total = len(script)
     url = os.environ.get("VOICEVOX_URL") or "http://localhost:50021"
