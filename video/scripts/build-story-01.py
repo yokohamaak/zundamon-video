@@ -132,6 +132,15 @@ for i, row in enumerate(TURNS, 1):
     cursor += dur + 0.35 + (pause or 0)
     prev_scene = scene
 
+# コールドオープンの障害セリフを Slack(teamchat) として累積表示（最新=今のセリフ＝吹き出しと一致）。
+_cold = ["turn-0001", "turn-0002", "turn-0003", "turn-0004"]
+_by_id = {t["id"]: t for t in script}
+_msgs = [{"from": _by_id[i]["speaker"], "text": _by_id[i]["text"]} for i in _cold]
+for _n, _i in enumerate(_cold, 1):
+    _acc = [dict(m) for m in _msgs[:_n]]
+    _acc[-1]["highlight"] = True
+    _by_id[_i]["insert"] = {"kind": "teamchat", "channel": "障害対応", "messages": _acc}
+
 data = {
     "title": "AIが大丈夫って言ったのだ",
     "_note": "第1話。仮タイミング。make_story_audio.py で実尺を start/end/sentences に上書きする。モブ(営業/部長/AI)は姿なし=声+吹き出しのみ。",

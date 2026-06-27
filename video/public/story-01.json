@@ -21,7 +21,18 @@
           "end": 1.771
         }
       ],
-      "expression": "panic"
+      "expression": "panic",
+      "insert": {
+        "kind": "teamchat",
+        "channel": "障害対応",
+        "messages": [
+          {
+            "from": "営業",
+            "text": "サイトに……つながりません。",
+            "highlight": true
+          }
+        ]
+      }
     },
     {
       "id": "turn-0002",
@@ -43,9 +54,15 @@
         "kind": "teamchat",
         "channel": "障害対応",
         "messages": [
-          { "from": "営業", "text": "サイト、つながらないです！" },
-          { "from": "部長", "text": "原因は？ あと何分で戻る？", "highlight": true },
-          { "from": "zundamon", "text": "今、確認してるのだ……！" }
+          {
+            "from": "営業",
+            "text": "サイトに……つながりません。"
+          },
+          {
+            "from": "営業",
+            "text": "お問い合わせ、300件です。",
+            "highlight": true
+          }
         ]
       }
     },
@@ -64,7 +81,26 @@
           "end": 7.1
         }
       ],
-      "expression": "panic"
+      "expression": "panic",
+      "insert": {
+        "kind": "teamchat",
+        "channel": "障害対応",
+        "messages": [
+          {
+            "from": "営業",
+            "text": "サイトに……つながりません。"
+          },
+          {
+            "from": "営業",
+            "text": "お問い合わせ、300件です。"
+          },
+          {
+            "from": "部長",
+            "text": "セール開始まで、あと20分だぞ！",
+            "highlight": true
+          }
+        ]
+      }
     },
     {
       "id": "turn-0004",
@@ -81,7 +117,30 @@
           "start": 7.45,
           "end": 10.394
         }
-      ]
+      ],
+      "insert": {
+        "kind": "teamchat",
+        "channel": "障害対応",
+        "messages": [
+          {
+            "from": "営業",
+            "text": "サイトに……つながりません。"
+          },
+          {
+            "from": "営業",
+            "text": "お問い合わせ、300件です。"
+          },
+          {
+            "from": "部長",
+            "text": "セール開始まで、あと20分だぞ！"
+          },
+          {
+            "from": "zundamon",
+            "text": "ど、どどど、どうすればいいのだ〜！？",
+            "highlight": true
+          }
+        ]
+      }
     },
     {
       "id": "turn-0005",

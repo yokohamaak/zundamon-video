@@ -562,8 +562,8 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
       style={{
         background: "#1a1e28",
         border: "2px solid #2a3040",
-        borderRadius: 20,
-        width: 980,
+        borderRadius: 22,
+        width: 1480,
         overflow: "hidden",
         boxShadow: "0 24px 64px rgba(0,0,0,0.65)",
         display: "flex",
@@ -619,7 +619,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
         {/* チャンネル名 */}
         <span
           style={{
-            fontSize: 36,
+            fontSize: 48,
             fontWeight: 700,
             color: "#c8d0e0",
             fontFamily: "sans-serif",
@@ -655,9 +655,9 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
                 display: "flex",
                 flexDirection: "row",
                 alignItems: "flex-start",
-                gap: 20,
-                padding: "14px 16px",
-                borderRadius: 10,
+                gap: 26,
+                padding: "18px 22px",
+                borderRadius: 12,
                 background: msg.highlight
                   ? "rgba(255,210,100,0.06)"
                   : "transparent",
@@ -670,8 +670,8 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
               {/* 丸アバターアイコン */}
               <div
                 style={{
-                  width: 56,
-                  height: 56,
+                  width: 88,
+                  height: 88,
                   borderRadius: "50%",
                   overflow: "hidden",
                   flexShrink: 0,
@@ -704,10 +704,10 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
               </div>
 
               {/* 名前 ＋ 本文 */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
                 <span
                   style={{
-                    fontSize: 30,
+                    fontSize: 40,
                     fontWeight: 700,
                     color: nameColor,
                     fontFamily: "sans-serif",
@@ -718,7 +718,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
                 </span>
                 <span
                   style={{
-                    fontSize: 40,
+                    fontSize: 54,
                     color: "#d0d8ec",
                     fontFamily: "sans-serif",
                     lineHeight: 1.45,
