@@ -1262,8 +1262,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const nextInsertKind = nextTurn2?.insert?.kind ?? null;
   let insertOpacity = 0;
   if (activeInsert) {
-    // フェードイン: ターン開始直後。直前ターンと同種なら即 1（チラつかせない）。
-    const isContinuous = prevInsertKind === activeInsert.kind;
+    // フェードイン: ターン開始直後。直前ターンと同種、または最初のターン（冒頭がインサート）
+    // なら即 1（背景を透けさせない＝冒頭の一瞬オフィスが見える問題の解消）。
+    const isContinuous = prevInsertKind === activeInsert.kind || activeIdx2 === 0;
     const fadeInProgress = isContinuous
       ? 1
       : clamp((t - active.start) / INSERT_FADE, 0, 1);
