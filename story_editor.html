@@ -112,9 +112,7 @@
     gap: 10px;
   }
   .preview-player-wrap {
-    width: 100%;
-    max-width: min(calc((100vh - 120px) * 16 / 9), 100%);
-    aspect-ratio: 16/9;
+    /* 幅/高さは sizePlayerWrap() が px で設定（16:9でペインに収める）。 */
     background: #080a0f;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -380,15 +378,35 @@ async function init() {
 // ============================================================
 // Remotion Player 初期化
 // ============================================================
+// プレビュー枠を 16:9 でペインに収まる最大サイズに（px明示）。Player のマウント前/リサイズ時に呼ぶ。
+function sizePlayerWrap() {
+  const pane = document.querySelector(".pane-center");
+  const wrap = document.getElementById("playerWrap");
+  const status = document.getElementById("playerStatus");
+  if (!pane || !wrap) return;
+  const padX = 32, padY = 32, gap = 10;
+  const statusH = status ? status.offsetHeight : 16;
+  const availW = pane.clientWidth - padX;
+  const availH = pane.clientHeight - padY - gap - statusH;
+  let w = availW;
+  let h = (w * 9) / 16;
+  if (h > availH) { h = availH; w = (h * 16) / 9; }
+  wrap.style.width = Math.max(0, Math.floor(w)) + "px";
+  wrap.style.height = Math.max(0, Math.floor(h)) + "px";
+}
+window.addEventListener("resize", sizePlayerWrap);
+
 function initPlayer() {
   const statusEl = document.getElementById("playerStatus");
 
   function onPlayerApiReady() {
     const wrap = document.getElementById("playerWrap");
+    sizePlayerWrap(); // マウント前に枠サイズを確定（Playerが正しく測れるように）
     statusEl.textContent = "Player を mount 中...";
     window.storyPlayer.mount(wrap).then(() => {
       playerReady = true;
       statusEl.textContent = "";
+      sizePlayerWrap(); // ステータス文字が消えた分の高さ変化を反映
       // 選択中ターンがあればシーク
       if (selectedIdx >= 0) seekPlayer(selectedIdx);
     }).catch((err) => {
