@@ -41,7 +41,7 @@ SPEAKER_ICONS = {
 }
 
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
-INSERT_KINDS = ["warning", "ok", "chat", "teamchat"]
+INSERT_KINDS = ["warning", "ok", "chat", "teamchat", "mailer"]
 
 _CT = {
     ".png": "image/png",

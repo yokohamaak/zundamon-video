@@ -346,6 +346,7 @@
               <option value="ok">ok（OKダイアログ）</option>
               <option value="chat">chat（AI チャット）</option>
               <option value="teamchat">teamchat（チームチャット）</option>
+              <option value="mailer">mailer（メーラー・メール閲覧）</option>
             </select>
           </div>
           <!-- 種別に応じた入力欄 -->
@@ -803,6 +804,12 @@ function renderInsertFields(insert) {
       items.push({ from: lastSpeaker, text: "", highlight: false });
       refreshTeamchatItems(items);
     }));
+  } else if (kind === "mailer") {
+    container.appendChild(makeField("from（差出人名・任意）", "text", "fIMailFrom", insert.from || ""));
+    container.appendChild(makeField("fromAddr（メールアドレス・任意）", "text", "fIMailFromAddr", insert.fromAddr || ""));
+    container.appendChild(makeField("subject（件名）", "text", "fIMailSubject", insert.subject || ""));
+    container.appendChild(makeTextareaField("body（本文）", "fIMailBody", insert.body || ""));
+    container.appendChild(makeField("time（時刻・任意 例: 14:32）", "text", "fIMailTime", insert.time || ""));
   }
 }
 
@@ -816,6 +823,19 @@ function makeField(labelText, inputType, id, value) {
   inp.id = id; inp.value = value;
   inp.addEventListener("change", collectInsert);
   wrap.appendChild(lbl); wrap.appendChild(inp);
+  return wrap;
+}
+
+function makeTextareaField(labelText, id, value) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label"; lbl.textContent = labelText;
+  const ta = document.createElement("textarea");
+  ta.className = "field-textarea field-input";
+  ta.id = id; ta.value = value;
+  ta.addEventListener("change", collectInsert);
+  wrap.appendChild(lbl); wrap.appendChild(ta);
   return wrap;
 }
 
@@ -1049,6 +1069,17 @@ function collectInsert() {
       if (m.highlight) obj.highlight = true;
       return obj;
     });
+  } else if (kind === "mailer") {
+    const mFrom = document.getElementById("fIMailFrom");
+    if (mFrom && mFrom.value) ins.from = mFrom.value;
+    const mFromAddr = document.getElementById("fIMailFromAddr");
+    if (mFromAddr && mFromAddr.value) ins.fromAddr = mFromAddr.value;
+    const mSubject = document.getElementById("fIMailSubject");
+    ins.subject = mSubject ? mSubject.value : "";
+    const mBody = document.getElementById("fIMailBody");
+    ins.body = mBody ? mBody.value : "";
+    const mTime = document.getElementById("fIMailTime");
+    if (mTime && mTime.value) ins.time = mTime.value;
   }
 
   turn.insert = ins;

@@ -17,7 +17,8 @@ export type StoryInsert =
   | { kind: "warning"; title?: string; text: string }
   | { kind: "chat"; user: string; ai: string[]; highlight?: number }
   | { kind: "ok"; text?: string }
-  | { kind: "teamchat"; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] };
+  | { kind: "teamchat"; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
+  | { kind: "mailer"; from?: string; fromAddr?: string; subject: string; body: string; time?: string };
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
@@ -746,20 +747,180 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
   );
 };
 
+/** メーラー（メール閲覧画面・Gmail風ライトテーマ） */
+const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> }> = ({ insert }) => {
+  // 差出人の頭文字とアバター色
+  const fromName = insert.from ?? "送信者";
+  const initial = fromName.charAt(0).toUpperCase() || "?";
+  // アバター色は headletter のコードポイントから決定論的に選ぶ（固定色・ランダムでない）
+  const AVATAR_COLORS = ["#1a73e8", "#0f9d58", "#f4511e", "#8430ce", "#188038", "#d50000"];
+  const avatarColor = AVATAR_COLORS[fromName.charCodeAt(0) % AVATAR_COLORS.length];
+
+  return (
+    <div
+      style={{
+        background: "#f6f8fc",
+        borderRadius: 12,
+        width: 1380,
+        overflow: "hidden",
+        boxShadow: "0 4px 24px rgba(60,64,67,0.18), 0 1px 6px rgba(60,64,67,0.1)",
+        display: "flex",
+        flexDirection: "column",
+        fontFamily: "sans-serif",
+      }}
+    >
+      {/* ツールバー（汎用メーラー感・ブランドなし） */}
+      <div
+        style={{
+          background: "#ffffff",
+          padding: "14px 28px",
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          borderBottom: "1px solid #e0e0e0",
+        }}
+      >
+        <span style={{ fontSize: 34, color: "#5fb84f", lineHeight: 1 }}>✉</span>
+        <span
+          style={{
+            fontSize: 32,
+            fontWeight: 700,
+            color: "#5fb84f",
+            letterSpacing: "0.01em",
+          }}
+        >
+          ZunMail
+        </span>
+      </div>
+
+      {/* メールカード本体 */}
+      <div
+        style={{
+          background: "#ffffff",
+          margin: "24px 28px",
+          borderRadius: 8,
+          padding: "36px 48px",
+          boxShadow: "0 2px 8px rgba(60,64,67,0.12)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 24,
+        }}
+      >
+        {/* 件名 */}
+        <div
+          style={{
+            fontSize: 56,
+            fontWeight: 700,
+            color: "#202124",
+            lineHeight: 1.3,
+          }}
+        >
+          {insert.subject}
+        </div>
+
+        {/* 差出人行 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 18,
+          }}
+        >
+          {/* 丸アバター（頭文字） */}
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: "50%",
+              background: avatarColor,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#ffffff",
+              fontSize: 34,
+              fontWeight: 700,
+            }}
+          >
+            {initial}
+          </div>
+          {/* 差出人名・アドレス */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+              <span style={{ fontSize: 38, fontWeight: 600, color: "#202124" }}>
+                {fromName}
+              </span>
+              {insert.fromAddr ? (
+                <span style={{ fontSize: 30, color: "#80868b" }}>
+                  {"<"}{insert.fromAddr}{">"}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          {/* 時刻（右端） */}
+          {insert.time ? (
+            <div style={{ fontSize: 32, color: "#80868b", flexShrink: 0 }}>
+              {insert.time}
+            </div>
+          ) : null}
+        </div>
+
+        {/* 区切り線 */}
+        <div style={{ height: 1, background: "#e0e0e0" }} />
+
+        {/* 本文 */}
+        <div
+          style={{
+            fontSize: 42,
+            color: "#3c4043",
+            lineHeight: 1.65,
+            fontWeight: 400,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {insert.body}
+        </div>
+
+        {/* 返信ボタン飾り（雰囲気用・非機能） */}
+        <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+          {["↩ 返信", "→ 転送"].map((label) => (
+            <div
+              key={label}
+              style={{
+                border: "1px solid #dadce0",
+                borderRadius: 20,
+                padding: "10px 28px",
+                fontSize: 28,
+                color: "#5f6368",
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /**
  * PC画面インサートのルートオーバーレイ。
  * opacity でフェードイン/アウトする（外側でアニメーション値を渡す）。
  */
 const InsertOverlay: React.FC<{ insert: StoryInsert; opacity: number }> = ({ insert, opacity }) => {
+  // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
+  const isLight = insert.kind === "mailer";
   return (
     <AbsoluteFill
       style={{
-        background: INSERT_BG,
+        background: isLight ? "#e8eaf0" : INSERT_BG,
         opacity,
         alignItems: "center",
         justifyContent: "center",
-        // ごく薄いビネット
-        boxShadow: "inset 0 0 120px rgba(0,0,0,0.4)",
+        // ごく薄いビネット（ライトは薄い暗縁・ダークはそのまま）
+        boxShadow: isLight
+          ? "inset 0 0 120px rgba(0,0,0,0.08)"
+          : "inset 0 0 120px rgba(0,0,0,0.4)",
         pointerEvents: "none",
       }}
     >
@@ -767,6 +928,7 @@ const InsertOverlay: React.FC<{ insert: StoryInsert; opacity: number }> = ({ ins
       {insert.kind === "chat" && <InsertChat insert={insert} />}
       {insert.kind === "ok" && <InsertOk insert={insert} />}
       {insert.kind === "teamchat" && <InsertTeamChat insert={insert} />}
+      {insert.kind === "mailer" && <InsertMailer insert={insert} />}
     </AbsoluteFill>
   );
 };
