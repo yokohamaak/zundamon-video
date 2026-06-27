@@ -129,14 +129,23 @@ const CHARACTERS: Record<string, CharDef> = {
   metan: { avatar: "metan", gender: "female", expressive: false, bubbleColor: "#e87bb0" }, // ピンク系
 };
 
-// モブ定義（いらすとや風の1枚絵固定・口パク/表情なし）。話している間だけ立つ。
+// モブ定義（いらすとや風の1枚絵・口パク無し）。話している間だけ立つ。
+// images: 状態キー→ファイル（normal / agitated）。表情で出し分ける。
 // 画像は public/mobs/<file>（assets/mobs を prep-story が public へコピー）。
-type MobDef = { image: string; scale?: number; flip?: boolean };
+type MobDef = { images: Record<string, string>; scale?: number; flip?: boolean };
 const MOBS: Record<string, MobDef> = {
-  営業: { image: "mobs/sales.png", scale: 1.0 },
-  部長: { image: "mobs/manager.png", scale: 1.0 },
+  営業: { images: { normal: "mobs/mob_normal.png", agitated: "mobs/mob_panic.png" }, scale: 1.0 },
+  部長: { images: { normal: "mobs/manager_normal.png", agitated: "mobs/manager_angry.png" }, scale: 1.0 },
 };
 const isMob = (id: string): boolean => id in MOBS;
+// 取り乱し系の表情なら agitated（焦り/怒り）、それ以外は normal。
+function mobImage(mobId: string, expression?: StoryExpression): string {
+  const m = MOBS[mobId];
+  const agitated =
+    expression === "panic" || expression === "surprise" || expression === "trouble";
+  const key = agitated && m.images.agitated ? "agitated" : "normal";
+  return m.images[key] ?? Object.values(m.images)[0];
+}
 
 type Manifest = Record<string, Record<string, string>>;
 
@@ -861,7 +870,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         }}
       >
         <img
-          src={staticFile(m.image)}
+          src={staticFile(mobImage(mobId, active.expression))}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}

@@ -13,9 +13,9 @@ OUT = os.path.join(ROOT, "public", "story-01.json")
 #   build-story-01.py 再実行は音声再生成を伴う場合のみ行うこと。
 TURNS = [
     # ── コールドオープン(office) ──
-    ("営業", "サイトに……つながりません。", "office", None, ["zundamon", "metan"], False, True, False, None, 0),
-    ("営業", "お問い合わせ、300件です。", "office", None, None, False, True, False, None, 0),
-    ("部長", "セール開始まで、あと20分だぞ！", "office", None, None, False, True, False, None, 0),
+    ("営業", "サイトに……つながりません。", "office", "panic", ["zundamon", "metan"], False, True, False, None, 0),
+    ("営業", "お問い合わせ、300件です。", "office", "panic", None, False, True, False, None, 0),
+    ("部長", "セール開始まで、あと20分だぞ！", "office", "panic", None, False, True, False, None, 0),
     ("zundamon", "ど、どどど、どうすればいいのだ〜！？", "office", "panic", None, False, True, False, None, 0),
     ("metan", "……ずんだもん。", "office", "normal", None, False, False, False, None, 0),
     ("metan", "昨日、何した？", "office", "normal", None, True, False, False, None, 0),
