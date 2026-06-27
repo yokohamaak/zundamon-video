@@ -297,15 +297,15 @@
           <div class="fx-grid" style="margin-bottom:10px">
             <label class="toggle-row">
               <input type="checkbox" id="fEmphasis">
-              <span>emphasis</span>
+              <span>ズーム</span>
             </label>
             <label class="toggle-row">
               <input type="checkbox" id="fShake">
-              <span>shake</span>
+              <span>シェイク</span>
             </label>
             <label class="toggle-row">
               <input type="checkbox" id="fFlashback">
-              <span>flashback</span>
+              <span>回想</span>
             </label>
           </div>
           <div class="field-row">
@@ -603,9 +603,9 @@ function renderList() {
     // バッジ
     const badges = document.createElement("div");
     badges.className = "turn-badges";
-    if (turn.emphasis) badges.appendChild(makeBadge("emphasis", "fx"));
-    if (turn.shake) badges.appendChild(makeBadge("shake", "fx"));
-    if (turn.flashback) badges.appendChild(makeBadge("flashback", "fx"));
+    if (turn.emphasis) badges.appendChild(makeBadge("ズーム", "fx"));
+    if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
+    if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
 
     body.appendChild(spEl);
