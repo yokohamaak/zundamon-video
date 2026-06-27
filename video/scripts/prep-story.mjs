@@ -17,6 +17,7 @@ mkdirSync(pubDir, { recursive: true });
 for (const [sub, exts, label] of [
   ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts"],
   ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image"],
+  ["mobs", [".png", ".webp"], "mob image"],
 ]) {
   const s = resolve(root, "assets", sub);
   const d = resolve(pubDir, sub);

@@ -106,6 +106,9 @@ export type SceneDef = {
   transition?: "fade-black" | "cut";
   // 立ち絵の画角。"bust"=バストアップ（既定・office）、"full"=全身（server_room/rooftop/home 等）。
   figure?: "bust" | "full";
+  // モブ（1枚絵）の立ち位置と大きさ。省略時は既定（中央やや下・標準）。
+  mobAnchor?: Anchor;
+  mobHeight?: number; // モブ画像の高さ(px・frame基準でなく素の高さ)。既定 760。
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -125,6 +128,15 @@ const CHARACTERS: Record<string, CharDef> = {
   zundamon: { avatar: "zundamon", gender: "male", expressive: true, bubbleColor: "#5fb84f" }, // 緑系
   metan: { avatar: "metan", gender: "female", expressive: false, bubbleColor: "#e87bb0" }, // ピンク系
 };
+
+// モブ定義（いらすとや風の1枚絵固定・口パク/表情なし）。話している間だけ立つ。
+// 画像は public/mobs/<file>（assets/mobs を prep-story が public へコピー）。
+type MobDef = { image: string; scale?: number; flip?: boolean };
+const MOBS: Record<string, MobDef> = {
+  営業: { image: "mobs/sales.png", scale: 1.0 },
+  部長: { image: "mobs/manager.png", scale: 1.0 },
+};
+const isMob = (id: string): boolean => id in MOBS;
 
 type Manifest = Record<string, Record<string, string>>;
 
@@ -828,6 +840,37 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
 
+  // モブ（1枚絵）描画：話者がモブのとき、その間だけ立たせる（フェードイン）。
+  // 画像が無ければ onError で非表示にし、render を壊さない（素材未配置でも安全）。
+  const renderMob = (mobId: string) => {
+    const m = MOBS[mobId];
+    if (!m) return null;
+    const a = sceneDef.mobAnchor ?? { x: 0.5, y: 1.0 };
+    const h = (sceneDef.mobHeight ?? 760) * (m.scale ?? 1);
+    const inP = clamp((t - active.start) / 0.3, 0, 1); // 話し始めでフェードイン
+    return (
+      <div
+        key={`mob-${mobId}`}
+        style={{
+          position: "absolute",
+          left: a.x * width,
+          top: a.y * height,
+          transform: `translate(-50%, -100%) scaleX(${m.flip ? -1 : 1})`,
+          transformOrigin: "bottom center",
+          opacity: inP,
+        }}
+      >
+        <img
+          src={staticFile(m.image)}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+          style={{ display: "block", height: h, width: "auto" }}
+        />
+      </div>
+    );
+  };
+
   // 吹き出しは「移動後の最終カメラ(Tcur)」基準で位置を決め、移動中も固定表示する。
   // → 移動中に位置が動かない＝変形・ガタつき無し・途中で消えない。
   const stx = clamp(
@@ -1005,6 +1048,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
         {/* キャラ（back と front の間） */}
         {presentNow.map(renderAvatar)}
+
+        {/* モブ（話者がモブのとき1枚絵を立たせる。素材未配置なら自動で非表示） */}
+        {isMob(active.speaker) ? renderMob(active.speaker) : null}
 
         {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
         {sceneDef.front ? (
