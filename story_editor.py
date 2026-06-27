@@ -9,6 +9,7 @@ turn の並び・話者・セリフ・場面・表情・演出・insertを編集
 import argparse
 import json
 import os
+import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
@@ -276,6 +277,25 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 self._send_json({"ok": True})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/audio":
+            # VOICEVOX で音声生成（make_story_audio.py）。事前に保存済みの story-01.json を読む。
+            # 要 VOICEVOX 起動（http://localhost:50021）。
+            try:
+                result = subprocess.run(
+                    [sys.executable, "make_story_audio.py", "story-01"],
+                    cwd=ROOT_DIR, capture_output=True, text=True, timeout=600,
+                )
+                log = ((result.stdout or "") + "\n" + (result.stderr or "")).strip()
+                if result.returncode == 0:
+                    self._send_json({"ok": True, "message": "音声生成 完了", "log": log[-3000:]})
+                else:
+                    self._send_json({"ok": False,
+                                     "message": "音声生成 失敗（VOICEVOX起動を確認）",
+                                     "log": log[-3000:]})
+            except subprocess.TimeoutExpired:
+                self._send_error_json(504, "音声生成がタイムアウトしました")
             except Exception as e:
                 self._send_error_json(500, str(e))
         else:

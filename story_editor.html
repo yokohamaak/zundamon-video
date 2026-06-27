@@ -211,7 +211,7 @@
   <h1>ストーリーエディタ</h1>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
-  <button class="btn btn-secondary" disabled title="次フェーズ（音声生成）">🔊 音声生成</button>
+  <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
   <button class="btn btn-secondary" disabled title="次フェーズ（書き出し）">🎬 書き出し</button>
   <span class="status" id="statusMsg"></span>
 </div>
@@ -1099,6 +1099,34 @@ async function saveStory() {
   }
 }
 
+// 音声生成（保存 → make_story_audio → story再読込 → 一覧/プレビュー更新）
+async function generateAudio() {
+  const btn = document.getElementById("btnAudio");
+  if (!confirm("VOICEVOX で音声生成します（数十秒〜）。VOICEVOXエンジンを起動済みか確認してください。")) return;
+  btn.disabled = true;
+  try {
+    await saveStory();                       // 最新を保存してから生成（make_story_audioは保存済みJSONを読む）
+    setStatus("", "音声生成中…（VOICEVOX）");
+    const r = await fetch("/api/audio", { method: "POST" });
+    const result = await r.json();
+    if (result.ok) {
+      const sres = await fetch("/api/story"); // 実尺/audioが入ったstoryを再読込
+      storyData = await sres.json();
+      renderList();
+      if (selectedIdx >= 0) selectTurn(selectedIdx);
+      if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(storyData);
+      setStatus("ok", "音声生成 完了");
+    } else {
+      setStatus("err", result.message || "音声生成 失敗");
+      alert((result.message || "音声生成 失敗") + "\n\n" + (result.log || ""));
+    }
+  } catch (e) {
+    setStatus("err", "音声生成 通信エラー/タイムアウト");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ============================================================
 // ユーティリティ
 // ============================================================
@@ -1118,6 +1146,7 @@ function setStatus(cls, msg) {
 // ============================================================
 function setupEvents() {
   document.getElementById("btnSave").addEventListener("click", saveStory);
+  document.getElementById("btnAudio").addEventListener("click", generateAudio);
   document.getElementById("btnAdd").addEventListener("click", addTurnAfter);
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
   document.getElementById("btnUp").addEventListener("click", moveUp);
