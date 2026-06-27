@@ -1334,8 +1334,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
       {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
           位置は最終カメラ基準で固定＝移動中も消えず動かない。インサートより前面。 */}
-      {showPrev ? renderBubble(prevTurn as StoryTurn, "bubble-prev") : null}
-      {renderBubble(active, "bubble-active")}
+      {/* チャット系インサート(teamchat/chat)中は内容が画面に出ているので吹き出しは出さない */}
+      {!(active.insert && (active.insert.kind === "teamchat" || active.insert.kind === "chat")) ? (
+        <>
+          {showPrev ? renderBubble(prevTurn as StoryTurn, "bubble-prev") : null}
+          {renderBubble(active, "bubble-active")}
+        </>
+      ) : null}
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}
       {telopText && telopOpacity > 0 ? (
