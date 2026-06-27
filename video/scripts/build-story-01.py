@@ -76,6 +76,7 @@ TURNS = [
 
 # 退場：turn番号(1始まり) → そのターンの end で退場するキャラ。
 EXIT_AT = {9: ["metan"]}  # 「留守番はまかせるのだ」の後、めたんが右へ退場
+EXIT_DIR = {9: "right"}   # 退場方向
 
 script = []
 cursor = 0.0
@@ -102,6 +103,8 @@ for i, row in enumerate(TURNS, 1):
         turn["pause"] = pause
     if i in EXIT_AT:
         turn["exit"] = EXIT_AT[i]
+    if i in EXIT_DIR:
+        turn["exitDir"] = EXIT_DIR[i]
     turn["start"] = round(cursor, 2)
     turn["end"] = round(cursor + dur, 2)
     script.append(turn)

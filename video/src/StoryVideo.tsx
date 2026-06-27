@@ -69,8 +69,10 @@ export type StoryTurn = {
   telop?: string;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
   pause?: number;
-  // 退場するキャラ。このターンの終わり（end）に自分の側へスライドアウトして以後は非表示。
+  // 退場するキャラ。このターンの終わり（end）にスライドアウトして以後は非表示。
   exit?: string[];
+  // 退場方向（"left"/"right"）。省略時は自分の居る側（近い画面端）へ。
+  exitDir?: "left" | "right";
   start: number;
   end: number;
   sentences?: StorySentence[];
@@ -244,6 +246,18 @@ function exitTimes(seg: Segment): Record<string, number> {
   return e;
 }
 
+// 各キャラの退場方向（turn.exitDir）。省略時は undefined（＝自分の居る側へ）。
+function exitDirs(seg: Segment): Record<string, "left" | "right"> {
+  const d: Record<string, "left" | "right"> = {};
+  for (const turn of seg.turns) {
+    if (!turn.exitDir) continue;
+    for (const c of turn.exit ?? []) {
+      if (isKnownChar(c)) d[c] = turn.exitDir;
+    }
+  }
+  return d;
+}
+
 // スライドイン/アウトにかける秒数。
 const SLIDE_DUR = 0.5;
 
@@ -328,6 +342,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const anchorOf = { ...assignAnchors(roster), ...(sceneDef.cast ?? {}) };
   const entrance = entranceTimes(seg);
   const exit = exitTimes(seg);
+  const exitDir = exitDirs(seg);
   // 表示中＝登場済み かつ（退場していない or 退場スライド中）。
   const presentNow = roster.filter(
     (c) =>
@@ -517,7 +532,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     if (leaving !== undefined && t >= leaving) {
       const sp = clamp((t - leaving) / SLIDE_DUR, 0, 1);
       const e = easeInOutCubic(sp);
-      const toXNorm = anchor.x < 0.5 ? -0.35 : 1.35; // 画面外（自分側）へ
+      // 退場方向：明示指定があればそちら、無ければ自分の居る側（近い端）へ。
+      const dir = exitDir[charId];
+      const toXNorm =
+        dir === "right" ? 1.35 : dir === "left" ? -0.35 : anchor.x < 0.5 ? -0.35 : 1.35;
       slideOffsetPx = e * (toXNorm - anchor.x) * width;
     }
 

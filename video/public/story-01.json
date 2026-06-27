@@ -168,7 +168,8 @@
       "exit": [
         "metan"
       ],
-      "pause": 1.2
+      "pause": 1.2,
+      "exitDir": "right"
     },
     {
       "id": "turn-0010",
