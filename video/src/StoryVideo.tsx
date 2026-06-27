@@ -152,6 +152,14 @@ const MOBS: Record<string, MobDef> = {
   },
 };
 const isMob = (id: string): boolean => id in MOBS;
+// セリフがインサート画面（チャット/AIチャット）に出ているターンか。
+// true のターンは吹き出しを出さない（画面と内容が重複するため）。
+function lineShownInInsert(turn: StoryTurn): boolean {
+  return (
+    !!turn.insert &&
+    (turn.insert.kind === "teamchat" || turn.insert.kind === "chat")
+  );
+}
 // 取り乱し系の表情なら agitated（焦り/怒り）、それ以外は normal。
 function mobImage(mobId: string, expression?: StoryExpression): string {
   const m = MOBS[mobId];
@@ -1334,13 +1342,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
       {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
           位置は最終カメラ基準で固定＝移動中も消えず動かない。インサートより前面。 */}
-      {/* チャット系インサート(teamchat/chat)中は内容が画面に出ているので吹き出しは出さない */}
-      {!(active.insert && (active.insert.kind === "teamchat" || active.insert.kind === "chat")) ? (
-        <>
-          {showPrev ? renderBubble(prevTurn as StoryTurn, "bubble-prev") : null}
-          {renderBubble(active, "bubble-active")}
-        </>
-      ) : null}
+      {/* セリフがチャット/AIチャット画面に出ているターンは吹き出しを出さない。
+          前後ターンも各自の insert 種別で判定し、遷移時のチラ見え漏れを防ぐ。 */}
+      {showPrev && !lineShownInInsert(prevTurn as StoryTurn)
+        ? renderBubble(prevTurn as StoryTurn, "bubble-prev")
+        : null}
+      {!lineShownInInsert(active) ? renderBubble(active, "bubble-active") : null}
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}
       {telopText && telopOpacity > 0 ? (
