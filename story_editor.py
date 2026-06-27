@@ -18,6 +18,13 @@ VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
 
+# StoryVideo.tsx の staticFile() が参照する video/public/ 配下のアセット。
+# /preview-assets/<path> として配信する（パストラバーサル防止付き）。
+# 許可するトップレベルディレクトリ名 or ファイル名の集合。
+_PREVIEW_ASSET_DIRS = {"avatars", "background", "mobs", "bgm", "se", "fonts"}
+_PREVIEW_ASSET_FILES = {"story-scenes.json", "noise.png", "story-01.wav", "story-01.mp3",
+                        "story.wav", "story.mp3"}
+
 # 話者一覧（StoryVideo.tsx の CHARACTERS / MOBS と二重管理。MVPのためハードコード）
 SPEAKERS = ["zundamon", "metan", "営業", "部長", "AI"]
 
@@ -102,6 +109,42 @@ def _safe_path(base_dir, relative):
     return path
 
 
+def _story_preview_asset_path(relative):
+    """Remotion Player 用アセットを video/public/ 内の許可パスから解決する。
+
+    StoryVideo.tsx の staticFile() が参照するファイルをすべてカバーする:
+      background/*.png  avatars/**  mobs/*.png  noise.png
+      story-scenes.json  story-01.wav/.mp3  bgm/*  se/*  fonts/*
+
+    パストラバーサル防止: video/public/ 外を指せない。
+    戻り値: 実ファイルパス or None（不正 / 存在しない場合）。
+    """
+    if not isinstance(relative, str):
+        return None
+    rel = unquote(relative).replace("\\", "/").strip("/")
+    if not rel or rel.startswith(".") or "/../" in ("/" + rel + "/"):
+        return None
+    parts = rel.split("/")
+    # 単ファイル（トップレベル）
+    if len(parts) == 1 and rel in _PREVIEW_ASSET_FILES:
+        pass  # 許可
+    # サブディレクトリ
+    elif parts[0] in _PREVIEW_ASSET_DIRS:
+        pass  # 許可
+    # avatars/manifest.json はトップレベルではないが許可
+    elif rel == "avatars/manifest.json":
+        pass
+    else:
+        return None
+    path = os.path.abspath(os.path.join(VIDEO_PUBLIC_DIR, rel))
+    try:
+        if os.path.commonpath([path, os.path.abspath(VIDEO_PUBLIC_DIR)]) != os.path.abspath(VIDEO_PUBLIC_DIR):
+            return None
+    except ValueError:
+        return None
+    return path if os.path.isfile(path) else None
+
+
 class StoryEditorHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         print(f"  {self.address_string()} {fmt % args}")
@@ -131,6 +174,38 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    _MIME = {
+        ".js": "text/javascript; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".wav": "audio/wav",
+        ".mp3": "audio/mpeg",
+        ".mp4": "video/mp4",
+        ".woff2": "font/woff2",
+        ".woff": "font/woff",
+        ".ttf": "font/ttf",
+    }
+
+    def _send_file(self, path, content_type=None):
+        """任意のファイルを返す。path が None または存在しない場合は 404。"""
+        if path is None or not os.path.isfile(path):
+            self._send_error_json(404, "Not Found")
+            return
+        if content_type is None:
+            ext = os.path.splitext(path)[1].lower()
+            content_type = self._MIME.get(ext, "application/octet-stream")
+        with open(path, "rb") as f:
+            body = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -146,6 +221,16 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+
+        elif path == "/story-player.js":
+            self._send_file(
+                os.path.join(VIDEO_PUBLIC_DIR, "story-player.js"),
+                "text/javascript; charset=utf-8",
+            )
+
+        elif path.startswith("/preview-assets/"):
+            rel = path[len("/preview-assets/"):]
+            self._send_file(_story_preview_asset_path(rel))
 
         elif path == "/api/story":
             try:

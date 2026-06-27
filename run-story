@@ -55,6 +55,10 @@ cmd_scene() { run "$PY scene_editor.py"; }
 # ストーリーエディタ（台本編集ツール）を起動。
 cmd_story() { run "$PY story_editor.py"; }
 
+# ストーリーエディタ用 Remotion Player を esbuild でビルド。
+# story_editor.py の起動前に1回実行する（中央ペインのプレビュー用）。
+cmd_player_build() { run "cd video && node scripts/build-story-player.mjs"; }
+
 # 本番フル: build → audio → render（VOICEVOX必要）。
 cmd_all() {
   cmd_build
@@ -72,26 +76,29 @@ cmd_help() {
   render        全体を書き出し → video/out/story.mp4
   still [N]     1フレームだけ静止画 → video/out/still-N.png（確認用）
   story         ストーリーエディタ(台本編集) を起動
+  player-build  エディタ用 Remotion Player をビルド（story の初回起動前に実行）
   scene         シーン編集ツール(anchor/scale) を起動
   all           build → audio → render（本番フル・VOICEVOX必要）
   help          この一覧
 
 セリフ/演出フラグを変えた時: build → audio →（必要なら）render
 配置/サイズだけ直す時:        scene で調整 → render
+初回 story エディタ起動前:    player-build を1回実行しておく
 EOF
 }
 
 # 引数あり → 直接実行
 if [ $# -gt 0 ]; then
   case "$1" in
-    build)  cmd_build ;;
-    audio)  cmd_audio ;;
-    dev)    cmd_dev ;;
-    render) cmd_render ;;
-    still)  cmd_still "$(z2h "${2:-0}")" ;;
-    story)  cmd_story ;;
-    scene)  cmd_scene ;;
-    all)    cmd_all ;;
+    build)         cmd_build ;;
+    audio)         cmd_audio ;;
+    dev)           cmd_dev ;;
+    render)        cmd_render ;;
+    still)         cmd_still "$(z2h "${2:-0}")" ;;
+    story)         cmd_story ;;
+    player-build)  cmd_player_build ;;
+    scene)         cmd_scene ;;
+    all)           cmd_all ;;
     help|-h|--help) cmd_help ;;
     *) echo "不明なコマンド: $1"; echo; cmd_help; exit 1 ;;
   esac
@@ -100,14 +107,15 @@ fi
 
 # 引数なし → 番号メニュー
 echo "=== ストーリー動画メニュー === (${STORY})"
-echo "  1) build    台本JSON生成（フラグ反映・仮タイミング）"
-echo "  2) audio    音声生成(VOICEVOX)＋実尺書き戻し"
-echo "  3) dev      Studioで全体プレビュー(HMR)"
-echo "  4) render   全体を書き出し → video/out/story.mp4"
-echo "  5) still    1フレーム静止画（フレーム番号を聞く）"
-echo "  6) story    ストーリーエディタ(台本編集)"
-echo "  7) scene    シーン編集ツール(anchor/scale)"
-echo "  8) all      build→audio→render（本番フル）"
+echo "  1) build         台本JSON生成（フラグ反映・仮タイミング）"
+echo "  2) audio         音声生成(VOICEVOX)＋実尺書き戻し"
+echo "  3) dev           Studioで全体プレビュー(HMR)"
+echo "  4) render        全体を書き出し → video/out/story.mp4"
+echo "  5) still         1フレーム静止画（フレーム番号を聞く）"
+echo "  6) story         ストーリーエディタ(台本編集)"
+echo "  7) player-build  エディタ用プレイヤーをビルド（初回story前に必要）"
+echo "  8) scene         シーン編集ツール(anchor/scale)"
+echo "  9) all           build→audio→render（本番フル）"
 echo "  0) help"
 read -rp "番号: " n
 n="$(z2h "$n")"
@@ -118,7 +126,8 @@ case "$n" in
   4) cmd_render ;;
   5) read -rp "フレーム番号: " f; cmd_still "$(z2h "$f")" ;;
   6) cmd_story ;;
-  7) cmd_scene ;;
-  8) cmd_all ;;
+  7) cmd_player_build ;;
+  8) cmd_scene ;;
+  9) cmd_all ;;
   0|*) cmd_help ;;
 esac

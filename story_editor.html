@@ -103,41 +103,28 @@
   .badge-insert { background: rgba(91,141,238,.2); color: var(--accent); }
   .badge-fx { background: rgba(251,191,36,.15); color: var(--yellow); }
 
-  /* ── 中央ペイン: プレビュー(プレースホルダ) ── */
+  /* ── 中央ペイン: Remotion Player ── */
   .pane-center {
     flex: 1; background: var(--bg);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    overflow: hidden; padding: 20px;
+    overflow: hidden; padding: 16px;
+    gap: 10px;
   }
-  .preview-frame {
-    width: 100%; max-width: 640px;
+  .preview-player-wrap {
+    width: 100%;
+    max-width: min(calc((100vh - 120px) * 16 / 9), 100%);
     aspect-ratio: 16/9;
-    background: #111;
+    background: #080a0f;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 12px;
-    color: var(--text2); font-size: 13px;
-    padding: 20px;
+    border-radius: 6px;
+    overflow: hidden;
     box-shadow: 0 4px 24px rgba(0,0,0,.5);
+    flex-shrink: 0;
   }
-  .preview-frame .preview-label {
-    font-size: 11px; color: var(--text2); margin-bottom: 4px;
-    text-align: center; opacity: .6;
-  }
-  .preview-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px 18px;
-    width: 100%; max-width: 400px;
-  }
-  .preview-card-speaker { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-  .preview-card-text { font-size: 14px; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
-  .preview-card-meta { font-size: 11px; color: var(--text2); display: flex; gap: 8px; flex-wrap: wrap; }
-  .preview-card-insert {
-    margin-top: 8px; font-size: 11px; color: var(--accent);
-    border-top: 1px solid var(--border); padding-top: 8px;
+  .preview-status {
+    font-size: 11px; color: var(--text2); text-align: center;
+    flex-shrink: 0;
   }
 
   /* ── 右ペイン: 詳細 ── */
@@ -243,17 +230,10 @@
     <div class="script-list" id="scriptList"></div>
   </div>
 
-  <!-- 中央ペイン: プレビュー（プレースホルダ） -->
+  <!-- 中央ペイン: Remotion Player -->
   <div class="pane-center">
-    <div class="preview-frame" id="previewFrame">
-      <div class="preview-label">プレビューは次フェーズ（Remotion Player 埋め込み予定）</div>
-      <div class="preview-card" id="previewCard" style="display:none">
-        <div class="preview-card-speaker" id="previewSpeaker"></div>
-        <div class="preview-card-text" id="previewText"></div>
-        <div class="preview-card-meta" id="previewMeta"></div>
-        <div class="preview-card-insert" id="previewInsert" style="display:none"></div>
-      </div>
-    </div>
+    <div class="preview-player-wrap" id="playerWrap"></div>
+    <div class="preview-status" id="playerStatus">story-player.js を読み込み中...</div>
   </div>
 
   <!-- 右ペイン: 詳細 -->
@@ -357,6 +337,8 @@ let storyData = null;    // story-01.json 全体 { title, audio, script, ... }
 let meta = null;         // /api/meta { speakers, speakerIcons, scenes, expressions, insertKinds }
 let selectedIdx = -1;    // 選択中ターンのインデックス
 let isDirty = false;     // 未保存変更フラグ
+let playerReady = false; // Remotion Player が mount 済みか
+let updateTimer = null;  // updateStory debounce タイマー
 
 // 話者→背景色（アイコン未設定時の色丸）
 const SPEAKER_COLORS = {
@@ -389,9 +371,65 @@ async function init() {
     buildMultiSpeakers();
     renderList();
     setupEvents();
+    initPlayer();
   } catch (e) {
     setStatus("err", "初期化失敗: " + e.message);
   }
+}
+
+// ============================================================
+// Remotion Player 初期化
+// ============================================================
+function initPlayer() {
+  const statusEl = document.getElementById("playerStatus");
+
+  function onPlayerApiReady() {
+    const wrap = document.getElementById("playerWrap");
+    statusEl.textContent = "Player を mount 中...";
+    window.storyPlayer.mount(wrap).then(() => {
+      playerReady = true;
+      statusEl.textContent = "";
+      // 選択中ターンがあればシーク
+      if (selectedIdx >= 0) seekPlayer(selectedIdx);
+    }).catch((err) => {
+      statusEl.textContent = "Player の初期化に失敗: " + err.message;
+    });
+  }
+
+  if (window.storyPlayer) {
+    // すでに story-player.js が読み込み済み
+    onPlayerApiReady();
+  } else {
+    window.addEventListener("story-player-ready", onPlayerApiReady, { once: true });
+    // story-player.js を動的に読み込む
+    const script = document.createElement("script");
+    script.src = "/story-player.js";
+    script.onerror = () => {
+      statusEl.textContent = "story-player.js の読み込みに失敗（ビルドが必要: node scripts/build-story-player.mjs）";
+    };
+    document.head.appendChild(script);
+  }
+}
+
+// 指定インデックスのターンへシーク。start が 0/未設定のターンは先頭(0)へ。
+function seekPlayer(idx) {
+  if (!playerReady || !window.storyPlayer) return;
+  const turn = storyData && storyData.script ? storyData.script[idx] : null;
+  if (!turn) return;
+  const sec = (turn.start && turn.start > 0) ? turn.start : 0;
+  window.storyPlayer.seekToTime(sec);
+}
+
+// storyData の変更を Player へ通知（debounce 150ms）。
+function notifyPlayerUpdate() {
+  if (!playerReady || !window.storyPlayer) return;
+  if (updateTimer) clearTimeout(updateTimer);
+  updateTimer = setTimeout(() => {
+    if (window.storyPlayer && storyData) {
+      window.storyPlayer.updateStory(storyData);
+    }
+    updateTimer = null;
+  }, 150);
 }
 
 // ============================================================
@@ -554,7 +592,7 @@ function selectTurn(idx) {
   selectedIdx = idx;
   renderList();
   renderDetail();
-  renderPreview();
+  seekPlayer(idx);
 }
 
 // ============================================================
@@ -892,7 +930,7 @@ function collectBasic() {
 
   markDirty();
   renderList(); // バッジ等を更新
-  renderPreview();
+  notifyPlayerUpdate();
 }
 
 function collectInsert() {
@@ -904,7 +942,7 @@ function collectInsert() {
     delete turn.insert;
     markDirty();
     renderList();
-    renderPreview();
+    notifyPlayerUpdate();
     return;
   }
 
@@ -939,44 +977,7 @@ function collectInsert() {
   turn.insert = ins;
   markDirty();
   renderList();
-  renderPreview();
-}
-
-// ============================================================
-// プレビューカード更新
-// ============================================================
-function renderPreview() {
-  const card = document.getElementById("previewCard");
-  if (selectedIdx < 0 || selectedIdx >= storyData.script.length) {
-    card.style.display = "none";
-    return;
-  }
-  card.style.display = "";
-  const turn = storyData.script[selectedIdx];
-  document.getElementById("previewSpeaker").textContent = turn.speaker;
-  document.getElementById("previewText").textContent = turn.text;
-
-  const meta2 = [];
-  if (turn.scene) meta2.push("scene: " + turn.scene);
-  if (turn.expression) meta2.push("expr: " + turn.expression);
-  if (turn.emphasis) meta2.push("emphasis");
-  if (turn.shake) meta2.push("shake");
-  if (turn.flashback) meta2.push("flashback");
-  document.getElementById("previewMeta").textContent = meta2.join(" / ");
-
-  const insertEl = document.getElementById("previewInsert");
-  if (turn.insert) {
-    insertEl.style.display = "";
-    const ins = turn.insert;
-    let desc = "insert: " + ins.kind;
-    if (ins.kind === "warning") desc += ` "${ins.text || ""}"`;
-    else if (ins.kind === "ok") desc += ins.text ? ` "${ins.text}"` : "";
-    else if (ins.kind === "chat") desc += ` (ai: ${(ins.ai || []).length} 件)`;
-    else if (ins.kind === "teamchat") desc += ` #${ins.channel || ""} (${(ins.messages || []).length} msgs)`;
-    insertEl.textContent = desc;
-  } else {
-    insertEl.style.display = "none";
-  }
+  notifyPlayerUpdate();
 }
 
 // ============================================================
@@ -1000,7 +1001,8 @@ function addTurnAfter() {
   selectedIdx = insertAt;
   renderList();
   renderDetail();
-  renderPreview();
+  notifyPlayerUpdate();
+  seekPlayer(selectedIdx);
 }
 
 function deleteTurn() {
@@ -1012,7 +1014,8 @@ function deleteTurn() {
   markDirty();
   renderList();
   renderDetail();
-  renderPreview();
+  notifyPlayerUpdate();
+  seekPlayer(selectedIdx);
 }
 
 function moveUp() {
@@ -1024,7 +1027,8 @@ function moveUp() {
   selectedIdx--;
   markDirty();
   renderList();
-  renderPreview();
+  notifyPlayerUpdate();
+  seekPlayer(selectedIdx);
 }
 
 function moveDown() {
@@ -1036,7 +1040,8 @@ function moveDown() {
   selectedIdx++;
   markDirty();
   renderList();
-  renderPreview();
+  notifyPlayerUpdate();
+  seekPlayer(selectedIdx);
 }
 
 function generateId(script) {
@@ -1140,7 +1145,7 @@ function setupEvents() {
     renderInsertFields(turn.insert || null);
     markDirty();
     renderList();
-    renderPreview();
+    notifyPlayerUpdate();
   });
 }
 
