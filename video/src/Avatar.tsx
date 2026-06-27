@@ -16,15 +16,30 @@ import type { Emotion, Gender } from "./types";
 // ・expressive(ずんだもん)は驚き等でオーバーアクション
 // を行う。
 //
+// 重ね順: base → cheek(顔色) → arm → brow(眉) → eye → mouth → fx
+//
 // 必要パーツ（assets/avatars/<キャラ>/、stem名で参照）:
-//   base                         … 口・目を除いた土台（必須）
+//   base                               … 口・目・眉・顔色を除いた土台（必須）
+//   cheek_<id>                         … 顔色（Stage1から追加）
+//   arm_normal / arm_raise             … 腕（zundaのみ）
+//   brow_<id>                          … 眉（Stage1から追加）
+//   eye_open / eye_close / eye_<id>    … 目の開閉（まばたき）
 //   mouth_close / mouth_half / mouth_open … 口の開き3段（リップシンク）
-//   eye_open / eye_close         … 目の開閉（まばたき）
-//   eye_surprise / eye_smile     … 任意。驚き/笑顔の目差分
-//   fx_surprise / fx_sweat       … 任意。びっくりマーク等の効果オーバーレイ
+//   fx_<id>                            … 任意。効果オーバーレイ
 // パーツが無いキャラは従来の単一画像(gender_open/close)へ自動フォールバック。
 
 type Manifest = Record<string, string>;
+
+// 表情設定（expressions.json の 1エントリ）。
+export type ExpressionCfg = {
+  brow: string | null;
+  cheek: string | null;
+  eye: string;
+  mouth_close: string;
+  mouth_half: string;
+  mouth_open: string;
+  fx: string | null;
+};
 
 // 焦り(panic)時に追加する汗ドロップの位置（キャラ別・キャンバス比%）。
 // 元の汗の位置を基準に、目に被らない側へずらす。
@@ -80,6 +95,9 @@ export const Avatar: React.FC<{
   // 全身立ち絵ではキャンバスのアスペクト比に合わせた値を渡す。
   boxWidth?: number;
   boxHeight?: number;
+  // 表情設定（expressions.json の該当エントリ）。
+  // 指定がなければ旧来の emotion ベースのフォールバック挙動。
+  expressionCfg?: ExpressionCfg | null;
 }> = ({
   dir,
   manifest,
@@ -94,6 +112,7 @@ export const Avatar: React.FC<{
   popScale = true,
   boxWidth = 445,
   boxHeight = 445,
+  expressionCfg,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -205,58 +224,108 @@ export const Avatar: React.FC<{
     return fn ? staticFile(`avatars/${dir}/${fn}`) : null;
   };
 
-  // 口：発話者は音量で開き具合を決定。非発話者は待機口(mouth_idle、無ければmouth_close)。
-  // happy(笑顔)は専用の笑顔口に置換（閉じ=mouth_smile_close / 開き=mouth_smile_open）。
-  const isHappy = emotion === "happy";
+  // ── expressionCfg が指定されているか否かで分岐 ──
+  const hasCfg = expressionCfg != null;
+
+  // ── 口の選択 ──
   let mouthSrc: string | null;
-  if (!active) {
-    mouthSrc =
-      (isHappy ? part("mouth_smile_close") : null) ||
-      part("mouth_idle") ||
-      part("mouth_close");
+  if (hasCfg) {
+    const cfg = expressionCfg!;
+    // amplitude → level → cfg.mouth_<level> id → stem
+    let level: "close" | "half" | "open" = "close";
+    if (active) {
+      if (amplitude >= MOUTH_OPEN) level = "open";
+      else if (amplitude >= MOUTH_HALF) level = "half";
+    }
+    const mouthId = cfg[`mouth_${level}` as "mouth_close" | "mouth_half" | "mouth_open"];
+    // stem 名: mouth_<id>（例: mouth_close, mouth_smile_close 等）
+    mouthSrc = part(`mouth_${mouthId}`) || part("mouth_close") || null;
   } else {
-    let mouthStem = "mouth_close";
-    if (amplitude >= MOUTH_OPEN) mouthStem = "mouth_open";
-    else if (amplitude >= MOUTH_HALF) mouthStem = "mouth_half";
-    if (isHappy) {
-      // 開き口(half/open)=笑い口、閉じ口(語間/待機)=ニコ口。無ければ通常口へフォールバック。
-      const happyStem =
-        mouthStem === "mouth_close" ? "mouth_smile_close" : "mouth_smile_open";
+    // 旧来の emotion ベース（後方互換）
+    const isHappy = emotion === "happy";
+    if (!active) {
       mouthSrc =
-        part(happyStem) || part(mouthStem) || part("mouth_close") || part("mouth_open");
+        (isHappy ? part("mouth_smile_close") : null) ||
+        part("mouth_idle") ||
+        part("mouth_close");
     } else {
-      mouthSrc = part(mouthStem) || part("mouth_close") || part("mouth_open");
+      let mouthStem = "mouth_close";
+      if (amplitude >= MOUTH_OPEN) mouthStem = "mouth_open";
+      else if (amplitude >= MOUTH_HALF) mouthStem = "mouth_half";
+      if (isHappy) {
+        const happyStem =
+          mouthStem === "mouth_close" ? "mouth_smile_close" : "mouth_smile_open";
+        mouthSrc =
+          part(happyStem) || part(mouthStem) || part("mouth_close") || part("mouth_open");
+      } else {
+        mouthSrc = part(mouthStem) || part("mouth_close") || part("mouth_open");
+      }
     }
   }
 
-  // 目：感情差分 > まばたき > 通常。
+  // ── 目の選択 ──
   const phase = hash(dir!) % BLINK_CYCLE;
   const blinking = (frame + phase) % BLINK_CYCLE >= BLINK_CYCLE - BLINK_DUR;
-  // happy(笑顔)は閉じ笑顔目(eye_happy=^^)を区間中ずっと表示する（参照画像に準拠）。
-  // 閉じ目なのでまばたきは無効（happy分岐が先に確定し、下のblink分岐に入らない）。
-  // eye_happy 未配置キャラは従来挙動（eye_smileを一瞬だけ）にフォールバック。
   const EYE_SMILE_DUR = Math.round(fps * 1.0);
   const smileFresh = reactT >= 0 && reactT < EYE_SMILE_DUR;
-  let eyeStem = "eye_open";
-  if (emotion === "surprise" && part("eye_surprise")) eyeStem = "eye_surprise";
-  // 困り(trouble→sadにマップされる): 専用の困り目があれば使う。無ければ通常目にフォールバック。
-  else if (emotion === "sad" && part("eye_trouble")) eyeStem = "eye_trouble";
-  // 焦り(panic): 専用の困り目が無ければ見開き目で慌てた表情に寄せる。
-  else if (emotion === "panic" && (part("eye_trouble") || part("eye_surprise")))
-    eyeStem = part("eye_trouble") ? "eye_trouble" : "eye_surprise";
-  else if (emotion === "happy" && part("eye_happy")) eyeStem = "eye_happy";
-  else if (emotion === "happy" && smileFresh && part("eye_smile")) eyeStem = "eye_smile";
-  else if (blinking && part("eye_close")) eyeStem = "eye_close";
+
+  let eyeStem: string;
+  if (hasCfg) {
+    const cfg = expressionCfg!;
+    // cfg.eye を基本に、eye==="open" の時だけまばたきで "close" に差し替え。
+    const baseEyeId = cfg.eye;
+    if (baseEyeId === "open" && blinking) {
+      eyeStem = "eye_close";
+    } else {
+      eyeStem = `eye_${baseEyeId}`;
+    }
+  } else {
+    // 旧来の emotion ベース（後方互換）
+    eyeStem = "eye_open";
+    if (emotion === "surprise" && part("eye_surprise")) eyeStem = "eye_surprise";
+    else if (emotion === "sad" && part("eye_trouble")) eyeStem = "eye_trouble";
+    else if (emotion === "panic" && (part("eye_trouble") || part("eye_surprise")))
+      eyeStem = part("eye_trouble") ? "eye_trouble" : "eye_surprise";
+    else if (emotion === "happy" && part("eye_happy")) eyeStem = "eye_happy";
+    else if (emotion === "happy" && smileFresh && part("eye_smile")) eyeStem = "eye_smile";
+    else if (blinking && part("eye_close")) eyeStem = "eye_close";
+  }
   const eyeSrc = part(eyeStem) || part("eye_open");
 
-  // 効果オーバーレイ。驚き=一瞬だけ / 焦り(panic)=汗を出し続ける。
-  // panic は専用 fx_sweat があれば使い、無ければ fx_surprise(=汗ドロップ)を流用。
+  // ── fx（効果オーバーレイ）の選択 ──
+  // タイミングロジックは旧来どおり emotion で分岐。表示する画像は cfg.fx から引く。
   const showFxSurprise =
     emotion === "surprise" && reactT >= 0 && reactT < REACT_DUR;
-  const fxSrc = showFxSurprise
-    ? part("fx_surprise")
-    : emotion === "panic"
-    ? part("fx_sweat") || part("fx_surprise")
+
+  let fxSrc: string | null;
+  if (hasCfg) {
+    const cfg = expressionCfg!;
+    if (showFxSurprise) {
+      // surprise 反応中のみ fx を出す（cfg.fx が null でも出さない）
+      fxSrc = cfg.fx ? part(`fx_${cfg.fx}`) : null;
+    } else if (emotion === "panic") {
+      // panic は継続して fx を出す
+      fxSrc = cfg.fx ? part(`fx_${cfg.fx}`) : null;
+    } else {
+      fxSrc = null;
+    }
+  } else {
+    // 旧来の emotion ベース（後方互換）
+    fxSrc = showFxSurprise
+      ? part("fx_surprise")
+      : emotion === "panic"
+      ? part("fx_sweat") || part("fx_surprise")
+      : null;
+  }
+
+  // ── cheek（顔色）の解決 ──
+  const cheekSrc = hasCfg && expressionCfg!.cheek
+    ? part(`cheek_${expressionCfg!.cheek}`) || null
+    : null;
+
+  // ── brow（眉）の解決 ──
+  const browSrc = hasCfg && expressionCfg!.brow
+    ? part(`brow_${expressionCfg!.brow}`) || null
     : null;
 
   const surprised = emotion === "surprise";
@@ -280,10 +349,13 @@ export const Avatar: React.FC<{
   if (surprised && part("arm_raise")) armStem = "arm_raise";
   const armSrc = part(armStem);
 
+  // ③ 重ね順: base → cheek → arm → brow → eye → mouth → fx
   return wrap(
     <>
       {layer(part("base")!, "base")}
+      {cheekSrc ? layer(cheekSrc, "cheek") : null}
       {armSrc ? layer(armSrc, "arm") : null}
+      {browSrc ? layer(browSrc, "brow") : null}
       {eyeSrc ? layer(eyeSrc, "eye") : null}
       {mouthSrc ? layer(mouthSrc, "mouth") : null}
       {fxSrc ? layer(fxSrc, "fx") : null}
@@ -291,7 +363,7 @@ export const Avatar: React.FC<{
           位置はキャラごと（目に被らないよう調整）。dx/dyはキャンバス比%。 */}
       {emotion === "panic" && fxSrc
         ? (SWEAT_EXTRA[dir ?? ""] ?? []).map((o, i) =>
-            layer(fxSrc, `fx-${i}`, {
+            layer(fxSrc!, `fx-${i}`, {
               transform: `translate(${o.dx}%, ${o.dy}%) scale(${o.s})`,
             })
           )

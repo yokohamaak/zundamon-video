@@ -10,6 +10,7 @@ import {
 } from "remotion";
 import { useWindowedAudioData } from "@remotion/media-utils";
 import { Avatar } from "./Avatar";
+import type { ExpressionCfg } from "./Avatar";
 import type { Emotion, Gender } from "./types";
 
 // ─── PC画面インサート型定義 ──────────────────────────────────
@@ -172,11 +173,15 @@ function mobImage(mobId: string, expression?: StoryExpression): string {
 
 type Manifest = Record<string, Record<string, string>>;
 
+// expressions.json の型（キャラ→表情名→ExpressionCfg）
+export type ExpressionsMap = Record<string, Record<string, ExpressionCfg>>;
+
 export type StoryVideoProps = {
   story: StoryScript;
   scenes: SceneLibrary;
   manifest?: Manifest;
   audio?: string; // 音声ファイル（public配下・任意）
+  expressions?: ExpressionsMap; // expressions.json（省略時は旧来の emotion ベース）
 };
 
 // 立ち絵ボックスサイズ。バスト用は 445×445（Avatar の既定値と同じ）。
@@ -969,6 +974,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   scenes,
   manifest,
   audio,
+  expressions,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -1188,6 +1194,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const flip = want === "right";
     const emotion = EXPRESSION_TO_EMOTION[active.expression ?? "normal"];
 
+    // expressions.json が渡されていれば該当表情の ExpressionCfg を解決する。
+    const exprKey = active.expression ?? "normal";
+    const charKey = cdef.avatar; // "zundamon" / "metan"
+    const expressionCfg = expressions?.[charKey]?.[exprKey] ?? null;
+
     // 全身 or バスト の判定。figure="full" のとき全身パーツを使う。
     const isFull = (sceneDef.figure ?? "bust") === "full";
     const avatarDir = isFull ? `${cdef.avatar}/full` : cdef.avatar;
@@ -1244,6 +1255,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             popScale={false}
             boxWidth={box.w}
             boxHeight={box.h}
+            expressionCfg={isSpeaker ? expressionCfg : (expressions?.[charKey]?.["normal"] ?? null)}
           />
         </div>
       </div>

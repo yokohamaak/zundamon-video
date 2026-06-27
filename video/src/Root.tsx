@@ -22,7 +22,14 @@ async function loadStory(): Promise<StoryVideoProps> {
   } catch {
     // manifest 未生成でも単一画像フォールバックで描画継続
   }
-  return { story, scenes, manifest, audio: story.audio };
+  let expressions: import("./StoryVideo").ExpressionsMap | undefined;
+  try {
+    const eres = await fetch(staticFile("expressions.json"));
+    if (eres.ok) expressions = await eres.json();
+  } catch {
+    // expressions.json 未配置時は旧来の emotion ベースにフォールバック
+  }
+  return { story, scenes, manifest, audio: story.audio, expressions };
 }
 
 export const FPS = 30;

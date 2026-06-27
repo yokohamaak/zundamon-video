@@ -99,6 +99,24 @@ for (const [sub, exts, label] of [
   console.log(`[prep-story] avatar manifest: ${Object.keys(manifest).length}キャラ`);
 }
 
+// expressions.json を public/ にコピー（public/ 直置き・git追跡済み）。
+// すでに public/expressions.json にある場合はそのまま使う（上書きしない）。
+{
+  const exprSrc = resolve(pubDir, "expressions.json");
+  if (existsSync(exprSrc)) {
+    console.log("[prep-story] expressions.json は public/ に存在します（コピー不要）");
+  } else {
+    // assets/expressions.json があればコピー（将来の移動先対応）
+    const exprAssets = resolve(root, "assets", "expressions.json");
+    if (existsSync(exprAssets)) {
+      copyFileSync(exprAssets, exprSrc);
+      console.log("[prep-story] copied expressions.json from assets/");
+    } else {
+      console.warn("[prep-story] expressions.json が見つかりません（public/ にも assets/ にもなし）");
+    }
+  }
+}
+
 // 固定入力の存在チェック（無ければ警告のみ。描画側でも未登録fallbackする）。
 for (const f of ["story-sample.json", "story-scenes.json"]) {
   if (!existsSync(resolve(pubDir, f))) {

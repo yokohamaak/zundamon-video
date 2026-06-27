@@ -13,36 +13,100 @@ import { resolve } from "node:path";
 initializeCanvas(createCanvas);
 const root = resolve(import.meta.dirname, "..");
 
-// キャラごとの設定。BODY=腕/口/目を含まない土台。build=確定マッピング。
+// ─── スロット定義（眉/顔色の独立パーツ化。Stage1） ──────────────
+// id=ASCII スラッグ、layer=PSD パス配列。
+// expressions.json の id と一致させること。
+const SLOTS = {
+  zundamon: {
+    cheek: {
+      hoppe:     [["!顔色", "*ほっぺ"]],
+      hoppe2:    [["!顔色", "*ほっぺ2"]],
+      hoppe_red: [["!顔色", "*ほっぺ赤め"]],
+      pale:      [["!顔色", "*青ざめ"]],
+      shadow:    [["!顔色", "かげり"]],
+    },
+    brow: {
+      normal:    [["!眉", "*普通眉"]],
+      worry1:    [["!眉", "*困り眉1"]],
+      worry2:    [["!眉", "*困り眉2"]],
+      up:        [["!眉", "*上がり眉"]],
+      angry:     [["!眉", "*怒り眉"]],
+    },
+    eye: {
+      open:     [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
+      close:    [["!目", "*UU"]],
+      surprise: [["!目", "*〇〇"]],
+      smile:    [["!目", "*にっこり"]],
+      happy:    [["!目", "*にっこり"]],
+    },
+    mouth: {
+      close:       [["!口", "*むー"]],
+      half:        [["!口", "*ほあ"]],
+      open:        [["!口", "*ほあー"]],
+      smile_close: [["!口", "*むふ"]],
+      smile_open:  [["!口", "*ほあー"]],
+    },
+    fx: {
+      sweat1: [["記号など", "汗1"]],
+      sweat2: [["記号など", "汗2"]],
+      sweat3: [["記号など", "汗3"]],
+    },
+  },
+  metan: {
+    cheek: {
+      normal:   [["!顔色", "*普通"]],
+      normal2:  [["!顔色", "*普通2"]],
+      blush:    [["!顔色", "*赤面"]],
+      pale:     [["!顔色", "*青ざめ"]],
+      shadow:   [["!顔色", "かげり"]],
+    },
+    brow: {
+      gokigen:      [["!眉", "*ごきげん"]],
+      komari:       [["!眉", "*こまり"]],
+      oko:          [["!眉", "*おこ"]],
+      yayaoko:      [["!眉", "*ややおこ"]],
+      futo_gokigen: [["!眉", "*太眉ごきげん"]],
+      futo_komari:  [["!眉", "*太眉こまり"]],
+      futo_oko:     [["!眉", "*太眉おこ"]],
+    },
+    eye: {
+      open:     [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
+      close:    [["!目", "*目閉じ"]],
+      surprise: [["!目", "*○○"]],
+      smile:    [["!目", "*目閉じ2"]],
+      happy:    [["!目", "*目閉じ"]],
+    },
+    mouth: {
+      close:       [["!口", "*ほほえみ"]],
+      half:        [["!口", "*お"]],
+      open:        [["!口", "*わあー"]],
+      smile_close: [["!口", "*ほほえみ"]],
+      smile_open:  [["!口", "*わあー"]],
+    },
+    fx: {
+      sweat: [["記号など", "汗"]],
+    },
+  },
+};
+
+// キャラごとの設定。body=眉・顔色を含まない土台レイヤー群。
 const CHARS = {
   zundamon: {
     psd: "assets/avatars/zundamon/source/zunda_2.3.psd",
     // バストアップのクロップ（全部位共通＝重ねれば位置が合う）。手挙げ時の手も収まる範囲。
     crop: { x: 140, y: 90, w: 820, h: 780 },
+    // body: 眉(!眉)と顔色(!顔色)を除いた土台。cheek/brow は SLOTS から書き出す。
     body: [
       ["尻尾的なアレ"],
       ["*服装1", "*いつもの服"],
       ["!枝豆", "*枝豆通常"],
-      ["!顔色", "*ほっぺ"],
-      ["!眉", "*普通眉"],
+      // 注: 以前の body には ["!顔色","*ほっぺ"] と ["!眉","*普通眉"] が含まれていたが
+      // Stage1 以降は cheek/brow を SLOTS から独立書き出しするため除去。
     ],
-    build: {
-      base: "BODY",
+    // arm: body とは別に書き出す腕パーツ（zundaのみ）。
+    arm: {
       arm_normal: [["*服装1", "!左腕", "*基本"], ["*服装1", "!右腕", "*基本"]],
-      arm_raise: [["*服装1", "!左腕", "*手を挙げる"], ["*服装1", "!右腕", "*手を挙げる"]],
-      mouth_close: [["!口", "*むー"]],
-      mouth_half: [["!口", "*ほあ"]],
-      mouth_open: [["!口", "*ほあー"]],
-      // happy(笑顔)用の口。閉じ=むふ(ニコ)、開き=ほあー(口開き)。リップシンクで出し分ける。
-      mouth_smile_close: [["!口", "*むふ"]],
-      mouth_smile_open: [["!口", "*ほあー"]],
-      eye_open: [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
-      eye_close: [["!目", "*UU"]],
-      eye_surprise: [["!目", "*〇〇"]],
-      eye_smile: [["!目", "*にっこり"]],
-      // happy(笑顔)用の閉じ笑顔目(^^)。happy中ずっと表示する。
-      eye_happy: [["!目", "*にっこり"]],
-      fx_surprise: [["記号など", "汗1"]],
+      arm_raise:  [["*服装1", "!左腕", "*手を挙げる"], ["*服装1", "!右腕", "*手を挙げる"]],
     },
     previewMouths: ["*むー", "*んー", "*△", "*ほあ", "*ほー", "*ほあー", "*お", "*おほお"],
     previewEyes: {
@@ -56,35 +120,19 @@ const CHARS = {
     psd: "assets/avatars/metan/source/metan_2.1.psd",
     crop: { x: 110, y: 30, w: 840, h: 800 },
     // 先生役: 腕差分なし。腕(普通)を土台に焼き込む。
+    // 眉(!眉)と顔色(!顔色)は SLOTS から独立書き出しするため body から除去。
     body: [
       ["ツインドリル右"],
       ["ツインドリル左"],
       ["*白ロリ服", "!体"],
       ["*白ロリ服", "!右腕", "*普通"],
       ["*白ロリ服", "!左腕", "*普通"],
-      ["!顔色", "*普通2"],
-      ["!眉", "*太眉ごきげん"],
+      // 注: 以前は ["!顔色","*普通2"] と ["!眉","*太眉ごきげん"] を body に含んでいたが除去。
       ["!前髪もみあげ"],
       ["頭部アクセサリ", "ヘッドドレス"],
       ["頭部アクセサリ", "髪留めハート"],
     ],
-    build: {
-      base: "BODY",
-      // 閉じ口は発話中の語間/待機の両方で使う。への字を避け常に口角UP(ほほえみ)。
-      mouth_close: [["!口", "*ほほえみ"]],
-      mouth_half: [["!口", "*お"]],
-      mouth_open: [["!口", "*わあー"]],
-      // happy(笑顔)用の口。閉じ=ほほえみ(微笑)、開き=わあー(口開き)。
-      mouth_smile_close: [["!口", "*ほほえみ"]],
-      mouth_smile_open: [["!口", "*わあー"]],
-      eye_open: [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
-      eye_close: [["!目", "*目閉じ"]],
-      eye_surprise: [["!目", "*○○"]],
-      eye_smile: [["!目", "*目閉じ2"]],
-      // happy(笑顔)用の閉じ笑顔目。happy中ずっと表示する。
-      eye_happy: [["!目", "*目閉じ"]],
-      fx_surprise: [["記号など", "汗"]],
-    },
+    arm: {}, // metan は腕なし（body に内包）
     previewMouths: ["*む", "*んー", "*△", "*ほほえみ", "*お", "*わあー", "*▽", "*いー"],
     previewEyes: {
       "目セット普通": [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
@@ -171,6 +219,44 @@ function opaqueBbox(canvas) {
   return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
 }
 
+// expressions.json から指定キャラの全表情で実際に使われている id を slot ごとに集計する。
+function collectUsedIds(charKey) {
+  const exprsPath = resolve(root, "public", "expressions.json");
+  const exprs = JSON.parse(readFileSync(exprsPath, "utf8"));
+  const charExprs = exprs[charKey];
+  if (!charExprs) return {};
+  const used = {}; // { slot: Set<id> }
+  for (const exprCfg of Object.values(charExprs)) {
+    if (exprCfg.brow) {
+      if (!used.brow) used.brow = new Set();
+      used.brow.add(exprCfg.brow);
+    }
+    if (exprCfg.cheek) {
+      if (!used.cheek) used.cheek = new Set();
+      used.cheek.add(exprCfg.cheek);
+    }
+    if (exprCfg.eye) {
+      if (!used.eye) used.eye = new Set();
+      used.eye.add(exprCfg.eye);
+      // まばたきで "open" → "close" に差し替えるため、eye=open の場合は close も必要
+      if (exprCfg.eye === "open") used.eye.add("close");
+    }
+    // mouth_close / mouth_half / mouth_open
+    for (const level of ["mouth_close", "mouth_half", "mouth_open"]) {
+      const id = exprCfg[level];
+      if (id) {
+        if (!used.mouth) used.mouth = new Set();
+        used.mouth.add(id);
+      }
+    }
+    if (exprCfg.fx) {
+      if (!used.fx) used.fx = new Set();
+      used.fx.add(exprCfg.fx);
+    }
+  }
+  return used;
+}
+
 const BODY = cfg.body;
 
 if (mode === "preview") {
@@ -187,29 +273,75 @@ if (mode === "preview") {
 
 if (mode === "build") {
   const dir = resolve(root, `assets/avatars/${charName}`);
-  for (const [stem, sel] of Object.entries(cfg.build)) {
-    const paths = sel === "BODY" ? BODY : sel;
+  const slots = SLOTS[charName];
+  const usedIds = collectUsedIds(charName);
+
+  // base（眉/顔色なし）
+  writeFileSync(resolve(dir, "base.png"), compose(BODY));
+  console.log(`[build] ${charName}/base.png`);
+
+  // arm（zundaのみ）
+  for (const [stem, paths] of Object.entries(cfg.arm || {})) {
     writeFileSync(resolve(dir, `${stem}.png`), compose(paths));
     console.log(`[build] ${charName}/${stem}.png`);
   }
-  console.log(`[build] ${Object.keys(cfg.build).length}部位を書き出し: ${dir}`);
+
+  // 各スロット：使用 id のみ書き出す
+  for (const slot of ["cheek", "brow", "eye", "mouth", "fx"]) {
+    const slotDef = slots[slot];
+    if (!slotDef) continue;
+    const usedSet = usedIds[slot] ?? new Set();
+    for (const id of usedSet) {
+      const layerPaths = slotDef[id];
+      if (!layerPaths) {
+        console.warn(`[build] WARN: ${charName} ${slot}/${id} が SLOTS に未定義`);
+        continue;
+      }
+      // mouth_* は既存 stem 名互換: mouth_<id>.png
+      // eye_* / brow_* / cheek_* / fx_* も同様
+      const stem = `${slot}_${id}`;
+      writeFileSync(resolve(dir, `${stem}.png`), compose(layerPaths));
+      console.log(`[build] ${charName}/${stem}.png`);
+    }
+  }
+
+  const total = 1 + Object.keys(cfg.arm || {}).length +
+    ["cheek", "brow", "eye", "mouth", "fx"].reduce((n, slot) => {
+      return n + (usedIds[slot]?.size ?? 0);
+    }, 0);
+  console.log(`[build] done: ${total}部位 → ${dir}`);
 }
 
 if (mode === "build-full") {
-  // step1: 全buildパーツの不透明領域のunion bboxを算出
+  const slots = SLOTS[charName];
+  const usedIds = collectUsedIds(charName);
+
+  // 全パーツを収集（bbox算出のため）
+  // base + arm + 各スロットの使用パーツ
+  const allParts = [];
+  allParts.push({ stem: "base", paths: BODY });
+  for (const [stem, paths] of Object.entries(cfg.arm || {})) {
+    allParts.push({ stem, paths });
+  }
+  for (const slot of ["cheek", "brow", "eye", "mouth", "fx"]) {
+    const slotDef = slots[slot];
+    if (!slotDef) continue;
+    const usedSet = usedIds[slot] ?? new Set();
+    for (const id of usedSet) {
+      const layerPaths = slotDef[id];
+      if (!layerPaths) continue;
+      allParts.push({ stem: `${slot}_${id}`, paths: layerPaths });
+    }
+  }
+
+  // step1: 全パーツの不透明領域 union bbox を算出（base 合成込みで計算）
   console.log(`[build-full] ${charName}: 全パーツbbox算出中...`);
   let uMinX = W, uMinY = H, uMaxX = 0, uMaxY = 0;
-  const allParts = [];
-  for (const [stem, sel] of Object.entries(cfg.build)) {
-    allParts.push({ stem, sel });
-  }
-  // union bbox計算：bbox算出は土台込み([...BODY,...sel])で合成し、全身の最大範囲を得る。
-  // （※書き出しは別。パーツ単体で出す＝下のstep2）
-  for (const { stem, sel } of allParts) {
-    const paths = sel === "BODY" ? BODY : [...BODY, ...sel];
+  for (const { stem, paths } of allParts) {
+    const compPaths = paths === BODY ? BODY : [...BODY, ...paths];
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext("2d");
-    for (const p of paths) {
+    for (const p of compPaths) {
       const l = find(p);
       if (l.canvas) ctx.drawImage(l.canvas, l.left || 0, l.top || 0);
     }
@@ -227,22 +359,19 @@ if (mode === "build-full") {
   const fullCrop = { x: uMinX, y: uMinY, w: uMaxX - uMinX + 1, h: uMaxY - uMinY + 1 };
   console.log(`[build-full] union bbox: x=${fullCrop.x} y=${fullCrop.y} w=${fullCrop.w} h=${fullCrop.h}`);
 
-  // step2: 全パーツを同一cropで書き出す。
-  // ★重要: bustのbuildと同様、書き出しはパーツ単体(sel)。baseのみBODY。
-  //   土台を含めて出すと eye/mouth が全身フル絵になり、重ねたとき下を塗り潰して
-  //   目や口が消える（のっぺらぼう）。base(顔空白) + eye(目だけ) + mouth(口だけ) を重ねる前提。
+  // step2: 全パーツを同一cropで書き出す（パーツ単体で書き出す＝重ね合わせ前提）。
   const dir = resolve(root, `assets/avatars/${charName}/full`);
   mkdirSync(dir, { recursive: true });
   const stems = [];
-  for (const { stem, sel } of allParts) {
-    const paths = sel === "BODY" ? BODY : sel;
-    const buf = composeWithCrop(paths, fullCrop);
+  for (const { stem, paths } of allParts) {
+    const writePaths = paths === BODY ? BODY : paths;
+    const buf = composeWithCrop(writePaths, fullCrop);
     writeFileSync(resolve(dir, `${stem}.png`), buf);
     stems.push(stem);
     console.log(`[build-full] ${charName}/full/${stem}.png`);
   }
 
-  // step3: _box.json を書き出す
+  // step3: _box.json
   const box = { w: fullCrop.w, h: fullCrop.h };
   writeFileSync(resolve(dir, "_box.json"), JSON.stringify(box, null, 2));
   console.log(`[build-full] _box.json: ${JSON.stringify(box)}`);

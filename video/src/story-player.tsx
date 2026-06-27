@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { StoryVideo } from "./StoryVideo";
-import type { StoryScript, SceneLibrary } from "./StoryVideo";
+import type { StoryScript, SceneLibrary, ExpressionsMap } from "./StoryVideo";
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -28,6 +28,7 @@ type Props = {
   scenes: SceneLibrary;
   manifest?: Record<string, Record<string, string>>;
   audio?: string;
+  expressions?: ExpressionsMap;
 };
 
 let root: Root | null = null;
@@ -111,7 +112,7 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
 
 async function loadInitialProps(): Promise<Props> {
   // story は /api/story（エディタ側）から取得する。
-  // scenes / manifest / audio は /preview-assets/ から取得する。
+  // scenes / manifest / audio / expressions は /preview-assets/ から取得する。
   const [storyRes, scenesRes] = await Promise.all([
     fetch("/api/story", { cache: "no-store" }),
     fetch("/preview-assets/story-scenes.json", { cache: "no-store" }),
@@ -130,8 +131,16 @@ async function loadInitialProps(): Promise<Props> {
     // manifest 未生成時は単一画像フォールバック
   }
 
+  let expressions: ExpressionsMap | undefined;
+  try {
+    const eRes = await fetch("/preview-assets/expressions.json", { cache: "no-store" });
+    if (eRes.ok) expressions = await eRes.json();
+  } catch {
+    // expressions.json 未配置時は旧来の emotion ベースにフォールバック
+  }
+
   const audio = story.audio ?? undefined;
-  return { story, scenes, manifest, audio };
+  return { story, scenes, manifest, audio, expressions };
 }
 
 window.storyPlayer = {
