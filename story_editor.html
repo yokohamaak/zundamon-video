@@ -49,6 +49,12 @@
   .status.ok { color: var(--green); }
   .status.err { color: var(--danger); }
   .status.dirty { color: var(--yellow); }
+  /* 音声生成などの進捗：目立つ色＋太字＋点滅 */
+  .status.busy {
+    color: #ffd23f; font-weight: 700; font-size: 13px;
+    animation: status-pulse 1s ease-in-out infinite;
+  }
+  @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
   /* ── 3ペインレイアウト ── */
   .main { display: flex; flex: 1; overflow: hidden; }
@@ -1127,7 +1133,7 @@ async function generateAudio() {
   btn.disabled = true;
   try {
     await saveStory();                       // 最新を保存してから生成（make_story_audioは保存済みJSONを読む）
-    setStatus("", "音声生成 準備中…（VOICEVOX）");
+    setStatus("busy", "音声生成 準備中…（VOICEVOX）");
     const r = await fetch("/api/audio", { method: "POST" });
     // 進捗を逐次ストリーム受信（[N/total] 話者: … 行を最新で表示）
     const reader = r.body.getReader();
@@ -1147,7 +1153,7 @@ async function generateAudio() {
           if (!ok) errMsg = s.replace("__DONE__ err", "").trim();
         } else {
           const m = s.match(/\[\s*(\d+)\/(\d+)\]/);
-          setStatus("", m ? ("音声生成 " + m[1] + "/" + m[2]) : ("音声生成: " + s));
+          setStatus("busy", m ? ("音声生成 " + m[1] + "/" + m[2]) : ("音声生成: " + s));
         }
       }
     }
