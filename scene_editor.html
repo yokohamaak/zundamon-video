@@ -1017,6 +1017,11 @@ function addScene() {
   }
   if (scenesData.scenes[id]) { alert('同名のシーンが既に存在します'); return; }
   const bgs = assets?.backgrounds ?? [];
+  // モブは既定で非表示(hidden:true=OFF)。表示したいシーンだけトグルでONにする。
+  const mobsInit = {};
+  for (const mob of (assets?.mobs ?? [])) {
+    mobsInit[mob.id] = { x: 0.5, y: 0.98, scale: 0.85, hidden: true };
+  }
   // 既定は全身立ち絵(figure:full)。本プロジェクトの全シーンが全身のため。
   // アンカーy=立ち絵ボックスの「中心」位置。全身が収まるよう中央寄り(0.68)＋
   // scale控えめ(1.1)にする（既存 home シーンと同等の見え方＝足元が画面下端付近）。
@@ -1030,6 +1035,7 @@ function addScene() {
     scale: 1.1,
     transition: 'fade-black',
     cast: {},
+    mobs: mobsInit,
     anchors: {
       center: { x: 0.5, y: 0.68 },
       left: { x: 0.32, y: 0.68 },
