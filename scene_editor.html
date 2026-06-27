@@ -1008,8 +1008,13 @@ async function saveScenes() {
 // シーン追加
 // ============================================================
 function addScene() {
-  const id = prompt('新しいシーンID（英数字・ハイフン）:');
-  if (!id || !id.match(/^[a-zA-Z0-9_-]+$/)) { alert('不正なID'); return; }
+  const raw = prompt('新しいシーンID（半角英数字・ハイフン-・アンダースコア_ のみ。日本語/スペース不可）\n例: office_night, rooftop-sunset');
+  if (raw === null) return; // キャンセル
+  const id = raw.trim();
+  if (!id.match(/^[a-zA-Z0-9_-]+$/)) {
+    alert('不正なID: 「' + id + '」\n使えるのは半角英数字・ハイフン(-)・アンダースコア(_)のみです。\n日本語・スペース・記号は使えません。');
+    return;
+  }
   if (scenesData.scenes[id]) { alert('同名のシーンが既に存在します'); return; }
   const bgs = assets?.backgrounds ?? [];
   scenesData.scenes[id] = {
