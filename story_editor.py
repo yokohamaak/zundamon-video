@@ -7,8 +7,10 @@ turn の並び・話者・セリフ・場面・表情・演出・insertを編集
 使い方: python story_editor.py [--port 8771]
 """
 import argparse
+import atexit
 import json
 import os
+import socket
 import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -316,10 +318,40 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             self._send_error_json(404, "Not Found")
 
 
+def _port_in_use(port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.3)
+    try:
+        return s.connect_ex(("127.0.0.1", port)) == 0
+    finally:
+        s.close()
+
+
+def _maybe_start_scene_editor():
+    # シーンタブの iframe 用に scene_editor(8770) を自動起動する（既に起動済みなら何もしない）。
+    scene_py = os.path.join(ROOT_DIR, "scene_editor.py")
+    if not os.path.isfile(scene_py):
+        return
+    if _port_in_use(8770):
+        print("[story] scene_editor は既に起動済み (http://localhost:8770)")
+        return
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, scene_py],
+            cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        atexit.register(lambda: proc.terminate())
+        print("[story] scene_editor を自動起動しました (http://localhost:8770)")
+    except Exception as e:
+        print(f"[story] scene_editor の自動起動に失敗: {e}（シーンタブは手動起動が必要）")
+
+
 def main():
     parser = argparse.ArgumentParser(description="ストーリーエディタ")
     parser.add_argument("--port", type=int, default=8771)
     args = parser.parse_args()
+
+    _maybe_start_scene_editor()
 
     server = ThreadingHTTPServer(("localhost", args.port), StoryEditorHandler)
     print(f"ストーリーエディタ起動: http://localhost:{args.port}")

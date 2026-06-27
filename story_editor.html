@@ -56,8 +56,21 @@
   }
   @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
 
+  /* ── トップタブ（台本/シーン） ── */
+  .top-tabs { display: flex; gap: 2px; margin-left: 4px; }
+  .top-tab {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text2); padding: 4px 14px; font-size: 13px; cursor: pointer;
+    border-radius: 6px;
+  }
+  .top-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
   /* ── 3ペインレイアウト ── */
   .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── シーン編集（iframe埋め込み） ── */
+  .scene-view { flex: 1; overflow: hidden; }
+  .scene-view iframe { width: 100%; height: 100%; border: none; display: block; }
 
   /* ── 左ペイン: 台本一覧 ── */
   .pane-left {
@@ -215,6 +228,10 @@
 
 <div class="header">
   <h1>ストーリーエディタ</h1>
+  <div class="top-tabs">
+    <button class="top-tab active" id="tabScript" data-view="script">台本</button>
+    <button class="top-tab" id="tabScene" data-view="scene">シーン</button>
+  </div>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
   <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
@@ -222,7 +239,7 @@
   <span class="status" id="statusMsg"></span>
 </div>
 
-<div class="main">
+<div class="main" id="viewScript">
   <!-- 左ペイン: 台本一覧 -->
   <div class="pane-left">
     <div class="pane-left-toolbar">
@@ -333,6 +350,11 @@
   </div>
 </div>
 
+<!-- シーン編集（scene_editor を iframe 埋め込み。story_editor 起動時に scene_editor も自動起動） -->
+<div class="scene-view" id="viewScene" style="display:none;">
+  <iframe id="sceneFrame" title="シーン編集"></iframe>
+</div>
+
 <script>
 // ============================================================
 // 状態
@@ -375,6 +397,7 @@ async function init() {
     buildMultiSpeakers();
     renderList();
     setupEvents();
+    setupTabs();
     initPlayer();
   } catch (e) {
     setStatus("err", "初期化失敗: " + e.message);
@@ -1191,6 +1214,40 @@ function setStatus(cls, msg) {
 // ============================================================
 // イベント設定
 // ============================================================
+// 台本/シーン タブ切替。シーンは scene_editor を iframe で埋め込み（初回のみ読み込み）。
+function setupTabs() {
+  const tScript = document.getElementById("tabScript");
+  const tScene = document.getElementById("tabScene");
+  const vScript = document.getElementById("viewScript");
+  const vScene = document.getElementById("viewScene");
+  const frame = document.getElementById("sceneFrame");
+  tScript.addEventListener("click", () => {
+    tScript.classList.add("active"); tScene.classList.remove("active");
+    vScript.style.display = ""; vScene.style.display = "none";
+    refreshScenes();            // シーンが編集された可能性 → 台本側のシーン選択肢を更新
+    sizePlayerWrap();
+  });
+  tScene.addEventListener("click", () => {
+    tScene.classList.add("active"); tScript.classList.remove("active");
+    vScript.style.display = "none"; vScene.style.display = "";
+    if (!frame.getAttribute("src")) {
+      // scene_editor は story_editor 起動時に自動起動（localhost:8770）
+      frame.src = (location.protocol + "//" + location.hostname + ":8770/");
+    }
+  });
+}
+
+// シーン編集後に台本側のシーンドロップダウンを最新化。
+async function refreshScenes() {
+  try {
+    const r = await fetch("/api/meta");
+    const m = await r.json();
+    meta.scenes = m.scenes;
+    buildSceneSelect();
+    if (selectedIdx >= 0) setSceneValue(storyData.script[selectedIdx].scene);
+  } catch (e) { /* 失敗時は据え置き */ }
+}
+
 function setupEvents() {
   document.getElementById("btnSave").addEventListener("click", saveStory);
   document.getElementById("btnAudio").addEventListener("click", generateAudio);
