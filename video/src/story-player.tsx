@@ -12,6 +12,7 @@ type StoryPlayerApi = {
   mount: (element: HTMLElement) => Promise<void>;
   unmount: () => void;
   updateStory: (story: StoryScript) => void;
+  reloadScenes: () => Promise<void>;
   seekToFrame: (frame: number) => void;
   seekToTime: (sec: number) => void;
 };
@@ -168,6 +169,19 @@ window.storyPlayer = {
       const audio = story.audio ?? prev.audio;
       return { ...prev, story, audio, _duration: Math.max(duration, prevDuration) } as Props;
     });
+  },
+
+  async reloadScenes() {
+    // シーンタブで編集・保存された story-scenes.json を読み直してプレビューへ反映。
+    if (!setPropsState) return;
+    try {
+      const res = await fetch("/preview-assets/story-scenes.json", { cache: "no-store" });
+      if (!res.ok) return;
+      const scenes = await res.json();
+      setPropsState((prev) => ({ ...prev, scenes } as Props));
+    } catch {
+      // 失敗時は据え置き
+    }
   },
 
   seekToFrame(frame) {

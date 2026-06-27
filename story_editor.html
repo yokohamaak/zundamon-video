@@ -1245,6 +1245,8 @@ async function refreshScenes() {
     meta.scenes = m.scenes;
     buildSceneSelect();
     if (selectedIdx >= 0) setSceneValue(storyData.script[selectedIdx].scene);
+    // プレビュー側のシーン定義も読み直す（背景/立ち位置/モブ配置の修正を反映）
+    if (window.storyPlayer && playerReady) await window.storyPlayer.reloadScenes();
   } catch (e) { /* 失敗時は据え置き */ }
 }
 
