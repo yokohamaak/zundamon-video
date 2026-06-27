@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# ストーリー動画ラッパー（薄い）。build-story-01.py / make_story_audio.py / npm story系 / scene_editor.py を
+# 覚えやすい名前で叩くだけ。本編用 ./run のストーリー版。
+# 使い方:
+#   ./run-story <コマンド> [引数]   … 直接実行
+#   ./run-story                     … 番号メニュー（引数なし）
+#   ./run-story help                … 一覧
+# Python/JS側は無改変。RUN_DRY=1 を付けると実行せずコマンドだけ表示（確認用）。
+set -euo pipefail
+cd "$(dirname "$0")"
+
+PY="$(command -v python3 || command -v python || echo python3)"
+STORY="story-01"                         # 台本/音声のファイル名ベース（public/<STORY>.json / .wav）
+BUILD="video/scripts/build-story-01.py"  # 台本JSON生成
+JSON="video/public/${STORY}.json"
+
+# コマンド表示して実行（RUN_DRY=1 なら表示のみ）。
+run() { echo "▶ $*"; [ "${RUN_DRY:-}" = "1" ] || eval "$*"; }
+
+# 全角数字→半角（スマホ入力対策）。
+z2h() {
+  local s="$1"
+  s="${s//０/0}"; s="${s//１/1}"; s="${s//２/2}"; s="${s//３/3}"; s="${s//４/4}"
+  s="${s//５/5}"; s="${s//６/6}"; s="${s//７/7}"; s="${s//８/8}"; s="${s//９/9}"
+  printf '%s' "$s"
+}
+
+# 台本JSONを生成（フラグ反映・仮タイミング）。※実尺は audio で上書きされる。
+cmd_build() {
+  run "$PY $BUILD"
+  echo "  → 次は audio で実尺を焼き込み（VOICEVOX必要）"
+}
+
+# 音声生成（VOICEVOX）＋ start/end/sentences を JSON に書き戻し。
+cmd_audio() {
+  echo "※ VOICEVOX エンジンを起動しておくこと（http://localhost:50021）"
+  run "$PY make_story_audio.py ${STORY}"
+}
+
+# Studioで全体プレビュー（HMR）。
+cmd_dev() { run "cd video && npm run dev:story"; }
+
+# 全体を書き出し → video/out/story.mp4
+cmd_render() { run "cd video && npm run render:story"; }
+
+# 1フレームだけ静止画書き出し（確認用）。$1=フレーム番号（既定0）。
+cmd_still() {
+  local f="${1:-0}"
+  run "cd video && npx remotion still StoryVideo out/still-${f}.png --frame=${f}"
+}
+
+# シーンライブラリ編集ツール（anchor/scale をブラウザで調整）。
+cmd_scene() { run "$PY scene_editor.py"; }
+
+# 本番フル: build → audio → render（VOICEVOX必要）。
+cmd_all() {
+  cmd_build
+  cmd_audio
+  cmd_render
+}
+
+cmd_help() {
+  cat <<'EOF'
+ストーリー動画ラッパー  ./run-story <コマンド> [引数]   （引数なしでメニュー）
+
+  build         台本JSONを生成（フラグ反映・仮タイミング）
+  audio         音声生成(VOICEVOX)＋実尺をJSONに書き戻し
+  dev           Studioで全体プレビュー(HMR)
+  render        全体を書き出し → video/out/story.mp4
+  still [N]     1フレームだけ静止画 → video/out/still-N.png（確認用）
+  scene         シーン編集ツール(anchor/scale) を起動
+  all           build → audio → render（本番フル・VOICEVOX必要）
+  help          この一覧
+
+セリフ/演出フラグを変えた時: build → audio →（必要なら）render
+配置/サイズだけ直す時:        scene で調整 → render
+EOF
+}
+
+# 引数あり → 直接実行
+if [ $# -gt 0 ]; then
+  case "$1" in
+    build)  cmd_build ;;
+    audio)  cmd_audio ;;
+    dev)    cmd_dev ;;
+    render) cmd_render ;;
+    still)  cmd_still "$(z2h "${2:-0}")" ;;
+    scene)  cmd_scene ;;
+    all)    cmd_all ;;
+    help|-h|--help) cmd_help ;;
+    *) echo "不明なコマンド: $1"; echo; cmd_help; exit 1 ;;
+  esac
+  exit 0
+fi
+
+# 引数なし → 番号メニュー
+echo "=== ストーリー動画メニュー === (${STORY})"
+echo "  1) build    台本JSON生成（フラグ反映・仮タイミング）"
+echo "  2) audio    音声生成(VOICEVOX)＋実尺書き戻し"
+echo "  3) dev      Studioで全体プレビュー(HMR)"
+echo "  4) render   全体を書き出し → video/out/story.mp4"
+echo "  5) still    1フレーム静止画（フレーム番号を聞く）"
+echo "  6) scene    シーン編集ツール(anchor/scale)"
+echo "  7) all      build→audio→render（本番フル）"
+echo "  0) help"
+read -rp "番号: " n
+n="$(z2h "$n")"
+case "$n" in
+  1) cmd_build ;;
+  2) cmd_audio ;;
+  3) cmd_dev ;;
+  4) cmd_render ;;
+  5) read -rp "フレーム番号: " f; cmd_still "$(z2h "$f")" ;;
+  6) cmd_scene ;;
+  7) cmd_all ;;
+  0|*) cmd_help ;;
+esac
