@@ -545,7 +545,8 @@ function resolveTeamChatSender(from: string): {
   if (from in CHARACTERS) {
     const cdef = CHARACTERS[from];
     return {
-      imgSrc: staticFile(`avatars/${cdef.avatar}/base.png`),
+      // 顔だけのアイコン（base は目/口/腕が別レイヤーでのっぺらぼうになるため専用 icon を使う）。
+      imgSrc: staticFile(`avatars/${cdef.avatar}/icon.png`),
       name: TEAMCHAT_DISPLAY[from] ?? from,
       nameColor: cdef.bubbleColor ?? DEFAULT_BUBBLE_COLOR,
     };
