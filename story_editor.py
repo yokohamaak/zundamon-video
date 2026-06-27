@@ -280,24 +280,38 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
         elif path == "/api/audio":
-            # VOICEVOX で音声生成（make_story_audio.py）。事前に保存済みの story-01.json を読む。
-            # 要 VOICEVOX 起動（http://localhost:50021）。
+            # VOICEVOX で音声生成（make_story_audio.py）。進捗をストリーミングで逐次返す。
+            # make_story_audio は [N/total] 話者: ... をターン毎に出力する。-u で即時flush。
+            # 末尾に "__DONE__ ok" / "__DONE__ err..." のセンチネル行を送って結果を伝える。
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+
+            def emit(text):
+                try:
+                    self.wfile.write(text.encode("utf-8"))
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    return False
+
             try:
-                result = subprocess.run(
-                    [sys.executable, "make_story_audio.py", "story-01"],
-                    cwd=ROOT_DIR, capture_output=True, text=True, timeout=600,
+                proc = subprocess.Popen(
+                    [sys.executable, "-u", "make_story_audio.py", "story-01"],
+                    cwd=ROOT_DIR, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, text=True, bufsize=1,
                 )
-                log = ((result.stdout or "") + "\n" + (result.stderr or "")).strip()
-                if result.returncode == 0:
-                    self._send_json({"ok": True, "message": "音声生成 完了", "log": log[-3000:]})
-                else:
-                    self._send_json({"ok": False,
-                                     "message": "音声生成 失敗（VOICEVOX起動を確認）",
-                                     "log": log[-3000:]})
-            except subprocess.TimeoutExpired:
-                self._send_error_json(504, "音声生成がタイムアウトしました")
+                for line in proc.stdout:
+                    if not emit(line):
+                        proc.kill()
+                        break
+                proc.wait()
+                emit("__DONE__ ok\n" if proc.returncode == 0
+                     else "__DONE__ err 音声生成に失敗（VOICEVOX起動を確認）\n")
             except Exception as e:
-                self._send_error_json(500, str(e))
+                emit("__DONE__ err " + str(e) + "\n")
         else:
             self._send_error_json(404, "Not Found")
 

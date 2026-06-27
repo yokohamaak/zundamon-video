@@ -1106,10 +1106,31 @@ async function generateAudio() {
   btn.disabled = true;
   try {
     await saveStory();                       // 最新を保存してから生成（make_story_audioは保存済みJSONを読む）
-    setStatus("", "音声生成中…（VOICEVOX）");
+    setStatus("", "音声生成 準備中…（VOICEVOX）");
     const r = await fetch("/api/audio", { method: "POST" });
-    const result = await r.json();
-    if (result.ok) {
+    // 進捗を逐次ストリーム受信（[N/total] 話者: … 行を最新で表示）
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "", ok = false, errMsg = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop();
+      for (const ln of lines) {
+        const s = ln.trim();
+        if (!s) continue;
+        if (s.startsWith("__DONE__")) {
+          ok = s.startsWith("__DONE__ ok");
+          if (!ok) errMsg = s.replace("__DONE__ err", "").trim();
+        } else {
+          const m = s.match(/\[\s*(\d+)\/(\d+)\]/);
+          setStatus("", m ? ("音声生成 " + m[1] + "/" + m[2]) : ("音声生成: " + s));
+        }
+      }
+    }
+    if (ok) {
       const sres = await fetch("/api/story"); // 実尺/audioが入ったstoryを再読込
       storyData = await sres.json();
       renderList();
@@ -1117,11 +1138,10 @@ async function generateAudio() {
       if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(storyData);
       setStatus("ok", "音声生成 完了");
     } else {
-      setStatus("err", result.message || "音声生成 失敗");
-      alert((result.message || "音声生成 失敗") + "\n\n" + (result.log || ""));
+      setStatus("err", "音声生成 失敗: " + (errMsg || "VOICEVOX起動を確認"));
     }
   } catch (e) {
-    setStatus("err", "音声生成 通信エラー/タイムアウト");
+    setStatus("err", "音声生成 通信エラー");
   } finally {
     btn.disabled = false;
   }
