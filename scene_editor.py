@@ -10,6 +10,7 @@ import argparse
 import json
 import mimetypes
 import os
+import shutil
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
@@ -21,6 +22,39 @@ MANIFEST_JSON = os.path.join(VIDEO_PUBLIC_DIR, "avatars", "manifest.json")
 BG_DIR = os.path.join(VIDEO_PUBLIC_DIR, "background")
 AVATARS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "avatars")
 MOBS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "mobs")
+
+# 背景・モブのソースは video/assets/ 配下（git追跡）。public/ は生成物(gitignore)で
+# 描画・render はこちらを staticFile で読む。ユーザーは assets/ に画像を置くため、
+# 一覧取得時に assets→public を差分コピーして「置いたら即プルダウンに出る」を実現する。
+ASSETS_DIR = os.path.join(ROOT_DIR, "video", "assets")
+_SYNC_SUBS = [
+    ("background", (".png", ".jpg", ".jpeg", ".webp")),
+    ("mobs", (".png", ".webp")),
+]
+
+
+def _sync_assets_to_public():
+    """assets/<sub> → public/<sub> を差分コピー（無い or サイズ/更新時刻が違うもの）。"""
+    for sub, exts in _SYNC_SUBS:
+        src = os.path.join(ASSETS_DIR, sub)
+        dst = os.path.join(VIDEO_PUBLIC_DIR, sub)
+        if not os.path.isdir(src):
+            continue
+        os.makedirs(dst, exist_ok=True)
+        for fn in os.listdir(src):
+            if os.path.splitext(fn)[1].lower() not in exts:
+                continue
+            s = os.path.join(src, fn)
+            if not os.path.isfile(s):
+                continue
+            d = os.path.join(dst, fn)
+            try:
+                if (not os.path.exists(d)
+                        or os.path.getsize(d) != os.path.getsize(s)
+                        or os.path.getmtime(d) < os.path.getmtime(s)):
+                    shutil.copy2(s, d)
+            except OSError:
+                pass
 
 # モブ一覧（StoryVideo.tsx の MOBS 登録と二重管理。MVPのためハードコード）
 MOBS_LIST = [
@@ -66,6 +100,7 @@ def _save_scenes(data):
 
 
 def _list_assets():
+    _sync_assets_to_public()
     backgrounds = []
     if os.path.isdir(BG_DIR):
         for fn in sorted(os.listdir(BG_DIR)):
