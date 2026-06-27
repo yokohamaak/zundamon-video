@@ -408,6 +408,8 @@ function buildSpeakerSelect() {
 }
 
 function buildSceneSelect() {
+  // シーンは scene_editor で登録済みのものから選ぶ（ドロップダウン）。
+  // 自由入力にはしない（新規シーンは scene_editor で作ってから選ぶ運用）。
   const sel = document.getElementById("fScene");
   sel.innerHTML = "";
   for (const sc of meta.scenes) {
@@ -415,22 +417,18 @@ function buildSceneSelect() {
     o.value = sc; o.textContent = sc;
     sel.appendChild(o);
   }
-  // 自由入力のため datalist も追加
-  const dl = document.createElement("datalist");
-  dl.id = "sceneDatalist";
-  for (const sc of meta.scenes) {
-    const opt = document.createElement("option");
-    opt.value = sc;
-    dl.appendChild(opt);
+}
+
+// turn.scene を select にセット。未登録値（AI由来/旧データ）は消さず「(未登録)」で保持表示。
+function setSceneValue(scene) {
+  const sel = document.getElementById("fScene");
+  const val = scene || "";
+  if (val && !Array.from(sel.options).some((o) => o.value === val)) {
+    const o = document.createElement("option");
+    o.value = val; o.textContent = "(未登録) " + val;
+    sel.appendChild(o);
   }
-  // select を input に変更してカスタム入力も受け付ける
-  const wrap = sel.parentNode;
-  sel.remove();
-  const inp = document.createElement("input");
-  inp.type = "text"; inp.className = "field-input";
-  inp.id = "fScene"; inp.list = "sceneDatalist"; inp.placeholder = "シーン名";
-  wrap.appendChild(inp);
-  wrap.appendChild(dl);
+  sel.value = val;
 }
 
 function buildExpressionSelect() {
@@ -580,8 +578,8 @@ function renderDetail() {
   // ── 基本タブ ──
   setField("fSpeaker", "select", turn.speaker || "");
   setField("fText", "textarea", turn.text || "");
-  // scene: input[type=text] になっている
-  document.getElementById("fScene").value = turn.scene || "";
+  // scene: 登録済みシーンのドロップダウン（未登録値は保持表示）
+  setSceneValue(turn.scene);
   setField("fExpression", "select", turn.expression || "");
   document.getElementById("fEmphasis").checked = !!turn.emphasis;
   document.getElementById("fShake").checked = !!turn.shake;
