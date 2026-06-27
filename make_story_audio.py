@@ -11,6 +11,8 @@
 """
 import json
 import os
+import shutil
+import subprocess
 import sys
 import wave
 
@@ -22,6 +24,7 @@ from tts_voicevox import synthesize_dialogue  # noqa: E402
 _basename = sys.argv[1] if len(sys.argv) > 1 else "story-01"
 STORY = os.path.join(ROOT, "video", "public", f"{_basename}.json")
 OUT_WAV = os.path.join(ROOT, "video", "public", f"{_basename}.wav")
+OUT_MP3 = os.path.join(ROOT, "video", "public", f"{_basename}.mp3")
 
 # 話者→VOICEVOX話者ID。
 # 主役: ずんだもん=3 / 四国めたん=2
@@ -77,13 +80,30 @@ def main():
         wf.setframerate(rate)
         wf.writeframes(pcm)
 
+    # 非圧縮WAVはStudioプレビューで重く不安定（useAudioData/再生が途切れる）。
+    # ffmpeg があれば MP3 に圧縮し、動画はそちらを参照する（プレビュー安定・約1/10）。
+    audio_name = f"{_basename}.wav"
+    if shutil.which("ffmpeg"):
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-loglevel", "error", "-i", OUT_WAV,
+                 "-codec:a", "libmp3lame", "-b:a", "128k", OUT_MP3],
+                check=True,
+            )
+            audio_name = f"{_basename}.mp3"
+            print(f"MP3書き出し: {OUT_MP3}", flush=True)
+        except subprocess.CalledProcessError as e:
+            print(f"※ MP3変換に失敗（WAVを使用）: {e}", flush=True)
+    else:
+        print("※ ffmpeg が無いため WAV を使用（プレビューが重い場合あり）", flush=True)
+
     # 実音声の尺で start/end/sentences を上書き（手書きの仮タイミングを置換）。
     for turn, info in zip(data["script"], turns):
         turn["start"] = info["start"]
         turn["end"] = info["end"]
         turn["sentences"] = info["sentences"]
     # audio フィールドはファイル名のみ（public/ 直下への相対パス）。
-    data["audio"] = f"{_basename}.wav"
+    data["audio"] = audio_name
 
     json.dump(data, open(STORY, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     total = turns[-1]["end"] if turns else 0
