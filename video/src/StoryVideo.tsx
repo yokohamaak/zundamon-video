@@ -22,7 +22,7 @@ const LIPSYNC_GAIN = 5;
 
 // ─── 回想（flashback）演出の定数 ────────────────────────────
 // 後で調整しやすいよう1箇所にまとめる。
-const FB_SATURATE = 0.7;        // 回想中の彩度（1.0=元のまま・低いほど色が薄い）
+const FB_SATURATE = 0.4;        // 回想中の彩度（1.0=元のまま・低いほど色が薄い）
 const FB_BRIGHTNESS = 1.02;     // 回想中の輝度（微加）
 const FB_GRAIN_OPACITY = 0.06;  // グレインの不透明度（0.0=なし・0.1で見えてくる）
 const FB_DISSOLVE_SEC = 0.3;    // 白ディゾルブ片側の秒数（合計 2×FB_DISSOLVE_SEC）
@@ -913,17 +913,25 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // テロップ表示: 境界から FB_TELOP_SEC の間、フェードイン/アウトして出す。
   // 回想に入る境界: その境界の telop を使う。
   // 「現在」へ戻る境界: 戻り先のターンの telop。
+  // 回想中は左上に「前日」ラベルを固定表示（大きめ・回想の間ずっと）。入った所でフェードイン。
+  // 「現在」へ戻る境界など回想以外の telop は、従来どおり短時間だけ出す。
   let telopText: string | null = null;
   let telopOpacity = 0;
-  if (nearestBoundary?.telop) {
+  if (isFlashback) {
+    const entered = [...fbBoundaries]
+      .filter((b) => b.entering && b.at <= t + 1e-6)
+      .pop();
+    if (entered?.telop) {
+      telopText = entered.telop;
+      telopOpacity = clamp((t - entered.at) / FB_TELOP_FADE, 0, 1);
+    }
+  } else if (nearestBoundary?.telop && !nearestBoundary.entering) {
     const dt = t - nearestBoundary.at;
     if (dt >= -FB_TELOP_FADE && dt < FB_TELOP_SEC) {
       telopText = nearestBoundary.telop;
       if (dt < FB_TELOP_FADE) {
-        // フェードイン
         telopOpacity = clamp((dt + FB_TELOP_FADE) / FB_TELOP_FADE, 0, 1);
       } else if (dt >= FB_TELOP_SEC - FB_TELOP_FADE) {
-        // フェードアウト
         telopOpacity = clamp((FB_TELOP_SEC - dt) / FB_TELOP_FADE, 0, 1);
       } else {
         telopOpacity = 1;
@@ -1034,21 +1042,23 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         <AbsoluteFill
           style={{
             alignItems: "flex-start",
-            justifyContent: "center",
-            paddingTop: height * 0.12,
+            justifyContent: "flex-start",
+            padding: `${Math.round(height * 0.06)}px ${Math.round(width * 0.045)}px`,
             pointerEvents: "none",
           }}
         >
           <div
             style={{
-              background: "rgba(10, 10, 10, 0.52)",
-              color: "#f0ece4",
-              fontSize: 44,
-              fontWeight: 400,
+              background: "rgba(8, 8, 8, 0.6)",
+              color: "#f4f0e8",
+              fontSize: 84,
+              fontWeight: 700,
               fontFamily: "sans-serif",
-              letterSpacing: "0.18em",
-              padding: "14px 48px",
-              borderRadius: 4,
+              letterSpacing: "0.12em",
+              padding: "18px 56px",
+              borderRadius: 8,
+              borderLeft: "10px solid #f4f0e8",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
               opacity: telopOpacity,
             }}
           >
