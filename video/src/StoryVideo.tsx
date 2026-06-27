@@ -109,6 +109,8 @@ export type SceneDef = {
   // モブ（1枚絵）の立ち位置と大きさ。省略時は既定（中央やや下・標準）。
   mobAnchor?: Anchor;
   mobHeight?: number; // モブ画像の高さ(px・frame基準でなく素の高さ)。既定 760。
+  // モブ別の配置（scene_editor で D&D 編集）。x,y=正規化座標, scale=拡大率。
+  mobs?: Record<string, { x: number; y: number; scale?: number }>;
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -132,10 +134,20 @@ const CHARACTERS: Record<string, CharDef> = {
 // モブ定義（いらすとや風の1枚絵・口パク無し）。話している間だけ立つ。
 // images: 状態キー→ファイル（normal / agitated）。表情で出し分ける。
 // 画像は public/mobs/<file>（assets/mobs を prep-story が public へコピー）。
-type MobDef = { images: Record<string, string>; scale?: number; flip?: boolean };
+type MobDef = { images: Record<string, string>; scale?: number; flip?: boolean; anchor?: Anchor };
 const MOBS: Record<string, MobDef> = {
-  営業: { images: { normal: "mobs/mob_normal.png", agitated: "mobs/mob_panic.png" }, scale: 1.0 },
-  部長: { images: { normal: "mobs/manager_normal.png", agitated: "mobs/manager_angry.png" }, scale: 1.0 },
+  // 営業=ノートPC作業姿（画像下端=机／机frontで隠れる）。anchor.y を下げて机裏に。
+  営業: {
+    images: { normal: "mobs/mob_normal.png", agitated: "mobs/mob_panic.png" },
+    scale: 0.85,
+    anchor: { x: 0.5, y: 0.99 },
+  },
+  // 部長=バスト肖像（画像下端=胸）。anchor.y を上げて胸が机の高さに来るように。
+  部長: {
+    images: { normal: "mobs/manager_normal.png", agitated: "mobs/manager_angry.png" },
+    scale: 0.62,
+    anchor: { x: 0.5, y: 0.82 },
+  },
 };
 const isMob = (id: string): boolean => id in MOBS;
 // 取り乱し系の表情なら agitated（焦り/怒り）、それ以外は normal。
@@ -854,8 +866,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const renderMob = (mobId: string) => {
     const m = MOBS[mobId];
     if (!m) return null;
-    const a = sceneDef.mobAnchor ?? { x: 0.5, y: 1.0 };
-    const h = (sceneDef.mobHeight ?? 760) * (m.scale ?? 1);
+    // 配置はシーンデータ(scene.mobs[mob])優先 → MobDef既定 → シーン既定。
+    const place = sceneDef.mobs?.[mobId];
+    const a = place ?? m.anchor ?? sceneDef.mobAnchor ?? { x: 0.5, y: 1.0 };
+    const sc = place?.scale ?? m.scale ?? 1;
+    const h = (sceneDef.mobHeight ?? 760) * sc;
     const inP = clamp((t - active.start) / 0.3, 0, 1); // 話し始めでフェードイン
     return (
       <div

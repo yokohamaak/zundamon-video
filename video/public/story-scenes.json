@@ -26,6 +26,22 @@
           "x": 0.717,
           "y": 0.681
         }
+      },
+      "mobAnchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.99,
+          "scale": 0.85
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.82,
+          "scale": 0.62
+        }
       }
     },
     "home": {
@@ -61,7 +77,7 @@
       "shot": "duo",
       "camera": "slow-zoom",
       "figure": "full",
-      "scale": 1.4,
+      "scale": 1.35,
       "cast": {
         "zundamon": "right",
         "metan": "left"
@@ -88,7 +104,7 @@
       "shot": "duo",
       "camera": "slow-zoom",
       "figure": "full",
-      "scale": 1.4,
+      "scale": 1.35,
       "cast": {
         "zundamon": "right",
         "metan": "left"

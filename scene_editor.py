@@ -20,6 +20,13 @@ SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
 MANIFEST_JSON = os.path.join(VIDEO_PUBLIC_DIR, "avatars", "manifest.json")
 BG_DIR = os.path.join(VIDEO_PUBLIC_DIR, "background")
 AVATARS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "avatars")
+MOBS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "mobs")
+
+# モブ一覧（StoryVideo.tsx の MOBS 登録と二重管理。MVPのためハードコード）
+MOBS_LIST = [
+    {"id": "営業", "image": "mobs/mob_normal.png"},
+    {"id": "部長", "image": "mobs/manager_normal.png"},
+]
 
 _CT = {
     ".png": "image/png",
@@ -78,7 +85,7 @@ def _list_assets():
                 if os.path.isdir(os.path.join(AVATARS_DIR, entry)):
                     characters.append(entry)
 
-    return {"backgrounds": backgrounds, "characters": characters}
+    return {"backgrounds": backgrounds, "characters": characters, "mobs": MOBS_LIST}
 
 
 def _safe_path(base_dir, relative):
@@ -164,6 +171,14 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
         elif path.startswith("/avatars/"):
             rel = path[len("/avatars/"):]
             safe = _safe_path(AVATARS_DIR, rel)
+            if safe is None:
+                self._send_error_json(400, "不正なパスです")
+                return
+            self._send_image(safe)
+
+        elif path.startswith("/mobs/"):
+            rel = path[len("/mobs/"):]
+            safe = _safe_path(MOBS_DIR, rel)
             if safe is None:
                 self._send_error_json(400, "不正なパスです")
                 return

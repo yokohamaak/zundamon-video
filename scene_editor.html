@@ -178,6 +178,29 @@
     flex: 1; background: var(--surface2); border: 1px solid var(--border);
     border-radius: 5px; color: var(--text); padding: 4px 8px; font-size: 12px;
   }
+
+  /* モブ */
+  .mob-image {
+    position: absolute;
+    transform-origin: bottom center;
+    /* transform: translate(-50%, -100%) はJSで設定 */
+    cursor: grab;
+    user-select: none;
+    outline: 2px solid transparent;
+    transition: outline-color .1s;
+  }
+  .mob-image:hover { outline-color: rgba(91,141,238,.6); }
+  .mob-image.mob-selected { outline-color: var(--accent); outline-width: 2px; cursor: grab; }
+  .mob-image.mob-dragging { cursor: grabbing; outline-color: #fbbf24; }
+  .mob-list-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 8px; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--surface2);
+    margin-bottom: 5px; cursor: pointer; font-size: 12px;
+  }
+  .mob-list-item.mob-list-selected { border-color: var(--accent); }
+  .mob-list-item img { width: 28px; height: 28px; object-fit: contain; }
+  .mob-list-coords { margin-left: auto; font-family: monospace; font-size: 10px; color: var(--text2); }
 </style>
 </head>
 <body>
@@ -267,6 +290,19 @@
       <div class="anchor-list" id="anchorList"></div>
       <button class="btn btn-secondary" id="btnAddAnchor" style="margin-top:8px;width:100%;font-size:12px">＋ アンカー追加</button>
     </div>
+
+    <div class="side-section">
+      <div class="section-title">モブ配置 (mobs)</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">ステージ上の画像をドラッグして位置調整。クリックで選択→スライダーでscale変更。</div>
+      <div id="mobList"></div>
+      <div id="mobScaleRow" style="display:none;margin-top:10px">
+        <div class="field-label" style="margin-bottom:4px">scale: <span id="mobScaleId"></span></div>
+        <div class="slider-row">
+          <input type="range" id="mobScaleSlider" min="0.2" max="2.0" step="0.05" value="0.85">
+          <span class="slider-val" id="mobScaleVal">0.85</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -290,6 +326,9 @@ function fullBoxSize(charId) {
   return { w: FULL_BOX_W, h };
 }
 
+// モブ高さ基準（StoryVideo の 760*scale と一致・WYSIWYG）
+const MOB_BASE_H = 760;
+
 // ============================================================
 // 状態
 // ============================================================
@@ -297,7 +336,9 @@ let scenesData = null;       // story-scenes.json 全体
 let assets = null;           // /api/list-assets
 let currentSceneId = null;   // 選択中シーンID
 let stageScale = 1;          // プレビュー縮小率
-let dragging = null;         // { anchorName, dotEl, startX, startY }
+let dragging = null;         // アンカーD&D: { type:'anchor', name, dot }
+let draggingMob = null;      // モブD&D: { mobId, el }
+let selectedMobId = null;    // スケールスライダー対象モブID
 let showFront = true;
 let manifestData = null;     // avatars/manifest.json キャッシュ
 
@@ -384,8 +425,10 @@ function selectScene(id) {
   setSelectValue('fBg', sc.bg || '');
   setSelectValue('fFront', sc.front || '__none__');
   showFront = document.getElementById('frontToggle').checked;
+  selectedMobId = null;
   buildCastRows();
   buildAnchorList();
+  buildMobList();
   renderPreview();
 }
 
@@ -500,14 +543,77 @@ function updateAnchorList(name, x, y) {
 }
 
 // ============================================================
+// モブ一覧パネル更新
+// ============================================================
+function buildMobList() {
+  const sc = currentScene();
+  const container = document.getElementById('mobList');
+  container.innerHTML = '';
+  const mobs = assets?.mobs ?? [];
+  for (const mob of mobs) {
+    const mdata = sc?.mobs?.[mob.id] ?? { x: 0.5, y: 0.98, scale: 0.85 };
+    const item = document.createElement('div');
+    item.className = 'mob-list-item' + (selectedMobId === mob.id ? ' mob-list-selected' : '');
+    item.dataset.mobId = mob.id;
+    const thumb = document.createElement('img');
+    thumb.src = '/' + mob.image;
+    thumb.onerror = () => { thumb.style.display = 'none'; };
+    const label = document.createElement('span');
+    label.textContent = mob.id;
+    const coords = document.createElement('span');
+    coords.className = 'mob-list-coords';
+    coords.id = 'mob-coords-' + mob.id;
+    coords.textContent = `x${mdata.x.toFixed(2)} y${mdata.y.toFixed(2)} s${mdata.scale.toFixed(2)}`;
+    item.appendChild(thumb);
+    item.appendChild(label);
+    item.appendChild(coords);
+    item.addEventListener('click', () => selectMob(mob.id));
+    container.appendChild(item);
+  }
+  updateMobScaleUI();
+}
+
+function selectMob(mobId) {
+  selectedMobId = (selectedMobId === mobId) ? null : mobId;
+  buildMobList();
+  renderPreview();
+  updateMobScaleUI();
+}
+
+function updateMobScaleUI() {
+  const row = document.getElementById('mobScaleRow');
+  const slider = document.getElementById('mobScaleSlider');
+  const valEl = document.getElementById('mobScaleVal');
+  const idEl = document.getElementById('mobScaleId');
+  if (!selectedMobId) {
+    row.style.display = 'none';
+    return;
+  }
+  const sc = currentScene();
+  const mdata = sc?.mobs?.[selectedMobId] ?? { scale: 0.85 };
+  row.style.display = '';
+  idEl.textContent = selectedMobId;
+  slider.value = mdata.scale;
+  valEl.textContent = mdata.scale.toFixed(2);
+}
+
+function updateMobCoordsPanel(mobId) {
+  const sc = currentScene();
+  const mdata = sc?.mobs?.[mobId];
+  if (!mdata) return;
+  const el = document.getElementById('mob-coords-' + mobId);
+  if (el) el.textContent = `x${mdata.x.toFixed(2)} y${mdata.y.toFixed(2)} s${mdata.scale.toFixed(2)}`;
+}
+
+// ============================================================
 // プレビュー描画
 // ============================================================
 function renderPreview() {
   const sc = currentScene();
   const stage = document.getElementById('stage');
 
-  // 古いキャラとアンカーを消す
-  for (const el of stage.querySelectorAll('.char-container,.anchor-dot,.anchor-label')) {
+  // 古いキャラ・アンカー・モブを消す
+  for (const el of stage.querySelectorAll('.char-container,.anchor-dot,.anchor-label,.mob-image')) {
     el.remove();
   }
 
@@ -614,6 +720,42 @@ function renderPreview() {
     dotLabel.textContent = name + (charId ? ` (${charId})` : '');
     stage.appendChild(dotLabel);
   }
+
+  // ── モブ描画 ──
+  // StoryVideo と同じ配置: left=x*W, top=y*H, transform=translate(-50%,-100%), height=760*scale
+  // z-index で主役より前面にするが、選択中モブは最前面
+  const mobs = assets?.mobs ?? [];
+  const frontEl3 = document.getElementById('stageFront');
+  for (const mob of mobs) {
+    const mdata = (sc.mobs && sc.mobs[mob.id]) ? sc.mobs[mob.id] : { x: 0.5, y: 0.98, scale: 0.85 };
+    const mx = mdata.x * STAGE_W;
+    const my = mdata.y * STAGE_H;
+    const mh = MOB_BASE_H * mdata.scale;
+
+    const mobEl = document.createElement('img');
+    mobEl.className = 'mob-image' +
+      (selectedMobId === mob.id ? ' mob-selected' : '');
+    mobEl.src = '/' + mob.image;
+    mobEl.alt = mob.id;
+    mobEl.dataset.mobId = mob.id;
+    mobEl.style.position = 'absolute';
+    mobEl.style.left = mx + 'px';
+    mobEl.style.top = my + 'px';
+    mobEl.style.height = mh + 'px';
+    mobEl.style.width = 'auto';
+    // bottom-center 基準（StoryVideo の transform: translate(-50%,-100%) と一致）
+    mobEl.style.transform = 'translate(-50%, -100%)';
+    mobEl.style.transformOrigin = 'bottom center';
+    mobEl.style.zIndex = selectedMobId === mob.id ? 90 : 50;
+    // 404等でも壊れないよう非表示にする
+    mobEl.onerror = () => { mobEl.style.display = 'none'; };
+    // クリックで選択
+    mobEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectMob(mob.id);
+    });
+    stage.insertBefore(mobEl, frontEl3);
+  }
 }
 
 function encodePathSegs(path) {
@@ -621,12 +763,26 @@ function encodePathSegs(path) {
 }
 
 // ============================================================
-// ドラッグ（アンカー移動）
+// ドラッグ（アンカー移動 ＋ モブ移動）
 // ============================================================
 function setupDrag() {
   const wrap = document.getElementById('previewWrap');
 
   wrap.addEventListener('mousedown', e => {
+    // モブ画像のドラッグ（アンカードットより先に判定）
+    const mobEl = e.target.closest('.mob-image');
+    if (mobEl) {
+      e.preventDefault();
+      const mobId = mobEl.dataset.mobId;
+      // 選択状態にする
+      selectedMobId = mobId;
+      mobEl.classList.add('mob-dragging');
+      draggingMob = { mobId, el: mobEl };
+      buildMobList();
+      renderPreview();
+      return;
+    }
+    // アンカードットのドラッグ
     const dot = e.target.closest('.anchor-dot');
     if (!dot) return;
     e.preventDefault();
@@ -636,24 +792,47 @@ function setupDrag() {
   });
 
   window.addEventListener('mousemove', e => {
-    if (!dragging) return;
     const wrap = document.getElementById('previewWrap');
     const rect = wrap.getBoundingClientRect();
-    // ステージ座標に変換
     const sx = (e.clientX - rect.left) / stageScale;
     const sy = (e.clientY - rect.top) / stageScale;
-    // クランプ 0..1
-    const nx = Math.max(0, Math.min(1, sx / STAGE_W));
-    const ny = Math.max(0, Math.min(1, sy / STAGE_H));
-    const sc = currentScene();
-    if (!sc || !sc.anchors[dragging.name]) return;
-    sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
-    sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
-    updateAnchorList(dragging.name, sc.anchors[dragging.name].x, sc.anchors[dragging.name].y);
-    renderPreview();
+
+    if (draggingMob) {
+      // モブのx,y を更新（bottom-center 基準なのでそのままステージ正規化座標）
+      const nx = Math.max(0, Math.min(1, sx / STAGE_W));
+      const ny = Math.max(0, Math.min(1, sy / STAGE_H));
+      const sc = currentScene();
+      if (!sc) return;
+      if (!sc.mobs) sc.mobs = {};
+      const prev = sc.mobs[draggingMob.mobId] ?? { x: 0.5, y: 0.98, scale: 0.85 };
+      sc.mobs[draggingMob.mobId] = {
+        x: Math.round(nx * 1000) / 1000,
+        y: Math.round(ny * 1000) / 1000,
+        scale: prev.scale,
+      };
+      updateMobCoordsPanel(draggingMob.mobId);
+      renderPreview();
+      return;
+    }
+
+    if (dragging) {
+      // クランプ 0..1
+      const nx = Math.max(0, Math.min(1, sx / STAGE_W));
+      const ny = Math.max(0, Math.min(1, sy / STAGE_H));
+      const sc = currentScene();
+      if (!sc || !sc.anchors[dragging.name]) return;
+      sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
+      sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
+      updateAnchorList(dragging.name, sc.anchors[dragging.name].x, sc.anchors[dragging.name].y);
+      renderPreview();
+    }
   });
 
   window.addEventListener('mouseup', () => {
+    if (draggingMob) {
+      draggingMob = null;
+      // renderPreview は mousemove 内で済んでいるので追加呼び出し不要
+    }
     if (dragging) {
       dragging.dot.classList.remove('dragging');
       dragging = null;
@@ -721,6 +900,19 @@ function setupEvents() {
   document.getElementById('btnAddScene').addEventListener('click', addScene);
 
   document.getElementById('btnAddAnchor').addEventListener('click', addAnchor);
+
+  document.getElementById('mobScaleSlider').addEventListener('input', e => {
+    if (!selectedMobId) return;
+    const v = parseFloat(e.target.value);
+    document.getElementById('mobScaleVal').textContent = v.toFixed(2);
+    const sc = currentScene();
+    if (!sc) return;
+    if (!sc.mobs) sc.mobs = {};
+    const prev = sc.mobs[selectedMobId] ?? { x: 0.5, y: 0.98, scale: 0.85 };
+    sc.mobs[selectedMobId] = { x: prev.x, y: prev.y, scale: v };
+    updateMobCoordsPanel(selectedMobId);
+    renderPreview();
+  });
 }
 
 function refreshSceneSelectLabel() {
