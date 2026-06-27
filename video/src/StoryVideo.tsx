@@ -1,6 +1,7 @@
 import {
   AbsoluteFill,
   Audio,
+  getRemotionEnvironment,
   Img,
   interpolate,
   staticFile,
@@ -627,8 +628,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   };
 
   // 1. 常時スロードリフト（slow-zoom）: sceneDef.camera !== "static" のとき区間中ずっと微速プッシュイン。
+  // ★ドリフトはステージ全体に毎フレーム違う scale を掛ける＝全画面再ラスタライズが毎フレーム走る。
+  //   Studioプレビューだとこれが重く再生が詰まる（音切れ/リップシンク停止の主因）。
+  //   最終renderでだけ効かせ、プレビューでは無効にして軽くする。
   let driftS = 1.0;
-  if (sceneDef.camera !== "static") {
+  if (sceneDef.camera !== "static" && getRemotionEnvironment().isRendering) {
     const segDur = Math.max(seg.end - seg.start, 0.001);
     const p = clamp((t - seg.start) / segDur, 0, 1);
     driftS = 1 + 0.05 * p;
