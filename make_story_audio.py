@@ -85,9 +85,12 @@ def main():
     audio_name = f"{_basename}.wav"
     if shutil.which("ffmpeg"):
         try:
+            # CBR(128k)＋Xingヘッダ無し。VBR/Xingだとブラウザ<audio>のシークが不正確になり、
+            # シーク後に音声が冒頭だけ鳴って後はズレる（review_serverと同じ対策）。
             subprocess.run(
                 ["ffmpeg", "-y", "-loglevel", "error", "-i", OUT_WAV,
-                 "-codec:a", "libmp3lame", "-b:a", "128k", OUT_MP3],
+                 "-codec:a", "libmp3lame", "-b:a", "128k", "-write_xing", "0",
+                 "-f", "mp3", OUT_MP3],
                 check=True,
             )
             audio_name = f"{_basename}.mp3"
