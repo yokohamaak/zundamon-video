@@ -712,7 +712,9 @@ function renderPreview() {
     parts.style.height = pbox.h + 'px';
 
     if (charId && manifestData && manifestData[manifestKey]) {
-      const layers = ['base', 'eye_open', 'mouth_close'];
+      // StoryVideo の Avatar と同じ重ね順: base → 腕 → 目 → 口。
+      // arm_normal が無いキャラ(腕がbaseに焼き込まれた metan 等)は manifest に無いのでスキップされる。
+      const layers = ['base', 'arm_normal', 'eye_open', 'mouth_close'];
       for (const layer of layers) {
         if (manifestData[manifestKey][layer]) {
           const img = document.createElement('img');
