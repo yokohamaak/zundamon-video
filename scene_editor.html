@@ -199,8 +199,15 @@
     margin-bottom: 5px; cursor: pointer; font-size: 12px;
   }
   .mob-list-item.mob-list-selected { border-color: var(--accent); }
+  .mob-list-item.mob-list-hidden { opacity: 0.45; }
   .mob-list-item img { width: 28px; height: 28px; object-fit: contain; }
   .mob-list-coords { margin-left: auto; font-family: monospace; font-size: 10px; color: var(--text2); }
+  .mob-hidden-toggle {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--text2); margin-left: 4px; flex-shrink: 0;
+  }
+  .mob-hidden-toggle input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+  .mob-list-item.mob-list-hidden .mob-hidden-toggle { color: var(--danger); }
 </style>
 </head>
 <body>
@@ -552,9 +559,43 @@ function buildMobList() {
   const mobs = assets?.mobs ?? [];
   for (const mob of mobs) {
     const mdata = sc?.mobs?.[mob.id] ?? { x: 0.5, y: 0.98, scale: 0.85 };
+    const isHidden = !!(sc?.mobs?.[mob.id]?.hidden);
     const item = document.createElement('div');
-    item.className = 'mob-list-item' + (selectedMobId === mob.id ? ' mob-list-selected' : '');
+    item.className = 'mob-list-item'
+      + (selectedMobId === mob.id ? ' mob-list-selected' : '')
+      + (isHidden ? ' mob-list-hidden' : '');
     item.dataset.mobId = mob.id;
+
+    // ON/OFF トグル（チェック=表示, 未チェック=非表示）
+    const toggleWrap = document.createElement('label');
+    toggleWrap.className = 'mob-hidden-toggle';
+    toggleWrap.title = 'ON=立ち絵表示 / OFF=非表示（音声のみ）';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = !isHidden;
+    chk.addEventListener('change', (e) => {
+      e.stopPropagation(); // 行クリック(selectMob)に伝播しない
+      const sc2 = currentScene();
+      if (!sc2) return;
+      if (!sc2.mobs) sc2.mobs = {};
+      if (!sc2.mobs[mob.id]) {
+        sc2.mobs[mob.id] = { x: 0.5, y: 0.98, scale: 0.85 };
+      }
+      if (e.target.checked) {
+        // ON: hidden を削除（既定=表示）
+        delete sc2.mobs[mob.id].hidden;
+      } else {
+        // OFF: hidden=true
+        sc2.mobs[mob.id].hidden = true;
+      }
+      buildMobList();
+      renderPreview();
+    });
+    toggleWrap.appendChild(chk);
+    const toggleLabel = document.createElement('span');
+    toggleLabel.textContent = isHidden ? 'OFF' : 'ON';
+    toggleWrap.appendChild(toggleLabel);
+
     const thumb = document.createElement('img');
     thumb.src = '/' + mob.image;
     thumb.onerror = () => { thumb.style.display = 'none'; };
@@ -564,9 +605,11 @@ function buildMobList() {
     coords.className = 'mob-list-coords';
     coords.id = 'mob-coords-' + mob.id;
     coords.textContent = `x${mdata.x.toFixed(2)} y${mdata.y.toFixed(2)} s${mdata.scale.toFixed(2)}`;
+    item.appendChild(toggleWrap);
     item.appendChild(thumb);
     item.appendChild(label);
     item.appendChild(coords);
+    // アイテム行クリックで選択（トグル部分は stopPropagation 済み）
     item.addEventListener('click', () => selectMob(mob.id));
     container.appendChild(item);
   }
@@ -724,10 +767,15 @@ function renderPreview() {
   // ── モブ描画 ──
   // StoryVideo と同じ配置: left=x*W, top=y*H, transform=translate(-50%,-100%), height=760*scale
   // z-index で主役より前面にするが、選択中モブは最前面
+  // hidden=true のモブはステージに描画しない（ドラッグ対象からも外す）
   const mobs = assets?.mobs ?? [];
   const frontEl3 = document.getElementById('stageFront');
   for (const mob of mobs) {
     const mdata = (sc.mobs && sc.mobs[mob.id]) ? sc.mobs[mob.id] : { x: 0.5, y: 0.98, scale: 0.85 };
+
+    // hidden=true のモブはプレビューに描画しない
+    if (mdata.hidden) continue;
+
     const mx = mdata.x * STAGE_W;
     const my = mdata.y * STAGE_H;
     const mh = MOB_BASE_H * mdata.scale;
@@ -805,11 +853,14 @@ function setupDrag() {
       if (!sc) return;
       if (!sc.mobs) sc.mobs = {};
       const prev = sc.mobs[draggingMob.mobId] ?? { x: 0.5, y: 0.98, scale: 0.85 };
-      sc.mobs[draggingMob.mobId] = {
+      const updated = {
         x: Math.round(nx * 1000) / 1000,
         y: Math.round(ny * 1000) / 1000,
         scale: prev.scale,
       };
+      // hidden フィールドを保持する
+      if (prev.hidden) updated.hidden = true;
+      sc.mobs[draggingMob.mobId] = updated;
       updateMobCoordsPanel(draggingMob.mobId);
       renderPreview();
       return;
@@ -909,7 +960,10 @@ function setupEvents() {
     if (!sc) return;
     if (!sc.mobs) sc.mobs = {};
     const prev = sc.mobs[selectedMobId] ?? { x: 0.5, y: 0.98, scale: 0.85 };
-    sc.mobs[selectedMobId] = { x: prev.x, y: prev.y, scale: v };
+    const updated = { x: prev.x, y: prev.y, scale: v };
+    // hidden フィールドを保持する
+    if (prev.hidden) updated.hidden = true;
+    sc.mobs[selectedMobId] = updated;
     updateMobCoordsPanel(selectedMobId);
     renderPreview();
   });

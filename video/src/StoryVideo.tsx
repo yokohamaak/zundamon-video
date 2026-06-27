@@ -111,7 +111,8 @@ export type SceneDef = {
   mobAnchor?: Anchor;
   mobHeight?: number; // モブ画像の高さ(px・frame基準でなく素の高さ)。既定 760。
   // モブ別の配置（scene_editor で D&D 編集）。x,y=正規化座標, scale=拡大率。
-  mobs?: Record<string, { x: number; y: number; scale?: number }>;
+  // hidden=true で立ち絵を非表示（チャット/音声のみ登場にする）。
+  mobs?: Record<string, { x: number; y: number; scale?: number; hidden?: boolean }>;
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -1085,6 +1086,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     if (!m) return null;
     // 配置はシーンデータ(scene.mobs[mob])優先 → MobDef既定 → シーン既定。
     const place = sceneDef.mobs?.[mobId];
+    if (place?.hidden) return null; // 立ち絵を非表示（チャット/音声のみ登場）
     const a = place ?? m.anchor ?? sceneDef.mobAnchor ?? { x: 0.5, y: 1.0 };
     const sc = place?.scale ?? m.scale ?? 1;
     const h = (sceneDef.mobHeight ?? 760) * sc;
