@@ -341,7 +341,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
           gap: 20,
         }}
       >
-        <span style={{ fontSize: 56, lineHeight: 1 }}>⚠</span>
+        <span style={{ fontSize: 56, lineHeight: 1, color: "#e87b3a" }}>⚠</span>
         <span
           style={{
             fontSize: 44,
