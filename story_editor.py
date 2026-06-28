@@ -126,6 +126,170 @@ def _load_expression_keys():
         return list(EXPRESSIONS)
 
 
+def _load_scenes_detail():
+    """story-scenes.json から [{key,label,figure}] を返す（プロンプト用）。"""
+    if not os.path.exists(SCENES_JSON):
+        return []
+    try:
+        with open(SCENES_JSON, encoding="utf-8") as f:
+            d = json.load(f)
+    except Exception:
+        return []
+    out = []
+    for k, v in d.get("scenes", {}).items():
+        if not isinstance(v, dict):
+            continue
+        out.append({
+            "key": k,
+            "label": v.get("label") or k,
+            "figure": v.get("figure", "bust"),
+        })
+    return out
+
+
+def _build_script_prompt(theme, length, notes):
+    """AI(ChatGPT/Claude)に投げる台本生成プロンプトを組み立てて返す。
+
+    現在ツールが対応しているシーン/キャラ/表情/演出/インサートと、
+    読み込み可能なJSONスキーマ＋例を埋め込む。ローカル生成のみ（外部送信なし）。
+    """
+    theme = (theme or "").strip() or "（ここに主題を入れてください）"
+    length = (length or "").strip() or "10分前後・全体で30〜60ターンほど（1主題を深掘り）"
+    notes = (notes or "").strip() or "特になし"
+
+    scenes = _load_scenes_detail()
+    if scenes:
+        scene_lines = "\n".join(
+            "- %s … %s（%s）" % (
+                s["key"], s["label"], "全身" if s["figure"] == "full" else "バスト"
+            ) for s in scenes
+        )
+        first_scene = scenes[0]["key"]
+    else:
+        scene_lines = "-（シーン未登録。先にシーンエディタで作成してください）"
+        first_scene = "office"
+
+    expr_list = ", ".join(_load_expression_keys())
+
+    example = (
+        '{\n'
+        '  "title": "なぜ〇〇は△△なのか",\n'
+        '  "script": [\n'
+        '    { "speaker": "zundamon", "text": "ねえめたん、〇〇ってなんで△△なのだ?",'
+        ' "scene": "FIRST", "expression": "surprise" },\n'
+        '    { "speaker": "metan", "text": "いい質問ね。結論から言うと、…だからなのよ。",'
+        ' "scene": "FIRST", "expression": "normal", "emphasis": true },\n'
+        '    { "speaker": "zundamon", "text": "へぇ〜、知らなかったのだ!",'
+        ' "scene": "FIRST", "expression": "happy", "pause": 0.4 }\n'
+        '  ]\n'
+        '}'
+    ).replace("FIRST", first_scene)
+
+    parts = [
+        "あなたは「ずんだもん」と「四国めたん」の掛け合い解説動画の台本作家です。",
+        "下記の【主題】について、専用ツールでそのまま読み込めるJSON台本を作成してください。",
+        "",
+        "━━━ 入力 ━━━",
+        "【主題】",
+        theme,
+        "",
+        "【長さ・構成の目安】",
+        length,
+        "",
+        "【トーン・補足】",
+        notes,
+        "",
+        "━━━ 動画の方針 ━━━",
+        "- ずんだもん（聞き役・素朴な疑問/驚き）と四国めたん（解説役・落ち着いた大人びた口調）の対話で、1つの主題を深掘りする。",
+        "- 「なぜ〇〇なのか」を 導入(つかみ)→結論→理由→具体例→まとめ の流れで。雑学の羅列は避け、1本の筋を通す。",
+        "- 1往復＝両者がそれぞれ1回ずつ話す程度。テンポよく、1ターンは1〜2文。",
+        "- ずんだもん: 一人称「ボク」、語尾「〜のだ/〜なのだ」。四国めたん: 一人称「わたくし」寄りの丁寧語、解説役。",
+        "",
+        "━━━ 登場キャラ（speaker に使う値）━━━",
+        "- zundamon … ずんだもん（聞き役）",
+        "- metan … 四国めたん（解説役）",
+        "- 営業 / 部長 / AI … 脇役。画面に立ち絵は出さず、チャットや声のみで登場（主にインサートと併用）。メインの掛け合いは zundamon と metan で進める。",
+        "",
+        "━━━ 使えるシーン（scene に使う値。リスト以外は使用不可）━━━",
+        scene_lines,
+        "※ scene は各ターンの背景。場面転換は話の区切りで行う。",
+        "",
+        "━━━ 表情（expression に使う値・各ターンに付ける）━━━",
+        expr_list,
+        "※ normal=通常 / happy=笑顔 / surprise=驚き / trouble=困り / panic=焦り。流れに合うものを選ぶ。",
+        "",
+        "━━━ 使える演出（任意。付けると良くなる）━━━",
+        '- "emphasis": true … 話者にズームイン（強調したい一言で）',
+        '- "shake": true … 画面を揺らす（衝撃・驚き）',
+        '- "flashback": true … 回想（彩度が落ちる。"telop" と併用推奨）',
+        '- "telop": "― 前日 ―" … 画面隅に短時間出る字幕（時代・場面ラベル）',
+        '- "pause": 0.5 … その台詞の後に入れる無音秒（間）',
+        '- "enter": ["metan"] … そのターンでキャラを登場させる',
+        '- "exit": ["metan"], "exitDir": "right" … キャラを退場させる',
+        '- "face": {"zundamon":"left"} … 向きの明示（通常は不要）',
+        "",
+        "━━━ インサート演出（\"insert\"。全画面にPC画面/チャット等を重ねる・任意）━━━",
+        '- {"kind":"warning","title":"...","text":"..."} … 警告画面',
+        '- {"kind":"ok","text":"..."} … OK/成功画面',
+        '- {"kind":"chat","user":"質問文","ai":["返答1","返答2"]} … AIチャット風',
+        '- {"kind":"teamchat","channel":"#障害対応","messages":[{"from":"営業","text":"..."}]} … Slack風チャット',
+        '- {"kind":"mailer","from":"差出人","subject":"件名","body":"本文","time":"10:00"} … メール画面',
+        "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
+        "",
+        "━━━ 出力フォーマット（厳守）━━━",
+        "- 出力は JSON のみ（```json ... ``` で囲ってよい）。JSON 以外の説明文は書かない。",
+        '- トップレベル: { "title": "動画タイトル", "script": [ ターン, ... ] }',
+        "- 各ターンの必須キー: speaker, text, scene。expression は推奨。その他の演出キーは任意。",
+        "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
+        "- scene は必ず上記リストのキーから選ぶ。speaker も上記の値のみ。",
+        "",
+        "━━━ 出力例（最小）━━━",
+        example,
+        "",
+        "では、上記の【主題】に沿って台本JSONを作成してください。まずタイトルを決め、導入から結論・まとめまで一本の流れで構成すること。",
+    ]
+    return "\n".join(parts)
+
+
+def _import_script_text(raw):
+    """AIが出力したテキスト（```json フェンスや前後の文を含みうる）から台本を取り出し保存する。
+
+    戻り値: (ok: bool, message: str, turns: int)
+    """
+    if not raw or not raw.strip():
+        return False, "貼り付けが空です", 0
+    text = raw.strip()
+    # ```json ... ``` フェンスを除去
+    if "```" in text:
+        import re
+        m = re.search(r"```(?:json)?\s*(.+?)```", text, re.S)
+        if m:
+            text = m.group(1).strip()
+    # 最初の { から最後の } までを抽出（前後の説明文を許容）
+    s, e = text.find("{"), text.rfind("}")
+    if s != -1 and e != -1 and e > s:
+        text = text[s:e + 1]
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as ex:
+        return False, "JSONとして解釈できません: %s" % ex, 0
+    if not isinstance(data, dict) or not isinstance(data.get("script"), list):
+        return False, "script 配列が見つかりません", 0
+    # 自動生成フィールドを除去し id を振り直す
+    for i, turn in enumerate(data["script"]):
+        if not isinstance(turn, dict):
+            return False, "turn[%d] が不正です" % i, 0
+        for k in ("start", "end", "sentences"):
+            turn.pop(k, None)
+        turn["id"] = "turn-%04d" % (i + 1)
+    data.pop("audio", None)
+    try:
+        _save_story(data)  # ここで speaker/text/scene の検証も走る
+    except ValueError as ex:
+        return False, str(ex), 0
+    return True, "ok", len(data["script"])
+
+
 def _safe_path(base_dir, relative):
     """パストラバーサルを防いで安全な絶対パスを返す。不正なら None。"""
     rel = unquote(relative).replace("\\", "/").strip("/")
@@ -357,6 +521,31 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 self._send_json({"ok": True})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/script-prompt":
+            # 入力(主題等)から、AIに投げる台本生成プロンプトを組み立てて返す（ローカル生成）。
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                params = json.loads(body.decode("utf-8")) if body else {}
+                prompt = _build_script_prompt(
+                    params.get("theme"), params.get("length"), params.get("notes")
+                )
+                self._send_json({"prompt": prompt})
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/import-script":
+            # AI出力テキスト(raw)を取り込み、story-01.json として保存する。
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                params = json.loads(body.decode("utf-8")) if body else {}
+                ok, msg, turns = _import_script_text(params.get("raw", ""))
+                if ok:
+                    self._send_json({"ok": True, "turns": turns})
+                else:
+                    self._send_error_json(400, msg)
             except Exception as e:
                 self._send_error_json(500, str(e))
         elif path == "/api/audio":
