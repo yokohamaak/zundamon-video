@@ -1216,8 +1216,10 @@ const SeLayer: React.FC<{
     <>
       {events.map((ev, i) => {
         const startFrame = Math.round(ev.t * fps);
+        // durationInFrames は指定しない＝SE は自分の尺いっぱい再生される。
+        // (以前は durationInFrames=1 で1フレームしか鳴らず声に消されていた)
         return (
-          <Sequence key={i} from={startFrame} durationInFrames={1}>
+          <Sequence key={i} from={startFrame}>
             <Audio src={staticFile(ev.file)} volume={ev.volume} />
           </Sequence>
         );
