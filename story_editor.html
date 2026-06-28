@@ -341,6 +341,7 @@
     <!-- プレビュー下のタイムライン（セリフ＋BGM）。クリックでシーク。 -->
     <div class="timeline-header">
       <span>タイムライン</span>
+      <button class="btn btn-secondary btn-sm" id="btnAddBgmRegion" style="margin-left:8px; font-size:12px; padding:2px 8px;">＋BGM</button>
       <label for="timelineZoom" style="margin-left:auto;">ズーム</label>
       <select class="field-select" id="timelineZoom" style="width:auto; padding:2px 6px; font-size:12px;">
         <option value="1">フィット</option>
@@ -352,8 +353,28 @@
     </div>
     <div class="timeline-scroll" id="timelineScroll">
       <canvas id="scriptTimeline" height="72"
-        title="クリックでその位置へシーク"
+        title="BGMレーン: ドラッグで区間作成/移動/リサイズ。セリフレーン: クリックでシーク"
         style="display:block; height:72px; background:var(--surface2); cursor:pointer;"></canvas>
+    </div>
+    <!-- BGM区間エディタ（タイムライン直下） -->
+    <div id="bgmRegionEditor" style="padding:6px 10px; background:var(--surface); border-top:1px solid var(--border); min-height:32px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <span id="bgmRegionEditorHint" style="font-size:12px; color:var(--text2);">BGM区間を選択 / 空きをドラッグで作成</span>
+      <div id="bgmRegionEditorFields" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; width:100%;">
+        <select id="bgmRegionFile" class="field-select" style="flex:1; min-width:140px; max-width:220px;"></select>
+        <button id="bgmRegionPlay" class="btn btn-secondary btn-sm" style="flex-shrink:0; padding:2px 9px;" title="試聴">▶</button>
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">音量</label>
+        <input type="range" id="bgmRegionVolume" min="0" max="1" step="0.05" value="0.25" style="width:80px; accent-color:var(--accent); flex-shrink:0;">
+        <span id="bgmRegionVolDisp" style="font-size:12px; color:var(--text2); flex-shrink:0; min-width:30px;">0.25</span>
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">start</label>
+        <input type="number" id="bgmRegionStart" class="field-input" min="0" step="0.1" style="width:64px; flex-shrink:0;">
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">end</label>
+        <input type="number" id="bgmRegionEnd" class="field-input" min="0" step="0.1" style="width:64px; flex-shrink:0;">
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">fadeIn</label>
+        <input type="number" id="bgmRegionFadeIn" class="field-input" min="0" step="0.1" style="width:52px; flex-shrink:0;">
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">fadeOut</label>
+        <input type="number" id="bgmRegionFadeOut" class="field-input" min="0" step="0.1" style="width:52px; flex-shrink:0;">
+        <button id="bgmRegionDelete" class="btn btn-danger btn-sm" style="flex-shrink:0;">削除</button>
+      </div>
     </div>
   </div>
 
@@ -504,20 +525,6 @@
       </div>
     </div>
 
-    <!-- セクションC: BGM上書き区間 -->
-    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
-      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
-        BGM 上書き区間
-      </div>
-      <div style="font-size:12px; color:var(--text2); line-height:1.6; background:rgba(91,141,238,.07); border:1px solid rgba(91,141,238,.2); border-radius:5px; padding:8px 12px;">
-        シーン別BGMより優先されます。保存は上部の 💾 保存（台本保存）で行われます。
-      </div>
-      <!-- タイムライン帯 -->
-      <canvas id="bgmTimeline" height="28" style="width:100%; height:28px; border-radius:4px; background:var(--surface2); border:1px solid var(--border); display:none;"></canvas>
-      <!-- 区間リスト -->
-      <div id="bgmOverrideList" style="display:flex; flex-direction:column; gap:6px;"></div>
-      <button class="insert-add-btn" id="btnAddBgmRange">＋ 区間追加</button>
-    </div>
 
   </div>
 </div>
@@ -680,6 +687,11 @@ let _sceneBgmMap = null;   // { sceneKey: {bgm, bgmVolume} }
 let _playheadTime = 0;     // 現在の再生位置(秒)
 const _SPK_COLORS = { zundamon: "#5fb84f", metan: "#e87bb0", "営業": "#9aa0a6", "部長": "#7a8190", "AI": "#5b8dee" };
 
+// BGMレーンD&D 状態
+let _selectedBgmIdx = -1;  // 選択中の storyData.bgm インデックス
+let _bgmDrag = null;       // null | { op:"move"|"resizeL"|"resizeR"|"create", idx, origStart, origEnd, startX, cursorX, newRegion }
+let _bgmDragThreshold = false; // create時のドラッグ閾値超え判定済みフラグ
+
 async function ensureSceneBgmMap() {
   if (_sceneBgmMap) return _sceneBgmMap;
   try {
@@ -690,27 +702,26 @@ async function ensureSceneBgmMap() {
 }
 
 function _bgmRegions() {
-  // 各ターンの有効BGM = override区間 ?? scene.bgm。連続同一fileを1区間に。
+  // 時間ベース: storyData.bgm = [{start,end,file,volume,fadeIn,fadeOut}]
+  // file あり & end>start のものだけ表示。空ならシーン連動フォールバック表示。
+  const direct = (storyData && storyData.bgm) ? storyData.bgm : [];
+  const timeBased = direct.filter(o => o.file && typeof o.start === "number" && typeof o.end === "number" && o.end > o.start);
+  if (timeBased.length > 0) {
+    return timeBased.slice().sort((a, b) => a.start - b.start);
+  }
+  // フォールバック: シーン連動（ターン単位→時間変換）。表示専用(編集不可)
   const turns = storyData ? storyData.script : [];
-  const ovr = (storyData && storyData.bgm) ? storyData.bgm : [];
   const scn = _sceneBgmMap || {};
-  const fileAt = (i) => {
-    for (const o of ovr) {
-      const f = (o.from != null ? o.from : 0), t = (o.to != null ? o.to : -1);
-      if (o.file && f <= i && i <= t) return o.file;
-    }
-    const sc = scn[turns[i].scene];
-    return sc && sc.bgm ? sc.bgm : null;
-  };
   const regions = [];
   for (let i = 0; i < turns.length; i++) {
-    const f = fileAt(i);
+    const sc = scn[turns[i].scene];
+    const f = sc && sc.bgm ? sc.bgm : null;
     if (!f) continue;
     const last = regions[regions.length - 1];
-    if (last && last.file === f && last.endIdx === i - 1) {
-      last.endIdx = i; last.end = turns[i].end || 0;
+    if (last && last.file === f && last._endIdx === i - 1) {
+      last._endIdx = i; last.end = turns[i].end || 0;
     } else {
-      regions.push({ file: f, startIdx: i, endIdx: i, start: turns[i].start || 0, end: turns[i].end || 0 });
+      regions.push({ file: f, start: turns[i].start || 0, end: turns[i].end || 0, _endIdx: i, _sceneFallback: true });
     }
   }
   return regions;
@@ -757,18 +768,54 @@ function drawScriptTimeline() {
   // BGM レーン
   const regions = _bgmRegions();
   const BGM_COLORS = ["#5b8dee", "#4ade80", "#fbbf24", "#a78bfa", "#38bdf8"];
-  regions.forEach((r, i) => {
-    const x1 = xOf(r.start), x2 = xOf(r.end);
-    ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
-    ctx.globalAlpha = 0.6;
-    ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), laneH);
-    ctx.globalAlpha = 1;
-    if (x2 - x1 > 28) {
-      ctx.fillStyle = "#0b0d12";
-      ctx.font = "10px system-ui, sans-serif";
-      ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + laneH - 4);
+  // storyData.bgm の時間ベース区間を描画（インデックス対応で選択ハイライト）
+  const directBgm = (storyData && storyData.bgm) ? storyData.bgm : [];
+  const isTimeBased = directBgm.some(o => o.file && typeof o.start === "number" && typeof o.end === "number" && o.end > o.start);
+  if (isTimeBased) {
+    directBgm.forEach((r, i) => {
+      if (!r.file || typeof r.start !== "number" || typeof r.end !== "number" || r.end <= r.start) return;
+      const x1 = xOf(r.start), x2 = xOf(r.end);
+      const isSel = (i === _selectedBgmIdx);
+      ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
+      ctx.globalAlpha = isSel ? 0.85 : 0.6;
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), laneH);
+      ctx.globalAlpha = 1;
+      if (isSel) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x1 + 0.75, yBgm + 0.75, Math.max(2, x2 - x1 - 2), laneH - 1.5);
+      }
+      if (x2 - x1 > 28) {
+        ctx.fillStyle = "#0b0d12";
+        ctx.font = "10px system-ui, sans-serif";
+        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + laneH - 4);
+      }
+    });
+    // ドラッグ中の新規区間プレビュー
+    if (_bgmDrag && _bgmDrag.op === "create" && _bgmDragThreshold) {
+      const d = _bgmDrag;
+      const s = Math.min(d.origStart, d.origEnd), e2 = Math.max(d.origStart, d.origEnd);
+      const x1 = xOf(s), x2 = xOf(e2);
+      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha = 0.25;
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1), laneH);
+      ctx.globalAlpha = 1;
     }
-  });
+  } else {
+    // フォールバック(シーン連動): 読み取り専用表示
+    regions.forEach((r, i) => {
+      const x1 = xOf(r.start), x2 = xOf(r.end);
+      ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
+      ctx.globalAlpha = 0.4;
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), laneH);
+      ctx.globalAlpha = 1;
+      if (x2 - x1 > 28) {
+        ctx.fillStyle = "#8892aa";
+        ctx.font = "10px system-ui, sans-serif";
+        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + laneH - 4);
+      }
+    });
+  }
   // レーン名
   ctx.fillStyle = "#8892aa"; ctx.font = "9px system-ui, sans-serif";
   ctx.fillText("セリフ", 3, 10);
@@ -787,21 +834,366 @@ function drawScriptTimeline() {
   }
 }
 
+// ============================================================
+// audioAssets を台本タブでも使えるように早期ロード
+// ============================================================
+async function ensureAudioAssets() {
+  if (audioAssets) return audioAssets;
+  try {
+    const r = await fetch("/api/audio-assets");
+    if (r.ok) audioAssets = await r.json();
+  } catch (e) { /* 無視 */ }
+  return audioAssets || { bgm: [], se: [] };
+}
+
+// ============================================================
+// BGM区間 D&D ヘルパー
+// ============================================================
+const SNAP = 0.05;       // スナップ単位(秒)
+const MIN_LEN = 0.2;     // 最小区間長(秒)
+const EDGE_PX = 6;       // 端ハンドル幅(px)
+
+function _snapT(t) {
+  return Math.round(t / SNAP) * SNAP;
+}
+
+// キャンバス内 x → 時間(秒)
+function _timelineXtoT(canvas, x) {
+  const W = canvas.width;
+  const total = _timelineTotal();
+  return (x / W) * total;
+}
+
+// 時間 → キャンバス内 x
+function _timelineTtoX(canvas, t) {
+  const W = canvas.width;
+  const total = _timelineTotal();
+  return (t / total) * W;
+}
+
+// マウスイベントからキャンバス内 x を返す(スクロールオフセット込み)
+function _canvasX(canvas, e) {
+  const rect = canvas.getBoundingClientRect();
+  return e.clientX - rect.left;
+}
+
+// BGMレーンのY範囲
+function _bgmLaneY(canvas) {
+  const H = canvas.height;
+  const PAD = 13;
+  const laneH = (H - PAD - 6) / 2;
+  const yBgm = PAD + laneH + 2;
+  return { yBgm, laneH };
+}
+
+// storyData.bgm の時間ベース区間をインデックスつきで取得
+function _timeBgmRegions() {
+  if (!storyData || !storyData.bgm) return [];
+  return storyData.bgm
+    .map((r, i) => ({ ...r, _idx: i }))
+    .filter(r => r.file && typeof r.start === "number" && typeof r.end === "number" && r.end > r.start);
+}
+
+// ヒットテスト: BGMレーン上のどこをクリックしたか
+function _bgmHitTest(canvas, cx, cy) {
+  const { yBgm, laneH } = _bgmLaneY(canvas);
+  if (cy < yBgm || cy > yBgm + laneH) return null; // BGMレーン外
+  const t = _timelineXtoT(canvas, cx);
+  const regions = _timeBgmRegions();
+  // 後ろから検索(上に重なった区間が優先)
+  for (let i = regions.length - 1; i >= 0; i--) {
+    const r = regions[i];
+    const x1 = _timelineTtoX(canvas, r.start);
+    const x2 = _timelineTtoX(canvas, r.end);
+    if (cx >= x1 - EDGE_PX && cx <= x2 + EDGE_PX) {
+      if (cx <= x1 + EDGE_PX) return { type: "resizeL", idx: r._idx, region: r };
+      if (cx >= x2 - EDGE_PX) return { type: "resizeR", idx: r._idx, region: r };
+      return { type: "move", idx: r._idx, region: r };
+    }
+  }
+  return { type: "create", idx: -1, t };
+}
+
+// BGMエディタUI を選択区間で更新
+function _updateBgmRegionEditor() {
+  const hint = document.getElementById("bgmRegionEditorHint");
+  const fields = document.getElementById("bgmRegionEditorFields");
+  if (!hint || !fields) return;
+  const idx = _selectedBgmIdx;
+  const bgm = storyData && storyData.bgm ? storyData.bgm : [];
+  const r = (idx >= 0 && idx < bgm.length) ? bgm[idx] : null;
+  if (!r) {
+    hint.style.display = "";
+    fields.style.display = "none";
+    return;
+  }
+  hint.style.display = "none";
+  fields.style.display = "flex";
+
+  // ファイルドロップダウン
+  const fileSel = document.getElementById("bgmRegionFile");
+  if (fileSel) {
+    // 現在の選択を維持しながら options を更新
+    const prev = fileSel.value;
+    fileSel.innerHTML = "";
+    const noneOpt = document.createElement("option");
+    noneOpt.value = ""; noneOpt.textContent = "なし";
+    fileSel.appendChild(noneOpt);
+    const bgmFiles = (audioAssets && audioAssets.bgm) ? audioAssets.bgm : [];
+    for (const f of bgmFiles) {
+      const opt = document.createElement("option");
+      opt.value = f; opt.textContent = f.replace(/^bgm\//, "");
+      fileSel.appendChild(opt);
+    }
+    // 現在値が一覧にない場合でも追加
+    if (r.file && !bgmFiles.includes(r.file)) {
+      const opt = document.createElement("option");
+      opt.value = r.file; opt.textContent = r.file;
+      fileSel.insertBefore(opt, fileSel.firstChild.nextSibling);
+    }
+    fileSel.value = r.file || "";
+  }
+
+  const volSlider = document.getElementById("bgmRegionVolume");
+  const volDisp = document.getElementById("bgmRegionVolDisp");
+  if (volSlider) {
+    volSlider.value = r.volume != null ? r.volume : 0.25;
+    if (volDisp) volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
+  }
+  const startInp = document.getElementById("bgmRegionStart");
+  if (startInp) startInp.value = r.start != null ? r.start.toFixed(2) : "0";
+  const endInp = document.getElementById("bgmRegionEnd");
+  if (endInp) endInp.value = r.end != null ? r.end.toFixed(2) : "0";
+  const fadeInInp = document.getElementById("bgmRegionFadeIn");
+  if (fadeInInp) fadeInInp.value = r.fadeIn != null ? r.fadeIn : 0.6;
+  const fadeOutInp = document.getElementById("bgmRegionFadeOut");
+  if (fadeOutInp) fadeOutInp.value = r.fadeOut != null ? r.fadeOut : 0.6;
+}
+
+// BGMエディタの各コントロールから storyData.bgm[idx] へ反映
+function _collectBgmRegionEditor() {
+  const idx = _selectedBgmIdx;
+  if (!storyData || !storyData.bgm || idx < 0 || idx >= storyData.bgm.length) return;
+  const r = storyData.bgm[idx];
+  const fileSel = document.getElementById("bgmRegionFile");
+  if (fileSel) r.file = fileSel.value;
+  const volSlider = document.getElementById("bgmRegionVolume");
+  if (volSlider) r.volume = parseFloat(volSlider.value);
+  const startInp = document.getElementById("bgmRegionStart");
+  if (startInp && startInp.value !== "") {
+    const v = parseFloat(startInp.value);
+    if (!isNaN(v)) r.start = Math.max(0, Math.min(r.end - MIN_LEN, v));
+  }
+  const endInp = document.getElementById("bgmRegionEnd");
+  if (endInp && endInp.value !== "") {
+    const total = _timelineTotal();
+    const v = parseFloat(endInp.value);
+    if (!isNaN(v)) r.end = Math.max(r.start + MIN_LEN, Math.min(total, v));
+  }
+  const fadeInInp = document.getElementById("bgmRegionFadeIn");
+  if (fadeInInp && fadeInInp.value !== "") r.fadeIn = parseFloat(fadeInInp.value) || 0;
+  const fadeOutInp = document.getElementById("bgmRegionFadeOut");
+  if (fadeOutInp && fadeOutInp.value !== "") r.fadeOut = parseFloat(fadeOutInp.value) || 0;
+  markDirty();
+  notifyPlayerUpdate();
+  drawScriptTimeline();
+  _updateBgmRegionEditor();
+}
+
+// BGMエディタの各コントロールにイベントを設定（一度だけ呼ぶ）
+function _setupBgmRegionEditorEvents() {
+  const fileSel = document.getElementById("bgmRegionFile");
+  if (fileSel) fileSel.addEventListener("change", _collectBgmRegionEditor);
+  const volSlider = document.getElementById("bgmRegionVolume");
+  const volDisp = document.getElementById("bgmRegionVolDisp");
+  if (volSlider) {
+    volSlider.addEventListener("input", () => {
+      if (volDisp) volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
+      _collectBgmRegionEditor();
+    });
+  }
+  const startInp = document.getElementById("bgmRegionStart");
+  if (startInp) startInp.addEventListener("change", _collectBgmRegionEditor);
+  const endInp = document.getElementById("bgmRegionEnd");
+  if (endInp) endInp.addEventListener("change", _collectBgmRegionEditor);
+  const fadeInInp = document.getElementById("bgmRegionFadeIn");
+  if (fadeInInp) fadeInInp.addEventListener("change", _collectBgmRegionEditor);
+  const fadeOutInp = document.getElementById("bgmRegionFadeOut");
+  if (fadeOutInp) fadeOutInp.addEventListener("change", _collectBgmRegionEditor);
+  const playBtn = document.getElementById("bgmRegionPlay");
+  if (playBtn) playBtn.addEventListener("click", () => {
+    const f = document.getElementById("bgmRegionFile");
+    if (f) previewAudioFile(f.value);
+  });
+  const delBtn = document.getElementById("bgmRegionDelete");
+  if (delBtn) delBtn.addEventListener("click", () => {
+    const idx = _selectedBgmIdx;
+    if (!storyData || !storyData.bgm || idx < 0) return;
+    storyData.bgm.splice(idx, 1);
+    _selectedBgmIdx = -1;
+    markDirty();
+    notifyPlayerUpdate();
+    drawScriptTimeline();
+    _updateBgmRegionEditor();
+  });
+  const addBtn = document.getElementById("btnAddBgmRegion");
+  if (addBtn) addBtn.addEventListener("click", () => {
+    if (!storyData) return;
+    if (!storyData.bgm) storyData.bgm = [];
+    const total = _timelineTotal();
+    const s = _snapT(Math.min(_playheadTime, total - MIN_LEN));
+    const e2 = _snapT(Math.min(s + 5, total));
+    const file = (audioAssets && audioAssets.bgm && audioAssets.bgm.length > 0) ? audioAssets.bgm[0] : "";
+    storyData.bgm.push({ start: s, end: Math.max(s + MIN_LEN, e2), file, volume: 0.25, fadeIn: 0.6, fadeOut: 0.6 });
+    _selectedBgmIdx = storyData.bgm.length - 1;
+    markDirty();
+    notifyPlayerUpdate();
+    drawScriptTimeline();
+    ensureAudioAssets().then(() => _updateBgmRegionEditor());
+  });
+}
+
 function setupScriptTimeline() {
   const canvas = document.getElementById("scriptTimeline");
   if (!canvas) return;
-  canvas.addEventListener("click", (e) => {
+
+  _setupBgmRegionEditorEvents();
+  ensureAudioAssets(); // 早期ロード
+
+  // ============================================================
+  // BGMレーン D&D: mousedown
+  // ============================================================
+  canvas.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    const cx = _canvasX(canvas, e);
+    const cy = e.clientY - canvas.getBoundingClientRect().top;
+    const { yBgm } = _bgmLaneY(canvas);
     const turns = storyData ? storyData.script : [];
-    if (!turns.length) return;
-    const total = _timelineTotal();
-    const rect = canvas.getBoundingClientRect();
-    const t = Math.max(0, ((e.clientX - rect.left) / rect.width) * total);
-    if (window.storyPlayer && playerReady) window.storyPlayer.seekToTime(t);
-    const idx = turnIndexAtTime(t);
-    if (idx >= 0) selectTurn(idx, false);
-    _playheadTime = t;
+
+    // セリフレーン → シーク(従来動作)
+    if (cy < yBgm) {
+      if (!turns.length) return;
+      const total = _timelineTotal();
+      const t = Math.max(0, _timelineXtoT(canvas, cx));
+      if (window.storyPlayer && playerReady) window.storyPlayer.seekToTime(t);
+      const idx = turnIndexAtTime(t);
+      if (idx >= 0) selectTurn(idx, false);
+      _playheadTime = t;
+      drawScriptTimeline();
+      return;
+    }
+
+    // BGMレーン → D&D 開始
+    e.preventDefault();
+    const hit = _bgmHitTest(canvas, cx, cy);
+    if (!hit) return;
+
+    if (hit.type === "create") {
+      const t = _snapT(_timelineXtoT(canvas, cx));
+      _bgmDrag = { op: "create", idx: -1, origStart: t, origEnd: t, startX: cx };
+      _bgmDragThreshold = false;
+    } else {
+      const r = hit.region;
+      _bgmDrag = { op: hit.type, idx: hit.idx, origStart: r.start, origEnd: r.end, startX: cx, cursorX: cx };
+      _selectedBgmIdx = hit.idx;
+      ensureAudioAssets().then(() => _updateBgmRegionEditor());
+    }
     drawScriptTimeline();
   });
+
+  // ============================================================
+  // BGMレーン D&D: mousemove
+  // ============================================================
+  window.addEventListener("mousemove", (e) => {
+    if (!_bgmDrag) {
+      // カーソル更新(ホバー)
+      const cy = e.clientY - canvas.getBoundingClientRect().top;
+      const cx = _canvasX(canvas, e);
+      const { yBgm, laneH } = _bgmLaneY(canvas);
+      if (cy >= yBgm && cy <= yBgm + laneH) {
+        const hit = _bgmHitTest(canvas, cx, cy);
+        if (hit && hit.type === "resizeL") canvas.style.cursor = "ew-resize";
+        else if (hit && hit.type === "resizeR") canvas.style.cursor = "ew-resize";
+        else if (hit && hit.type === "move") canvas.style.cursor = "grab";
+        else canvas.style.cursor = "crosshair";
+      } else {
+        canvas.style.cursor = "default";
+      }
+      return;
+    }
+
+    e.preventDefault();
+    const d = _bgmDrag;
+    const cx = _canvasX(canvas, e);
+    const total = _timelineTotal();
+    const dt = _timelineXtoT(canvas, cx - d.startX); // 移動量(秒)
+
+    if (d.op === "create") {
+      const curT = _snapT(_timelineXtoT(canvas, cx));
+      d.origEnd = Math.max(0, Math.min(total, curT));
+      if (Math.abs(cx - d.startX) > 4) _bgmDragThreshold = true;
+    } else if (d.op === "move") {
+      const dur = d.origEnd - d.origStart;
+      let ns = _snapT(d.origStart + dt);
+      ns = Math.max(0, Math.min(total - dur, ns));
+      storyData.bgm[d.idx].start = ns;
+      storyData.bgm[d.idx].end = _snapT(ns + dur);
+    } else if (d.op === "resizeL") {
+      let ns = _snapT(d.origStart + dt);
+      ns = Math.max(0, Math.min(storyData.bgm[d.idx].end - MIN_LEN, ns));
+      storyData.bgm[d.idx].start = ns;
+    } else if (d.op === "resizeR") {
+      let ne = _snapT(d.origEnd + dt);
+      ne = Math.max(storyData.bgm[d.idx].start + MIN_LEN, Math.min(total, ne));
+      storyData.bgm[d.idx].end = ne;
+    }
+    drawScriptTimeline();
+    if (d.op !== "create") _updateBgmRegionEditor();
+  });
+
+  // ============================================================
+  // BGMレーン D&D: mouseup
+  // ============================================================
+  window.addEventListener("mouseup", (e) => {
+    if (!_bgmDrag) return;
+    const d = _bgmDrag;
+    _bgmDrag = null;
+
+    if (d.op === "create") {
+      if (!_bgmDragThreshold) {
+        // クリック扱い: シーク
+        const t = _snapT(d.origStart);
+        if (window.storyPlayer && playerReady) window.storyPlayer.seekToTime(t);
+        _playheadTime = t;
+        drawScriptTimeline();
+        return;
+      }
+      // 区間作成
+      let s = Math.min(d.origStart, d.origEnd);
+      let en = Math.max(d.origStart, d.origEnd);
+      s = _snapT(s); en = _snapT(en);
+      if (en - s < MIN_LEN) en = s + MIN_LEN;
+      const total = _timelineTotal();
+      en = Math.min(total, en);
+      s = Math.max(0, s);
+      if (!storyData.bgm) storyData.bgm = [];
+      const file = (audioAssets && audioAssets.bgm && audioAssets.bgm.length > 0) ? audioAssets.bgm[0] : "";
+      storyData.bgm.push({ start: s, end: en, file, volume: 0.25, fadeIn: 0.6, fadeOut: 0.6 });
+      _selectedBgmIdx = storyData.bgm.length - 1;
+      markDirty();
+      notifyPlayerUpdate();
+      drawScriptTimeline();
+      ensureAudioAssets().then(() => _updateBgmRegionEditor());
+    } else {
+      // move/resize 確定
+      markDirty();
+      notifyPlayerUpdate();
+      drawScriptTimeline();
+      _updateBgmRegionEditor();
+    }
+    canvas.style.cursor = "default";
+  });
+
   // 再生中はヘッド追従
   window.addEventListener("story-player-frame", (e) => {
     _playheadTime = ((e.detail && e.detail.frame) || 0) / 30;
@@ -1897,9 +2289,6 @@ function setupEvents() {
   // 音タブ: シーンBGM保存
   document.getElementById("btnSaveSceneBgm").addEventListener("click", saveSceneBgm);
 
-  // 音タブ: BGM上書き区間追加
-  document.getElementById("btnAddBgmRange").addEventListener("click", addBgmRange);
-
   // 音タブ: プレビュー再生/停止
   document.getElementById("btnAudioPlay").addEventListener("click", toggleAudioPreview);
 
@@ -2139,7 +2528,6 @@ async function loadAudioPanel() {
     audioLoaded = true;
     renderSeMapSection();
     renderSceneBgmSection();
-    renderBgmOverrideSection();
   } catch (e) {
     document.getElementById("seMapContainer").innerHTML =
       "<div style=\"color:var(--danger);font-size:12px;\">読み込みエラー: " + e.message + "</div>";
@@ -2368,162 +2756,6 @@ async function saveSceneBgm() {
   } catch (e) {
     statusEl.style.color = "var(--danger)";
     statusEl.textContent = "通信エラー";
-  }
-}
-
-// ============================================================
-// セクションC: BGM上書き区間
-// ============================================================
-function renderBgmOverrideSection() {
-  const list = document.getElementById("bgmOverrideList");
-  list.innerHTML = "";
-  const ranges = (storyData && storyData.bgm) ? storyData.bgm : [];
-  for (let i = 0; i < ranges.length; i++) {
-    list.appendChild(makeBgmRangeItem(i, ranges[i]));
-  }
-  drawBgmTimeline();
-}
-
-function makeBgmRangeItem(idx, range) {
-  const item = document.createElement("div");
-  item.className = "bgm-range-item";
-
-  // from
-  const fromLbl = document.createElement("span");
-  fromLbl.className = "bgm-range-label"; fromLbl.textContent = "from";
-  const fromInp = document.createElement("input");
-  fromInp.type = "number"; fromInp.className = "field-input bgm-range-num";
-  fromInp.min = "0"; fromInp.step = "1";
-  fromInp.value = range.from != null ? range.from : 0;
-  fromInp.addEventListener("input", () => {
-    if (!storyData.bgm) return;
-    storyData.bgm[idx].from = parseInt(fromInp.value, 10) || 0;
-    markDirty();
-    drawBgmTimeline();
-  });
-
-  // to
-  const toLbl = document.createElement("span");
-  toLbl.className = "bgm-range-label"; toLbl.textContent = "to";
-  const toInp = document.createElement("input");
-  toInp.type = "number"; toInp.className = "field-input bgm-range-num";
-  toInp.min = "0"; toInp.step = "1";
-  toInp.value = range.to != null ? range.to : 0;
-  toInp.addEventListener("input", () => {
-    if (!storyData.bgm) return;
-    storyData.bgm[idx].to = parseInt(toInp.value, 10) || 0;
-    markDirty();
-    drawBgmTimeline();
-  });
-
-  // BGMファイル
-  const fileSel = document.createElement("select");
-  fileSel.className = "field-select";
-  fileSel.style.flex = "1";
-  const noneOpt2 = document.createElement("option");
-  noneOpt2.value = ""; noneOpt2.textContent = "なし";
-  fileSel.appendChild(noneOpt2);
-  for (const bgmFile of (audioAssets ? (audioAssets.bgm || []) : [])) {
-    const opt = document.createElement("option");
-    opt.value = bgmFile; opt.textContent = bgmFile;
-    fileSel.appendChild(opt);
-  }
-  fileSel.value = range.file || "";
-  fileSel.addEventListener("change", () => {
-    if (!storyData.bgm) return;
-    storyData.bgm[idx].file = fileSel.value;
-    markDirty();
-  });
-
-  // 音量
-  const volLbl = document.createElement("span");
-  volLbl.className = "bgm-range-label"; volLbl.textContent = "音量";
-  const volSlider = document.createElement("input");
-  volSlider.type = "range"; volSlider.min = "0"; volSlider.max = "1"; volSlider.step = "0.05";
-  volSlider.style.cssText = "width:80px; accent-color:var(--accent);";
-  volSlider.value = range.volume != null ? range.volume : 0.25;
-  const volDisp2 = document.createElement("span");
-  volDisp2.className = "vol-display";
-  volDisp2.textContent = parseFloat(volSlider.value).toFixed(2);
-  volSlider.addEventListener("input", () => {
-    volDisp2.textContent = parseFloat(volSlider.value).toFixed(2);
-    if (!storyData.bgm) return;
-    storyData.bgm[idx].volume = parseFloat(volSlider.value);
-    markDirty();
-  });
-
-  // 削除ボタン
-  const delBtn = document.createElement("button");
-  delBtn.className = "btn btn-danger btn-sm";
-  delBtn.textContent = "削除";
-  delBtn.addEventListener("click", () => {
-    if (!storyData.bgm) return;
-    storyData.bgm.splice(idx, 1);
-    markDirty();
-    renderBgmOverrideSection();
-  });
-
-  item.appendChild(fromLbl); item.appendChild(fromInp);
-  item.appendChild(toLbl); item.appendChild(toInp);
-  item.appendChild(fileSel);
-  item.appendChild(makeAudioPlayBtn(() => fileSel.value));
-  item.appendChild(volLbl); item.appendChild(volSlider); item.appendChild(volDisp2);
-  item.appendChild(delBtn);
-  return item;
-}
-
-function addBgmRange() {
-  if (!storyData.bgm) storyData.bgm = [];
-  const total = storyData.script ? storyData.script.length : 0;
-  storyData.bgm.push({ from: 0, to: Math.max(0, total - 1), file: "", volume: 0.25 });
-  markDirty();
-  renderBgmOverrideSection();
-}
-
-function drawBgmTimeline() {
-  const canvas = document.getElementById("bgmTimeline");
-  if (!canvas) return;
-  const total = storyData && storyData.script ? storyData.script.length : 0;
-  const ranges = (storyData && storyData.bgm) ? storyData.bgm : [];
-  if (total === 0 || ranges.length === 0) {
-    canvas.style.display = "none";
-    return;
-  }
-  canvas.style.display = "block";
-  const W = canvas.offsetWidth || 800;
-  canvas.width = W;
-  const H = canvas.height;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, W, H);
-
-  // 背景
-  ctx.fillStyle = "#22263a";
-  ctx.fillRect(0, 0, W, H);
-
-  // ターン区切り（薄い縦線）
-  for (let i = 0; i <= total; i++) {
-    const x = Math.round((i / total) * W);
-    ctx.fillStyle = "#2e3347";
-    ctx.fillRect(x, 0, 1, H);
-  }
-
-  // 色パレット（区間ごとに色変え）
-  const COLORS = ["#5b8dee", "#4ade80", "#fbbf24", "#f87171", "#a78bfa", "#38bdf8"];
-  for (let i = 0; i < ranges.length; i++) {
-    const r = ranges[i];
-    const x1 = Math.round((Math.max(0, r.from) / total) * W);
-    const x2 = Math.round((Math.min(total - 1, r.to) + 1) / total * W);
-    const col = COLORS[i % COLORS.length];
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = col;
-    ctx.fillRect(x1, 2, Math.max(2, x2 - x1), H - 4);
-    ctx.globalAlpha = 1;
-    // ラベル
-    if (x2 - x1 > 20) {
-      ctx.fillStyle = "#fff";
-      ctx.font = "10px system-ui, sans-serif";
-      ctx.fillText(r.file ? r.file.replace(/^bgm\//, "") : "?", x1 + 3, H - 4);
-    }
   }
 }
 
