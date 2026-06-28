@@ -100,6 +100,8 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
       controls
       showPlaybackRateControl={[0.5, 0.75, 1, 1.25, 1.5, 2]}
       initiallyMuted={false}
+      // voice + BGM(クロスフェードで最大2) + 同時SE複数 を同時に鳴らせるよう余裕を持たせる。
+      numberOfSharedAudioTags={24}
       acknowledgeRemotionLicense
       style={{ width: "100%", height: "100%", background: "#080a0f" }}
       renderLoading={() => (

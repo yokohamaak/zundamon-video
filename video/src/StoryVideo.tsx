@@ -1216,10 +1216,12 @@ const SeLayer: React.FC<{
     <>
       {events.map((ev, i) => {
         const startFrame = Math.round(ev.t * fps);
-        // durationInFrames は指定しない＝SE は自分の尺いっぱい再生される。
-        // (以前は durationInFrames=1 で1フレームしか鳴らず声に消されていた)
+        // SE の最大尺。Audio は自分のファイル長で勝手に止まるが、Sequence をこの長さに
+        // 区切ることで鳴り終わったら Audio がアンマウントされ、同時マウント数が増え続けない。
+        // (durationInFrames=1 だと1フレームで打ち切られ声に消える / 無指定だと終端まで載りっぱなし)
+        const SE_MAX_FRAMES = Math.round(6 * fps);
         return (
-          <Sequence key={i} from={startFrame}>
+          <Sequence key={i} from={startFrame} durationInFrames={SE_MAX_FRAMES}>
             <Audio src={staticFile(ev.file)} volume={ev.volume} />
           </Sequence>
         );
