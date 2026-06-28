@@ -556,7 +556,7 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
         ".ttf": "font/ttf",
     }
 
-    def _send_file(self, path, content_type=None):
+    def _send_file(self, path, content_type=None, no_cache=False):
         """任意のファイルを返す。path が None または存在しない場合は 404。
 
         音声/動画のシーク再生にはブラウザが HTTP Range リクエストを使うため、
@@ -611,6 +611,8 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
         self.send_response(206 if is_partial else 200)
         self.send_header("Content-Type", content_type)
         self.send_header("Accept-Ranges", "bytes")
+        if no_cache:
+            self.send_header("Cache-Control", "no-store, must-revalidate")
         self.send_header("Content-Length", str(len(body)))
         if is_partial:
             self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, file_size))
@@ -641,6 +643,7 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             self._send_file(
                 os.path.join(VIDEO_PUBLIC_DIR, "story-player.js"),
                 "text/javascript; charset=utf-8",
+                no_cache=True,
             )
 
         elif path.startswith("/preview-assets/"):

@@ -638,7 +638,8 @@ function initPlayer() {
     window.addEventListener("story-player-ready", onPlayerApiReady, { once: true });
     // story-player.js を動的に読み込む
     const script = document.createElement("script");
-    script.src = "/story-player.js";
+    // キャッシュ回避: 毎回新しいURLにして再ビルド後の最新バンドルを確実に読む。
+    script.src = "/story-player.js?v=" + Date.now();
     script.onerror = () => {
       statusEl.textContent = "story-player.js の読み込みに失敗（ビルドが必要: node scripts/build-story-player.mjs）";
     };
