@@ -55,11 +55,18 @@ CONFIG = {
 def main():
     data = json.load(open(STORY, encoding="utf-8"))
     # per-turn の pause(台詞後の無音秒)があれば転送する。回想境界の「一拍の間」に使う。
-    script = [
-        {"speaker": t["speaker"], "text": t["text"],
-         **({"pause": t["pause"]} if t.get("pause") else {})}
-        for t in data["script"]
-    ]
+    # インサート専用ターン(セリフ空)は音声尺がゼロだと画面に一瞬も出ないため、
+    # 最低表示秒(INSERT_HOLD)の無音をpauseとして確保する。
+    INSERT_HOLD = 2.5
+    script = []
+    for t in data["script"]:
+        pause = t.get("pause")
+        if t.get("insert") and not (t.get("text") or "").strip() and not pause:
+            pause = INSERT_HOLD
+        item = {"speaker": t["speaker"], "text": t["text"]}
+        if pause:
+            item["pause"] = pause
+        script.append(item)
 
     total = len(script)
     url = os.environ.get("VOICEVOX_URL") or "http://localhost:50021"

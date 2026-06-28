@@ -1472,6 +1472,8 @@ function collectInsert() {
 
   turn.insert = ins;
   markDirty();
+  // セリフ空のターンのインサートは尺確保のため音声生成が必要（make_story_audioが最低表示秒を付与）。
+  if (!(turn.text || "").trim()) markAudioDirty();
   renderList();
   notifyPlayerUpdate();
 }
