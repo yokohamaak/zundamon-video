@@ -1862,6 +1862,32 @@ let sceneBgmData = null;  // { sceneKey: {label, bgm, bgmVolume}, ... }
 let audioLoaded = false;  // 初回ロード済みフラグ
 
 // ============================================================
+// 音タブ: 各音源の試聴（単体再生）
+// ============================================================
+let _previewAudioEl = null;
+function previewAudioFile(file) {
+  // file 例: "se/surprise.mp3" / "bgm/bgm.mp3"。/preview-assets/ 経由(Range対応)で配信。
+  if (!file) return;
+  try {
+    if (_previewAudioEl) { _previewAudioEl.pause(); _previewAudioEl = null; }
+    _previewAudioEl = new Audio("/preview-assets/" + file);
+    _previewAudioEl.volume = 0.9;
+    _previewAudioEl.play().catch(() => {});
+  } catch (e) { /* 無視 */ }
+}
+// クリックで getFile() のファイルを試聴する小さな▶ボタンを作る。
+function makeAudioPlayBtn(getFile) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "btn btn-secondary btn-sm";
+  b.textContent = "▶";
+  b.title = "試聴";
+  b.style.cssText = "flex-shrink:0; padding:2px 9px;";
+  b.addEventListener("click", (e) => { e.preventDefault(); previewAudioFile(getFile()); });
+  return b;
+}
+
+// ============================================================
 // 音タブ: プレビュー再生/停止
 // ============================================================
 function _setAudioPlayBtn(playing) {
@@ -1973,6 +1999,7 @@ function renderSeMapSection() {
         seMap[cat][evtKey].file = sel.value;
       });
       row.appendChild(sel);
+      row.appendChild(makeAudioPlayBtn(() => sel.value));
 
       // ON/OFFチェックボックス
       const cb = document.createElement("input");
@@ -2078,6 +2105,7 @@ function renderSceneBgmSection() {
     }
     sel.value = sc.bgm || "";
     row.appendChild(sel);
+    row.appendChild(makeAudioPlayBtn(() => sel.value));
 
     // 音量スライダー
     const volWrap = document.createElement("div");
@@ -2235,6 +2263,7 @@ function makeBgmRangeItem(idx, range) {
   item.appendChild(fromLbl); item.appendChild(fromInp);
   item.appendChild(toLbl); item.appendChild(toInp);
   item.appendChild(fileSel);
+  item.appendChild(makeAudioPlayBtn(() => fileSel.value));
   item.appendChild(volLbl); item.appendChild(volSlider); item.appendChild(volDisp2);
   item.appendChild(delBtn);
   return item;
@@ -2335,6 +2364,7 @@ function makeManualSeRow(idx, seItem) {
   sel.value = seItem.file || "";
   sel.addEventListener("change", () => { collectManualSe(); });
   row.appendChild(sel);
+  row.appendChild(makeAudioPlayBtn(() => sel.value));
 
   // at（オフセット秒）
   const atLbl = document.createElement("span");
