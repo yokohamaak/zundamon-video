@@ -147,12 +147,14 @@ def _load_scenes_detail():
     return out
 
 
-def _build_script_prompt(theme, length, notes):
+def _build_script_prompt(theme, length, notes, mode="safe"):
     """AI(ChatGPT/Claude)に投げる台本生成プロンプトを組み立てて返す。
 
     現在ツールが対応しているシーン/キャラ/表情/演出/インサートと、
     読み込み可能なJSONスキーマ＋例を埋め込む。ローカル生成のみ（外部送信なし）。
+    mode="experimental" のときは、新しい演出/新シーンの考案を促す版を返す。
     """
+    experimental = (mode == "experimental")
     theme = (theme or "").strip() or "（ここに主題を入れてください）"
     length = (length or "").strip() or "10分前後・全体で30〜60ターンほど（1主題を深掘り）"
     notes = (notes or "").strip() or "特になし"
@@ -210,9 +212,13 @@ def _build_script_prompt(theme, length, notes):
         "- metan … 四国めたん（解説役）",
         "- 営業 / 部長 / AI … 脇役。画面に立ち絵は出さず、チャットや声のみで登場（主にインサートと併用）。メインの掛け合いは zundamon と metan で進める。",
         "",
-        "━━━ 使えるシーン（scene に使う値。リスト以外は使用不可）━━━",
+        ("━━━ シーン（scene の値・既存。新規も可）━━━" if experimental
+         else "━━━ 使えるシーン（scene に使う値。リスト以外は使用不可）━━━"),
         scene_lines,
-        "※ scene は各ターンの背景。場面転換は話の区切りで行う。",
+        ("※ 上は既存シーン。話に必要なら新しい scene 名を作って使ってもよい"
+         "（新シーンは後で手作業で用意される。下記 _proposals に列挙すること）。"
+         if experimental
+         else "※ scene は各ターンの背景。リストのキーのみ使う。場面転換は話の区切りで行う。"),
         "",
         "━━━ 表情（expression に使う値・各ターンに付ける）━━━",
         expr_list,
@@ -235,13 +241,35 @@ def _build_script_prompt(theme, length, notes):
         '- {"kind":"teamchat","channel":"#障害対応","messages":[{"from":"営業","text":"..."}]} … Slack風チャット',
         '- {"kind":"mailer","from":"差出人","subject":"件名","body":"本文","time":"10:00"} … メール画面',
         "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
+    ]
+
+    if experimental:
+        parts += [
+            "",
+            "━━━ 新しい演出の提案（このモードの主目的）━━━",
+            "- 既存の演出/インサートだけでなく、この動画に効果的だと思う『今は無い新しい演出』を自由に考案してよい。",
+            '- 新演出はターンに任意のキー名で付ける（例: "zoomPunch": true / "colorFlash": "red" / "splitScreen": {...} 等）。',
+            "- 新しい場面が必要なら、リストに無い新しい scene 名を使ってよい。",
+            "- ただし既存で表現できるものは無理に新演出にしない。新演出は『あると良いが今は無い』ものに限る。",
+            '- 使った新演出・新シーンは、トップレベルの "_proposals" 配列に必ずまとめること:',
+            '    "_proposals": [',
+            '      { "type": "effect", "name": "zoomPunch", "desc": "一瞬強く寄って戻る強調", "example": {"zoomPunch": true} },',
+            '      { "type": "scene",  "name": "night_street", "desc": "夜の街並み（全身）" }',
+            '    ]',
+            "- ツールは未対応の新演出を無視して描画するが、読込時に一覧表示されるので、開発の足がかりになる。",
+        ]
+
+    parts += [
         "",
         "━━━ 出力フォーマット（厳守）━━━",
         "- 出力は JSON のみ（```json ... ``` で囲ってよい）。JSON 以外の説明文は書かない。",
-        '- トップレベル: { "title": "動画タイトル", "script": [ ターン, ... ] }',
+        '- トップレベル: { "title": "動画タイトル", "script": [ ターン, ... ]'
+        + (', "_proposals": [ ... ] }' if experimental else " }"),
         "- 各ターンの必須キー: speaker, text, scene。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
-        "- scene は必ず上記リストのキーから選ぶ。speaker も上記の値のみ。",
+        ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
+         if experimental
+         else "- scene は必ず上記リストのキーから選ぶ。speaker も上記の値のみ。"),
         "",
         "━━━ 出力例（最小）━━━",
         example,
@@ -251,13 +279,24 @@ def _build_script_prompt(theme, length, notes):
     return "\n".join(parts)
 
 
+# ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
+_KNOWN_TURN_FIELDS = {
+    "id", "speaker", "text", "scene", "expression", "enter", "face",
+    "emphasis", "shake", "flashback", "telop", "pause", "insert",
+    "exit", "exitDir", "start", "end", "sentences",
+}
+_KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer"}
+
+
 def _import_script_text(raw):
     """AIが出力したテキスト（```json フェンスや前後の文を含みうる）から台本を取り出し保存する。
 
-    戻り値: (ok: bool, message: str, turns: int)
+    未対応の演出/シーン/表情/インサートを検出し report にまとめて返す。
+    戻り値: (ok: bool, message: str, info: dict)
+      info = {turns, report:{newFields, newScenes, newExpr, newInserts, proposals}}
     """
     if not raw or not raw.strip():
-        return False, "貼り付けが空です", 0
+        return False, "貼り付けが空です", {}
     text = raw.strip()
     # ```json ... ``` フェンスを除去
     if "```" in text:
@@ -272,22 +311,55 @@ def _import_script_text(raw):
     try:
         data = json.loads(text)
     except json.JSONDecodeError as ex:
-        return False, "JSONとして解釈できません: %s" % ex, 0
+        return False, "JSONとして解釈できません: %s" % ex, {}
     if not isinstance(data, dict) or not isinstance(data.get("script"), list):
-        return False, "script 配列が見つかりません", 0
-    # 自動生成フィールドを除去し id を振り直す
+        return False, "script 配列が見つかりません", {}
+
+    existing_scenes = set(_load_scenes_keys())
+    existing_expr = set(_load_expression_keys())
+    new_fields = {}    # フィールド名 -> [turn番号...]
+    new_scenes = {}    # scene名 -> [turn番号...]
+    new_expr = {}      # 表情名 -> [turn番号...]
+    new_inserts = {}   # kind -> [turn番号...]
+
     for i, turn in enumerate(data["script"]):
         if not isinstance(turn, dict):
-            return False, "turn[%d] が不正です" % i, 0
+            return False, "turn[%d] が不正です" % i, {}
+        # 自動生成フィールドを除去し id を振り直す（未対応の新演出キーは保持する）
         for k in ("start", "end", "sentences"):
             turn.pop(k, None)
         turn["id"] = "turn-%04d" % (i + 1)
+        n = i + 1
+        for k in turn:
+            if k not in _KNOWN_TURN_FIELDS:
+                new_fields.setdefault(k, []).append(n)
+        sc = turn.get("scene")
+        if isinstance(sc, str) and existing_scenes and sc not in existing_scenes:
+            new_scenes.setdefault(sc, []).append(n)
+        ex_ = turn.get("expression")
+        if isinstance(ex_, str) and existing_expr and ex_ not in existing_expr:
+            new_expr.setdefault(ex_, []).append(n)
+        ins = turn.get("insert")
+        if isinstance(ins, dict):
+            kind = ins.get("kind")
+            if kind and kind not in _KNOWN_INSERT_KINDS:
+                new_inserts.setdefault(kind, []).append(n)
+
+    proposals = data.get("_proposals") if isinstance(data.get("_proposals"), list) else []
     data.pop("audio", None)
     try:
         _save_story(data)  # ここで speaker/text/scene の検証も走る
     except ValueError as ex:
-        return False, str(ex), 0
-    return True, "ok", len(data["script"])
+        return False, str(ex), {}
+
+    report = {
+        "newFields": new_fields,
+        "newScenes": new_scenes,
+        "newExpr": new_expr,
+        "newInserts": new_inserts,
+        "proposals": proposals,
+    }
+    return True, "ok", {"turns": len(data["script"]), "report": report}
 
 
 def _safe_path(base_dir, relative):
@@ -530,7 +602,8 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             try:
                 params = json.loads(body.decode("utf-8")) if body else {}
                 prompt = _build_script_prompt(
-                    params.get("theme"), params.get("length"), params.get("notes")
+                    params.get("theme"), params.get("length"), params.get("notes"),
+                    params.get("mode", "safe"),
                 )
                 self._send_json({"prompt": prompt})
             except Exception as e:
@@ -541,9 +614,13 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
             try:
                 params = json.loads(body.decode("utf-8")) if body else {}
-                ok, msg, turns = _import_script_text(params.get("raw", ""))
+                ok, msg, info = _import_script_text(params.get("raw", ""))
                 if ok:
-                    self._send_json({"ok": True, "turns": turns})
+                    self._send_json({
+                        "ok": True,
+                        "turns": info.get("turns", 0),
+                        "report": info.get("report", {}),
+                    })
                 else:
                     self._send_error_json(400, msg)
             except Exception as e:
