@@ -63,6 +63,10 @@ cmd_expr() { run "$PY expression_editor.py"; }
 # story_editor.py の起動前に1回実行する（中央ペインのプレビュー用）。
 cmd_player_build() { run "cd video && node scripts/build-story-player.mjs"; }
 
+# assets/ → public/ を同期（背景/BGM/SE/立ち絵/manifest）。素材を足したら実行。
+# ※ story エディタは起動時に自動で実行するので、通常は手動不要。
+cmd_prep() { run "cd video && node scripts/prep-story.mjs"; }
+
 # 本番フル: build → audio → render（VOICEVOX必要）。
 cmd_all() {
   cmd_build
@@ -103,6 +107,7 @@ if [ $# -gt 0 ]; then
     still)         cmd_still "$(z2h "${2:-0}")" ;;
     story)         cmd_story ;;
     player-build)  cmd_player_build ;;
+    prep)          cmd_prep ;;
     scene)         cmd_scene ;;
     expr)          cmd_expr ;;
     all)           cmd_all ;;

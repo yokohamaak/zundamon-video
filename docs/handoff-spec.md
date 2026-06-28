@@ -25,6 +25,7 @@
 - パイプライン(node):
   - `video/scripts/psd-export.mjs` … PSD→パーツPNG書き出し(build/build-full/candidates)。
   - `video/scripts/prep-story.mjs` … assets/→public/ コピー＋manifest.json生成。
+    **story エディタ起動時に自動実行**(`./run-story prep` でも手動可)。素材を足したら反映される。
   - `video/scripts/build-story-player.mjs` … story-player.tsx を esbuild→`public/story-player.js`。
   - `video/scripts/expression-catalog.mjs` … 表情一覧PNG生成(確認用)。
 - 音声: `make_story_audio.py`(VOICEVOX)→`src/tts_voicevox.py`(synthesize_dialogue)。

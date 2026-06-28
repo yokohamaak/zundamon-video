@@ -827,6 +827,27 @@ def _port_in_use(port):
         s.close()
 
 
+def _run_prep_story():
+    """起動時に assets/ → public/ を同期(prep-story)。BGM/SE/背景/立ち絵/manifest を最新化。
+    これで「assets に素材を置く → 手動で prep-story」を不要にする。
+    node が無い等で失敗しても起動は続行する。"""
+    video_dir = os.path.join(ROOT_DIR, "video")
+    script = os.path.join(video_dir, "scripts", "prep-story.mjs")
+    if not os.path.isfile(script):
+        return
+    try:
+        r = subprocess.run(
+            ["node", "scripts/prep-story.mjs"],
+            cwd=video_dir, capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            print("[story] prep-story 完了（assets→public 同期: 背景/BGM/SE/立ち絵）")
+        else:
+            print("[story] prep-story 失敗（続行）:\n" + (r.stderr or "").strip()[:300])
+    except FileNotFoundError:
+        print("[story] node が無いため prep-story をスキップ（手動: cd video && node scripts/prep-story.mjs）")
+
+
 def _maybe_start_scene_editor():
     # シーンタブの iframe 用に scene_editor(8770) を自動起動する（既に起動済みなら何もしない）。
     scene_py = os.path.join(ROOT_DIR, "scene_editor.py")
@@ -870,6 +891,7 @@ def main():
     parser.add_argument("--port", type=int, default=8771)
     args = parser.parse_args()
 
+    _run_prep_story()  # 起動時に assets→public を同期(手動 prep-story 不要に)
     _maybe_start_scene_editor()
     _maybe_start_expression_editor()
 
