@@ -307,6 +307,10 @@
   <div class="pane-center">
     <div class="preview-player-wrap" id="playerWrap"></div>
     <div class="preview-status" id="playerStatus">story-player.js を読み込み中...</div>
+    <!-- プレビュー下のタイムライン（セリフ＋BGM）。クリックでシーク。 -->
+    <canvas id="scriptTimeline" height="72"
+      title="クリックでその位置へシーク"
+      style="width:100%; height:72px; margin-top:8px; border-radius:6px; background:var(--surface2); border:1px solid var(--border); cursor:pointer; flex-shrink:0;"></canvas>
   </div>
 
   <!-- 右ペイン: 詳細 -->
@@ -585,6 +589,7 @@ async function init() {
     setupEvents();
     setupTabs();
     initPlayer();
+    setupScriptTimeline();
   } catch (e) {
     setStatus("err", "初期化失敗: " + e.message);
   }
@@ -608,6 +613,7 @@ function sizePlayerWrap() {
   if (h > availH) { h = availH; w = (h * 16) / 9; }
   wrap.style.width = Math.max(0, Math.floor(w)) + "px";
   wrap.style.height = Math.max(0, Math.floor(h)) + "px";
+  if (typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 window.addEventListener("resize", sizePlayerWrap);
 
@@ -619,6 +625,129 @@ window.addEventListener("story-player-frame", (e) => {
   const idx = turnIndexAtTime((d.frame || 0) / 30);
   if (idx >= 0 && idx !== selectedIdx) selectTurn(idx, false);
 });
+
+// ============================================================
+// プレビュー下タイムライン（セリフ＋BGM）。既存データ/連動を流用。
+// ============================================================
+let _sceneBgmMap = null;   // { sceneKey: {bgm, bgmVolume} }
+let _playheadTime = 0;     // 現在の再生位置(秒)
+const _SPK_COLORS = { zundamon: "#5fb84f", metan: "#e87bb0", "営業": "#9aa0a6", "部長": "#7a8190", "AI": "#5b8dee" };
+
+async function ensureSceneBgmMap() {
+  if (_sceneBgmMap) return _sceneBgmMap;
+  try {
+    const r = await fetch("/api/scene-bgm", { cache: "no-store" });
+    if (r.ok) _sceneBgmMap = await r.json();
+  } catch (e) { /* 無視 */ }
+  return _sceneBgmMap || {};
+}
+
+function _bgmRegions() {
+  // 各ターンの有効BGM = override区間 ?? scene.bgm。連続同一fileを1区間に。
+  const turns = storyData ? storyData.script : [];
+  const ovr = (storyData && storyData.bgm) ? storyData.bgm : [];
+  const scn = _sceneBgmMap || {};
+  const fileAt = (i) => {
+    for (const o of ovr) {
+      const f = (o.from != null ? o.from : 0), t = (o.to != null ? o.to : -1);
+      if (o.file && f <= i && i <= t) return o.file;
+    }
+    const sc = scn[turns[i].scene];
+    return sc && sc.bgm ? sc.bgm : null;
+  };
+  const regions = [];
+  for (let i = 0; i < turns.length; i++) {
+    const f = fileAt(i);
+    if (!f) continue;
+    const last = regions[regions.length - 1];
+    if (last && last.file === f && last.endIdx === i - 1) {
+      last.endIdx = i; last.end = turns[i].end || 0;
+    } else {
+      regions.push({ file: f, startIdx: i, endIdx: i, start: turns[i].start || 0, end: turns[i].end || 0 });
+    }
+  }
+  return regions;
+}
+
+function _timelineTotal() {
+  const turns = storyData ? storyData.script : [];
+  let m = 1;
+  for (const t of turns) m = Math.max(m, t.end || 0);
+  return m;
+}
+
+function drawScriptTimeline() {
+  const canvas = document.getElementById("scriptTimeline");
+  if (!canvas) return;
+  const turns = storyData ? storyData.script : [];
+  const ctx = canvas.getContext("2d");
+  const W = canvas.clientWidth || 600;
+  const H = canvas.height;
+  canvas.width = W;
+  ctx.clearRect(0, 0, W, H);
+  if (!turns.length) return;
+  const total = _timelineTotal();
+  const xOf = (sec) => Math.round((sec / total) * W);
+  const PAD = 13;
+  const laneH = (H - PAD - 6) / 2;
+  const yTalk = PAD, yBgm = PAD + laneH + 2;
+
+  // セリフ レーン
+  for (let i = 0; i < turns.length; i++) {
+    const t = turns[i];
+    const x1 = xOf(t.start || 0), x2 = xOf(t.end || t.start || 0);
+    ctx.fillStyle = _SPK_COLORS[t.speaker] || "#9aa0a6";
+    ctx.globalAlpha = (i === selectedIdx) ? 1 : 0.7;
+    ctx.fillRect(x1, yTalk, Math.max(2, x2 - x1 - 1), laneH);
+    ctx.globalAlpha = 1;
+  }
+  // BGM レーン
+  const regions = _bgmRegions();
+  const BGM_COLORS = ["#5b8dee", "#4ade80", "#fbbf24", "#a78bfa", "#38bdf8"];
+  regions.forEach((r, i) => {
+    const x1 = xOf(r.start), x2 = xOf(r.end);
+    ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
+    ctx.globalAlpha = 0.6;
+    ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), laneH);
+    ctx.globalAlpha = 1;
+    if (x2 - x1 > 28) {
+      ctx.fillStyle = "#0b0d12";
+      ctx.font = "10px system-ui, sans-serif";
+      ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + laneH - 4);
+    }
+  });
+  // レーン名
+  ctx.fillStyle = "#8892aa"; ctx.font = "9px system-ui, sans-serif";
+  ctx.fillText("セリフ", 3, 10);
+  ctx.fillText("BGM", 3, yBgm - 2);
+  // 再生ヘッド
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(xOf(_playheadTime), 0, 2, H);
+}
+
+function setupScriptTimeline() {
+  const canvas = document.getElementById("scriptTimeline");
+  if (!canvas) return;
+  canvas.addEventListener("click", (e) => {
+    const turns = storyData ? storyData.script : [];
+    if (!turns.length) return;
+    const total = _timelineTotal();
+    const rect = canvas.getBoundingClientRect();
+    const t = Math.max(0, ((e.clientX - rect.left) / rect.width) * total);
+    if (window.storyPlayer && playerReady) window.storyPlayer.seekToTime(t);
+    const idx = turnIndexAtTime(t);
+    if (idx >= 0) selectTurn(idx, false);
+    _playheadTime = t;
+    drawScriptTimeline();
+  });
+  // 再生中はヘッド追従
+  window.addEventListener("story-player-frame", (e) => {
+    _playheadTime = ((e.detail && e.detail.frame) || 0) / 30;
+    drawScriptTimeline();
+  });
+  window.addEventListener("resize", drawScriptTimeline);
+  ensureSceneBgmMap().then(drawScriptTimeline);
+}
 
 function initPlayer() {
   const statusEl = document.getElementById("playerStatus");
@@ -810,6 +939,7 @@ function renderList() {
     row.addEventListener("click", () => selectTurn(i));
     container.appendChild(row);
   }
+  if (typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 
 function makeBadge(text, type) {
@@ -2158,6 +2288,9 @@ async function saveSceneBgm() {
       statusEl.style.color = "var(--green)";
       statusEl.textContent = "保存しました";
       setTimeout(() => { statusEl.textContent = ""; }, 2500);
+      // タイムラインのBGM表示を最新化
+      _sceneBgmMap = null;
+      ensureSceneBgmMap().then(drawScriptTimeline);
     } else {
       statusEl.style.color = "var(--danger)";
       statusEl.textContent = "保存失敗: " + (result.error || r.status);
