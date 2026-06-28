@@ -131,7 +131,8 @@
   .cand-item.selected-mouth { border-color: #7c3aed; background: rgba(124,58,237,.15); }
   .cand-thumb {
     width: 70px; height: 70px; object-fit: contain;
-    background: transparent;
+    /* 透過パーツがダーク背景に埋もれないよう明るい下地を敷く */
+    background: #f3f1ea; border-radius: 4px;
   }
   .cand-label {
     font-size: 10px; color: var(--text2); text-align: center; max-width: 70px;
