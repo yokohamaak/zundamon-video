@@ -972,14 +972,20 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
  * PC画面インサートのルートオーバーレイ。
  * opacity でフェードイン/アウトする（外側でアニメーション値を渡す）。
  */
-const InsertOverlay: React.FC<{ insert: StoryInsert; opacity: number }> = ({ insert, opacity }) => {
+// bgOpacity = 背景（シーンを隠す全画面）の不透明度。opacity = パネル本体の不透明度。
+// 背景はフェードイン無しで即カバーし「インサート中に通常画面が一瞬透ける」のを防ぐ。
+const InsertOverlay: React.FC<{ insert: StoryInsert; bgOpacity: number; opacity: number }> = ({
+  insert,
+  bgOpacity,
+  opacity,
+}) => {
   // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
   const isLight = insert.kind === "mailer";
   return (
     <AbsoluteFill
       style={{
         background: isLight ? "#e8eaf0" : INSERT_BG,
-        opacity,
+        opacity: bgOpacity,
         alignItems: "center",
         justifyContent: "center",
         // ごく薄いビネット（ライトは薄い暗縁・ダークはそのまま）
@@ -989,11 +995,15 @@ const InsertOverlay: React.FC<{ insert: StoryInsert; opacity: number }> = ({ ins
         pointerEvents: "none",
       }}
     >
-      {insert.kind === "warning" && <InsertWarning insert={insert} />}
-      {insert.kind === "chat" && <InsertChat insert={insert} />}
-      {insert.kind === "ok" && <InsertOk insert={insert} />}
-      {insert.kind === "teamchat" && <InsertTeamChat insert={insert} />}
-      {insert.kind === "mailer" && <InsertMailer insert={insert} />}
+      <AbsoluteFill
+        style={{ opacity, alignItems: "center", justifyContent: "center" }}
+      >
+        {insert.kind === "warning" && <InsertWarning insert={insert} />}
+        {insert.kind === "chat" && <InsertChat insert={insert} />}
+        {insert.kind === "ok" && <InsertOk insert={insert} />}
+        {insert.kind === "teamchat" && <InsertTeamChat insert={insert} />}
+        {insert.kind === "mailer" && <InsertMailer insert={insert} />}
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
@@ -1683,10 +1693,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // 次のターンの insert を取得（消え際フェードアウト用）。
   const nextTurn2 = activeIdx2 < script.length - 1 ? script[activeIdx2 + 1] : null;
   const nextInsertKind = nextTurn2?.insert?.kind ?? null;
-  let insertOpacity = 0;
+  let insertOpacity = 0;     // パネル本体（in/out両方フェード）
+  let insertBgOpacity = 0;   // 背景＝シーン隠し（フェードイン無しで即カバー・終わりだけフェードアウト）
   if (activeInsert) {
-    // フェードイン: ターン開始直後。直前ターンと同種、または最初のターン（冒頭がインサート）
-    // なら即 1（背景を透けさせない＝冒頭の一瞬オフィスが見える問題の解消）。
     const isContinuous = prevInsertKind === activeInsert.kind || activeIdx2 === 0;
     const fadeInProgress = isContinuous
       ? 1
@@ -1697,6 +1706,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       ? 1
       : clamp((active.end - t) / INSERT_FADE, 0, 1);
     insertOpacity = Math.min(fadeInProgress, fadeOutProgress);
+    // 背景はフェードインしない＝インサートターンに入った瞬間からシーンを完全に隠す。
+    // 終わり際だけ次が非インサートならフェードアウトして次のシーンを滑らかに見せる。
+    insertBgOpacity = fadeOutProgress;
   }
 
   return (
@@ -1772,8 +1784,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
       {/* PC画面インサート（ステージより前面・吹き出しより後面）。
           z順: ステージ → インサート → 吹き出し */}
-      {activeInsert && insertOpacity > 0 ? (
-        <InsertOverlay insert={activeInsert} opacity={insertOpacity} />
+      {activeInsert && insertBgOpacity > 0 ? (
+        <InsertOverlay
+          insert={activeInsert}
+          bgOpacity={insertBgOpacity}
+          opacity={insertOpacity}
+        />
       ) : null}
 
       {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
