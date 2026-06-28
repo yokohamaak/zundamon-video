@@ -334,12 +334,12 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
     <div
       style={{
         background: "#1a1d24",
-        border: "3px solid #e05a2b",
+        border: "3px solid #4a9e44",
         borderRadius: 16,
         padding: "48px 64px",
         maxWidth: 860,
         width: "100%",
-        boxShadow: "0 0 0 1px rgba(224,90,43,0.25), 0 24px 64px rgba(0,0,0,0.6)",
+        boxShadow: "0 0 0 1px rgba(95,184,79,0.25), 0 24px 64px rgba(0,0,0,0.6)",
         display: "flex",
         flexDirection: "column",
         gap: 28,
@@ -349,7 +349,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
       <div
         style={{
           fontSize: 26,
-          color: "#b08760",
+          color: "#5fb84f",
           fontFamily: "sans-serif",
           fontWeight: 700,
           letterSpacing: "0.12em",
@@ -379,7 +379,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
         </span>
       </div>
       {/* 区切り */}
-      <div style={{ height: 2, background: "rgba(224,90,43,0.35)", borderRadius: 1 }} />
+      <div style={{ height: 2, background: "rgba(95,184,79,0.35)", borderRadius: 1 }} />
       {/* 本文 */}
       <div
         style={{
@@ -403,7 +403,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
     <div
       style={{
         background: "#181c24",
-        border: "2px solid #2a3040",
+        border: "2px solid #3e8b39",
         borderRadius: 20,
         width: 920,
         overflow: "hidden",
@@ -415,12 +415,12 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
       {/* ヘッダー */}
       <div
         style={{
-          background: "#1e2535",
+          background: "#1c3a22",
           padding: "20px 32px",
           display: "flex",
           alignItems: "center",
           gap: 14,
-          borderBottom: "1.5px solid #2a3040",
+          borderBottom: "1.5px solid #2f5a33",
         }}
       >
         <div
@@ -599,7 +599,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
     <div
       style={{
         background: "#1a1e28",
-        border: "2px solid #2a3040",
+        border: "2px solid #3e8b39",
         borderRadius: 22,
         width: 1480,
         overflow: "hidden",
@@ -611,12 +611,12 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
       {/* ヘッダー */}
       <div
         style={{
-          background: "#1e2535",
+          background: "#1c3a22",
           padding: "18px 32px",
           display: "flex",
           alignItems: "center",
           gap: 18,
-          borderBottom: "1.5px solid #2a3040",
+          borderBottom: "1.5px solid #2f5a33",
         }}
       >
         {/* ワークスペースアイコン（汎用グリッドロゴ風） */}
