@@ -55,6 +55,10 @@ cmd_scene() { run "$PY scene_editor.py"; }
 # ストーリーエディタ（台本編集ツール）を起動。
 cmd_story() { run "$PY story_editor.py"; }
 
+# 表情エディタ（スロット割当・プレビュー・書き出し）を起動。
+# 初回は candidates を事前生成: node video/scripts/psd-export.mjs candidates zundamon/metan
+cmd_expr() { run "$PY expression_editor.py"; }
+
 # ストーリーエディタ用 Remotion Player を esbuild でビルド。
 # story_editor.py の起動前に1回実行する（中央ペインのプレビュー用）。
 cmd_player_build() { run "cd video && node scripts/build-story-player.mjs"; }
@@ -78,12 +82,14 @@ cmd_help() {
   story         ストーリーエディタ(台本編集) を起動
   player-build  エディタ用 Remotion Player をビルド（story の初回起動前に実行）
   scene         シーン編集ツール(anchor/scale) を起動
+  expr          表情エディタ(スロット割当・プレビュー・書き出し) を起動
   all           build → audio → render（本番フル・VOICEVOX必要）
   help          この一覧
 
 セリフ/演出フラグを変えた時: build → audio →（必要なら）render
 配置/サイズだけ直す時:        scene で調整 → render
 初回 story エディタ起動前:    player-build を1回実行しておく
+表情編集:                     expr (初回は candidates を自動確認、未生成なら案内)
 EOF
 }
 
@@ -98,6 +104,7 @@ if [ $# -gt 0 ]; then
     story)         cmd_story ;;
     player-build)  cmd_player_build ;;
     scene)         cmd_scene ;;
+    expr)          cmd_expr ;;
     all)           cmd_all ;;
     help|-h|--help) cmd_help ;;
     *) echo "不明なコマンド: $1"; echo; cmd_help; exit 1 ;;
@@ -115,7 +122,8 @@ echo "  5) still         1フレーム静止画（フレーム番号を聞く）
 echo "  6) story         ストーリーエディタ(台本編集)"
 echo "  7) player-build  エディタ用プレイヤーをビルド（初回story前に必要）"
 echo "  8) scene         シーン編集ツール(anchor/scale)"
-echo "  9) all           build→audio→render（本番フル）"
+echo "  9) expr          表情エディタ(スロット割当・プレビュー・書き出し)"
+echo "  a) all           build→audio→render（本番フル）"
 echo "  0) help"
 read -rp "番号: " n
 n="$(z2h "$n")"
@@ -128,6 +136,7 @@ case "$n" in
   6) cmd_story ;;
   7) cmd_player_build ;;
   8) cmd_scene ;;
-  9) cmd_all ;;
+  9) cmd_expr ;;
+  a|A) cmd_all ;;
   0|*) cmd_help ;;
 esac

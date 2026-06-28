@@ -4,6 +4,7 @@
 //   node scripts/psd-export.mjs preview    <char>   … base+口/目候補をout/psd_preview_<char>/へ
 //   node scripts/psd-export.mjs build      <char>   … 最終パーツをassets/avatars/<char>/へ
 //   node scripts/psd-export.mjs build-full <char>   … 全身クロップをassets/avatars/<char>/full/へ
+//   node scripts/psd-export.mjs candidates <char>   … 全候補PNGをassets/avatars/<char>/candidates/へ
 //   <char> = zundamon | metan
 import { readPsd, initializeCanvas } from "ag-psd";
 import { createCanvas } from "@napi-rs/canvas";
@@ -376,4 +377,28 @@ if (mode === "build-full") {
   writeFileSync(resolve(dir, "_box.json"), JSON.stringify(box, null, 2));
   console.log(`[build-full] _box.json: ${JSON.stringify(box)}`);
   console.log(`[build-full] done: ${stems.length}部位 → ${dir}`);
+}
+
+if (mode === "candidates") {
+  // 全スロット・全候補を単体透過PNG（base合成なし）で書き出す。
+  // 同一クロップ(cfg.crop)で書き出すので重ねれば位置が合う。
+  // プレビュー用途。base.png と arm_*.png はバスト用 assets/avatars/<char>/ から流用。
+  const dir = resolve(root, `assets/avatars/${charName}/candidates`);
+  mkdirSync(dir, { recursive: true });
+  const slots = SLOTS[charName];
+  let count = 0;
+
+  for (const slot of ["cheek", "brow", "eye", "mouth", "fx"]) {
+    const slotDef = slots[slot];
+    if (!slotDef) continue;
+    for (const [id, layerPaths] of Object.entries(slotDef)) {
+      const stem = `${slot}_${id}`;
+      const buf = compose(layerPaths);
+      writeFileSync(resolve(dir, `${stem}.png`), buf);
+      console.log(`[candidates] ${charName}/candidates/${stem}.png`);
+      count++;
+    }
+  }
+
+  console.log(`[candidates] done: ${count}枚 → ${dir}`);
 }

@@ -92,6 +92,21 @@ for (const [sub, exts, label] of [
           console.log(`[prep-story] avatar parts: ${dir}_full (${fullFiles.length}枚)`);
         }
       }
+      // candidates/ サブディレクトリがあれば public/avatars/<char>/candidates/ へコピー
+      const candSrc = resolve(sdir, "candidates");
+      const candDst = resolve(ddir, "candidates");
+      if (existsSync(candSrc) && statSync(candSrc).isDirectory()) {
+        mkdirSync(candDst, { recursive: true });
+        const candFiles = readdirSync(candSrc).filter(
+          (f) => f.toLowerCase().endsWith(".png") && statSync(resolve(candSrc, f)).isFile()
+        );
+        for (const f of candFiles) {
+          copyFileSync(resolve(candSrc, f), resolve(candDst, f));
+        }
+        if (candFiles.length) {
+          console.log(`[prep-story] avatar candidates: ${dir} (${candFiles.length}枚)`);
+        }
+      }
     }
   }
   mkdirSync(dstAv, { recursive: true });

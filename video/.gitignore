@@ -5,3 +5,6 @@ out/
 public/
 # 立ち絵の元データ(PSD)は再配布NG素材。プライベートリポ前提で追跡する。
 # ※リポを公開する場合は必ず source/ と docs/reference の PSD を履歴ごと除去すること。
+
+# 表情エディタ用の候補PNG(派生物・psd-export candidates で再生成)
+assets/avatars/*/candidates/

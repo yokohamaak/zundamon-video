@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>表情エディタ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --text: #e2e8f0;
+    --text2: #8892aa;
+    --accent: #5b8dee;
+    --green: #4ade80;
+    --danger: #f87171;
+    --warn: #fbbf24;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; }
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── ヘッダー ── */
+  .header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 9px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+  .tabs { display: flex; gap: 4px; }
+  .tab {
+    padding: 4px 14px; border-radius: 5px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text2); font-size: 13px; cursor: pointer;
+    transition: all .12s;
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn {
+    padding: 5px 14px; border-radius: 6px; border: none; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-export { background: #7c3aed; color: #fff; }
+  .status { font-size: 12px; color: var(--text2); margin-left: auto; }
+  .status.ok { color: var(--green); }
+  .status.err { color: var(--danger); }
+  .status.dirty { color: var(--warn); }
+
+  /* ── メインレイアウト: 3ペイン ── */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── 左: 表情リスト ── */
+  .expr-list {
+    width: 160px; flex-shrink: 0;
+    background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto;
+    padding: 10px 8px; gap: 4px;
+  }
+  .expr-item {
+    padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text2); font-size: 13px; cursor: pointer;
+    transition: all .12s;
+  }
+  .expr-item:hover { color: var(--text); border-color: var(--accent); }
+  .expr-item.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .expr-section-title {
+    font-size: 10px; letter-spacing: .08em; color: var(--text2); text-transform: uppercase;
+    padding: 6px 4px 2px;
+  }
+
+  /* ── 中央: プレビュー ── */
+  .preview-area {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    background: var(--bg); padding: 16px; overflow: hidden;
+  }
+  .preview-wrap {
+    position: relative; background: #1a1a1a;
+    box-shadow: 0 4px 24px rgba(0,0,0,.5);
+    overflow: hidden;
+  }
+  .preview-canvas {
+    position: relative;
+    /* サイズはJSで設定 */
+  }
+  .preview-canvas img {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: contain;
+  }
+  .mouth-toggle {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .mouth-btn {
+    padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text2); font-size: 12px; cursor: pointer;
+    transition: all .12s;
+  }
+  .mouth-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .preview-label { font-size: 11px; color: var(--text2); }
+
+  /* ── 右: スロットピッカー ── */
+  .slot-panel {
+    width: 420px; flex-shrink: 0;
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .slot-section {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  .slot-section:last-child { border-bottom: none; }
+  .slot-title {
+    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    color: var(--text2); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .slot-current {
+    font-size: 11px; color: var(--accent); margin-bottom: 6px;
+  }
+  .cand-grid {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .cand-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    cursor: pointer; padding: 4px; border-radius: 6px;
+    border: 2px solid transparent; background: var(--surface2);
+    transition: border-color .12s;
+  }
+  .cand-item:hover { border-color: var(--accent); }
+  .cand-item.selected { border-color: var(--accent); background: rgba(91,141,238,.15); }
+  .cand-item.selected-mouth { border-color: #7c3aed; background: rgba(124,58,237,.15); }
+  .cand-thumb {
+    width: 70px; height: 70px; object-fit: contain;
+    background: transparent;
+  }
+  .cand-label {
+    font-size: 10px; color: var(--text2); text-align: center; max-width: 70px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cand-none {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 10px; border-radius: 6px; border: 2px solid transparent;
+    background: var(--surface2); cursor: pointer; font-size: 12px; color: var(--text2);
+    transition: border-color .12s;
+  }
+  .cand-none:hover { border-color: var(--accent); }
+  .cand-none.selected { border-color: var(--accent); background: rgba(91,141,238,.15); }
+
+  /* ── 書き出し進捗 ── */
+  .export-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  .export-overlay.show { display: flex; }
+  .export-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    width: 560px; max-height: 60vh; display: flex; flex-direction: column; gap: 10px;
+    padding: 16px;
+  }
+  .export-box h2 { font-size: 14px; font-weight: 600; }
+  .export-log {
+    flex: 1; overflow-y: auto; background: var(--bg); border-radius: 5px;
+    padding: 8px 10px; font-family: monospace; font-size: 11px; color: var(--text2);
+    white-space: pre-wrap; min-height: 200px;
+  }
+  .export-close { margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>表情エディタ</h1>
+  <div class="tabs" id="charTabs">
+    <button class="tab active" data-char="zundamon">ずんだもん</button>
+    <button class="tab" data-char="metan">めたん</button>
+  </div>
+  <button class="btn btn-primary" id="btnSave">保存</button>
+  <button class="btn btn-export" id="btnExport">書き出し(パーツ再生成)</button>
+  <span class="status" id="statusMsg"></span>
+</div>
+
+<div class="main">
+  <!-- 左: 表情リスト -->
+  <div class="expr-list" id="exprList">
+    <div class="expr-section-title">表情</div>
+    <!-- JSで生成 -->
+  </div>
+
+  <!-- 中央: プレビュー -->
+  <div class="preview-area">
+    <div class="preview-wrap" id="previewWrap">
+      <div class="preview-canvas" id="previewCanvas">
+        <!-- imgレイヤーはJSで生成 -->
+      </div>
+    </div>
+    <div class="mouth-toggle">
+      <span class="preview-label">口プレビュー:</span>
+      <button class="mouth-btn active" data-mouth="mouth_close">close</button>
+      <button class="mouth-btn" data-mouth="mouth_half">half</button>
+      <button class="mouth-btn" data-mouth="mouth_open">open</button>
+    </div>
+  </div>
+
+  <!-- 右: スロットピッカー -->
+  <div class="slot-panel" id="slotPanel">
+    <!-- JSで生成 -->
+  </div>
+</div>
+
+<!-- 書き出し進捗オーバーレイ -->
+<div class="export-overlay" id="exportOverlay">
+  <div class="export-box">
+    <h2>書き出し中...</h2>
+    <pre class="export-log" id="exportLog"></pre>
+    <button class="btn btn-secondary export-close" id="exportClose" disabled>閉じる</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 状態
+// ============================================================
+let catalog = null;       // /api/catalog
+let expressions = null;   // /api/expressions (編集中のメモリ上のデータ)
+let currentChar = "zundamon";
+let currentExpr = "normal";
+let currentMouthSlot = "mouth_close"; // プレビューに使う口スロット
+let isDirty = false;
+
+// スロット表示順 (mouthはclose/half/openをまとめて表示)
+const SLOTS_ORDER = ["cheek", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
+const SLOT_LABELS = {
+  "cheek": "顔色 (cheek)",
+  "brow": "眉 (brow)",
+  "eye": "目 (eye)",
+  "mouth_close": "口・close",
+  "mouth_half": "口・half",
+  "mouth_open": "口・open",
+  "fx": "エフェクト (fx)",
+};
+
+// スロット名 → catalog の slot キー
+function slotToCatalogKey(slot) {
+  if (slot.startsWith("mouth_")) return "mouth";
+  return slot;
+}
+
+const EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"];
+const EXPR_LABEL = {
+  "normal": "普通 (normal)",
+  "happy": "喜び (happy)",
+  "surprise": "驚き (surprise)",
+  "trouble": "困り (trouble)",
+  "panic": "パニック (panic)",
+};
+
+// 重ね順: base → cheek → arm → brow → eye → mouth → fx
+// プレビュー用レイヤーキー
+const LAYER_KEYS = ["base", "arm", "cheek", "brow", "eye", "mouth", "fx"];
+
+// ============================================================
+// 初期化
+// ============================================================
+async function init() {
+  await Promise.all([fetchCatalog(), fetchExpressions()]);
+  buildCharTabs();
+  buildExprList();
+  buildSlotPanel();
+  renderPreview();
+  setupEvents();
+}
+
+async function fetchCatalog() {
+  const r = await fetch("/api/catalog");
+  catalog = await r.json();
+}
+
+async function fetchExpressions() {
+  const r = await fetch("/api/expressions");
+  expressions = await r.json();
+}
+
+// ============================================================
+// キャラタブ
+// ============================================================
+function buildCharTabs() {
+  document.getElementById("charTabs").addEventListener("click", e => {
+    const btn = e.target.closest(".tab");
+    if (!btn) return;
+    currentChar = btn.dataset.char;
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === btn));
+    buildExprList();
+    buildSlotPanel();
+    renderPreview();
+  });
+}
+
+// ============================================================
+// 表情リスト（左ペイン）
+// ============================================================
+function buildExprList() {
+  const el = document.getElementById("exprList");
+  el.innerHTML = '<div class="expr-section-title">表情</div>';
+  for (const expr of EXPRESSIONS) {
+    const item = document.createElement("div");
+    item.className = "expr-item" + (expr === currentExpr ? " active" : "");
+    item.textContent = EXPR_LABEL[expr] || expr;
+    item.addEventListener("click", () => {
+      currentExpr = expr;
+      document.querySelectorAll(".expr-item").forEach(el2 => {
+        el2.classList.toggle("active", el2.textContent === (EXPR_LABEL[expr] || expr));
+      });
+      buildSlotPanel();
+      renderPreview();
+    });
+    el.appendChild(item);
+  }
+}
+
+// ============================================================
+// 現在の表情設定を取得（なければデフォルト）
+// ============================================================
+function currentCfg() {
+  return expressions?.[currentChar]?.[currentExpr] ?? {};
+}
+
+// ============================================================
+// スロットピッカー（右ペイン）
+// ============================================================
+function buildSlotPanel() {
+  const panel = document.getElementById("slotPanel");
+  panel.innerHTML = "";
+  const charCatalog = catalog?.[currentChar];
+  if (!charCatalog) {
+    panel.innerHTML = '<div style="padding:16px;color:var(--text2)">カタログ読込失敗</div>';
+    return;
+  }
+  const cfg = currentCfg();
+  const charSlots = charCatalog.slots;
+
+  for (const slot of SLOTS_ORDER) {
+    const section = document.createElement("div");
+    section.className = "slot-section";
+
+    const title = document.createElement("div");
+    title.className = "slot-title";
+    title.textContent = SLOT_LABELS[slot] || slot;
+    section.appendChild(title);
+
+    const catalogKey = slotToCatalogKey(slot);
+    const candidates = charSlots[catalogKey] || [];
+    const currentId = cfg[slot] ?? null;
+
+    if (candidates.length === 0) {
+      const warn = document.createElement("div");
+      warn.style.cssText = "font-size:11px;color:var(--warn);padding:4px 0";
+      warn.textContent = "候補なし (candidates を書き出してください)";
+      section.appendChild(warn);
+      panel.appendChild(section);
+      continue;
+    }
+
+    // 現在の割当表示
+    const curr = document.createElement("div");
+    curr.className = "slot-current";
+    curr.id = `slot-curr-${slot}`;
+    const currLabel = candidates.find(c => c.id === currentId)?.label ?? (currentId || "未設定");
+    curr.textContent = "現在: " + currLabel;
+    section.appendChild(curr);
+
+    const grid = document.createElement("div");
+    grid.className = "cand-grid";
+
+    // fx はnullを選べる
+    if (slot === "fx") {
+      const noneEl = document.createElement("div");
+      noneEl.className = "cand-none" + (currentId === null ? " selected" : "");
+      noneEl.dataset.slot = slot;
+      noneEl.dataset.id = "__none__";
+      noneEl.textContent = "なし";
+      noneEl.addEventListener("click", () => assignSlot(slot, null, noneEl.dataset.id, grid));
+      grid.appendChild(noneEl);
+    }
+
+    for (const cand of candidates) {
+      const item = document.createElement("div");
+      let selClass = "";
+      if (slot.startsWith("mouth_")) {
+        // mouth_* スロットは currentMouthSlot と一致するときにハイライト色を変える
+        if (cand.id === currentId) {
+          selClass = slot === currentMouthSlot ? " selected-mouth" : " selected";
+        }
+      } else {
+        if (cand.id === currentId) selClass = " selected";
+      }
+      item.className = "cand-item" + selClass;
+      item.dataset.slot = slot;
+      item.dataset.id = cand.id;
+
+      const thumb = document.createElement("img");
+      thumb.className = "cand-thumb";
+      thumb.src = "/img/" + cand.file;
+      thumb.alt = cand.label;
+      thumb.loading = "lazy";
+      thumb.onerror = () => {
+        thumb.style.background = "var(--surface)";
+        thumb.style.opacity = "0.3";
+      };
+
+      const label = document.createElement("div");
+      label.className = "cand-label";
+      label.textContent = cand.label;
+      label.title = cand.label;
+
+      item.appendChild(thumb);
+      item.appendChild(label);
+      item.addEventListener("click", () => assignSlot(slot, cand.id, cand.id, grid));
+      grid.appendChild(item);
+    }
+
+    section.appendChild(grid);
+    panel.appendChild(section);
+  }
+}
+
+// ============================================================
+// スロット割当
+// ============================================================
+function assignSlot(slot, value, dataId, grid) {
+  if (!expressions[currentChar]) expressions[currentChar] = {};
+  if (!expressions[currentChar][currentExpr]) expressions[currentChar][currentExpr] = {};
+  expressions[currentChar][currentExpr][slot] = value;
+
+  // グリッド内の selected クラスを更新
+  for (const el of grid.querySelectorAll(".cand-item, .cand-none")) {
+    const isMatch = el.dataset.id === dataId;
+    if (slot.startsWith("mouth_")) {
+      el.classList.toggle("selected-mouth", isMatch && slot === currentMouthSlot);
+      el.classList.toggle("selected", isMatch && slot !== currentMouthSlot);
+    } else {
+      el.classList.toggle("selected", isMatch);
+    }
+  }
+
+  // 現在割当表示更新
+  const currEl = document.getElementById("slot-curr-" + slot);
+  if (currEl) {
+    const charSlots = catalog?.[currentChar]?.slots;
+    const catalogKey = slotToCatalogKey(slot);
+    const candidates = charSlots?.[catalogKey] || [];
+    const label = candidates.find(c => c.id === value)?.label ?? (value === null ? "なし" : value);
+    currEl.textContent = "現在: " + label;
+  }
+
+  markDirty();
+  renderPreview();
+}
+
+// ============================================================
+// プレビュー描画
+// ============================================================
+let _previewImgs = {}; // key -> img element
+
+const PREVIEW_SIZE = 380; // プレビューキャンバスの表示サイズ(px)
+
+function renderPreview() {
+  const canvas = document.getElementById("previewCanvas");
+  canvas.style.width = PREVIEW_SIZE + "px";
+  canvas.style.height = PREVIEW_SIZE + "px";
+  const wrap = document.getElementById("previewWrap");
+  wrap.style.width = PREVIEW_SIZE + "px";
+  wrap.style.height = PREVIEW_SIZE + "px";
+
+  const charCat = catalog?.[currentChar];
+  const cfg = currentCfg();
+
+  // 重ね順: base → cheek → arm → brow → eye → mouth → fx
+  // mouth は currentMouthSlot の値を使う
+  const layers = [
+    { key: "base",  src: charCat?.base ? "/img/" + charCat.base : null },
+    { key: "cheek", src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
+    { key: "arm",   src: charCat?.arm  ? "/img/" + charCat.arm  : null },
+    { key: "brow",  src: _candidateSrc(charCat, "brow",   cfg["brow"]) },
+    { key: "eye",   src: _candidateSrc(charCat, "eye",    cfg["eye"]) },
+    { key: "mouth", src: _candidateSrc(charCat, "mouth",  cfg[currentMouthSlot]) },
+    { key: "fx",    src: _candidateSrc(charCat, "fx",     cfg["fx"]) },
+  ];
+
+  // 既存の img を再利用/追加/削除
+  for (const { key, src } of layers) {
+    if (!_previewImgs[key] || _previewImgs[key].parentNode !== canvas) {
+      const img = document.createElement("img");
+      img.dataset.layerKey = key;
+      canvas.appendChild(img);
+      _previewImgs[key] = img;
+    }
+    const img = _previewImgs[key];
+    if (src) {
+      if (img.src !== location.origin + src) img.src = src;
+      img.style.display = "";
+    } else {
+      img.style.display = "none";
+    }
+  }
+}
+
+function _candidateSrc(charCat, slot, id) {
+  if (!id || !charCat) return null;
+  const candidates = charCat.slots?.[slot] || [];
+  const cand = candidates.find(c => c.id === id);
+  return cand ? "/img/" + cand.file : null;
+}
+
+// ============================================================
+// ダーティフラグ
+// ============================================================
+function markDirty() {
+  isDirty = true;
+  const s = document.getElementById("statusMsg");
+  s.className = "status dirty";
+  s.textContent = "未保存の変更あり";
+}
+
+function clearDirty() {
+  isDirty = false;
+  const s = document.getElementById("statusMsg");
+  s.className = "status ok";
+  s.textContent = "保存しました";
+  setTimeout(() => { if (!isDirty) { s.textContent = ""; s.className = "status"; } }, 3000);
+}
+
+// ============================================================
+// 保存
+// ============================================================
+async function saveExpressions() {
+  const s = document.getElementById("statusMsg");
+  s.className = "status";
+  s.textContent = "保存中...";
+  try {
+    const r = await fetch("/api/expressions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(expressions),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      clearDirty();
+    } else {
+      s.className = "status err";
+      s.textContent = result.error || "保存失敗";
+    }
+  } catch (e) {
+    s.className = "status err";
+    s.textContent = "通信エラー";
+  }
+}
+
+// ============================================================
+// 書き出し（パーツ再生成）
+// ============================================================
+async function startExport() {
+  const overlay = document.getElementById("exportOverlay");
+  const log = document.getElementById("exportLog");
+  const closeBtn = document.getElementById("exportClose");
+  const h2 = overlay.querySelector("h2");
+
+  log.textContent = "";
+  h2.textContent = "書き出し中...";
+  closeBtn.disabled = true;
+  overlay.classList.add("show");
+
+  try {
+    const r = await fetch("/api/export", { method: "POST" });
+    if (!r.ok) {
+      log.textContent += "[ERROR] HTTP " + r.status + "\n";
+      h2.textContent = "書き出し失敗";
+      closeBtn.disabled = false;
+      return;
+    }
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let done = false;
+    let buf = "";
+    while (!done) {
+      const { value, done: d } = await reader.read();
+      done = d;
+      if (value) {
+        buf += decoder.decode(value, { stream: true });
+        // センチネル確認
+        if (buf.includes("__DONE__ ok")) {
+          log.textContent += buf.replace("__DONE__ ok\n", "");
+          h2.textContent = "書き出し完了";
+          break;
+        } else if (buf.includes("__DONE__ err")) {
+          const errLine = buf.split("__DONE__ err")[1] || "";
+          log.textContent += buf.replace("__DONE__ err" + errLine, "");
+          log.textContent += "[ERR] " + errLine;
+          h2.textContent = "書き出し失敗";
+          break;
+        }
+        log.textContent += buf;
+        buf = "";
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+    log.scrollTop = log.scrollHeight;
+  } catch (e) {
+    log.textContent += "[ERROR] " + e + "\n";
+    h2.textContent = "書き出し失敗";
+  }
+  closeBtn.disabled = false;
+}
+
+// ============================================================
+// イベント
+// ============================================================
+function setupEvents() {
+  document.getElementById("btnSave").addEventListener("click", saveExpressions);
+  document.getElementById("btnExport").addEventListener("click", startExport);
+  document.getElementById("exportClose").addEventListener("click", () => {
+    document.getElementById("exportOverlay").classList.remove("show");
+  });
+
+  // 口プレビュートグル
+  for (const btn of document.querySelectorAll(".mouth-btn")) {
+    btn.addEventListener("click", () => {
+      currentMouthSlot = btn.dataset.mouth;
+      document.querySelectorAll(".mouth-btn").forEach(b => b.classList.toggle("active", b === btn));
+      // スロットパネルの mouth ハイライトも更新
+      buildSlotPanel();
+      renderPreview();
+    });
+  }
+
+  // 未保存離脱確認
+  window.addEventListener("beforeunload", e => {
+    if (isDirty) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
+}
+
+// ============================================================
+// エントリポイント
+// ============================================================
+init().catch(e => {
+  document.getElementById("statusMsg").className = "status err";
+  document.getElementById("statusMsg").textContent = "初期化失敗: " + e.message;
+  console.error(e);
+});
+</script>
+</body>
+</html>
