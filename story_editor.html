@@ -2324,6 +2324,10 @@ async function refreshExpressions() {
     meta.expressions = m.expressions;
     const prevExpr = selectedIdx >= 0 ? (storyData.script[selectedIdx].expression || "") : "";
     _buildExpressionOptions(prevExpr);
+    // 表情エディタで変えた表情パーツ/割当をプレビューにも反映する。
+    if (window.storyPlayer && playerReady && window.storyPlayer.reloadExpressions) {
+      window.storyPlayer.reloadExpressions();
+    }
   } catch (e) { /* 失敗時は据え置き */ }
 }
 

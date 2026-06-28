@@ -304,15 +304,10 @@ export const Avatar: React.FC<{
   let fxSrc: string | null;
   if (hasCfg) {
     const cfg = expressionCfg!;
-    if (showFxSurprise) {
-      // surprise 反応中のみ fx を出す（cfg.fx が null でも出さない）
-      fxSrc = cfg.fx ? part(`fx_${cfg.fx}`) : null;
-    } else if (emotion === "panic") {
-      // panic は継続して fx を出す
-      fxSrc = cfg.fx ? part(`fx_${cfg.fx}`) : null;
-    } else {
-      fxSrc = null;
-    }
+    const fxFile = cfg.fx ? part(`fx_${cfg.fx}`) : null;
+    // cfg.fx が設定されていれば表示する。surprise だけは「一瞬の反応」なので反応中のみ、
+    // それ以外(trouble/panic/happy 等)は表情が続く間ずっと出す。
+    fxSrc = emotion === "surprise" ? (showFxSurprise ? fxFile : null) : fxFile;
   } else {
     // 旧来の emotion ベース（後方互換）
     fxSrc = showFxSurprise

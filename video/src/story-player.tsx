@@ -13,6 +13,7 @@ type StoryPlayerApi = {
   unmount: () => void;
   updateStory: (story: StoryScript) => void;
   reloadScenes: () => Promise<void>;
+  reloadExpressions: () => Promise<void>;
   seekToFrame: (frame: number) => void;
   seekToTime: (sec: number) => void;
   play: () => void;
@@ -204,6 +205,19 @@ window.storyPlayer = {
       if (!res.ok) return;
       const scenes = await res.json();
       setPropsState((prev) => ({ ...prev, scenes } as Props));
+    } catch {
+      // 失敗時は据え置き
+    }
+  },
+
+  async reloadExpressions() {
+    // 表情タブ(expression_editor)で編集・書き出しされた expressions.json を読み直す。
+    if (!setPropsState) return;
+    try {
+      const res = await fetch("/preview-assets/expressions.json", { cache: "no-store" });
+      if (!res.ok) return;
+      const expressions = await res.json();
+      setPropsState((prev) => ({ ...prev, expressions } as Props));
     } catch {
       // 失敗時は据え置き
     }
