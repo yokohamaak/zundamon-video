@@ -1331,6 +1331,13 @@ function notifyPlayerUpdate() {
   }, 150);
 }
 
+// デバウンスを待たず Player へ即時反映する（シーク前に最新storyを渡したい時用）。
+function flushPlayerUpdate() {
+  if (!playerReady || !window.storyPlayer || !storyData) return;
+  if (updateTimer) { clearTimeout(updateTimer); updateTimer = null; }
+  window.storyPlayer.updateStory(buildPreviewStory());
+}
+
 // ============================================================
 // セレクト初期構築
 // ============================================================
@@ -1973,8 +1980,11 @@ function addTurnAfter(inheritScene = false) {
   selectedIdx = insertAt;
   renderList();
   renderDetail();
-  notifyPlayerUpdate();
-  seekPlayer(selectedIdx);
+  // 仮尺込みの新storyをPlayerへ即時反映してからシーク。
+  // （debounceのままだとPlayerが新ターン入りstoryを持つ前にシークし、尺クランプや
+  //   先頭画面表示になる。反映後にrAFで尺確定を待ってシークする。）
+  flushPlayerUpdate();
+  requestAnimationFrame(() => seekPlayer(selectedIdx));
 }
 
 function deleteTurn() {
