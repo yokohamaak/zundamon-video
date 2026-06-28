@@ -461,11 +461,11 @@
             <label class="field-label">種別 (insert.kind)</label>
             <select class="field-select" id="fInsertKind">
               <option value="">(なし)</option>
-              <option value="warning">warning（警告ダイアログ）</option>
-              <option value="ok">ok（OKダイアログ）</option>
-              <option value="chat">chat（AI チャット）</option>
-              <option value="teamchat">teamchat（チームチャット）</option>
-              <option value="mailer">mailer（メーラー・メール閲覧）</option>
+              <option value="warning">ZunMonitor（警告）</option>
+              <option value="ok">ZunMonitor（正常/OK）</option>
+              <option value="chat">ZunAI（AIチャット）</option>
+              <option value="teamchat">ZunChat（チームチャット）</option>
+              <option value="mailer">ZunMail（メール）</option>
             </select>
           </div>
           <!-- 種別に応じた入力欄 -->
@@ -2547,6 +2547,16 @@ function renderSeMapSection() {
     insert: "インサート",
     transition: "場面転換",
   };
+  // インサートのイベント名はZun○○ブランドで表示する。
+  const EVENT_LABELS = {
+    insert: {
+      warning: "ZunMonitor（警告）",
+      ok: "ZunMonitor（正常）",
+      chat: "ZunAI（AIチャット）",
+      teamchat: "ZunChat（チームチャット）",
+      mailer: "ZunMail（メール）",
+    },
+  };
 
   const categories = Object.keys(CATEGORY_LABELS);
   for (const cat of categories) {
@@ -2568,7 +2578,7 @@ function renderSeMapSection() {
       // イベント名ラベル
       const lbl = document.createElement("span");
       lbl.className = "se-event-label";
-      lbl.textContent = evtKey;
+      lbl.textContent = (EVENT_LABELS[cat] && EVENT_LABELS[cat][evtKey]) || evtKey;
       row.appendChild(lbl);
 
       // SEファイル ドロップダウン
