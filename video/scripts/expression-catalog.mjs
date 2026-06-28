@@ -36,35 +36,36 @@ if (!fontRegistered) {
 if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
 
 // ---- 元PSDレイヤー名マップ ----
+// タスクC: 旧stem(eye_happy/eye_smile/mouth_smile_*)を新id(nikkori/mufu等)に更新
 const LAYER_NAMES = {
   zundamon: {
-    eye_open:          '目セット普通',
-    eye_happy:         'にっこり',
-    eye_surprise:      '〇〇',
-    eye_close:         'UU',
-    mouth_close:       'むー',
-    mouth_open:        'ほあー',
-    mouth_smile_close: 'むふ',
-    mouth_smile_open:  'ほあー',
-    fx_surprise:       '汗1',
-    arm_normal:        '腕(通常)',
+    eye_open:     '目セット普通',
+    eye_nikkori:  'にっこり',
+    eye_surprise: '〇〇',
+    eye_close:    'UU',
+    mouth_close:  'むー',
+    mouth_half:   'ほあ',
+    mouth_open:   'ほあー',
+    mouth_mufu:   'むふ',
+    fx_sweat1:    '汗1',
+    fx_sweat2:    '汗2',
+    fx_sweat3:    '汗3',
+    arm_normal:   '腕(通常)',
   },
   metan: {
-    eye_open:          '目セット普通',
-    eye_happy:         '目閉じ',
-    eye_surprise:      '○○',
-    eye_close:         '目閉じ',
-    mouth_close:       'ほほえみ',
-    mouth_open:        'わあー',
-    mouth_smile_close: 'ほほえみ',
-    mouth_smile_open:  'わあー',
-    fx_surprise:       '汗',
+    eye_open:     '目セット普通',
+    eye_close:    '目閉じ',
+    eye_surprise: '○○',
+    mouth_close:  'ほほえみ',
+    mouth_half:   'お',
+    mouth_open:   'わあー',
+    fx_sweat:     '汗',
   },
 };
 
 // ---- 表情定義 ----
-// 各表情について {eye, mouth_close, mouth_open, fx} のstem名を返す。
-// フォールバックは呼び出し元で実ファイルの存在チェックしながら解決する。
+// タスクC: 旧stem(eye_happy/eye_smile/mouth_smile_*) → 新id(eye_nikkori/mouth_mufu等)。
+// expressions.json の実値を参照して解決するため、カタログはstemの存在確認のみ。
 const EXPRESSIONS = [
   {
     name: 'normal',
@@ -77,9 +78,11 @@ const EXPRESSIONS = [
   {
     name: 'happy',
     label: 'うれしい',
-    eye: ['eye_happy'],
-    mouth_close: ['mouth_smile_close'],
-    mouth_open: ['mouth_smile_open'],
+    // zunda: eye_nikkori / metan: eye_close
+    eye: ['eye_nikkori', 'eye_close'],
+    // zunda: mouth_mufu / metan: mouth_close
+    mouth_close: ['mouth_mufu', 'mouth_close'],
+    mouth_open: ['mouth_open'],
     fx: [],
   },
   {
@@ -88,23 +91,24 @@ const EXPRESSIONS = [
     eye: ['eye_surprise'],
     mouth_close: ['mouth_close'],
     mouth_open: ['mouth_open'],
-    fx: ['fx_surprise'],
+    // zunda: fx_sweat1 / metan: fx_sweat (フォールバックなし)
+    fx: ['fx_sweat1', 'fx_sweat'],
   },
   {
     name: 'trouble',
     label: 'こまった',
-    eye: ['eye_trouble', 'eye_open'],    // フォールバック: eye_open
+    eye: ['eye_close', 'eye_open'],      // metan: eye_close / zunda: eye_open
     mouth_close: ['mouth_close'],
     mouth_open: ['mouth_open'],
-    fx: [],
+    fx: ['fx_sweat', 'fx_sweat2'],       // metan: fx_sweat / zunda: fx_sweat2
   },
   {
     name: 'panic',
     label: 'パニック',
-    eye: ['eye_trouble', 'eye_surprise'], // フォールバック: eye_surprise
+    eye: ['eye_surprise'],
     mouth_close: ['mouth_close'],
     mouth_open: ['mouth_open'],
-    fx: ['fx_sweat', 'fx_surprise'],      // フォールバック: fx_surprise
+    fx: ['fx_sweat2', 'fx_sweat'],       // zunda: fx_sweat2 / metan: fx_sweat
   },
 ];
 
@@ -158,18 +162,24 @@ async function resolveExpression(charDir, expr) {
   // 口閉じ / 口開き の共通ベース
   const basePath = join(charDir, 'base.png');
 
+  // bangs (前髪もみあげ: metan のみ)
+  const bangsPath = join(charDir, 'bangs.png');
+  const hasBangs = existsSync(bangsPath);
+
   const buildLayers = async (mouthStems) => {
     const mouthResult = resolveFirst(charDir, mouthStems);
     if (!mouthResult) throw new Error(`Mouth not found for ${expr.name}`);
 
+    // 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
+    // catalog は簡易版のため cheek/shadow/brow は省略（目口fxのみ確認）
     const layers = [];
     layers.push({ path: basePath, stem: 'base' });
     if (hasArm) layers.push({ path: armPath, stem: 'arm_normal' });
     layers.push({ path: eyeResult.path, stem: eyeResult.stem });
     layers.push({ path: mouthResult.path, stem: mouthResult.stem });
+    if (hasBangs) layers.push({ path: bangsPath, stem: 'bangs' });
     if (fxResult) layers.push({ path: fxResult.path, stem: fxResult.stem });
 
-    // 画像をロード
     return layers;
   };
 

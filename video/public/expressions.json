@@ -3,6 +3,7 @@
     "normal": {
       "brow": "normal",
       "cheek": "hoppe",
+      "shadow": null,
       "eye": "open",
       "mouth_close": "close",
       "mouth_half": "half",
@@ -12,15 +13,17 @@
     "happy": {
       "brow": "normal",
       "cheek": "hoppe",
-      "eye": "happy",
-      "mouth_close": "smile_close",
-      "mouth_half": "smile_open",
-      "mouth_open": "smile_open",
+      "shadow": null,
+      "eye": "nikkori",
+      "mouth_close": "mufu",
+      "mouth_half": "open",
+      "mouth_open": "open",
       "fx": null
     },
     "surprise": {
       "brow": "normal",
       "cheek": "hoppe",
+      "shadow": null,
       "eye": "surprise",
       "mouth_close": "close",
       "mouth_half": "half",
@@ -28,28 +31,31 @@
       "fx": "sweat1"
     },
     "trouble": {
-      "brow": "normal",
-      "cheek": "hoppe",
+      "brow": "worry2",
+      "cheek": null,
+      "shadow": "kageri",
       "eye": "open",
       "mouth_close": "close",
       "mouth_half": "half",
       "mouth_open": "open",
-      "fx": null
+      "fx": "sweat2"
     },
     "panic": {
-      "brow": "normal",
-      "cheek": "hoppe",
+      "brow": "worry2",
+      "cheek": "pale",
+      "shadow": null,
       "eye": "surprise",
       "mouth_close": "close",
       "mouth_half": "half",
       "mouth_open": "open",
-      "fx": "sweat1"
+      "fx": "sweat2"
     }
   },
   "metan": {
     "normal": {
       "brow": "futo_gokigen",
       "cheek": "normal2",
+      "shadow": null,
       "eye": "open",
       "mouth_close": "close",
       "mouth_half": "half",
@@ -59,33 +65,37 @@
     "happy": {
       "brow": "futo_gokigen",
       "cheek": "normal2",
-      "eye": "happy",
-      "mouth_close": "smile_close",
-      "mouth_half": "smile_open",
-      "mouth_open": "smile_open",
+      "shadow": null,
+      "eye": "close",
+      "mouth_close": "close",
+      "mouth_half": "open",
+      "mouth_open": "open",
       "fx": null
     },
     "surprise": {
       "brow": "futo_gokigen",
       "cheek": "normal2",
+      "shadow": null,
       "eye": "surprise",
-      "mouth_close": "close",
-      "mouth_half": "half",
-      "mouth_open": "open",
-      "fx": "sweat"
-    },
-    "trouble": {
-      "brow": "futo_gokigen",
-      "cheek": "normal2",
-      "eye": "open",
       "mouth_close": "close",
       "mouth_half": "half",
       "mouth_open": "open",
       "fx": null
     },
-    "panic": {
-      "brow": "futo_gokigen",
+    "trouble": {
+      "brow": "komari",
       "cheek": "normal2",
+      "shadow": null,
+      "eye": "close",
+      "mouth_close": "close",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": "sweat"
+    },
+    "panic": {
+      "brow": "komari",
+      "cheek": "pale",
+      "shadow": null,
       "eye": "surprise",
       "mouth_close": "close",
       "mouth_half": "half",

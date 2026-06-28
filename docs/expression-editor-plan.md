@@ -156,6 +156,34 @@ metan: 全表情 brow=futo_gokigen, cheek=normal2。
 　眉/顔色は今と同じ(normal/hoppe, futo_gokigen/normal2)なので見た目は不変のはず。
 　Stage3でtrouble=worry1+hoppe, panic=worry2+pale 等に振り替える。
 
+## 追補(2026-06-28): かげり独立スロット / 前髪レイヤ順 / 重複パーツ整理
+
+### A. かげり(影)を独立スロット化
+- SLOTS: cheek から `shadow`(かげり) を除去し、新スロット `shadow` を新設。
+  zunda/metan とも `shadow: { kageri: [["!顔色","かげり"]] }`。cheek は ほっぺ系/青ざめ等のみ(1択)。
+- expressions.json: 各表情に `"shadow"` フィールド追加(id or null)。初期は全て null。
+- 重ね順: `base → cheek → shadow → arm → brow → eye → mouth → bangs → fx`。
+- これで「青ざめ＋かげり」等が共存可能。エディタに影ピッカー(なし既定)追加。
+
+### B. めたん前髪のレイヤ順(PSD準拠)
+PSD z順(index大=前面): 体 < 顔色(5) < 口(6) < 目(7) < 眉(8) < アクセサリ(9) < 前髪もみあげ(10) < fx。
+→ 顔色は本来「前髪の下」。現状 base に前髪を焼込み→顔色を上描き でかげりが髪上に乗る。
+- 修正: metan body から `["!前髪もみあげ"]` を除去。常時パーツ `bangs`(=前髪もみあげ)を新設し、
+  顔パーツの上(mouth の後・fx の前)に重ねる。zunda は bangs 無し(枝豆は base のままで可)。
+- psd-export: 常時パーツ用 `extra` を CHARS に追加(metan: `{ bangs: [["!前髪もみあげ"]] }`)。build/build-full で base/arm と同様に書き出す。
+
+### C. 重複パーツ削除＋通常パーツへ再リンク(md5で重複確定)
+SLOTS を整理:
+- zunda eye: open/close/surprise/**nikkori**(にっこり)  ※`happy`削除・`smile`→`nikkori`へ改名
+- zunda mouth: close/half/open/**mufu**(むふ)  ※`smile_open`削除・`smile_close`→`mufu`へ改名
+- metan eye: open/close/surprise  ※`happy`(=closeと重複)削除・`smile`(目閉じ2,未使用)削除
+- metan mouth: close/half/open  ※`smile_close`(=close重複)・`smile_open`(=open重複)削除
+expressions.json happy 再リンク(見た目は不変):
+- zunda happy: eye=nikkori, mouth_close=mufu, mouth_half=open, mouth_open=open
+- metan happy: eye=close, mouth_close=close, mouth_half=open, mouth_open=open
+旧名PNG(eye_happy/eye_smile/mouth_smile_*等)は bust+full とも削除(orphan掃除)。
+expression-catalog.mjs / Avatarの旧stem参照も更新(未使用fallbackは安全に通ればよい)。
+
 ## 注意
 - Python は全角クォート禁止（ASCIIのみ）。JSの文字列中の日本語はOK。
 - public/ は生成物(gitignore)。expressions.json は scene/story 同様 force-add で追跡。

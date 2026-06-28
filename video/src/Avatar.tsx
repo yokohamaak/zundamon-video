@@ -16,15 +16,17 @@ import type { Emotion, Gender } from "./types";
 // ・expressive(ずんだもん)は驚き等でオーバーアクション
 // を行う。
 //
-// 重ね順: base → cheek(顔色) → arm → brow(眉) → eye → mouth → fx
+// 重ね順: base → cheek(顔色) → shadow(かげり) → arm → brow(眉) → eye → mouth → bangs(前髪・metanのみ) → fx
 //
 // 必要パーツ（assets/avatars/<キャラ>/、stem名で参照）:
 //   base                               … 口・目・眉・顔色を除いた土台（必須）
 //   cheek_<id>                         … 顔色（Stage1から追加）
+//   shadow_<id>                        … かげり（独立スロット・TaskA）。null/未設定なら描かない。
 //   arm_normal / arm_raise             … 腕（zundaのみ）
 //   brow_<id>                          … 眉（Stage1から追加）
 //   eye_open / eye_close / eye_<id>    … 目の開閉（まばたき）
 //   mouth_close / mouth_half / mouth_open … 口の開き3段（リップシンク）
+//   bangs                              … 前髪もみあげ（metanのみ・常時最前面・TaskB）
 //   fx_<id>                            … 任意。効果オーバーレイ
 // パーツが無いキャラは従来の単一画像(gender_open/close)へ自動フォールバック。
 
@@ -34,6 +36,8 @@ type Manifest = Record<string, string>;
 export type ExpressionCfg = {
   brow: string | null;
   cheek: string | null;
+  // タスクA: かげり独立スロット。null/未定義なら描かない。
+  shadow?: string | null;
   eye: string;
   mouth_close: string;
   mouth_half: string;
@@ -323,10 +327,20 @@ export const Avatar: React.FC<{
     ? part(`cheek_${expressionCfg!.cheek}`) || null
     : null;
 
+  // ── shadow（かげり）の解決（タスクA: 独立スロット） ──
+  // null/未定義なら描かない。cheekの直後に重ねる。
+  const shadowSrc = hasCfg && expressionCfg!.shadow
+    ? part(`shadow_${expressionCfg!.shadow}`) || null
+    : null;
+
   // ── brow（眉）の解決 ──
   const browSrc = hasCfg && expressionCfg!.brow
     ? part(`brow_${expressionCfg!.brow}`) || null
     : null;
+
+  // ── bangs（前髪もみあげ）の解決（タスクB: metanのみ常時パーツ） ──
+  // manifest に "bangs" があれば重ねる（zundaは無いのでスキップ）。
+  const bangsSrc = part("bangs") || null;
 
   const surprised = emotion === "surprise";
 
@@ -349,15 +363,19 @@ export const Avatar: React.FC<{
   if (surprised && part("arm_raise")) armStem = "arm_raise";
   const armSrc = part(armStem);
 
-  // ③ 重ね順: base → cheek → arm → brow → eye → mouth → fx
+  // ③ 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
+  //    （タスクA: shadowをcheekの直後に追加）
+  //    （タスクB: bangsをmouthの後・fxの前に追加。metanのみ、zundaはnull）
   return wrap(
     <>
       {layer(part("base")!, "base")}
       {cheekSrc ? layer(cheekSrc, "cheek") : null}
+      {shadowSrc ? layer(shadowSrc, "shadow") : null}
       {armSrc ? layer(armSrc, "arm") : null}
       {browSrc ? layer(browSrc, "brow") : null}
       {eyeSrc ? layer(eyeSrc, "eye") : null}
       {mouthSrc ? layer(mouthSrc, "mouth") : null}
+      {bangsSrc ? layer(bangsSrc, "bangs") : null}
       {fxSrc ? layer(fxSrc, "fx") : null}
       {/* 焦り(panic)：汗を増やす。同じ汗ドロップを位置/サイズ違いで複数重ねる。
           位置はキャラごと（目に被らないよう調整）。dx/dyはキャンバス比%。 */}

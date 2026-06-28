@@ -24,7 +24,10 @@ const SLOTS = {
       hoppe2:    [["!顔色", "*ほっぺ2"]],
       hoppe_red: [["!顔色", "*ほっぺ赤め"]],
       pale:      [["!顔色", "*青ざめ"]],
-      shadow:    [["!顔色", "かげり"]],
+    },
+    // タスクA: かげり(影)を cheek から独立スロット化
+    shadow: {
+      kageri: [["!顔色", "かげり"]],
     },
     brow: {
       normal:    [["!眉", "*普通眉"]],
@@ -33,19 +36,19 @@ const SLOTS = {
       up:        [["!眉", "*上がり眉"]],
       angry:     [["!眉", "*怒り眉"]],
     },
+    // タスクC: happy/smile を削除し nikkori に統一
     eye: {
       open:     [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
       close:    [["!目", "*UU"]],
       surprise: [["!目", "*〇〇"]],
-      smile:    [["!目", "*にっこり"]],
-      happy:    [["!目", "*にっこり"]],
+      nikkori:  [["!目", "*にっこり"]],
     },
+    // タスクC: smile_open/smile_close を削除し mufu に統一
     mouth: {
-      close:       [["!口", "*むー"]],
-      half:        [["!口", "*ほあ"]],
-      open:        [["!口", "*ほあー"]],
-      smile_close: [["!口", "*むふ"]],
-      smile_open:  [["!口", "*ほあー"]],
+      close: [["!口", "*むー"]],
+      half:  [["!口", "*ほあ"]],
+      open:  [["!口", "*ほあー"]],
+      mufu:  [["!口", "*むふ"]],
     },
     fx: {
       sweat1: [["記号など", "汗1"]],
@@ -59,7 +62,10 @@ const SLOTS = {
       normal2:  [["!顔色", "*普通2"]],
       blush:    [["!顔色", "*赤面"]],
       pale:     [["!顔色", "*青ざめ"]],
-      shadow:   [["!顔色", "かげり"]],
+    },
+    // タスクA: かげり(影)を cheek から独立スロット化
+    shadow: {
+      kageri: [["!顔色", "かげり"]],
     },
     brow: {
       gokigen:      [["!眉", "*ごきげん"]],
@@ -70,19 +76,17 @@ const SLOTS = {
       futo_komari:  [["!眉", "*太眉こまり"]],
       futo_oko:     [["!眉", "*太眉おこ"]],
     },
+    // タスクC: happy(=closeと同一)・smile(目閉じ2・未使用)を削除
     eye: {
       open:     [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
       close:    [["!目", "*目閉じ"]],
       surprise: [["!目", "*○○"]],
-      smile:    [["!目", "*目閉じ2"]],
-      happy:    [["!目", "*目閉じ"]],
     },
+    // タスクC: smile_close(=close重複)・smile_open(=open重複)を削除
     mouth: {
-      close:       [["!口", "*ほほえみ"]],
-      half:        [["!口", "*お"]],
-      open:        [["!口", "*わあー"]],
-      smile_close: [["!口", "*ほほえみ"]],
-      smile_open:  [["!口", "*わあー"]],
+      close: [["!口", "*ほほえみ"]],
+      half:  [["!口", "*お"]],
+      open:  [["!口", "*わあー"]],
     },
     fx: {
       sweat: [["記号など", "汗"]],
@@ -109,6 +113,8 @@ const CHARS = {
       arm_normal: [["*服装1", "!左腕", "*基本"], ["*服装1", "!右腕", "*基本"]],
       arm_raise:  [["*服装1", "!左腕", "*手を挙げる"], ["*服装1", "!右腕", "*手を挙げる"]],
     },
+    // タスクB: zunda は bangs なし
+    extra: {},
     previewMouths: ["*むー", "*んー", "*△", "*ほあ", "*ほー", "*ほあー", "*お", "*おほお"],
     previewEyes: {
       "目セット普通": [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
@@ -122,6 +128,9 @@ const CHARS = {
     crop: { x: 110, y: 30, w: 840, h: 800 },
     // 先生役: 腕差分なし。腕(普通)を土台に焼き込む。
     // 眉(!眉)と顔色(!顔色)は SLOTS から独立書き出しするため body から除去。
+    // タスクB: 前髪もみあげ を body から除去し extra.bangs として独立パーツ化。
+    //          PSD z順: 顔色(5) < 口(6) < 目(7) < 眉(8) < アクセサリ(9) < 前髪もみあげ(10)
+    //          → 顔色は前髪の下になるので bangs を最前面レイヤーで重ねる必要がある。
     body: [
       ["ツインドリル右"],
       ["ツインドリル左"],
@@ -129,11 +138,15 @@ const CHARS = {
       ["*白ロリ服", "!右腕", "*普通"],
       ["*白ロリ服", "!左腕", "*普通"],
       // 注: 以前は ["!顔色","*普通2"] と ["!眉","*太眉ごきげん"] を body に含んでいたが除去。
-      ["!前髪もみあげ"],
+      // 注: ["!前髪もみあげ"] は extra.bangs として独立（タスクB）。
       ["頭部アクセサリ", "ヘッドドレス"],
       ["頭部アクセサリ", "髪留めハート"],
     ],
     arm: {}, // metan は腕なし（body に内包）
+    // タスクB: 常時パーツ(bangs)。build/build-full で arm と同様に書き出す。
+    extra: {
+      bangs: [["!前髪もみあげ"]],
+    },
     previewMouths: ["*む", "*んー", "*△", "*ほほえみ", "*お", "*わあー", "*▽", "*いー"],
     previewEyes: {
       "目セット普通": [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
@@ -236,6 +249,11 @@ function collectUsedIds(charKey) {
       if (!used.cheek) used.cheek = new Set();
       used.cheek.add(exprCfg.cheek);
     }
+    // タスクA: shadow スロット
+    if (exprCfg.shadow) {
+      if (!used.shadow) used.shadow = new Set();
+      used.shadow.add(exprCfg.shadow);
+    }
     if (exprCfg.eye) {
       if (!used.eye) used.eye = new Set();
       used.eye.add(exprCfg.eye);
@@ -287,8 +305,14 @@ if (mode === "build") {
     console.log(`[build] ${charName}/${stem}.png`);
   }
 
-  // 各スロット：使用 id のみ書き出す
-  for (const slot of ["cheek", "brow", "eye", "mouth", "fx"]) {
+  // タスクB: extra（常時パーツ: metan の bangs 等）
+  for (const [partName, paths] of Object.entries(cfg.extra || {})) {
+    writeFileSync(resolve(dir, `${partName}.png`), compose(paths));
+    console.log(`[build] ${charName}/${partName}.png`);
+  }
+
+  // 各スロット：使用 id のみ書き出す（タスクA: shadow スロット追加）
+  for (const slot of ["cheek", "shadow", "brow", "eye", "mouth", "fx"]) {
     const slotDef = slots[slot];
     if (!slotDef) continue;
     const usedSet = usedIds[slot] ?? new Set();
@@ -298,16 +322,14 @@ if (mode === "build") {
         console.warn(`[build] WARN: ${charName} ${slot}/${id} が SLOTS に未定義`);
         continue;
       }
-      // mouth_* は既存 stem 名互換: mouth_<id>.png
-      // eye_* / brow_* / cheek_* / fx_* も同様
       const stem = `${slot}_${id}`;
       writeFileSync(resolve(dir, `${stem}.png`), compose(layerPaths));
       console.log(`[build] ${charName}/${stem}.png`);
     }
   }
 
-  const total = 1 + Object.keys(cfg.arm || {}).length +
-    ["cheek", "brow", "eye", "mouth", "fx"].reduce((n, slot) => {
+  const total = 1 + Object.keys(cfg.arm || {}).length + Object.keys(cfg.extra || {}).length +
+    ["cheek", "shadow", "brow", "eye", "mouth", "fx"].reduce((n, slot) => {
       return n + (usedIds[slot]?.size ?? 0);
     }, 0);
   console.log(`[build] done: ${total}部位 → ${dir}`);
@@ -318,13 +340,17 @@ if (mode === "build-full") {
   const usedIds = collectUsedIds(charName);
 
   // 全パーツを収集（bbox算出のため）
-  // base + arm + 各スロットの使用パーツ
+  // base + arm + extra + 各スロットの使用パーツ
   const allParts = [];
   allParts.push({ stem: "base", paths: BODY });
   for (const [stem, paths] of Object.entries(cfg.arm || {})) {
     allParts.push({ stem, paths });
   }
-  for (const slot of ["cheek", "brow", "eye", "mouth", "fx"]) {
+  // タスクB: extra(bangs等)も union bbox に含める
+  for (const [partName, paths] of Object.entries(cfg.extra || {})) {
+    allParts.push({ stem: partName, paths });
+  }
+  for (const slot of ["cheek", "shadow", "brow", "eye", "mouth", "fx"]) {
     const slotDef = slots[slot];
     if (!slotDef) continue;
     const usedSet = usedIds[slot] ?? new Set();
@@ -388,7 +414,7 @@ if (mode === "candidates") {
   const slots = SLOTS[charName];
   let count = 0;
 
-  for (const slot of ["cheek", "brow", "eye", "mouth", "fx"]) {
+  for (const slot of ["cheek", "shadow", "brow", "eye", "mouth", "fx"]) {
     const slotDef = slots[slot];
     if (!slotDef) continue;
     for (const [id, layerPaths] of Object.entries(slotDef)) {

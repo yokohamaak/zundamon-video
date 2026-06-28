@@ -30,7 +30,10 @@ SLOT_LABELS = {
             "hoppe2":    "ほっぺ2",
             "hoppe_red": "ほっぺ赤め",
             "pale":      "青ざめ",
-            "shadow":    "かげり",
+        },
+        # タスクA: shadow を cheek から独立
+        "shadow": {
+            "kageri": "かげり",
         },
         "brow": {
             "normal":    "普通眉",
@@ -39,19 +42,19 @@ SLOT_LABELS = {
             "up":        "上がり眉",
             "angry":     "怒り眉",
         },
+        # タスクC: happy/smile 削除 → nikkori に統一
         "eye": {
             "open":     "目セット普通",
             "close":    "UU",
             "surprise": "〇〇",
-            "smile":    "にっこり",
-            "happy":    "にっこり(happy)",
+            "nikkori":  "にっこり",
         },
+        # タスクC: smile_close/smile_open 削除 → mufu に統一
         "mouth": {
-            "close":       "むー",
-            "half":        "ほあ",
-            "open":        "ほあー",
-            "smile_close": "むふ",
-            "smile_open":  "ほあー(smile)",
+            "close": "むー",
+            "half":  "ほあ",
+            "open":  "ほあー",
+            "mufu":  "むふ",
         },
         "fx": {
             "sweat1": "汗1",
@@ -65,7 +68,10 @@ SLOT_LABELS = {
             "normal2":  "普通2",
             "blush":    "赤面",
             "pale":     "青ざめ",
-            "shadow":   "かげり",
+        },
+        # タスクA: shadow を cheek から独立
+        "shadow": {
+            "kageri": "かげり",
         },
         "brow": {
             "gokigen":      "ごきげん",
@@ -76,19 +82,17 @@ SLOT_LABELS = {
             "futo_komari":  "太眉こまり",
             "futo_oko":     "太眉おこ",
         },
+        # タスクC: happy(=close重複)/smile(未使用) 削除
         "eye": {
             "open":     "目セット普通",
             "close":    "目閉じ",
             "surprise": "○○",
-            "smile":    "目閉じ2",
-            "happy":    "目閉じ(happy)",
         },
+        # タスクC: smile_close/smile_open 削除
         "mouth": {
-            "close":       "ほほえみ",
-            "half":        "お",
-            "open":        "わあー",
-            "smile_close": "ほほえみ(smile)",
-            "smile_open":  "わあー(smile)",
+            "close": "ほほえみ",
+            "half":  "お",
+            "open":  "わあー",
         },
         "fx": {
             "sweat": "汗",
@@ -96,8 +100,8 @@ SLOT_LABELS = {
     },
 }
 
-# スロット列挙順
-SLOTS_ORDER = ["cheek", "brow", "eye", "mouth", "fx"]
+# スロット列挙順（タスクA: shadow 追加）
+SLOTS_ORDER = ["cheek", "shadow", "brow", "eye", "mouth", "fx"]
 
 # 表情キー一覧
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
@@ -193,6 +197,10 @@ def _build_catalog():
         arm_path = os.path.join(AVATARS_PUBLIC_DIR, char, "arm_normal.png")
         arm_url = f"avatars/{char}/arm_normal.png" if os.path.isfile(arm_path) else None
 
+        # タスクB: bangs.png の存在チェック（metan のみ存在）
+        bangs_path = os.path.join(AVATARS_PUBLIC_DIR, char, "bangs.png")
+        bangs_url = f"avatars/{char}/bangs.png" if os.path.isfile(bangs_path) else None
+
         if missing_slots:
             print(f"[catalog] WARN: {char} の以下スロットに candidates がありません: {missing_slots}")
             print(f"  -> node scripts/psd-export.mjs candidates {char} を実行してください")
@@ -201,6 +209,7 @@ def _build_catalog():
             "slots": slots,
             "base": base_url,
             "arm": arm_url,
+            "bangs": bangs_url,
         }
 
     return catalog

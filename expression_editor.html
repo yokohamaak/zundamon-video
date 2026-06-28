@@ -249,9 +249,11 @@ let currentMouthSlot = "mouth_close"; // プレビューに使う口スロット
 let isDirty = false;
 
 // スロット表示順 (mouthはclose/half/openをまとめて表示)
-const SLOTS_ORDER = ["cheek", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
+// タスクA: shadow スロット追加（cheekの直後、fxと同様になし選択可）
+const SLOTS_ORDER = ["cheek", "shadow", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
 const SLOT_LABELS = {
   "cheek": "顔色 (cheek)",
+  "shadow": "影・かげり (shadow)",
   "brow": "眉 (brow)",
   "eye": "目 (eye)",
   "mouth_close": "口・close",
@@ -264,6 +266,15 @@ const SLOT_LABELS = {
 function slotToCatalogKey(slot) {
   if (slot.startsWith("mouth_")) return "mouth";
   return slot;
+}
+
+// bangs(前髪)の URL を解決する（metanのみ存在）
+function _bangsSrc(charCat) {
+  if (!charCat) return null;
+  // bangs は candidates ではなくバスト用の assets/avatars/<char>/bangs.png
+  // prep-story が public/avatars/<char>/bangs.png にコピーする
+  const file = charCat.bangs;
+  return file ? "/img/" + file : null;
 }
 
 // 組み込み5種（削除禁止・特殊モーションを持つ）
@@ -280,9 +291,9 @@ const EXPR_LABEL = {
   "panic": "パニック (panic)",
 };
 
-// 重ね順: base → cheek → arm → brow → eye → mouth → fx
-// プレビュー用レイヤーキー
-const LAYER_KEYS = ["base", "arm", "cheek", "brow", "eye", "mouth", "fx"];
+// 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
+// タスクA: shadow 追加、タスクB: bangs 追加
+const LAYER_KEYS = ["base", "cheek", "shadow", "arm", "brow", "eye", "mouth", "bangs", "fx"];
 
 // ============================================================
 // 初期化
@@ -508,8 +519,8 @@ function buildSlotPanel() {
     const grid = document.createElement("div");
     grid.className = "cand-grid";
 
-    // fx はnullを選べる
-    if (slot === "fx") {
+    // fx と shadow はnullを選べる（「なし」が既定）
+    if (slot === "fx" || slot === "shadow") {
       const noneEl = document.createElement("div");
       noneEl.className = "cand-none" + (currentId === null ? " selected" : "");
       noneEl.dataset.slot = slot;
@@ -616,16 +627,19 @@ function renderPreview() {
   const charCat = catalog?.[currentChar];
   const cfg = currentCfg();
 
-  // 重ね順: base → cheek → arm → brow → eye → mouth → fx
+  // 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
+  // タスクA: shadow 追加（cheekの直後）、タスクB: bangs 追加（mouthの後）
   // mouth は currentMouthSlot の値を使う
   const layers = [
-    { key: "base",  src: charCat?.base ? "/img/" + charCat.base : null },
-    { key: "cheek", src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
-    { key: "arm",   src: charCat?.arm  ? "/img/" + charCat.arm  : null },
-    { key: "brow",  src: _candidateSrc(charCat, "brow",   cfg["brow"]) },
-    { key: "eye",   src: _candidateSrc(charCat, "eye",    cfg["eye"]) },
-    { key: "mouth", src: _candidateSrc(charCat, "mouth",  cfg[currentMouthSlot]) },
-    { key: "fx",    src: _candidateSrc(charCat, "fx",     cfg["fx"]) },
+    { key: "base",   src: charCat?.base ? "/img/" + charCat.base : null },
+    { key: "cheek",  src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
+    { key: "shadow", src: _candidateSrc(charCat, "shadow", cfg["shadow"]) },
+    { key: "arm",    src: charCat?.arm  ? "/img/" + charCat.arm  : null },
+    { key: "brow",   src: _candidateSrc(charCat, "brow",   cfg["brow"]) },
+    { key: "eye",    src: _candidateSrc(charCat, "eye",    cfg["eye"]) },
+    { key: "mouth",  src: _candidateSrc(charCat, "mouth",  cfg[currentMouthSlot]) },
+    { key: "bangs",  src: _bangsSrc(charCat) },
+    { key: "fx",     src: _candidateSrc(charCat, "fx",     cfg["fx"]) },
   ];
 
   // 既存の img を再利用/追加/削除
