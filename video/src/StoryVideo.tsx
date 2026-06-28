@@ -334,7 +334,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
     <div
       style={{
         background: "#1a1d24",
-        border: "3px solid #4a9e44",
+        border: "3px solid #9ed957",
         borderRadius: 16,
         padding: "48px 64px",
         maxWidth: 860,
@@ -402,8 +402,8 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
   return (
     <div
       style={{
-        background: "#181c24",
-        border: "2px solid #3e8b39",
+        background: "#1c2620",
+        border: "3px solid #9ed957",
         borderRadius: 20,
         width: 920,
         overflow: "hidden",
@@ -415,12 +415,12 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
       {/* ヘッダー */}
       <div
         style={{
-          background: "#1c3a22",
+          background: "#bdf08a",
           padding: "20px 32px",
           display: "flex",
           alignItems: "center",
           gap: 14,
-          borderBottom: "1.5px solid #2f5a33",
+          borderBottom: "2px solid #9ed957",
         }}
       >
         <div
@@ -428,15 +428,15 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #7bd267, #3e9e3a)",
+            background: "linear-gradient(135deg, #4fa83f, #2c7d28)",
             flexShrink: 0,
           }}
         />
         <span
           style={{
             fontSize: 34,
-            fontWeight: 600,
-            color: "#c8d0e0",
+            fontWeight: 700,
+            color: "#1f4012",
             fontFamily: "sans-serif",
             letterSpacing: "0.04em",
           }}
@@ -598,8 +598,8 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
   return (
     <div
       style={{
-        background: "#1a1e28",
-        border: "2px solid #3e8b39",
+        background: "#1c2620",
+        border: "3px solid #9ed957",
         borderRadius: 22,
         width: 1480,
         overflow: "hidden",
@@ -611,12 +611,12 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
       {/* ヘッダー */}
       <div
         style={{
-          background: "#1c3a22",
+          background: "#bdf08a",
           padding: "18px 32px",
           display: "flex",
           alignItems: "center",
           gap: 18,
-          borderBottom: "1.5px solid #2f5a33",
+          borderBottom: "2px solid #9ed957",
         }}
       >
         {/* ワークスペースアイコン（汎用グリッドロゴ風） */}
@@ -625,7 +625,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
             width: 40,
             height: 40,
             borderRadius: 10,
-            background: "linear-gradient(135deg, #7bd267 0%, #3e9e3a 100%)",
+            background: "linear-gradient(135deg, #4fa83f 0%, #2c7d28 100%)",
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
@@ -659,7 +659,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
           style={{
             fontSize: 48,
             fontWeight: 700,
-            color: "#c8d0e0",
+            color: "#1f4012",
             fontFamily: "sans-serif",
             letterSpacing: "0.03em",
           }}
@@ -668,9 +668,9 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
         </span>
         {/* 仕切り */}
         <div
-          style={{ width: 1.5, height: 28, background: "#3a4258", marginLeft: 4, marginRight: 4 }}
+          style={{ width: 1.5, height: 28, background: "#7cb84a", marginLeft: 4, marginRight: 4 }}
         />
-        <span style={{ fontSize: 28, color: "#6a7490", fontFamily: "sans-serif" }}>
+        <span style={{ fontSize: 28, color: "#3f6a2a", fontFamily: "sans-serif", fontWeight: 600 }}>
           ZunChat
         </span>
       </div>
