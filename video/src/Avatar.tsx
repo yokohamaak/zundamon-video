@@ -16,7 +16,7 @@ import type { Emotion, Gender } from "./types";
 // ・expressive(ずんだもん)は驚き等でオーバーアクション
 // を行う。
 //
-// 重ね順: base → cheek(顔色) → shadow(かげり) → arm → brow(眉) → eye → mouth → bangs(前髪・metanのみ) → fx
+// 重ね順: base → shadow → cheek → arm → eye → mouth → bangs(前髪) → brow(眉・最前面寄り) → fx
 //
 // 必要パーツ（assets/avatars/<キャラ>/、stem名で参照）:
 //   base                               … 口・目・眉・顔色を除いた土台（必須）
@@ -363,7 +363,7 @@ export const Avatar: React.FC<{
   if (surprised && part("arm_raise")) armStem = "arm_raise";
   const armSrc = part(armStem);
 
-  // ③ 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+  // ③ 重ね順: base → shadow → cheek → arm → eye → mouth → bangs → brow → fx（眉は髪より前面）
   //    （!顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に）
   //    （タスクB: bangsをmouthの後・fxの前に追加。metanのみ、zundaはnull）
   return wrap(
@@ -374,10 +374,11 @@ export const Avatar: React.FC<{
       {shadowSrc ? layer(shadowSrc, "shadow") : null}
       {cheekSrc ? layer(cheekSrc, "cheek") : null}
       {armSrc ? layer(armSrc, "arm") : null}
-      {browSrc ? layer(browSrc, "brow") : null}
       {eyeSrc ? layer(eyeSrc, "eye") : null}
       {mouthSrc ? layer(mouthSrc, "mouth") : null}
       {bangsSrc ? layer(bangsSrc, "bangs") : null}
+      {/* 眉は髪/前髪より前面に描く（前髪に隠れず必ず見えるように）。 */}
+      {browSrc ? layer(browSrc, "brow") : null}
       {fxSrc ? layer(fxSrc, "fx") : null}
       {/* 焦り(panic)：汗を増やす。同じ汗ドロップを位置/サイズ違いで複数重ねる。
           位置はキャラごと（目に被らないよう調整）。dx/dyはキャンバス比%。 */}
