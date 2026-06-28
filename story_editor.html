@@ -74,9 +74,9 @@
   /* ── 3ペインレイアウト ── */
   .main { display: flex; flex: 1; overflow: hidden; }
 
-  /* ── シーン編集（iframe埋め込み） ── */
-  .scene-view { flex: 1; overflow: hidden; }
-  .scene-view iframe { width: 100%; height: 100%; border: none; display: block; }
+  /* ── シーン編集 / 表情編集（iframe埋め込み） ── */
+  .scene-view, .expr-view { flex: 1; overflow: hidden; }
+  .scene-view iframe, .expr-view iframe { width: 100%; height: 100%; border: none; display: block; }
 
   /* ── 左ペイン: 台本一覧 ── */
   .pane-left {
@@ -237,6 +237,7 @@
   <div class="top-tabs">
     <button class="top-tab active" id="tabScript" data-view="script">台本</button>
     <button class="top-tab" id="tabScene" data-view="scene">シーン</button>
+    <button class="top-tab" id="tabExpr" data-view="expr">表情</button>
   </div>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
@@ -360,6 +361,11 @@
 <!-- シーン編集（scene_editor を iframe 埋め込み。story_editor 起動時に scene_editor も自動起動） -->
 <div class="scene-view" id="viewScene" style="display:none;">
   <iframe id="sceneFrame" title="シーン編集"></iframe>
+</div>
+
+<!-- 表情編集（expression_editor を iframe 埋め込み。story_editor 起動時に expression_editor も自動起動） -->
+<div class="expr-view" id="viewExpr" style="display:none;">
+  <iframe id="exprFrame" title="表情編集"></iframe>
 </div>
 
 <script>
@@ -533,12 +539,25 @@ function setSceneValue(scene) {
 }
 
 function buildExpressionSelect() {
+  _buildExpressionOptions(null);
+}
+
+// 表情ドロップダウンを構築する。prevValue が指定された場合は選択を維持する。
+function _buildExpressionOptions(prevValue) {
   const sel = document.getElementById("fExpression");
-  // 最初の(なし)は既にある
+  const keep = prevValue !== null ? prevValue : sel.value;
+  sel.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = ""; none.textContent = "(なし)";
+  sel.appendChild(none);
   for (const ex of meta.expressions) {
     const o = document.createElement("option");
     o.value = ex; o.textContent = ex;
     sel.appendChild(o);
+  }
+  // 以前の選択値を復元（選択肢に存在する場合のみ）
+  if (keep && Array.from(sel.options).some(o => o.value === keep)) {
+    sel.value = keep;
   }
 }
 
@@ -1275,25 +1294,45 @@ function setStatus(cls, msg) {
 // ============================================================
 // イベント設定
 // ============================================================
-// 台本/シーン タブ切替。シーンは scene_editor を iframe で埋め込み（初回のみ読み込み）。
+// 台本/シーン/表情 タブ切替。
+// シーンは scene_editor(8770)、表情は expression_editor(8772) を iframe で埋め込み（初回のみ読み込み）。
 function setupTabs() {
   const tScript = document.getElementById("tabScript");
   const tScene = document.getElementById("tabScene");
+  const tExpr = document.getElementById("tabExpr");
   const vScript = document.getElementById("viewScript");
   const vScene = document.getElementById("viewScene");
-  const frame = document.getElementById("sceneFrame");
+  const vExpr = document.getElementById("viewExpr");
+  const sceneFrame = document.getElementById("sceneFrame");
+  const exprFrame = document.getElementById("exprFrame");
+
+  function activateTab(active) {
+    // タブボタンのactive切替
+    [tScript, tScene, tExpr].forEach(t => t.classList.toggle("active", t === active));
+    // ビューの表示/非表示
+    vScript.style.display = active === tScript ? "" : "none";
+    vScene.style.display = active === tScene ? "" : "none";
+    vExpr.style.display = active === tExpr ? "" : "none";
+  }
+
   tScript.addEventListener("click", () => {
-    tScript.classList.add("active"); tScene.classList.remove("active");
-    vScript.style.display = ""; vScene.style.display = "none";
+    activateTab(tScript);
     refreshScenes();            // シーンが編集された可能性 → 台本側のシーン選択肢を更新
+    refreshExpressions();       // 表情が追加/削除された可能性 → 台本側の表情選択肢を更新
     sizePlayerWrap();
   });
   tScene.addEventListener("click", () => {
-    tScene.classList.add("active"); tScript.classList.remove("active");
-    vScript.style.display = "none"; vScene.style.display = "";
-    if (!frame.getAttribute("src")) {
+    activateTab(tScene);
+    if (!sceneFrame.getAttribute("src")) {
       // scene_editor は story_editor 起動時に自動起動（localhost:8770）
-      frame.src = (location.protocol + "//" + location.hostname + ":8770/");
+      sceneFrame.src = (location.protocol + "//" + location.hostname + ":8770/");
+    }
+  });
+  tExpr.addEventListener("click", () => {
+    activateTab(tExpr);
+    if (!exprFrame.getAttribute("src")) {
+      // expression_editor は story_editor 起動時に自動起動（localhost:8772）
+      exprFrame.src = (location.protocol + "//" + location.hostname + ":8772/");
     }
   });
 }
@@ -1308,6 +1347,18 @@ async function refreshScenes() {
     if (selectedIdx >= 0) setSceneValue(storyData.script[selectedIdx].scene);
     // プレビュー側のシーン定義も読み直す（背景/立ち位置/モブ配置の修正を反映）
     if (window.storyPlayer && playerReady) await window.storyPlayer.reloadScenes();
+  } catch (e) { /* 失敗時は据え置き */ }
+}
+
+// 表情エディタでの追加/削除後に台本側の表情ドロップダウンを最新化。
+// 現在選択中の表情値を可能な限り維持する。
+async function refreshExpressions() {
+  try {
+    const r = await fetch("/api/meta");
+    const m = await r.json();
+    meta.expressions = m.expressions;
+    const prevExpr = selectedIdx >= 0 ? (storyData.script[selectedIdx].expression || "") : "";
+    _buildExpressionOptions(prevExpr);
   } catch (e) { /* 失敗時は据え置き */ }
 }
 

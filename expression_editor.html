@@ -53,18 +53,33 @@
 
   /* ── 左: 表情リスト ── */
   .expr-list {
-    width: 160px; flex-shrink: 0;
+    width: 180px; flex-shrink: 0;
     background: var(--surface); border-right: 1px solid var(--border);
     display: flex; flex-direction: column; overflow-y: auto;
     padding: 10px 8px; gap: 4px;
   }
   .expr-item {
-    padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 4px;
+    padding: 7px 8px; border-radius: 6px; border: 1px solid var(--border);
     background: var(--surface2); color: var(--text2); font-size: 13px; cursor: pointer;
     transition: all .12s;
   }
   .expr-item:hover { color: var(--text); border-color: var(--accent); }
   .expr-item.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .expr-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .expr-del-btn {
+    flex-shrink: 0; background: none; border: none; cursor: pointer;
+    color: var(--danger); font-size: 14px; padding: 0 2px; line-height: 1;
+    opacity: 0.6; transition: opacity .12s;
+  }
+  .expr-del-btn:hover { opacity: 1; }
+  .expr-del-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+  .expr-add-btn {
+    margin: 4px 0; padding: 6px 8px; border-radius: 6px;
+    border: 1px dashed var(--border); background: none; color: var(--text2);
+    font-size: 12px; cursor: pointer; text-align: center; transition: all .12s;
+  }
+  .expr-add-btn:hover { border-color: var(--accent); color: var(--accent); }
   .expr-section-title {
     font-size: 10px; letter-spacing: .08em; color: var(--text2); text-transform: uppercase;
     padding: 6px 4px 2px;
@@ -129,13 +144,18 @@
   .cand-item:hover { border-color: var(--accent); }
   .cand-item.selected { border-color: var(--accent); background: rgba(91,141,238,.15); }
   .cand-item.selected-mouth { border-color: #7c3aed; background: rgba(124,58,237,.15); }
+  /* 候補サムネ: 明るい下地で枠クリップ。中身(img)を顔部分にズーム。 */
+  .cand-thumb-wrap {
+    width: 116px; height: 116px; overflow: hidden; border-radius: 4px;
+    background: #f3f1ea; flex-shrink: 0;
+  }
   .cand-thumb {
-    width: 70px; height: 70px; object-fit: contain;
-    /* 透過パーツがダーク背景に埋もれないよう明るい下地を敷く */
-    background: #f3f1ea; border-radius: 4px;
+    width: 116px; height: 116px; object-fit: contain;
+    /* バスト全体の中央上寄り(顔)を拡大して余白を減らす */
+    transform: scale(1.7); transform-origin: 50% 27%;
   }
   .cand-label {
-    font-size: 10px; color: var(--text2); text-align: center; max-width: 70px;
+    font-size: 10px; color: var(--text2); text-align: center; max-width: 116px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .cand-none {
@@ -246,7 +266,12 @@ function slotToCatalogKey(slot) {
   return slot;
 }
 
-const EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"];
+// 組み込み5種（削除禁止・特殊モーションを持つ）
+const BUILTIN_EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"];
+
+// 動的な表情リスト（fetchExpressions 後に expressions のキーから生成）
+let expressionList = [...BUILTIN_EXPRESSIONS];
+
 const EXPR_LABEL = {
   "normal": "普通 (normal)",
   "happy": "喜び (happy)",
@@ -279,6 +304,20 @@ async function fetchCatalog() {
 async function fetchExpressions() {
   const r = await fetch("/api/expressions");
   expressions = await r.json();
+  rebuildExpressionList();
+}
+
+// expressions のキーから expressionList を再構築する。
+// 組み込み5種を先頭に、追加表情をアルファベット順で続ける。
+function rebuildExpressionList() {
+  const allKeys = new Set();
+  for (const charData of Object.values(expressions || {})) {
+    for (const k of Object.keys(charData)) allKeys.add(k);
+  }
+  const extras = [...allKeys].filter(k => !BUILTIN_EXPRESSIONS.includes(k)).sort();
+  expressionList = [...BUILTIN_EXPRESSIONS, ...extras];
+  // currentExpr が存在しなければ先頭に戻す
+  if (!expressionList.includes(currentExpr)) currentExpr = expressionList[0] || "normal";
 }
 
 // ============================================================
@@ -302,20 +341,117 @@ function buildCharTabs() {
 function buildExprList() {
   const el = document.getElementById("exprList");
   el.innerHTML = '<div class="expr-section-title">表情</div>';
-  for (const expr of EXPRESSIONS) {
+
+  for (const expr of expressionList) {
     const item = document.createElement("div");
     item.className = "expr-item" + (expr === currentExpr ? " active" : "");
-    item.textContent = EXPR_LABEL[expr] || expr;
+    item.dataset.expr = expr;
+
+    const label = document.createElement("span");
+    label.className = "expr-item-label";
+    label.textContent = EXPR_LABEL[expr] || expr;
+    label.title = expr;
+    item.appendChild(label);
+
+    // 削除ボタン（組み込み5種は無効化）
+    const del = document.createElement("button");
+    del.className = "expr-del-btn";
+    del.title = BUILTIN_EXPRESSIONS.includes(expr)
+      ? "組み込み表情は削除できません"
+      : "この表情を削除";
+    del.textContent = "🗑";
+    del.disabled = BUILTIN_EXPRESSIONS.includes(expr);
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteExpression(expr);
+    });
+    item.appendChild(del);
+
     item.addEventListener("click", () => {
       currentExpr = expr;
-      document.querySelectorAll(".expr-item").forEach(el2 => {
-        el2.classList.toggle("active", el2.textContent === (EXPR_LABEL[expr] || expr));
-      });
+      buildExprList();
       buildSlotPanel();
       renderPreview();
     });
     el.appendChild(item);
   }
+
+  // 表情追加ボタン
+  const addBtn = document.createElement("button");
+  addBtn.className = "expr-add-btn";
+  addBtn.textContent = "＋ 表情を追加";
+  addBtn.addEventListener("click", addExpression);
+  el.appendChild(addBtn);
+}
+
+// ============================================================
+// 表情追加
+// ============================================================
+function addExpression() {
+  const name = prompt(
+    "追加する表情名を入力してください。\n" +
+    "使用可能: 半角英数字・ハイフン・アンダースコアのみ\n" +
+    "例: angry, shy_smile, wink-left"
+  );
+  if (name === null) return; // キャンセル
+  const trimmed = name.trim();
+
+  // バリデーション
+  if (!trimmed) {
+    alert("表情名を入力してください。");
+    return;
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    alert(
+      "表情名に使用できない文字が含まれています。\n" +
+      "使用可能文字: 半角英数字・ハイフン(-)・アンダースコア(_)\n" +
+      "例: angry, shy_smile, wink-left"
+    );
+    return;
+  }
+  if (expressionList.includes(trimmed)) {
+    alert("「" + trimmed + "」はすでに存在します。");
+    return;
+  }
+
+  // 両キャラに追加（normal の設定を複製）
+  for (const charKey of Object.keys(expressions)) {
+    const normalCfg = expressions[charKey]["normal"] || {};
+    expressions[charKey][trimmed] = Object.assign({}, normalCfg);
+  }
+
+  // リスト再構築 + 追加した表情を選択
+  rebuildExpressionList();
+  currentExpr = trimmed;
+  buildExprList();
+  buildSlotPanel();
+  renderPreview();
+  markDirty();
+}
+
+// ============================================================
+// 表情削除
+// ============================================================
+function deleteExpression(expr) {
+  if (BUILTIN_EXPRESSIONS.includes(expr)) {
+    alert("組み込み表情（" + expr + "）は削除できません。");
+    return;
+  }
+  if (!confirm("表情「" + expr + "」を両キャラから削除しますか？")) return;
+
+  for (const charKey of Object.keys(expressions)) {
+    delete expressions[charKey][expr];
+  }
+
+  rebuildExpressionList();
+  // 削除した表情が選択中なら先頭に戻す
+  if (currentExpr === expr) {
+    currentExpr = expressionList[0] || "normal";
+  }
+  buildExprList();
+  buildSlotPanel();
+  renderPreview();
+  markDirty();
 }
 
 // ============================================================
@@ -398,22 +534,27 @@ function buildSlotPanel() {
       item.dataset.slot = slot;
       item.dataset.id = cand.id;
 
+      // 候補PNGはバスト全体クロップ＝顔パーツが小さく余白が多い。
+      // 枠でクリップしつつ顔部分にズームして見やすくする。
+      const thumbWrap = document.createElement("div");
+      thumbWrap.className = "cand-thumb-wrap";
       const thumb = document.createElement("img");
       thumb.className = "cand-thumb";
       thumb.src = "/img/" + cand.file;
       thumb.alt = cand.label;
       thumb.loading = "lazy";
       thumb.onerror = () => {
-        thumb.style.background = "var(--surface)";
+        thumbWrap.style.background = "var(--surface)";
         thumb.style.opacity = "0.3";
       };
+      thumbWrap.appendChild(thumb);
 
       const label = document.createElement("div");
       label.className = "cand-label";
       label.textContent = cand.label;
       label.title = cand.label;
 
-      item.appendChild(thumb);
+      item.appendChild(thumbWrap);
       item.appendChild(label);
       item.addEventListener("click", () => assignSlot(slot, cand.id, cand.id, grid));
       grid.appendChild(item);

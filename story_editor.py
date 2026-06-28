@@ -20,6 +20,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
+EXPRESSIONS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "expressions.json")
 
 # StoryVideo.tsx の staticFile() が参照する video/public/ 配下のアセット。
 # /preview-assets/<path> として配信する（パストラバーサル防止付き）。
@@ -40,7 +41,10 @@ SPEAKER_ICONS = {
     "AI": None,
 }
 
+# 組み込み5種（フォールバック用・expressions.json が読めない場合に使用）
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
+# 組み込み5種（先頭順序固定用）
+BUILTIN_EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
 INSERT_KINDS = ["warning", "ok", "chat", "teamchat", "mailer"]
 
 _CT = {
@@ -96,6 +100,30 @@ def _load_scenes_keys():
         return list(d.get("scenes", {}).keys())
     except Exception:
         return []
+
+
+def _load_expression_keys():
+    """expressions.json のキー一覧を返す。
+    組み込み5種を先頭に固定し、追加表情をアルファベット順で続ける。
+    ファイルが読めない場合は EXPRESSIONS 定数にフォールバック。
+    """
+    if not os.path.exists(EXPRESSIONS_JSON):
+        return list(EXPRESSIONS)
+    try:
+        with open(EXPRESSIONS_JSON, encoding="utf-8") as f:
+            data = json.load(f)
+        # 全キャラのキーを集約（重複排除）
+        all_keys = set()
+        for char_data in data.values():
+            if isinstance(char_data, dict):
+                all_keys.update(char_data.keys())
+        # 組み込み5種を先頭に、残りをアルファベット順で追加
+        result = [k for k in BUILTIN_EXPRESSIONS if k in all_keys]
+        extras = sorted(k for k in all_keys if k not in BUILTIN_EXPRESSIONS)
+        result.extend(extras)
+        return result if result else list(EXPRESSIONS)
+    except Exception:
+        return list(EXPRESSIONS)
 
 
 def _safe_path(base_dir, relative):
@@ -297,7 +325,8 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     "speakers": SPEAKERS,
                     "speakerIcons": SPEAKER_ICONS,
                     "scenes": _load_scenes_keys(),
-                    "expressions": EXPRESSIONS,
+                    # expressions.json のキーから動的生成。読み込み失敗時は定数にフォールバック。
+                    "expressions": _load_expression_keys(),
                     "insertKinds": INSERT_KINDS,
                 }
                 self._send_json(meta)
@@ -395,12 +424,32 @@ def _maybe_start_scene_editor():
         print(f"[story] scene_editor の自動起動に失敗: {e}（シーンタブは手動起動が必要）")
 
 
+def _maybe_start_expression_editor():
+    # 表情タブの iframe 用に expression_editor(8772) を自動起動する（既に起動済みなら何もしない）。
+    expr_py = os.path.join(ROOT_DIR, "expression_editor.py")
+    if not os.path.isfile(expr_py):
+        return
+    if _port_in_use(8772):
+        print("[story] expression_editor は既に起動済み (http://localhost:8772)")
+        return
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, expr_py],
+            cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        atexit.register(lambda: proc.terminate())
+        print("[story] expression_editor を自動起動しました (http://localhost:8772)")
+    except Exception as e:
+        print(f"[story] expression_editor の自動起動に失敗: {e}（表情タブは手動起動が必要）")
+
+
 def main():
     parser = argparse.ArgumentParser(description="ストーリーエディタ")
     parser.add_argument("--port", type=int, default=8771)
     args = parser.parse_args()
 
     _maybe_start_scene_editor()
+    _maybe_start_expression_editor()
 
     server = ThreadingHTTPServer(("localhost", args.port), StoryEditorHandler)
     print(f"ストーリーエディタ起動: http://localhost:{args.port}")
