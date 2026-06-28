@@ -4,6 +4,7 @@ import {
   getRemotionEnvironment,
   Img,
   interpolate,
+  Sequence,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
@@ -56,6 +57,9 @@ const EXPRESSION_TO_EMOTION: Record<string, Emotion> = {
 
 export type StorySentence = { text: string; start: number; end: number };
 
+// 手動ワンショット SE（ターン単位）。
+export type TurnSe = { file: string; at?: number; volume?: number };
+
 export type StoryTurn = {
   id: string;
   speaker: string;
@@ -82,12 +86,30 @@ export type StoryTurn = {
   exit?: string[];
   // 退場方向（"left"/"right"）。省略時は自分の居る側（近い画面端）へ。
   exitDir?: "left" | "right";
+  // 手動ワンショット SE（ターン単位・at=ターン開始からの秒オフセット）。
+  se?: TurnSe[];
   start: number;
   end: number;
   sentences?: StorySentence[];
 };
 
-export type StoryScript = { title?: string; audio?: string; script: StoryTurn[] };
+// BGM override 区間（from/to=ターンindex 0始まり・both inclusive）。
+export type BgmOverride = {
+  from: number;
+  to: number;
+  file: string;
+  volume?: number;
+  fadeIn?: number;
+  fadeOut?: number;
+};
+
+export type StoryScript = {
+  title?: string;
+  audio?: string;
+  // BGM override 区間（シーン既定より優先）。
+  bgm?: BgmOverride[];
+  script: StoryTurn[];
+};
 
 type Anchor = { x: number; y: number };
 
@@ -112,6 +134,9 @@ export type SceneDef = {
   // モブ別の配置（scene_editor で D&D 編集）。x,y=正規化座標, scale=拡大率。
   // hidden=true で立ち絵を非表示（チャット/音声のみ登場にする）。
   mobs?: Record<string, { x: number; y: number; scale?: number; hidden?: boolean }>;
+  // BGM（このシーンに設定するBGMファイル・例 "bgm/bgm.mp3"）。
+  bgm?: string;
+  bgmVolume?: number;
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -174,12 +199,22 @@ type Manifest = Record<string, Record<string, string>>;
 // expressions.json の型（キャラ→表情名→ExpressionCfg）
 export type ExpressionsMap = Record<string, Record<string, ExpressionCfg>>;
 
+// se-map.json の型
+export type SeMapEntry = { file: string; volume: number; enabled: boolean };
+export type SeMap = {
+  expression?: Record<string, SeMapEntry>;
+  effect?: Record<string, SeMapEntry>;
+  insert?: Record<string, SeMapEntry>;
+  transition?: Record<string, SeMapEntry>;
+};
+
 export type StoryVideoProps = {
   story: StoryScript;
   scenes: SceneLibrary;
   manifest?: Manifest;
   audio?: string; // 音声ファイル（public配下・任意）
   expressions?: ExpressionsMap; // expressions.json（省略時は旧来の emotion ベース）
+  seMap?: SeMap; // se-map.json（省略時はSE再生なし）
 };
 
 // 立ち絵ボックスサイズ。バスト用は 445×445（Avatar の既定値と同じ）。
@@ -991,12 +1026,198 @@ function targetCam(
   return { s: 1.0, cx: (Math.min(...xs) + Math.max(...xs)) / 2, cy: 0.5 };
 }
 
+// ─── BGMレイヤー ────────────────────────────────────────────
+// 各ターンの有効BGM = override区間 ?? シーン既定。連続同一fileをまとめて1Sequenceに。
+const BgmLayer: React.FC<{
+  script: StoryTurn[];
+  scenes: SceneLibrary;
+  bgmOverrides?: BgmOverride[];
+  fps: number;
+}> = ({ script, scenes, bgmOverrides, fps }) => {
+  // 各ターンの有効BGMを解決する。
+  type BgmInfo = { file: string; volume: number; fadeIn: number; fadeOut: number };
+  const BGM_DEFAULT_VOL = 0.25;
+  const BGM_DEFAULT_FADE = 0.6;
+
+  const turnBgm = (turnIdx: number, turn: StoryTurn): BgmInfo | null => {
+    // override区間が覆うか確認（from<=idx<=to）。
+    const ov = bgmOverrides?.find((o) => o.from <= turnIdx && turnIdx <= o.to);
+    if (ov) {
+      if (!ov.file) return null;
+      return {
+        file: ov.file,
+        volume: ov.volume ?? BGM_DEFAULT_VOL,
+        fadeIn: ov.fadeIn ?? BGM_DEFAULT_FADE,
+        fadeOut: ov.fadeOut ?? BGM_DEFAULT_FADE,
+      };
+    }
+    const sceneDef = scenes.scenes[turn.scene];
+    if (!sceneDef?.bgm) return null;
+    return {
+      file: sceneDef.bgm,
+      volume: sceneDef.bgmVolume ?? BGM_DEFAULT_VOL,
+      fadeIn: BGM_DEFAULT_FADE,
+      fadeOut: BGM_DEFAULT_FADE,
+    };
+  };
+
+  // 連続する同一fileのターンをまとめて区間(startSec,endSec)を作る。
+  type BgmSegment = {
+    file: string;
+    volume: number;
+    fadeIn: number;
+    fadeOut: number;
+    startSec: number;
+    endSec: number;
+  };
+
+  const segments: BgmSegment[] = [];
+  for (let i = 0; i < script.length; i++) {
+    const turn = script[i];
+    const info = turnBgm(i, turn);
+    if (!info) {
+      // BGMなし → 前区間を閉じる（file が違うので自動的に別区間）
+      segments.push({ file: "", volume: 0, fadeIn: 0, fadeOut: 0, startSec: 0, endSec: 0 }); // sentinel
+      continue;
+    }
+    const last = segments[segments.length - 1];
+    if (last && last.file === info.file) {
+      // 同一ファイルならまとめる。
+      last.endSec = turn.end;
+      // fadeIn/fadeOut は区間の端を使う（最初・最後のオーバーライドを適用）。
+      last.fadeOut = info.fadeOut;
+    } else {
+      segments.push({
+        file: info.file,
+        volume: info.volume,
+        fadeIn: info.fadeIn,
+        fadeOut: info.fadeOut,
+        startSec: turn.start,
+        endSec: turn.end,
+      });
+    }
+  }
+
+  // file 空（sentinel 含む）をフィルタ。
+  const validSegs = segments.filter((s) => !!s.file);
+
+  return (
+    <>
+      {validSegs.map((seg, i) => {
+        const startFrame = Math.round(seg.startSec * fps);
+        const durFrames = Math.max(1, Math.round((seg.endSec - seg.startSec) * fps));
+        const fadeInFrames = Math.round(seg.fadeIn * fps);
+        const fadeOutFrames = Math.round(seg.fadeOut * fps);
+        const vol = seg.volume;
+
+        const volumeFn = (f: number): number => {
+          // フェードイン: 0..fadeInFrames で 0→1。
+          const inK = fadeInFrames > 0 ? Math.min(f / fadeInFrames, 1) : 1;
+          // フェードアウト: (dur-fadeOutFrames)..dur で 1→0。
+          const outK =
+            fadeOutFrames > 0
+              ? Math.min((durFrames - f) / fadeOutFrames, 1)
+              : 1;
+          return vol * Math.max(0, Math.min(inK, outK));
+        };
+
+        return (
+          <Sequence key={i} from={startFrame} durationInFrames={durFrames}>
+            <Audio
+              src={staticFile(seg.file)}
+              loop
+              volume={volumeFn}
+            />
+          </Sequence>
+        );
+      })}
+    </>
+  );
+};
+
+// ─── SEレイヤー ─────────────────────────────────────────────
+// ワンショット SE をターン単位で収集してフレームに配置する。
+const SeLayer: React.FC<{
+  script: StoryTurn[];
+  seMap?: SeMap;
+  fps: number;
+}> = ({ script, seMap, fps }) => {
+  if (!seMap) return null;
+
+  type SeEvent = { t: number; file: string; volume: number };
+  const events: SeEvent[] = [];
+
+  const tryAdd = (
+    t: number,
+    entry: SeMapEntry | undefined
+  ) => {
+    if (!entry) return;
+    if (!entry.enabled) return;
+    if (!entry.file) return;
+    events.push({ t, file: entry.file, volume: entry.volume });
+  };
+
+  for (let i = 0; i < script.length; i++) {
+    const turn = script[i];
+
+    // 表情 SE
+    if (turn.expression) {
+      tryAdd(turn.start, seMap.expression?.[turn.expression]);
+    }
+
+    // エフェクト SE
+    if (turn.shake) {
+      tryAdd(turn.start, seMap.effect?.["shake"]);
+    }
+    if (turn.flashback) {
+      tryAdd(turn.start, seMap.effect?.["flashback"]);
+    }
+    if (turn.emphasis) {
+      tryAdd(turn.start, seMap.effect?.["emphasis"]);
+    }
+
+    // インサート SE
+    if (turn.insert) {
+      tryAdd(turn.start, seMap.insert?.[turn.insert.kind]);
+    }
+
+    // 場面転換 SE（前ターンとシーンが変わったとき）
+    if (i > 0 && script[i - 1].scene !== turn.scene) {
+      tryAdd(turn.start, seMap.transition?.["fade-black"]);
+    }
+
+    // 手動ワンショット SE
+    for (const s of turn.se ?? []) {
+      if (!s.file) continue;
+      events.push({
+        t: turn.start + (s.at ?? 0),
+        file: s.file,
+        volume: s.volume ?? 0.7,
+      });
+    }
+  }
+
+  return (
+    <>
+      {events.map((ev, i) => {
+        const startFrame = Math.round(ev.t * fps);
+        return (
+          <Sequence key={i} from={startFrame} durationInFrames={1}>
+            <Audio src={staticFile(ev.file)} volume={ev.volume} />
+          </Sequence>
+        );
+      })}
+    </>
+  );
+};
+
 export const StoryVideo: React.FC<StoryVideoProps> = ({
   story,
   scenes,
   manifest,
   audio,
   expressions,
+  seMap,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -1479,6 +1700,17 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       {audio ? <Audio src={staticFile(audio)} /> : null}
+      <BgmLayer
+        script={script}
+        scenes={scenes}
+        bgmOverrides={story.bgm}
+        fps={fps}
+      />
+      <SeLayer
+        script={script}
+        seMap={seMap}
+        fps={fps}
+      />
       {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る） */}
       <AbsoluteFill
         style={{

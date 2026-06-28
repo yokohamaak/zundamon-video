@@ -1,0 +1,23 @@
+{
+  "expression": {
+    "surprise": { "file": "se/surprise.mp3", "volume": 0.8, "enabled": true },
+    "panic":    { "file": "se/surprise.mp3", "volume": 0.7, "enabled": false },
+    "happy":    { "file": "", "volume": 0.6, "enabled": false },
+    "trouble":  { "file": "", "volume": 0.6, "enabled": false }
+  },
+  "effect": {
+    "shake":     { "file": "se/flash.mp3", "volume": 0.7, "enabled": false },
+    "flashback": { "file": "", "volume": 0.5, "enabled": false },
+    "emphasis":  { "file": "", "volume": 0.5, "enabled": false }
+  },
+  "insert": {
+    "warning":  { "file": "", "volume": 0.7, "enabled": false },
+    "ok":       { "file": "", "volume": 0.6, "enabled": false },
+    "chat":     { "file": "", "volume": 0.5, "enabled": false },
+    "teamchat": { "file": "", "volume": 0.5, "enabled": false },
+    "mailer":   { "file": "", "volume": 0.5, "enabled": false }
+  },
+  "transition": {
+    "fade-black": { "file": "", "volume": 0.5, "enabled": false }
+  }
+}

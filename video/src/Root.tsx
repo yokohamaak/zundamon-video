@@ -6,6 +6,7 @@ import type {
   StoryScript,
   SceneLibrary,
   StoryVideoProps,
+  SeMap,
 } from "./StoryVideo";
 import "./fonts"; // import時に日本語フォントのロードを開始（豆腐防止）
 import type { Meta, Turn } from "./types";
@@ -29,7 +30,14 @@ async function loadStory(): Promise<StoryVideoProps> {
   } catch {
     // expressions.json 未配置時は旧来の emotion ベースにフォールバック
   }
-  return { story, scenes, manifest, audio: story.audio, expressions };
+  let seMap: SeMap | undefined;
+  try {
+    const sres = await fetch(staticFile("se-map.json"));
+    if (sres.ok) seMap = await sres.json();
+  } catch {
+    // se-map.json 未配置時は SE 再生なしにフォールバック
+  }
+  return { story, scenes, manifest, audio: story.audio, expressions, seMap };
 }
 
 export const FPS = 30;

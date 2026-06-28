@@ -18,6 +18,8 @@ for (const [sub, exts, label] of [
   ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts"],
   ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image"],
   ["mobs", [".png", ".webp"], "mob image"],
+  ["bgm", [".mp3", ".wav", ".m4a"], "BGM"],
+  ["se", [".mp3", ".wav", ".m4a"], "SE"],
 ]) {
   const s = resolve(root, "assets", sub);
   const d = resolve(pubDir, sub);
@@ -129,6 +131,21 @@ for (const [sub, exts, label] of [
     } else {
       console.warn("[prep-story] expressions.json が見つかりません（public/ にも assets/ にもなし）");
     }
+  }
+}
+
+// se-map.json を public/ に用意（public直置き運用）。
+// assets/se-map.json があればコピー。無ければ既存 public/se-map.json を尊重（上書きしない）。
+{
+  const seMapDst = resolve(pubDir, "se-map.json");
+  const seMapAssets = resolve(root, "assets", "se-map.json");
+  if (existsSync(seMapAssets)) {
+    copyFileSync(seMapAssets, seMapDst);
+    console.log("[prep-story] copied se-map.json from assets/");
+  } else if (existsSync(seMapDst)) {
+    console.log("[prep-story] se-map.json は public/ に存在します（コピー不要）");
+  } else {
+    console.warn("[prep-story] se-map.json が見つかりません（public/ にも assets/ にもなし）");
   }
 }
 

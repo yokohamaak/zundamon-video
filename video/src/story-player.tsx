@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { StoryVideo } from "./StoryVideo";
-import type { StoryScript, SceneLibrary, ExpressionsMap } from "./StoryVideo";
+import type { StoryScript, SceneLibrary, ExpressionsMap, SeMap } from "./StoryVideo";
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -29,6 +29,7 @@ type Props = {
   manifest?: Record<string, Record<string, string>>;
   audio?: string;
   expressions?: ExpressionsMap;
+  seMap?: SeMap;
 };
 
 let root: Root | null = null;
@@ -139,8 +140,16 @@ async function loadInitialProps(): Promise<Props> {
     // expressions.json 未配置時は旧来の emotion ベースにフォールバック
   }
 
+  let seMap: SeMap | undefined;
+  try {
+    const sRes = await fetch("/preview-assets/se-map.json", { cache: "no-store" });
+    if (sRes.ok) seMap = await sRes.json();
+  } catch {
+    // se-map.json 未配置時は SE 再生なしにフォールバック
+  }
+
   const audio = story.audio ?? undefined;
-  return { story, scenes, manifest, audio, expressions };
+  return { story, scenes, manifest, audio, expressions, seMap };
 }
 
 window.storyPlayer = {
