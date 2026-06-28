@@ -169,7 +169,7 @@
       }
     },
     "home-night": {
-      "label": "home-night",
+      "label": "自宅夜",
       "bg": "background/room_night.png",
       "front": null,
       "shot": "solo",
@@ -181,8 +181,8 @@
       },
       "anchors": {
         "center": {
-          "x": 0.5,
-          "y": 0.68
+          "x": 0.52,
+          "y": 0.684
         },
         "left": {
           "x": 0.32,

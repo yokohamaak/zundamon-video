@@ -5,7 +5,7 @@
       "cheek": "hoppe",
       "shadow": null,
       "eye": "open",
-      "mouth_close": "close",
+      "mouth_close": "mufu",
       "mouth_half": "half",
       "mouth_open": "open",
       "fx": null
@@ -25,15 +25,15 @@
       "cheek": "hoppe",
       "shadow": null,
       "eye": "surprise",
-      "mouth_close": "close",
-      "mouth_half": "half",
-      "mouth_open": "open",
+      "mouth_close": "nn",
+      "mouth_half": "tri",
+      "mouth_open": "ohoo",
       "fx": "sweat1"
     },
     "trouble": {
-      "brow": "worry2",
-      "cheek": null,
-      "shadow": "kageri",
+      "brow": "worry1",
+      "cheek": "hoppe2",
+      "shadow": null,
       "eye": "open",
       "mouth_close": "close",
       "mouth_half": "half",
@@ -43,11 +43,11 @@
     "panic": {
       "brow": "worry2",
       "cheek": "pale",
-      "shadow": null,
-      "eye": "surprise",
+      "shadow": "kageri",
+      "eye": "guruguru",
       "mouth_close": "close",
-      "mouth_half": "half",
-      "mouth_open": "open",
+      "mouth_half": "o",
+      "mouth_open": "hahee",
       "fx": "sweat2"
     }
   },
@@ -68,7 +68,7 @@
       "shadow": null,
       "eye": "close",
       "mouth_close": "close",
-      "mouth_half": "open",
+      "mouth_half": "niyari",
       "mouth_open": "open",
       "fx": null
     },
@@ -77,10 +77,10 @@
       "cheek": "normal2",
       "shadow": null,
       "eye": "surprise",
-      "mouth_close": "close",
-      "mouth_half": "half",
-      "mouth_open": "open",
-      "fx": null
+      "mouth_close": "momu",
+      "mouth_half": "ii",
+      "mouth_open": "uee",
+      "fx": "sweat"
     },
     "trouble": {
       "brow": "komari",
@@ -95,11 +95,11 @@
     "panic": {
       "brow": "komari",
       "cheek": "pale",
-      "shadow": null,
+      "shadow": "kageri",
       "eye": "surprise",
-      "mouth_close": "close",
+      "mouth_close": "nn",
       "mouth_half": "half",
-      "mouth_open": "open",
+      "mouth_open": "uee",
       "fx": "sweat"
     }
   }
