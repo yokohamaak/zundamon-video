@@ -428,7 +428,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #4f8ef0, #7c5bf5)",
+            background: "linear-gradient(135deg, #7bd267, #3e9e3a)",
             flexShrink: 0,
           }}
         />
@@ -457,7 +457,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <div
             style={{
-              background: "#4060c8",
+              background: "#4a9e44",
               color: "#fff",
               borderRadius: "18px 4px 18px 18px",
               padding: "16px 24px",
@@ -625,7 +625,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
             width: 40,
             height: 40,
             borderRadius: 10,
-            background: "linear-gradient(135deg, #3a8ef0 0%, #6b5cf5 100%)",
+            background: "linear-gradient(135deg, #7bd267 0%, #3e9e3a 100%)",
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
