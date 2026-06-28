@@ -340,7 +340,8 @@
   <!-- 左ペイン: 台本一覧 -->
   <div class="pane-left">
     <div class="pane-left-toolbar">
-      <button class="btn btn-secondary btn-sm" id="btnAdd" title="選択行の後ろに空ターンを挿入">＋ 追加</button>
+      <button class="btn btn-secondary btn-sm" id="btnAdd" title="選択行の後ろに空ターンを挿入（暗転・黒）">＋ 追加</button>
+      <button class="btn btn-secondary btn-sm" id="btnAddInherit" title="選択行の後ろに空ターンを挿入（直前のシーンを引き継ぐ）">＋ 引継</button>
       <button class="btn btn-danger btn-sm" id="btnDelete" title="選択ターンを削除">🗑</button>
       <button class="btn btn-secondary btn-sm" id="btnUp" title="上へ">↑</button>
       <button class="btn btn-secondary btn-sm" id="btnDown" title="下へ">↓</button>
@@ -1910,15 +1911,17 @@ function collectInsert() {
 // ============================================================
 // ターン操作（追加・削除・移動）
 // ============================================================
-function addTurnAfter() {
+function addTurnAfter(inheritScene = false) {
   const script = storyData.script;
   const refTurn = selectedIdx >= 0 && selectedIdx < script.length
     ? script[selectedIdx] : null;
+  // 既定は暗転(黒) scene=""。inheritScene のときだけ直前(選択)ターンのシーンを引き継ぐ。
+  const scene = (inheritScene && refTurn) ? (refTurn.scene || "") : "";
   const newTurn = {
     id: generateId(script),
     speaker: refTurn ? refTurn.speaker : (meta.speakers[0] || ""),
     text: "",
-    scene: "", // 既定は暗転(黒)。先頭シーンを出さない。シーンは詳細で選ぶ。
+    scene,
     start: 0,
     end: 0,
   };
@@ -2354,7 +2357,8 @@ function setupEvents() {
     e.target.value = ""; // 同じファイルを再選択できるようリセット
   });
   document.getElementById("btnAudio").addEventListener("click", generateAudio);
-  document.getElementById("btnAdd").addEventListener("click", addTurnAfter);
+  document.getElementById("btnAdd").addEventListener("click", () => addTurnAfter(false));
+  document.getElementById("btnAddInherit").addEventListener("click", () => addTurnAfter(true));
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
