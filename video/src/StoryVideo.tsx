@@ -402,8 +402,8 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
   return (
     <div
       style={{
-        background: "#1c2620",
-        border: "3px solid #9ed957",
+        background: "#181c24",
+        border: "2px solid #3e8b39",
         borderRadius: 20,
         width: 920,
         overflow: "hidden",
@@ -415,12 +415,12 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
       {/* ヘッダー */}
       <div
         style={{
-          background: "#bdf08a",
+          background: "#18241a",
           padding: "20px 32px",
           display: "flex",
           alignItems: "center",
           gap: 14,
-          borderBottom: "2px solid #9ed957",
+          borderBottom: "1.5px solid #2f5a33",
         }}
       >
         <div
@@ -428,7 +428,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
             width: 36,
             height: 36,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #4fa83f, #2c7d28)",
+            background: "linear-gradient(135deg, #7bd267, #3e9e3a)",
             flexShrink: 0,
           }}
         />
@@ -436,7 +436,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
           style={{
             fontSize: 34,
             fontWeight: 700,
-            color: "#1f4012",
+            color: "#bdf08a",
             fontFamily: "sans-serif",
             letterSpacing: "0.04em",
           }}
@@ -598,12 +598,12 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
   return (
     <div
       style={{
-        background: "#1c2620",
+        background: "#f6f8fc",
         border: "3px solid #9ed957",
         borderRadius: 22,
         width: 1480,
         overflow: "hidden",
-        boxShadow: "0 24px 64px rgba(0,0,0,0.65)",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.45)",
         display: "flex",
         flexDirection: "column",
       }}
@@ -697,7 +697,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
                 padding: "18px 22px",
                 borderRadius: 12,
                 background: msg.highlight
-                  ? "rgba(255,210,100,0.06)"
+                  ? "rgba(245,185,40,0.16)"
                   : "transparent",
                 borderLeft: msg.highlight
                   ? "4px solid #f0b840"
@@ -757,7 +757,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
                 <span
                   style={{
                     fontSize: 54,
-                    color: "#d0d8ec",
+                    color: "#2a2e38",
                     fontFamily: "sans-serif",
                     lineHeight: 1.45,
                     fontWeight: 400,
