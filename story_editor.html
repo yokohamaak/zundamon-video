@@ -1270,22 +1270,52 @@ function initPlayer() {
 }
 
 // 指定インデックスのターンへシーク。start が 0/未設定のターンは先頭(0)へ。
-function seekPlayer(idx) {
-  if (!playerReady || !window.storyPlayer) return;
-  const script = storyData && storyData.script ? storyData.script : null;
-  if (!script) return;
-  const turn = script[idx];
-  if (!turn) return;
-  let sec = (turn.start && turn.start > 0) ? turn.start : 0;
-  // 新規追加直後など timing 未確定(start/end=0)のターンは尺ゼロでプレビューに現れず、
-  // 時刻0へ飛ぶと先頭画面が出てしまう。直前の timing 済みターンへフォールバックし、
-  // そのターンの画面（＝引継時は同じシーン）を表示する。
-  if (!(turn.start > 0) && !(turn.end > 0)) {
-    for (let i = idx - 1; i >= 0; i--) {
-      const p = script[i];
-      if (p && p.start > 0) { sec = p.start; break; }
+// 文字数から仮の尺(秒)を見積もる。450字/分 ≒ 7.5字/秒。空でも最低尺を確保。
+function provisionalDuration(text) {
+  const n = (text || "").replace(/\s+/g, "").length;
+  return Math.max(1.2, n / 7.5);
+}
+
+// 音声未生成(timing未確定 = end<=start)のターンに文字数ベースの仮尺を与えた
+// プレビュー用 script を返す。実データ(storyData)は変更しない。
+// 未確定ターンが無ければそのまま返す。
+function withProvisionalTimings(script) {
+  if (!Array.isArray(script)) return script;
+  if (!script.some((t) => !(t.end > t.start))) return script; // 全て確定済み
+  const copy = script.map((t) => ({ ...t }));
+  let shift = 0; // 仮挿入で後続を後ろへずらす累積秒
+  for (let i = 0; i < copy.length; i++) {
+    const t = copy[i];
+    if (t.end > t.start) {
+      // 確定済み: 仮挿入分だけ後ろへシフト(相対的な間隔は保つ)
+      t.start += shift;
+      t.end += shift;
+    } else {
+      // 未確定: 直前ターンの直後に仮尺で配置
+      const prevEnd = i > 0 ? copy[i - 1].end : 0;
+      const d = provisionalDuration(t.text);
+      t.start = prevEnd;
+      t.end = prevEnd + d;
+      shift += d;
     }
   }
+  return copy;
+}
+
+// Player へ渡すプレビュー用 story（仮尺込み）。
+function buildPreviewStory() {
+  return { ...storyData, script: withProvisionalTimings(storyData.script) };
+}
+
+function seekPlayer(idx) {
+  if (!playerReady || !window.storyPlayer) return;
+  const preview = withProvisionalTimings(
+    storyData && storyData.script ? storyData.script : null);
+  const turn = preview && preview[idx];
+  if (!turn) return;
+  let sec = turn.start > 0 ? turn.start : 0;
+  // 境界で前ターンを拾わないよう、尺の少し内側へシークする。
+  if (turn.end > turn.start) sec += Math.min(0.06, (turn.end - turn.start) / 2);
   window.storyPlayer.seekToTime(sec);
 }
 
@@ -1295,7 +1325,7 @@ function notifyPlayerUpdate() {
   if (updateTimer) clearTimeout(updateTimer);
   updateTimer = setTimeout(() => {
     if (window.storyPlayer && storyData) {
-      window.storyPlayer.updateStory(storyData);
+      window.storyPlayer.updateStory(buildPreviewStory());
     }
     updateTimer = null;
   }, 150);
@@ -2034,7 +2064,7 @@ function importStoryFromFile(file) {
       selectedIdx = -1;
       renderList();
       renderDetail();
-      if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(storyData);
+      if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(buildPreviewStory());
       if (typeof drawScriptTimeline === "function") drawScriptTimeline();
       markDirty();
       markAudioDirty(); // 取り込んだ台本は音声未生成＝尺反映に音声生成が必要
@@ -2107,7 +2137,7 @@ async function generateAudio() {
       storyData = await sres.json();
       renderList();
       if (selectedIdx >= 0) selectTurn(selectedIdx);
-      if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(storyData);
+      if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(buildPreviewStory());
       audioDirty = false; updateAudioBtn();
       setStatus("ok", "音声生成 完了");
     } else {
@@ -2526,7 +2556,7 @@ function setupEvents() {
           renderList();
           if (selectedIdx >= storyData.script.length) selectedIdx = storyData.script.length - 1;
           if (selectedIdx >= 0) renderDetail();
-          if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(storyData);
+          if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(buildPreviewStory());
         } catch (_) { /* 再読込失敗時はレポートのみ表示して継続 */ }
         // レポート表示
         showImportReport(result.turns, result.report || null);
