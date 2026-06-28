@@ -1250,12 +1250,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     segments[0];
   const sceneDef = scenes.scenes[active.scene];
 
-  // ── 未登録シーンのフォールバック（§4.1：エラーで止めず分かるように出す） ──
+  // ── シーン未設定/未登録のフォールバック ──
+  // scene 空("") = 暗転(真っ黒)。新規ターンの既定。音声/BGM/SE は継続させる。
+  // scene 非空なのに未登録(タイプミス等)は分かるよう placeholder を出す。
   if (!sceneDef) {
     return (
       <AbsoluteFill
         style={{
-          background: "#1b1b1f",
+          background: active.scene ? "#1b1b1f" : "#000",
           color: "#fff",
           alignItems: "center",
           justifyContent: "center",
@@ -1263,7 +1265,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           fontFamily: "sans-serif",
         }}
       >
-        未登録シーン: {active.scene}
+        {audio ? <Audio src={staticFile(audio)} /> : null}
+        <BgmLayer script={script} scenes={scenes} bgmRegions={story.bgm} fps={fps} />
+        <SeLayer script={script} seMap={seMap} fps={fps} />
+        {active.scene ? <span>未登録シーン: {active.scene}</span> : null}
       </AbsoluteFill>
     );
   }

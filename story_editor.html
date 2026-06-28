@@ -1307,7 +1307,13 @@ function buildSceneSelect() {
   // 自由入力にはしない（新規シーンは scene_editor で作ってから選ぶ運用）。
   const sel = document.getElementById("fScene");
   sel.innerHTML = "";
-  for (const sc of meta.scenes) {
+  // 先頭に「暗転（黒）」= scene 未設定。
+  const blackOpt = document.createElement("option");
+  blackOpt.value = ""; blackOpt.textContent = "（暗転・黒）";
+  sel.appendChild(blackOpt);
+  // シーンはアルファベット順（今後追加されたものも自動で整列）。
+  const sorted = [...meta.scenes].sort((a, b) => a.localeCompare(b));
+  for (const sc of sorted) {
     const o = document.createElement("option");
     o.value = sc; o.textContent = sc;
     sel.appendChild(o);
@@ -1912,7 +1918,7 @@ function addTurnAfter() {
     id: generateId(script),
     speaker: refTurn ? refTurn.speaker : (meta.speakers[0] || ""),
     text: "",
-    scene: refTurn ? refTurn.scene : (meta.scenes[0] || ""),
+    scene: "", // 既定は暗転(黒)。先頭シーンを出さない。シーンは詳細で選ぶ。
     start: 0,
     end: 0,
   };
