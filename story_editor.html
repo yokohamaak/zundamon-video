@@ -2725,8 +2725,12 @@ async function saveSeMap() {
     const result = await r.json();
     if (r.ok && result.ok) {
       statusEl.style.color = "var(--green)";
-      statusEl.textContent = "保存しました";
+      statusEl.textContent = "保存しました（プレビュー反映済み）";
       setTimeout(() => { statusEl.textContent = ""; }, 2500);
+      // プレビューのPlayerへ最新のse-mapを反映（再生すれば鳴る）。
+      if (window.storyPlayer && playerReady && window.storyPlayer.reloadAudio) {
+        window.storyPlayer.reloadAudio();
+      }
     } else {
       statusEl.style.color = "var(--danger)";
       statusEl.textContent = "保存失敗: " + (result.error || r.status);
@@ -2827,11 +2831,15 @@ async function saveSceneBgm() {
     const result = await r.json();
     if (r.ok && result.ok) {
       statusEl.style.color = "var(--green)";
-      statusEl.textContent = "保存しました";
+      statusEl.textContent = "保存しました（プレビュー反映済み）";
       setTimeout(() => { statusEl.textContent = ""; }, 2500);
       // タイムラインのBGM表示を最新化
       _sceneBgmMap = null;
       ensureSceneBgmMap().then(drawScriptTimeline);
+      // プレビューのPlayerへ最新のシーンBGMを反映。
+      if (window.storyPlayer && playerReady && window.storyPlayer.reloadAudio) {
+        window.storyPlayer.reloadAudio();
+      }
     } else {
       statusEl.style.color = "var(--danger)";
       statusEl.textContent = "保存失敗: " + (result.error || r.status);
