@@ -369,20 +369,52 @@ class ExpressionEditorHandler(BaseHTTPRequestHandler):
             self._send_error_json(404, "Not Found")
 
 
-def _check_candidates():
-    """起動時に candidates が未生成のキャラを検出してメッセージを表示する。"""
+def _public_candidates_missing():
+    """public 側(描画/カタログが参照)に候補PNGが無いキャラを返す。"""
     missing = []
     for char in CHARS:
-        cand_dir = os.path.join(AVATARS_ASSETS_DIR, char, "candidates")
-        if not os.path.isdir(cand_dir) or not any(f.endswith(".png") for f in os.listdir(cand_dir)):
+        cand_dir = os.path.join(AVATARS_PUBLIC_DIR, char, "candidates")
+        if not os.path.isdir(cand_dir) or not any(
+            f.endswith(".png") for f in os.listdir(cand_dir)
+        ):
             missing.append(char)
-    if missing:
-        print()
-        print("  [WARNING] 以下のキャラの候補PNG(candidates)が未生成です:")
+    return missing
+
+
+def _ensure_candidates():
+    """起動時に candidates(public) が無ければ自動生成する。
+
+    node scripts/psd-export.mjs candidates <char>(assetsへ書き出し) を未生成キャラ分、
+    続けて prep-story.mjs(assets->public コピー) を実行する。ローカル node 実行のみ。
+    node や PSD が無い等で失敗しても起動は続行し、画面側で「候補なし」表示になる。
+    """
+    missing = _public_candidates_missing()
+    if not missing:
+        return
+    print(f"[expr] 候補PNG未生成のキャラ: {missing} -> 自動生成します...")
+    try:
         for char in missing:
-            print(f"    {char}: node video/scripts/psd-export.mjs candidates {char}")
-        print("  上記コマンドを実行後、node video/scripts/prep-story.mjs でpublicへコピーしてください。")
-        print()
+            print(f"[expr] candidates {char} ...")
+            r = subprocess.run(
+                ["node", "scripts/psd-export.mjs", "candidates", char],
+                cwd=VIDEO_DIR, capture_output=True, text=True,
+            )
+            if r.returncode != 0:
+                print(f"[expr] candidates {char} 失敗:\n{r.stderr.strip()}")
+                return
+        print("[expr] prep-story (public へコピー) ...")
+        r = subprocess.run(
+            ["node", "scripts/prep-story.mjs"],
+            cwd=VIDEO_DIR, capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            print(f"[expr] prep-story 失敗:\n{r.stderr.strip()}")
+            return
+        print("[expr] 候補PNGの自動生成が完了しました。")
+    except FileNotFoundError:
+        print("[expr] node が見つからず候補を自動生成できませんでした。")
+        print("       手動: cd video && node scripts/psd-export.mjs candidates zundamon && "
+              "node scripts/psd-export.mjs candidates metan && node scripts/prep-story.mjs")
 
 
 def main():
@@ -390,7 +422,7 @@ def main():
     parser.add_argument("--port", type=int, default=8772)
     args = parser.parse_args()
 
-    _check_candidates()
+    _ensure_candidates()
 
     server = ThreadingHTTPServer(("localhost", args.port), ExpressionEditorHandler)
     print(f"表情エディタ起動: http://localhost:{args.port}")
