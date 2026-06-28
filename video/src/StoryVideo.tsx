@@ -345,6 +345,18 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
         gap: 28,
       }}
     >
+      {/* アプリ名（ZunMonitor=監視ツール） */}
+      <div
+        style={{
+          fontSize: 26,
+          color: "#b08760",
+          fontFamily: "sans-serif",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+        }}
+      >
+        ZunMonitor
+      </div>
       {/* タイトルバー */}
       <div
         style={{
@@ -385,7 +397,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
   );
 };
 
-/** チャットアプリ */
+/** AIチャット（ZunAI） */
 const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> = ({ insert }) => {
   return (
     <div
@@ -429,7 +441,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
             letterSpacing: "0.04em",
           }}
         >
-          AI アシスタント
+          ZunAI
         </span>
       </div>
       {/* メッセージ本体 */}
@@ -508,6 +520,18 @@ const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ 
         gap: 32,
       }}
     >
+      {/* アプリ名（ZunMonitor=監視ツール・正常） */}
+      <div
+        style={{
+          fontSize: 26,
+          color: "#5fae84",
+          fontFamily: "sans-serif",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+        }}
+      >
+        ZunMonitor
+      </div>
       <div
         style={{
           fontSize: 96,
@@ -566,7 +590,7 @@ function resolveTeamChatSender(from: string): {
   return { imgSrc: null, name: from, nameColor: DEFAULT_BUBBLE_COLOR };
 }
 
-/** 社内チャット（Teams/Slack 風・汎用ブランドレス） */
+/** 社内チャット（ZunChat・Slack風） */
 const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat" }> }> = ({
   insert,
 }) => {
@@ -647,7 +671,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
           style={{ width: 1.5, height: 28, background: "#3a4258", marginLeft: 4, marginRight: 4 }}
         />
         <span style={{ fontSize: 28, color: "#6a7490", fontFamily: "sans-serif" }}>
-          チーム
+          ZunChat
         </span>
       </div>
 
