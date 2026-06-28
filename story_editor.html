@@ -157,6 +157,14 @@
     font-size: 11px; color: var(--text2); text-align: center;
     flex-shrink: 0;
   }
+  .timeline-header {
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    font-size: 11px; color: var(--text2);
+  }
+  .timeline-scroll {
+    flex-shrink: 0; overflow-x: auto; overflow-y: hidden;
+    border: 1px solid var(--border); border-radius: 6px;
+  }
 
   /* ── 右ペイン: 詳細 ── */
   .pane-right {
@@ -314,7 +322,7 @@
   <!-- 中央ペイン: Remotion Player -->
   <div class="pane-center">
     <div class="preview-toolbar">
-      <label for="previewZoom">ズーム</label>
+      <label for="previewZoom">プレビュー</label>
       <select class="field-select" id="previewZoom" style="width:auto; padding:2px 6px; font-size:12px;">
         <option value="fit">フィット</option>
         <option value="1">100%</option>
@@ -323,7 +331,7 @@
         <option value="3">300%</option>
         <option value="4">400%</option>
       </select>
-      <span class="preview-status" id="playerStatus" style="margin-left:6px;">story-player.js を読み込み中...</span>
+      <span class="preview-status" id="playerStatus" style="margin-left:8px;">story-player.js を読み込み中...</span>
     </div>
     <div class="preview-scroll">
       <div class="preview-scroll-inner">
@@ -331,9 +339,22 @@
       </div>
     </div>
     <!-- プレビュー下のタイムライン（セリフ＋BGM）。クリックでシーク。 -->
-    <canvas id="scriptTimeline" height="72"
-      title="クリックでその位置へシーク"
-      style="width:100%; height:72px; margin-top:8px; border-radius:6px; background:var(--surface2); border:1px solid var(--border); cursor:pointer; flex-shrink:0;"></canvas>
+    <div class="timeline-header">
+      <span>タイムライン</span>
+      <label for="timelineZoom" style="margin-left:auto;">ズーム</label>
+      <select class="field-select" id="timelineZoom" style="width:auto; padding:2px 6px; font-size:12px;">
+        <option value="1">フィット</option>
+        <option value="2">2x</option>
+        <option value="4">4x</option>
+        <option value="8">8x</option>
+        <option value="16">16x</option>
+      </select>
+    </div>
+    <div class="timeline-scroll" id="timelineScroll">
+      <canvas id="scriptTimeline" height="72"
+        title="クリックでその位置へシーク"
+        style="display:block; height:72px; background:var(--surface2); cursor:pointer;"></canvas>
+    </div>
   </div>
 
   <!-- 右ペイン: 詳細 -->
@@ -707,9 +728,15 @@ function drawScriptTimeline() {
   if (!canvas) return;
   const turns = storyData ? storyData.script : [];
   const ctx = canvas.getContext("2d");
-  const W = canvas.clientWidth || 600;
+  // 横ズーム: スクロール領域の幅 × 倍率 をキャンバス幅にする（拡大時は横スクロール）。
+  const scrollEl = document.getElementById("timelineScroll");
+  const zsel = document.getElementById("timelineZoom");
+  const zoom = zsel ? (parseFloat(zsel.value) || 1) : 1;
+  const baseW = (scrollEl ? scrollEl.clientWidth : canvas.clientWidth) || 600;
+  const W = Math.max(40, Math.round(baseW * zoom));
   const H = canvas.height;
   canvas.width = W;
+  canvas.style.width = W + "px";
   ctx.clearRect(0, 0, W, H);
   if (!turns.length) return;
   const total = _timelineTotal();
@@ -747,8 +774,17 @@ function drawScriptTimeline() {
   ctx.fillText("セリフ", 3, 10);
   ctx.fillText("BGM", 3, yBgm - 2);
   // 再生ヘッド
+  const phx = xOf(_playheadTime);
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(xOf(_playheadTime), 0, 2, H);
+  ctx.fillRect(phx, 0, 2, H);
+
+  // 再生中は拡大時にヘッドを画面内へ自動スクロール
+  if (scrollEl && zoom > 1 && window.storyPlayer && window.storyPlayer.isPlaying && window.storyPlayer.isPlaying()) {
+    const view = scrollEl.clientWidth;
+    if (phx < scrollEl.scrollLeft + 30 || phx > scrollEl.scrollLeft + view - 30) {
+      scrollEl.scrollLeft = Math.max(0, phx - view / 2);
+    }
+  }
 }
 
 function setupScriptTimeline() {
@@ -1867,6 +1903,9 @@ function setupEvents() {
 
   // プレビューのズーム倍率
   document.getElementById("previewZoom").addEventListener("change", sizePlayerWrap);
+
+  // タイムラインの横ズーム
+  document.getElementById("timelineZoom").addEventListener("change", drawScriptTimeline);
 
   // 基本タブ: 手動SE追加
   document.getElementById("btnAddSe").addEventListener("click", () => {
