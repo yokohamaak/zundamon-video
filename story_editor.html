@@ -1272,9 +1272,20 @@ function initPlayer() {
 // 指定インデックスのターンへシーク。start が 0/未設定のターンは先頭(0)へ。
 function seekPlayer(idx) {
   if (!playerReady || !window.storyPlayer) return;
-  const turn = storyData && storyData.script ? storyData.script[idx] : null;
+  const script = storyData && storyData.script ? storyData.script : null;
+  if (!script) return;
+  const turn = script[idx];
   if (!turn) return;
-  const sec = (turn.start && turn.start > 0) ? turn.start : 0;
+  let sec = (turn.start && turn.start > 0) ? turn.start : 0;
+  // 新規追加直後など timing 未確定(start/end=0)のターンは尺ゼロでプレビューに現れず、
+  // 時刻0へ飛ぶと先頭画面が出てしまう。直前の timing 済みターンへフォールバックし、
+  // そのターンの画面（＝引継時は同じシーン）を表示する。
+  if (!(turn.start > 0) && !(turn.end > 0)) {
+    for (let i = idx - 1; i >= 0; i--) {
+      const p = script[i];
+      if (p && p.start > 0) { sec = p.start; break; }
+    }
+  }
   window.storyPlayer.seekToTime(sec);
 }
 
