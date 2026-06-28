@@ -147,6 +147,29 @@ def _load_scenes_detail():
     return out
 
 
+def _load_story_world():
+    """docs/story-world.md（世界観・キャラ設定）の本文を返す。無ければ空文字。
+
+    プロンプト用にコメント行（※/先頭の見出し説明）は軽く除き、本文をそのまま使う。
+    世界観を変えたいときはこのファイルを編集すればプロンプトに反映される。
+    """
+    path = os.path.join(ROOT_DIR, "docs", "story-world.md")
+    if not os.path.exists(path):
+        return ""
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception:
+        return ""
+    out = []
+    for ln in lines:
+        s = ln.rstrip("\n")
+        if s.strip().startswith("※"):  # ファイル運用上の注記は除く
+            continue
+        out.append(s)
+    return "\n".join(out).strip()
+
+
 def _build_script_prompt(theme, length, notes, mode="safe"):
     """AI(ChatGPT/Claude)に投げる台本生成プロンプトを組み立てて返す。
 
@@ -155,8 +178,9 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
     mode="experimental" のときは、新しい演出/新シーンの考案を促す版を返す。
     """
     experimental = (mode == "experimental")
-    theme = (theme or "").strip() or "（ここに主題を入れてください）"
-    length = (length or "").strip() or "10分前後・全体で30〜60ターンほど（1主題を深掘り）"
+    world = _load_story_world()
+    theme = (theme or "").strip() or "（ここに物語の題材・あらすじを入れてください）"
+    length = (length or "").strip() or "5〜10分・全体で30〜60ターンほど（起承転結のある一話）"
     notes = (notes or "").strip() or "特になし"
 
     scenes = _load_scenes_detail()
@@ -175,24 +199,25 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
 
     example = (
         '{\n'
-        '  "title": "なぜ〇〇は△△なのか",\n'
+        '  "title": "ZunAIが大丈夫って言ったのだ",\n'
         '  "script": [\n'
-        '    { "speaker": "zundamon", "text": "ねえめたん、〇〇ってなんで△△なのだ?",'
-        ' "scene": "FIRST", "expression": "surprise" },\n'
-        '    { "speaker": "metan", "text": "いい質問ね。結論から言うと、…だからなのよ。",'
-        ' "scene": "FIRST", "expression": "normal", "emphasis": true },\n'
-        '    { "speaker": "zundamon", "text": "へぇ〜、知らなかったのだ!",'
-        ' "scene": "FIRST", "expression": "happy", "pause": 0.4 }\n'
+        '    { "speaker": "zundamon", "text": "た、大変なのだ! ZunMonitorが真っ赤なのだ〜!!",'
+        ' "scene": "FIRST", "expression": "panic",'
+        ' "insert": {"kind":"warning","title":"ZunMonitor","text":"本番サーバ 応答なし"} },\n'
+        '    { "speaker": "metan", "text": "落ち着いて、ずんだもん。……昨日、わたしがいない間に何かした?",'
+        ' "scene": "FIRST", "expression": "normal" },\n'
+        '    { "speaker": "zundamon", "text": "き、昨日は……ZunAIに言われた通り、設定を新しくしただけなのだ……。",'
+        ' "scene": "FIRST", "expression": "trouble", "flashback": true, "telop": "― 前日 ―", "pause": 0.4 }\n'
         '  ]\n'
         '}'
     ).replace("FIRST", first_scene)
 
     parts = [
-        "あなたは「ずんだもん」と「四国めたん」の掛け合い解説動画の台本作家です。",
-        "下記の【主題】について、専用ツールでそのまま読み込めるJSON台本を作成してください。",
+        "あなたは「ずんだもん」と「四国めたん」が登場するストーリー（会話劇）動画の脚本家です。",
+        "下記の【題材】をもとに、専用ツールでそのまま読み込めるJSON台本（物語）を作成してください。",
         "",
         "━━━ 入力 ━━━",
-        "【主題】",
+        "【題材・あらすじ】",
         theme,
         "",
         "【長さ・構成の目安】",
@@ -201,16 +226,20 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         "【トーン・補足】",
         notes,
         "",
-        "━━━ 動画の方針 ━━━",
-        "- ずんだもん（聞き役・素朴な疑問/驚き）と四国めたん（解説役・落ち着いた大人びた口調）の対話で、1つの主題を深掘りする。",
-        "- 「なぜ〇〇なのか」を 導入(つかみ)→結論→理由→具体例→まとめ の流れで。雑学の羅列は避け、1本の筋を通す。",
-        "- 1往復＝両者がそれぞれ1回ずつ話す程度。テンポよく、1ターンは1〜2文。",
-        "- ずんだもん: 一人称「ボク」、語尾「〜のだ/〜なのだ」。四国めたん: 一人称「わたくし」寄りの丁寧語、解説役。",
+        "━━━ 世界観・キャラクター・シリーズ設定（厳守）━━━",
+        world if world else
+        "- 株式会社ずんだシステムズ（IT何でも屋）。ずんだもん(新人)＝主人公、四国めたん(先輩)＝導く役。",
         "",
-        "━━━ 登場キャラ（speaker に使う値）━━━",
-        "- zundamon … ずんだもん（聞き役）",
-        "- metan … 四国めたん（解説役）",
-        "- 営業 / 部長 / AI … 脇役。画面に立ち絵は出さず、チャットや声のみで登場（主にインサートと併用）。メインの掛け合いは zundamon と metan で進める。",
+        "━━━ 書き方の方針 ━━━",
+        "- これは解説動画ではなく『ストーリー（会話劇）』。上の世界観・キャラ設定・お約束に沿って一話完結の物語を書く。",
+        "- 上記キャラの口調・性格を厳守（ずんだもん=「〜のだ」善意の暴走、めたん=冷静・答えは教えずヒント）。",
+        "- 場面転換(scene)・回想(flashback)・登場/退場(enter/exit)・インサート・表情で物語を演出する。",
+        "- 1ターンは1〜2文。地の文は使わず、すべてセリフ（text）で進める。教訓は短く・最後は軽いオチ。",
+        "",
+        "━━━ speaker に使う値 ━━━",
+        "- zundamon … ずんだもん（主人公）",
+        "- metan … 四国めたん（先輩）",
+        "- 営業 / 部長 / AI … 脇役。画面に立ち絵は出さず、チャットや声のみで登場。ZunAI(社内AI)のセリフは speaker=\"AI\" を使う。",
         "",
         ("━━━ シーン（scene の値・既存。新規も可）━━━" if experimental
          else "━━━ 使えるシーン（scene に使う値。リスト以外は使用不可）━━━"),
@@ -224,6 +253,9 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         expr_list,
         "※ normal=通常 / happy=笑顔 / surprise=驚き / trouble=困り / panic=焦り。流れに合うものを選ぶ。",
         "",
+        # 【重要】新しい演出を実装したら、この節に1行追記すること。
+        #   併せて _KNOWN_TURN_FIELDS / _KNOWN_INSERT_KINDS も更新。
+        #   詳細手順: docs/new-effect-checklist.md
         "━━━ 使える演出（任意。付けると良くなる）━━━",
         '- "emphasis": true … 話者にズームイン（強調したい一言で）',
         '- "shake": true … 画面を揺らす（衝撃・驚き）',
@@ -241,6 +273,7 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         '- {"kind":"teamchat","channel":"#障害対応","messages":[{"from":"営業","text":"..."}]} … Slack風チャット',
         '- {"kind":"mailer","from":"差出人","subject":"件名","body":"本文","time":"10:00"} … メール画面',
         "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
+        "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat。",
     ]
 
     if experimental:
@@ -274,7 +307,7 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         "━━━ 出力例（最小）━━━",
         example,
         "",
-        "では、上記の【主題】に沿って台本JSONを作成してください。まずタイトルを決め、導入から結論・まとめまで一本の流れで構成すること。",
+        "では、上記の【題材】をもとに物語の台本JSONを作成してください。まずタイトルを決め、導入から山場・結末まで一本の物語として構成すること。",
     ]
     return "\n".join(parts)
 

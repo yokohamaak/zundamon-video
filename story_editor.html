@@ -379,12 +379,12 @@
         プロンプト生成
       </div>
       <div class="field-row">
-        <label class="field-label" for="genTheme">主題 <span style="color:var(--danger)">*</span></label>
-        <textarea class="field-textarea" id="genTheme" rows="2" placeholder="例: なぜ横浜駅は迷宮と呼ばれるのか"></textarea>
+        <label class="field-label" for="genTheme">題材・あらすじ <span style="color:var(--danger)">*</span></label>
+        <textarea class="field-textarea" id="genTheme" rows="2" placeholder="例: ずんだもんが良かれと思ってZunDriveを整理したら共有リンクが全部切れて障害に"></textarea>
       </div>
       <div class="field-row">
         <label class="field-label" for="genLength">長さの目安</label>
-        <input type="text" class="field-input" id="genLength" placeholder="例: 10分・全7章">
+        <input type="text" class="field-input" id="genLength" placeholder="例: 5分・障害対応の一話">
       </div>
       <div class="field-row">
         <label class="field-label" for="genNotes">トーン・補足（任意）</label>
@@ -1585,7 +1585,7 @@ function setupEvents() {
   document.getElementById("btnGenPrompt").addEventListener("click", async () => {
     const theme = document.getElementById("genTheme").value.trim();
     if (!theme) {
-      alert("主題を入力してください。");
+      alert("題材・あらすじを入力してください。");
       return;
     }
     const length = document.getElementById("genLength").value.trim();
