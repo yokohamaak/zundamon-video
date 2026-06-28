@@ -15,6 +15,11 @@ type StoryPlayerApi = {
   reloadScenes: () => Promise<void>;
   seekToFrame: (frame: number) => void;
   seekToTime: (sec: number) => void;
+  play: () => void;
+  pause: () => void;
+  togglePlay: () => boolean;
+  isPlaying: () => boolean;
+  reloadAudio: () => Promise<void>;
 };
 
 declare global {
@@ -210,6 +215,51 @@ window.storyPlayer = {
   seekToTime(sec) {
     if (!playerRef) return;
     playerRef.seekTo(Math.max(0, Math.ceil(sec * FPS)));
+  },
+
+  play() {
+    playerRef?.play();
+  },
+
+  pause() {
+    playerRef?.pause();
+  },
+
+  togglePlay() {
+    if (!playerRef) return false;
+    if (playerRef.isPlaying()) {
+      playerRef.pause();
+      return false;
+    }
+    playerRef.play();
+    return true;
+  },
+
+  isPlaying() {
+    return playerRef ? playerRef.isPlaying() : false;
+  },
+
+  async reloadAudio() {
+    // 音タブで保存された BGM(scenes/story) と SE(se-map) をプレビューへ反映。
+    if (!setPropsState) return;
+    try {
+      const [scenesRes, storyRes, seRes] = await Promise.all([
+        fetch("/preview-assets/story-scenes.json", { cache: "no-store" }),
+        fetch("/api/story", { cache: "no-store" }),
+        fetch("/preview-assets/se-map.json", { cache: "no-store" }),
+      ]);
+      const scenes = scenesRes.ok ? await scenesRes.json() : undefined;
+      const story = storyRes.ok ? await storyRes.json() : undefined;
+      const seMap = seRes.ok ? await seRes.json() : undefined;
+      setPropsState((prev) => ({
+        ...prev,
+        ...(scenes ? { scenes } : {}),
+        ...(story ? { story, audio: story.audio ?? prev.audio } : {}),
+        ...(seMap ? { seMap } : {}),
+      } as Props));
+    } catch {
+      // 失敗時は据え置き
+    }
   },
 };
 
