@@ -712,9 +712,19 @@ function renderPreview() {
     parts.style.height = pbox.h + 'px';
 
     if (charId && manifestData && manifestData[manifestKey]) {
-      // StoryVideo の Avatar と同じ重ね順: base → 腕 → 目 → 口。
-      // arm_normal が無いキャラ(腕がbaseに焼き込まれた metan 等)は manifest に無いのでスキップされる。
-      const layers = ['base', 'arm_normal', 'eye_open', 'mouth_close'];
+      // StoryVideo の Avatar と同じ重ね順: base → cheek → arm → eye → mouth → bangs → brow。
+      // cheek/brow はキャラ別id(brow_normal等)なので manifest から代表stemを拾う。
+      // arm_normal/bangs が無いキャラは manifest に無いのでスキップされる。
+      const m = manifestData[manifestKey];
+      const pickStem = (prefix, prefer) => {
+        const keys = Object.keys(m).filter((k) => k.startsWith(prefix));
+        for (const p of prefer) { const f = keys.find((k) => k.includes(p)); if (f) return f; }
+        return keys[0] || null;
+      };
+      const cheekStem = pickStem('cheek_', ['hoppe', 'normal']);
+      const browStem = pickStem('brow_', ['normal', 'gokigen']);
+      const layers = ['base', cheekStem, 'arm_normal', 'eye_open', 'mouth_close', 'bangs', browStem]
+        .filter(Boolean);
       for (const layer of layers) {
         if (manifestData[manifestKey][layer]) {
           const img = document.createElement('img');
