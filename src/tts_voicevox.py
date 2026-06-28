@@ -432,6 +432,7 @@ def synthesize_dialogue(script, config):
     turns_out = []
     current = lead_in   # 先頭リードイン分だけ全発話を後ろへずらす
     ref_params = None
+    pending_head_sil = 0.0  # 先頭が空セリフ(合成なし)でref_params未確定の間に溜める無音秒
     ref_pitch_cache = {}  # 話者→自然な声の高さ（全無声の相づちを有声化する基準・実測キャッシュ）
 
     chorus_names = list(speakers_map.keys())  # ユニゾン時に声を重ねる話者（設定の全キャラ）
@@ -522,15 +523,21 @@ def synthesize_dialogue(script, config):
         if idx < len(script) - 1 and script[idx + 1].get("chapter") != turn.get("chapter"):
             sil += chapter_gap
         if sil > 0 and idx < len(script) - 1:
-            channels, width, rate = ref_params
-            pcm_chunks.append(b"\x00" * (int(sil * rate) * width * channels))
-            current += sil
+            if ref_params is None:
+                # まだ一度も合成しておらずWAV形式が不明。後で先頭にまとめて付ける。
+                pending_head_sil += sil
+                current += sil
+            else:
+                channels, width, rate = ref_params
+                pcm_chunks.append(b"\x00" * (int(sil * rate) * width * channels))
+                current += sil
 
     audio = b"".join(pcm_chunks)
-    # 先頭リードインの無音を digest の頭に付ける（turns_out は current=lead_in 起点で既にずれている）。
-    if lead_in > 0 and ref_params:
+    # 先頭リードイン＋先頭空ターン由来の保留無音を、音声の頭にまとめて付ける。
+    head_sil = lead_in + pending_head_sil
+    if head_sil > 0 and ref_params:
         channels, width, rate = ref_params
-        audio = b"\x00" * (int(lead_in * rate) * width * channels) + audio
+        audio = b"\x00" * (int(head_sil * rate) * width * channels) + audio
     return audio, turns_out, ref_params
 
 
