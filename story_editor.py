@@ -30,7 +30,8 @@ _AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
 # /preview-assets/<path> として配信する（パストラバーサル防止付き）。
 # 許可するトップレベルディレクトリ名 or ファイル名の集合。
 _PREVIEW_ASSET_DIRS = {"avatars", "background", "mobs", "bgm", "se", "fonts"}
-_PREVIEW_ASSET_FILES = {"story-scenes.json", "noise.png", "story-01.wav", "story-01.mp3",
+_PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "se-map.json",
+                        "noise.png", "story-01.wav", "story-01.mp3",
                         "story.wav", "story.mp3"}
 
 # 話者一覧（StoryVideo.tsx の CHARACTERS / MOBS と二重管理。MVPのためハードコード）
