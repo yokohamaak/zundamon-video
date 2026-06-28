@@ -238,6 +238,7 @@
     <button class="top-tab active" id="tabScript" data-view="script">台本</button>
     <button class="top-tab" id="tabScene" data-view="scene">シーン</button>
     <button class="top-tab" id="tabExpr" data-view="expr">表情</button>
+    <button class="top-tab" id="tabGen" data-view="gen">台本生成</button>
   </div>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
@@ -366,6 +367,64 @@
 <!-- 表情編集（expression_editor を iframe 埋め込み。story_editor 起動時に expression_editor も自動起動） -->
 <div class="expr-view" id="viewExpr" style="display:none;">
   <iframe id="exprFrame" title="表情編集"></iframe>
+</div>
+
+<!-- 台本生成（プロンプト生成＋AI出力取り込み） -->
+<div id="viewGen" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
+  <div style="max-width:800px; margin:0 auto; display:flex; flex-direction:column; gap:32px;">
+
+    <!-- セクションA: プロンプト生成 -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        プロンプト生成
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="genTheme">主題 <span style="color:var(--danger)">*</span></label>
+        <textarea class="field-textarea" id="genTheme" rows="2" placeholder="例: なぜ横浜駅は迷宮と呼ばれるのか"></textarea>
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="genLength">長さの目安</label>
+        <input type="text" class="field-input" id="genLength" placeholder="例: 10分・全7章">
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="genNotes">トーン・補足（任意）</label>
+        <textarea class="field-textarea" id="genNotes" rows="2" placeholder="例: ずんだもん＋めたんの掛け合い、子供向けに分かりやすく"></textarea>
+      </div>
+      <div>
+        <button class="btn btn-primary" id="btnGenPrompt">プロンプト生成</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <label class="field-label" for="genPrompt">生成されたプロンプト</label>
+          <button class="btn btn-secondary btn-sm" id="btnCopyPrompt">コピー</button>
+        </div>
+        <textarea class="field-textarea" id="genPrompt" readonly rows="12"
+          style="font-family:monospace; font-size:12px; min-height:300px; resize:vertical;"
+          placeholder="「プロンプト生成」を押すとここに表示されます"></textarea>
+      </div>
+      <div style="font-size:12px; color:var(--text2); line-height:1.6;">
+        このプロンプトをChatGPTやClaudeに貼り付けてください。返ってきたJSONを下の欄に貼り付けて取り込みます。
+      </div>
+    </div>
+
+    <!-- セクションB: AI出力の取り込み -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        AI出力の取り込み
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="genImport">AIが出力したJSON</label>
+        <textarea class="field-textarea" id="genImport" rows="10"
+          style="font-family:monospace; font-size:12px; min-height:200px; resize:vertical;"
+          placeholder="AIが出力したJSON（\`\`\`json ... \`\`\` ごと貼ってOK）"></textarea>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="btn btn-primary" id="btnImportScript">取り込んで読込</button>
+        <span id="genImportStatus" style="font-size:12px;"></span>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <script>
@@ -1294,25 +1353,28 @@ function setStatus(cls, msg) {
 // ============================================================
 // イベント設定
 // ============================================================
-// 台本/シーン/表情 タブ切替。
+// 台本/シーン/表情/台本生成 タブ切替。
 // シーンは scene_editor(8770)、表情は expression_editor(8772) を iframe で埋め込み（初回のみ読み込み）。
 function setupTabs() {
   const tScript = document.getElementById("tabScript");
   const tScene = document.getElementById("tabScene");
   const tExpr = document.getElementById("tabExpr");
+  const tGen = document.getElementById("tabGen");
   const vScript = document.getElementById("viewScript");
   const vScene = document.getElementById("viewScene");
   const vExpr = document.getElementById("viewExpr");
+  const vGen = document.getElementById("viewGen");
   const sceneFrame = document.getElementById("sceneFrame");
   const exprFrame = document.getElementById("exprFrame");
 
   function activateTab(active) {
     // タブボタンのactive切替
-    [tScript, tScene, tExpr].forEach(t => t.classList.toggle("active", t === active));
-    // ビューの表示/非表示
+    [tScript, tScene, tExpr, tGen].forEach(t => t.classList.toggle("active", t === active));
+    // ビューの表示/非表示（viewGen は flex なので空文字では flex で表示する）
     vScript.style.display = active === tScript ? "" : "none";
     vScene.style.display = active === tScene ? "" : "none";
     vExpr.style.display = active === tExpr ? "" : "none";
+    vGen.style.display = active === tGen ? "flex" : "none";
   }
 
   tScript.addEventListener("click", () => {
@@ -1334,6 +1396,9 @@ function setupTabs() {
       // expression_editor は story_editor 起動時に自動起動（localhost:8772）
       exprFrame.src = (location.protocol + "//" + location.hostname + ":8772/");
     }
+  });
+  tGen.addEventListener("click", () => {
+    activateTab(tGen);
   });
 }
 
@@ -1411,6 +1476,92 @@ function setupEvents() {
     markDirty();
     renderList();
     notifyPlayerUpdate();
+  });
+
+  // 台本生成タブ: プロンプト生成
+  document.getElementById("btnGenPrompt").addEventListener("click", async () => {
+    const theme = document.getElementById("genTheme").value.trim();
+    if (!theme) {
+      alert("主題を入力してください。");
+      return;
+    }
+    const length = document.getElementById("genLength").value.trim();
+    const notes = document.getElementById("genNotes").value.trim();
+    const btn = document.getElementById("btnGenPrompt");
+    btn.disabled = true;
+    btn.textContent = "生成中...";
+    try {
+      const r = await fetch("/api/script-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme, length, notes }),
+      });
+      const result = await r.json();
+      if (r.ok && result.prompt) {
+        document.getElementById("genPrompt").value = result.prompt;
+      } else {
+        alert("プロンプト生成に失敗しました: " + (result.error || r.status));
+      }
+    } catch (e) {
+      alert("通信エラー: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "プロンプト生成";
+    }
+  });
+
+  // 台本生成タブ: プロンプトをクリップボードへコピー
+  document.getElementById("btnCopyPrompt").addEventListener("click", async () => {
+    const ta = document.getElementById("genPrompt");
+    const text = ta.value;
+    if (!text) return;
+    const btn = document.getElementById("btnCopyPrompt");
+    const originalText = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "コピーしました";
+    } catch (e) {
+      // fallback: select + execCommand
+      ta.select();
+      try { document.execCommand("copy"); } catch (_) {}
+      btn.textContent = "コピーしました";
+    }
+    setTimeout(() => { btn.textContent = originalText; }, 1800);
+  });
+
+  // 台本生成タブ: AI出力を取り込んで読込
+  document.getElementById("btnImportScript").addEventListener("click", async () => {
+    const raw = document.getElementById("genImport").value.trim();
+    if (!raw) {
+      alert("AIが出力したJSONを貼り付けてください。");
+      return;
+    }
+    const statusEl = document.getElementById("genImportStatus");
+    const btn = document.getElementById("btnImportScript");
+    btn.disabled = true;
+    statusEl.style.color = "var(--text2)";
+    statusEl.textContent = "送信中...";
+    try {
+      const r = await fetch("/api/import-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw }),
+      });
+      const result = await r.json();
+      if (r.ok && result.ok) {
+        alert(result.turns + "件のターンを取り込みました。再読み込みします。");
+        location.reload();
+      } else {
+        statusEl.style.color = "var(--danger)";
+        statusEl.textContent = "エラー: " + (result.error || "取り込み失敗");
+      }
+    } catch (e) {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "通信エラー: " + e.message;
+    } finally {
+      btn.disabled = false;
+      if (statusEl.textContent === "送信中...") statusEl.textContent = "";
+    }
   });
 }
 
