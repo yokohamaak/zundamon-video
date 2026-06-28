@@ -132,9 +132,17 @@
   .pane-center {
     flex: 1; background: var(--bg);
     display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    overflow: hidden; padding: 16px;
-    gap: 10px;
+    overflow: hidden; padding: 10px 12px;
+    gap: 8px;
+  }
+  .preview-toolbar {
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 12px; color: var(--text2);
+  }
+  /* 拡大時にスクロールできる領域。小さい時は中央寄せ（min-*:100%で実現）。 */
+  .preview-scroll { flex: 1; overflow: auto; min-height: 0; }
+  .preview-scroll-inner {
+    min-width: 100%; min-height: 100%;
+    display: flex; align-items: center; justify-content: center;
   }
   .preview-player-wrap {
     /* 幅/高さは sizePlayerWrap() が px で設定（16:9でペインに収める）。 */
@@ -305,8 +313,23 @@
 
   <!-- 中央ペイン: Remotion Player -->
   <div class="pane-center">
-    <div class="preview-player-wrap" id="playerWrap"></div>
-    <div class="preview-status" id="playerStatus">story-player.js を読み込み中...</div>
+    <div class="preview-toolbar">
+      <label for="previewZoom">ズーム</label>
+      <select class="field-select" id="previewZoom" style="width:auto; padding:2px 6px; font-size:12px;">
+        <option value="fit">フィット</option>
+        <option value="1">100%</option>
+        <option value="1.5">150%</option>
+        <option value="2">200%</option>
+        <option value="3">300%</option>
+        <option value="4">400%</option>
+      </select>
+      <span class="preview-status" id="playerStatus" style="margin-left:6px;">story-player.js を読み込み中...</span>
+    </div>
+    <div class="preview-scroll">
+      <div class="preview-scroll-inner">
+        <div class="preview-player-wrap" id="playerWrap"></div>
+      </div>
+    </div>
     <!-- プレビュー下のタイムライン（セリフ＋BGM）。クリックでシーク。 -->
     <canvas id="scriptTimeline" height="72"
       title="クリックでその位置へシーク"
@@ -598,19 +621,22 @@ async function init() {
 // ============================================================
 // Remotion Player 初期化
 // ============================================================
-// プレビュー枠を 16:9 でペインに収まる最大サイズに（px明示）。Player のマウント前/リサイズ時に呼ぶ。
+// プレビュー枠を 16:9 でスクロール領域に収め（フィット）、ズーム選択時はフィット倍率を掛ける。
+// 拡大時は .preview-scroll がスクロールする。
 function sizePlayerWrap() {
-  const pane = document.querySelector(".pane-center");
+  const scroll = document.querySelector(".preview-scroll");
   const wrap = document.getElementById("playerWrap");
-  const status = document.getElementById("playerStatus");
-  if (!pane || !wrap) return;
-  const padX = 32, padY = 32, gap = 10;
-  const statusH = status ? status.offsetHeight : 16;
-  const availW = pane.clientWidth - padX;
-  const availH = pane.clientHeight - padY - gap - statusH;
-  let w = availW;
-  let h = (w * 9) / 16;
-  if (h > availH) { h = availH; w = (h * 16) / 9; }
+  if (!scroll || !wrap) return;
+  const availW = Math.max(40, scroll.clientWidth - 8);
+  const availH = Math.max(40, scroll.clientHeight - 8);
+  // フィットサイズ（両方向に収まる最大の16:9）
+  let fw = availW, fh = (fw * 9) / 16;
+  if (fh > availH) { fh = availH; fw = (fh * 16) / 9; }
+  const zsel = document.getElementById("previewZoom");
+  const zv = zsel ? zsel.value : "fit";
+  let w, h;
+  if (zv === "fit" || !zv) { w = fw; h = fh; }
+  else { const f = parseFloat(zv) || 1; w = fw * f; h = (w * 9) / 16; }
   wrap.style.width = Math.max(0, Math.floor(w)) + "px";
   wrap.style.height = Math.max(0, Math.floor(h)) + "px";
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
@@ -1838,6 +1864,9 @@ function setupEvents() {
 
   // 音タブ: プレビュー再生/停止
   document.getElementById("btnAudioPlay").addEventListener("click", toggleAudioPreview);
+
+  // プレビューのズーム倍率
+  document.getElementById("previewZoom").addEventListener("change", sizePlayerWrap);
 
   // 基本タブ: 手動SE追加
   document.getElementById("btnAddSe").addEventListener("click", () => {
