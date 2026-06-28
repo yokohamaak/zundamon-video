@@ -8,7 +8,7 @@
 //   <char> = zundamon | metan
 import { readPsd, initializeCanvas } from "ag-psd";
 import { createCanvas } from "@napi-rs/canvas";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 
 initializeCanvas(createCanvas);
@@ -36,24 +36,40 @@ const SLOTS = {
       up:        [["!眉", "*上がり眉"]],
       angry:     [["!眉", "*怒り眉"]],
     },
-    // タスクC: happy/smile を削除し nikkori に統一
     eye: {
-      open:     [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
-      close:    [["!目", "*UU"]],
-      surprise: [["!目", "*〇〇"]],
-      nikkori:  [["!目", "*にっこり"]],
+      open:         [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
+      close:        [["!目", "*UU"]],
+      surprise:     [["!目", "*〇〇"]],
+      nikkori:      [["!目", "*にっこり"]],
+      nikkori2:     [["!目", "*にっこり2"]],
+      batsu:        [["!目", "*><"]],
+      guruguru:     [["!目", "*ぐるぐる"]],
+      nagomi:       [["!目", "*なごみ目"]],
+      jito:         [["!目", "*ジト目"]],
+      hosome:       [["!目", "*細め目"]],
+      hosome_heart: [["!目", "*細め目ハート"]],
+      uwamuki:      [["!目", "*上向き"]],
     },
-    // タスクC: smile_open/smile_close を削除し mufu に統一
     mouth: {
       close: [["!口", "*むー"]],
       half:  [["!口", "*ほあ"]],
       open:  [["!口", "*ほあー"]],
       mufu:  [["!口", "*むふ"]],
+      tri:   [["!口", "*△"]],
+      ho:    [["!口", "*ほー"]],
+      naa:   [["!口", "*んあー"]],
+      nhe:   [["!口", "*んへー"]],
+      nn:    [["!口", "*んー"]],
+      hahee: [["!口", "*はへえ"]],
+      ohoo:  [["!口", "*おほお"]],
+      o:     [["!口", "*お"]],
+      yu:    [["!口", "*ゆ"]],
     },
     fx: {
       sweat1: [["記号など", "汗1"]],
       sweat2: [["記号など", "汗2"]],
       sweat3: [["記号など", "汗3"]],
+      tears:  [["記号など", "涙"]],
     },
   },
   metan: {
@@ -76,20 +92,33 @@ const SLOTS = {
       futo_komari:  [["!眉", "*太眉こまり"]],
       futo_oko:     [["!眉", "*太眉おこ"]],
     },
-    // タスクC: happy(=closeと同一)・smile(目閉じ2・未使用)を削除
     eye: {
       open:     [["!目", "*目セット", "*普通白目"], ["!目", "*目セット", "!黒目", "*普通目"]],
       close:    [["!目", "*目閉じ"]],
       surprise: [["!目", "*○○"]],
+      tojime2:  [["!目", "*目閉じ2"]],
+      batsu:    [["!目", "*><"]],
+      guruguru: [["!目", "*ぐるぐる"]],
+      miage:    [["!目", "*見上げ"]],
     },
-    // タスクC: smile_close(=close重複)・smile_open(=open重複)を削除
     mouth: {
-      close: [["!口", "*ほほえみ"]],
-      half:  [["!口", "*お"]],
-      open:  [["!口", "*わあー"]],
+      close:    [["!口", "*ほほえみ"]],
+      half:     [["!口", "*お"]],
+      open:     [["!口", "*わあー"]],
+      niyari:   [["!口", "*にやり"]],
+      perori:   [["!口", "*ぺろり"]],
+      tri:      [["!口", "*△"]],
+      tri_down: [["!口", "*▽"]],
+      momu:     [["!口", "*もむー"]],
+      nn:       [["!口", "*んー"]],
+      uee:      [["!口", "*うえー"]],
+      ii:       [["!口", "*いー"]],
+      mu:       [["!口", "*む"]],
+      yu:       [["!口", "*ゆ"]],
     },
     fx: {
       sweat: [["記号など", "汗"]],
+      tears: [["記号など", "涙"]],
     },
   },
 };
@@ -411,6 +440,10 @@ if (mode === "candidates") {
   // プレビュー用途。base.png と arm_*.png はバスト用 assets/avatars/<char>/ から流用。
   const dir = resolve(root, `assets/avatars/${charName}/candidates`);
   mkdirSync(dir, { recursive: true });
+  // 旧候補(削除/改名されたid)が残らないよう、既存のpngを一旦掃除してから書き出す。
+  for (const f of readdirSync(dir)) {
+    if (f.toLowerCase().endsWith(".png")) rmSync(resolve(dir, f));
+  }
   const slots = SLOTS[charName];
   let count = 0;
 
