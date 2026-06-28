@@ -70,6 +70,22 @@
     border-radius: 6px;
   }
   .top-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  /* 他画面/ファイル操作をまとめるドロップダウンメニュー */
+  .menu-wrap { position: relative; display: inline-block; }
+  .menu-dropdown {
+    position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 60;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.55);
+    display: flex; flex-direction: column; min-width: 168px; padding: 5px;
+  }
+  .menu-item {
+    text-align: left; padding: 8px 12px; border: none; background: none;
+    color: var(--text); font-size: 13px; cursor: pointer; border-radius: 5px; white-space: nowrap;
+  }
+  .menu-item:hover { background: var(--surface2); }
+  .menu-item.active { color: var(--accent); font-weight: 600; }
+  .menu-sep { height: 1px; background: var(--border); margin: 5px 4px; }
+  #menuBtn.has-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
   /* ── 3ペインレイアウト ── */
   .main { display: flex; flex: 1; overflow: hidden; }
@@ -295,10 +311,18 @@
   <h1>ストーリーエディタ</h1>
   <div class="top-tabs">
     <button class="top-tab active" id="tabScript" data-view="script">台本</button>
-    <button class="top-tab" id="tabScene" data-view="scene">シーン</button>
-    <button class="top-tab" id="tabExpr" data-view="expr">表情</button>
-    <button class="top-tab" id="tabGen" data-view="gen">台本生成</button>
-    <button class="top-tab" id="tabAudio" data-view="audio">音</button>
+    <div class="menu-wrap">
+      <button class="top-tab" id="menuBtn" type="button" title="他の画面・ファイル操作">≡ メニュー ▾</button>
+      <div class="menu-dropdown" id="menuDropdown" style="display:none;">
+        <button class="menu-item" id="tabScene" data-view="scene">シーン編集</button>
+        <button class="menu-item" id="tabExpr" data-view="expr">表情編集</button>
+        <button class="menu-item" id="tabGen" data-view="gen">台本生成</button>
+        <button class="menu-item" id="tabAudio" data-view="audio">音（BGM/SE）</button>
+        <div class="menu-sep"></div>
+        <button class="menu-item" id="btnExport" title="編集中の台本をJSONに書き出す（別ストーリーへ切替/再開用）">⬇ エクスポート</button>
+        <button class="menu-item" id="btnImport" title="JSONから台本を読み込む（現在の編集内容は置き換わる）">⬆ インポート</button>
+      </div>
+    </div>
   </div>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <select class="field-select" id="idleFaceSel" title="聞き役(非話者)の表情の扱い" style="width:auto; padding:2px 6px; font-size:12px;">
@@ -307,8 +331,6 @@
   </select>
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
   <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
-  <button class="btn btn-secondary" id="btnExport" title="編集中の台本をJSONファイルに書き出す（音声不要・別ストーリーへ切替/再開用）">⬇ エクスポート</button>
-  <button class="btn btn-secondary" id="btnImport" title="JSONファイルから台本を読み込む（現在の編集内容は置き換わる）">⬆ インポート</button>
   <input type="file" id="importFile" accept=".json,application/json" style="display:none">
   <button class="btn btn-secondary" disabled title="次フェーズ（書き出し）">🎬 書き出し</button>
   <span class="status" id="statusMsg"></span>
@@ -647,6 +669,7 @@ async function init() {
     renderList();
     setupEvents();
     setupTabs();
+    setupHeaderMenu();
     initPlayer();
     setupScriptTimeline();
   } catch (e) {
@@ -2206,6 +2229,22 @@ function showImportReport(turns, report) {
 // ============================================================
 // 台本/シーン/表情/台本生成/音 タブ切替。
 // シーンは scene_editor(8770)、表情は expression_editor(8772) を iframe で埋め込み（初回のみ読み込み）。
+// 他画面/ファイル操作のドロップダウンメニュー（クリックで下に開閉）。
+function setupHeaderMenu() {
+  const btn = document.getElementById("menuBtn");
+  const dd = document.getElementById("menuDropdown");
+  if (!btn || !dd) return;
+  const close = () => { dd.style.display = "none"; };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dd.style.display = (dd.style.display === "none" || !dd.style.display) ? "flex" : "none";
+  });
+  // メニュー内の項目を押したら閉じる（タブ切替/エクスポート等は各自のハンドラが実行）。
+  dd.addEventListener("click", (e) => { if (e.target.closest("button")) close(); });
+  // 外側クリックで閉じる。
+  document.addEventListener("click", (e) => { if (!e.target.closest(".menu-wrap")) close(); });
+}
+
 function setupTabs() {
   const tScript = document.getElementById("tabScript");
   const tScene = document.getElementById("tabScene");
@@ -2223,6 +2262,9 @@ function setupTabs() {
   function activateTab(active) {
     // タブボタンのactive切替
     [tScript, tScene, tExpr, tGen, tAudio].forEach(t => t.classList.toggle("active", t === active));
+    // メニュー内の画面が選ばれていればメニューボタンを強調。
+    const mb = document.getElementById("menuBtn");
+    if (mb) mb.classList.toggle("has-active", active !== tScript);
     // ビューの表示/非表示（viewGen/viewAudio は flex なので空文字では flex で表示する）
     vScript.style.display = active === tScript ? "" : "none";
     vScene.style.display = active === tScene ? "" : "none";
