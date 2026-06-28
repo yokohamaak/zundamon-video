@@ -303,6 +303,9 @@
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
   <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
+  <button class="btn btn-secondary" id="btnExport" title="編集中の台本をJSONファイルに書き出す（音声不要・別ストーリーへ切替/再開用）">⬇ エクスポート</button>
+  <button class="btn btn-secondary" id="btnImport" title="JSONファイルから台本を読み込む（現在の編集内容は置き換わる）">⬆ インポート</button>
+  <input type="file" id="importFile" accept=".json,application/json" style="display:none">
   <button class="btn btn-secondary" disabled title="次フェーズ（書き出し）">🎬 書き出し</button>
   <span class="status" id="statusMsg"></span>
 </div>
@@ -1950,6 +1953,50 @@ function generateId(script) {
 // ============================================================
 // 保存
 // ============================================================
+// ── 台本のエクスポート/インポート（編集状態だけをファイルで持ち運ぶ。音声は再生成前提） ──
+function exportStory() {
+  if (!storyData) return;
+  storyData.title = document.getElementById("storyTitle").value;
+  const safe = (storyData.title || "story").replace(/[\\/:*?"<>|\s]+/g, "_") || "story";
+  const blob = new Blob([JSON.stringify(storyData, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = safe + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  setStatus("ok", "エクスポートしました");
+}
+
+function importStoryFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.script)) throw new Error("script 配列がありません");
+      for (let i = 0; i < data.script.length; i++) {
+        const t = data.script[i];
+        if (!t || typeof t.speaker !== "string" || typeof t.text !== "string" || typeof t.scene !== "string")
+          throw new Error("turn[" + i + "] に speaker/text/scene(文字列) が必要です");
+      }
+      storyData = data;
+      document.getElementById("storyTitle").value = storyData.title || "";
+      selectedIdx = -1;
+      renderList();
+      renderDetail();
+      if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(storyData);
+      if (typeof drawScriptTimeline === "function") drawScriptTimeline();
+      markDirty();
+      markAudioDirty(); // 取り込んだ台本は音声未生成＝尺反映に音声生成が必要
+      setStatus("ok", "インポートしました（保存→音声生成で尺反映）");
+    } catch (e) {
+      alert("インポート失敗: " + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 async function saveStory() {
   setStatus("", "保存中...");
   // タイトル反映
@@ -2234,6 +2281,15 @@ async function refreshExpressions() {
 
 function setupEvents() {
   document.getElementById("btnSave").addEventListener("click", saveStory);
+  document.getElementById("btnExport").addEventListener("click", exportStory);
+  document.getElementById("btnImport").addEventListener("click", () => {
+    document.getElementById("importFile").click();
+  });
+  document.getElementById("importFile").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) importStoryFromFile(f);
+    e.target.value = ""; // 同じファイルを再選択できるようリセット
+  });
   document.getElementById("btnAudio").addEventListener("click", generateAudio);
   document.getElementById("btnAdd").addEventListener("click", addTurnAfter);
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
