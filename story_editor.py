@@ -21,6 +21,10 @@ VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
 EXPRESSIONS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "expressions.json")
+SE_MAP_JSON = os.path.join(VIDEO_PUBLIC_DIR, "se-map.json")
+BGM_DIR = os.path.join(VIDEO_PUBLIC_DIR, "bgm")
+SE_DIR = os.path.join(VIDEO_PUBLIC_DIR, "se")
+_AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
 
 # StoryVideo.tsx の staticFile() が参照する video/public/ 配下のアセット。
 # /preview-assets/<path> として配信する（パストラバーサル防止付き）。
@@ -124,6 +128,68 @@ def _load_expression_keys():
         return result if result else list(EXPRESSIONS)
     except Exception:
         return list(EXPRESSIONS)
+
+
+def _list_audio_assets():
+    """public/bgm・public/se の音源ファイル一覧を返す（プレフィックス付き相対パス）。"""
+    def listdir(d, prefix):
+        out = []
+        if os.path.isdir(d):
+            for fn in sorted(os.listdir(d)):
+                if fn.lower().endswith(_AUDIO_EXTS):
+                    out.append(prefix + "/" + fn)
+        return out
+    return {"bgm": listdir(BGM_DIR, "bgm"), "se": listdir(SE_DIR, "se")}
+
+
+def _load_se_map():
+    """se-map.json を返す。無ければ空dict。"""
+    if not os.path.exists(SE_MAP_JSON):
+        return {}
+    try:
+        with open(SE_MAP_JSON, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_se_map(data):
+    if not isinstance(data, dict):
+        raise ValueError("se-map は object である必要があります")
+    with open(SE_MAP_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _update_scene_bgm(updates):
+    """story-scenes.json の各シーンに bgm/bgmVolume を反映する。
+
+    updates = { sceneKey: {"bgm": "bgm/x.mp3"|null, "volume": 0.25}, ... }
+    bgm が null/空なら該当シーンから bgm/bgmVolume を削除する。
+    """
+    if not isinstance(updates, dict):
+        raise ValueError("updates が不正です")
+    if not os.path.exists(SCENES_JSON):
+        raise ValueError("story-scenes.json がありません")
+    with open(SCENES_JSON, encoding="utf-8") as f:
+        data = json.load(f)
+    scenes = data.get("scenes", {})
+    for key, val in updates.items():
+        if key not in scenes or not isinstance(scenes[key], dict):
+            continue
+        if not isinstance(val, dict):
+            continue
+        bgm = val.get("bgm")
+        if bgm:
+            scenes[key]["bgm"] = bgm
+            vol = val.get("volume")
+            if isinstance(vol, (int, float)):
+                scenes[key]["bgmVolume"] = vol
+        else:
+            scenes[key].pop("bgm", None)
+            scenes[key].pop("bgmVolume", None)
+    with open(SCENES_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return len(updates)
 
 
 def _load_scenes_detail():
@@ -602,6 +668,36 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/audio-assets":
+            try:
+                self._send_json(_list_audio_assets())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/se-map":
+            try:
+                self._send_json(_load_se_map())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/scene-bgm":
+            # シーン別BGM編集用: 各シーンの label/bgm/bgmVolume を返す。
+            try:
+                out = {}
+                if os.path.exists(SCENES_JSON):
+                    with open(SCENES_JSON, encoding="utf-8") as f:
+                        scenes = json.load(f).get("scenes", {})
+                    for k, v in scenes.items():
+                        if isinstance(v, dict):
+                            out[k] = {
+                                "label": v.get("label") or k,
+                                "bgm": v.get("bgm"),
+                                "bgmVolume": v.get("bgmVolume"),
+                            }
+                self._send_json(out)
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path.startswith("/img/"):
             rel = path[len("/img/"):]
             safe = _safe_path(VIDEO_PUBLIC_DIR, rel)
@@ -624,6 +720,28 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 data = json.loads(body.decode("utf-8"))
                 _save_story(data)
                 self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/se-map":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                _save_se_map(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/scene-bgm":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                params = json.loads(body.decode("utf-8")) if body else {}
+                n = _update_scene_bgm(params.get("updates", {}))
+                self._send_json({"ok": True, "updated": n})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:
