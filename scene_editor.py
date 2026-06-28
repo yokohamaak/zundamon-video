@@ -244,10 +244,12 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description="シーンライブラリ編集ツール")
     parser.add_argument("--port", type=int, default=8770)
+    parser.add_argument("--host", default="localhost",
+                        help="待受ホスト。Tailscale等でスマホから開くには 0.0.0.0")
     args = parser.parse_args()
 
-    server = ThreadingHTTPServer(("localhost", args.port), SceneEditorHandler)
-    print(f"シーンエディタ起動: http://localhost:{args.port}")
+    server = ThreadingHTTPServer((args.host, args.port), SceneEditorHandler)
+    print(f"シーンエディタ起動: http://{args.host}:{args.port}")
     print("終了: Ctrl+C")
     try:
         server.serve_forever()

@@ -848,7 +848,7 @@ def _run_prep_story():
         print("[story] node が無いため prep-story をスキップ（手動: cd video && node scripts/prep-story.mjs）")
 
 
-def _maybe_start_scene_editor():
+def _maybe_start_scene_editor(host="localhost"):
     # シーンタブの iframe 用に scene_editor(8770) を自動起動する（既に起動済みなら何もしない）。
     scene_py = os.path.join(ROOT_DIR, "scene_editor.py")
     if not os.path.isfile(scene_py):
@@ -858,7 +858,7 @@ def _maybe_start_scene_editor():
         return
     try:
         proc = subprocess.Popen(
-            [sys.executable, scene_py],
+            [sys.executable, scene_py, "--host", host],
             cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         atexit.register(lambda: proc.terminate())
@@ -867,7 +867,7 @@ def _maybe_start_scene_editor():
         print(f"[story] scene_editor の自動起動に失敗: {e}（シーンタブは手動起動が必要）")
 
 
-def _maybe_start_expression_editor():
+def _maybe_start_expression_editor(host="localhost"):
     # 表情タブの iframe 用に expression_editor(8772) を自動起動する（既に起動済みなら何もしない）。
     expr_py = os.path.join(ROOT_DIR, "expression_editor.py")
     if not os.path.isfile(expr_py):
@@ -877,7 +877,7 @@ def _maybe_start_expression_editor():
         return
     try:
         proc = subprocess.Popen(
-            [sys.executable, expr_py],
+            [sys.executable, expr_py, "--host", host],
             cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         atexit.register(lambda: proc.terminate())
@@ -889,14 +889,20 @@ def _maybe_start_expression_editor():
 def main():
     parser = argparse.ArgumentParser(description="ストーリーエディタ")
     parser.add_argument("--port", type=int, default=8771)
+    parser.add_argument("--host", default="localhost",
+                        help="待受ホスト。Tailscale等でスマホから開くには 0.0.0.0")
     args = parser.parse_args()
 
     _run_prep_story()  # 起動時に assets→public を同期(手動 prep-story 不要に)
-    _maybe_start_scene_editor()
-    _maybe_start_expression_editor()
+    # サブエディタ(シーン/表情)も同じホストで待受（スマホからiframeを開けるように）。
+    _maybe_start_scene_editor(args.host)
+    _maybe_start_expression_editor(args.host)
 
-    server = ThreadingHTTPServer(("localhost", args.port), StoryEditorHandler)
-    print(f"ストーリーエディタ起動: http://localhost:{args.port}")
+    server = ThreadingHTTPServer((args.host, args.port), StoryEditorHandler)
+    print(f"ストーリーエディタ起動: http://{args.host}:{args.port}")
+    if args.host == "0.0.0.0":
+        print("[story] Tailscale経由でスマホから開く場合: "
+              f"http://<このPCのTailscale名 or IP>:{args.port}")
     print("終了: Ctrl+C")
     try:
         server.serve_forever()

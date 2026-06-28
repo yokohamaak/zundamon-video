@@ -55,6 +55,10 @@ cmd_scene() { run "$PY scene_editor.py"; }
 # ストーリーエディタ（台本編集ツール）を起動。
 cmd_story() { run "$PY story_editor.py"; }
 
+# ストーリーエディタを 0.0.0.0 で起動（Tailscale経由でスマホから開くレビュー用）。
+# サブエディタ(シーン/表情)も同じく 0.0.0.0 待受になる。
+cmd_story_ts() { run "$PY story_editor.py --host 0.0.0.0"; }
+
 # 表情エディタ（スロット割当・プレビュー・書き出し）を起動。
 # 初回は candidates を事前生成: node video/scripts/psd-export.mjs candidates zundamon/metan
 cmd_expr() { run "$PY expression_editor.py"; }
@@ -84,6 +88,7 @@ cmd_help() {
   render        全体を書き出し → video/out/story.mp4
   still [N]     1フレームだけ静止画 → video/out/still-N.png（確認用）
   story         ストーリーエディタ(台本編集) を起動
+  review-ts     エディタを0.0.0.0で起動（Tailscale経由でスマホから開くレビュー用）
   player-build  エディタ用 Remotion Player をビルド（story の初回起動前に実行）
   scene         シーン編集ツール(anchor/scale) を起動
   expr          表情エディタ(スロット割当・プレビュー・書き出し) を起動
@@ -106,6 +111,7 @@ if [ $# -gt 0 ]; then
     render)        cmd_render ;;
     still)         cmd_still "$(z2h "${2:-0}")" ;;
     story)         cmd_story ;;
+    review-ts)     cmd_story_ts ;;
     player-build)  cmd_player_build ;;
     prep)          cmd_prep ;;
     scene)         cmd_scene ;;
@@ -125,6 +131,7 @@ echo "  3) dev           Studioで全体プレビュー(HMR)"
 echo "  4) render        全体を書き出し → video/out/story.mp4"
 echo "  5) still         1フレーム静止画（フレーム番号を聞く）"
 echo "  6) story         ストーリーエディタ(台本編集)"
+echo "  6t) review-ts    エディタを0.0.0.0で起動（Tailscaleでスマホから）"
 echo "  7) player-build  エディタ用プレイヤーをビルド（初回story前に必要）"
 echo "  8) scene         シーン編集ツール(anchor/scale)"
 echo "  9) expr          表情エディタ(スロット割当・プレビュー・書き出し)"
@@ -139,6 +146,7 @@ case "$n" in
   4) cmd_render ;;
   5) read -rp "フレーム番号: " f; cmd_still "$(z2h "$f")" ;;
   6) cmd_story ;;
+  6t|6T) cmd_story_ts ;;
   7) cmd_player_build ;;
   8) cmd_scene ;;
   9) cmd_expr ;;

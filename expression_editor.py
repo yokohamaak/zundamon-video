@@ -449,12 +449,14 @@ def _ensure_candidates():
 def main():
     parser = argparse.ArgumentParser(description="表情エディタ")
     parser.add_argument("--port", type=int, default=8772)
+    parser.add_argument("--host", default="localhost",
+                        help="待受ホスト。Tailscale等でスマホから開くには 0.0.0.0")
     args = parser.parse_args()
 
     _ensure_candidates()
 
-    server = ThreadingHTTPServer(("localhost", args.port), ExpressionEditorHandler)
-    print(f"表情エディタ起動: http://localhost:{args.port}")
+    server = ThreadingHTTPServer((args.host, args.port), ExpressionEditorHandler)
+    print(f"表情エディタ起動: http://{args.host}:{args.port}")
     print("終了: Ctrl+C")
     try:
         server.serve_forever()
