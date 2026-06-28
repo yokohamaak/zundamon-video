@@ -1687,28 +1687,28 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // INSERT_FADE: フェードイン/アウトの片側秒数。
   const INSERT_FADE = 0.2;
   const activeInsert = active.insert ?? null;
-  // 前のターンの insert を取得（連続同種かどうかの判定）。
   const activeIdx2 = script.findIndex((x) => x.id === active.id);
-  const prevInsertKind = activeIdx2 > 0 ? (script[activeIdx2 - 1].insert?.kind ?? null) : null;
-  // 次のターンの insert を取得（消え際フェードアウト用）。
   const nextTurn2 = activeIdx2 < script.length - 1 ? script[activeIdx2 + 1] : null;
-  const nextInsertKind = nextTurn2?.insert?.kind ?? null;
+  // 隣のターンがインサートを持つか（種別問わず）。インサート同士の間は通常画面を出さない。
+  const prevHasInsert = activeIdx2 > 0 && !!script[activeIdx2 - 1].insert;
+  const nextHasInsert = !!nextTurn2?.insert;
   let insertOpacity = 0;     // パネル本体（in/out両方フェード）
-  let insertBgOpacity = 0;   // 背景＝シーン隠し（フェードイン無しで即カバー・終わりだけフェードアウト）
+  let insertBgOpacity = 0;   // 背景＝シーン隠し
   if (activeInsert) {
-    const isContinuous = prevInsertKind === activeInsert.kind || activeIdx2 === 0;
-    const fadeInProgress = isContinuous
+    // このインサートが画面に出ている終端＝次ターンの開始(無ければ自分のend)。
+    // 空セリフのインサート(end==start)でも次ターンまで表示されるよう実効終端を使う。
+    const dispEnd = nextTurn2 ? nextTurn2.start : active.end;
+    // フェードイン: 直前がインサート/冒頭なら即1。背景はそもそもフェードインしない(即カバー)。
+    const fadeIn = (prevHasInsert || activeIdx2 === 0)
       ? 1
       : clamp((t - active.start) / INSERT_FADE, 0, 1);
-    // フェードアウト: ターン終了直前。次のターンも同種なら即消えない（そのまま 1）。
-    const isContinuousNext = nextInsertKind === activeInsert.kind;
-    const fadeOutProgress = isContinuousNext
+    // フェードアウト: 次がインサートなら消さない(隙間で通常画面を出さない)。
+    // 次が非インサートの時だけ、実効終端へ向けてフェードアウトし次シーンを滑らかに見せる。
+    const fadeOut = nextHasInsert
       ? 1
-      : clamp((active.end - t) / INSERT_FADE, 0, 1);
-    insertOpacity = Math.min(fadeInProgress, fadeOutProgress);
-    // 背景はフェードインしない＝インサートターンに入った瞬間からシーンを完全に隠す。
-    // 終わり際だけ次が非インサートならフェードアウトして次のシーンを滑らかに見せる。
-    insertBgOpacity = fadeOutProgress;
+      : clamp((dispEnd - t) / INSERT_FADE, 0, 1);
+    insertOpacity = Math.min(fadeIn, fadeOut);
+    insertBgOpacity = fadeOut;
   }
 
   return (
