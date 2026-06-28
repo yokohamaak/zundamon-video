@@ -2666,16 +2666,22 @@ function renderSeMapSection() {
       row.appendChild(sel);
       row.appendChild(makeAudioPlayBtn(() => sel.value));
 
-      // ON/OFFチェックボックス
+      // 有効(ON/OFF)チェックボックス＋ラベル
+      const TOOLTIP = "OFFにすると、ファイルを設定していてもこのSEは鳴りません（自動再生を無効化）";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.className = "se-enabled-cb";
       cb.checked = ev.enabled !== false;
-      cb.title = "ON/OFF";
+      cb.title = TOOLTIP;
       cb.addEventListener("change", () => {
         seMap[cat][evtKey].enabled = cb.checked;
       });
-      row.appendChild(cb);
+      const cbLabel = document.createElement("label");
+      cbLabel.style.cssText = "display:flex; align-items:center; gap:4px; flex-shrink:0; font-size:12px; color:var(--text2); cursor:pointer;";
+      cbLabel.title = TOOLTIP;
+      cbLabel.appendChild(cb);
+      cbLabel.appendChild(document.createTextNode("有効"));
+      row.appendChild(cbLabel);
 
       // 音量スライダー
       const volWrap = document.createElement("div");
