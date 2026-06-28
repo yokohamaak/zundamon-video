@@ -301,6 +301,10 @@
     <button class="top-tab" id="tabAudio" data-view="audio">音</button>
   </div>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
+  <select class="field-select" id="idleFaceSel" title="聞き役(非話者)の表情の扱い" style="width:auto; padding:2px 6px; font-size:12px;">
+    <option value="normal">聞き役: 真顔</option>
+    <option value="hold">聞き役: 直前を保持</option>
+  </select>
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
   <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
   <button class="btn btn-secondary" id="btnExport" title="編集中の台本をJSONファイルに書き出す（音声不要・別ストーリーへ切替/再開用）">⬇ エクスポート</button>
@@ -635,6 +639,7 @@ async function init() {
     meta = await metaRes.json();
 
     document.getElementById("storyTitle").value = storyData.title || "";
+    document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
     buildSpeakerSelect();
     buildSceneSelect();
     buildExpressionSelect();
@@ -1982,6 +1987,7 @@ function importStoryFromFile(file) {
       }
       storyData = data;
       document.getElementById("storyTitle").value = storyData.title || "";
+      document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
       selectedIdx = -1;
       renderList();
       renderDetail();
@@ -2281,6 +2287,11 @@ async function refreshExpressions() {
 
 function setupEvents() {
   document.getElementById("btnSave").addEventListener("click", saveStory);
+  document.getElementById("idleFaceSel").addEventListener("change", (e) => {
+    storyData.idleFace = e.target.value;
+    markDirty();
+    notifyPlayerUpdate();
+  });
   document.getElementById("btnExport").addEventListener("click", exportStory);
   document.getElementById("btnImport").addEventListener("click", () => {
     document.getElementById("importFile").click();

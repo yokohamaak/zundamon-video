@@ -111,6 +111,9 @@ export type StoryScript = {
   audio?: string;
   // BGM override 区間（シーン既定より優先）。
   bgm?: BgmOverride[];
+  // 聞き役(非話者)の表情: "normal"=常に真顔(既定) / "hold"=直前に自分が話した表情を保持
+  // （surprise/panic は除外して normal）。
+  idleFace?: "normal" | "hold";
   script: StoryTurn[];
 };
 
@@ -1458,6 +1461,20 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const charExprs = expressions?.[charKey];
     const expressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
 
+    // 非話者(聞き役)の表情。story.idleFace==="hold" のとき「現時刻以前で自分が最後に
+    // 話したターンの表情」を保持する（surprise/panic は一瞬の反応なので normal へ）。
+    // 既定(normal/未指定)は常に normal(真顔)。
+    let idleExprKey = "normal";
+    if (story.idleFace === "hold") {
+      for (const tn of script) {
+        if (tn.start > t) break;
+        if (tn.speaker === charId && tn.expression) idleExprKey = tn.expression;
+      }
+      if (idleExprKey === "surprise" || idleExprKey === "panic") idleExprKey = "normal";
+    }
+    const idleCfg = charExprs?.[idleExprKey] ?? charExprs?.["normal"] ?? null;
+    const idleEmotion = EXPRESSION_TO_EMOTION[idleExprKey] ?? EXPRESSION_TO_EMOTION["normal"];
+
     // 全身 or バスト の判定。figure="full" のとき全身パーツを使う。
     const isFull = (sceneDef.figure ?? "bust") === "full";
     const avatarDir = isFull ? `${cdef.avatar}/full` : cdef.avatar;
@@ -1507,14 +1524,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             active={isSpeaker}
             activatedAtFrame={Math.round(active.start * fps)}
             amplitude={isSpeaker ? speakerAmp : 0}
-            emotion={isSpeaker ? emotion : "normal"}
+            emotion={isSpeaker ? emotion : idleEmotion}
             emotionAtFrame={Math.round(active.start * fps)}
             expressive={!!cdef.expressive}
             flip={flip}
             popScale={false}
             boxWidth={box.w}
             boxHeight={box.h}
-            expressionCfg={isSpeaker ? expressionCfg : (charExprs?.["normal"] ?? null)}
+            expressionCfg={isSpeaker ? expressionCfg : idleCfg}
           />
         </div>
       </div>
