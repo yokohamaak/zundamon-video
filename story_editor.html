@@ -228,6 +228,49 @@
     color: var(--text2); border-radius: 5px; cursor: pointer; font-size: 12px;
   }
   .insert-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── 音タブ共通 ── */
+  .audio-section-header {
+    font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text2); padding: 6px 0 4px; border-top: 1px solid var(--border);
+    margin-top: 6px; margin-bottom: 2px;
+  }
+  .audio-section-header:first-child { border-top: none; margin-top: 0; }
+  .se-event-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; border-bottom: 1px solid rgba(46,51,71,.5);
+  }
+  .se-event-row:last-child { border-bottom: none; }
+  .se-event-label {
+    min-width: 110px; font-size: 12px; color: var(--text); flex-shrink: 0;
+  }
+  .se-event-sel { flex: 1; }
+  .se-event-vol { width: 90px; flex-shrink: 0; }
+  .se-enabled-cb { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+  .scene-bgm-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 0;
+    border-bottom: 1px solid rgba(46,51,71,.5);
+  }
+  .scene-bgm-row:last-child { border-bottom: none; }
+  .scene-bgm-label { min-width: 120px; font-size: 12px; color: var(--text); flex-shrink: 0; }
+  .scene-bgm-sel { flex: 1; }
+  .scene-bgm-vol { width: 90px; flex-shrink: 0; }
+  .bgm-range-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .bgm-range-label { font-size: 11px; color: var(--text2); flex-shrink: 0; }
+  .bgm-range-num { width: 58px; }
+  .vol-display { font-size: 11px; color: var(--text2); min-width: 28px; text-align: right; flex-shrink: 0; }
+  /* ターン詳細内手動SE */
+  .se-manual-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+  }
+  .se-manual-row:last-child { margin-bottom: 0; }
+  .se-manual-sel { flex: 1; }
+  .se-manual-at { width: 60px; }
+  .se-manual-vol { width: 70px; }
 </style>
 </head>
 <body>
@@ -239,6 +282,7 @@
     <button class="top-tab" id="tabScene" data-view="scene">シーン</button>
     <button class="top-tab" id="tabExpr" data-view="expr">表情</button>
     <button class="top-tab" id="tabGen" data-view="gen">台本生成</button>
+    <button class="top-tab" id="tabAudio" data-view="audio">音</button>
   </div>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
@@ -319,6 +363,10 @@
             <input type="number" class="field-input" id="fPause" min="0" step="0.1" placeholder="0.0">
           </div>
 
+          <div class="section-divider">SE（任意）</div>
+          <div id="fSeList" style="margin-bottom:4px;"></div>
+          <button class="insert-add-btn" id="btnAddSe" style="margin-bottom:8px;">＋ SE追加</button>
+
           <div class="section-divider">登退場</div>
           <div class="field-row">
             <label class="field-label">enter（このセリフで登場）</label>
@@ -367,6 +415,56 @@
 <!-- 表情編集（expression_editor を iframe 埋め込み。story_editor 起動時に expression_editor も自動起動） -->
 <div class="expr-view" id="viewExpr" style="display:none;">
   <iframe id="exprFrame" title="表情編集"></iframe>
+</div>
+
+<!-- 音(BGM/SE)タブ -->
+<div id="viewAudio" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
+  <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:28px;">
+
+    <!-- セクションA: SE自動マッピング -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        SE 自動マッピング
+      </div>
+      <div id="seMapContainer" style="display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
+        <button class="btn btn-primary btn-sm" id="btnSaveSeMap">SEマッピングを保存</button>
+        <span id="seMapStatus" style="font-size:12px;"></span>
+      </div>
+    </div>
+
+    <!-- セクションB: シーン別BGM -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        シーン別 BGM
+      </div>
+      <div id="sceneBgmContainer" style="display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
+        <button class="btn btn-primary btn-sm" id="btnSaveSceneBgm">シーンBGMを保存</button>
+        <span id="sceneBgmStatus" style="font-size:12px;"></span>
+      </div>
+    </div>
+
+    <!-- セクションC: BGM上書き区間 -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        BGM 上書き区間
+      </div>
+      <div style="font-size:12px; color:var(--text2); line-height:1.6; background:rgba(91,141,238,.07); border:1px solid rgba(91,141,238,.2); border-radius:5px; padding:8px 12px;">
+        シーン別BGMより優先されます。保存は上部の 💾 保存（台本保存）で行われます。
+      </div>
+      <!-- タイムライン帯 -->
+      <canvas id="bgmTimeline" height="28" style="width:100%; height:28px; border-radius:4px; background:var(--surface2); border:1px solid var(--border); display:none;"></canvas>
+      <!-- 区間リスト -->
+      <div id="bgmOverrideList" style="display:flex; flex-direction:column; gap:6px;"></div>
+      <button class="insert-add-btn" id="btnAddBgmRange">＋ 区間追加</button>
+    </div>
+
+  </div>
 </div>
 
 <!-- 台本生成（プロンプト生成＋AI出力取り込み） -->
@@ -791,6 +889,9 @@ function renderDetail() {
   setMultiSelect("fEnter", turn.enter || []);
   setMultiSelect("fExit", turn.exit || []);
   setField("fExitDir", "select", turn.exitDir || "");
+
+  // ── 手動SE ──
+  renderManualSe();
 
   // ── インサートタブ ──
   const kind = turn.insert ? turn.insert.kind : "";
@@ -1456,28 +1557,31 @@ function showImportReport(turns, report) {
 // ============================================================
 // イベント設定
 // ============================================================
-// 台本/シーン/表情/台本生成 タブ切替。
+// 台本/シーン/表情/台本生成/音 タブ切替。
 // シーンは scene_editor(8770)、表情は expression_editor(8772) を iframe で埋め込み（初回のみ読み込み）。
 function setupTabs() {
   const tScript = document.getElementById("tabScript");
   const tScene = document.getElementById("tabScene");
   const tExpr = document.getElementById("tabExpr");
   const tGen = document.getElementById("tabGen");
+  const tAudio = document.getElementById("tabAudio");
   const vScript = document.getElementById("viewScript");
   const vScene = document.getElementById("viewScene");
   const vExpr = document.getElementById("viewExpr");
   const vGen = document.getElementById("viewGen");
+  const vAudio = document.getElementById("viewAudio");
   const sceneFrame = document.getElementById("sceneFrame");
   const exprFrame = document.getElementById("exprFrame");
 
   function activateTab(active) {
     // タブボタンのactive切替
-    [tScript, tScene, tExpr, tGen].forEach(t => t.classList.toggle("active", t === active));
-    // ビューの表示/非表示（viewGen は flex なので空文字では flex で表示する）
+    [tScript, tScene, tExpr, tGen, tAudio].forEach(t => t.classList.toggle("active", t === active));
+    // ビューの表示/非表示（viewGen/viewAudio は flex なので空文字では flex で表示する）
     vScript.style.display = active === tScript ? "" : "none";
     vScene.style.display = active === tScene ? "" : "none";
     vExpr.style.display = active === tExpr ? "" : "none";
     vGen.style.display = active === tGen ? "flex" : "none";
+    vAudio.style.display = active === tAudio ? "flex" : "none";
   }
 
   tScript.addEventListener("click", () => {
@@ -1502,6 +1606,10 @@ function setupTabs() {
   });
   tGen.addEventListener("click", () => {
     activateTab(tGen);
+  });
+  tAudio.addEventListener("click", () => {
+    activateTab(tAudio);
+    loadAudioPanel();
   });
 }
 
@@ -1579,6 +1687,25 @@ function setupEvents() {
     markDirty();
     renderList();
     notifyPlayerUpdate();
+  });
+
+  // 音タブ: SEマッピング保存
+  document.getElementById("btnSaveSeMap").addEventListener("click", saveSeMap);
+
+  // 音タブ: シーンBGM保存
+  document.getElementById("btnSaveSceneBgm").addEventListener("click", saveSceneBgm);
+
+  // 音タブ: BGM上書き区間追加
+  document.getElementById("btnAddBgmRange").addEventListener("click", addBgmRange);
+
+  // 基本タブ: 手動SE追加
+  document.getElementById("btnAddSe").addEventListener("click", () => {
+    if (selectedIdx < 0) return;
+    const turn = storyData.script[selectedIdx];
+    if (!turn.se) turn.se = [];
+    turn.se.push({ file: "" });
+    markDirty();
+    renderManualSe();
   });
 
   // 台本生成タブ: プロンプト生成
@@ -1713,6 +1840,521 @@ function buildDefaultInsert(kind, prev) {
     };
   }
   return { kind };
+}
+
+// ============================================================
+// 音タブ: 状態
+// ============================================================
+let audioAssets = null;   // { bgm: [...], se: [...] }
+let seMap = null;         // se-map.json の中身
+let sceneBgmData = null;  // { sceneKey: {label, bgm, bgmVolume}, ... }
+let audioLoaded = false;  // 初回ロード済みフラグ
+
+// ============================================================
+// 音タブ: メインロード
+// ============================================================
+async function loadAudioPanel() {
+  // 既ロード済みなら更新しない（再描画のみ）。
+  // 毎回再取得したい場合は audioLoaded をリセットして呼べばよい。
+  if (audioLoaded) return;
+  try {
+    const [assetsRes, seRes, sceneBgmRes] = await Promise.all([
+      fetch("/api/audio-assets"),
+      fetch("/api/se-map"),
+      fetch("/api/scene-bgm"),
+    ]);
+    audioAssets = await assetsRes.json();
+    seMap = await seRes.json();
+    sceneBgmData = await sceneBgmRes.json();
+    audioLoaded = true;
+    renderSeMapSection();
+    renderSceneBgmSection();
+    renderBgmOverrideSection();
+  } catch (e) {
+    document.getElementById("seMapContainer").innerHTML =
+      "<div style=\"color:var(--danger);font-size:12px;\">読み込みエラー: " + e.message + "</div>";
+  }
+}
+
+// ============================================================
+// セクションA: SE自動マッピング
+// ============================================================
+function renderSeMapSection() {
+  const container = document.getElementById("seMapContainer");
+  container.innerHTML = "";
+
+  const CATEGORY_LABELS = {
+    expression: "表情",
+    effect: "エフェクト",
+    insert: "インサート",
+    transition: "場面転換",
+  };
+
+  const categories = Object.keys(CATEGORY_LABELS);
+  for (const cat of categories) {
+    const events = seMap[cat] || {};
+    const eventKeys = Object.keys(events);
+    if (eventKeys.length === 0) continue;
+
+    // カテゴリ見出し
+    const hdr = document.createElement("div");
+    hdr.className = "audio-section-header";
+    hdr.textContent = CATEGORY_LABELS[cat];
+    container.appendChild(hdr);
+
+    for (const evtKey of eventKeys) {
+      const ev = events[evtKey] || {};
+      const row = document.createElement("div");
+      row.className = "se-event-row";
+
+      // イベント名ラベル
+      const lbl = document.createElement("span");
+      lbl.className = "se-event-label";
+      lbl.textContent = evtKey;
+      row.appendChild(lbl);
+
+      // SEファイル ドロップダウン
+      const sel = document.createElement("select");
+      sel.className = "field-select se-event-sel";
+      const noneOpt = document.createElement("option");
+      noneOpt.value = ""; noneOpt.textContent = "なし";
+      sel.appendChild(noneOpt);
+      for (const seFile of (audioAssets.se || [])) {
+        const opt = document.createElement("option");
+        opt.value = seFile; opt.textContent = seFile;
+        sel.appendChild(opt);
+      }
+      sel.value = ev.file || "";
+      sel.addEventListener("change", () => {
+        seMap[cat][evtKey].file = sel.value;
+      });
+      row.appendChild(sel);
+
+      // ON/OFFチェックボックス
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "se-enabled-cb";
+      cb.checked = ev.enabled !== false;
+      cb.title = "ON/OFF";
+      cb.addEventListener("change", () => {
+        seMap[cat][evtKey].enabled = cb.checked;
+      });
+      row.appendChild(cb);
+
+      // 音量スライダー
+      const volWrap = document.createElement("div");
+      volWrap.style.cssText = "display:flex; align-items:center; gap:4px; flex-shrink:0;";
+      const volSlider = document.createElement("input");
+      volSlider.type = "range"; volSlider.min = "0"; volSlider.max = "1"; volSlider.step = "0.05";
+      volSlider.value = ev.volume != null ? ev.volume : 0.8;
+      volSlider.className = "se-event-vol";
+      volSlider.style.cssText = "width:90px; accent-color:var(--accent);";
+      const volDisp = document.createElement("span");
+      volDisp.className = "vol-display";
+      volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
+      volSlider.addEventListener("input", () => {
+        const v = parseFloat(volSlider.value);
+        volDisp.textContent = v.toFixed(2);
+        seMap[cat][evtKey].volume = v;
+      });
+      volWrap.appendChild(volSlider);
+      volWrap.appendChild(volDisp);
+      row.appendChild(volWrap);
+
+      container.appendChild(row);
+    }
+  }
+
+  if (container.children.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">SEマップが空です（se-map.json が未作成）</div>";
+  }
+}
+
+async function saveSeMap() {
+  const statusEl = document.getElementById("seMapStatus");
+  statusEl.style.color = "var(--text2)";
+  statusEl.textContent = "保存中...";
+  try {
+    const r = await fetch("/api/se-map", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(seMap),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      statusEl.style.color = "var(--green)";
+      statusEl.textContent = "保存しました";
+      setTimeout(() => { statusEl.textContent = ""; }, 2500);
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "保存失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
+}
+
+// ============================================================
+// セクションB: シーン別BGM
+// ============================================================
+function renderSceneBgmSection() {
+  const container = document.getElementById("sceneBgmContainer");
+  container.innerHTML = "";
+
+  const sceneKeys = Object.keys(sceneBgmData || {});
+  if (sceneKeys.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">シーンが未登録です</div>";
+    return;
+  }
+
+  for (const sk of sceneKeys) {
+    const sc = sceneBgmData[sk];
+    const row = document.createElement("div");
+    row.className = "scene-bgm-row";
+
+    // シーン名ラベル
+    const lbl = document.createElement("span");
+    lbl.className = "scene-bgm-label";
+    lbl.textContent = sc.label || sk;
+    lbl.title = sk;
+    row.appendChild(lbl);
+
+    // BGMドロップダウン
+    const sel = document.createElement("select");
+    sel.className = "field-select scene-bgm-sel";
+    sel.dataset.key = sk;
+    const noneOpt = document.createElement("option");
+    noneOpt.value = ""; noneOpt.textContent = "なし";
+    sel.appendChild(noneOpt);
+    for (const bgmFile of (audioAssets.bgm || [])) {
+      const opt = document.createElement("option");
+      opt.value = bgmFile; opt.textContent = bgmFile;
+      sel.appendChild(opt);
+    }
+    sel.value = sc.bgm || "";
+    row.appendChild(sel);
+
+    // 音量スライダー
+    const volWrap = document.createElement("div");
+    volWrap.style.cssText = "display:flex; align-items:center; gap:4px; flex-shrink:0;";
+    const volSlider = document.createElement("input");
+    volSlider.type = "range"; volSlider.min = "0"; volSlider.max = "1"; volSlider.step = "0.05";
+    volSlider.value = sc.bgmVolume != null ? sc.bgmVolume : 0.25;
+    volSlider.className = "scene-bgm-vol";
+    volSlider.style.cssText = "width:90px; accent-color:var(--accent);";
+    const volDisp = document.createElement("span");
+    volDisp.className = "vol-display";
+    volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
+    volSlider.addEventListener("input", () => {
+      volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
+    });
+    volWrap.appendChild(volSlider);
+    volWrap.appendChild(volDisp);
+    row.appendChild(volWrap);
+
+    container.appendChild(row);
+  }
+}
+
+async function saveSceneBgm() {
+  const statusEl = document.getElementById("sceneBgmStatus");
+  statusEl.style.color = "var(--text2)";
+  statusEl.textContent = "保存中...";
+  try {
+    // UI から収集
+    const updates = {};
+    const container = document.getElementById("sceneBgmContainer");
+    const rows = container.querySelectorAll(".scene-bgm-row");
+    for (const row of rows) {
+      const sel = row.querySelector(".scene-bgm-sel");
+      const volSlider = row.querySelector("input[type=range]");
+      if (!sel) continue;
+      const sk = sel.dataset.key;
+      updates[sk] = {
+        bgm: sel.value || null,
+        volume: volSlider ? parseFloat(volSlider.value) : 0.25,
+      };
+    }
+    const r = await fetch("/api/scene-bgm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      statusEl.style.color = "var(--green)";
+      statusEl.textContent = "保存しました";
+      setTimeout(() => { statusEl.textContent = ""; }, 2500);
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "保存失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
+}
+
+// ============================================================
+// セクションC: BGM上書き区間
+// ============================================================
+function renderBgmOverrideSection() {
+  const list = document.getElementById("bgmOverrideList");
+  list.innerHTML = "";
+  const ranges = (storyData && storyData.bgm) ? storyData.bgm : [];
+  for (let i = 0; i < ranges.length; i++) {
+    list.appendChild(makeBgmRangeItem(i, ranges[i]));
+  }
+  drawBgmTimeline();
+}
+
+function makeBgmRangeItem(idx, range) {
+  const item = document.createElement("div");
+  item.className = "bgm-range-item";
+
+  // from
+  const fromLbl = document.createElement("span");
+  fromLbl.className = "bgm-range-label"; fromLbl.textContent = "from";
+  const fromInp = document.createElement("input");
+  fromInp.type = "number"; fromInp.className = "field-input bgm-range-num";
+  fromInp.min = "0"; fromInp.step = "1";
+  fromInp.value = range.from != null ? range.from : 0;
+  fromInp.addEventListener("input", () => {
+    if (!storyData.bgm) return;
+    storyData.bgm[idx].from = parseInt(fromInp.value, 10) || 0;
+    markDirty();
+    drawBgmTimeline();
+  });
+
+  // to
+  const toLbl = document.createElement("span");
+  toLbl.className = "bgm-range-label"; toLbl.textContent = "to";
+  const toInp = document.createElement("input");
+  toInp.type = "number"; toInp.className = "field-input bgm-range-num";
+  toInp.min = "0"; toInp.step = "1";
+  toInp.value = range.to != null ? range.to : 0;
+  toInp.addEventListener("input", () => {
+    if (!storyData.bgm) return;
+    storyData.bgm[idx].to = parseInt(toInp.value, 10) || 0;
+    markDirty();
+    drawBgmTimeline();
+  });
+
+  // BGMファイル
+  const fileSel = document.createElement("select");
+  fileSel.className = "field-select";
+  fileSel.style.flex = "1";
+  const noneOpt2 = document.createElement("option");
+  noneOpt2.value = ""; noneOpt2.textContent = "なし";
+  fileSel.appendChild(noneOpt2);
+  for (const bgmFile of (audioAssets ? (audioAssets.bgm || []) : [])) {
+    const opt = document.createElement("option");
+    opt.value = bgmFile; opt.textContent = bgmFile;
+    fileSel.appendChild(opt);
+  }
+  fileSel.value = range.file || "";
+  fileSel.addEventListener("change", () => {
+    if (!storyData.bgm) return;
+    storyData.bgm[idx].file = fileSel.value;
+    markDirty();
+  });
+
+  // 音量
+  const volLbl = document.createElement("span");
+  volLbl.className = "bgm-range-label"; volLbl.textContent = "音量";
+  const volSlider = document.createElement("input");
+  volSlider.type = "range"; volSlider.min = "0"; volSlider.max = "1"; volSlider.step = "0.05";
+  volSlider.style.cssText = "width:80px; accent-color:var(--accent);";
+  volSlider.value = range.volume != null ? range.volume : 0.25;
+  const volDisp2 = document.createElement("span");
+  volDisp2.className = "vol-display";
+  volDisp2.textContent = parseFloat(volSlider.value).toFixed(2);
+  volSlider.addEventListener("input", () => {
+    volDisp2.textContent = parseFloat(volSlider.value).toFixed(2);
+    if (!storyData.bgm) return;
+    storyData.bgm[idx].volume = parseFloat(volSlider.value);
+    markDirty();
+  });
+
+  // 削除ボタン
+  const delBtn = document.createElement("button");
+  delBtn.className = "btn btn-danger btn-sm";
+  delBtn.textContent = "削除";
+  delBtn.addEventListener("click", () => {
+    if (!storyData.bgm) return;
+    storyData.bgm.splice(idx, 1);
+    markDirty();
+    renderBgmOverrideSection();
+  });
+
+  item.appendChild(fromLbl); item.appendChild(fromInp);
+  item.appendChild(toLbl); item.appendChild(toInp);
+  item.appendChild(fileSel);
+  item.appendChild(volLbl); item.appendChild(volSlider); item.appendChild(volDisp2);
+  item.appendChild(delBtn);
+  return item;
+}
+
+function addBgmRange() {
+  if (!storyData.bgm) storyData.bgm = [];
+  const total = storyData.script ? storyData.script.length : 0;
+  storyData.bgm.push({ from: 0, to: Math.max(0, total - 1), file: "", volume: 0.25 });
+  markDirty();
+  renderBgmOverrideSection();
+}
+
+function drawBgmTimeline() {
+  const canvas = document.getElementById("bgmTimeline");
+  if (!canvas) return;
+  const total = storyData && storyData.script ? storyData.script.length : 0;
+  const ranges = (storyData && storyData.bgm) ? storyData.bgm : [];
+  if (total === 0 || ranges.length === 0) {
+    canvas.style.display = "none";
+    return;
+  }
+  canvas.style.display = "block";
+  const W = canvas.offsetWidth || 800;
+  canvas.width = W;
+  const H = canvas.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, W, H);
+
+  // 背景
+  ctx.fillStyle = "#22263a";
+  ctx.fillRect(0, 0, W, H);
+
+  // ターン区切り（薄い縦線）
+  for (let i = 0; i <= total; i++) {
+    const x = Math.round((i / total) * W);
+    ctx.fillStyle = "#2e3347";
+    ctx.fillRect(x, 0, 1, H);
+  }
+
+  // 色パレット（区間ごとに色変え）
+  const COLORS = ["#5b8dee", "#4ade80", "#fbbf24", "#f87171", "#a78bfa", "#38bdf8"];
+  for (let i = 0; i < ranges.length; i++) {
+    const r = ranges[i];
+    const x1 = Math.round((Math.max(0, r.from) / total) * W);
+    const x2 = Math.round((Math.min(total - 1, r.to) + 1) / total * W);
+    const col = COLORS[i % COLORS.length];
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = col;
+    ctx.fillRect(x1, 2, Math.max(2, x2 - x1), H - 4);
+    ctx.globalAlpha = 1;
+    // ラベル
+    if (x2 - x1 > 20) {
+      ctx.fillStyle = "#fff";
+      ctx.font = "10px system-ui, sans-serif";
+      ctx.fillText(r.file ? r.file.replace(/^bgm\//, "") : "?", x1 + 3, H - 4);
+    }
+  }
+}
+
+// ============================================================
+// ターン詳細: 手動SE
+// ============================================================
+function renderManualSe() {
+  const list = document.getElementById("fSeList");
+  if (!list) return;
+  list.innerHTML = "";
+  if (selectedIdx < 0) return;
+  const turn = storyData.script[selectedIdx];
+  const seItems = (turn.se) ? turn.se : [];
+  for (let i = 0; i < seItems.length; i++) {
+    list.appendChild(makeManualSeRow(i, seItems[i]));
+  }
+}
+
+function makeManualSeRow(idx, seItem) {
+  const row = document.createElement("div");
+  row.className = "se-manual-row";
+
+  // SEファイル選択
+  const sel = document.createElement("select");
+  sel.className = "field-select se-manual-sel";
+  const noneOpt = document.createElement("option");
+  noneOpt.value = ""; noneOpt.textContent = "なし";
+  sel.appendChild(noneOpt);
+  const seFiles = audioAssets ? (audioAssets.se || []) : [];
+  for (const f of seFiles) {
+    const opt = document.createElement("option");
+    opt.value = f; opt.textContent = f.replace(/^se\//, "");
+    sel.appendChild(opt);
+  }
+  // audioAssetsが未ロードの場合、現在値だけ追加して保持
+  if (seItem.file && !seFiles.includes(seItem.file)) {
+    const opt = document.createElement("option");
+    opt.value = seItem.file; opt.textContent = seItem.file;
+    sel.insertBefore(opt, sel.firstChild);
+  }
+  sel.value = seItem.file || "";
+  sel.addEventListener("change", () => { collectManualSe(); });
+  row.appendChild(sel);
+
+  // at（オフセット秒）
+  const atLbl = document.createElement("span");
+  atLbl.style.cssText = "font-size:11px; color:var(--text2); flex-shrink:0;";
+  atLbl.textContent = "at";
+  const atInp = document.createElement("input");
+  atInp.type = "number"; atInp.className = "field-input se-manual-at";
+  atInp.min = "0"; atInp.step = "0.1"; atInp.placeholder = "0.0";
+  atInp.value = seItem.at != null ? seItem.at : "";
+  atInp.addEventListener("input", () => { collectManualSe(); });
+  row.appendChild(atLbl); row.appendChild(atInp);
+
+  // 音量
+  const volLbl = document.createElement("span");
+  volLbl.style.cssText = "font-size:11px; color:var(--text2); flex-shrink:0;";
+  volLbl.textContent = "vol";
+  const volInp = document.createElement("input");
+  volInp.type = "number"; volInp.className = "field-input se-manual-vol";
+  volInp.min = "0"; volInp.max = "1"; volInp.step = "0.05"; volInp.placeholder = "0.8";
+  volInp.value = seItem.volume != null ? seItem.volume : "";
+  volInp.addEventListener("input", () => { collectManualSe(); });
+  row.appendChild(volLbl); row.appendChild(volInp);
+
+  // 削除ボタン
+  const delBtn = document.createElement("button");
+  delBtn.className = "btn btn-danger btn-sm";
+  delBtn.style.flexShrink = "0";
+  delBtn.textContent = "×";
+  delBtn.addEventListener("click", () => {
+    if (selectedIdx < 0) return;
+    const t = storyData.script[selectedIdx];
+    if (!t.se) return;
+    t.se.splice(idx, 1);
+    if (t.se.length === 0) delete t.se;
+    markDirty();
+    renderManualSe();
+  });
+  row.appendChild(delBtn);
+  return row;
+}
+
+function collectManualSe() {
+  if (selectedIdx < 0) return;
+  const list = document.getElementById("fSeList");
+  if (!list) return;
+  const rows = list.querySelectorAll(".se-manual-row");
+  const items = [];
+  for (const row of rows) {
+    const sel = row.querySelector(".se-manual-sel");
+    const atInp = row.querySelector(".se-manual-at");
+    const volInp = row.querySelector(".se-manual-vol");
+    if (!sel || !sel.value) continue;
+    const obj = { file: sel.value };
+    if (atInp && atInp.value !== "") obj.at = parseFloat(atInp.value);
+    if (volInp && volInp.value !== "") obj.volume = parseFloat(volInp.value);
+    items.push(obj);
+  }
+  const turn = storyData.script[selectedIdx];
+  if (items.length > 0) {
+    turn.se = items;
+  } else {
+    delete turn.se;
+  }
+  markDirty();
 }
 
 // ============================================================
