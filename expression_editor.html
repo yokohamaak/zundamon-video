@@ -291,9 +291,9 @@ const EXPR_LABEL = {
   "panic": "パニック (panic)",
 };
 
-// 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
-// タスクA: shadow 追加、タスクB: bangs 追加
-const LAYER_KEYS = ["base", "cheek", "shadow", "arm", "brow", "eye", "mouth", "bangs", "fx"];
+// 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+// !顔色グループ内は下→上が かげり→青ざめ（shadowをcheekより下に）。bangsはmouthの後。
+const LAYER_KEYS = ["base", "shadow", "cheek", "arm", "brow", "eye", "mouth", "bangs", "fx"];
 
 // ============================================================
 // 初期化
@@ -627,13 +627,13 @@ function renderPreview() {
   const charCat = catalog?.[currentChar];
   const cfg = currentCfg();
 
-  // 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
-  // タスクA: shadow 追加（cheekの直後）、タスクB: bangs 追加（mouthの後）
+  // 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+  // !顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に。
   // mouth は currentMouthSlot の値を使う
   const layers = [
     { key: "base",   src: charCat?.base ? "/img/" + charCat.base : null },
-    { key: "cheek",  src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
     { key: "shadow", src: _candidateSrc(charCat, "shadow", cfg["shadow"]) },
+    { key: "cheek",  src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
     { key: "arm",    src: charCat?.arm  ? "/img/" + charCat.arm  : null },
     { key: "brow",   src: _candidateSrc(charCat, "brow",   cfg["brow"]) },
     { key: "eye",    src: _candidateSrc(charCat, "eye",    cfg["eye"]) },

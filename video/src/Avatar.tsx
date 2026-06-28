@@ -363,14 +363,16 @@ export const Avatar: React.FC<{
   if (surprised && part("arm_raise")) armStem = "arm_raise";
   const armSrc = part(armStem);
 
-  // ③ 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
-  //    （タスクA: shadowをcheekの直後に追加）
+  // ③ 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+  //    （!顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に）
   //    （タスクB: bangsをmouthの後・fxの前に追加。metanのみ、zundaはnull）
   return wrap(
     <>
       {layer(part("base")!, "base")}
-      {cheekSrc ? layer(cheekSrc, "cheek") : null}
+      {/* PSDの!顔色グループ内は下→上が かげり→青ざめ→…。よって shadow(かげり)を
+          cheek(青ざめ/ほっぺ等)より下に描く。 */}
       {shadowSrc ? layer(shadowSrc, "shadow") : null}
+      {cheekSrc ? layer(cheekSrc, "cheek") : null}
       {armSrc ? layer(armSrc, "arm") : null}
       {browSrc ? layer(browSrc, "brow") : null}
       {eyeSrc ? layer(eyeSrc, "eye") : null}
