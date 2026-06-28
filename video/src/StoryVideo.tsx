@@ -93,15 +93,18 @@ export type StoryTurn = {
   sentences?: StorySentence[];
 };
 
-// BGM override 区間（from/to=ターンindex 0始まり・both inclusive）。
-export type BgmOverride = {
-  from: number;
-  to: number;
+// BGM 区間。時間ベース（start/end=秒）。タイムラインでD&D編集する。
+// この配列があれば BGM はこれが唯一の真実（区間の隙間=無音）。空ならシーン連動にフォールバック。
+export type BgmRegion = {
+  start: number; // 秒
+  end: number;   // 秒
   file: string;
   volume?: number;
   fadeIn?: number;
   fadeOut?: number;
 };
+// 後方互換の別名（旧名）。
+export type BgmOverride = BgmRegion;
 
 export type StoryScript = {
   title?: string;
@@ -1027,30 +1030,19 @@ function targetCam(
 }
 
 // ─── BGMレイヤー ────────────────────────────────────────────
-// 各ターンの有効BGM = override区間 ?? シーン既定。連続同一fileをまとめて1Sequenceに。
+// BGM。story.bgm(時間ベース区間)があればそれを再生（隙間=無音）。無ければシーン連動。
 const BgmLayer: React.FC<{
   script: StoryTurn[];
   scenes: SceneLibrary;
-  bgmOverrides?: BgmOverride[];
+  bgmRegions?: BgmRegion[];
   fps: number;
-}> = ({ script, scenes, bgmOverrides, fps }) => {
-  // 各ターンの有効BGMを解決する。
+}> = ({ script, scenes, bgmRegions, fps }) => {
   type BgmInfo = { file: string; volume: number; fadeIn: number; fadeOut: number };
   const BGM_DEFAULT_VOL = 0.25;
   const BGM_DEFAULT_FADE = 0.6;
 
-  const turnBgm = (turnIdx: number, turn: StoryTurn): BgmInfo | null => {
-    // override区間が覆うか確認（from<=idx<=to）。
-    const ov = bgmOverrides?.find((o) => o.from <= turnIdx && turnIdx <= o.to);
-    if (ov) {
-      if (!ov.file) return null;
-      return {
-        file: ov.file,
-        volume: ov.volume ?? BGM_DEFAULT_VOL,
-        fadeIn: ov.fadeIn ?? BGM_DEFAULT_FADE,
-        fadeOut: ov.fadeOut ?? BGM_DEFAULT_FADE,
-      };
-    }
+  // フォールバック用: シーン連動BGMの解決。
+  const turnBgm = (_turnIdx: number, turn: StoryTurn): BgmInfo | null => {
     const sceneDef = scenes.scenes[turn.scene];
     if (!sceneDef?.bgm) return null;
     return {
@@ -1061,7 +1053,6 @@ const BgmLayer: React.FC<{
     };
   };
 
-  // 連続する同一fileのターンをまとめて区間(startSec,endSec)を作る。
   type BgmSegment = {
     file: string;
     volume: number;
@@ -1071,35 +1062,46 @@ const BgmLayer: React.FC<{
     endSec: number;
   };
 
-  const segments: BgmSegment[] = [];
-  for (let i = 0; i < script.length; i++) {
-    const turn = script[i];
-    const info = turnBgm(i, turn);
-    if (!info) {
-      // BGMなし → 前区間を閉じる（file が違うので自動的に別区間）
-      segments.push({ file: "", volume: 0, fadeIn: 0, fadeOut: 0, startSec: 0, endSec: 0 }); // sentinel
-      continue;
+  let validSegs: BgmSegment[];
+  if (bgmRegions && bgmRegions.length > 0) {
+    // ── 時間ベース（タイムライン編集）── これが唯一の真実。隙間=無音。
+    validSegs = bgmRegions
+      .filter((r) => r.file && r.end > r.start)
+      .map((r) => ({
+        file: r.file,
+        volume: r.volume ?? BGM_DEFAULT_VOL,
+        fadeIn: r.fadeIn ?? BGM_DEFAULT_FADE,
+        fadeOut: r.fadeOut ?? BGM_DEFAULT_FADE,
+        startSec: r.start,
+        endSec: r.end,
+      }));
+  } else {
+    // ── フォールバック: シーン連動BGMを per-turn で区間化 ──
+    const segments: BgmSegment[] = [];
+    for (let i = 0; i < script.length; i++) {
+      const turn = script[i];
+      const info = turnBgm(i, turn);
+      if (!info) {
+        segments.push({ file: "", volume: 0, fadeIn: 0, fadeOut: 0, startSec: 0, endSec: 0 });
+        continue;
+      }
+      const last = segments[segments.length - 1];
+      if (last && last.file === info.file) {
+        last.endSec = turn.end;
+        last.fadeOut = info.fadeOut;
+      } else {
+        segments.push({
+          file: info.file,
+          volume: info.volume,
+          fadeIn: info.fadeIn,
+          fadeOut: info.fadeOut,
+          startSec: turn.start,
+          endSec: turn.end,
+        });
+      }
     }
-    const last = segments[segments.length - 1];
-    if (last && last.file === info.file) {
-      // 同一ファイルならまとめる。
-      last.endSec = turn.end;
-      // fadeIn/fadeOut は区間の端を使う（最初・最後のオーバーライドを適用）。
-      last.fadeOut = info.fadeOut;
-    } else {
-      segments.push({
-        file: info.file,
-        volume: info.volume,
-        fadeIn: info.fadeIn,
-        fadeOut: info.fadeOut,
-        startSec: turn.start,
-        endSec: turn.end,
-      });
-    }
+    validSegs = segments.filter((s) => !!s.file);
   }
-
-  // file 空（sentinel 含む）をフィルタ。
-  const validSegs = segments.filter((s) => !!s.file);
 
   return (
     <>
@@ -1703,7 +1705,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       <BgmLayer
         script={script}
         scenes={scenes}
-        bgmOverrides={story.bgm}
+        bgmRegions={story.bgm}
         fps={fps}
       />
       <SeLayer
