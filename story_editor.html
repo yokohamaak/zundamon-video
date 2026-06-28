@@ -390,8 +390,15 @@
         <label class="field-label" for="genNotes">トーン・補足（任意）</label>
         <textarea class="field-textarea" id="genNotes" rows="2" placeholder="例: ずんだもん＋めたんの掛け合い、子供向けに分かりやすく"></textarea>
       </div>
-      <div>
-        <button class="btn btn-primary" id="btnGenPrompt">プロンプト生成</button>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="genExperimental" style="accent-color:var(--accent); width:14px; height:14px; margin-top:2px; flex-shrink:0; cursor:pointer;">
+          <span style="font-size:13px; line-height:1.5;">
+            新しい演出も提案させる（実験版）
+            <span style="display:block; font-size:11px; color:var(--text2); margin-top:1px;">未対応の新演出/新シーンをAIに考案させ、読込時に一覧表示します</span>
+          </span>
+        </label>
+        <button class="btn btn-primary" id="btnGenPrompt" style="align-self:flex-start;">プロンプト生成</button>
       </div>
       <div style="display:flex; flex-direction:column; gap:6px;">
         <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -422,6 +429,8 @@
         <button class="btn btn-primary" id="btnImportScript">取り込んで読込</button>
         <span id="genImportStatus" style="font-size:12px;"></span>
       </div>
+      <!-- 取り込み結果レポート（成功時のみ表示） -->
+      <div id="genImportResult" style="display:none;"></div>
     </div>
 
   </div>
@@ -1351,6 +1360,100 @@ function setStatus(cls, msg) {
 }
 
 // ============================================================
+// 台本生成タブ: 取り込み結果レポート表示
+// ============================================================
+function showImportReport(turns, report) {
+  const container = document.getElementById("genImportResult");
+  if (!container) return;
+  container.innerHTML = "";
+  container.style.display = "block";
+
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:16px; display:flex; flex-direction:column; gap:10px;";
+
+  // ヘッダ行
+  const header = document.createElement("div");
+  header.style.cssText = "font-weight:700; font-size:13px; color:var(--green);";
+  header.textContent = "取り込み完了: " + turns + " ターン";
+  wrap.appendChild(header);
+
+  const hasReport = report && (
+    Object.keys(report.newScenes || {}).length > 0 ||
+    Object.keys(report.newFields || {}).length > 0 ||
+    Object.keys(report.newExpr || {}).length > 0 ||
+    Object.keys(report.newInserts || {}).length > 0 ||
+    (report.proposals || []).length > 0
+  );
+
+  if (!hasReport) {
+    const clean = document.createElement("div");
+    clean.style.cssText = "font-size:12px; color:var(--text2);";
+    clean.textContent = "未対応の新演出はありません（すべて既存機能で表示できます）";
+    wrap.appendChild(clean);
+  } else {
+    // 警告ブロック（未対応項目がある場合）
+    const warnBox = document.createElement("div");
+    warnBox.style.cssText = "display:flex; flex-direction:column; gap:6px;";
+
+    function addItem(text, isWarn) {
+      const row = document.createElement("div");
+      row.style.cssText = "font-size:12px; line-height:1.6; padding:4px 8px; border-radius:4px; border-left:3px solid " +
+        (isWarn ? "var(--yellow)" : "var(--accent)") + "; background:" +
+        (isWarn ? "rgba(251,191,36,.08)" : "rgba(91,141,238,.08)") + "; color:" +
+        (isWarn ? "var(--yellow)" : "var(--text)") + ";";
+      row.textContent = text;
+      warnBox.appendChild(row);
+    }
+
+    // 未作成シーン
+    const newScenes = report.newScenes || {};
+    for (const [name, turns_] of Object.entries(newScenes)) {
+      addItem("未作成シーン: " + name + "（turn " + turns_.join(", ") + "）  シーンエディタで作成が必要", true);
+    }
+
+    // 新しい演出フィールド
+    const newFields = report.newFields || {};
+    for (const [name, turns_] of Object.entries(newFields)) {
+      addItem("新しい演出: " + name + "（turn " + turns_.join(", ") + "）", true);
+    }
+
+    // 未登録表情
+    const newExpr = report.newExpr || {};
+    for (const [name, turns_] of Object.entries(newExpr)) {
+      addItem("未登録の表情: " + name + "（turn " + turns_.join(", ") + "）  normal で表示されます", true);
+    }
+
+    // 未対応インサート
+    const newInserts = report.newInserts || {};
+    for (const [name, turns_] of Object.entries(newInserts)) {
+      addItem("未対応インサート: " + name + "（turn " + turns_.join(", ") + "）", true);
+    }
+
+    wrap.appendChild(warnBox);
+
+    // proposals
+    const proposals = report.proposals || [];
+    if (proposals.length > 0) {
+      const propHeader = document.createElement("div");
+      propHeader.style.cssText = "font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text2); padding-top:4px; border-top:1px solid var(--border); margin-top:2px;";
+      propHeader.textContent = "AIによる新演出提案";
+      wrap.appendChild(propHeader);
+      const propBox = document.createElement("div");
+      propBox.style.cssText = "display:flex; flex-direction:column; gap:4px;";
+      for (const p of proposals) {
+        const row = document.createElement("div");
+        row.style.cssText = "font-size:12px; color:var(--text); padding:4px 8px; border-radius:4px; background:rgba(91,141,238,.10); border-left:3px solid var(--accent);";
+        row.textContent = "提案: " + p.name + " — " + p.desc;
+        propBox.appendChild(row);
+      }
+      wrap.appendChild(propBox);
+    }
+  }
+
+  container.appendChild(wrap);
+}
+
+// ============================================================
 // イベント設定
 // ============================================================
 // 台本/シーン/表情/台本生成 タブ切替。
@@ -1487,6 +1590,7 @@ function setupEvents() {
     }
     const length = document.getElementById("genLength").value.trim();
     const notes = document.getElementById("genNotes").value.trim();
+    const mode = document.getElementById("genExperimental").checked ? "experimental" : "safe";
     const btn = document.getElementById("btnGenPrompt");
     btn.disabled = true;
     btn.textContent = "生成中...";
@@ -1494,7 +1598,7 @@ function setupEvents() {
       const r = await fetch("/api/script-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme, length, notes }),
+        body: JSON.stringify({ theme, length, notes, mode }),
       });
       const result = await r.json();
       if (r.ok && result.prompt) {
@@ -1549,8 +1653,22 @@ function setupEvents() {
       });
       const result = await r.json();
       if (r.ok && result.ok) {
-        alert(result.turns + "件のターンを取り込みました。再読み込みします。");
-        location.reload();
+        statusEl.style.color = "var(--green)";
+        statusEl.textContent = "取り込み完了";
+        // ページ内でストーリーデータを再読込して一覧/プレビューを更新
+        try {
+          const sRes = await fetch("/api/story");
+          storyData = await sRes.json();
+          document.getElementById("storyTitle").value = storyData.title || "";
+          buildSceneSelect();
+          buildExpressionSelect();
+          renderList();
+          if (selectedIdx >= storyData.script.length) selectedIdx = storyData.script.length - 1;
+          if (selectedIdx >= 0) renderDetail();
+          if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(storyData);
+        } catch (_) { /* 再読込失敗時はレポートのみ表示して継続 */ }
+        // レポート表示
+        showImportReport(result.turns, result.report || null);
       } else {
         statusEl.style.color = "var(--danger)";
         statusEl.textContent = "エラー: " + (result.error || "取り込み失敗");
