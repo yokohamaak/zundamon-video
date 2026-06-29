@@ -88,7 +88,61 @@
   #menuBtn.has-active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
   /* ── 3ペインレイアウト ── */
-  .main { display: flex; flex: 1; overflow: hidden; }
+  .main {
+    display: grid;
+    grid-template-columns: var(--left-w) minmax(0, 1fr) var(--right-w);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "left preview right"
+      "left timeline right";
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .preview-pane {
+    grid-area: preview;
+    min-width: 0;
+    min-height: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 10px 12px 8px;
+    gap: 8px;
+  }
+  .timeline-pane {
+    grid-area: timeline;
+    min-width: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 12px 10px;
+    gap: 0;
+  }
+  .mobile-work-tabs {
+    display: none;
+    grid-area: switch;
+    gap: 8px;
+    padding: 0 12px 8px;
+    background: var(--bg);
+  }
+  .mobile-work-tab {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mobile-work-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
 
   /* ── シーン編集 / 表情編集（iframe埋め込み） ── */
   .scene-view, .expr-view { flex: 1; overflow: hidden; }
@@ -96,9 +150,11 @@
 
   /* ── 左ペイン: 台本一覧 ── */
   .pane-left {
+    grid-area: left;
     width: var(--left-w); flex-shrink: 0;
     background: var(--surface); border-right: 1px solid var(--border);
     display: flex; flex-direction: column; overflow: hidden;
+    min-width: 0; min-height: 0;
   }
   .pane-left-toolbar {
     display: flex; gap: 4px; padding: 6px 8px;
@@ -145,12 +201,6 @@
   .badge-fx { background: rgba(251,191,36,.15); color: var(--yellow); }
 
   /* ── 中央ペイン: Remotion Player ── */
-  .pane-center {
-    flex: 1; background: var(--bg);
-    display: flex; flex-direction: column;
-    overflow: hidden; padding: 10px 12px;
-    gap: 8px;
-  }
   .preview-toolbar {
     display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 12px; color: var(--text2);
   }
@@ -162,6 +212,7 @@
   }
   .preview-player-wrap {
     /* 幅/高さは sizePlayerWrap() が px で設定（16:9でペインに収める）。 */
+    position: relative;
     background: #080a0f;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -172,6 +223,55 @@
   .preview-status {
     font-size: 11px; color: var(--text2); text-align: center;
     flex-shrink: 0;
+  }
+  .overlay-edit-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 30;
+  }
+  .overlay-box {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(91,141,238,.95);
+    box-shadow: 0 0 0 1px rgba(8,10,15,.85), 0 12px 28px rgba(0,0,0,.28);
+    pointer-events: auto;
+    cursor: move;
+    user-select: none;
+  }
+  .overlay-box img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  .overlay-box.inactive {
+    opacity: .45;
+    border-style: dashed;
+  }
+  .overlay-box-label {
+    position: absolute;
+    left: 0;
+    top: -24px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(8,10,15,.85);
+    color: #fff;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .overlay-resize-handle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    right: -7px;
+    bottom: -7px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--accent);
+    cursor: nwse-resize;
+    pointer-events: auto;
   }
   .timeline-header {
     display: flex; align-items: center; gap: 8px; flex-shrink: 0;
@@ -184,9 +284,11 @@
 
   /* ── 右ペイン: 詳細 ── */
   .pane-right {
+    grid-area: right;
     width: var(--right-w); flex-shrink: 0;
     background: var(--surface); border-left: 1px solid var(--border);
     display: flex; flex-direction: column; overflow: hidden;
+    min-width: 0; min-height: 0;
   }
   .detail-empty {
     flex: 1; display: flex; align-items: center; justify-content: center;
@@ -303,6 +405,226 @@
   .se-manual-sel { flex: 1; }
   .se-manual-at { width: 60px; }
   .se-manual-vol { width: 70px; }
+
+  @media (max-width: 900px) {
+    :root {
+      --left-w: 100%;
+      --right-w: 100%;
+    }
+    body { overflow: hidden; }
+    .mobile-work-tabs { display: flex; }
+    .pane-left, .pane-right {
+      width: auto;
+      border-left: none;
+      border-right: none;
+    }
+    .pane-left { border-top: 1px solid var(--border); }
+    .pane-right { border-top: 1px solid var(--border); }
+    #viewScript[data-mobile-panel="script"] .pane-right { display: none; }
+    #viewScript[data-mobile-panel="detail"] .pane-left { display: none; }
+    #viewScript[data-mobile-panel="script"] .mobile-work-tab[data-mobile-panel="script"],
+    #viewScript[data-mobile-panel="detail"] .mobile-work-tab[data-mobile-panel="detail"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .detail-empty { min-height: 140px; }
+    .pane-left-toolbar {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pane-left-toolbar .btn {
+      flex: 1 1 calc(50% - 6px);
+      justify-content: center;
+    }
+    .preview-toolbar,
+    .timeline-header {
+      flex-wrap: wrap;
+    }
+    .preview-scroll { overflow: auto; }
+  }
+
+  @media (max-width: 900px) and (orientation: portrait) {
+    .main {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(240px, 42vh) auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "preview"
+        "switch"
+        "work"
+        "timeline";
+    }
+    .pane-left, .pane-right {
+      grid-area: work;
+      border-left: none;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .preview-pane {
+      padding-bottom: 6px;
+    }
+    .timeline-pane {
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .preview-player-wrap {
+      border-radius: 12px;
+    }
+    .mobile-work-tabs {
+      padding: 0 16px 12px;
+      gap: 12px;
+    }
+    .mobile-work-tab {
+      min-height: 50px;
+      font-size: 17px;
+      border-radius: 14px;
+    }
+    .pane-left-toolbar {
+      padding: 10px 12px;
+      gap: 10px;
+    }
+    .pane-left-toolbar .btn {
+      min-height: 48px;
+      font-size: 16px;
+      border-radius: 12px;
+    }
+    .scene-group-header {
+      padding: 10px 16px 6px;
+      font-size: 13px;
+    }
+    .turn-row {
+      gap: 12px;
+      padding: 14px 16px;
+    }
+    .turn-row.selected {
+      padding-left: 13px;
+    }
+    .turn-icon,
+    .turn-icon-fallback {
+      width: 42px;
+      height: 42px;
+      font-size: 16px;
+    }
+    .turn-speaker {
+      font-size: 14px;
+    }
+    .turn-text {
+      font-size: 17px;
+      line-height: 1.45;
+    }
+    .badge {
+      font-size: 12px;
+      padding: 3px 7px;
+      border-radius: 5px;
+    }
+    .tabs {
+      min-height: 52px;
+    }
+    .tab-btn {
+      font-size: 17px;
+    }
+    .tab-panel {
+      padding: 16px 18px 22px;
+    }
+    .field-row {
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .field-label {
+      font-size: 13px;
+    }
+    .field-input,
+    .field-select,
+    .field-textarea {
+      min-height: 50px;
+      font-size: 18px;
+      padding: 10px 12px;
+      border-radius: 10px;
+    }
+    .field-textarea {
+      min-height: 132px;
+      line-height: 1.55;
+    }
+    .toggle-row {
+      min-height: 42px;
+      font-size: 17px;
+    }
+    .toggle-row input[type=checkbox] {
+      width: 20px;
+      height: 20px;
+    }
+    .section-divider {
+      font-size: 12px;
+      padding: 12px 0 7px;
+      margin-top: 12px;
+    }
+    .multi-select-wrap {
+      padding: 8px;
+      gap: 8px;
+      border-radius: 10px;
+    }
+    .multi-check {
+      min-height: 40px;
+      padding: 6px 10px;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+    .multi-check input {
+      width: 18px;
+      height: 18px;
+    }
+    .exit-dir-row {
+      margin-top: 8px;
+      font-size: 15px;
+      gap: 10px;
+    }
+    .insert-array-item {
+      padding: 12px;
+      border-radius: 10px;
+      gap: 10px;
+    }
+    .insert-item-idx {
+      font-size: 13px;
+    }
+    .insert-add-btn {
+      min-height: 48px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+    #fSeList .field-select,
+    #fSeList .field-input {
+      min-height: 46px;
+      font-size: 17px;
+    }
+  }
+
+  @media (max-width: 900px) and (orientation: landscape) {
+    .main {
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        "preview switch"
+        "preview work"
+        "timeline timeline";
+    }
+    .mobile-work-tabs {
+      align-self: end;
+      padding-top: 10px;
+      padding-left: 0;
+      padding-right: 12px;
+    }
+    .pane-left, .pane-right {
+      grid-area: work;
+      min-height: 0;
+    }
+    .preview-pane {
+      padding-right: 6px;
+    }
+    .timeline-pane {
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -336,7 +658,11 @@
   <span class="status" id="statusMsg"></span>
 </div>
 
-<div class="main" id="viewScript">
+<div class="main" id="viewScript" data-mobile-panel="script">
+  <div class="mobile-work-tabs" id="mobileWorkTabs" aria-label="モバイル作業切替">
+    <button class="mobile-work-tab active" id="mobileTabScriptList" data-mobile-panel="script" type="button">セリフ一覧</button>
+    <button class="mobile-work-tab" id="mobileTabDetail" data-mobile-panel="detail" type="button">詳細編集</button>
+  </div>
   <!-- 左ペイン: 台本一覧 -->
   <div class="pane-left">
     <div class="pane-left-toolbar">
@@ -349,8 +675,8 @@
     <div class="script-list" id="scriptList"></div>
   </div>
 
-  <!-- 中央ペイン: Remotion Player -->
-  <div class="pane-center">
+  <!-- プレビュー -->
+  <div class="preview-pane">
     <div class="preview-toolbar">
       <label for="previewZoom">プレビュー</label>
       <select class="field-select" id="previewZoom" style="width:auto; padding:2px 6px; font-size:12px;">
@@ -362,16 +688,24 @@
         <option value="4">400%</option>
       </select>
       <span class="preview-status" id="playerStatus" style="margin-left:8px;">story-player.js を読み込み中...</span>
+      <button class="btn btn-secondary btn-sm" id="btnAddOverlay" style="margin-left:auto; font-size:12px; padding:2px 8px;">＋Overlay</button>
     </div>
     <div class="preview-scroll">
       <div class="preview-scroll-inner">
-        <div class="preview-player-wrap" id="playerWrap"></div>
+        <div class="preview-player-wrap" id="playerWrap">
+          <div id="playerMount" style="position:absolute; inset:0;"></div>
+          <div class="overlay-edit-layer" id="overlayEditLayer"></div>
+        </div>
       </div>
     </div>
-    <!-- プレビュー下のタイムライン（セリフ＋BGM）。クリックでシーク。 -->
+  </div>
+
+  <!-- タイムライン -->
+  <div class="timeline-pane">
     <div class="timeline-header">
       <span>タイムライン</span>
       <button class="btn btn-secondary btn-sm" id="btnAddBgmRegion" style="margin-left:8px; font-size:12px; padding:2px 8px;">＋BGM</button>
+      <button class="btn btn-secondary btn-sm" id="btnAddOverlayTimeline" style="font-size:12px; padding:2px 8px;">＋Overlay</button>
       <label for="timelineZoom" style="margin-left:auto;">ズーム</label>
       <select class="field-select" id="timelineZoom" style="width:auto; padding:2px 6px; font-size:12px;">
         <option value="1">フィット</option>
@@ -404,6 +738,23 @@
         <label style="font-size:12px; color:var(--text2); flex-shrink:0;">fadeOut</label>
         <input type="number" id="bgmRegionFadeOut" class="field-input" min="0" step="0.1" style="width:52px; flex-shrink:0;">
         <button id="bgmRegionDelete" class="btn btn-danger btn-sm" style="flex-shrink:0;">削除</button>
+      </div>
+    </div>
+    <div id="overlayRegionEditor" style="padding:6px 10px; background:var(--surface); border-top:1px solid var(--border); min-height:32px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <span id="overlayRegionEditorHint" style="font-size:12px; color:var(--text2);">Overlay区間を選択 / ドラッグで移動・リサイズ</span>
+      <div id="overlayRegionEditorFields" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; width:100%;">
+        <select id="overlayRegionFile" class="field-select" style="flex:1; min-width:160px; max-width:260px;"></select>
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">opacity</label>
+        <input type="range" id="overlayRegionOpacity" min="0" max="1" step="0.05" value="1" style="width:80px; accent-color:var(--accent); flex-shrink:0;">
+        <span id="overlayRegionOpacityDisp" style="font-size:12px; color:var(--text2); flex-shrink:0; min-width:26px;">1.00</span>
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">z</label>
+        <input type="number" id="overlayRegionZ" class="field-input" step="1" style="width:56px; flex-shrink:0;">
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">start</label>
+        <input type="number" id="overlayRegionStart" class="field-input" min="0" step="0.1" style="width:64px; flex-shrink:0;">
+        <label style="font-size:12px; color:var(--text2); flex-shrink:0;">end</label>
+        <input type="number" id="overlayRegionEnd" class="field-input" min="0" step="0.1" style="width:64px; flex-shrink:0;">
+        <span id="overlayRegionAnchorInfo" style="font-size:11px; color:var(--text2); flex:1 1 180px;"></span>
+        <button id="overlayRegionDelete" class="btn btn-danger btn-sm" style="flex-shrink:0;">削除</button>
       </div>
     </div>
   </div>
@@ -519,6 +870,11 @@
 <!-- 音(BGM/SE)タブ -->
 <div id="viewAudio" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
   <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:28px;">
+
+    <div id="audioPlatformNote" style="display:none; background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.35); color:var(--yellow); border-radius:8px; padding:12px 14px; font-size:12px; line-height:1.6;">
+      iPhone / iPad のブラウザでは、プレビュー再生中の音量調整が正確に反映されないことがあります。
+      0（無音）は効いても、0.1〜1.0 の細かい差は同じに聞こえる場合があります。最終的な音量確認はPCまたは書き出し結果で行ってください。
+    </div>
 
     <!-- プレビュー再生バー -->
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 20px; display:flex; align-items:center; gap:14px;">
@@ -636,6 +992,9 @@ let selectedIdx = -1;    // 選択中ターンのインデックス
 let isDirty = false;     // 未保存変更フラグ
 let playerReady = false; // Remotion Player が mount 済みか
 let updateTimer = null;  // updateStory debounce タイマー
+let _timelineRaf = null; // 再生中タイムライン描画の間引き用
+let _lastTimelineDrawAt = 0;
+const _TIMELINE_DRAW_INTERVAL_MS = 80; // スマホ負荷対策: 12fps程度で十分
 
 // 話者→背景色（アイコン未設定時の色丸）
 const SPEAKER_COLORS = {
@@ -673,6 +1032,8 @@ async function init() {
     setupHeaderMenu();
     initPlayer();
     setupScriptTimeline();
+    renderOverlayEditor();
+    renderOverlayEditLayer();
   } catch (e) {
     setStatus("err", "初期化失敗: " + e.message);
   }
@@ -699,6 +1060,7 @@ function sizePlayerWrap() {
   else { const f = parseFloat(zv) || 1; w = fw * f; h = (w * 9) / 16; }
   wrap.style.width = Math.max(0, Math.floor(w)) + "px";
   wrap.style.height = Math.max(0, Math.floor(h)) + "px";
+  renderOverlayEditLayer();
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 window.addEventListener("resize", sizePlayerWrap);
@@ -709,7 +1071,7 @@ window.addEventListener("story-player-frame", (e) => {
   const d = e.detail || {};
   if (!d.playing) return;
   const idx = turnIndexAtTime((d.frame || 0) / 30);
-  if (idx >= 0 && idx !== selectedIdx) selectTurn(idx, false);
+  if (idx >= 0 && idx !== selectedIdx) followPlaybackTurn(idx);
 });
 
 // ============================================================
@@ -723,6 +1085,15 @@ const _SPK_COLORS = { zundamon: "#5fb84f", metan: "#e87bb0", "営業": "#9aa0a6"
 let _selectedBgmIdx = -1;  // 選択中の storyData.bgm インデックス
 let _bgmDrag = null;       // null | { op:"move"|"resizeL"|"resizeR"|"create", idx, origStart, origEnd, startX, cursorX, newRegion }
 let _bgmDragThreshold = false; // create時のドラッグ閾値超え判定済みフラグ
+let overlayAssets = null;      // { images: [...] }
+let overlayImageSizes = {};    // { "overlays/x.png": {w,h} }
+let _selectedOverlayId = null; // 選択中 overlay.id
+let _overlayTimelineDrag = null;   // null | { op, id, origStart, origEnd, startX }
+let _overlayPreviewDrag = null;    // null | { op:"move"|"resize", id, startX, startY, origX, origY, origW, aspect }
+
+const OVERLAY_MIN_DUR = 0.2;
+const OVERLAY_MIN_W = 0.06;
+const OVERLAY_MAX_W = 1.0;
 
 async function ensureSceneBgmMap() {
   if (_sceneBgmMap) return _sceneBgmMap;
@@ -731,6 +1102,157 @@ async function ensureSceneBgmMap() {
     if (r.ok) _sceneBgmMap = await r.json();
   } catch (e) { /* 無視 */ }
   return _sceneBgmMap || {};
+}
+
+function ensureOverlayArray() {
+  if (!storyData.overlays) storyData.overlays = [];
+  return storyData.overlays;
+}
+
+async function ensureOverlayAssets() {
+  if (overlayAssets) return overlayAssets;
+  try {
+    const r = await fetch("/api/overlay-assets");
+    if (r.ok) overlayAssets = await r.json();
+  } catch (e) { /* 無視 */ }
+  return overlayAssets || { images: [] };
+}
+
+function ensureOverlayImageSize(src) {
+  if (!src || overlayImageSizes[src]) return;
+  const img = new Image();
+  img.onload = () => {
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      overlayImageSizes[src] = { w: img.naturalWidth, h: img.naturalHeight };
+      renderOverlayEditLayer();
+    }
+  };
+  img.src = "/preview-assets/" + src;
+}
+
+function currentScriptForTiming() {
+  return storyData && storyData.script ? withProvisionalTimings(storyData.script) : [];
+}
+
+function overlayAnchorToTime(anchor, script = currentScriptForTiming()) {
+  if (!anchor || !anchor.turnId) return null;
+  const turn = script.find((t) => t.id === anchor.turnId);
+  if (!turn || typeof turn.start !== "number") return null;
+  return turn.start + (typeof anchor.at === "number" ? anchor.at : 0);
+}
+
+function overlayTimeToAnchor(sec, script = currentScriptForTiming()) {
+  if (!script.length) return { turnId: "", at: 0 };
+  const t = Math.max(0, sec || 0);
+  let turn = script[0];
+  for (const item of script) {
+    if ((item.start || 0) <= t + 1e-6) turn = item;
+    else break;
+  }
+  return {
+    turnId: turn.id || "",
+    at: Math.max(0, +(t - (turn.start || 0)).toFixed(3)),
+  };
+}
+
+function overlayAbsoluteRange(overlay, script = currentScriptForTiming()) {
+  const start = overlayAnchorToTime(overlay.start, script);
+  const end = overlayAnchorToTime(overlay.end, script);
+  if (start == null || end == null) return null;
+  return { start, end };
+}
+
+function getOverlayById(id) {
+  const overlays = ensureOverlayArray();
+  return overlays.find((o) => o.id === id) || null;
+}
+
+function activeOverlaysAt(sec, includeSelected = false) {
+  const overlays = ensureOverlayArray();
+  const script = currentScriptForTiming();
+  return overlays.filter((overlay) => {
+    const range = overlayAbsoluteRange(overlay, script);
+    if (!range || range.end <= range.start) return false;
+    if (includeSelected && overlay.id === _selectedOverlayId) return true;
+    return range.start <= sec && sec < range.end;
+  }).sort((a, b) => {
+    const za = a.z != null ? a.z : 0;
+    const zb = b.z != null ? b.z : 0;
+    if (za !== zb) return za - zb;
+    return overlays.indexOf(a) - overlays.indexOf(b);
+  });
+}
+
+function generateOverlayId() {
+  const overlays = ensureOverlayArray();
+  let max = 0;
+  for (const ov of overlays) {
+    const m = (ov.id || "").match(/^ov-(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10) || 0);
+  }
+  return "ov-" + String(max + 1).padStart(4, "0");
+}
+
+function defaultOverlaySrc() {
+  const imgs = overlayAssets && Array.isArray(overlayAssets.images) ? overlayAssets.images : [];
+  return imgs[0] || "";
+}
+
+function selectedOverlayIndex() {
+  return ensureOverlayArray().findIndex((o) => o.id === _selectedOverlayId);
+}
+
+function selectOverlay(id, seek = true) {
+  _selectedOverlayId = id || null;
+  _selectedBgmIdx = -1;
+  if (seek && id) {
+    const overlay = getOverlayById(id);
+    const range = overlay ? overlayAbsoluteRange(overlay) : null;
+    if (range && window.storyPlayer && playerReady) {
+      const sec = range.start + Math.min(0.06, Math.max(0, (range.end - range.start) / 2));
+      window.storyPlayer.seekToTime(sec);
+      _playheadTime = sec;
+    }
+  }
+  _updateBgmRegionEditor();
+  renderOverlayEditor();
+  renderOverlayEditLayer();
+  drawScriptTimeline();
+}
+
+function updateOverlayRange(overlay, startSec, endSec) {
+  const total = _timelineTotal();
+  let s = Math.max(0, Math.min(startSec, total));
+  let e = Math.max(0, Math.min(endSec, total));
+  if (e - s < OVERLAY_MIN_DUR) e = Math.min(total, s + OVERLAY_MIN_DUR);
+  if (e - s < OVERLAY_MIN_DUR) s = Math.max(0, e - OVERLAY_MIN_DUR);
+  overlay.start = overlayTimeToAnchor(+s.toFixed(3));
+  overlay.end = overlayTimeToAnchor(+e.toFixed(3));
+}
+
+function createOverlayAtPlayhead() {
+  ensureOverlayArray();
+  const script = currentScriptForTiming();
+  if (!script.length) return null;
+  const start = _snapT(_playheadTime);
+  const end = Math.min(_timelineTotal(), start + 2);
+  const overlay = {
+    id: generateOverlayId(),
+    kind: "image",
+    src: defaultOverlaySrc(),
+    x: 0.72,
+    y: 0.32,
+    w: 0.28,
+    opacity: 1,
+    z: ensureOverlayArray().length,
+    start: overlayTimeToAnchor(start, script),
+    end: overlayTimeToAnchor(Math.max(start + OVERLAY_MIN_DUR, end), script),
+  };
+  ensureOverlayArray().push(overlay);
+  markDirty();
+  notifyPlayerUpdate();
+  selectOverlay(overlay.id, true);
+  return overlay;
 }
 
 function _bgmRegions() {
@@ -759,6 +1281,47 @@ function _bgmRegions() {
   return regions;
 }
 
+function _overlayTimelineItems() {
+  const overlays = ensureOverlayArray();
+  const script = currentScriptForTiming();
+  return overlays.map((overlay, index) => {
+    const range = overlayAbsoluteRange(overlay, script);
+    if (!range) return null;
+    return { overlay, index, start: range.start, end: range.end };
+  }).filter(Boolean).sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    if (a.end !== b.end) return a.end - b.end;
+    return a.index - b.index;
+  });
+}
+
+function _overlayLayoutRows() {
+  const items = _overlayTimelineItems();
+  const rows = [];
+  for (const item of items) {
+    let rowIdx = rows.findIndex((row) => item.start >= row.lastEnd - 1e-6);
+    if (rowIdx < 0) {
+      rowIdx = rows.length;
+      rows.push({ lastEnd: -Infinity, items: [] });
+    }
+    const row = rows[rowIdx];
+    row.items.push({
+      ...item,
+      row: rowIdx,
+      y: 69 + rowIdx * 18,
+    });
+    row.lastEnd = item.end;
+  }
+  return rows;
+}
+
+function _overlayLaneY(canvas) {
+  const overlayRows = _overlayLayoutRows();
+  const yOverlay = 13 + 24 + 4 + 24 + 4;
+  const laneH = Math.max(18, overlayRows.length * 18 + 6);
+  return { yOverlay, laneH, rows: overlayRows };
+}
+
 function _timelineTotal() {
   const turns = storyData ? storyData.script : [];
   let m = 1;
@@ -777,16 +1340,24 @@ function drawScriptTimeline() {
   const zoom = zsel ? (parseFloat(zsel.value) || 1) : 1;
   const baseW = (scrollEl ? scrollEl.clientWidth : canvas.clientWidth) || 600;
   const W = Math.max(40, Math.round(baseW * zoom));
-  const H = canvas.height;
+  const overlayRows = _overlayLayoutRows();
+  const overlayLaneH = Math.max(18, overlayRows.length * 18 + 6);
+  const PAD = 13;
+  const talkH = 24;
+  const bgmH = 24;
+  const gap = 4;
+  const H = PAD + talkH + gap + bgmH + gap + overlayLaneH + 10;
+  if (canvas.height !== H) canvas.height = H;
   canvas.width = W;
   canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
   ctx.clearRect(0, 0, W, H);
   if (!turns.length) return;
   const total = _timelineTotal();
   const xOf = (sec) => Math.round((sec / total) * W);
-  const PAD = 13;
-  const laneH = (H - PAD - 6) / 2;
-  const yTalk = PAD, yBgm = PAD + laneH + 2;
+  const yTalk = PAD;
+  const yBgm = yTalk + talkH + gap;
+  const yOverlay = yBgm + bgmH + gap;
 
   // セリフ レーン
   for (let i = 0; i < turns.length; i++) {
@@ -794,7 +1365,7 @@ function drawScriptTimeline() {
     const x1 = xOf(t.start || 0), x2 = xOf(t.end || t.start || 0);
     ctx.fillStyle = _SPK_COLORS[t.speaker] || "#9aa0a6";
     ctx.globalAlpha = (i === selectedIdx) ? 1 : 0.7;
-    ctx.fillRect(x1, yTalk, Math.max(2, x2 - x1 - 1), laneH);
+    ctx.fillRect(x1, yTalk, Math.max(2, x2 - x1 - 1), talkH);
     ctx.globalAlpha = 1;
   }
   // BGM レーン
@@ -810,17 +1381,17 @@ function drawScriptTimeline() {
       const isSel = (i === _selectedBgmIdx);
       ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
       ctx.globalAlpha = isSel ? 0.85 : 0.6;
-      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), laneH);
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), bgmH);
       ctx.globalAlpha = 1;
       if (isSel) {
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(x1 + 0.75, yBgm + 0.75, Math.max(2, x2 - x1 - 2), laneH - 1.5);
+        ctx.strokeRect(x1 + 0.75, yBgm + 0.75, Math.max(2, x2 - x1 - 2), bgmH - 1.5);
       }
       if (x2 - x1 > 28) {
         ctx.fillStyle = "#0b0d12";
         ctx.font = "10px system-ui, sans-serif";
-        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + laneH - 4);
+        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + bgmH - 6);
       }
     });
     // ドラッグ中の新規区間プレビュー
@@ -830,7 +1401,7 @@ function drawScriptTimeline() {
       const x1 = xOf(s), x2 = xOf(e2);
       ctx.fillStyle = "#ffffff";
       ctx.globalAlpha = 0.25;
-      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1), laneH);
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1), bgmH);
       ctx.globalAlpha = 1;
     }
   } else {
@@ -839,19 +1410,41 @@ function drawScriptTimeline() {
       const x1 = xOf(r.start), x2 = xOf(r.end);
       ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
       ctx.globalAlpha = 0.4;
-      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), laneH);
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), bgmH);
       ctx.globalAlpha = 1;
       if (x2 - x1 > 28) {
         ctx.fillStyle = "#8892aa";
         ctx.font = "10px system-ui, sans-serif";
-        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + laneH - 4);
+        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + bgmH - 6);
       }
     });
   }
+  // Overlay レーン
+  const overlayRowsData = overlayRows;
+  overlayRowsData.forEach((row) => {
+    row.items.forEach((item) => {
+      const x1 = xOf(item.start);
+      const x2 = xOf(item.end);
+      const isSel = item.overlay.id === _selectedOverlayId;
+      ctx.fillStyle = isSel ? "#ffb454" : "#f97316";
+      ctx.globalAlpha = isSel ? 0.92 : 0.68;
+      ctx.fillRect(x1, item.y, Math.max(2, x2 - x1 - 1), 14);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = isSel ? "#fff6d9" : "rgba(255,255,255,.18)";
+      ctx.lineWidth = isSel ? 1.5 : 1;
+      ctx.strokeRect(x1 + 0.5, item.y + 0.5, Math.max(2, x2 - x1 - 2), 13);
+      if (x2 - x1 > 36) {
+        ctx.fillStyle = "#18120d";
+        ctx.font = "10px system-ui, sans-serif";
+        ctx.fillText((item.overlay.src || "overlay").replace(/^overlays\//, ""), x1 + 4, item.y + 10);
+      }
+    });
+  });
   // レーン名
   ctx.fillStyle = "#8892aa"; ctx.font = "9px system-ui, sans-serif";
   ctx.fillText("セリフ", 3, 10);
   ctx.fillText("BGM", 3, yBgm - 2);
+  ctx.fillText("Overlay", 3, yOverlay - 2);
   // 再生ヘッド
   const phx = xOf(_playheadTime);
   ctx.fillStyle = "#ffffff";
@@ -864,6 +1457,19 @@ function drawScriptTimeline() {
       scrollEl.scrollLeft = Math.max(0, phx - view / 2);
     }
   }
+}
+
+function scheduleTimelineDraw() {
+  if (_timelineRaf != null) return;
+  _timelineRaf = requestAnimationFrame((ts) => {
+    _timelineRaf = null;
+    if (ts - _lastTimelineDrawAt < _TIMELINE_DRAW_INTERVAL_MS) {
+      scheduleTimelineDraw();
+      return;
+    }
+    _lastTimelineDrawAt = ts;
+    drawScriptTimeline();
+  });
 }
 
 // ============================================================
@@ -911,11 +1517,11 @@ function _canvasX(canvas, e) {
 
 // BGMレーンのY範囲
 function _bgmLaneY(canvas) {
-  const H = canvas.height;
   const PAD = 13;
-  const laneH = (H - PAD - 6) / 2;
-  const yBgm = PAD + laneH + 2;
-  return { yBgm, laneH };
+  const talkH = 24;
+  const gap = 4;
+  const yBgm = PAD + talkH + gap;
+  return { yBgm, laneH: 24 };
 }
 
 // storyData.bgm の時間ベース区間をインデックスつきで取得
@@ -944,6 +1550,25 @@ function _bgmHitTest(canvas, cx, cy) {
     }
   }
   return { type: "create", idx: -1, t };
+}
+
+function _overlayHitTest(canvas, cx, cy) {
+  const { yOverlay, laneH, rows } = _overlayLaneY(canvas);
+  if (cy < yOverlay || cy > yOverlay + laneH) return null;
+  for (let r = rows.length - 1; r >= 0; r--) {
+    const row = rows[r];
+    for (let i = row.items.length - 1; i >= 0; i--) {
+      const item = row.items[i];
+      const x1 = _timelineTtoX(canvas, item.start);
+      const x2 = _timelineTtoX(canvas, item.end);
+      if (cy >= item.y && cy <= item.y + 14 && cx >= x1 - EDGE_PX && cx <= x2 + EDGE_PX) {
+        if (cx <= x1 + EDGE_PX) return { type: "resizeL", overlay: item.overlay, start: item.start, end: item.end };
+        if (cx >= x2 - EDGE_PX) return { type: "resizeR", overlay: item.overlay, start: item.start, end: item.end };
+        return { type: "move", overlay: item.overlay, start: item.start, end: item.end };
+      }
+    }
+  }
+  return null;
 }
 
 // BGMエディタUI を選択区間で更新
@@ -1032,6 +1657,80 @@ function _collectBgmRegionEditor() {
   _updateBgmRegionEditor();
 }
 
+function renderOverlayEditor() {
+  const hint = document.getElementById("overlayRegionEditorHint");
+  const fields = document.getElementById("overlayRegionEditorFields");
+  if (!hint || !fields) return;
+  const overlay = getOverlayById(_selectedOverlayId);
+  if (!overlay) {
+    hint.style.display = "";
+    fields.style.display = "none";
+    return;
+  }
+  hint.style.display = "none";
+  fields.style.display = "flex";
+
+  const fileSel = document.getElementById("overlayRegionFile");
+  if (fileSel) {
+    fileSel.innerHTML = "";
+    const blank = document.createElement("option");
+    blank.value = ""; blank.textContent = "画像なし";
+    fileSel.appendChild(blank);
+    const imgs = overlayAssets && Array.isArray(overlayAssets.images) ? overlayAssets.images : [];
+    for (const img of imgs) {
+      const opt = document.createElement("option");
+      opt.value = img; opt.textContent = img.replace(/^overlays\//, "");
+      fileSel.appendChild(opt);
+    }
+    if (overlay.src && !imgs.includes(overlay.src)) {
+      const opt = document.createElement("option");
+      opt.value = overlay.src; opt.textContent = overlay.src;
+      fileSel.insertBefore(opt, fileSel.firstChild.nextSibling);
+    }
+    fileSel.value = overlay.src || "";
+  }
+  const opacity = document.getElementById("overlayRegionOpacity");
+  const opacityDisp = document.getElementById("overlayRegionOpacityDisp");
+  if (opacity) {
+    opacity.value = overlay.opacity != null ? overlay.opacity : 1;
+    if (opacityDisp) opacityDisp.textContent = parseFloat(opacity.value).toFixed(2);
+  }
+  const zInp = document.getElementById("overlayRegionZ");
+  if (zInp) zInp.value = overlay.z != null ? overlay.z : 0;
+  const range = overlayAbsoluteRange(overlay);
+  const startInp = document.getElementById("overlayRegionStart");
+  const endInp = document.getElementById("overlayRegionEnd");
+  if (startInp) startInp.value = range ? range.start.toFixed(2) : "0";
+  if (endInp) endInp.value = range ? range.end.toFixed(2) : "0";
+  const anchorInfo = document.getElementById("overlayRegionAnchorInfo");
+  if (anchorInfo) {
+    anchorInfo.textContent = `${overlay.start.turnId || "-"} + ${overlay.start.at || 0}s 〜 ${overlay.end.turnId || "-"} + ${overlay.end.at || 0}s`;
+  }
+}
+
+function collectOverlayEditor() {
+  const overlay = getOverlayById(_selectedOverlayId);
+  if (!overlay) return;
+  const fileSel = document.getElementById("overlayRegionFile");
+  if (fileSel) overlay.src = fileSel.value;
+  const opacity = document.getElementById("overlayRegionOpacity");
+  if (opacity) overlay.opacity = parseFloat(opacity.value);
+  const zInp = document.getElementById("overlayRegionZ");
+  if (zInp) overlay.z = parseInt(zInp.value || "0", 10) || 0;
+  const startInp = document.getElementById("overlayRegionStart");
+  const endInp = document.getElementById("overlayRegionEnd");
+  if (startInp && endInp) {
+    const s = parseFloat(startInp.value);
+    const e = parseFloat(endInp.value);
+    if (!isNaN(s) && !isNaN(e)) updateOverlayRange(overlay, s, e);
+  }
+  markDirty();
+  notifyPlayerUpdate();
+  renderOverlayEditor();
+  renderOverlayEditLayer();
+  drawScriptTimeline();
+}
+
 // BGMエディタの各コントロールにイベントを設定（一度だけ呼ぶ）
 function _setupBgmRegionEditorEvents() {
   const fileSel = document.getElementById("bgmRegionFile");
@@ -1085,12 +1784,45 @@ function _setupBgmRegionEditorEvents() {
   });
 }
 
+function _setupOverlayEditorEvents() {
+  const fileSel = document.getElementById("overlayRegionFile");
+  if (fileSel) fileSel.addEventListener("change", collectOverlayEditor);
+  const opacity = document.getElementById("overlayRegionOpacity");
+  const opacityDisp = document.getElementById("overlayRegionOpacityDisp");
+  if (opacity) {
+    opacity.addEventListener("input", () => {
+      if (opacityDisp) opacityDisp.textContent = parseFloat(opacity.value).toFixed(2);
+      collectOverlayEditor();
+    });
+  }
+  const zInp = document.getElementById("overlayRegionZ");
+  if (zInp) zInp.addEventListener("change", collectOverlayEditor);
+  const startInp = document.getElementById("overlayRegionStart");
+  if (startInp) startInp.addEventListener("change", collectOverlayEditor);
+  const endInp = document.getElementById("overlayRegionEnd");
+  if (endInp) endInp.addEventListener("change", collectOverlayEditor);
+  const delBtn = document.getElementById("overlayRegionDelete");
+  if (delBtn) delBtn.addEventListener("click", () => {
+    const idx = selectedOverlayIndex();
+    if (idx < 0) return;
+    ensureOverlayArray().splice(idx, 1);
+    _selectedOverlayId = null;
+    markDirty();
+    notifyPlayerUpdate();
+    renderOverlayEditor();
+    renderOverlayEditLayer();
+    drawScriptTimeline();
+  });
+}
+
 function setupScriptTimeline() {
   const canvas = document.getElementById("scriptTimeline");
   if (!canvas) return;
 
   _setupBgmRegionEditorEvents();
+  _setupOverlayEditorEvents();
   ensureAudioAssets(); // 早期ロード
+  ensureOverlayAssets();
 
   // ============================================================
   // BGMレーン D&D: mousedown
@@ -1111,7 +1843,25 @@ function setupScriptTimeline() {
       const idx = turnIndexAtTime(t);
       if (idx >= 0) selectTurn(idx, false);
       _playheadTime = t;
+      _selectedOverlayId = null;
       drawScriptTimeline();
+      renderOverlayEditor();
+      renderOverlayEditLayer();
+      return;
+    }
+
+    const ovHit = _overlayHitTest(canvas, cx, cy);
+    if (ovHit) {
+      e.preventDefault();
+      _selectedBgmIdx = -1;
+      _overlayTimelineDrag = {
+        op: ovHit.type,
+        id: ovHit.overlay.id,
+        origStart: ovHit.start,
+        origEnd: ovHit.end,
+        startX: cx,
+      };
+      selectOverlay(ovHit.overlay.id, false);
       return;
     }
 
@@ -1128,7 +1878,10 @@ function setupScriptTimeline() {
       const r = hit.region;
       _bgmDrag = { op: hit.type, idx: hit.idx, origStart: r.start, origEnd: r.end, startX: cx, cursorX: cx };
       _selectedBgmIdx = hit.idx;
+      _selectedOverlayId = null;
       ensureAudioAssets().then(() => _updateBgmRegionEditor());
+      renderOverlayEditor();
+      renderOverlayEditLayer();
     }
     drawScriptTimeline();
   });
@@ -1137,20 +1890,50 @@ function setupScriptTimeline() {
   // BGMレーン D&D: mousemove
   // ============================================================
   window.addEventListener("mousemove", (e) => {
-    if (!_bgmDrag) {
+    if (!_bgmDrag && !_overlayTimelineDrag) {
       // カーソル更新(ホバー)
       const cy = e.clientY - canvas.getBoundingClientRect().top;
       const cx = _canvasX(canvas, e);
       const { yBgm, laneH } = _bgmLaneY(canvas);
+      const overlayLane = _overlayLaneY(canvas);
       if (cy >= yBgm && cy <= yBgm + laneH) {
         const hit = _bgmHitTest(canvas, cx, cy);
         if (hit && hit.type === "resizeL") canvas.style.cursor = "ew-resize";
         else if (hit && hit.type === "resizeR") canvas.style.cursor = "ew-resize";
         else if (hit && hit.type === "move") canvas.style.cursor = "grab";
         else canvas.style.cursor = "crosshair";
+      } else if (cy >= overlayLane.yOverlay && cy <= overlayLane.yOverlay + overlayLane.laneH) {
+        const hit = _overlayHitTest(canvas, cx, cy);
+        if (hit && (hit.type === "resizeL" || hit.type === "resizeR")) canvas.style.cursor = "ew-resize";
+        else if (hit && hit.type === "move") canvas.style.cursor = "grab";
+        else canvas.style.cursor = "default";
       } else {
         canvas.style.cursor = "default";
       }
+      return;
+    }
+
+    if (_overlayTimelineDrag) {
+      e.preventDefault();
+      const d = _overlayTimelineDrag;
+      const overlay = getOverlayById(d.id);
+      if (!overlay) return;
+      const cx = _canvasX(canvas, e);
+      const dt = _timelineXtoT(canvas, cx - d.startX);
+      if (d.op === "move") {
+        const dur = d.origEnd - d.origStart;
+        let ns = _snapT(d.origStart + dt);
+        ns = Math.max(0, Math.min(_timelineTotal() - dur, ns));
+        updateOverlayRange(overlay, ns, ns + dur);
+      } else if (d.op === "resizeL") {
+        const ns = Math.max(0, Math.min(d.origEnd - OVERLAY_MIN_DUR, _snapT(d.origStart + dt)));
+        updateOverlayRange(overlay, ns, d.origEnd);
+      } else if (d.op === "resizeR") {
+        const ne = Math.max(d.origStart + OVERLAY_MIN_DUR, Math.min(_timelineTotal(), _snapT(d.origEnd + dt)));
+        updateOverlayRange(overlay, d.origStart, ne);
+      }
+      renderOverlayEditor();
+      drawScriptTimeline();
       return;
     }
 
@@ -1187,6 +1970,16 @@ function setupScriptTimeline() {
   // BGMレーン D&D: mouseup
   // ============================================================
   window.addEventListener("mouseup", (e) => {
+    if (_overlayTimelineDrag) {
+      _overlayTimelineDrag = null;
+      markDirty();
+      notifyPlayerUpdate();
+      renderOverlayEditor();
+      renderOverlayEditLayer();
+      drawScriptTimeline();
+      canvas.style.cursor = "default";
+      return;
+    }
     if (!_bgmDrag) return;
     const d = _bgmDrag;
     _bgmDrag = null;
@@ -1229,23 +2022,93 @@ function setupScriptTimeline() {
   // 再生中はヘッド追従
   window.addEventListener("story-player-frame", (e) => {
     _playheadTime = ((e.detail && e.detail.frame) || 0) / 30;
-    drawScriptTimeline();
+    scheduleTimelineDraw();
+    renderOverlayEditLayer();
   });
   window.addEventListener("resize", drawScriptTimeline);
   ensureSceneBgmMap().then(drawScriptTimeline);
+}
+
+function renderOverlayEditLayer() {
+  const layer = document.getElementById("overlayEditLayer");
+  const wrap = document.getElementById("playerWrap");
+  if (!layer || !wrap || !storyData) return;
+  layer.innerHTML = "";
+  const rect = wrap.getBoundingClientRect();
+  const active = activeOverlaysAt(_playheadTime, true);
+  for (const overlay of active) {
+    ensureOverlayImageSize(overlay.src);
+    const size = overlayImageSizes[overlay.src] || { w: 16, h: 9 };
+    const aspect = size.h > 0 ? size.w / size.h : 16 / 9;
+    const widthPx = overlay.w * rect.width;
+    const heightPx = widthPx / Math.max(0.1, aspect);
+    const box = document.createElement("div");
+    box.className = "overlay-box" + (overlay.id === _selectedOverlayId ? "" : " inactive");
+    box.dataset.id = overlay.id;
+    box.style.left = (overlay.x * rect.width) + "px";
+    box.style.top = (overlay.y * rect.height) + "px";
+    box.style.width = widthPx + "px";
+    box.style.height = heightPx + "px";
+
+    const img = document.createElement("img");
+    img.src = overlay.src ? ("/preview-assets/" + overlay.src) : "";
+    img.alt = overlay.src || overlay.id;
+    box.appendChild(img);
+
+    const label = document.createElement("div");
+    label.className = "overlay-box-label";
+    label.textContent = (overlay.src || overlay.id).replace(/^overlays\//, "");
+    box.appendChild(label);
+
+    if (overlay.id === _selectedOverlayId) {
+      const handle = document.createElement("div");
+      handle.className = "overlay-resize-handle";
+      handle.dataset.id = overlay.id;
+      handle.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "resize"));
+      box.appendChild(handle);
+    }
+    box.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "move"));
+    box.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selectOverlay(overlay.id, false);
+    });
+    layer.appendChild(box);
+  }
+}
+
+function beginOverlayPreviewDrag(e, id, op) {
+  e.preventDefault();
+  e.stopPropagation();
+  const overlay = getOverlayById(id);
+  if (!overlay) return;
+  selectOverlay(id, false);
+  const aspect = 16 / 9;
+  ensureOverlayImageSize(overlay.src);
+  const cached = overlayImageSizes[overlay.src];
+  _overlayPreviewDrag = {
+    op,
+    id,
+    startX: e.clientX,
+    startY: e.clientY,
+    origX: overlay.x,
+    origY: overlay.y,
+    origW: overlay.w || 0.2,
+    aspect: cached && cached.h > 0 ? (cached.w / cached.h) : aspect,
+  };
 }
 
 function initPlayer() {
   const statusEl = document.getElementById("playerStatus");
 
   function onPlayerApiReady() {
-    const wrap = document.getElementById("playerWrap");
+    const wrap = document.getElementById("playerMount");
     sizePlayerWrap(); // マウント前に枠サイズを確定（Playerが正しく測れるように）
     statusEl.textContent = "Player を mount 中...";
     window.storyPlayer.mount(wrap).then(() => {
       playerReady = true;
       statusEl.textContent = "";
       sizePlayerWrap(); // ステータス文字が消えた分の高さ変化を反映
+      renderOverlayEditLayer();
       // 選択中ターンがあればシーク
       if (selectedIdx >= 0) seekPlayer(selectedIdx);
     }).catch((err) => {
@@ -1322,6 +2185,7 @@ function seekPlayer(idx) {
 // storyData の変更を Player へ通知（debounce 150ms）。
 function notifyPlayerUpdate() {
   if (!playerReady || !window.storyPlayer) return;
+  renderOverlayEditLayer();
   if (updateTimer) clearTimeout(updateTimer);
   updateTimer = setTimeout(() => {
     if (window.storyPlayer && storyData) {
@@ -1336,6 +2200,7 @@ function flushPlayerUpdate() {
   if (!playerReady || !window.storyPlayer || !storyData) return;
   if (updateTimer) { clearTimeout(updateTimer); updateTimer = null; }
   window.storyPlayer.updateStory(buildPreviewStory());
+  renderOverlayEditLayer();
 }
 
 // ============================================================
@@ -1482,6 +2347,31 @@ function renderList() {
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 
+function updateSelectedTurnRow(prevIdx, nextIdx, scrollIntoView = false) {
+  const container = document.getElementById("scriptList");
+  if (!container) return false;
+  const prev = prevIdx >= 0 ? container.querySelector(`.turn-row[data-idx="${prevIdx}"]`) : null;
+  const next = nextIdx >= 0 ? container.querySelector(`.turn-row[data-idx="${nextIdx}"]`) : null;
+  if (!next) return false;
+  if (prev && prev !== next) prev.classList.remove("selected");
+  next.classList.add("selected");
+  if (scrollIntoView) next.scrollIntoView({ block: "nearest" });
+  return true;
+}
+
+function followPlaybackTurn(idx) {
+  const prevIdx = selectedIdx;
+  selectedIdx = idx;
+  // 再生中は一覧全体の再構築や詳細フォーム更新を避ける。
+  // ターン境界の大きいDOM更新がスマホで音声詰まりを起こしやすいため、
+  // 選択行ハイライトだけを最小限更新する。
+  if (!updateSelectedTurnRow(prevIdx, idx, false)) {
+    renderList();
+    return;
+  }
+  if (typeof drawScriptTimeline === "function") drawScriptTimeline();
+}
+
 function makeBadge(text, type) {
   const b = document.createElement("span");
   b.className = "badge badge-" + type;
@@ -1515,11 +2405,19 @@ function fallbackIcon(speaker) {
 // ターン選択
 // ============================================================
 function selectTurn(idx, doSeek = true) {
+  const prevIdx = selectedIdx;
   selectedIdx = idx;
-  renderList();
+  _selectedOverlayId = null;
+  _selectedBgmIdx = -1;
+  if (!updateSelectedTurnRow(prevIdx, idx, true)) {
+    renderList();
+  } else if (typeof drawScriptTimeline === "function") {
+    drawScriptTimeline();
+  }
   renderDetail();
-  const sel = document.querySelector(".turn-row.selected");
-  if (sel) sel.scrollIntoView({ block: "nearest" });
+  _updateBgmRegionEditor();
+  renderOverlayEditor();
+  renderOverlayEditLayer();
   if (doSeek) seekPlayer(idx);
 }
 
@@ -2069,6 +2967,7 @@ function importStoryFromFile(file) {
           throw new Error("turn[" + i + "] に speaker/text/scene(文字列) が必要です");
       }
       storyData = data;
+      _selectedOverlayId = null;
       document.getElementById("storyTitle").value = storyData.title || "";
       document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
       selectedIdx = -1;
@@ -2076,6 +2975,8 @@ function importStoryFromFile(file) {
       renderDetail();
       if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(buildPreviewStory());
       if (typeof drawScriptTimeline === "function") drawScriptTimeline();
+      renderOverlayEditor();
+      renderOverlayEditLayer();
       markDirty();
       markAudioDirty(); // 取り込んだ台本は音声未生成＝尺反映に音声生成が必要
       setStatus("ok", "インポートしました（保存→音声生成で尺反映）");
@@ -2145,9 +3046,12 @@ async function generateAudio() {
     if (ok) {
       const sres = await fetch("/api/story"); // 実尺/audioが入ったstoryを再読込
       storyData = await sres.json();
+      _selectedOverlayId = null;
       renderList();
       if (selectedIdx >= 0) selectTurn(selectedIdx);
       if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(buildPreviewStory());
+      renderOverlayEditor();
+      renderOverlayEditLayer();
       audioDirty = false; updateAudioBtn();
       setStatus("ok", "音声生成 完了");
     } else {
@@ -2284,6 +3188,16 @@ function showImportReport(turns, report) {
   container.appendChild(wrap);
 }
 
+function setMobilePanel(panel) {
+  const view = document.getElementById("viewScript");
+  if (!view) return;
+  const next = panel === "detail" ? "detail" : "script";
+  view.dataset.mobilePanel = next;
+  document.querySelectorAll(".mobile-work-tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mobilePanel === next);
+  });
+}
+
 // ============================================================
 // イベント設定
 // ============================================================
@@ -2358,6 +3272,7 @@ function setupTabs() {
   });
   tAudio.addEventListener("click", () => {
     activateTab(tAudio);
+    updateAudioPlatformNote();
     loadAudioPanel();
   });
 }
@@ -2392,6 +3307,9 @@ async function refreshExpressions() {
 }
 
 function setupEvents() {
+  document.querySelectorAll(".mobile-work-tab").forEach((btn) => {
+    btn.addEventListener("click", () => setMobilePanel(btn.dataset.mobilePanel || "script"));
+  });
   document.getElementById("btnSave").addEventListener("click", saveStory);
   document.getElementById("idleFaceSel").addEventListener("change", (e) => {
     storyData.idleFace = e.target.value;
@@ -2413,8 +3331,44 @@ function setupEvents() {
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
+  document.getElementById("btnAddOverlay").addEventListener("click", async () => {
+    await ensureOverlayAssets();
+    createOverlayAtPlayhead();
+  });
+  document.getElementById("btnAddOverlayTimeline").addEventListener("click", async () => {
+    await ensureOverlayAssets();
+    createOverlayAtPlayhead();
+  });
 
   document.getElementById("storyTitle").addEventListener("input", markDirty);
+
+  window.addEventListener("mousemove", (e) => {
+    if (!_overlayPreviewDrag) return;
+    e.preventDefault();
+    const overlay = getOverlayById(_overlayPreviewDrag.id);
+    const wrap = document.getElementById("playerWrap");
+    if (!overlay || !wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const dx = (e.clientX - _overlayPreviewDrag.startX) / Math.max(1, rect.width);
+    const dy = (e.clientY - _overlayPreviewDrag.startY) / Math.max(1, rect.height);
+    if (_overlayPreviewDrag.op === "move") {
+      overlay.x = Math.max(0, Math.min(1, _overlayPreviewDrag.origX + dx));
+      overlay.y = Math.max(0, Math.min(1, _overlayPreviewDrag.origY + dy));
+    } else {
+      const dw = dx;
+      overlay.w = Math.max(OVERLAY_MIN_W, Math.min(OVERLAY_MAX_W, _overlayPreviewDrag.origW + dw));
+    }
+    markDirty();
+    notifyPlayerUpdate();
+    renderOverlayEditLayer();
+  });
+  window.addEventListener("mouseup", () => {
+    if (!_overlayPreviewDrag) return;
+    _overlayPreviewDrag = null;
+    renderOverlayEditor();
+    renderOverlayEditLayer();
+    notifyPlayerUpdate();
+  });
 
   // タブ切替
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -2623,6 +3577,28 @@ let audioAssets = null;   // { bgm: [...], se: [...] }
 let seMap = null;         // se-map.json の中身
 let sceneBgmData = null;  // { sceneKey: {label, bgm, bgmVolume}, ... }
 let audioLoaded = false;  // 初回ロード済みフラグ
+
+function hasTimelineBgmOverride() {
+  const bgm = storyData && Array.isArray(storyData.bgm) ? storyData.bgm : [];
+  return bgm.some((r) =>
+    r && r.file &&
+    typeof r.start === "number" &&
+    typeof r.end === "number" &&
+    r.end > r.start
+  );
+}
+
+function isIOSVolumeLimited() {
+  const ua = navigator.userAgent || "";
+  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return /iPhone|iPad|iPod/i.test(ua) || touchMac;
+}
+
+function updateAudioPlatformNote() {
+  const el = document.getElementById("audioPlatformNote");
+  if (!el) return;
+  el.style.display = isIOSVolumeLimited() ? "block" : "none";
+}
 
 // ============================================================
 // 音タブ: 各音源の試聴（単体再生）
@@ -2854,6 +3830,14 @@ async function saveSeMap() {
 function renderSceneBgmSection() {
   const container = document.getElementById("sceneBgmContainer");
   container.innerHTML = "";
+  const overridden = hasTimelineBgmOverride();
+
+  if (overridden) {
+    const note = document.createElement("div");
+    note.style.cssText = "font-size:12px; line-height:1.6; color:var(--yellow); background:rgba(251,191,36,.08); border-left:3px solid var(--yellow); padding:8px 10px; border-radius:4px;";
+    note.textContent = "現在はタイムラインBGMが有効です。シーン別BGMの設定は保存されますが、プレビュー再生には反映されません。反映したい場合は台本タブのBGM区間を削除してください。";
+    container.appendChild(note);
+  }
 
   const sceneKeys = Object.keys(sceneBgmData || {});
   if (sceneKeys.length === 0) {
@@ -2886,6 +3870,7 @@ function renderSceneBgmSection() {
       sel.appendChild(opt);
     }
     sel.value = sc.bgm || "";
+    if (overridden) sel.disabled = true;
     row.appendChild(sel);
     row.appendChild(makeAudioPlayBtn(() => sel.value));
 
@@ -2897,6 +3882,7 @@ function renderSceneBgmSection() {
     volSlider.value = sc.bgmVolume != null ? sc.bgmVolume : 0.25;
     volSlider.className = "scene-bgm-vol";
     volSlider.style.cssText = "width:90px; accent-color:var(--accent);";
+    if (overridden) volSlider.disabled = true;
     const volDisp = document.createElement("span");
     volDisp.className = "vol-display";
     volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
@@ -2913,6 +3899,11 @@ function renderSceneBgmSection() {
 
 async function saveSceneBgm() {
   const statusEl = document.getElementById("sceneBgmStatus");
+  if (hasTimelineBgmOverride()) {
+    statusEl.style.color = "var(--yellow)";
+    statusEl.textContent = "タイムラインBGMが優先中です。変更したい場合は台本タブのBGM区間を削除してください。";
+    return;
+  }
   statusEl.style.color = "var(--text2)";
   statusEl.textContent = "保存中...";
   try {

@@ -24,12 +24,14 @@ EXPRESSIONS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "expressions.json")
 SE_MAP_JSON = os.path.join(VIDEO_PUBLIC_DIR, "se-map.json")
 BGM_DIR = os.path.join(VIDEO_PUBLIC_DIR, "bgm")
 SE_DIR = os.path.join(VIDEO_PUBLIC_DIR, "se")
+OVERLAYS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "overlays")
 _AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
+_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
 # StoryVideo.tsx の staticFile() が参照する video/public/ 配下のアセット。
 # /preview-assets/<path> として配信する（パストラバーサル防止付き）。
 # 許可するトップレベルディレクトリ名 or ファイル名の集合。
-_PREVIEW_ASSET_DIRS = {"avatars", "background", "mobs", "bgm", "se", "fonts"}
+_PREVIEW_ASSET_DIRS = {"avatars", "background", "mobs", "bgm", "se", "fonts", "overlays"}
 _PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "se-map.json",
                         "noise.png", "story-01.wav", "story-01.mp3",
                         "story.wav", "story.mp3"}
@@ -141,6 +143,21 @@ def _list_audio_assets():
                     out.append(prefix + "/" + fn)
         return out
     return {"bgm": listdir(BGM_DIR, "bgm"), "se": listdir(SE_DIR, "se")}
+
+
+def _list_overlay_assets():
+    """public/overlays 配下の画像一覧を返す（overlays/ 付き相対パス）。"""
+    out = []
+    if not os.path.isdir(OVERLAYS_DIR):
+        return out
+    for root, _dirs, files in os.walk(OVERLAYS_DIR):
+        for fn in sorted(files):
+            if not fn.lower().endswith(_IMAGE_EXTS):
+                continue
+            abs_path = os.path.join(root, fn)
+            rel = os.path.relpath(abs_path, VIDEO_PUBLIC_DIR).replace("\\", "/")
+            out.append(rel)
+    return sorted(out)
 
 
 def _load_se_map():
@@ -676,6 +693,12 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
         elif path == "/api/audio-assets":
             try:
                 self._send_json(_list_audio_assets())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/overlay-assets":
+            try:
+                self._send_json({"images": _list_overlay_assets()})
             except Exception as e:
                 self._send_error_json(500, str(e))
 

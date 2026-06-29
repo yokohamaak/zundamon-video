@@ -93,6 +93,24 @@ export type StoryTurn = {
   sentences?: StorySentence[];
 };
 
+export type StoryOverlayAnchor = {
+  turnId: string;
+  at: number;
+};
+
+export type StoryOverlay = {
+  id: string;
+  kind: "image";
+  src: string;
+  x: number;
+  y: number;
+  w: number;
+  opacity?: number;
+  z?: number;
+  start: StoryOverlayAnchor;
+  end: StoryOverlayAnchor;
+};
+
 // BGM 区間。時間ベース（start/end=秒）。タイムラインでD&D編集する。
 // この配列があれば BGM はこれが唯一の真実（区間の隙間=無音）。空ならシーン連動にフォールバック。
 export type BgmRegion = {
@@ -114,6 +132,7 @@ export type StoryScript = {
   // 聞き役(非話者)の表情: "normal"=常に真顔(既定) / "hold"=直前に自分が話した表情を保持
   // （surprise/panic は除外して normal）。
   idleFace?: "normal" | "hold";
+  overlays?: StoryOverlay[];
   script: StoryTurn[];
 };
 
@@ -270,6 +289,30 @@ function activeTurnAt(script: StoryTurn[], t: number): StoryTurn {
     else break;
   }
   return cur;
+}
+
+function resolveOverlayAnchorTime(script: StoryTurn[], anchor?: StoryOverlayAnchor | null): number | null {
+  if (!anchor?.turnId) return null;
+  const turn = script.find((item) => item.id === anchor.turnId);
+  if (!turn || typeof turn.start !== "number") return null;
+  return turn.start + (typeof anchor.at === "number" ? anchor.at : 0);
+}
+
+function activeOverlaysAt(script: StoryTurn[], overlays: StoryOverlay[] | undefined, t: number): StoryOverlay[] {
+  if (!overlays || overlays.length === 0) return [];
+  return overlays
+    .filter((overlay) => {
+      const start = resolveOverlayAnchorTime(script, overlay.start);
+      const end = resolveOverlayAnchorTime(script, overlay.end);
+      if (start == null || end == null || end <= start) return false;
+      return start <= t && t < end;
+    })
+    .sort((a, b) => {
+      const za = a.z ?? 0;
+      const zb = b.z ?? 0;
+      if (za !== zb) return za - zb;
+      return overlays.indexOf(a) - overlays.indexOf(b);
+    });
 }
 
 // segment 内で、現時点までに登場したキャラ（enter の累積・登場順を保持）。
@@ -1011,6 +1054,36 @@ const InsertOverlay: React.FC<{ insert: StoryInsert; bgOpacity: number; opacity:
   );
 };
 
+const StoryOverlayLayer: React.FC<{ overlays: StoryOverlay[] }> = ({ overlays }) => {
+  if (overlays.length === 0) return null;
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      {overlays.map((overlay) => {
+        const widthPct = clamp(overlay.w || 0.2, 0.04, 1) * 100;
+        const leftPct = clamp(overlay.x || 0.5, 0, 1) * 100;
+        const topPct = clamp(overlay.y || 0.5, 0, 1) * 100;
+        return (
+          <Img
+            key={overlay.id}
+            src={staticFile(overlay.src)}
+            style={{
+              position: "absolute",
+              left: `${leftPct}%`,
+              top: `${topPct}%`,
+              width: `${widthPct}%`,
+              height: "auto",
+              transform: "translate(-50%, -50%)",
+              opacity: clamp(overlay.opacity ?? 1, 0, 1),
+              objectFit: "contain",
+              filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.28))",
+            }}
+          />
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
 // その時刻に吹き出しへ出す文字列（sentences があれば文単位で小出し・§4.4）。
 function bubbleTextAt(turn: StoryTurn, t: number): string {
   if (turn.sentences && turn.sentences.length) {
@@ -1241,6 +1314,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const t = frame / fps;
+  // 口パク解析は再生用 audio とは別ソースを優先する。
+  // モバイルでは同じ圧縮音声(mp3等)を「再生」と「解析」で同時に扱うと
+  // プレイヤー側の音声が頭に戻る不安定さが出ることがあるため、同名wavがあればそちらを使う。
+  const analysisAudio = audio && !/\.wav$/i.test(audio)
+    ? audio.replace(/\.[^.]+$/i, ".wav")
+    : (audio ?? "story-01.wav");
 
   const script = story.script;
   const segments = buildSegments(script);
@@ -1423,7 +1502,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // useWindowedAudioData は現フレーム周辺の窓だけ読むので軽く安定する。
   // ※ windowInSeconds は動的変更不可（固定値）。フックは無条件呼び出し。
   const { audioData, dataOffsetInSeconds } = useWindowedAudioData({
-    src: staticFile(audio ?? "story-01.wav"),
+    src: staticFile(analysisAudio),
     frame,
     fps,
     windowInSeconds: 1,
@@ -1713,6 +1792,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // INSERT_FADE: フェードイン/アウトの片側秒数。
   const INSERT_FADE = 0.2;
   const activeInsert = active.insert ?? null;
+  const activeOverlays = activeOverlaysAt(script, story.overlays, t);
   const activeIdx2 = script.findIndex((x) => x.id === active.id);
   const nextTurn2 = activeIdx2 < script.length - 1 ? script[activeIdx2 + 1] : null;
   // 隣のターンがインサートを持つか（種別問わず）。インサート同士の間は通常画面を出さない。
@@ -1807,6 +1887,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           }}
         />
       ) : null}
+
+      {/* 補助画像オーバーレイ。screen基準なのでステージ変形の外で描画する。 */}
+      {activeOverlays.length > 0 ? <StoryOverlayLayer overlays={activeOverlays} /> : null}
 
       {/* PC画面インサート（ステージより前面・吹き出しより後面）。
           z順: ステージ → インサート → 吹き出し */}
