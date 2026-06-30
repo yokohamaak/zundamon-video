@@ -2714,19 +2714,50 @@ function buildExpressionSelect() {
   _buildExpressionOptions(null);
 }
 
+function poseLabel(pose) {
+  const labels = {
+    idle: "通常",
+    cheer: "喜ぶ",
+    recoil: "のけぞる",
+    lean: "身を乗り出す",
+    droop: "しょんぼり",
+    flustered: "あたふた",
+    proud: "得意げ",
+    step_in: "一歩前へ",
+    step_back: "一歩引く",
+    listening: "聞き耳",
+    sneak: "こそこそ",
+    wobble: "ぐらぐら",
+  };
+  return labels[pose] || pose || "";
+}
+
 function buildPoseSelect() {
   const sel = document.getElementById("fPose");
   const keep = sel.value;
-  const poses = ["idle", "cheer", "recoil", "lean", "droop", "flustered"];
+  const poses = [
+    ["idle", poseLabel("idle")],
+    ["cheer", poseLabel("cheer")],
+    ["recoil", poseLabel("recoil")],
+    ["lean", poseLabel("lean")],
+    ["droop", poseLabel("droop")],
+    ["flustered", poseLabel("flustered")],
+    ["proud", poseLabel("proud")],
+    ["step_in", poseLabel("step_in")],
+    ["step_back", poseLabel("step_back")],
+    ["listening", poseLabel("listening")],
+    ["sneak", poseLabel("sneak")],
+    ["wobble", poseLabel("wobble")],
+  ];
   sel.innerHTML = "";
   const auto = document.createElement("option");
   auto.value = "";
-  auto.textContent = "auto";
+  auto.textContent = "自動";
   sel.appendChild(auto);
-  for (const pose of poses) {
+  for (const [pose, label] of poses) {
     const o = document.createElement("option");
     o.value = pose;
-    o.textContent = pose;
+    o.textContent = label;
     sel.appendChild(o);
   }
   if (keep && Array.from(sel.options).some((o) => o.value === keep)) {
@@ -2819,7 +2850,7 @@ function renderList() {
     if (turn.emphasis) badges.appendChild(makeBadge("ズーム", "fx"));
     if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
-    if (turn.pose) badges.appendChild(makeBadge("pose:" + turn.pose, "fx"));
+    if (turn.pose) badges.appendChild(makeBadge("ポーズ:" + poseLabel(turn.pose), "fx"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
     const bubbleInfo = getContinueBubbleInfo(script, i);
     const autoInfo = getAutoBubbleInfo(turn);

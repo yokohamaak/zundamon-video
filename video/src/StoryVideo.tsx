@@ -66,7 +66,19 @@ export type StoryTurn = {
   text: string;
   scene: string;
   expression?: StoryExpression;
-  pose?: "idle" | "cheer" | "recoil" | "lean" | "droop" | "flustered";
+  pose?:
+    | "idle"
+    | "cheer"
+    | "recoil"
+    | "lean"
+    | "droop"
+    | "flustered"
+    | "proud"
+    | "step_in"
+    | "step_back"
+    | "listening"
+    | "sneak"
+    | "wobble";
   enter?: string[];
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
