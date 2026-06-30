@@ -244,10 +244,10 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
+    opacity: 0;
     pointer-events: none;
   }
   .overlay-box.inactive {
-    opacity: .45;
     border-style: dashed;
   }
   .overlay-box-label {
@@ -744,6 +744,10 @@
       <span id="overlayRegionEditorHint" style="font-size:12px; color:var(--text2);">Overlay区間を選択 / ドラッグで移動・リサイズ</span>
       <div id="overlayRegionEditorFields" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; width:100%;">
         <select id="overlayRegionFile" class="field-select" style="flex:1; min-width:160px; max-width:260px;"></select>
+        <select id="overlayRegionLayer" class="field-select" style="width:132px; flex-shrink:0;">
+          <option value="normal">通常</option>
+          <option value="over-insert">insert上</option>
+        </select>
         <label style="font-size:12px; color:var(--text2); flex-shrink:0;">opacity</label>
         <input type="range" id="overlayRegionOpacity" min="0" max="1" step="0.05" value="1" style="width:80px; accent-color:var(--accent); flex-shrink:0;">
         <span id="overlayRegionOpacityDisp" style="font-size:12px; color:var(--text2); flex-shrink:0; min-width:26px;">1.00</span>
@@ -1173,7 +1177,6 @@ function activeOverlaysAt(sec, includeSelected = false) {
   return overlays.filter((overlay) => {
     const range = overlayAbsoluteRange(overlay, script);
     if (!range || range.end <= range.start) return false;
-    if (includeSelected && overlay.id === _selectedOverlayId) return true;
     return range.start <= sec && sec < range.end;
   }).sort((a, b) => {
     const za = a.z != null ? a.z : 0;
@@ -1239,6 +1242,7 @@ function createOverlayAtPlayhead() {
   const overlay = {
     id: generateOverlayId(),
     kind: "image",
+    layer: "normal",
     src: defaultOverlaySrc(),
     x: 0.72,
     y: 0.32,
@@ -1250,8 +1254,10 @@ function createOverlayAtPlayhead() {
   };
   ensureOverlayArray().push(overlay);
   markDirty();
-  notifyPlayerUpdate();
-  selectOverlay(overlay.id, true);
+  // 新規追加直後は、デバウンス待ちだと古い story のままシークして
+  // 「選択されたのに実プレビューへ出ない」ことがある。先に即時反映する。
+  flushPlayerUpdate();
+  requestAnimationFrame(() => selectOverlay(overlay.id, true));
   return overlay;
 }
 
@@ -1689,6 +1695,8 @@ function renderOverlayEditor() {
     }
     fileSel.value = overlay.src || "";
   }
+  const layerSel = document.getElementById("overlayRegionLayer");
+  if (layerSel) layerSel.value = overlay.layer || "normal";
   const opacity = document.getElementById("overlayRegionOpacity");
   const opacityDisp = document.getElementById("overlayRegionOpacityDisp");
   if (opacity) {
@@ -1713,6 +1721,8 @@ function collectOverlayEditor() {
   if (!overlay) return;
   const fileSel = document.getElementById("overlayRegionFile");
   if (fileSel) overlay.src = fileSel.value;
+  const layerSel = document.getElementById("overlayRegionLayer");
+  if (layerSel) overlay.layer = layerSel.value || "normal";
   const opacity = document.getElementById("overlayRegionOpacity");
   if (opacity) overlay.opacity = parseFloat(opacity.value);
   const zInp = document.getElementById("overlayRegionZ");
@@ -1787,6 +1797,8 @@ function _setupBgmRegionEditorEvents() {
 function _setupOverlayEditorEvents() {
   const fileSel = document.getElementById("overlayRegionFile");
   if (fileSel) fileSel.addEventListener("change", collectOverlayEditor);
+  const layerSel = document.getElementById("overlayRegionLayer");
+  if (layerSel) layerSel.addEventListener("change", collectOverlayEditor);
   const opacity = document.getElementById("overlayRegionOpacity");
   const opacityDisp = document.getElementById("overlayRegionOpacityDisp");
   if (opacity) {
@@ -2034,46 +2046,46 @@ function renderOverlayEditLayer() {
   const wrap = document.getElementById("playerWrap");
   if (!layer || !wrap || !storyData) return;
   layer.innerHTML = "";
+  const selected = getOverlayById(_selectedOverlayId);
+  if (!selected) return;
   const rect = wrap.getBoundingClientRect();
-  const active = activeOverlaysAt(_playheadTime, true);
-  for (const overlay of active) {
-    ensureOverlayImageSize(overlay.src);
-    const size = overlayImageSizes[overlay.src] || { w: 16, h: 9 };
-    const aspect = size.h > 0 ? size.w / size.h : 16 / 9;
-    const widthPx = overlay.w * rect.width;
-    const heightPx = widthPx / Math.max(0.1, aspect);
-    const box = document.createElement("div");
-    box.className = "overlay-box" + (overlay.id === _selectedOverlayId ? "" : " inactive");
-    box.dataset.id = overlay.id;
-    box.style.left = (overlay.x * rect.width) + "px";
-    box.style.top = (overlay.y * rect.height) + "px";
-    box.style.width = widthPx + "px";
-    box.style.height = heightPx + "px";
+  const active = activeOverlaysAt(_playheadTime, false);
+  const overlay = active.find((item) => item.id === selected.id);
+  if (!overlay) return;
+  ensureOverlayImageSize(overlay.src);
+  const size = overlayImageSizes[overlay.src] || { w: 16, h: 9 };
+  const aspect = size.h > 0 ? size.w / size.h : 16 / 9;
+  const widthPx = overlay.w * rect.width;
+  const heightPx = widthPx / Math.max(0.1, aspect);
+  const box = document.createElement("div");
+  box.className = "overlay-box";
+  box.dataset.id = overlay.id;
+  box.style.left = (overlay.x * rect.width) + "px";
+  box.style.top = (overlay.y * rect.height) + "px";
+  box.style.width = widthPx + "px";
+  box.style.height = heightPx + "px";
 
-    const img = document.createElement("img");
-    img.src = overlay.src ? ("/preview-assets/" + overlay.src) : "";
-    img.alt = overlay.src || overlay.id;
-    box.appendChild(img);
+  const img = document.createElement("img");
+  img.src = overlay.src ? ("/preview-assets/" + overlay.src) : "";
+  img.alt = overlay.src || overlay.id;
+  box.appendChild(img);
 
-    const label = document.createElement("div");
-    label.className = "overlay-box-label";
-    label.textContent = (overlay.src || overlay.id).replace(/^overlays\//, "");
-    box.appendChild(label);
+  const label = document.createElement("div");
+  label.className = "overlay-box-label";
+  label.textContent = (overlay.src || overlay.id).replace(/^overlays\//, "");
+  box.appendChild(label);
 
-    if (overlay.id === _selectedOverlayId) {
-      const handle = document.createElement("div");
-      handle.className = "overlay-resize-handle";
-      handle.dataset.id = overlay.id;
-      handle.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "resize"));
-      box.appendChild(handle);
-    }
-    box.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "move"));
-    box.addEventListener("click", (e) => {
-      e.stopPropagation();
-      selectOverlay(overlay.id, false);
-    });
-    layer.appendChild(box);
-  }
+  const handle = document.createElement("div");
+  handle.className = "overlay-resize-handle";
+  handle.dataset.id = overlay.id;
+  handle.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "resize"));
+  box.appendChild(handle);
+  box.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "move"));
+  box.addEventListener("click", (e) => {
+    e.stopPropagation();
+    selectOverlay(overlay.id, false);
+  });
+  layer.appendChild(box);
 }
 
 function beginOverlayPreviewDrag(e, id, op) {

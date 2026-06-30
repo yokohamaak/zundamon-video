@@ -101,6 +101,7 @@ export type StoryOverlayAnchor = {
 export type StoryOverlay = {
   id: string;
   kind: "image";
+  layer?: "normal" | "over-insert";
   src: string;
   x: number;
   y: number;
@@ -313,6 +314,10 @@ function activeOverlaysAt(script: StoryTurn[], overlays: StoryOverlay[] | undefi
       if (za !== zb) return za - zb;
       return overlays.indexOf(a) - overlays.indexOf(b);
     });
+}
+
+function isOverInsertOverlay(overlay: StoryOverlay): boolean {
+  return overlay.layer === "over-insert";
 }
 
 // segment 内で、現時点までに登場したキャラ（enter の累積・登場順を保持）。
@@ -1793,6 +1798,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const INSERT_FADE = 0.2;
   const activeInsert = active.insert ?? null;
   const activeOverlays = activeOverlaysAt(script, story.overlays, t);
+  const normalOverlays = activeOverlays.filter((overlay) => !isOverInsertOverlay(overlay));
+  const overInsertOverlays = activeOverlays.filter((overlay) => isOverInsertOverlay(overlay));
   const activeIdx2 = script.findIndex((x) => x.id === active.id);
   const nextTurn2 = activeIdx2 < script.length - 1 ? script[activeIdx2 + 1] : null;
   // 隣のターンがインサートを持つか（種別問わず）。インサート同士の間は通常画面を出さない。
@@ -1889,7 +1896,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       ) : null}
 
       {/* 補助画像オーバーレイ。screen基準なのでステージ変形の外で描画する。 */}
-      {activeOverlays.length > 0 ? <StoryOverlayLayer overlays={activeOverlays} /> : null}
+      {normalOverlays.length > 0 ? <StoryOverlayLayer overlays={normalOverlays} /> : null}
 
       {/* PC画面インサート（ステージより前面・吹き出しより後面）。
           z順: ステージ → インサート → 吹き出し */}
@@ -1900,6 +1907,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           opacity={insertOpacity}
         />
       ) : null}
+
+      {overInsertOverlays.length > 0 ? <StoryOverlayLayer overlays={overInsertOverlays} /> : null}
 
       {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
           位置は最終カメラ基準で固定＝移動中も消えず動かない。インサートより前面。 */}
