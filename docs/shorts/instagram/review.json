@@ -1,0 +1,52 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "インスタの意外な前身",
+      "query": "Instagram logo",
+      "kind": "subject",
+      "image": "ch_00_00.jpg",
+      "attribution": "Brett Jordan / Pexels",
+      "approved": true,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "インスタの意外な前身",
+      "query": "whiskey glass",
+      "kind": "ambient",
+      "image": "ch_00_01.jpg",
+      "attribution": "Eva Bronzini / Pexels",
+      "approved": true,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 2,
+      "title": "インスタの意外な前身",
+      "query": "smartphone photo app",
+      "kind": "ambient",
+      "image": "ch_00_02.jpg",
+      "attribution": "Plann / Pexels",
+      "approved": true,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

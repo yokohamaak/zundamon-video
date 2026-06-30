@@ -1,0 +1,102 @@
+{
+  "theme": "私はロボットではありませんの裏側",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "私はロボットではありませんの裏側",
+      "summary": "CAPTCHA認証はロボット対策だけでなく、GoogleのAIに画像認識の学習データを提供させている。",
+      "image_cuts": [
+        {
+          "image_query": "CAPTCHA",
+          "image_kind": "subject",
+          "image_query_ja": "キャプチャ"
+        },
+        {
+          "image_query": "robot hand clicking captcha",
+          "image_kind": "ambient",
+          "image_query_ja": "キャプチャをクリックするロボットの手"
+        },
+        {
+          "image_query": "AI learning data",
+          "image_kind": "ambient",
+          "image_query_ja": "AI学習データ"
+        }
+      ],
+      "hook": "「私はロボットではありません」の裏の顔"
+    }
+  ],
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "「私はロボットではありません」って認証、実はすごい裏側があるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "え、あの信号機や消火栓を選ぶパズル、ぼくはいつも面倒くさいのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "あれ、私たちが無料（タダ）でGoogle（グーグル）のAI（エーアイ）に画像認識を教えているの。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "なのだってー！？ロボット対策をしながら、AIの先生までさせられてたのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。画像内の文字や標識をみんなで分類することで、膨大な学習データをタダで集めているわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "タダ働きは悔しいけど、世界中の人間を使うなんて天才すぎるビジネスなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "このネタ、本編ではもっと深掘りしてるよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気になったら本編もチェックなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    }
+  ]
+}

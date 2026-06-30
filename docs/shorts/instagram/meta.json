@@ -1,0 +1,296 @@
+{
+  "generated_at": "2026-06-13T13:31:41.968085+09:00",
+  "title": "Instagramの前身",
+  "speakers": [
+    {
+      "name": "四国めたん",
+      "gender": "female"
+    },
+    {
+      "name": "ずんだもん",
+      "gender": "male"
+    }
+  ],
+  "topics": [
+    {
+      "title": "インスタの意外な前身",
+      "start": 0.0,
+      "end": 8.123,
+      "section": "trivia",
+      "chapter": 0,
+      "chapterTotal": 1,
+      "triviaIndex": 1,
+      "triviaTotal": 1,
+      "hook": "インスタ、実はウイスキーアプリだった？",
+      "image": "ch_00_00.jpg",
+      "credit": "Brett Jordan / Pexels"
+    },
+    {
+      "title": "インスタの意外な前身",
+      "start": 8.123,
+      "end": 23.209,
+      "section": "trivia",
+      "chapter": 0,
+      "chapterTotal": 1,
+      "triviaIndex": 1,
+      "triviaTotal": 1,
+      "hook": "インスタ、実はウイスキーアプリだった？",
+      "image": "ch_00_01.jpg",
+      "credit": "Eva Bronzini / Pexels"
+    },
+    {
+      "title": "インスタの意外な前身",
+      "start": 23.209,
+      "end": 48.687,
+      "section": "trivia",
+      "chapter": 0,
+      "chapterTotal": 1,
+      "triviaIndex": 1,
+      "triviaTotal": 1,
+      "hook": "インスタ、実はウイスキーアプリだった？",
+      "image": "ch_00_02.jpg",
+      "credit": "Plann / Pexels"
+    }
+  ],
+  "credits": [
+    "VOICEVOX:ずんだもん",
+    "VOICEVOX:四国めたん",
+    "画像出典: Brett Jordan / Pexels / Eva Bronzini / Pexels / Plann / Pexels"
+  ],
+  "audio": {
+    "bgm": {
+      "file": "bgm.mp3",
+      "volume": 0.07,
+      "fade": 1.5
+    },
+    "se_volume": 0.5,
+    "se": {
+      "intro": "",
+      "outro": "outro.mp3",
+      "flash": "flash.mp3",
+      "surprise": "surprise.mp3"
+    },
+    "events": [
+      {
+        "t": 0.15,
+        "se": "flash"
+      },
+      {
+        "t": 8.123,
+        "se": "surprise"
+      },
+      {
+        "t": 37.238,
+        "se": "outro"
+      }
+    ]
+  },
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "Instagram（インスタグラム）が、最初はウイスキー愛好家向けのアプリだったって知ってた？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0,
+      "start": 2.5,
+      "end": 7.823,
+      "sentences": [
+        {
+          "text": "Instagram（インスタグラム）が、",
+          "start": 2.5,
+          "end": 4.765
+        },
+        {
+          "text": "最初はウイスキー愛好家向けのアプリだったって知ってた？",
+          "start": 4.765,
+          "end": 7.823
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ええっ！？おしゃれ写真アプリの代名詞なのに、そんな渋いお酒アプリだったのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "start": 8.123,
+      "end": 14.309,
+      "sentences": [
+        {
+          "text": "ええっ！？",
+          "start": 8.123,
+          "end": 8.891
+        },
+        {
+          "text": "おしゃれ写真アプリの代名詞なのに、",
+          "start": 8.891,
+          "end": 11.6
+        },
+        {
+          "text": "そんな渋いお酒アプリだったのだ！？",
+          "start": 11.6,
+          "end": 14.309
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "Burbn（バーブン）という、多機能すぎて不評な位置情報共有アプリだったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "start": 14.609,
+      "end": 19.804,
+      "sentences": [
+        {
+          "text": "Burbn（バーブン）という、",
+          "start": 14.609,
+          "end": 16.607
+        },
+        {
+          "text": "多機能すぎて不評な位置情報共有アプリだったのよ。",
+          "start": 16.607,
+          "end": 19.804
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "多機能なのに人気が出なかったのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "start": 20.104,
+      "end": 22.909,
+      "sentences": [
+        {
+          "text": "多機能なのに人気が出なかったのだ？",
+          "start": 20.104,
+          "end": 22.909
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。そこで、唯一人気だった写真投稿機能だけに削ぎ落としたら、世界中で爆発的にヒットしたのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 2,
+      "start": 23.209,
+      "end": 31.711,
+      "sentences": [
+        {
+          "text": "そう。",
+          "start": 23.209,
+          "end": 23.668
+        },
+        {
+          "text": "そこで、唯一人気だった写真投稿機能だけに削ぎ落としたら、",
+          "start": 23.668,
+          "end": 28.786
+        },
+        {
+          "text": "世界中で爆発的にヒットしたのよ。",
+          "start": 28.786,
+          "end": 31.711
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "いらない機能を捨てる大英断が、大成功の秘密だったのだね！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "start": 32.011,
+      "end": 37.088,
+      "sentences": [
+        {
+          "text": "いらない機能を捨てる大英断が、",
+          "start": 32.011,
+          "end": 34.731
+        },
+        {
+          "text": "大成功の秘密だったのだね！",
+          "start": 34.731,
+          "end": 37.088
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "今日の中で、どの実はが一番へぇだった？高評価とコメントで教えてね。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "closing": true,
+      "start": 37.388,
+      "end": 43.159,
+      "sentences": [
+        {
+          "text": "今日の中で、どの実はが一番へぇだった？",
+          "start": 37.388,
+          "end": 40.887
+        },
+        {
+          "text": "高評価とコメントで教えてね。",
+          "start": 40.887,
+          "end": 43.159
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "closing": true,
+      "start": 43.459,
+      "end": 46.573,
+      "sentences": [
+        {
+          "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+          "start": 43.459,
+          "end": 46.573
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それじゃあ、また見てね〜〜",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "closing": true,
+      "chorus": true,
+      "start": 46.873,
+      "end": 48.687,
+      "sentences": [
+        {
+          "text": "それじゃあ、また見てね〜〜",
+          "start": 46.873,
+          "end": 48.687
+        }
+      ]
+    }
+  ]
+}

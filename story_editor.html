@@ -970,6 +970,13 @@
               <option value="">(なし)</option>
             </select>
           </div>
+          <div class="field-row">
+            <label class="field-label">ポーズ</label>
+            <select class="field-select" id="fPose">
+              <option value="">auto</option>
+            </select>
+            <div class="field-help">未指定なら表情に応じて自動で決まります。</div>
+          </div>
 
           <div class="section-divider">演出</div>
           <div class="fx-grid" style="margin-bottom:10px">
@@ -1243,6 +1250,7 @@ async function init() {
     buildNarrationSpeakerSelect();
     buildSceneSelect();
     buildExpressionSelect();
+    buildPoseSelect();
     buildMultiSpeakers();
     renderList();
     setupEvents();
@@ -2706,6 +2714,26 @@ function buildExpressionSelect() {
   _buildExpressionOptions(null);
 }
 
+function buildPoseSelect() {
+  const sel = document.getElementById("fPose");
+  const keep = sel.value;
+  const poses = ["idle", "cheer", "recoil", "lean", "droop", "flustered"];
+  sel.innerHTML = "";
+  const auto = document.createElement("option");
+  auto.value = "";
+  auto.textContent = "auto";
+  sel.appendChild(auto);
+  for (const pose of poses) {
+    const o = document.createElement("option");
+    o.value = pose;
+    o.textContent = pose;
+    sel.appendChild(o);
+  }
+  if (keep && Array.from(sel.options).some((o) => o.value === keep)) {
+    sel.value = keep;
+  }
+}
+
 // 表情ドロップダウンを構築する。prevValue が指定された場合は選択を維持する。
 function _buildExpressionOptions(prevValue) {
   const sel = document.getElementById("fExpression");
@@ -2791,6 +2819,7 @@ function renderList() {
     if (turn.emphasis) badges.appendChild(makeBadge("ズーム", "fx"));
     if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
+    if (turn.pose) badges.appendChild(makeBadge("pose:" + turn.pose, "fx"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
     const bubbleInfo = getContinueBubbleInfo(script, i);
     const autoInfo = getAutoBubbleInfo(turn);
@@ -3047,6 +3076,7 @@ function renderDetail() {
   // scene: 登録済みシーンのドロップダウン（未登録値は保持表示）
   setSceneValue(turn.scene);
   setField("fExpression", "select", turn.expression || "");
+  setField("fPose", "select", turn.pose || "");
   document.getElementById("fEmphasis").checked = !!turn.emphasis;
   document.getElementById("fShake").checked = !!turn.shake;
   document.getElementById("fFlashback").checked = !!turn.flashback;
@@ -3439,6 +3469,10 @@ function collectBasic() {
   const expr = document.getElementById("fExpression").value;
   if (expr) turn.expression = expr;
   else delete turn.expression;
+
+  const pose = document.getElementById("fPose").value;
+  if (pose) turn.pose = pose;
+  else delete turn.pose;
 
   turn.emphasis = document.getElementById("fEmphasis").checked || undefined;
   if (!turn.emphasis) delete turn.emphasis;
@@ -4089,7 +4123,7 @@ function setupEvents() {
   });
 
   // 基本タブ: 変更をリアルタイム収集
-  const basicIds = ["fSpeaker", "fNarration", "fNarrationVoice", "fText", "fScene", "fExpression",
+  const basicIds = ["fSpeaker", "fNarration", "fNarrationVoice", "fText", "fScene", "fExpression", "fPose",
                     "fEmphasis", "fShake", "fFlashback", "fTelop", "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
   for (const id of basicIds) {
     const el = document.getElementById(id);

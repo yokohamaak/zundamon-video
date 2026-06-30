@@ -1,0 +1,102 @@
+{
+  "theme": "Wikipediaの失敗から得た教訓",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "Wikipediaの失敗から得た教訓",
+      "summary": "Wikipediaは、専門家だけが厳格に執筆するオンライン百科事典の失敗から、誰でも編集できる今の形に方向転換した。",
+      "image_cuts": [
+        {
+          "image_query": "Nupedia logo (if available, otherwise old encyclopedia)",
+          "image_kind": "subject",
+          "image_query_ja": "ニューペディアのロゴ"
+        },
+        {
+          "image_query": "old heavy encyclopedia books",
+          "image_kind": "ambient",
+          "image_query_ja": "古い分厚い百科事典"
+        },
+        {
+          "image_query": "Wikipedia logo",
+          "image_kind": "subject",
+          "image_query_ja": "ウィキペディアのロゴ"
+        }
+      ],
+      "hook": "Wikipedia、実は一度大失敗していた"
+    }
+  ],
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "誰でも書き込めるオンライン百科事典Wikipedia（ウィキペディア）も、面白い過去があるわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "みんなが自由に記事を作るあのスタイル、最初から計画されてたのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実は、超一流の専門家たちだけが執筆する厳格な百科事典を作ろうとして、大失敗したのよ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "大失敗なのだ！？専門家が書いたほうが、絶対に正確で良い事典になるはずなのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "前身のNupedia（ニューペディア）は審査が厳しすぎて、1年に12記事しかできなかったわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "お試しで誰でも編集できるページを作ったら、そっちが今の規模まで成長したのだね！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "このネタ、本編ではもっと深掘りしてるよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気になったら本編もチェックなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    }
+  ]
+}

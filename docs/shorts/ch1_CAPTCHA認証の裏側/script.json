@@ -1,0 +1,84 @@
+{
+  "theme": "CAPTCHA認証の裏側",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "CAPTCHA認証の裏側",
+      "summary": "「私はロボットではありません」というCAPTCHA（キャプチャ）認証は、ロボットを防ぐだけでなく、Google（グーグル）のAI（エーアイ）に画像認識の学習データをタダで提供する仕組みになっている。",
+      "image_cuts": [
+        {
+          "image_query": "CAPTCHA logo",
+          "image_kind": "subject",
+          "image_query_ja": "CAPTCHAのロゴ"
+        },
+        {
+          "image_query": "autonomous car traffic lights",
+          "image_kind": "ambient",
+          "image_query_ja": "自動運転と信号機"
+        }
+      ],
+      "hook": "「私はロボットではありません」の恐ろしい裏側"
+    }
+  ],
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "CAPTCHA（キャプチャ）認証の画面、実は私たちがタダ働きさせられているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ええっ！あの面倒な画像選び、タダ働きなのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "voice": {
+        "intonation": 1.4,
+        "volume": 1.2
+      }
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そうなの。私たちが信号機や消火栓の画像を選ぶことで、Google（グーグル）のAI（エーアイ）の画像認識を学習させているのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "pause": 0.5
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ロボット対策じゃなくて、AI（エーアイ）の先生をさせられていたのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その通り。昔は書籍をデジタル化するための文字識別にも使われていたのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "世界中の人からデータを集めるなんて、天才的なビジネスモデルなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    }
+  ]
+}

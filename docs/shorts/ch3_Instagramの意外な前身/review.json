@@ -1,0 +1,52 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "Instagramの意外な前身",
+      "query": "Burbn app screenshot (vintage style)",
+      "kind": "subject",
+      "image": "ch_00_00.jpg",
+      "attribution": "Brett Jordan / Pexels",
+      "approved": true,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "Instagramの意外な前身",
+      "query": "whiskey glass and bottle",
+      "kind": "ambient",
+      "image": "ch_00_01.jpg",
+      "attribution": "NUDE Nahum / Pexels",
+      "approved": true,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 2,
+      "title": "Instagramの意外な前身",
+      "query": "Instagram logo",
+      "kind": "subject",
+      "image": "ch_00_02.jpg",
+      "attribution": "Abdulkadir Emiroğlu / Pexels",
+      "approved": true,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

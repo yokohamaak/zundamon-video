@@ -399,7 +399,7 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
 
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
-    "id", "speaker", "text", "scene", "expression", "enter", "face",
+    "id", "speaker", "text", "scene", "expression", "pose", "enter", "face",
     "emphasis", "shake", "flashback", "telop", "pause", "insert",
     "exit", "exitDir", "start", "end", "sentences",
 }

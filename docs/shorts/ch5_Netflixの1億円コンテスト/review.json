@@ -1,0 +1,52 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "Netflixの1億円コンテスト",
+      "query": "Netflix logo",
+      "kind": "subject",
+      "image": "ch_00_00.png",
+      "attribution": "Netflix Inc. / Public domain",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "Netflixの1億円コンテスト",
+      "query": "1 million dollars cash prize",
+      "kind": "ambient",
+      "image": "ch_00_01.jpeg",
+      "attribution": "Kayla Linero / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 2,
+      "title": "Netflixの1億円コンテスト",
+      "query": "streaming interface",
+      "kind": "ambient",
+      "image": "ch_00_02.jpeg",
+      "attribution": "Josh Sorenson / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

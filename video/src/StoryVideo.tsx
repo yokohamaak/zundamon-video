@@ -66,6 +66,7 @@ export type StoryTurn = {
   text: string;
   scene: string;
   expression?: StoryExpression;
+  pose?: "idle" | "cheer" | "recoil" | "lean" | "droop" | "flustered";
   enter?: string[];
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
@@ -1688,7 +1689,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const exprKey = active.expression ?? "normal";
     const charKey = cdef.avatar; // "zundamon" / "metan"
     const charExprs = expressions?.[charKey];
-    const expressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
+    const baseExpressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
+    const expressionCfg =
+      baseExpressionCfg && active.pose
+        ? { ...baseExpressionCfg, pose: active.pose }
+        : baseExpressionCfg;
 
     // 非話者(聞き役)の表情。story.idleFace==="hold" のとき「現時刻以前で自分が最後に
     // 話したターンの表情」を保持する（surprise/panic は一瞬の反応なので normal へ）。

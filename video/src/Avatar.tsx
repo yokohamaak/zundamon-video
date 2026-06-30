@@ -38,6 +38,10 @@ export type ExpressionCfg = {
   cheek: string | null;
   // タスクA: かげり独立スロット。null/未定義なら描かない。
   shadow?: string | null;
+  // StoryVideo 用のモーションポーズ指定。未指定時は emotion から自動決定。
+  pose?: "idle" | "cheer" | "recoil" | "lean" | "droop" | "flustered" | null;
+  // 腕差分があるキャラ用。未指定時は従来どおり emotion から自動決定。
+  arm?: "normal" | "raise" | null;
   eye: string;
   mouth_close: string;
   mouth_half: string;
@@ -75,6 +79,21 @@ function hash(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
+}
+
+function fallbackPose(emotion: Emotion): NonNullable<ExpressionCfg["pose"]> {
+  switch (emotion) {
+    case "happy":
+      return "cheer";
+    case "surprise":
+      return "recoil";
+    case "sad":
+      return "droop";
+    case "panic":
+      return "flustered";
+    default:
+      return "idle";
+  }
 }
 
 export const Avatar: React.FC<{
@@ -144,6 +163,7 @@ export const Avatar: React.FC<{
   const nod = !active ? Math.max(0, nodPhase) ** 3 * 5 : 0;
 
   let translateY = breath - bounce * 8 + nod;
+  let translateX = 0;
   // 発話者は少し手前にポップ（拡大）。非発話者は等倍（透明化・減光はしない）。
   let scale = active && popScale ? 1.04 + interpolate(bounce, [0, 1], [0, 0.04]) : 1.0;
   let rotate = sway;
@@ -171,6 +191,36 @@ export const Avatar: React.FC<{
     rotate += Math.sin(time * Math.PI * 2 * 3.5) * 0.9;
   }
 
+  const pose = expressionCfg?.pose ?? fallbackPose(emotion);
+  const poseStrength = expressive ? 1 : 0.65;
+  const facingSign = flip ? -1 : 1;
+  if (pose === "cheer") {
+    const hop = Math.max(0, Math.sin(time * Math.PI * 2 * (active ? 1.2 : 0.6))) * 8 * poseStrength;
+    translateY -= hop + (active ? 4 * poseStrength : 0);
+    rotate += Math.sin(time * Math.PI * 2 * 1.3) * 2.2 * poseStrength;
+    scale *= 1 + 0.018 * poseStrength;
+  } else if (pose === "recoil") {
+    const surge = Math.sin(Math.min(Math.max(reactT, 0) / Math.max(REACT_DUR, 1), 1) * Math.PI);
+    translateY -= surge * 16 * poseStrength;
+    translateX += facingSign * -10 * surge * poseStrength;
+    rotate += facingSign * -4.2 * surge * poseStrength;
+    scale *= 1 + 0.025 * surge * poseStrength;
+  } else if (pose === "lean") {
+    translateX += facingSign * 10 * poseStrength;
+    translateY -= 4 * poseStrength;
+    rotate += facingSign * 2.4 * poseStrength;
+    scale *= 1 + 0.012 * poseStrength;
+  } else if (pose === "droop") {
+    translateY += 10 * poseStrength;
+    rotate += facingSign * -1.6 * poseStrength;
+    scale *= 1 - 0.02 * poseStrength;
+  } else if (pose === "flustered") {
+    translateX += Math.sin(time * Math.PI * 2 * 4.4) * 2.8 * poseStrength;
+    translateY += Math.cos(time * Math.PI * 2 * 3.8) * 1.6 * poseStrength;
+    rotate += Math.sin(time * Math.PI * 2 * 5.2) * 1.6 * poseStrength;
+    scale *= 1 + 0.01 * poseStrength;
+  }
+
   // 発話者だけ柔らかい影で手前に浮かせる（区別は透明化ではなくポップ＋影で表現）。
   const filter = active
     ? "drop-shadow(0 8px 16px rgba(0,0,0,0.45))"
@@ -184,7 +234,7 @@ export const Avatar: React.FC<{
         height: boxHeight,
         position: "relative",
         filter,
-        transform: `translateY(${translateY}px) scale(${scale}) rotate(${rotate}deg) scaleX(${flip ? -1 : 1})`,
+        transform: `translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotate}deg) scaleX(${flip ? -1 : 1})`,
         transformOrigin: "bottom center",
       }}
     >
@@ -354,8 +404,11 @@ export const Avatar: React.FC<{
   // ② 腕レイヤー差し替え（arm_normal/arm_raise があれば）。
   //    驚き中は arm_raise（手を上げる）。口パク・まばたきは継続したまま腕だけ替わる。
   //    腕レイヤーが無いキャラ(例:めたん)は base に腕が含まれる前提で何もしない。
+  const armMode =
+    expressionCfg?.arm ??
+    (surprised || pose === "cheer" ? "raise" : "normal");
   let armStem = "arm_normal";
-  if (surprised && part("arm_raise")) armStem = "arm_raise";
+  if (armMode === "raise" && part("arm_raise")) armStem = "arm_raise";
   const armSrc = part(armStem);
 
   // ③ 重ね順: base → shadow → cheek → arm → eye → mouth → bangs → brow → fx（眉は髪より前面）

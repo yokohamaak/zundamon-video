@@ -1,0 +1,260 @@
+{
+  "generated_at": "2026-06-13T20:31:28.911083+09:00",
+  "title": "Instagramの意外な前身",
+  "speakers": [
+    {
+      "name": "四国めたん",
+      "gender": "female"
+    },
+    {
+      "name": "ずんだもん",
+      "gender": "male"
+    }
+  ],
+  "topics": [
+    {
+      "title": "Instagramの意外な前身",
+      "start": 0.0,
+      "end": 14.684,
+      "section": "trivia",
+      "chapter": 0,
+      "chapterTotal": 1,
+      "triviaIndex": 1,
+      "triviaTotal": 1,
+      "hook": "Instagram、元々は◯◯◯のためのアプリだった！？",
+      "image": "ch_00_00.jpg",
+      "credit": "Brett Jordan / Pexels"
+    },
+    {
+      "title": "Instagramの意外な前身",
+      "start": 14.684,
+      "end": 34.123,
+      "section": "trivia",
+      "chapter": 0,
+      "chapterTotal": 1,
+      "triviaIndex": 1,
+      "triviaTotal": 1,
+      "hook": "Instagram、元々は◯◯◯のためのアプリだった！？",
+      "image": "ch_00_01.jpg",
+      "credit": "NUDE Nahum / Pexels"
+    },
+    {
+      "title": "Instagramの意外な前身",
+      "start": 34.123,
+      "end": 48.131,
+      "section": "trivia",
+      "chapter": 0,
+      "chapterTotal": 1,
+      "triviaIndex": 1,
+      "triviaTotal": 1,
+      "hook": "Instagram、元々は◯◯◯のためのアプリだった！？",
+      "image": "ch_00_02.jpg",
+      "credit": "Abdulkadir Emiroğlu / Pexels"
+    }
+  ],
+  "credits": [
+    "VOICEVOX:ずんだもん",
+    "VOICEVOX:四国めたん",
+    "画像出典: Brett Jordan / Pexels / NUDE Nahum / Pexels / Abdulkadir Emiroğlu / Pexels"
+  ],
+  "audio": {
+    "bgm": {
+      "file": "bgm.mp3",
+      "volume": 0.07,
+      "fade": 1.5
+    },
+    "se_volume": 0.5,
+    "se": {
+      "intro": "",
+      "outro": "outro.mp3",
+      "flash": "flash.mp3",
+      "surprise": "surprise.mp3"
+    },
+    "events": [
+      {
+        "t": 0.15,
+        "se": "flash"
+      },
+      {
+        "t": 21.267,
+        "se": "surprise"
+      }
+    ]
+  },
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "オシャレさんたちが大好きな写真共有アプリInstagram、実は意外な前身があるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0,
+      "start": 2.5,
+      "end": 9.039,
+      "sentences": [
+        {
+          "text": "オシャレさんたちが大好きな写真共有アプリInstagram、",
+          "start": 2.5,
+          "end": 7.062
+        },
+        {
+          "text": "実は意外な前身があるのよ。",
+          "start": 7.062,
+          "end": 9.039
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "え、最初からキラキラなインスタ映えを狙ってたんじゃ無いのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "start": 9.339,
+      "end": 14.384,
+      "sentences": [
+        {
+          "text": "え、最初からキラキラなインスタ映えを狙ってたんじゃ無いのだ？",
+          "start": 9.339,
+          "end": 14.384
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "驚くことに、元々はウイスキー愛好家が居場所を共有する超多機能アプリだったわ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "start": 14.684,
+      "end": 20.967,
+      "sentences": [
+        {
+          "text": "驚くことに、",
+          "start": 14.684,
+          "end": 15.676
+        },
+        {
+          "text": "元々はウイスキー愛好家が居場所を共有する超多機能アプリだったわ。",
+          "start": 15.676,
+          "end": 20.967
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ウイスキー！？今のオシャレな雰囲気とは真逆すぎるのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "start": 21.267,
+      "end": 25.363,
+      "sentences": [
+        {
+          "text": "ウイスキー！？",
+          "start": 21.267,
+          "end": 22.28
+        },
+        {
+          "text": "今のオシャレな雰囲気とは真逆すぎるのだ！",
+          "start": 22.28,
+          "end": 25.363
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "「Burbn（バーブン）」という多機能アプリは不評。唯一人気だった写真共有機能だけに削ぎ落としたら大ヒットしたのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "start": 25.663,
+      "end": 33.823,
+      "sentences": [
+        {
+          "text": "「Burbn（バーブン）」という多機能アプリは不評。",
+          "start": 25.663,
+          "end": 28.628
+        },
+        {
+          "text": "唯一人気だった写真共有機能だけに削ぎ落としたら大ヒットしたのよ。",
+          "start": 28.628,
+          "end": 33.823
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "いらない機能を全部捨てる大英断があったから、今では世界で人気のアプリになれたのだね！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "start": 34.123,
+      "end": 40.992,
+      "sentences": [
+        {
+          "text": "いらない機能を全部捨てる大英断があったから、",
+          "start": 34.123,
+          "end": 37.721
+        },
+        {
+          "text": "今では世界で人気のアプリになれたのだね！",
+          "start": 37.721,
+          "end": 40.992
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "こういうネタを、本編ではもっとたくさん深掘りしてるよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "start": 41.292,
+      "end": 45.303,
+      "sentences": [
+        {
+          "text": "こういうネタを、",
+          "start": 41.292,
+          "end": 42.48
+        },
+        {
+          "text": "本編ではもっとたくさん深掘りしてるよ。",
+          "start": 42.48,
+          "end": 45.303
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気になったら本編もチェックなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "start": 45.603,
+      "end": 48.131,
+      "sentences": [
+        {
+          "text": "気になったら本編もチェックなのだ！",
+          "start": 45.603,
+          "end": 48.131
+        }
+      ]
+    }
+  ]
+}

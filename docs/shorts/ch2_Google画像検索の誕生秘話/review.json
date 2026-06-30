@@ -1,0 +1,52 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "Google画像検索の誕生秘話",
+      "query": "Jennifer Lopez green dress Grammy Awards 2000",
+      "kind": "subject",
+      "image": "ch_00_00.jpg",
+      "attribution": "Salvatore Delle Femmine / CC BY 3.0",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "Google画像検索の誕生秘話",
+      "query": "Google image search results",
+      "kind": "ambient",
+      "image": "ch_00_01.jpeg",
+      "attribution": "Sarah Blocksidge / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 2,
+      "title": "Google画像検索の誕生秘話",
+      "query": "Google search bar",
+      "kind": "ambient",
+      "image": "ch_00_02.jpeg",
+      "attribution": "Sarah Blocksidge / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

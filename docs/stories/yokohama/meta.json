@@ -1,0 +1,3882 @@
+{
+  "generated_at": "2026-06-23T23:44:19.964497+09:00",
+  "title": "なぜ横浜駅は迷宮なのか？",
+  "speakers": [
+    {
+      "name": "四国めたん",
+      "gender": "female"
+    },
+    {
+      "name": "ずんだもん",
+      "gender": "male"
+    }
+  ],
+  "topics": [
+    {
+      "title": "なぜ横浜駅は迷宮なのか",
+      "start": 0.0,
+      "end": 23.217,
+      "section": "intro",
+      "chapter": 0,
+      "chapterTotal": 8,
+      "image": "ch_00_00.jpg",
+      "crop": {
+        "l": 0.030549408834878024,
+        "t": 0.01790392068001828,
+        "r": 0.9731688235778712,
+        "b": 0.96860589154282
+      }
+    },
+    {
+      "title": "なぜ横浜駅は迷宮なのか",
+      "start": 23.217,
+      "end": 51.68,
+      "section": "intro",
+      "chapter": 0,
+      "chapterTotal": 8,
+      "image": "ch_00_02.jpg",
+      "crop": {
+        "l": 0.1337117533486463,
+        "t": 0.17639348506059896,
+        "r": 0.9196494863361634,
+        "b": 0.8753193136173261
+      },
+      "vizFrom": 23.217,
+      "vizUntil": 51.38,
+      "quiz": {
+        "question": "日本のサグラダファミリア駅？",
+        "answer": "横浜駅（神奈川県横浜市）",
+        "boxWidth": 0.6,
+        "answerSize": 0.6,
+        "questionSize": 0.7,
+        "bgOpacity": 1,
+        "bg": "#0f141e",
+        "revealAt": 28.115
+      }
+    },
+    {
+      "title": "なぜ横浜駅は迷宮なのか",
+      "start": 51.68,
+      "end": 57.024,
+      "section": "intro",
+      "chapter": 0,
+      "chapterTotal": 8,
+      "image": "ch_00_02.jpg",
+      "crop": {
+        "l": 0.1337117533486463,
+        "t": 0.17639348506059896,
+        "r": 0.9196494863361634,
+        "b": 0.8753193136173261
+      }
+    },
+    {
+      "title": "6社が集まる巨大ターミナル",
+      "start": 57.024,
+      "end": 71.791,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 8,
+      "triviaIndex": 1,
+      "triviaTotal": 6,
+      "image": "ch_01_00.jpeg",
+      "credit": "Satoshi Hirayama / Pexels",
+      "vizFrom": 57.024,
+      "vizUntil": 71.491,
+      "quiz": {
+        "question": "乗り入れる\n鉄道会社の数は？",
+        "answer": "",
+        "revealAt": 65.704
+      }
+    },
+    {
+      "title": "6社が集まる巨大ターミナル",
+      "start": 71.791,
+      "end": 85.809,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 8,
+      "triviaIndex": 1,
+      "triviaTotal": 6,
+      "image": "ch_01_00.jpeg",
+      "credit": "Satoshi Hirayama / Pexels",
+      "vizFrom": 71.791,
+      "vizUntil": 85.509,
+      "stat": {
+        "value": "6",
+        "unit": "社",
+        "label": "乗り入れる鉄道会社",
+        "bgOpacity": 0.8,
+        "bg": "#0f141e",
+        "size": 1.5,
+        "showAt": 72.958,
+        "countTo": 6
+      }
+    },
+    {
+      "title": "6社が集まる巨大ターミナル",
+      "start": 85.809,
+      "end": 110.965,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 8,
+      "triviaIndex": 1,
+      "triviaTotal": 6,
+      "image": "ch_01_00.jpeg",
+      "credit": "Satoshi Hirayama / Pexels",
+      "vizFrom": 85.809,
+      "vizUntil": 110.665,
+      "panel": {
+        "items": [
+          {
+            "text": "JR",
+            "at": 86.568
+          },
+          {
+            "text": "京浜急行電鉄",
+            "at": 87.326
+          },
+          {
+            "text": "相模鉄道",
+            "at": 88.085
+          },
+          {
+            "text": "東急",
+            "at": 88.844
+          },
+          {
+            "text": "みなとみらい線",
+            "at": 89.603
+          },
+          {
+            "text": "横浜市営地下鉄",
+            "at": 91.12
+          }
+        ],
+        "shrinkAt": 86.062,
+        "markerType": "dot",
+        "image": "ch_01_00.jpeg"
+      }
+    },
+    {
+      "title": "6社が集まる巨大ターミナル",
+      "start": 110.965,
+      "end": 114.636,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 8,
+      "triviaIndex": 1,
+      "triviaTotal": 6,
+      "image": "ch_01_00.jpeg",
+      "credit": "Satoshi Hirayama / Pexels"
+    },
+    {
+      "title": "6社が集まる巨大ターミナル",
+      "start": 114.636,
+      "end": 130.991,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 8,
+      "triviaIndex": 1,
+      "triviaTotal": 6,
+      "image": "ch_01_02.jpg",
+      "credit": "Guohua Song / Pexels",
+      "vizFrom": 114.636,
+      "vizUntil": 130.691,
+      "compare": {
+        "left": {
+          "label": "羽田空港",
+          "image": "ch_01_02.jpg"
+        },
+        "right": {
+          "label": "横浜",
+          "image": "ch_01_01.jpg"
+        },
+        "at0": 115.746,
+        "at1": 116.671
+      }
+    },
+    {
+      "title": "6社が集まる巨大ターミナル",
+      "start": 130.991,
+      "end": 146.844,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 8,
+      "triviaIndex": 1,
+      "triviaTotal": 6,
+      "image": "ch_01_00.jpeg",
+      "credit": "Satoshi Hirayama / Pexels",
+      "vizFrom": 130.991,
+      "vizUntil": 146.544,
+      "stat": {
+        "value": "2,300,000",
+        "unit": "人",
+        "label": "1日の乗降人数",
+        "size": 1.1,
+        "countSpeed": "slow",
+        "showAt": 130.991,
+        "countTo": 2300000
+      }
+    },
+    {
+      "title": "6社が集まる巨大ターミナル",
+      "start": 146.844,
+      "end": 161.096,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 8,
+      "triviaIndex": 1,
+      "triviaTotal": 6,
+      "image": "ch_01_03.jpg",
+      "credit": "Huu Huynh / Pexels"
+    },
+    {
+      "title": "複雑になる宿命？",
+      "start": 161.096,
+      "end": 169.835,
+      "section": "trivia",
+      "chapter": 2,
+      "chapterTotal": 8,
+      "triviaIndex": 2,
+      "triviaTotal": 6,
+      "image": "asset-0009.jpg",
+      "credit": "Soulful Pizza / Pexels"
+    },
+    {
+      "title": "複雑になる宿命？",
+      "start": 169.835,
+      "end": 175.543,
+      "section": "trivia",
+      "chapter": 2,
+      "chapterTotal": 8,
+      "triviaIndex": 2,
+      "triviaTotal": 6,
+      "image": "asset-0010.jpg",
+      "credit": "LML 6768 / Pexels"
+    },
+    {
+      "title": "複雑になる宿命？",
+      "start": 175.543,
+      "end": 192.996,
+      "section": "trivia",
+      "chapter": 2,
+      "chapterTotal": 8,
+      "triviaIndex": 2,
+      "triviaTotal": 6,
+      "image": "ch_02_00.png",
+      "vizFrom": 175.543,
+      "vizUntil": 192.696,
+      "quiz": {
+        "question": "複雑になる宿命？",
+        "answer": "今の場所は３代目横浜駅",
+        "questionSize": 0.8,
+        "revealAt": 181.113
+      }
+    },
+    {
+      "title": "複雑になる宿命？",
+      "start": 192.996,
+      "end": 224.489,
+      "section": "trivia",
+      "chapter": 2,
+      "chapterTotal": 8,
+      "triviaIndex": 2,
+      "triviaTotal": 6,
+      "image": "ch_02_00.png",
+      "vizFrom": 192.996,
+      "vizUntil": 256.888,
+      "panel": {
+        "items": [
+          {
+            "text": "● 初代1872年 桜木町",
+            "at": 192.996
+          },
+          {
+            "text": "● 2代目 関東大震災で焼失",
+            "at": 231.681,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "● 3代目1928年 現在地",
+            "at": 241.175,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 192.996,
+        "textSize": 0.9,
+        "image": "ch_02_00.png"
+      }
+    },
+    {
+      "title": "複雑になる宿命？",
+      "start": 224.489,
+      "end": 241.175,
+      "section": "trivia",
+      "chapter": 2,
+      "chapterTotal": 8,
+      "triviaIndex": 2,
+      "triviaTotal": 6,
+      "image": "ch_02_01.jpg",
+      "fit": "contain",
+      "credit": "東京市 / Public domain",
+      "vizFrom": 192.996,
+      "vizUntil": 256.888,
+      "panel": {
+        "items": [
+          {
+            "text": "● 初代1872年 桜木町",
+            "at": 192.996
+          },
+          {
+            "text": "● 2代目 関東大震災で焼失",
+            "at": 231.681,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "● 3代目1928年 現在地",
+            "at": 241.175,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 192.996,
+        "textSize": 0.9,
+        "image": "ch_02_01.jpg"
+      }
+    },
+    {
+      "title": "複雑になる宿命？",
+      "start": 241.175,
+      "end": 256.888,
+      "section": "trivia",
+      "chapter": 2,
+      "chapterTotal": 8,
+      "triviaIndex": 2,
+      "triviaTotal": 6,
+      "image": "ch_02_02.jpeg",
+      "credit": "Huu Huynh / Pexels",
+      "vizFrom": 192.996,
+      "vizUntil": 256.888,
+      "panel": {
+        "items": [
+          {
+            "text": "● 初代1872年 桜木町",
+            "at": 192.996
+          },
+          {
+            "text": "● 2代目 関東大震災で焼失",
+            "at": 231.681,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "● 3代目1928年 現在地",
+            "at": 241.175,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 192.996,
+        "textSize": 0.9,
+        "image": "ch_02_02.jpeg"
+      }
+    },
+    {
+      "title": "各社バラバラの継ぎ足し",
+      "start": 256.888,
+      "end": 286.409,
+      "section": "trivia",
+      "chapter": 3,
+      "chapterTotal": 8,
+      "triviaIndex": 3,
+      "triviaTotal": 6,
+      "image": "ch_03_00.jpeg",
+      "credit": "Joerg Hartmann / Pexels",
+      "vizFrom": 256.888,
+      "vizUntil": 286.109,
+      "quiz": {
+        "question": "なぜこんなに\n入り組んでる？",
+        "answer": "",
+        "revealAt": 274.421
+      }
+    },
+    {
+      "title": "各社バラバラの継ぎ足し",
+      "start": 286.409,
+      "end": 355.039,
+      "section": "trivia",
+      "chapter": 3,
+      "chapterTotal": 8,
+      "triviaIndex": 3,
+      "triviaTotal": 6,
+      "image": "ch_03_01.jpeg",
+      "credit": "Stanzin  Dawa / Pexels",
+      "vizFrom": 286.409,
+      "vizUntil": 355.039,
+      "panel": {
+        "items": [
+          {
+            "text": "別会社が継ぎ足し",
+            "at": 286.409
+          },
+          {
+            "text": "まるでダンジョン",
+            "at": 312.205
+          },
+          {
+            "text": "ホーム高さもバラバラ",
+            "at": 318.671
+          },
+          {
+            "text": "案内板もバラバラ",
+            "at": 342.152
+          }
+        ],
+        "shrinkAt": 286.409,
+        "markerType": "dot",
+        "image": "ch_03_01.jpeg"
+      }
+    },
+    {
+      "title": "駅ビルと地下街の一体化",
+      "start": 355.039,
+      "end": 364.321,
+      "section": "trivia",
+      "chapter": 4,
+      "chapterTotal": 8,
+      "triviaIndex": 4,
+      "triviaTotal": 6,
+      "image": "ch_04_01.jpg",
+      "vizFrom": 355.039,
+      "vizUntil": 404.796,
+      "panel": {
+        "items": [
+          {
+            "text": "各社バラバラの増築",
+            "at": 369.08
+          },
+          {
+            "text": "直結する駅ビル",
+            "at": 378.735
+          },
+          {
+            "text": "一体化した地下街",
+            "at": 388.517
+          }
+        ],
+        "shrinkAt": 369.08,
+        "markerType": "dot",
+        "image": "ch_04_01.jpg"
+      }
+    },
+    {
+      "title": "駅ビルと地下街の一体化",
+      "start": 364.321,
+      "end": 388.517,
+      "section": "trivia",
+      "chapter": 4,
+      "chapterTotal": 8,
+      "triviaIndex": 4,
+      "triviaTotal": 6,
+      "image": "ch_04_00.jpeg",
+      "credit": "Huu Huynh / Pexels",
+      "vizFrom": 355.039,
+      "vizUntil": 404.796,
+      "panel": {
+        "items": [
+          {
+            "text": "各社バラバラの増築",
+            "at": 369.08
+          },
+          {
+            "text": "直結する駅ビル",
+            "at": 378.735
+          },
+          {
+            "text": "一体化した地下街",
+            "at": 388.517
+          }
+        ],
+        "shrinkAt": 369.08,
+        "markerType": "dot",
+        "image": "ch_04_00.jpeg"
+      }
+    },
+    {
+      "title": "駅ビルと地下街の一体化",
+      "start": 388.517,
+      "end": 405.096,
+      "section": "trivia",
+      "chapter": 4,
+      "chapterTotal": 8,
+      "triviaIndex": 4,
+      "triviaTotal": 6,
+      "image": "ch_04_01.jpg",
+      "vizFrom": 355.039,
+      "vizUntil": 404.796,
+      "panel": {
+        "items": [
+          {
+            "text": "各社バラバラの増築",
+            "at": 369.08
+          },
+          {
+            "text": "直結する駅ビル",
+            "at": 378.735
+          },
+          {
+            "text": "一体化した地下街",
+            "at": 388.517
+          }
+        ],
+        "shrinkAt": 369.08,
+        "markerType": "dot",
+        "image": "ch_04_01.jpg"
+      }
+    },
+    {
+      "title": "駅ビルと地下街の一体化",
+      "start": 405.096,
+      "end": 421.888,
+      "section": "trivia",
+      "chapter": 4,
+      "chapterTotal": 8,
+      "triviaIndex": 4,
+      "triviaTotal": 6,
+      "image": "ch_04_02.png",
+      "vizFrom": 405.096,
+      "vizUntil": 445.315,
+      "panel": {
+        "items": [
+          {
+            "text": "西口 高島屋",
+            "at": 405.096
+          },
+          {
+            "text": "東口 そごう",
+            "at": 421.888
+          }
+        ],
+        "shrinkAt": 405.096,
+        "heading": "東西で別々に発展",
+        "markerType": "dot",
+        "image": "ch_04_02.png"
+      }
+    },
+    {
+      "title": "駅ビルと地下街の一体化",
+      "start": 421.888,
+      "end": 445.615,
+      "section": "trivia",
+      "chapter": 4,
+      "chapterTotal": 8,
+      "triviaIndex": 4,
+      "triviaTotal": 6,
+      "image": "ch_04_03.png",
+      "vizFrom": 405.096,
+      "vizUntil": 445.315,
+      "panel": {
+        "items": [
+          {
+            "text": "西口 高島屋",
+            "at": 405.096
+          },
+          {
+            "text": "東口 そごう",
+            "at": 421.888
+          }
+        ],
+        "shrinkAt": 405.096,
+        "heading": "東西で別々に発展",
+        "markerType": "dot",
+        "image": "ch_04_03.png"
+      }
+    },
+    {
+      "title": "駅ビルと地下街の一体化",
+      "start": 445.615,
+      "end": 461.104,
+      "section": "trivia",
+      "chapter": 4,
+      "chapterTotal": 8,
+      "triviaIndex": 4,
+      "triviaTotal": 6,
+      "image": "ch_04_01.jpg",
+      "vizFrom": 445.615,
+      "vizUntil": 461.104,
+      "stat": {
+        "value": "1980",
+        "unit": "年",
+        "label": "地下街ポルタ開業",
+        "showAt": 445.615,
+        "countTo": 1980
+      }
+    },
+    {
+      "title": "工事が終わらない理由",
+      "start": 461.104,
+      "end": 492.577,
+      "section": "trivia",
+      "chapter": 5,
+      "chapterTotal": 8,
+      "triviaIndex": 5,
+      "triviaTotal": 6,
+      "image": "ch_05_00.jpeg",
+      "credit": "Huu Huynh / Pexels",
+      "vizFrom": 461.104,
+      "vizUntil": 492.277,
+      "quiz": {
+        "question": "工事が何十年も\n終わらないのはなぜ？",
+        "answer": "利用者が増え続け\n駅が手狭になるから",
+        "boxWidth": 0.65,
+        "answerSize": 0.7,
+        "revealAt": 477.439
+      }
+    },
+    {
+      "title": "工事が終わらない理由",
+      "start": 492.577,
+      "end": 505.956,
+      "section": "trivia",
+      "chapter": 5,
+      "chapterTotal": 8,
+      "triviaIndex": 5,
+      "triviaTotal": 6,
+      "image": "ch_05_00.jpeg",
+      "credit": "Huu Huynh / Pexels",
+      "vizFrom": 492.577,
+      "vizUntil": 559.82,
+      "panel": {
+        "items": [
+          {
+            "text": "利用者が増え続ける",
+            "at": 492.577
+          },
+          {
+            "text": "直通でホーム増設",
+            "at": 505.956,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "走らせながら継ぎ足し",
+            "at": 534.452,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 492.577,
+        "image": "ch_05_00.jpeg"
+      }
+    },
+    {
+      "title": "工事が終わらない理由",
+      "start": 505.956,
+      "end": 559.82,
+      "section": "trivia",
+      "chapter": 5,
+      "chapterTotal": 8,
+      "triviaIndex": 5,
+      "triviaTotal": 6,
+      "image": "ch_05_01.jpg",
+      "fit": "contain",
+      "credit": "Yoh-Plus / CC BY 4.0",
+      "vizFrom": 492.577,
+      "vizUntil": 559.82,
+      "panel": {
+        "items": [
+          {
+            "text": "利用者が増え続ける",
+            "at": 492.577
+          },
+          {
+            "text": "直通でホーム増設",
+            "at": 505.956,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "走らせながら継ぎ足し",
+            "at": 534.452,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 492.577,
+        "image": "ch_05_01.jpg"
+      }
+    },
+    {
+      "title": "今も続く大改造",
+      "start": 559.82,
+      "end": 565.817,
+      "section": "trivia",
+      "chapter": 6,
+      "chapterTotal": 8,
+      "triviaIndex": 6,
+      "triviaTotal": 6,
+      "image": "ch_06_02.png",
+      "vizFrom": 559.82,
+      "vizUntil": 613.013,
+      "panel": {
+        "items": [
+          {
+            "text": "エキサイトよこはま22",
+            "at": 565.817
+          },
+          {
+            "text": "JR横浜タワー 2020",
+            "at": 590.877,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "駅が一つの街に",
+            "at": 599.956,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 565.817,
+        "image": "ch_06_02.png"
+      }
+    },
+    {
+      "title": "今も続く大改造",
+      "start": 565.817,
+      "end": 590.877,
+      "section": "trivia",
+      "chapter": 6,
+      "chapterTotal": 8,
+      "triviaIndex": 6,
+      "triviaTotal": 6,
+      "image": "ch_06_03.png",
+      "vizFrom": 559.82,
+      "vizUntil": 613.013,
+      "panel": {
+        "items": [
+          {
+            "text": "エキサイトよこはま22",
+            "at": 565.817
+          },
+          {
+            "text": "JR横浜タワー 2020",
+            "at": 590.877,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "駅が一つの街に",
+            "at": 599.956,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 565.817,
+        "image": "ch_06_03.png"
+      }
+    },
+    {
+      "title": "今も続く大改造",
+      "start": 590.877,
+      "end": 608.811,
+      "section": "trivia",
+      "chapter": 6,
+      "chapterTotal": 8,
+      "triviaIndex": 6,
+      "triviaTotal": 6,
+      "image": "ch_06_02.png",
+      "vizFrom": 559.82,
+      "vizUntil": 613.013,
+      "panel": {
+        "items": [
+          {
+            "text": "エキサイトよこはま22",
+            "at": 565.817
+          },
+          {
+            "text": "JR横浜タワー 2020",
+            "at": 590.877,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "駅が一つの街に",
+            "at": 599.956,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 565.817,
+        "image": "ch_06_02.png"
+      }
+    },
+    {
+      "title": "今も続く大改造",
+      "start": 608.811,
+      "end": 613.313,
+      "section": "trivia",
+      "chapter": 6,
+      "chapterTotal": 8,
+      "triviaIndex": 6,
+      "triviaTotal": 6,
+      "image": "ch_06_03.png",
+      "vizFrom": 559.82,
+      "vizUntil": 613.013,
+      "panel": {
+        "items": [
+          {
+            "text": "エキサイトよこはま22",
+            "at": 565.817
+          },
+          {
+            "text": "JR横浜タワー 2020",
+            "at": 590.877,
+            "arrow_from_prev": true
+          },
+          {
+            "text": "駅が一つの街に",
+            "at": 599.956,
+            "arrow_from_prev": true
+          }
+        ],
+        "shrinkAt": 565.817,
+        "image": "ch_06_03.png"
+      }
+    },
+    {
+      "title": "今も続く大改造",
+      "start": 613.313,
+      "end": 618.243,
+      "section": "trivia",
+      "chapter": 6,
+      "chapterTotal": 8,
+      "triviaIndex": 6,
+      "triviaTotal": 6,
+      "image": "ch_06_02.png",
+      "vizFrom": 613.313,
+      "vizUntil": 658.911,
+      "quiz": {
+        "question": "横浜駅、いつ完成する？",
+        "answer": "A.まだ何年も先",
+        "answerBg": "#29db97",
+        "answerBgOpacity": 0.96,
+        "boxWidth": 0.8,
+        "revealAt": 632.485
+      }
+    },
+    {
+      "title": "今も続く大改造",
+      "start": 618.243,
+      "end": 658.911,
+      "section": "trivia",
+      "chapter": 6,
+      "chapterTotal": 8,
+      "triviaIndex": 6,
+      "triviaTotal": 6,
+      "image": "ch_06_01.jpeg",
+      "credit": "Pete Miller Portraits / Pexels",
+      "vizFrom": 613.313,
+      "vizUntil": 658.911,
+      "quiz": {
+        "question": "横浜駅、いつ完成する？",
+        "answer": "A.まだ何年も先",
+        "answerBg": "#29db97",
+        "answerBgOpacity": 0.96,
+        "boxWidth": 0.8,
+        "revealAt": 632.485
+      }
+    },
+    {
+      "title": "まとめ",
+      "start": 658.911,
+      "end": 698.131,
+      "section": "outro",
+      "chapter": 7,
+      "chapterTotal": 8,
+      "image": "ch_07_00.jpeg",
+      "credit": "Huu Huynh / Pexels"
+    }
+  ],
+  "credits": [
+    "VOICEVOX:ずんだもん",
+    "VOICEVOX:四国めたん",
+    "画像出典: Satoshi Hirayama / Pexels / Guohua Song / Pexels / Huu Huynh / Pexels / 東京市 / Public domain / Joerg Hartmann / Pexels / Stanzin  Dawa / Pexels / Yoh-Plus / CC BY 4.0 / Pete Miller Portraits / Pexels / Soulful Pizza / Pexels / LML 6768 / Pexels"
+  ],
+  "audio": {
+    "bgm": {
+      "file": "bgm.mp3",
+      "volume": 0.07,
+      "fade": 3.0
+    },
+    "bgmSegments": [
+      {
+        "file": "bgm1.mp3",
+        "start": 2.5,
+        "end": 57.024,
+        "fadeOut": 0.6
+      },
+      {
+        "file": "bgm.mp3",
+        "start": 58.124,
+        "end": 698.131,
+        "fadeOut": 0.6
+      }
+    ],
+    "se_volume": 0.5,
+    "se": {
+      "intro": "",
+      "outro": "outro.mp3",
+      "flash": "flash.mp3",
+      "surprise": "surprise.mp3"
+    },
+    "events": [
+      {
+        "t": 12.837,
+        "se": "surprise"
+      },
+      {
+        "t": 57.174,
+        "se": "flash"
+      },
+      {
+        "t": 79.429,
+        "se": "surprise"
+      },
+      {
+        "t": 123.448,
+        "se": "surprise"
+      },
+      {
+        "t": 139.504,
+        "se": "surprise"
+      },
+      {
+        "t": 161.246,
+        "se": "flash"
+      },
+      {
+        "t": 185.464,
+        "se": "surprise"
+      },
+      {
+        "t": 192.846,
+        "se": "flash"
+      },
+      {
+        "t": 257.038,
+        "se": "flash"
+      },
+      {
+        "t": 277.437,
+        "se": "flash"
+      },
+      {
+        "t": 294.912,
+        "se": "surprise"
+      },
+      {
+        "t": 327.365,
+        "se": "surprise"
+      },
+      {
+        "t": 350.015,
+        "se": "surprise"
+      },
+      {
+        "t": 355.189,
+        "se": "flash"
+      },
+      {
+        "t": 397.607,
+        "se": "surprise"
+      },
+      {
+        "t": 404.946,
+        "se": "flash"
+      },
+      {
+        "t": 454.576,
+        "se": "surprise"
+      },
+      {
+        "t": 461.254,
+        "se": "flash"
+      },
+      {
+        "t": 485.739,
+        "se": "surprise"
+      },
+      {
+        "t": 492.427,
+        "se": "flash"
+      },
+      {
+        "t": 543.349,
+        "se": "surprise"
+      },
+      {
+        "t": 559.97,
+        "se": "flash"
+      },
+      {
+        "t": 608.811,
+        "se": "surprise"
+      },
+      {
+        "t": 613.163,
+        "se": "flash"
+      },
+      {
+        "t": 626.884,
+        "se": "surprise"
+      },
+      {
+        "t": 659.061,
+        "se": "outro"
+      }
+    ]
+  },
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "ねえ、「日本のサグラダ・ファミリア」って呼ばれている駅があるの、知ってた？世界遺産じゃなくて、普通の駅なのよ。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0001",
+      "start": 2.5,
+      "end": 12.537,
+      "sentences": [
+        {
+          "text": "ねえ、「日本のサグラダ・ファミリア」って呼ばれている駅があるの、知ってた？",
+          "start": 2.5,
+          "end": 9.433
+        },
+        {
+          "text": "世界遺産じゃなくて、普通の駅なのよ。",
+          "start": 9.433,
+          "end": 12.537
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "サグラダ・ファミリア！？スペインにある、着工から140年以上たっても完成しない、あの巨大な教会のことなのだ？",
+      "emotion": "surprise",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "id": "turn-0002",
+      "start": 12.837,
+      "end": 22.917,
+      "sentences": [
+        {
+          "text": "サグラダ・ファミリア！？",
+          "start": 12.837,
+          "end": 14.832
+        },
+        {
+          "text": "スペインにある、",
+          "start": 14.832,
+          "end": 16.372
+        },
+        {
+          "text": "着工から140年以上たっても完成しない、",
+          "start": 16.372,
+          "end": 20.222
+        },
+        {
+          "text": "あの巨大な教会のことなのだ？",
+          "start": 20.222,
+          "end": 22.917
+        }
+      ],
+      "overlays": [
+        {
+          "image": "asset-0001.jpg",
+          "start": 15.637,
+          "end": 21.05,
+          "dir": "top",
+          "size": 0.57,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。その不名誉なあだ名で呼ばれているのが、神奈川県の玄関口、横浜駅なの。いつ行っても、どこかが工事中なのよ。",
+      "emotion": "happy",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "reveal": true,
+      "id": "turn-0003",
+      "start": 23.217,
+      "end": 32.839,
+      "sentences": [
+        {
+          "text": "そう。",
+          "start": 23.217,
+          "end": 23.676
+        },
+        {
+          "text": "その不名誉なあだ名で呼ばれているのが、",
+          "start": 23.676,
+          "end": 27.181
+        },
+        {
+          "text": "神奈川県の玄関口、横浜駅なの。",
+          "start": 27.181,
+          "end": 29.948
+        },
+        {
+          "text": "いつ行っても、どこかが工事中なのよ。",
+          "start": 29.948,
+          "end": 32.839
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "横浜駅か…。ぼくも何度か行ったけど、行くたびに出口がわからなくなって、必ず迷子になるのだ。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "id": "turn-0004",
+      "start": 33.139,
+      "end": 40.936,
+      "sentences": [
+        {
+          "text": "横浜駅か…。",
+          "start": 33.139,
+          "end": 34.355
+        },
+        {
+          "text": "ぼくも何度か行ったけど、",
+          "start": 34.355,
+          "end": 36.38
+        },
+        {
+          "text": "行くたびに出口がわからなくなって、",
+          "start": 36.38,
+          "end": 39.248
+        },
+        {
+          "text": "必ず迷子になるのだ。",
+          "start": 39.248,
+          "end": 40.936
+        }
+      ],
+      "overlays": [
+        {
+          "image": "asset-0002.jpeg",
+          "start": 35.911,
+          "end": 41.58,
+          "dir": "center",
+          "size": 0.41,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その「いつも工事中で、いつも迷う」には、ちゃんとした理由があるの。今日はその謎を、駅の生い立ちから解き明かしていくわ。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "id": "turn-0005",
+      "start": 41.236,
+      "end": 51.38,
+      "sentences": [
+        {
+          "text": "その「いつも工事中で、いつも迷う」には、",
+          "start": 41.236,
+          "end": 44.979
+        },
+        {
+          "text": "ちゃんとした理由があるの。",
+          "start": 44.979,
+          "end": 47.412
+        },
+        {
+          "text": "今日はその謎を、",
+          "start": 47.412,
+          "end": 48.633
+        },
+        {
+          "text": "駅の生い立ちから解き明かしていくわ。",
+          "start": 48.633,
+          "end": 51.38
+        }
+      ],
+      "overlays": [
+        {
+          "image": "asset-0008.png",
+          "start": 42.44,
+          "end": 50.52,
+          "dir": "top",
+          "size": 0.4,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "迷宮の謎解きなんて、ワクワクするのだ！よろしくお願いするのだ。",
+      "emotion": "happy",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2,
+      "telopX": 0.513,
+      "telopY": 0.21,
+      "reactionX": 0.513,
+      "reactionY": 0.621,
+      "id": "turn-0006",
+      "start": 51.68,
+      "end": 57.024,
+      "sentences": [
+        {
+          "text": "迷宮の謎解きなんて、ワクワクするのだ！",
+          "start": 51.68,
+          "end": 55.2
+        },
+        {
+          "text": "よろしくお願いするのだ。",
+          "start": 55.2,
+          "end": 57.024
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "まずね、横浜駅がどれだけ巨大な駅か知ってほしいの。乗り入れている鉄道会社の数、当ててみて。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s3",
+      "id": "turn-0007",
+      "start": 58.124,
+      "end": 65.847,
+      "sentences": [
+        {
+          "text": "まずね、横浜駅がどれだけ巨大な駅か知ってほしいの。",
+          "start": 58.124,
+          "end": 62.519
+        },
+        {
+          "text": "乗り入れている鉄道会社の数、当ててみて。",
+          "start": 62.519,
+          "end": 65.847
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "えーと…JRと、あとは私鉄が1つか2つくらいなのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s3",
+      "id": "turn-0008",
+      "start": 66.147,
+      "end": 71.491,
+      "sentences": [
+        {
+          "text": "えーと…JRと、",
+          "start": 66.147,
+          "end": 67.791
+        },
+        {
+          "text": "あとは私鉄が1つか2つくらいなのだ？",
+          "start": 67.791,
+          "end": 71.491
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "答えは、なんと6社。ひとつの駅に6社も集まるのは、日本の駅でもトップクラスの多さなのよ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "reveal": true,
+      "vizSeg": "s1",
+      "vizPoints": [
+        {
+          "id": "vp1",
+          "type": "reveal",
+          "pos": 7
+        }
+      ],
+      "id": "turn-0009",
+      "start": 71.791,
+      "end": 79.129,
+      "sentences": [
+        {
+          "text": "答えは、なんと6社。",
+          "start": 71.791,
+          "end": 73.689
+        },
+        {
+          "text": "ひとつの駅に6社も集まるのは、",
+          "start": 73.689,
+          "end": 76.089
+        },
+        {
+          "text": "日本の駅でもトップクラスの多さなのよ。",
+          "start": 76.089,
+          "end": 79.129
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "6社！？たったひとつの駅に、6つも別々の会社が乗り入れているのだ？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0010",
+      "start": 79.429,
+      "end": 85.509,
+      "sentences": [
+        {
+          "text": "6社！？",
+          "start": 79.429,
+          "end": 80.293
+        },
+        {
+          "text": "たったひとつの駅に、",
+          "start": 80.293,
+          "end": 82.092
+        },
+        {
+          "text": "6つも別々の会社が乗り入れているのだ？",
+          "start": 82.092,
+          "end": 85.509
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。JR、京急、相鉄、東急、みなとみらい線、横浜市営地下鉄よ",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "panel_event": "shrink",
+      "vizSeg": "s2",
+      "panel_item": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "vizPoints": [
+        {
+          "id": "vp1",
+          "type": "panel_item",
+          "pos": 23,
+          "value": 5
+        },
+        {
+          "id": "vp2",
+          "type": "panel_item",
+          "pos": 15,
+          "value": 4
+        },
+        {
+          "id": "vp3",
+          "type": "panel_item",
+          "pos": 12,
+          "value": 3
+        },
+        {
+          "id": "vp4",
+          "type": "panel_item",
+          "pos": 9,
+          "value": 2
+        },
+        {
+          "id": "vp5",
+          "type": "panel_item",
+          "pos": 6,
+          "value": 1
+        },
+        {
+          "id": "vp6",
+          "type": "panel_item",
+          "pos": 3,
+          "value": 0
+        },
+        {
+          "id": "vp7",
+          "type": "panel_event",
+          "pos": 1
+        }
+      ],
+      "id": "turn-0011",
+      "start": 85.809,
+      "end": 93.649,
+      "sentences": [
+        {
+          "text": "そう。",
+          "start": 85.809,
+          "end": 86.268
+        },
+        {
+          "text": "JR、京急、相鉄、東急、みなとみらい線、",
+          "start": 86.268,
+          "end": 91.54
+        },
+        {
+          "text": "横浜市営地下鉄よ",
+          "start": 91.54,
+          "end": 93.649
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "名前を聞くだけでお腹いっぱいなのだ…。会社が多いと、改札もホームも、その分だけ増えるのだね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0012",
+      "start": 93.949,
+      "end": 101.693,
+      "sentences": [
+        {
+          "text": "名前を聞くだけでお腹いっぱいなのだ…。",
+          "start": 93.949,
+          "end": 96.669
+        },
+        {
+          "text": "会社が多いと、改札もホームも、",
+          "start": 96.669,
+          "end": 99.46
+        },
+        {
+          "text": "その分だけ増えるのだね。",
+          "start": 99.46,
+          "end": 101.693
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その通りなの。横浜は東京と神奈川じゅうの路線が集まる結節点だから、どの会社にとっても外せない駅なのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0013",
+      "start": 101.993,
+      "end": 110.665,
+      "sentences": [
+        {
+          "text": "その通りなの。",
+          "start": 101.993,
+          "end": 103.081
+        },
+        {
+          "text": "横浜は東京と神奈川じゅうの路線が集まる結節点だから、",
+          "start": 103.081,
+          "end": 107.563
+        },
+        {
+          "text": "どの会社にとっても外せない駅なのよ。",
+          "start": 107.563,
+          "end": 110.665
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "みんなが乗り入れたがる、人気の場所なのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0014",
+      "start": 110.965,
+      "end": 114.336,
+      "sentences": [
+        {
+          "text": "みんなが乗り入れたがる、人気の場所なのだ。",
+          "start": 110.965,
+          "end": 114.336
+        }
+      ],
+      "overlays": [
+        {
+          "image": "asset-0004.png",
+          "start": 111.928,
+          "end": 114.336,
+          "dir": "left",
+          "size": 0.55
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "特に京急は、羽田空港と横浜を結ぶ大事な路線。空港から来た人も、みんなこの駅で乗り換えるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 2,
+      "compare_item": 0,
+      "vizSeg": "s5",
+      "id": "turn-0015",
+      "start": 114.636,
+      "end": 123.148,
+      "sentences": [
+        {
+          "text": "特に京急は、羽田空港と横浜を結ぶ大事な路線。",
+          "start": 114.636,
+          "end": 119.244
+        },
+        {
+          "text": "空港から来た人も、",
+          "start": 119.244,
+          "end": 120.708
+        },
+        {
+          "text": "みんなこの駅で乗り換えるのよ。",
+          "start": 120.708,
+          "end": 123.148
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "飛行機で来た人まで、横浜駅に集まってくるのだ…！どうりで、いつも混んでいるわけなのだ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s5",
+      "compare_item": 1,
+      "id": "turn-0016",
+      "telopSize": 2.0,
+      "telopX": 0.5,
+      "telopY": 0.5,
+      "telopColor": "#ffe224",
+      "start": 123.448,
+      "end": 130.691,
+      "sentences": [
+        {
+          "text": "飛行機で来た人まで、",
+          "start": 123.448,
+          "end": 125.217
+        },
+        {
+          "text": "横浜駅に集まってくるのだ…！",
+          "start": 125.217,
+          "end": 127.693
+        },
+        {
+          "text": "どうりで、いつも混んでいるわけなのだ。",
+          "start": 127.693,
+          "end": 130.691
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "1日に行き交う人は、6社あわせておよそ230万人。世界でも指折りの、超巨大ターミナルなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "reveal": true,
+      "vizSeg": "s4",
+      "id": "turn-0017",
+      "start": 130.991,
+      "end": 139.204,
+      "sentences": [
+        {
+          "text": "1日に行き交う人は、",
+          "start": 130.991,
+          "end": 132.894
+        },
+        {
+          "text": "6社あわせておよそ230万人。",
+          "start": 132.894,
+          "end": 135.748
+        },
+        {
+          "text": "世界でも指折りの、超巨大ターミナルなの。",
+          "start": 135.748,
+          "end": 139.204
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "230万人！？ちょっとした県の人口くらいの人が、毎日あの駅を通っているのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s4",
+      "id": "turn-0018",
+      "start": 139.504,
+      "end": 146.544,
+      "sentences": [
+        {
+          "text": "230万人！？",
+          "start": 139.504,
+          "end": 141.307
+        },
+        {
+          "text": "ちょっとした県の人口くらいの人が、",
+          "start": 141.307,
+          "end": 144.089
+        },
+        {
+          "text": "毎日あの駅を通っているのだ…！",
+          "start": 144.089,
+          "end": 146.544
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "JRだけで見ても、横浜駅は全国でも有数の乗車人員をほこる、東日本を代表する駅のひとつなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 3,
+      "id": "turn-0019",
+      "start": 146.844,
+      "end": 155.708,
+      "sentences": [
+        {
+          "text": "JRだけで見ても、",
+          "start": 146.844,
+          "end": 148.617
+        },
+        {
+          "text": "横浜駅は全国でも有数の乗車人員をほこる、",
+          "start": 148.617,
+          "end": 152.556
+        },
+        {
+          "text": "東日本を代表する駅のひとつなの。",
+          "start": 152.556,
+          "end": 155.708
+        }
+      ],
+      "overlays": [
+        {
+          "image": "asset-0003.png",
+          "start": 146.844,
+          "end": 155.708,
+          "dir": "left",
+          "size": 0.55,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "東京の駅にも負けないくらい、たくさんの人が使っているのだね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 3,
+      "id": "turn-0020",
+      "start": 156.008,
+      "end": 161.096,
+      "sentences": [
+        {
+          "text": "東京の駅にも負けないくらい、",
+          "start": 156.008,
+          "end": 158.382
+        },
+        {
+          "text": "たくさんの人が使っているのだね。",
+          "start": 158.382,
+          "end": 161.096
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そんな巨大な横浜駅だけど、こんなに複雑になったのは、実は生まれた時からの宿命だったの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "flash",
+      "cut": 0,
+      "id": "turn-0021",
+      "start": 162.196,
+      "end": 169.535,
+      "sentences": [
+        {
+          "text": "そんな巨大な横浜駅だけど、",
+          "start": 162.196,
+          "end": 164.415
+        },
+        {
+          "text": "こんなに複雑になったのは、",
+          "start": 164.415,
+          "end": 166.633
+        },
+        {
+          "text": "実は生まれた時からの宿命だったの。",
+          "start": 166.633,
+          "end": 169.535
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "生まれた時から？駅なんて、できた時はシンプルなものじゃないのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0022",
+      "start": 169.835,
+      "end": 175.243,
+      "sentences": [
+        {
+          "text": "生まれた時から？",
+          "start": 169.835,
+          "end": 171.275
+        },
+        {
+          "text": "駅なんて、できた時はシンプルなものじゃないのだ？",
+          "start": 171.275,
+          "end": 175.243
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それがね、横浜駅はこれまでに、駅の場所そのものを3回も引っ越しているのよ。同じ名前なのに、立っていた場所が違うの。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "vizSeg": "s1",
+      "reveal": true,
+      "id": "turn-0023",
+      "start": 175.543,
+      "end": 185.164,
+      "sentences": [
+        {
+          "text": "それがね、横浜駅はこれまでに、",
+          "start": 175.543,
+          "end": 178.081
+        },
+        {
+          "text": "駅の場所そのものを3回も引っ越しているのよ。",
+          "start": 178.081,
+          "end": 181.804
+        },
+        {
+          "text": "同じ名前なのに、立っていた場所が違うの。",
+          "start": 181.804,
+          "end": 185.164
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "駅が引っ越す！？線路の上を、建物ごと別の場所に動くなんて、聞いたことがないのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0024",
+      "start": 185.464,
+      "end": 192.696,
+      "sentences": [
+        {
+          "text": "駅が引っ越す！？",
+          "start": 185.464,
+          "end": 186.797
+        },
+        {
+          "text": "線路の上を、建物ごと別の場所に動くなんて、",
+          "start": 186.797,
+          "end": 190.668
+        },
+        {
+          "text": "聞いたことがないのだ！",
+          "start": 190.668,
+          "end": 192.696
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "初代の横浜駅は1872年、日本で初めての鉄道の終着駅としてできたの。今の桜木町あたりにあったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0025",
+      "start": 192.996,
+      "end": 202.895,
+      "sentences": [
+        {
+          "text": "初代の横浜駅は1872年、",
+          "start": 192.996,
+          "end": 195.831
+        },
+        {
+          "text": "日本で初めての鉄道の終着駅としてできたの。",
+          "start": 195.831,
+          "end": 200.409
+        },
+        {
+          "text": "今の桜木町あたりにあったのよ。",
+          "start": 200.409,
+          "end": 202.895
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "日本で一番最初の駅のひとつだったのだ！すごい歴史なのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0026",
+      "start": 203.195,
+      "end": 208.005,
+      "sentences": [
+        {
+          "text": "日本で一番最初の駅のひとつだったのだ！",
+          "start": 203.195,
+          "end": 206.555
+        },
+        {
+          "text": "すごい歴史なのだ。",
+          "start": 206.555,
+          "end": 208.005
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その初代の駅から新橋までを、汽車がおよそ50分かけて走ったの。今の電車より遅いけれど、当時は大革命だったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0027",
+      "start": 208.305,
+      "end": 217.724,
+      "sentences": [
+        {
+          "text": "その初代の駅から新橋までを、",
+          "start": 208.305,
+          "end": 210.627
+        },
+        {
+          "text": "汽車がおよそ50分かけて走ったの。",
+          "start": 210.627,
+          "end": 213.447
+        },
+        {
+          "text": "今の電車より遅いけれど、",
+          "start": 213.447,
+          "end": 215.585
+        },
+        {
+          "text": "当時は大革命だったのよ。",
+          "start": 215.585,
+          "end": 217.724
+        }
+      ],
+      "overlays": [
+        {
+          "image": "asset-0007.jpg",
+          "start": 210.531,
+          "end": 214.984,
+          "dir": "right",
+          "outDir": "left",
+          "size": 0.73
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "50分！今ならもっと速いけど、当時の人にはきっと魔法みたいに見えたのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0028",
+      "start": 218.024,
+      "end": 224.189,
+      "sentences": [
+        {
+          "text": "50分！",
+          "start": 218.024,
+          "end": 218.92
+        },
+        {
+          "text": "今ならもっと速いけど、",
+          "start": 218.92,
+          "end": 220.731
+        },
+        {
+          "text": "当時の人にはきっと魔法みたいに見えたのだ。",
+          "start": 220.731,
+          "end": 224.189
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ところがその場所だと、線路を東京方面へまっすぐ延ばすのに邪魔だったの。そこで2代目へ移したけれど、関東大震災で焼けてしまったのよ。",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0029",
+      "start": 224.489,
+      "end": 235.113,
+      "sentences": [
+        {
+          "text": "ところがその場所だと、",
+          "start": 224.489,
+          "end": 226.229
+        },
+        {
+          "text": "線路を東京方面へまっすぐ延ばすのに邪魔だったの。",
+          "start": 226.229,
+          "end": 230.025
+        },
+        {
+          "text": "そこで2代目へ移したけれど、",
+          "start": 230.025,
+          "end": 232.4
+        },
+        {
+          "text": "関東大震災で焼けてしまったのよ。",
+          "start": 232.4,
+          "end": 235.113
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "せっかく移したのに、地震で燃えてしまったなんて、不運すぎるのだ…。",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0030",
+      "start": 235.413,
+      "end": 240.875,
+      "sentences": [
+        {
+          "text": "せっかく移したのに、",
+          "start": 235.413,
+          "end": 237.068
+        },
+        {
+          "text": "地震で燃えてしまったなんて、",
+          "start": 237.068,
+          "end": 239.385
+        },
+        {
+          "text": "不運すぎるのだ…。",
+          "start": 239.385,
+          "end": 240.875
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そして1928年、ようやく今の場所に3代目が完成したの。引っ越しを繰り返した末に、やっとたどり着いた土地なのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s2",
+      "panel_item": 2,
+      "id": "turn-0031",
+      "start": 241.175,
+      "end": 251.511,
+      "sentences": [
+        {
+          "text": "そして1928年、",
+          "start": 241.175,
+          "end": 243.054
+        },
+        {
+          "text": "ようやく今の場所に3代目が完成したの。",
+          "start": 243.054,
+          "end": 247.02
+        },
+        {
+          "text": "引っ越しを繰り返した末に、",
+          "start": 247.02,
+          "end": 249.105
+        },
+        {
+          "text": "やっとたどり着いた土地なのよ。",
+          "start": 249.105,
+          "end": 251.511
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "落ち着く場所を探して、さまよい続けた末にできた駅だったのだね…。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s2",
+      "id": "turn-0032",
+      "start": 251.811,
+      "end": 256.888,
+      "sentences": [
+        {
+          "text": "落ち着く場所を探して、",
+          "start": 251.811,
+          "end": 253.556
+        },
+        {
+          "text": "さまよい続けた末にできた駅だったのだね…。",
+          "start": 253.556,
+          "end": 256.888
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "でも、ようやく場所が決まったなら、あとはみんなできれいに作ればよかったのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0033",
+      "start": 257.988,
+      "end": 263.823,
+      "sentences": [
+        {
+          "text": "でも、ようやく場所が決まったなら、",
+          "start": 257.988,
+          "end": 260.598
+        },
+        {
+          "text": "あとはみんなできれいに作ればよかったのだ。",
+          "start": 260.598,
+          "end": 263.823
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ところが、ここからが迷宮の本番なの。乗り入れる会社が、てんでバラバラに自分の駅を作っていったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0034",
+      "start": 264.123,
+      "end": 271.749,
+      "sentences": [
+        {
+          "text": "ところが、ここからが迷宮の本番なの。",
+          "start": 264.123,
+          "end": 267.184
+        },
+        {
+          "text": "乗り入れる会社が、",
+          "start": 267.184,
+          "end": 268.509
+        },
+        {
+          "text": "てんでバラバラに自分の駅を作っていったのよ。",
+          "start": 268.509,
+          "end": 271.749
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "みんなで話し合って、ひとつの設計図でまとめて作らなかったのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0035",
+      "start": 272.049,
+      "end": 277.287,
+      "sentences": [
+        {
+          "text": "みんなで話し合って、",
+          "start": 272.049,
+          "end": 273.739
+        },
+        {
+          "text": "ひとつの設計図でまとめて作らなかったのだ？",
+          "start": 273.739,
+          "end": 277.287
+        }
+      ],
+      "overlays": [
+        {
+          "image": "asset-0011.png",
+          "start": 272.049,
+          "end": 277.287,
+          "dir": "bottom",
+          "outDir": "center",
+          "size": 0.65,
+          "frame": false
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しなかったの。会社ごとに、別々の時代に、別々の高さや向きで、ホームや改札を継ぎ足していったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "flash",
+      "cut": 0,
+      "panel_event": "shrink",
+      "vizSeg": "s1",
+      "id": "turn-0036",
+      "start": 277.587,
+      "end": 286.109,
+      "sentences": [
+        {
+          "text": "しなかったの。",
+          "start": 277.587,
+          "end": 278.547
+        },
+        {
+          "text": "会社ごとに、別々の時代に、",
+          "start": 278.547,
+          "end": 280.945
+        },
+        {
+          "text": "別々の高さや向きで、",
+          "start": 280.945,
+          "end": 282.789
+        },
+        {
+          "text": "ホームや改札を継ぎ足していったのよ。",
+          "start": 282.789,
+          "end": 286.109
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "全体をまとめる大きな設計図が無いまま、つぎはぎでどんどん巨大化した。それが、入り組んだ通路の正体なの。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "panel_item": 0,
+      "vizSeg": "s2",
+      "id": "turn-0037",
+      "start": 286.409,
+      "end": 294.612,
+      "sentences": [
+        {
+          "text": "全体をまとめる大きな設計図が無いまま、",
+          "start": 286.409,
+          "end": 289.443
+        },
+        {
+          "text": "つぎはぎでどんどん巨大化した。",
+          "start": 289.443,
+          "end": 291.839
+        },
+        {
+          "text": "それが、入り組んだ通路の正体なの。",
+          "start": 291.839,
+          "end": 294.612
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "だから急に階段を上らされたり、通路がカクカク曲がったりして、方向感覚を失うのだね…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0038",
+      "start": 294.912,
+      "end": 302.432,
+      "sentences": [
+        {
+          "text": "だから急に階段を上らされたり、",
+          "start": 294.912,
+          "end": 297.598
+        },
+        {
+          "text": "通路がカクカク曲がったりして、",
+          "start": 297.598,
+          "end": 300.283
+        },
+        {
+          "text": "方向感覚を失うのだね…！",
+          "start": 300.283,
+          "end": 302.432
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "有名なのが、相鉄の改札からJRへ向かう道。一度上の階まで上がって、また下りていく、不思議な造りなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0039",
+      "start": 302.732,
+      "end": 311.905,
+      "sentences": [
+        {
+          "text": "有名なのが、相鉄の改札からJRへ向かう道。",
+          "start": 302.732,
+          "end": 307.009
+        },
+        {
+          "text": "一度上の階まで上がって、また下りていく、",
+          "start": 307.009,
+          "end": 310.386
+        },
+        {
+          "text": "不思議な造りなの。",
+          "start": 310.386,
+          "end": 311.905
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "まっすぐ繋げばいいのに、わざわざ遠回りさせられるのだ…！まるでダンジョンなのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0040",
+      "start": 312.205,
+      "end": 318.371,
+      "sentences": [
+        {
+          "text": "まっすぐ繋げばいいのに、",
+          "start": 312.205,
+          "end": 314.185
+        },
+        {
+          "text": "わざわざ遠回りさせられるのだ…！",
+          "start": 314.185,
+          "end": 316.824
+        },
+        {
+          "text": "まるでダンジョンなのだ。",
+          "start": 316.824,
+          "end": 318.371
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しかもホームの高さも、会社ごとにバラバラ。地上を走る線もあれば、高架の上や、地下を走る線もあるの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 2,
+      "id": "turn-0041",
+      "start": 318.671,
+      "end": 327.065,
+      "sentences": [
+        {
+          "text": "しかもホームの高さも、会社ごとにバラバラ。",
+          "start": 318.671,
+          "end": 321.935
+        },
+        {
+          "text": "地上を走る線もあれば、高架の上や、",
+          "start": 321.935,
+          "end": 325.05
+        },
+        {
+          "text": "地下を走る線もあるの。",
+          "start": 325.05,
+          "end": 327.065
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "上に下に行ったり来たりで、自分が今どの階にいるのかも、わからなくなるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0042",
+      "start": 327.365,
+      "end": 333.659,
+      "sentences": [
+        {
+          "text": "上に下に行ったり来たりで、",
+          "start": 327.365,
+          "end": 329.518
+        },
+        {
+          "text": "自分が今どの階にいるのかも、",
+          "start": 329.518,
+          "end": 331.837
+        },
+        {
+          "text": "わからなくなるのだ…！",
+          "start": 331.837,
+          "end": 333.659
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そうなの。それぞれの会社が、自分の都合に合わせて作った通路が、何層にも積み重なっているからなのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0043",
+      "start": 333.959,
+      "end": 341.852,
+      "sentences": [
+        {
+          "text": "そうなの。",
+          "start": 333.959,
+          "end": 334.673
+        },
+        {
+          "text": "それぞれの会社が、",
+          "start": 334.673,
+          "end": 336.142
+        },
+        {
+          "text": "自分の都合に合わせて作った通路が、",
+          "start": 336.142,
+          "end": 338.915
+        },
+        {
+          "text": "何層にも積み重なっているからなのよ。",
+          "start": 338.915,
+          "end": 341.852
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "案内板をたどって歩いても、別の会社のエリアに入ったとたん、案内のデザインまで変わることがあるの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 3,
+      "id": "turn-0044",
+      "start": 342.152,
+      "end": 349.715,
+      "sentences": [
+        {
+          "text": "案内板をたどって歩いても、",
+          "start": 342.152,
+          "end": 344.2
+        },
+        {
+          "text": "別の会社のエリアに入ったとたん、",
+          "start": 344.2,
+          "end": 346.721
+        },
+        {
+          "text": "案内のデザインまで変わることがあるの。",
+          "start": 346.721,
+          "end": 349.715
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "道しるべまでバラバラなんて、ますますぼくたちを迷わせにくるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0045",
+      "start": 350.015,
+      "end": 355.039,
+      "sentences": [
+        {
+          "text": "道しるべまでバラバラなんて、",
+          "start": 350.015,
+          "end": 352.146
+        },
+        {
+          "text": "ますますぼくたちを迷わせにくるのだ…！",
+          "start": 352.146,
+          "end": 355.039
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しかもね、横浜駅をややこしくしているのは、鉄道だけじゃないの。もうひとつ、大きな犯人がいるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "flash",
+      "cut": 1,
+      "vizSeg": "s1",
+      "id": "turn-0046",
+      "start": 356.139,
+      "end": 364.021,
+      "sentences": [
+        {
+          "text": "しかもね、横浜駅をややこしくしているのは、",
+          "start": 356.139,
+          "end": 359.643
+        },
+        {
+          "text": "鉄道だけじゃないの。",
+          "start": 359.643,
+          "end": 361.312
+        },
+        {
+          "text": "もうひとつ、大きな犯人がいるのよ。",
+          "start": 361.312,
+          "end": 364.021
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "電車以外にも、ぼくたちを迷わせてくるものがいるのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0047",
+      "start": 364.321,
+      "end": 368.78,
+      "sentences": [
+        {
+          "text": "電車以外にも、",
+          "start": 364.321,
+          "end": 365.522
+        },
+        {
+          "text": "ぼくたちを迷わせてくるものがいるのだ？",
+          "start": 365.522,
+          "end": 368.78
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ええ。横浜駅で迷う理由は、大きく3つに整理できるの。1つ目は、今話した『各社バラバラの増築』ね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0048",
+      "start": 369.08,
+      "end": 378.435,
+      "sentences": [
+        {
+          "text": "ええっ。",
+          "start": 369.08,
+          "end": 369.603
+        },
+        {
+          "text": "横浜駅で迷う理由は、",
+          "start": 369.603,
+          "end": 371.448
+        },
+        {
+          "text": "大きく3つに整理できるの。",
+          "start": 371.448,
+          "end": 373.848
+        },
+        {
+          "text": "1つ目は、今話した『各社バラバラの増築』ね。",
+          "start": 373.848,
+          "end": 378.435
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "2つ目は、駅に直結した巨大な駅ビル。相鉄ジョイナスや高島屋、ルミネ、シァルが、駅とぴったり重なっているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "panel_item": 1,
+      "id": "turn-0049",
+      "start": 378.735,
+      "end": 388.217,
+      "sentences": [
+        {
+          "text": "2つ目は、駅に直結した巨大な駅ビル。",
+          "start": 378.735,
+          "end": 382.105
+        },
+        {
+          "text": "相鉄ジョイナスや高島屋、ルミネ、シァルが、",
+          "start": 382.105,
+          "end": 385.773
+        },
+        {
+          "text": "駅とぴったり重なっているの。",
+          "start": 385.773,
+          "end": 388.217
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "3つ目は、一体化した地下街。ポルタやダイヤモンド地下街の通路が、駅の通路と見分けつかないほど混ざり合っているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s1",
+      "panel_item": 2,
+      "id": "turn-0050",
+      "start": 388.517,
+      "end": 397.307,
+      "sentences": [
+        {
+          "text": "3つ目は、一体化した地下街。",
+          "start": 388.517,
+          "end": 391.088
+        },
+        {
+          "text": "ポルタやダイヤモンド地下街の通路が、",
+          "start": 391.088,
+          "end": 393.691
+        },
+        {
+          "text": "駅の通路と見分けつかないほど混ざり合っているのよ。",
+          "start": 393.691,
+          "end": 397.307
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "買い物の道と、電車の道が、完全にごちゃ混ぜなのだ！それは迷って当たり前なのだ…。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s1",
+      "id": "turn-0051",
+      "start": 397.607,
+      "end": 404.796,
+      "sentences": [
+        {
+          "text": "買い物の道と、電車の道が、",
+          "start": 397.607,
+          "end": 400.153
+        },
+        {
+          "text": "完全にごちゃ混ぜなのだ！",
+          "start": 400.153,
+          "end": 402.503
+        },
+        {
+          "text": "それは迷って当たり前なのだ…。",
+          "start": 402.503,
+          "end": 404.796
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "しかも西口は、戦後しばらく何もない裏口扱いだったのに、今では高島屋を中心にした一大ショッピング街なの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "flash",
+      "cut": 2,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0052",
+      "start": 405.096,
+      "end": 414.205,
+      "sentences": [
+        {
+          "text": "しかも西口は、",
+          "start": 405.096,
+          "end": 406.346
+        },
+        {
+          "text": "戦後しばらく何もない裏口扱いだったのに、",
+          "start": 406.346,
+          "end": 409.919
+        },
+        {
+          "text": "今では高島屋を中心にした一大ショッピング街なの。",
+          "start": 409.919,
+          "end": 414.205
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "もともと裏側だった所が、後から立派になったのだ？発展した順番までバラバラなのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s2",
+      "id": "turn-0053",
+      "start": 414.505,
+      "end": 421.588,
+      "sentences": [
+        {
+          "text": "もともと裏側だった所が、",
+          "start": 414.505,
+          "end": 416.713
+        },
+        {
+          "text": "後から立派になったのだ？",
+          "start": 416.713,
+          "end": 418.921
+        },
+        {
+          "text": "発展した順番までバラバラなのだ。",
+          "start": 418.921,
+          "end": 421.588
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "反対の東口も、かつてはそごうという大きな百貨店を中心に発展したの。東と西で、別々に街が育っていったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0054",
+      "start": 421.888,
+      "end": 431.605,
+      "sentences": [
+        {
+          "text": "反対の東口も、",
+          "start": 421.888,
+          "end": 423.151
+        },
+        {
+          "text": "かつてはそごうという大きな百貨店を中心に発展したの。",
+          "start": 423.151,
+          "end": 427.84
+        },
+        {
+          "text": "東と西で、別々に街が育っていったのよ。",
+          "start": 427.84,
+          "end": 431.605
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "東と西で、まるで別の街みたいに発展したのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s2",
+      "id": "turn-0055",
+      "start": 431.905,
+      "end": 436.151,
+      "sentences": [
+        {
+          "text": "東と西で、まるで別の街みたいに発展したのだ。",
+          "start": 431.905,
+          "end": 436.151
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。だから頭の中で「こっちが東口、こっちが西口」と地図を描こうとしても、なかなか描けないのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s2",
+      "id": "turn-0056",
+      "start": 436.451,
+      "end": 445.315,
+      "sentences": [
+        {
+          "text": "そう。",
+          "start": 436.451,
+          "end": 436.909
+        },
+        {
+          "text": "だから頭の中で「こっちが東口、",
+          "start": 436.909,
+          "end": 439.711
+        },
+        {
+          "text": "こっちが西口」と地図を描こうとしても、",
+          "start": 439.711,
+          "end": 443.26
+        },
+        {
+          "text": "なかなか描けないのよ。",
+          "start": 443.26,
+          "end": 445.315
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "地下街のポルタが開いたのは1980年。それ以来ずっと、地上でも地下でも、街が広がり続けているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "vizSeg": "s3",
+      "reveal": true,
+      "id": "turn-0057",
+      "start": 445.615,
+      "end": 454.276,
+      "sentences": [
+        {
+          "text": "地下街のポルタが開いたのは1980年。",
+          "start": 445.615,
+          "end": 449.273
+        },
+        {
+          "text": "それ以来ずっと、地上でも地下でも、",
+          "start": 449.273,
+          "end": 452.206
+        },
+        {
+          "text": "街が広がり続けているの。",
+          "start": 452.206,
+          "end": 454.276
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "地面の下にまで、街が広がっているのだ。横浜駅は、立体的すぎるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s3",
+      "id": "turn-0058",
+      "start": 454.576,
+      "end": 461.104,
+      "sentences": [
+        {
+          "text": "地面の下にまで、街が広がっているのだ。",
+          "start": 454.576,
+          "end": 458.011
+        },
+        {
+          "text": "横浜駅は、立体的すぎるのだ…！",
+          "start": 458.011,
+          "end": 461.104
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ここで問題よ。これだけ複雑な横浜駅だけど、その工事が何十年も終わらないのは、なぜだと思う？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0059",
+      "start": 462.204,
+      "end": 470.321,
+      "sentences": [
+        {
+          "text": "ここで問題よ。",
+          "start": 462.204,
+          "end": 463.441
+        },
+        {
+          "text": "これだけ複雑な横浜駅だけど、",
+          "start": 463.441,
+          "end": 465.976
+        },
+        {
+          "text": "その工事が何十年も終わらないのは、",
+          "start": 465.976,
+          "end": 469.054
+        },
+        {
+          "text": "なぜだと思う？",
+          "start": 469.054,
+          "end": 470.321
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "うーん…工事をしている人たちが、のんびり、ゆっくりやっているからなのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0060",
+      "start": 470.621,
+      "end": 477.139,
+      "sentences": [
+        {
+          "text": "うーん…工事をしている人たちが、のんびり、",
+          "start": 470.621,
+          "end": 474.423
+        },
+        {
+          "text": "ゆっくりやっているからなのだ？",
+          "start": 474.423,
+          "end": 477.139
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ふふ、サボっているわけじゃないの。答えは『利用者が増え続けて、駅がいつまでも手狭になり続けるから』。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "vizSeg": "s1",
+      "reveal": true,
+      "id": "turn-0061",
+      "start": 477.439,
+      "end": 485.439,
+      "sentences": [
+        {
+          "text": "ふふっ、サボっているわけじゃないの。",
+          "start": 477.439,
+          "end": 479.977
+        },
+        {
+          "text": "答えは『利用者が増え続けて、",
+          "start": 479.977,
+          "end": 482.294
+        },
+        {
+          "text": "駅がいつまでも手狭になり続けるから』。",
+          "start": 482.294,
+          "end": 485.439
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "広げても広げても、その間にまた人が増えるから、いつまでたっても追いつかないのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0062",
+      "start": 485.739,
+      "end": 492.277,
+      "sentences": [
+        {
+          "text": "広げても広げても、",
+          "start": 485.739,
+          "end": 487.174
+        },
+        {
+          "text": "その間にまた人が増えるから、",
+          "start": 487.174,
+          "end": 489.407
+        },
+        {
+          "text": "いつまでたっても追いつかないのだ…！",
+          "start": 489.407,
+          "end": 492.277
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "横浜駅の利用者は、何十年も前と比べてもずっと増えているの。減るどころか、便利になるほど集まってくるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "flash",
+      "cut": 0,
+      "vizSeg": "s2",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0063",
+      "start": 492.577,
+      "end": 501.324,
+      "sentences": [
+        {
+          "text": "横浜駅の利用者は、",
+          "start": 492.577,
+          "end": 494.186
+        },
+        {
+          "text": "何十年も前と比べてもずっと増えているの。",
+          "start": 494.186,
+          "end": 497.761
+        },
+        {
+          "text": "減るどころか、",
+          "start": 497.761,
+          "end": 498.846
+        },
+        {
+          "text": "便利になるほど集まってくるのよ。",
+          "start": 498.846,
+          "end": 501.324
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "人が減らないなら、工事が終わる日も来ないわけなのだ…。",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s2",
+      "id": "turn-0064",
+      "start": 501.624,
+      "end": 505.656,
+      "sentences": [
+        {
+          "text": "人が減らないなら、",
+          "start": 501.624,
+          "end": 502.968
+        },
+        {
+          "text": "工事が終わる日も来ないわけなのだ…。",
+          "start": 502.968,
+          "end": 505.656
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その上、2019年と2023年には、相鉄が都心への直通運転を始めて、新しい線路やホームまで増えたの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 1,
+      "id": "turn-0065",
+      "start": 505.956,
+      "end": 515.833,
+      "sentences": [
+        {
+          "text": "その上、2019年と2023年には、",
+          "start": 505.956,
+          "end": 509.512
+        },
+        {
+          "text": "相鉄が都心への直通運転を始めて、",
+          "start": 509.512,
+          "end": 512.673
+        },
+        {
+          "text": "新しい線路やホームまで増えたの。",
+          "start": 512.673,
+          "end": 515.833
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "相鉄に乗ったまま、新宿や渋谷まで行けるようになったやつなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0066",
+      "start": 516.133,
+      "end": 521.275,
+      "sentences": [
+        {
+          "text": "相鉄に乗ったまま、",
+          "start": 516.133,
+          "end": 517.626
+        },
+        {
+          "text": "新宿や渋谷まで行けるようになったやつなのだ！",
+          "start": 517.626,
+          "end": 521.275
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。街が便利になって人が集まるほど、駅はもっと大きく、もっと複雑になっていく。だから終わりがないのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0067",
+      "start": 521.575,
+      "end": 529.895,
+      "sentences": [
+        {
+          "text": "そう。",
+          "start": 521.575,
+          "end": 522.033
+        },
+        {
+          "text": "街が便利になって人が集まるほど、",
+          "start": 522.033,
+          "end": 524.732
+        },
+        {
+          "text": "駅はもっと大きく、もっと複雑になっていく。",
+          "start": 524.732,
+          "end": 528.273
+        },
+        {
+          "text": "だから終わりがないのよ。",
+          "start": 528.273,
+          "end": 529.895
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "便利さと迷いやすさが、セットで増えていくのだね…。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0068",
+      "start": 530.195,
+      "end": 534.152,
+      "sentences": [
+        {
+          "text": "便利さと迷いやすさが、",
+          "start": 530.195,
+          "end": 531.936
+        },
+        {
+          "text": "セットで増えていくのだね…。",
+          "start": 531.936,
+          "end": 534.152
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ホームが手狭になると、線路の上に通路を継ぎ足して広げる。そんな離れ業の工事も、何度も繰り返してきたの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "panel_item": 2,
+      "id": "turn-0069",
+      "start": 534.452,
+      "end": 543.049,
+      "sentences": [
+        {
+          "text": "ホームが手狭になると、",
+          "start": 534.452,
+          "end": 536.287
+        },
+        {
+          "text": "線路の上に通路を継ぎ足して広げる。",
+          "start": 536.287,
+          "end": 539.124
+        },
+        {
+          "text": "そんな離れ業の工事も、",
+          "start": 539.124,
+          "end": 541.001
+        },
+        {
+          "text": "何度も繰り返してきたの。",
+          "start": 541.001,
+          "end": 543.049
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "230万人を運びながら、その真上で工事をするなんて、神業すぎるのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0070",
+      "start": 543.349,
+      "end": 550.101,
+      "sentences": [
+        {
+          "text": "230万人を運びながら、",
+          "start": 543.349,
+          "end": 545.664
+        },
+        {
+          "text": "その真上で工事をするなんて、",
+          "start": 545.664,
+          "end": 548.365
+        },
+        {
+          "text": "神業すぎるのだ…！",
+          "start": 548.365,
+          "end": 550.101
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "だから横浜駅では、作っては直し、直しては足し。工事そのものが、もう『日常の風景』になっているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0071",
+      "start": 550.401,
+      "end": 559.82,
+      "sentences": [
+        {
+          "text": "だから横浜駅では、作っては直し、",
+          "start": 550.401,
+          "end": 553.503
+        },
+        {
+          "text": "直しては足し。",
+          "start": 553.503,
+          "end": 554.86
+        },
+        {
+          "text": "工事そのものが、",
+          "start": 554.86,
+          "end": 556.386
+        },
+        {
+          "text": "もう『日常の風景』になっているのよ。",
+          "start": 556.386,
+          "end": 559.82
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "じゃあ横浜駅は、本当に永遠に完成しないのだ…？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "flash",
+      "cut": 2,
+      "vizSeg": "s1",
+      "id": "turn-0072",
+      "start": 560.92,
+      "end": 565.517,
+      "sentences": [
+        {
+          "text": "じゃあ横浜駅は、",
+          "start": 560.92,
+          "end": 562.519
+        },
+        {
+          "text": "本当に永遠に完成しないのだ…？",
+          "start": 562.519,
+          "end": 565.517
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "いいところに気づいたわね。今は『エキサイトよこはま22』という、駅の周りを丸ごと作り変える大計画が動いているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0073",
+      "start": 565.817,
+      "end": 575.247,
+      "sentences": [
+        {
+          "text": "いいところに気づいたわね。",
+          "start": 565.817,
+          "end": 567.535
+        },
+        {
+          "text": "今は『エキサイトよこはま22』という、",
+          "start": 567.535,
+          "end": 570.942
+        },
+        {
+          "text": "駅の周りを丸ごと作り変える大計画が動いているの。",
+          "start": 570.942,
+          "end": 575.247
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "エキサイトよこはま22！？なんだか元気な名前なのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "id": "turn-0074",
+      "start": 575.547,
+      "end": 579.867,
+      "sentences": [
+        {
+          "text": "エキサイトよこはま22！？",
+          "start": 575.547,
+          "end": 577.723
+        },
+        {
+          "text": "なんだか元気な名前なのだ。",
+          "start": 577.723,
+          "end": 579.867
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "駅ビルや駅前広場、歩行者デッキを一体で整えて、人の流れをわかりやすくする狙いなの。迷宮を、少しでも解こうとしているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "id": "turn-0075",
+      "start": 580.167,
+      "end": 590.577,
+      "sentences": [
+        {
+          "text": "駅ビルや駅前広場、",
+          "start": 580.167,
+          "end": 581.728
+        },
+        {
+          "text": "歩行者デッキを一体で整えて、",
+          "start": 581.728,
+          "end": 584.158
+        },
+        {
+          "text": "人の流れをわかりやすくする狙いなの。",
+          "start": 584.158,
+          "end": 587.281
+        },
+        {
+          "text": "迷宮を、少しでも解こうとしているのよ。",
+          "start": 587.281,
+          "end": 590.577
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その第一歩として、2020年にJR横浜タワーという大きな駅ビルが完成して、ひとつの区切りはついたわ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "panel_item": 1,
+      "id": "turn-0076",
+      "start": 590.877,
+      "end": 599.656,
+      "sentences": [
+        {
+          "text": "その第一歩として、",
+          "start": 590.877,
+          "end": 592.457
+        },
+        {
+          "text": "2020年にJR横浜タワーという大きな駅ビルが完成して、",
+          "start": 592.457,
+          "end": 597.374
+        },
+        {
+          "text": "ひとつの区切りはついたわ。",
+          "start": 597.374,
+          "end": 599.656
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その中には、ニュウマンやシァルといったお店、それに映画館まで入っていて、駅そのものが大きな街みたいなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 2,
+      "vizSeg": "s1",
+      "panel_item": 2,
+      "id": "turn-0077",
+      "start": 599.956,
+      "end": 608.511,
+      "sentences": [
+        {
+          "text": "その中には、ニュウマンやシァルといったお店、",
+          "start": 599.956,
+          "end": 603.575
+        },
+        {
+          "text": "それに映画館まで入っていて、",
+          "start": 603.575,
+          "end": 605.878
+        },
+        {
+          "text": "駅そのものが大きな街みたいなの。",
+          "start": 605.878,
+          "end": 608.511
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "もはや駅というより、屋根のついたひとつの街なのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 3,
+      "vizSeg": "s1",
+      "id": "turn-0078",
+      "start": 608.811,
+      "end": 613.013,
+      "sentences": [
+        {
+          "text": "もはや駅というより、",
+          "start": 608.811,
+          "end": 610.427
+        },
+        {
+          "text": "屋根のついたひとつの街なのだ…！",
+          "start": 610.427,
+          "end": 613.013
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "おお、じゃあ少しはスッキリして、迷わなくなったのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "flash",
+      "cut": 2,
+      "vizSeg": "s2",
+      "id": "turn-0079",
+      "start": 613.313,
+      "end": 617.943,
+      "sentences": [
+        {
+          "text": "おお、じゃあ少しはスッキリして、",
+          "start": 613.313,
+          "end": 616.162
+        },
+        {
+          "text": "迷わなくなったのだ？",
+          "start": 616.162,
+          "end": 617.943
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それが、西口でも東口でも、まだ次の工事が控えているの。やっぱり迷宮は、まだまだ健在なのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0080",
+      "start": 618.243,
+      "end": 626.584,
+      "sentences": [
+        {
+          "text": "それが、西口でも東口でも、",
+          "start": 618.243,
+          "end": 620.692
+        },
+        {
+          "text": "まだ次の工事が控えているの。",
+          "start": 620.692,
+          "end": 623.331
+        },
+        {
+          "text": "やっぱり迷宮は、まだまだ健在なのよ。",
+          "start": 623.331,
+          "end": 626.584
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "結局、横浜のサグラダ・ファミリアは、まだ終わらないのだ…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0081",
+      "start": 626.884,
+      "end": 632.185,
+      "sentences": [
+        {
+          "text": "結局、横浜のサグラダ・ファミリアは、",
+          "start": 626.884,
+          "end": 630.174
+        },
+        {
+          "text": "まだ終わらないのだ…！",
+          "start": 630.174,
+          "end": 632.185
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "完成予想図では、もっとすっきりした駅になる計画なの。でも、全部が終わるのは、まだ何年も先の話よ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "vizSeg": "s2",
+      "reveal": true,
+      "id": "turn-0082",
+      "start": 632.485,
+      "end": 641.275,
+      "sentences": [
+        {
+          "text": "完成予想図では、",
+          "start": 632.485,
+          "end": 633.854
+        },
+        {
+          "text": "もっとすっきりした駅になる計画なの。",
+          "start": 633.854,
+          "end": 636.933
+        },
+        {
+          "text": "でも、全部が終わるのは、まだ何年も先の話よ。",
+          "start": 636.933,
+          "end": 641.275
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "完成した横浜駅を、ぼくは生きているうちに見られるのだ…？",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0083",
+      "start": 641.575,
+      "end": 646.407,
+      "sentences": [
+        {
+          "text": "完成した横浜駅を、",
+          "start": 641.575,
+          "end": 643.128
+        },
+        {
+          "text": "ぼくは生きているうちに見られるのだ…？",
+          "start": 643.128,
+          "end": 646.407
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それでも横浜の人たちは、この終わらない工事を、どこか誇らしく「サグラダ・ファミリア」と呼んでいるの。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0084",
+      "start": 646.707,
+      "end": 655.176,
+      "sentences": [
+        {
+          "text": "それでも横浜の人たちは、",
+          "start": 646.707,
+          "end": 648.739
+        },
+        {
+          "text": "この終わらない工事を、",
+          "start": 648.739,
+          "end": 650.603
+        },
+        {
+          "text": "どこか誇らしく「サグラダ・ファミリア」と呼んでいるの。",
+          "start": 650.603,
+          "end": 655.176
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "困りものなのに、ちょっぴり愛されているのだ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "vizSeg": "s2",
+      "id": "turn-0085",
+      "start": 655.476,
+      "end": 658.911,
+      "sentences": [
+        {
+          "text": "困りものなのに、ちょっぴり愛されているのだ。",
+          "start": 655.476,
+          "end": 658.911
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "でもね、工事を続けながらも、毎日230万人の電車を一度も止めずに動かしているの。これは本当にすごいことなのよ。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "flash",
+      "cut": 0,
+      "panel_event": "shrink",
+      "panel_item": [
+        0,
+        1,
+        2
+      ],
+      "id": "turn-0086",
+      "start": 660.011,
+      "end": 669.632,
+      "sentences": [
+        {
+          "text": "でもね、工事を続けながらも、",
+          "start": 660.011,
+          "end": 662.575
+        },
+        {
+          "text": "毎日230万人の電車を一度も止めずに動かしているの。",
+          "start": 662.575,
+          "end": 667.339
+        },
+        {
+          "text": "これは本当にすごいことなのよ。",
+          "start": 667.339,
+          "end": 669.632
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "迷うのは複雑だから。でもその複雑さは、横浜という街が止まらず発展し続けてきた、歴史そのものなの。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "panel_item": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "id": "turn-0087",
+      "start": 669.932,
+      "end": 678.263,
+      "sentences": [
+        {
+          "text": "迷うのは複雑だから。",
+          "start": 669.932,
+          "end": 671.607
+        },
+        {
+          "text": "でもその複雑さは、",
+          "start": 671.607,
+          "end": 673.183
+        },
+        {
+          "text": "横浜という街が止まらず発展し続けてきた、",
+          "start": 673.183,
+          "end": 676.686
+        },
+        {
+          "text": "歴史そのものなの。",
+          "start": 676.686,
+          "end": 678.263
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "なるほどなのだ。今度横浜駅で迷ったら、",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "vizSeg": "s1",
+      "id": "turn-0088",
+      "start": 678.563,
+      "end": 682.061,
+      "sentences": [
+        {
+          "text": "なるほどなのだ。",
+          "start": 678.563,
+          "end": 679.779
+        },
+        {
+          "text": "今度横浜駅で迷ったら、",
+          "start": 679.779,
+          "end": 682.061
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "「この街、めっちゃ成長してるな〜」って思うことにするのだ！",
+      "chapter": 7,
+      "section": "outro",
+      "cut": 0,
+      "emotion": "happy",
+      "effect": "kenburns",
+      "vizSeg": "s1",
+      "id": "turn-0089",
+      "start": 682.361,
+      "end": 687.321,
+      "sentences": [
+        {
+          "text": "「この街、めっちゃ成長してるな〜」って思うことにするのだ！",
+          "start": 682.361,
+          "end": 687.321
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "次に深掘りしてほしいテーマがあったら、コメントで教えてね。高評価も嬉しいわ。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "start": 687.621,
+      "end": 692.603,
+      "sentences": [
+        {
+          "text": "この話、どう思った？",
+          "start": 687.621,
+          "end": 689.755
+        },
+        {
+          "text": "高評価とコメントで感想を教えてね。",
+          "start": 689.755,
+          "end": 692.603
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "telop": "最後まで見てくれて\nありがとう！",
+      "telopSize": 1.0,
+      "telopX": 0.5,
+      "telopY": 0.5,
+      "telopColor": "#f7f7f7",
+      "telopBorder": "#f7f7f7",
+      "start": 692.903,
+      "end": 696.017,
+      "sentences": [
+        {
+          "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+          "start": 692.903,
+          "end": 696.017
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それじゃあ、また見てね〜〜",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "chorus": true,
+      "telop": "チャンネル登録も\nよろしくね！",
+      "telopSize": 1.0,
+      "telopX": 0.5,
+      "telopY": 0.5,
+      "telopDur": "long",
+      "telopColor": "#f3f3f1",
+      "telopBorder": "#ffffff",
+      "start": 696.317,
+      "end": 698.131,
+      "sentences": [
+        {
+          "text": "それじゃあ、また見てね〜〜",
+          "start": 696.317,
+          "end": 698.131
+        }
+      ]
+    }
+  ]
+}

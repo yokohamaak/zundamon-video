@@ -1,0 +1,102 @@
+{
+  "theme": "Google画像検索の誕生秘話",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "Google画像検索の誕生秘話",
+      "summary": "Googleの画像検索は、ジェニファー・ロペスがグラミー賞で着たドレスの検索数が多すぎたため、急遽開発された。",
+      "image_cuts": [
+        {
+          "image_query": "Jennifer Lopez green dress Grammy Awards 2000",
+          "image_kind": "subject",
+          "image_query_ja": "ジェニファー・ロペス グリーンドレス グラミー賞2000"
+        },
+        {
+          "image_query": "Google image search results",
+          "image_kind": "ambient",
+          "image_query_ja": "Google画像検索結果"
+        },
+        {
+          "image_query": "Google search bar",
+          "image_kind": "ambient",
+          "image_query_ja": "Google検索バー"
+        }
+      ],
+      "hook": "Google画像検索、誕生の衝撃秘話"
+    }
+  ],
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "みんなが毎日使うGoogle（グーグル）画像検索、実はある女性がきっかけで誕生したのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "え、誰なのだ？きっと思いっきりおしゃれなハリウッドスターなのだ！",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "歌手のジェニファー・ロペスさんがグラミー賞で着た、グリーンのドレスがきっかけなの。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ド、ドレスなのだ！？プログラマーじゃなく、まさかドレスが歴史を動かすとは！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "2000年にドレスが話題になり、検索数が過去最高に。画像要望に応えるため、急遽この機能が作られたわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "みんなの「あのドレスが見たい！」という熱い願いが、今の画像検索を生んだのだね！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "このネタ、本編ではもっと深掘りしてるよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気になったら本編もチェックなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    }
+  ]
+}

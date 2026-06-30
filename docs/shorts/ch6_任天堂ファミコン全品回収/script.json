@@ -1,0 +1,102 @@
+{
+  "theme": "任天堂ファミコン全品回収",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "任天堂ファミコン全品回収",
+      "summary": "任天堂はファミコン発売初期に重大バグが発覚した際、大赤字覚悟で全品回収を行い、これが後の圧倒的な信頼に繋がった。",
+      "image_cuts": [
+        {
+          "image_query": "original Famicom console",
+          "image_kind": "subject",
+          "image_query_ja": "初代ファミコン本体"
+        },
+        {
+          "image_query": "factory recall sign",
+          "image_kind": "ambient",
+          "image_query_ja": "製品回収のサイン"
+        },
+        {
+          "image_query": "Nintendo logo",
+          "image_kind": "subject",
+          "image_query_ja": "任天堂のロゴ"
+        }
+      ],
+      "hook": "任天堂ファミコン、発売直後の衝撃回収"
+    }
+  ],
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "ゲーム業界を変えた任天堂（ニンテンドー）、男気あふれるビジネス判断があったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ファミコンのゲーム開発で、何かすごい伝説を残したのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "なんと、初代ファミコン発売直後にバグが見つかり、出荷済み約50万台を自主回収したの。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ええっ！発売したばかりのハードを全品回収したのだ！？ものすごい大赤字なのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "書き入れ時のクリスマス商戦だったから大打撃だけど、社長は利益より信用を選んだわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ピンチで目先の利益を捨て信用を選んだからこそ、世界の任天堂になれたのだね。感動なのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "このネタ、本編ではもっと深掘りしてるよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気になったら本編もチェックなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    }
+  ]
+}

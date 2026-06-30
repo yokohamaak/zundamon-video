@@ -214,10 +214,17 @@
           cursor:pointer; background:#161b24; border-left:6px solid transparent; }
   .line:hover { background:#1a212c; }
   .line.sel { background:#1f2835; }
+  .line.bubble-continued { margin-top:0; border-top-left-radius:4px; border-top-right-radius:4px; }
+  .line.bubble-parent { margin-bottom:3px; border-bottom-left-radius:4px; border-bottom-right-radius:4px; }
+  .line.bubble-parent::after { content:""; position:absolute; left:26px; bottom:-7px; width:2px; height:10px; background:#485368; opacity:.95; }
+  .line.bubble-continued::before { content:""; position:absolute; left:26px; top:-7px; width:2px; height:10px; background:#485368; opacity:.95; }
+  .line.bubble-link-same { box-shadow:inset 0 0 0 1px rgba(255,255,255,.03); }
   .line .av { width:30px; height:30px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
               font-size:14px; font-weight:800; color:#fff; }
   .line .lc { flex:1; min-width:0; }
   .line .nm { font-weight:700; font-size:12.5px; margin-bottom:3px; }
+  .line .bubblemeta { display:flex; gap:5px; flex-wrap:wrap; margin:0 0 5px; }
+  .line .bubblewarn { margin-top:5px; font-size:10px; line-height:1.45; color:#f2b36f; }
   .line .tx { font-size:14.5px; line-height:1.8; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
   .line .tx.empty { color:var(--sub); }
   .line textarea { width:100%; font-size:14.5px; line-height:1.7; min-height:46px; }
@@ -2934,11 +2941,44 @@ function chapterDivider(ch,ci){
 // サーバの is_managed_closing と同じ判定。音声に関わる編集(本文/分割/削除)を不可にするのに使う。
 function isManagedClosing(tn){ if(!tn) return false; const txt=tn.text||'';
   return !!(tn.closing||tn.chorus||(tn.section==='outro'&&(txt.includes('チャンネル登録')||txt.includes('高評価')))); }
+function continueBubblePair(script, gi){
+  const tn=script&&script[gi], prev=gi>0&&script?script[gi-1]:null;
+  if(!tn||!tn.continueBubble) return { active:false, valid:false, reason:'' };
+  if(!prev) return { active:true, valid:false, reason:'先頭行なので前の吹き出しに続けられません。' };
+  if((prev.speaker||'')!==(tn.speaker||'')) return { active:true, valid:false, reason:'直前が別話者なので続き表示になりません。' };
+  if((prev.scene||'')!==(tn.scene||'')) return { active:true, valid:false, reason:'シーンが変わるため続き表示になりません。' };
+  if(lineShownInInsert(prev)) return { active:true, valid:false, reason:'直前がインサート表示なので前段の吹き出しを残せません。' };
+  if(lineShownInInsert(tn)) return { active:true, valid:false, reason:'この行は吹き出し非表示なので続き表示になりません。' };
+  return { active:true, valid:true, prevIndex:gi-1, reason:'' };
+}
+function bubbleBadges(script, gi){
+  const tn=script[gi], pair=continueBubblePair(script, gi), out=[];
+  if(lineShownInInsert(tn)){ out.push(['吹き出しなし','#475161']); return { badges:out, pair }; }
+  if(pair.valid){
+    out.push(['2段目','#8b5cf6']);
+    out.push(['同時消え','#415a9d']);
+  } else if(pair.active){
+    out.push(['続き指定','#7c5d19']);
+  } else {
+    const nextPair=continueBubblePair(script, gi+1);
+    if(nextPair.valid && nextPair.prevIndex===gi) out.push(['1段目','#2e7d60']);
+    else out.push(['単独','#485368']);
+  }
+  return { badges:out, pair };
+}
 function lineRow(tn,gi,ch,ci,inViz,imgPlan){
+  const script=DATA.script||[];
+  const bubbleInfo=bubbleBadges(script, gi);
   const seg=vizSegForTurn(gi);                 // editor=visualSegments / legacy=vizSeg（共通読取）
   const isViz=isEditorAuthority()?!!seg:!!tn.vizSeg;   // legacyは従来どおり tn.vizSeg 有無で判定
   const locked=isManagedClosing(tn);           // アウトロ自動生成枠＝音声に関わる編集を抑止
-  const row=document.createElement('div'); row.className='line'+(gi===selGi?' sel':'')+(isViz?' vizrow':''); row.dataset.gi=gi;
+  const prevPair=continueBubblePair(script, gi+1);
+  const parentOfContinued=!!(prevPair.valid && prevPair.prevIndex===gi);
+  const row=document.createElement('div');
+  row.className='line'+(gi===selGi?' sel':'')+(isViz?' vizrow':'')
+    +(bubbleInfo.pair.valid?' bubble-continued bubble-link-same':'')
+    +(parentOfContinued?' bubble-parent bubble-link-same':'');
+  row.dataset.gi=gi;
   const col=speakerColor(tn.speaker); row.style.borderLeftColor=col;
   // アイコン（話者色の丸＋頭文字）
   const av=document.createElement('div'); av.className='av'; av.style.background=col; av.textContent=(tn.speaker||'?').slice(0,1);
@@ -2948,13 +2988,18 @@ function lineRow(tn,gi,ch,ci,inViz,imgPlan){
   const nmName=document.createElement('span'); nmName.style.color=col; nmName.textContent=tn.speaker||''; nm.appendChild(nmName);
   // 小演出バッジ（迷子防止）：テロップ/リアクションが付いた行に表示。
   const sbadge=(txt,bg)=>{ const b=document.createElement('span'); b.textContent=txt; b.style.cssText='font-size:10px;font-weight:700;color:#fff;background:'+bg+';border-radius:4px;padding:1px 5px;line-height:1.5;white-space:nowrap'; return b; };
+  const bmeta=document.createElement('div'); bmeta.className='bubblemeta';
+  bubbleInfo.badges.forEach(([txt,bg])=>bmeta.appendChild(sbadge(txt,bg)));
   if(tn.telop) nm.appendChild(sbadge('💬'+(tn.telop.length>6?tn.telop.slice(0,6)+'…':tn.telop),'#6b6ae0'));
   if(tn.reaction) nm.appendChild(sbadge('😲'+tn.reaction,'#c0497a'));
   if(locked) nm.appendChild(sbadge('🔒自動','#5a6473'));
   const tx=document.createElement('div'); tx.className='tx'+(tn.text?'':' empty'); tx.textContent=tn.text||'(空・ダブルクリックで入力)';
   if(!locked) tx.ondblclick=(e)=>{ e.stopPropagation(); startEditLine(row,tn,tx); };
   else tx.title='アウトロ（自動生成）。本文・分割・削除はできません。文言は config の story.closing_lines / closing_chorus で変更します。';
-  lc.appendChild(nm); lc.appendChild(tx);
+  lc.appendChild(nm); lc.appendChild(bmeta); lc.appendChild(tx);
+  if(bubbleInfo.pair.active && !bubbleInfo.pair.valid){
+    const warn=document.createElement('div'); warn.className='bubblewarn'; warn.textContent='⚠ '+bubbleInfo.pair.reason; lc.appendChild(warn);
+  }
   // 右肩：演出マーク＋今出る画像のミニサムネ
   const mk=document.createElement('div'); mk.className='mk';
   // editor=imageCues解決(computeImagePlan)の画像 / legacy=従来cut。editorで旧cutを見ると画像削除/継続が反映されない。
@@ -3187,6 +3232,32 @@ function renderRight(){
     const apply=()=>{ const a=parseFloat(op.value); tn[key]=(a<=0)?'transparent':toRgba(cp.value,a); markDirty(); };
     cp.oninput=apply; op.oninput=apply; cp.onchange=()=>renderRight(); op.onchange=()=>renderRight();
     row.appendChild(_grp(label,cp,op,vMini('既',()=>{ delete tn[key]; markDirty(); renderRight(); }))); };
+  const badgeChip=(txt,bg)=>{ const b=document.createElement('span'); b.textContent=txt; b.style.cssText='font-size:10px;font-weight:700;color:#fff;background:'+bg+';border-radius:4px;padding:1px 5px;line-height:1.5;white-space:nowrap'; return b; };
+  const bubbleSec=document.createElement('div'); bubbleSec.className='sec';
+  bubbleSec.appendChild(sectionHead('吹き出し', tn.continueBubble?1:0));
+  const bubbleRow=ctlRow('表示');
+  const pair=continueBubblePair(DATA.script||[], selGi);
+  [['single','単独吹き出し'],['continue','前の下に続ける']].forEach(([mode,label])=>{
+    const on=(mode==='continue')===!!tn.continueBubble;
+    const b=document.createElement('button'); b.type='button'; b.className='vchip'+(on?' on':''); b.textContent=label;
+    b.onclick=()=>{ if(mode==='continue') tn.continueBubble=true; else delete tn.continueBubble; markDirty(); render(); };
+    bubbleRow.appendChild(b);
+  });
+  bubbleSec.appendChild(bubbleRow);
+  const bh=document.createElement('div'); bh.style.cssText='font-size:11px;line-height:1.55;color:var(--sub);margin:-2px 0 6px';
+  bh.textContent='前の下に続ける: 直前の同話者・同シーンの吹き出しを上段に残し、この行を下段に積んで現在行の終了で同時に消します。';
+  bubbleSec.appendChild(bh);
+  const bs=document.createElement('div'); bs.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px';
+  bubbleBadges(DATA.script||[], selGi).badges.forEach(([txt,bg])=>bs.appendChild(badgeChip(txt,bg)));
+  bubbleSec.appendChild(bs);
+  const bw=document.createElement('div'); bw.style.cssText='font-size:11px;line-height:1.55;color:'+(pair.active&&!pair.valid?'#f2b36f':'var(--sub)');
+  bw.textContent=pair.active
+    ? (pair.valid ? 'この行は2段目として表示されます。直前の行が1段目として同時表示されます。' : '⚠ '+pair.reason)
+    : ((continueBubblePair(DATA.script||[], selGi+1).valid && continueBubblePair(DATA.script||[], selGi+1).prevIndex===selGi)
+      ? 'この行は次の行の1段目になります。'
+      : 'この行は単独の吹き出しとして表示されます。');
+  bubbleSec.appendChild(bw);
+  smallPanel.appendChild(bubbleSec);
   // セクション1：テキスト範囲演出
   const sec1=document.createElement('div'); sec1.className='sec';
   sec1.appendChild(sectionHead('テキスト範囲演出',(tn.textEffects||[]).length));

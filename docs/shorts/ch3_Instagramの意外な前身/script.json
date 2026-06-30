@@ -1,0 +1,102 @@
+{
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "オシャレさんたちが大好きな写真共有アプリInstagram、実は意外な前身があるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "え、最初からキラキラなインスタ映えを狙ってたんじゃ無いのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "驚くことに、元々はウイスキー愛好家が居場所を共有する超多機能アプリだったわ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ウイスキー！？今のオシャレな雰囲気とは真逆すぎるのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "「Burbn（バーブン）」という多機能アプリは不評。唯一人気だった写真共有機能だけに削ぎ落としたら大ヒットしたのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "いらない機能を全部捨てる大英断があったから、今では世界で人気のアプリになれたのだね！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "こういうネタを、本編ではもっとたくさん深掘りしてるよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気になったら本編もチェックなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    }
+  ],
+  "theme": "Instagramの意外な前身",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "Instagramの意外な前身",
+      "summary": "Instagramは元々ウイスキー愛好家向けの位置情報共有アプリであり、人気機能以外を削ぎ落として誕生した。",
+      "image_cuts": [
+        {
+          "image_query": "instagram",
+          "image_kind": "ambient",
+          "image_query_ja": "バーブンアプリのスクリーンショット"
+        },
+        {
+          "image_query": "whiskey glass and bottle",
+          "image_kind": "ambient",
+          "image_query_ja": "ウイスキーのグラスとボトル"
+        },
+        {
+          "image_query": "Instagram logo",
+          "image_kind": "ambient",
+          "image_query_ja": "写真アプリ"
+        }
+      ],
+      "hook": "Instagram、元々は◯◯◯のためのアプリだった！？"
+    }
+  ]
+}

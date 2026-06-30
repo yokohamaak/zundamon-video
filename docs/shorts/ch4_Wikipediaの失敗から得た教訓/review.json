@@ -1,0 +1,52 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "Wikipediaの失敗から得た教訓",
+      "query": "Nupedia logo (if available, otherwise old encyclopedia)",
+      "kind": "subject",
+      "image": null,
+      "attribution": null,
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "Wikipediaの失敗から得た教訓",
+      "query": "old heavy encyclopedia books",
+      "kind": "ambient",
+      "image": "ch_00_01.jpeg",
+      "attribution": "Arturo Añez. / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 2,
+      "title": "Wikipediaの失敗から得た教訓",
+      "query": "Wikipedia logo",
+      "kind": "subject",
+      "image": null,
+      "attribution": null,
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

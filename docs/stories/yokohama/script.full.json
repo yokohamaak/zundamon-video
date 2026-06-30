@@ -1,0 +1,705 @@
+{
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "スマホのGPS（ジーピーエス）って、実は宇宙の衛星に電波を一切送っていないって、知ってた？",
+      "emotion": "happy",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "えっ？自分の現在地を衛星に送って教えてもらっているんじゃないのだ？",
+      "emotion": "surprise",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ふふ、実は違うのよ。今日はそんな、知られざるIT（アイティー）企業の驚くべき裏側の仕組みを連発するわね。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "面白そうなのだ！ぼくのへぇボタンを連打する準備はできているのだ！",
+      "emotion": "happy",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "最初は、みんな見てる動画配信のNetflix（ネットフリックス）の裏側よ。実は画面の作品画像が人によって違うの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "えっ？同じ映画なら、みんな同じポスターみたいな画像が表示されているんじゃないのだ？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それが違うのよ。Netflix（ネットフリックス）のAI（エーアイ）が、あなたの好みに合わせて画像を自動で変えているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "compare_item": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "たとえば、恋愛ものをよく見る人にはロマンチックなサムネイル、アクション好きには爆破シーンを見せるのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 1,
+      "compare_item": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ぼくが見ている画面は、ぼく専用にカスタマイズされていたのだね！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ええ、作品をクリックしてもらうための、徹底的な個別最適化の裏側なのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "お次は、おなじみのGoogle（グーグル）マップのストリートビュー撮影の裏側ね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ストリートビューは、あのカメラを載せた車が道路を走りまくって撮影しているのだ！",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "基本はそうだけど、車が入れない砂漠や山の中、細い路地はどうしていると思う？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "panel_item": 0,
+      "panel_event": "shrink"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実はね、車以外にも信じられない方法で撮影しているのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "panel_item": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "山の上や観光地は、人間がカメラ付きのバックパックを背負って歩いて撮影しているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "さらに、砂漠ではラクダの背中にカメラを載せて撮影したこともあるわ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 2,
+      "panel_item": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ラクダまで動員しているなんて、最先端の地図サービスの裏側はめちゃくちゃ泥臭かったのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "これも驚くわよ。誰もが一度は使ったことがあるWikipedia（ウィキペディア）の運営の裏側。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "世界中の人が毎日見ているから、何千人ものエリート社員が大金で維持しているのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実は、あの規模のWeb（ウェブ）サイトなのに、運営団体の正規の職員は世界でわずか350人程度しかいないのよ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "reveal": true
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "な、なな、何なのだその少なさは！あの膨大なサーバーをたったそれだけで支えているのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "shake",
+      "cut": 1,
+      "voice": {
+        "speed": 1.2,
+        "intonation": 1.3
+      }
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そうなの。運営費はほぼユーザーからの寄付で、中身の執筆や修正は世界中の有志のボランティアが無償で行っているわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "〔★運営者コメント・未記入：個人開発や自社サーバー維持の費用感〕",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "あのしつこいくらい何度も出てくる寄付のお願いバナーには、そういう裏の事情があったのだね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "続いて、プログラマーの聖地GitHub（ギットハブ）が、データのバックアップをどう守っているかというお話よ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "世界中のシステム設計図が消えたら人類が終わるから、最新のデータセンターに二重に保存しているのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それだけじゃないわ。本当に人類が滅びかけた時のために、驚くべき場所に物理的な保管庫を作ったの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "panel_event": "shrink"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "世界中の重要なコードを集めて、特殊なフィルムに書き写したわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "panel_item": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そしてそれを、北極の永久凍土にある廃鉱山の地下深くに埋めて保管しているのよ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "zoom_punch",
+      "cut": 2,
+      "panel_item": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "電気を使わなくても、なんと1000年間データを保存できる設計になっているの。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 2,
+      "panel_item": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "北極の地下深く！？まるでSF（エスエフ）の終末シェルターみたいな、途方もない規模の裏側なのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "次はね、Web（ウェブ）サイトでよく見る「私はロボットではありません」ってチェックボックスあるでしょう。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "あるのだ！あれをクリックするだけで、なんで人間だって判定できるのか不思議なのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実は、チェックを入れた瞬間ではなく、チェックボックスに「カーソルを動かすまでの手ブレ」をAI（エーアイ）が分析しているのよ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "zoom_punch",
+      "cut": 0,
+      "callout_item": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ロボットは直線的に動くけれど、人間はビミョーに震えながら不規則に動くの。それを見ているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "callout_item": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "〔★運営者コメント・未記入：bot対策ツールの導入経験〕",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "クリックする前から、ぼくたちの不器用な手の動きは完全に観察されていたのだね…！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "怪しいと判断された時だけ、あの「消火栓の画像を選んで」っていうテストが出る仕組みなのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "最後は、冒頭で言ったスマホのGPS（ジーピーエス）の仕組みの裏側よ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "スマホが「ここにいるよ！」って宇宙の衛星に電波を送っているとしか思えないのだ！",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実はね、スマホのGPS（ジーピーエス）は、宇宙からの電波をひたすら「受信」しているだけ。スマホから電波は一ミリも送信していないの。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "zoom_punch",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ええっ！？送信していないのに、なんでスマホに現在地が表示できるのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "shake",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "宇宙のGPS（ジーピーエス）衛星は、超精密な時計の「現在の時刻」をひたすらラジオのように放送しているだけなの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "reveal": true
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "スマホは、複数の衛星から届いた電波のビミョーな時間差を計算して、自分で現在地を割り出しているのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "だから飛行機モードにして携帯の電波を遮断しても、地図上の現在地だけは正確に動くのだね！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "日常的に使っている便利なIT（アイティー）サービスも、その裏側には意外な仕組みや泥臭い技術が隠れているのね。",
+      "emotion": "normal",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "明日、誰かにこのGPS（ジーピーエス）受信の話をドヤ顔で語ってみるのだ！",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "他にも気になる裏側の仕組みがあったら、ぜひコメントで教えてね。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "今日の中で、どの実はが一番へぇだった？高評価とコメントで教えてね。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それじゃあ、また見てね〜〜",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "chorus": true
+    }
+  ],
+  "theme": "実は知らないIT企業・サービスの裏側",
+  "chapters": [
+    {
+      "section": "intro",
+      "title": "今日のテーマ",
+      "summary": "",
+      "image_cuts": [
+        {
+          "image_query": "gps satellite space",
+          "image_kind": "ambient",
+          "image_query_ja": "宇宙を回るGPS衛星"
+        },
+        {
+          "image_query": "GPS",
+          "image_kind": "ambient",
+          "image_query_ja": "Google map"
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "サムネイルは人によって違う",
+      "summary": "Netflixはユーザーの過去の視聴傾向をAIが分析し、最もクリックされやすいサムネイル画像を個別に自動生成して表示している。",
+      "image_cuts": [
+        {
+          "image_query": "netflix  thumbnail",
+          "image_kind": "ambient",
+          "image_query_ja": "アクション風のサムネイル"
+        },
+        {
+          "image_query": "netflix romance movie thumbnail",
+          "image_kind": "ambient",
+          "image_query_ja": "恋愛風のサムネイル"
+        }
+      ],
+      "hook": "Netflixのサムネはあなた専用に作られている",
+      "confidence": "high",
+      "source_hint": "Netflix Tech Blog公式発表「Artwork Personalization」",
+      "compare": {
+        "left": {
+          "label": "アクション好き用",
+          "cut": 0
+        },
+        "right": {
+          "label": "恋愛映画好き用",
+          "cut": 1
+        }
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "マップ撮影の泥臭い裏側",
+      "summary": "Googleマップのストリートビューは、車が入れない僻地では人がバックパックを背負ったり、ラクダやヒツジなどの動物にカメラを載せて撮影している。",
+      "image_cuts": [
+        {
+          "image_query": "google street view car",
+          "image_kind": "subject",
+          "image_query_ja": "ストリートビューの撮影車"
+        },
+        {
+          "image_query": "street view trekker backpack",
+          "image_kind": "subject",
+          "image_query_ja": "背負うカメラ"
+        },
+        {
+          "image_query": "camel with camera desert",
+          "image_kind": "ambient",
+          "image_query_ja": "ラクダに載せたカメラ"
+        }
+      ],
+      "hook": "ストリートビューはラクダも撮影している",
+      "confidence": "high",
+      "source_hint": "Google公式ブログおよびStreet View Trekkerの公開情報",
+      "panel": {
+        "items": [
+          {
+            "text": "ストリートビュー車"
+          },
+          {
+            "text": "人間が背負うカメラ"
+          },
+          {
+            "text": "ラクダでの砂漠撮影"
+          }
+        ]
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "ウィキペディアを支える少人数",
+      "summary": "世界最大級のアクセス数を誇るWikipediaは、わずか350人程度の正規職員と寄付、世界中のボランティアによって運営されている。",
+      "image_cuts": [
+        {
+          "image_query": "wikipedia logo",
+          "image_kind": "subject",
+          "image_query_ja": "ウィキペディアのロゴ"
+        },
+        {
+          "image_query": "server rack cables",
+          "image_kind": "ambient",
+          "image_query_ja": "サーバーラック"
+        }
+      ],
+      "hook": "Wikipediaの運営はわずか350人だけ",
+      "confidence": "high",
+      "source_hint": "Wikimedia Foundation（ウィキメディア財団）公式公開データ",
+      "owner_comment": true,
+      "stat": {
+        "value": "350",
+        "unit": "人",
+        "label": "運営団体の正規職員数"
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "北極の地下に眠る全コード",
+      "summary": "GitHubは人類の滅亡や災害に備え、世界中のソースコードを特殊フィルムに記録し、北極の永久凍土にある廃鉱山に1000年間保管するプロジェクトを行っている。",
+      "image_cuts": [
+        {
+          "image_query": "github octocat logo",
+          "image_kind": "subject",
+          "image_query_ja": "ギットハブのロゴ"
+        },
+        {
+          "image_query": "special archive film rolls",
+          "image_kind": "ambient",
+          "image_query_ja": "特殊な保存用フィルム"
+        },
+        {
+          "image_query": "arctic svalbard mountain",
+          "image_kind": "ambient",
+          "image_query_ja": "スヴァールバルの雪山"
+        }
+      ],
+      "hook": "GitHubは北極の地下にデータを保管している",
+      "confidence": "high",
+      "source_hint": "GitHub Archive Program（ギットハブ・アーカイブ・プログラム）公式発表",
+      "panel": {
+        "items": [
+          {
+            "text": "ソースコード収集"
+          },
+          {
+            "text": "特殊フィルム記録",
+            "arrow_from_prev": true
+          },
+          {
+            "text": "北極の廃鉱山へ",
+            "arrow_from_prev": true
+          }
+        ]
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "私はロボットではありませんの謎",
+      "summary": "「私はロボットではありません」の認証は、チェックを入れる前のマウスの手ブレやブラウザ情報をAIが解析して人間かどうかを判定している。",
+      "image_cuts": [
+        {
+          "image_query": "recaptcha check box",
+          "image_kind": "subject",
+          "image_query_ja": "私はロボットではありませんのチェックボックス"
+        }
+      ],
+      "hook": "あのチェック、クリック前から判定されている",
+      "confidence": "high",
+      "source_hint": "Google reCAPTCHA（リキャプチャ）の開発仕様書",
+      "owner_comment": true,
+      "callouts": [
+        {
+          "text": "チェックボックス",
+          "x": 0.15,
+          "y": 0.5,
+          "arrow": true
+        },
+        {
+          "text": "マウスの手ブレ軌跡",
+          "x": 0.6,
+          "y": 0.3,
+          "arrow": true
+        }
+      ]
+    },
+    {
+      "section": "trivia",
+      "title": "GPSは電波を送信していない",
+      "summary": "スマホのGPSは宇宙の衛星から発信される時刻電波を一方的に受信しているだけで、スマホ側から宇宙へ電波を送信することは一切ない。",
+      "image_cuts": [
+        {
+          "image_query": "gps satellite orbit",
+          "image_kind": "ambient",
+          "image_query_ja": "GPS衛星"
+        },
+        {
+          "image_query": "smartphone map navigation",
+          "image_kind": "ambient",
+          "image_query_ja": "スマホのナビ画面"
+        }
+      ],
+      "hook": "スマホのGPSは電波を一ミリも送信していない",
+      "confidence": "high",
+      "source_hint": "GPS（全地球測位システム）の通信仕様と仕組み",
+      "quiz": {
+        "question": "スマホのGPSは電波を送信している？",
+        "answer": "一切送信せず、受信しているだけ"
+      }
+    },
+    {
+      "section": "outro",
+      "title": "まとめ",
+      "summary": "",
+      "image_cuts": [
+        {
+          "image_query": "technology gadgets desk",
+          "image_kind": "ambient",
+          "image_query_ja": "ガジェットの並ぶデスク"
+        }
+      ]
+    }
+  ]
+}

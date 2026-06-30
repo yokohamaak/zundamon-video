@@ -1,0 +1,52 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "私はロボットではありませんの裏側",
+      "query": "CAPTCHA",
+      "kind": "subject",
+      "image": "ch_00_00.png",
+      "attribution": "I-20 / CC0",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "私はロボットではありませんの裏側",
+      "query": "robot hand clicking captcha",
+      "kind": "ambient",
+      "image": "ch_00_01.jpeg",
+      "attribution": "Tara Winstead / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 2,
+      "title": "私はロボットではありませんの裏側",
+      "query": "AI learning data",
+      "kind": "ambient",
+      "image": "ch_00_02.jpeg",
+      "attribution": "Markus Winkler / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "CAPTCHA認証の裏側",
+      "query": "CAPTCHA logo",
+      "kind": "subject",
+      "image": "ch_00_00.png",
+      "attribution": "Google / Public domain",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "CAPTCHA認証の裏側",
+      "query": "autonomous car traffic lights",
+      "kind": "ambient",
+      "image": "ch_00_01.jpeg",
+      "attribution": "Stephen Leonardi / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

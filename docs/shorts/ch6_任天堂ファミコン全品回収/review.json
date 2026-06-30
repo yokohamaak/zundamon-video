@@ -1,0 +1,52 @@
+{
+  "cuts": [
+    {
+      "ch": 0,
+      "ci": 0,
+      "title": "任天堂ファミコン全品回収",
+      "query": "original Famicom console",
+      "kind": "subject",
+      "image": null,
+      "attribution": null,
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 1,
+      "title": "任天堂ファミコン全品回収",
+      "query": "factory recall sign",
+      "kind": "ambient",
+      "image": "ch_00_01.jpeg",
+      "attribution": "Macourt Media / Pexels",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    },
+    {
+      "ch": 0,
+      "ci": 2,
+      "title": "任天堂ファミコン全品回収",
+      "query": "Nintendo logo",
+      "kind": "subject",
+      "image": "ch_00_02.jpg",
+      "attribution": "Nintendo, Peter Häll, Tekniska museet / CC BY 4.0",
+      "approved": false,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "hide": false,
+      "pad": null,
+      "bg": null
+    }
+  ]
+}

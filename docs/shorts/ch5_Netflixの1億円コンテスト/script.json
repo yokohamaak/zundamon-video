@@ -1,0 +1,102 @@
+{
+  "theme": "Netflixの1億円コンテスト",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "Netflixの1億円コンテスト",
+      "summary": "Netflixは推薦システムの精度向上のため1億円のコンテストを開いたが、配信への移行によりそのコードはほぼ使われなかった。",
+      "image_cuts": [
+        {
+          "image_query": "Netflix logo",
+          "image_kind": "subject",
+          "image_query_ja": "ネットフリックスのロゴ"
+        },
+        {
+          "image_query": "1 million dollars cash prize",
+          "image_kind": "ambient",
+          "image_query_ja": "100万ドルの賞金"
+        },
+        {
+          "image_query": "streaming interface",
+          "image_kind": "ambient",
+          "image_query_ja": "ストリーミングインターフェース"
+        }
+      ],
+      "hook": "Netflixの1億円コンテスト、その衝撃の結末"
+    }
+  ],
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "動画配信で有名なNetflix（ネットフリックス）、おすすめ機能に裏話があるのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "自社の天才プログラマーが開発した、秘密のアルゴリズムなのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "なんと、100万ドル（約1億円）の賞金をかけ、世界中のハッカーにシステムを作らせるコンテストを開催したの。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "1億円なのだ！？そんな大金を外部のハッカーにバラまいたのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "優勝アルゴリズムは高精度だったけど、配信移行で条件が変わり、結局使われなかったわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "1億円も払ったのに使われないなんて、テクノロジーの進化が早すぎて切なすぎるのだ！",
+      "emotion": "sad",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "このネタ、本編ではもっと深掘りしてるよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気になったら本編もチェックなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "Instagram（インスタグラム）が、最初はウイスキー愛好家向けのアプリだったって知ってた？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "flash",
+      "cut": 0
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ええっ！？おしゃれ写真アプリの代名詞なのに、そんな渋いお酒アプリだったのだ！？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "Burbn（バーブン）という、多機能すぎて不評な位置情報共有アプリだったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "多機能なのに人気が出なかったのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 1
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。そこで、唯一人気だった写真投稿機能だけに削ぎ落としたら、世界中で爆発的にヒットしたのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "zoom_punch",
+      "cut": 2
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "いらない機能を捨てる大英断が、大成功の秘密だったのだね！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 2
+    }
+  ],
+  "theme": "Instagramの前身",
+  "chapters": [
+    {
+      "section": "trivia",
+      "title": "インスタの意外な前身",
+      "summary": "Instagramは元々ウイスキー愛好家向けの位置情報共有アプリであり、人気だった写真共有機能以外を削ぎ落として大ヒットした。",
+      "image_cuts": [
+        {
+          "image_query": "Instagram",
+          "image_kind": "ambient",
+          "image_query_ja": "インスタグラム"
+        },
+        {
+          "image_query": "whiskey",
+          "image_kind": "ambient",
+          "image_query_ja": "ウイスキーグラス"
+        },
+        {
+          "image_query": "smartphone photo app",
+          "image_kind": "ambient",
+          "image_query_ja": "スマホの写真アプリ"
+        }
+      ],
+      "hook": "インスタ、実はウイスキーアプリだった？"
+    }
+  ]
+}
