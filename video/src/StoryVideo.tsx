@@ -90,6 +90,9 @@ export type StoryTurn = {
   se?: TurnSe[];
   start: number;
   end: number;
+  narrationVoice?: string;
+  continueBubble?: boolean;
+  disableAutoBubbleSplit?: boolean;
   sentences?: StorySentence[];
 };
 
@@ -100,9 +103,17 @@ export type StoryOverlayAnchor = {
 
 export type StoryOverlay = {
   id: string;
-  kind: "image";
+  kind: "image" | "text";
   layer?: "normal" | "over-insert";
-  src: string;
+  src?: string;
+  text?: string;
+  textColor?: string;
+  bgColor?: string;
+  bgOpacity?: number;
+  borderColor?: string;
+  borderOpacity?: number;
+  fontSize?: number;
+  centerX?: boolean;
   x: number;
   y: number;
   w: number;
@@ -360,7 +371,7 @@ function segmentRoster(seg: Segment): string[] {
     for (const c of turn.enter ?? []) {
       if (isKnownChar(c) && !order.includes(c)) order.push(c);
     }
-    if (isKnownChar(turn.speaker) && !order.includes(turn.speaker)) {
+    if (!isNarrationTurn(turn) && isKnownChar(turn.speaker) && !order.includes(turn.speaker)) {
       order.push(turn.speaker);
     }
   }
@@ -375,7 +386,7 @@ function entranceTimes(seg: Segment): Record<string, number> {
     for (const c of turn.enter ?? []) {
       if (isKnownChar(c) && !(c in e)) e[c] = turn.start;
     }
-    if (isKnownChar(turn.speaker) && !(turn.speaker in e)) e[turn.speaker] = turn.start;
+    if (!isNarrationTurn(turn) && isKnownChar(turn.speaker) && !(turn.speaker in e)) e[turn.speaker] = turn.start;
   }
   return e;
 }
@@ -1061,13 +1072,60 @@ const InsertOverlay: React.FC<{ insert: StoryInsert; bgOpacity: number; opacity:
 
 const StoryOverlayLayer: React.FC<{ overlays: StoryOverlay[] }> = ({ overlays }) => {
   if (overlays.length === 0) return null;
+  const colorWithOpacity = (color: string | undefined, opacity: number | undefined, fallback: string) => {
+    const src = String(color || fallback).trim();
+    const alpha = clamp(opacity ?? 1, 0, 1);
+    const hex = src.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (!hex) return src;
+    const raw = hex[1].length === 3
+      ? hex[1].split("").map((c) => c + c).join("")
+      : hex[1];
+    const n = parseInt(raw, 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       {overlays.map((overlay) => {
         const widthPct = clamp(overlay.w || 0.2, 0.04, 1) * 100;
-        const leftPct = clamp(overlay.x || 0.5, 0, 1) * 100;
+        const leftPct = clamp(
+          overlay.kind === "text" && overlay.centerX ? 0.5 : (overlay.x || 0.5),
+          0,
+          1
+        ) * 100;
         const topPct = clamp(overlay.y || 0.5, 0, 1) * 100;
-        return (
+        if (overlay.kind === "text") {
+          return (
+            <div
+              key={overlay.id}
+              style={{
+                position: "absolute",
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                width: `${widthPct}%`,
+                transform: "translate(-50%, -50%)",
+                opacity: clamp(overlay.opacity ?? 1, 0, 1),
+                padding: "10px 18px",
+                borderRadius: 16,
+                border: `4px solid ${colorWithOpacity(overlay.borderColor, overlay.borderOpacity, "#ffffff")}`,
+                background: colorWithOpacity(overlay.bgColor, overlay.bgOpacity, "#0f1117"),
+                color: overlay.textColor || "#ffffff",
+                fontSize: overlay.fontSize ?? 34,
+                lineHeight: 1.35,
+                fontWeight: 700,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                textAlign: "center",
+                boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
+              }}
+            >
+              {overlay.text || ""}
+            </div>
+          );
+        }
+        return overlay.src ? (
           <Img
             key={overlay.id}
             src={staticFile(overlay.src)}
@@ -1083,7 +1141,7 @@ const StoryOverlayLayer: React.FC<{ overlays: StoryOverlay[] }> = ({ overlays })
               filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.28))",
             }}
           />
-        );
+        ) : null;
       })}
     </AbsoluteFill>
   );
@@ -1091,6 +1149,11 @@ const StoryOverlayLayer: React.FC<{ overlays: StoryOverlay[] }> = ({ overlays })
 
 // その時刻に吹き出しへ出す文字列（sentences があれば文単位で小出し・§4.4）。
 function bubbleTextAt(turn: StoryTurn, t: number): string {
+  if (turn.disableAutoBubbleSplit) return turn.text;
+  const sentenceText = turn.sentences?.map((x) => x.text).join("") ?? "";
+  if (turn.text && sentenceText && sentenceText !== turn.text.replace(/\s+/g, "")) {
+    return turn.text;
+  }
   if (turn.sentences && turn.sentences.length) {
     const s =
       turn.sentences.find((x) => x.start <= t && t < x.end) ??
@@ -1098,6 +1161,77 @@ function bubbleTextAt(turn: StoryTurn, t: number): string {
     return s.text;
   }
   return turn.text;
+}
+
+function bubbleSentenceTexts(turn: StoryTurn): string[] {
+  if (turn.disableAutoBubbleSplit) return [turn.text];
+  const sentenceText = turn.sentences?.map((x) => x.text).join("") ?? "";
+  if (
+    turn.sentences &&
+    turn.sentences.length > 1 &&
+    turn.text &&
+    sentenceText === turn.text.replace(/\s+/g, "")
+  ) {
+    return turn.sentences.map((x) => x.text);
+  }
+  return [turn.text];
+}
+
+function bubbleSentenceVisibleCount(turn: StoryTurn, t: number): number {
+  const texts = bubbleSentenceTexts(turn);
+  if (texts.length <= 1 || !turn.sentences?.length) return 1;
+  const idx = turn.sentences.findIndex((x) => x.start <= t && t < x.end);
+  if (idx >= 0) return idx + 1;
+  return turn.sentences.length;
+}
+
+function isNarrationTurn(turn: StoryTurn | null | undefined): boolean {
+  return !!turn?.narrationVoice;
+}
+
+function canContinueBubble(prevTurn: StoryTurn | null, activeTurn: StoryTurn): boolean {
+  return !!(
+    prevTurn &&
+    !isNarrationTurn(prevTurn) &&
+    !isNarrationTurn(activeTurn) &&
+    activeTurn.continueBubble &&
+    prevTurn.scene === activeTurn.scene &&
+    prevTurn.speaker === activeTurn.speaker
+  );
+}
+
+function continueBubbleGroupRange(script: StoryTurn[], activeIdx: number) {
+  let start = activeIdx;
+  let end = activeIdx;
+  while (start > 0 && canContinueBubble(script[start - 1], script[start])) start -= 1;
+  while (end < script.length - 1 && canContinueBubble(script[end], script[end + 1])) end += 1;
+  return { start, end };
+}
+
+function bubbleBottomOffset(turn: StoryTurn, hasNextContinue: boolean): number {
+  if (hasNextContinue) return 112;
+  return turn.continueBubble ? 12 : 36;
+}
+
+function bubbleFontSize(text: string, stacked: boolean): number {
+  const n = String(text || "").replace(/\s+/g, "").length;
+  const base = 54;
+  const softLimit = stacked ? 20 : 24;
+  if (n <= softLimit) return base;
+  return Math.max(34, base - (n - softLimit) * 2);
+}
+
+function bubbleSide(x: number, width: number): "left" | "right" {
+  if (x >= width * 0.52) return "right";
+  return "left";
+}
+
+function bubbleMetrics(text: string, stacked: boolean, maxWidth: number) {
+  const fontSize = bubbleFontSize(text, stacked);
+  const chars = String(text || "").replace(/\s+/g, "").length;
+  const estTextWidth = chars * fontSize * 0.98;
+  const width = clamp(estTextWidth + 66, 120, maxWidth);
+  return { fontSize, width };
 }
 
 // 仮想カメラの目標（s=ズーム / cx,cy=注視点・ステージ正規化座標）。
@@ -1325,6 +1459,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const analysisAudio = audio && !/\.wav$/i.test(audio)
     ? audio.replace(/\.[^.]+$/i, ".wav")
     : (audio ?? "story-01.wav");
+  // ※ windowInSeconds は動的変更不可（固定値）。フックは無条件呼び出し。
+  const { audioData, dataOffsetInSeconds } = useWindowedAudioData({
+    src: staticFile(analysisAudio),
+    frame,
+    fps,
+    windowInSeconds: 1,
+  });
 
   const script = story.script;
   const segments = buildSegments(script);
@@ -1426,13 +1567,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     s: lerp(tfPrev.s, tfCur.s, k),
   };
 
-  // 2 & 3. 話者プッシュイン（emphasis）＋リアクション寄り（surprise/panic）。
+  // 2 & 3. 話者プッシュイン（emphasis）＋リアクション寄り（surprise）。
   // focus のクランプ済み変換へ「変換ごと」補間する＝まっすぐ寄る。
   const isFocusTurn =
+    !isNarrationTurn(active) &&
     isKnownChar(active.speaker) &&
     (active.emphasis === true ||
-      active.expression === "surprise" ||
-      active.expression === "panic");
+      active.expression === "surprise");
+  let focusBubbleK = 0;
   if (isFocusTurn) {
     const anchorName = anchorOf[active.speaker] ?? "center";
     const speakerAnchor = sceneDef.anchors[anchorName] ?? { x: 0.5 };
@@ -1445,6 +1587,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const inK = clamp(elapsed / fadeInDur, 0, 1);
     const outK = clamp((active.end - t) / fadeOutDur, 0, 1);
     const focusK = easeInOutCubic(Math.min(inK, outK));
+    focusBubbleK = focusK;
     tf = {
       tx: lerp(tf.tx, focusTf.tx, focusK),
       ty: lerp(tf.ty, focusTf.ty, focusK),
@@ -1505,13 +1648,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // useAudioData は音声全体（166秒≒16MBのPCM）をブラウザで丸ごと展開するため、
   // Studioプレビューで読込中に null を返し続けリップシンクが止まる/重い。
   // useWindowedAudioData は現フレーム周辺の窓だけ読むので軽く安定する。
-  // ※ windowInSeconds は動的変更不可（固定値）。フックは無条件呼び出し。
-  const { audioData, dataOffsetInSeconds } = useWindowedAudioData({
-    src: staticFile(analysisAudio),
-    frame,
-    fps,
-    windowInSeconds: 1,
-  });
   let speakerAmp = 0;
   if (audio && audioData) {
     const wave = audioData.channelWaveforms[0];
@@ -1536,7 +1672,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     if (!cdef) return null;
     const anchorName = anchorOf[charId] ?? "center";
     const anchor = sceneDef.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
-    const isSpeaker = charId === active.speaker;
+    const isSpeaker = !isNarrationTurn(active) && charId === active.speaker;
     // 向き: 台本の face 指定 > x座標からの自動（中央を向く）。
     // 立ち絵素材は「画面左向き」が素なので、右を向かせるときだけ反転する。
     // 画面左半分(x<0.5)のキャラは右＝中央向き、右半分は左＝中央向き。x を動かせば向きも自動追従。
@@ -1561,7 +1697,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     if (story.idleFace === "hold") {
       for (const tn of script) {
         if (tn.start > t) break;
-        if (tn.speaker === charId && tn.expression) idleExprKey = tn.expression;
+        if (!isNarrationTurn(tn) && tn.speaker === charId && tn.expression) idleExprKey = tn.expression;
       }
       if (idleExprKey === "surprise" || idleExprKey === "panic") idleExprKey = "normal";
     }
@@ -1666,8 +1802,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
 
-  // 吹き出しは「移動後の最終カメラ(Tcur)」基準で位置を決め、移動中も固定表示する。
-  // → 移動中に位置が動かない＝変形・ガタつき無し・途中で消えない。
+  // 吹き出しは基本は安定表示を優先して最終カメラ基準。
+  // ただし emphasis 中だけは少し現在カメラへ追従させ、寄りの違和感を減らす。
   const stx = clamp(
     width / 2 - Tcur.cx * width * Tcur.s,
     width * (1 - Tcur.s),
@@ -1675,11 +1811,54 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   );
   // 1つの吹き出しを描く（話者の足元・話者色）。
   // 下端を固定(translateY -100%)して上に伸ばす＝行が増えても画面下にはみ出ない。
-  const renderBubble = (turn: StoryTurn, key: string) => {
-    const aName = anchorOf[turn.speaker] ?? "center";
+  const bubbleMaxWidth = width * 0.72;
+  const zoomBubbleK = clamp((tf.s - 1) / 0.6, 0, 1);
+  const followK = focusBubbleK * 0.45;
+  const bubbleBoxStyle = (
+    color: string,
+    text: string,
+    stacked: boolean,
+    align: "left" | "right",
+    widthPx: number
+  ): React.CSSProperties => ({
+    width: widthPx,
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#1b1b1f",
+    padding: "14px 28px",
+    borderRadius: 18,
+    border: `5px solid ${color}`,
+    fontSize: bubbleMetrics(text, stacked, bubbleMaxWidth).fontSize,
+    lineHeight: 1.1,
+    fontWeight: 700,
+    fontFamily: "sans-serif",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+    textAlign: align,
+    whiteSpace: "nowrap",
+  });
+  const bubbleGroupPlacement = (speaker: string, groupWidth: number) => {
+    const aName = anchorOf[speaker] ?? "center";
     const a = sceneDef.anchors[aName] ?? { x: 0.5, y: 1.02 };
-    // 横幅が広いので、左右端で見切れないよう中心xを内側にクランプする。
-    const sx = clamp(stx + a.x * width * Tcur.s, width * 0.31, width * 0.69);
+    const finalSx = stx + a.x * width * Tcur.s;
+    const currentSx = tf.tx + a.x * width * tf.s;
+    const baseSx = lerp(finalSx, currentSx, followK);
+    const side = bubbleSide(baseSx, width);
+    const groupCenterX = clamp(
+      baseSx,
+      groupWidth / 2 + 20,
+      width - groupWidth / 2 - 20
+    );
+    const baseTop = height * lerp(0.95, 0.9, zoomBubbleK);
+    const currentTop = height * lerp(0.95, 0.87, zoomBubbleK);
+    return { side, groupCenterX, top: lerp(baseTop, currentTop, followK) };
+  };
+  const renderBubble = (turn: StoryTurn, key: string, bottomOffset = 0) => {
+    const text = bubbleTextAt(turn, t);
+    const metrics = bubbleMetrics(text, bottomOffset > 0 || !!turn.continueBubble, bubbleMaxWidth);
+    const { side, groupCenterX, top } = bubbleGroupPlacement(turn.speaker, metrics.width);
+    const sx = side === "right"
+      ? groupCenterX + metrics.width / 2
+      : groupCenterX - metrics.width / 2;
     const color = CHARACTERS[turn.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
     return (
       <div
@@ -1687,36 +1866,72 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         style={{
           position: "absolute",
           left: sx,
-          top: height * 0.95, // 吹き出しの「下端」をこの位置に置き、上方向に伸ばす
-          transform: "translate(-50%, -100%)",
-          maxWidth: width * 0.56, // 横幅広め＝2行に収まりやすく
-          background: "#ffffff",
-          color: "#1b1b1f",
-          padding: "18px 30px",
-          borderRadius: 16,
-          border: `5px solid ${color}`,
-          fontSize: 42,
-          lineHeight: 1.35,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
-          textAlign: "center",
+          top: top - bottomOffset,
+          transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)",
+          ...bubbleBoxStyle(color, text, bottomOffset > 0 || !!turn.continueBubble, side, metrics.width),
         }}
       >
-        {bubbleTextAt(turn, t)}
+        {text}
+      </div>
+    );
+  };
+  const renderBubbleGroup = (
+    speaker: string,
+    texts: string[],
+    visibleCount: number,
+    key: string
+  ) => {
+    const metrics = texts.map((text) => bubbleMetrics(text, true, bubbleMaxWidth));
+    const groupWidth = metrics.reduce((max, item) => Math.max(max, item.width), 120);
+    const { side, groupCenterX, top } = bubbleGroupPlacement(speaker, groupWidth);
+    const color = CHARACTERS[speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
+    return (
+      <div
+        key={key}
+        style={{
+          position: "absolute",
+          left: groupCenterX,
+          top,
+          transform: "translate(-50%, -100%)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: side === "right" ? "flex-end" : "flex-start",
+          gap: 6,
+          width: groupWidth,
+          pointerEvents: "none",
+        }}
+        >
+          {texts.map((text, idx) => (
+          <div
+            key={`${key}-${idx}`}
+            style={{
+              ...bubbleBoxStyle(color, text, true, side, metrics[idx].width),
+              visibility: idx < visibleCount ? "visible" : "hidden",
+            }}
+          >
+            {text}
+          </div>
+        ))}
       </div>
     );
   };
 
-  // 直前のセリフ（別話者・同一シーン）は、相手が喋り出してから OVERLAP 秒だけ残して消す。
-  const OVERLAP = 0.6;
   const activeIdx = script.findIndex((x) => x.id === active.id);
-  const prevTurn = activeIdx > 0 ? script[activeIdx - 1] : null;
-  const showPrev =
-    !!prevTurn &&
-    prevTurn.scene === active.scene &&
-    prevTurn.speaker !== active.speaker &&
-    t - active.start < OVERLAP;
+  const groupRange = activeIdx >= 0 ? continueBubbleGroupRange(script, activeIdx) : null;
+  const bubbleGroup = groupRange
+    ? script.slice(groupRange.start, groupRange.end + 1)
+    : [active];
+  const visibleGroupCount = groupRange ? activeIdx - groupRange.start + 1 : 1;
+  const shouldShowBubbleGroup =
+    !lineShownInInsert(active) &&
+    bubbleGroup.length > 1 &&
+    bubbleGroup.slice(0, visibleGroupCount).every((turn) => !lineShownInInsert(turn));
+  const autoBubbleTexts = bubbleSentenceTexts(active);
+  const shouldShowAutoBubbleGroup =
+    !shouldShowBubbleGroup &&
+    !lineShownInInsert(active) &&
+    autoBubbleTexts.length > 1;
+  const autoBubbleVisibleCount = bubbleSentenceVisibleCount(active, t);
 
   // ── 回想（flashback）演出 ────────────────────────────────────
   const isFlashback = !!active.flashback;
@@ -1862,7 +2077,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         {presentNow.map(renderAvatar)}
 
         {/* モブ（話者がモブのとき1枚絵を立たせる。素材未配置なら自動で非表示） */}
-        {isMob(active.speaker) ? renderMob(active.speaker) : null}
+        {!isNarrationTurn(active) && isMob(active.speaker) ? renderMob(active.speaker) : null}
 
         {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
         {sceneDef.front ? (
@@ -1910,14 +2125,27 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
       {overInsertOverlays.length > 0 ? <StoryOverlayLayer overlays={overInsertOverlays} /> : null}
 
-      {/* 吹き出し。基本は話者の1つ。話者交代の直後だけ直前のセリフを少し残す（一瞬2つ）。
-          位置は最終カメラ基準で固定＝移動中も消えず動かない。インサートより前面。 */}
+      {/* 吹き出し。continueBubble の連続区間は1グループとして積み、
+          先の段数ぶんも最初から予約して位置を固定する。インサートより前面。 */}
       {/* セリフがチャット/AIチャット画面に出ているターンは吹き出しを出さない。
           前後ターンも各自の insert 種別で判定し、遷移時のチラ見え漏れを防ぐ。 */}
-      {showPrev && !lineShownInInsert(prevTurn as StoryTurn)
-        ? renderBubble(prevTurn as StoryTurn, "bubble-prev")
-        : null}
-      {!lineShownInInsert(active) ? renderBubble(active, "bubble-active") : null}
+      {!isNarrationTurn(active) && shouldShowBubbleGroup
+        ? renderBubbleGroup(
+          bubbleGroup[0]?.speaker ?? active.speaker,
+          bubbleGroup.map((turn) => bubbleTextAt(turn, t)),
+          visibleGroupCount,
+          `bubble-group-${bubbleGroup[0]?.id ?? active.id}`
+        )
+        : !isNarrationTurn(active) && shouldShowAutoBubbleGroup
+          ? renderBubbleGroup(
+            active.speaker,
+            autoBubbleTexts,
+            autoBubbleVisibleCount,
+            `bubble-auto-group-${active.id}`
+          )
+        : (!isNarrationTurn(active) && !lineShownInInsert(active)
+          ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false))
+          : null)}
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}
       {telopText && telopOpacity > 0 ? (

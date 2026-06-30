@@ -38,6 +38,7 @@ _PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "se-map.json",
 
 # 話者一覧（StoryVideo.tsx の CHARACTERS / MOBS と二重管理。MVPのためハードコード）
 SPEAKERS = ["zundamon", "metan", "営業", "部長", "AI"]
+NARRATION_SPEAKERS = ["棒読み男", "棒読み女"]
 
 # 話者アイコン（/img/<path> でアクセスできる video/public 配下の相対パス）
 SPEAKER_ICONS = {
@@ -680,6 +681,7 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 meta = {
                     # 話者一覧（StoryVideo.tsx の CHARACTERS/MOBS と二重管理）
                     "speakers": SPEAKERS,
+                    "narrationSpeakers": NARRATION_SPEAKERS,
                     "speakerIcons": SPEAKER_ICONS,
                     "scenes": _load_scenes_keys(),
                     # expressions.json のキーから動的生成。読み込み失敗時は定数にフォールバック。

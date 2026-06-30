@@ -3,6 +3,90 @@
   "_note": "第1話。仮タイミング。make_story_audio.py で実尺を start/end/sentences に上書きする。モブ(営業/部長/AI)は姿なし=声+吹き出しのみ。",
   "script": [
     {
+      "id": "turn-0063",
+      "speaker": "営業",
+      "text": "テストのナレーションです。テストテスト。",
+      "scene": "",
+      "start": 0.0,
+      "end": 2.432,
+      "narrationVoice": "棒読み男",
+      "sentences": [
+        {
+          "text": "テストのナレーションです。",
+          "start": 0.0,
+          "end": 1.493
+        },
+        {
+          "text": "テストテスト。",
+          "start": 1.493,
+          "end": 2.432
+        }
+      ]
+    },
+    {
+      "id": "turn-0065",
+      "speaker": "営業",
+      "text": "テストのナレーションです。テストテスト。",
+      "scene": "",
+      "start": 2.782,
+      "end": 5.214,
+      "narrationVoice": "棒読み男",
+      "sentences": [
+        {
+          "text": "テストのナレーションです。",
+          "start": 2.782,
+          "end": 4.275
+        },
+        {
+          "text": "テストテスト。",
+          "start": 4.275,
+          "end": 5.214
+        }
+      ]
+    },
+    {
+      "id": "turn-0064",
+      "speaker": "営業",
+      "text": "女のナレーションです。テストテスト。",
+      "scene": "",
+      "start": 5.564,
+      "end": 8.017,
+      "narrationVoice": "棒読み女",
+      "sentences": [
+        {
+          "text": "女のナレーションです。",
+          "start": 5.564,
+          "end": 7.036
+        },
+        {
+          "text": "テストテスト。",
+          "start": 7.036,
+          "end": 8.017
+        }
+      ]
+    },
+    {
+      "id": "turn-0066",
+      "speaker": "営業",
+      "text": "テストテスト。テストのナレーションです。",
+      "scene": "",
+      "start": 8.367,
+      "end": 10.885,
+      "narrationVoice": "棒読み女",
+      "sentences": [
+        {
+          "text": "テストテスト。",
+          "start": 8.367,
+          "end": 9.349
+        },
+        {
+          "text": "テストのナレーションです。",
+          "start": 9.349,
+          "end": 10.885
+        }
+      ]
+    },
+    {
       "id": "turn-0001",
       "speaker": "営業",
       "text": "サイトに……つながりません。",
@@ -12,13 +96,13 @@
         "metan"
       ],
       "shake": true,
-      "start": 0.0,
-      "end": 1.771,
+      "start": 11.235,
+      "end": 13.005,
       "sentences": [
         {
           "text": "サイトに……つながりません。",
-          "start": 0.0,
-          "end": 1.771
+          "start": 11.235,
+          "end": 13.005
         }
       ],
       "expression": "panic",
@@ -40,13 +124,13 @@
       "text": "お問い合わせ、300件です。",
       "scene": "office",
       "shake": true,
-      "start": 2.121,
-      "end": 4.147,
+      "start": 13.355,
+      "end": 15.382,
       "sentences": [
         {
           "text": "お問い合わせ、300件です。",
-          "start": 2.121,
-          "end": 4.147
+          "start": 13.355,
+          "end": 15.382
         }
       ],
       "expression": "panic",
@@ -72,13 +156,13 @@
       "text": "セール開始まで、あと20分だぞ！",
       "scene": "office",
       "shake": true,
-      "start": 4.497,
-      "end": 7.1,
+      "start": 15.732,
+      "end": 18.335,
       "sentences": [
         {
           "text": "セール開始まで、あと20分だぞ！",
-          "start": 4.497,
-          "end": 7.1
+          "start": 15.732,
+          "end": 18.335
         }
       ],
       "expression": "panic",
@@ -109,13 +193,13 @@
       "scene": "office",
       "expression": "panic",
       "shake": true,
-      "start": 7.45,
-      "end": 10.394,
+      "start": 18.685,
+      "end": 21.629,
       "sentences": [
         {
           "text": "ど、どどど、どうすればいいのだ〜！？",
-          "start": 7.45,
-          "end": 10.394
+          "start": 18.685,
+          "end": 21.629
         }
       ],
       "insert": {
@@ -146,16 +230,109 @@
     {
       "id": "turn-0005",
       "speaker": "metan",
-      "text": "……ずんだもん。",
+      "text": "……ずんだもん。どうしたの？",
       "scene": "office",
       "expression": "normal",
-      "start": 11.544,
-      "end": 12.259,
+      "start": 22.779,
+      "end": 24.368,
       "sentences": [
         {
           "text": "……ずんだもん。",
-          "start": 11.544,
-          "end": 12.259
+          "start": 22.779,
+          "end": 23.493
+        },
+        {
+          "text": "どうしたの？",
+          "start": 23.493,
+          "end": 24.368
+        }
+      ],
+      "emphasis": true,
+      "enter": [
+        "metan"
+      ],
+      "disableAutoBubbleSplit": true
+    },
+    {
+      "id": "turn-0058",
+      "speaker": "zundamon",
+      "text": "あ、めたん先輩。",
+      "scene": "office",
+      "start": 24.718,
+      "end": 26.883,
+      "expression": "trouble",
+      "sentences": [
+        {
+          "text": "あ、めたん先輩。",
+          "start": 24.718,
+          "end": 26.883
+        }
+      ]
+    },
+    {
+      "id": "turn-0060",
+      "speaker": "zundamon",
+      "text": "テストなのだ。",
+      "scene": "office",
+      "start": 27.233,
+      "end": 28.321,
+      "sentences": [
+        {
+          "text": "テストなのだ。",
+          "start": 27.233,
+          "end": 28.321
+        }
+      ],
+      "continueBubble": true,
+      "expression": "trouble"
+    },
+    {
+      "id": "turn-0059",
+      "speaker": "zundamon",
+      "text": "今日からセール開始する",
+      "scene": "office",
+      "start": 28.671,
+      "end": 30.506,
+      "expression": "panic",
+      "sentences": [
+        {
+          "text": "今日からセール開始する",
+          "start": 28.671,
+          "end": 30.506
+        }
+      ]
+    },
+    {
+      "id": "turn-0062",
+      "speaker": "zundamon",
+      "text": "「ずんモール」につながらないのだ・・・",
+      "scene": "office",
+      "start": 30.856,
+      "end": 33.395,
+      "continueBubble": true,
+      "sentences": [
+        {
+          "text": "「ずんモール」につながらないのだ・・・",
+          "start": 30.856,
+          "end": 33.395
+        }
+      ],
+      "expression": "panic"
+    },
+    {
+      "id": "turn-0061",
+      "speaker": "metan",
+      "text": "えーっ、、",
+      "scene": "office",
+      "start": 33.745,
+      "end": 34.225,
+      "expression": "trouble",
+      "pause": 0.5,
+      "sentences": [
+        {
+          "text": "えーっ、、",
+          "start": 33.745,
+          "end": 34.225
         }
       ]
     },
@@ -166,13 +343,13 @@
       "scene": "office",
       "expression": "normal",
       "emphasis": true,
-      "start": 12.609,
-      "end": 15.574,
+      "start": 35.075,
+      "end": 38.04,
       "sentences": [
         {
           "text": "昨日、私がいない間に何かした？",
-          "start": 12.609,
-          "end": 15.574
+          "start": 35.075,
+          "end": 38.04
         }
       ]
     },
@@ -182,16 +359,33 @@
       "text": "昨日……？",
       "scene": "office",
       "expression": "trouble",
-      "pause": 1,
-      "start": 15.924,
-      "end": 16.713,
+      "start": 38.39,
+      "end": 39.179,
       "sentences": [
         {
           "text": "昨日……？",
-          "start": 15.924,
-          "end": 16.713
+          "start": 38.39,
+          "end": 39.179
         }
-      ]
+      ],
+      "pause": 2
+    },
+    {
+      "id": "turn-0054",
+      "speaker": "AI",
+      "text": "",
+      "scene": "office",
+      "start": 41.529,
+      "end": 41.529,
+      "insert": {
+        "kind": "chat",
+        "user": "テストなのだ",
+        "ai": [
+          "テスト回答です。"
+        ],
+        "highlight": 1
+      },
+      "sentences": []
     },
     {
       "id": "turn-0008",
@@ -201,18 +395,18 @@
       "expression": "normal",
       "flashback": true,
       "telop": "― 前日 ―",
-      "start": 18.063,
-      "end": 22.458,
+      "start": 44.379,
+      "end": 48.774,
       "sentences": [
         {
           "text": "今日はわたし外出だから。",
-          "start": 18.063,
-          "end": 19.77
+          "start": 44.379,
+          "end": 46.086
         },
         {
           "text": "設定の変更作業は、しないでね。",
-          "start": 19.77,
-          "end": 22.458
+          "start": 46.086,
+          "end": 48.774
         }
       ]
     },
@@ -228,18 +422,18 @@
         "metan"
       ],
       "exitDir": "right",
-      "start": 22.808,
-      "end": 25.656,
+      "start": 49.124,
+      "end": 51.972,
       "sentences": [
         {
           "text": "わかったのだ！",
-          "start": 22.808,
-          "end": 23.864
+          "start": 49.124,
+          "end": 50.18
         },
         {
           "text": "留守番はまかせるのだ！",
-          "start": 23.864,
-          "end": 25.656
+          "start": 50.18,
+          "end": 51.972
         }
       ]
     },
@@ -251,13 +445,13 @@
       "expression": "happy",
       "flashback": true,
       "pause": 0.8,
-      "start": 27.206,
-      "end": 30.961,
+      "start": 53.522,
+      "end": 57.277,
       "sentences": [
         {
           "text": "さーて……今日はぼく一人で、るすばんなのだ♪",
-          "start": 27.206,
-          "end": 30.961
+          "start": 53.522,
+          "end": 57.277
         }
       ]
     },
@@ -273,18 +467,18 @@
         "title": "システム警告",
         "text": "設定ファイルが古い形式です"
       },
-      "start": 32.111,
-      "end": 34.5,
+      "start": 58.427,
+      "end": 60.816,
       "sentences": [
         {
           "text": "……ん？",
-          "start": 32.111,
-          "end": 32.623
+          "start": 58.427,
+          "end": 58.939
         },
         {
           "text": "なんか画面に出てるのだ。",
-          "start": 32.623,
-          "end": 34.5
+          "start": 58.939,
+          "end": 60.816
         }
       ]
     },
@@ -300,13 +494,13 @@
         "title": "システム警告",
         "text": "設定ファイルが古い形式です"
       },
-      "start": 34.85,
-      "end": 39.074,
+      "start": 61.166,
+      "end": 65.39,
       "sentences": [
         {
           "text": "むむ……『設定ファイルが古い』って出てるのだ。",
-          "start": 34.85,
-          "end": 39.074
+          "start": 61.166,
+          "end": 65.39
         }
       ]
     },
@@ -317,13 +511,13 @@
       "scene": "office",
       "expression": "normal",
       "flashback": true,
-      "start": 39.424,
-      "end": 43.264,
+      "start": 65.74,
+      "end": 69.58,
       "sentences": [
         {
           "text": "古いなら、新しくした方がいいに決まってるのだ。",
-          "start": 39.424,
-          "end": 43.264
+          "start": 65.74,
+          "end": 69.58
         }
       ]
     },
@@ -334,13 +528,13 @@
       "scene": "office",
       "expression": "happy",
       "flashback": true,
-      "start": 43.614,
-      "end": 46.526,
+      "start": 69.93,
+      "end": 72.842,
       "sentences": [
         {
           "text": "こういう時は、AI（エーアイ）に聞くのだ！",
-          "start": 43.614,
-          "end": 46.526
+          "start": 69.93,
+          "end": 72.842
         }
       ]
     },
@@ -358,13 +552,13 @@
           "ただし、ご利用の環境によっては、異なる場合があります。"
         ]
       },
-      "start": 46.876,
-      "end": 49.959,
+      "start": 73.192,
+      "end": 76.275,
       "sentences": [
         {
           "text": "一般的な構成では、問題ありません。",
-          "start": 46.876,
-          "end": 49.959
+          "start": 73.192,
+          "end": 76.275
         }
       ]
     },
@@ -383,18 +577,18 @@
         ],
         "highlight": 1
       },
-      "start": 50.309,
-      "end": 54.703,
+      "start": 76.625,
+      "end": 81.019,
       "sentences": [
         {
           "text": "ただし、ご利用の環境によっては、",
-          "start": 50.309,
-          "end": 52.913
+          "start": 76.625,
+          "end": 79.229
         },
         {
           "text": "異なる場合があります。",
-          "start": 52.913,
-          "end": 54.703
+          "start": 79.229,
+          "end": 81.019
         }
       ]
     },
@@ -405,18 +599,18 @@
       "scene": "office",
       "expression": "happy",
       "flashback": true,
-      "start": 55.053,
-      "end": 58.893,
+      "start": 81.369,
+      "end": 85.209,
       "sentences": [
         {
           "text": "『問題ありません』！",
-          "start": 55.053,
-          "end": 56.397
+          "start": 81.369,
+          "end": 82.713
         },
         {
           "text": "AI（エーアイ）が大丈夫って言ってるのだ！",
-          "start": 56.397,
-          "end": 58.893
+          "start": 82.713,
+          "end": 85.209
         }
       ]
     },
@@ -427,13 +621,13 @@
       "scene": "office",
       "expression": "normal",
       "flashback": true,
-      "start": 59.243,
-      "end": 62.091,
+      "start": 85.559,
+      "end": 88.407,
       "sentences": [
         {
           "text": "ぽちぽち……サービス再起動っと。",
-          "start": 59.243,
-          "end": 62.091
+          "start": 85.559,
+          "end": 88.407
         }
       ]
     },
@@ -448,18 +642,18 @@
         "kind": "ok",
         "text": "正常"
       },
-      "start": 62.441,
-      "end": 64.543,
+      "start": 88.757,
+      "end": 90.859,
       "sentences": [
         {
           "text": "ヨシ！",
-          "start": 62.441,
-          "end": 63.028
+          "start": 88.757,
+          "end": 89.344
         },
         {
           "text": "今日も平和なのだ！",
-          "start": 63.028,
-          "end": 64.543
+          "start": 89.344,
+          "end": 90.859
         }
       ]
     },
@@ -474,13 +668,13 @@
       ],
       "flashback": true,
       "pause": 1,
-      "start": 64.893,
-      "end": 66.365,
+      "start": 91.209,
+      "end": 92.681,
       "sentences": [
         {
           "text": "おつかれさまなのだ〜",
-          "start": 64.893,
-          "end": 66.365
+          "start": 91.209,
+          "end": 92.681
         }
       ]
     },
@@ -496,18 +690,18 @@
       ],
       "emphasis": true,
       "telop": "― 現在 ―",
-      "start": 67.715,
-      "end": 69.613,
+      "start": 94.031,
+      "end": 95.929,
       "sentences": [
         {
           "text": "で。",
-          "start": 67.715,
-          "end": 68.045
+          "start": 94.031,
+          "end": 94.361
         },
         {
           "text": "昨日、何した？",
-          "start": 68.045,
-          "end": 69.613
+          "start": 94.361,
+          "end": 95.929
         }
       ]
     },
@@ -517,13 +711,13 @@
       "text": "ええと……昨日、設定をひとつ、変えたのだ。",
       "scene": "office",
       "expression": "trouble",
-      "start": 69.963,
-      "end": 74.251,
+      "start": 96.279,
+      "end": 100.567,
       "sentences": [
         {
           "text": "ええと……昨日、設定をひとつ、変えたのだ。",
-          "start": 69.963,
-          "end": 74.251
+          "start": 96.279,
+          "end": 100.567
         }
       ]
     },
@@ -533,13 +727,13 @@
       "text": "それ、誰にレビューしてもらった？",
       "scene": "office",
       "expression": "normal",
-      "start": 74.601,
-      "end": 76.916,
+      "start": 100.917,
+      "end": 103.232,
       "sentences": [
         {
           "text": "それ、誰にレビューしてもらった？",
-          "start": 74.601,
-          "end": 76.916
+          "start": 100.917,
+          "end": 103.232
         }
       ]
     },
@@ -549,13 +743,13 @@
       "text": "AI（エーアイ）なのだ！",
       "scene": "office",
       "expression": "happy",
-      "start": 77.266,
-      "end": 78.461,
+      "start": 103.582,
+      "end": 104.777,
       "sentences": [
         {
           "text": "AI（エーアイ）なのだ！",
-          "start": 77.266,
-          "end": 78.461
+          "start": 103.582,
+          "end": 104.777
         }
       ]
     },
@@ -565,13 +759,13 @@
       "text": "な、なんで黙るのだ〜！？",
       "scene": "office",
       "expression": "panic",
-      "start": 78.811,
-      "end": 80.965,
+      "start": 105.127,
+      "end": 107.281,
       "sentences": [
         {
           "text": "な、なんで黙るのだ〜！？",
-          "start": 78.811,
-          "end": 80.965
+          "start": 105.127,
+          "end": 107.281
         }
       ]
     },
@@ -581,18 +775,18 @@
       "text": "とにかくログを見るわよ。落ち着いて。",
       "scene": "office",
       "expression": "normal",
-      "start": 81.315,
-      "end": 83.63,
+      "start": 107.631,
+      "end": 109.946,
       "sentences": [
         {
           "text": "とにかくログを見るわよ。",
-          "start": 81.315,
-          "end": 82.851
+          "start": 107.631,
+          "end": 109.167
         },
         {
           "text": "落ち着いて。",
-          "start": 82.851,
-          "end": 83.63
+          "start": 109.167,
+          "end": 109.946
         }
       ]
     },
@@ -602,18 +796,18 @@
       "text": "書き方は、ちゃんと新しくなってるのだ……。なんで動かないのだ？",
       "scene": "office",
       "expression": "trouble",
-      "start": 83.98,
-      "end": 88.887,
+      "start": 110.296,
+      "end": 115.203,
       "sentences": [
         {
           "text": "書き方は、ちゃんと新しくなってるのだ……。",
-          "start": 83.98,
-          "end": 87.148
+          "start": 110.296,
+          "end": 113.464
         },
         {
           "text": "なんで動かないのだ？",
-          "start": 87.148,
-          "end": 88.887
+          "start": 113.464,
+          "end": 115.203
         }
       ]
     },
@@ -623,18 +817,18 @@
       "text": "……ねえ。AI（エーアイ）は、なんて言ってた？",
       "scene": "office",
       "expression": "normal",
-      "start": 89.237,
-      "end": 91.722,
+      "start": 115.553,
+      "end": 118.038,
       "sentences": [
         {
           "text": "……ねえ。",
-          "start": 89.237,
-          "end": 89.717
+          "start": 115.553,
+          "end": 116.033
         },
         {
           "text": "AI（エーアイ）は、なんて言ってた？",
-          "start": 89.717,
-          "end": 91.722
+          "start": 116.033,
+          "end": 118.038
         }
       ]
     },
@@ -644,13 +838,13 @@
       "text": "『一般的な構成では問題ありません』なのだ！",
       "scene": "office",
       "expression": "normal",
-      "start": 92.072,
-      "end": 96.147,
+      "start": 118.388,
+      "end": 122.463,
       "sentences": [
         {
           "text": "『一般的な構成では問題ありません』なのだ！",
-          "start": 92.072,
-          "end": 96.147
+          "start": 118.388,
+          "end": 122.463
         }
       ]
     },
@@ -660,18 +854,18 @@
       "text": "……その続きは？ 最後まで読んだ？",
       "scene": "office",
       "expression": "normal",
-      "start": 96.497,
-      "end": 98.907,
+      "start": 122.813,
+      "end": 125.223,
       "sentences": [
         {
           "text": "……その続きは？",
-          "start": 96.497,
-          "end": 97.617
+          "start": 122.813,
+          "end": 123.933
         },
         {
           "text": "最後まで読んだ？",
-          "start": 97.617,
-          "end": 98.907
+          "start": 123.933,
+          "end": 125.223
         }
       ]
     },
@@ -682,13 +876,13 @@
       "scene": "office",
       "expression": "panic",
       "emphasis": true,
-      "start": 99.257,
-      "end": 100.921,
+      "start": 125.573,
+      "end": 127.237,
       "sentences": [
         {
           "text": "……つ、続き？",
-          "start": 99.257,
-          "end": 100.921
+          "start": 125.573,
+          "end": 127.237
         }
       ]
     },
@@ -698,18 +892,18 @@
       "text": "……『環境によっては、異なる場合があります』……。",
       "scene": "office",
       "expression": "trouble",
-      "start": 101.271,
-      "end": 104.695,
+      "start": 127.587,
+      "end": 131.011,
       "sentences": [
         {
           "text": "……『環境によっては、",
-          "start": 101.271,
-          "end": 102.778
+          "start": 127.587,
+          "end": 129.094
         },
         {
           "text": "異なる場合があります』……。",
-          "start": 102.778,
-          "end": 104.695
+          "start": 129.094,
+          "end": 131.011
         }
       ]
     },
@@ -719,13 +913,13 @@
       "text": "うちの環境は、“一般的”？",
       "scene": "office",
       "expression": "normal",
-      "start": 105.045,
-      "end": 107.413,
+      "start": 131.361,
+      "end": 133.729,
       "sentences": [
         {
           "text": "うちの環境は、“一般的”？",
-          "start": 105.045,
-          "end": 107.413
+          "start": 131.361,
+          "end": 133.729
         }
       ]
     },
@@ -735,13 +929,13 @@
       "text": "……ちがう、のだ……。",
       "scene": "office",
       "expression": "trouble",
-      "start": 107.763,
-      "end": 109.129,
+      "start": 134.079,
+      "end": 135.445,
       "sentences": [
         {
           "text": "……ちがう、のだ……。",
-          "start": 107.763,
-          "end": 109.129
+          "start": 134.079,
+          "end": 135.445
         }
       ]
     },
@@ -755,18 +949,18 @@
         "zundamon",
         "metan"
       ],
-      "start": 109.479,
-      "end": 114.471,
+      "start": 135.795,
+      "end": 140.787,
       "sentences": [
         {
           "text": "うちはね、独自の社内設定が足してあるの。",
-          "start": 109.479,
-          "end": 112.593
+          "start": 135.795,
+          "end": 138.909
         },
         {
           "text": "AI（エーアイ）は、それを知らない。",
-          "start": 112.593,
-          "end": 114.471
+          "start": 138.909,
+          "end": 140.787
         }
       ]
     },
@@ -776,18 +970,18 @@
       "text": "新しい書き方に変えたとき、その独自設定だけ、まるごと消えてたのよ。",
       "scene": "server_room",
       "expression": "normal",
-      "start": 114.821,
-      "end": 120.122,
+      "start": 141.137,
+      "end": 146.438,
       "sentences": [
         {
           "text": "新しい書き方に変えたとき、その独自設定だけ、",
-          "start": 114.821,
-          "end": 118.355
+          "start": 141.137,
+          "end": 144.671
         },
         {
           "text": "まるごと消えてたのよ。",
-          "start": 118.355,
-          "end": 120.122
+          "start": 144.671,
+          "end": 146.438
         }
       ]
     },
@@ -797,18 +991,18 @@
       "text": "あっ……！ だからサービスが止まってたのだ！",
       "scene": "server_room",
       "expression": "surprise",
-      "start": 120.472,
-      "end": 123.213,
+      "start": 146.788,
+      "end": 149.529,
       "sentences": [
         {
           "text": "あっ……！",
-          "start": 120.472,
-          "end": 120.963
+          "start": 146.788,
+          "end": 147.279
         },
         {
           "text": "だからサービスが止まってたのだ！",
-          "start": 120.963,
-          "end": 123.213
+          "start": 147.279,
+          "end": 149.529
         }
       ]
     },
@@ -822,18 +1016,18 @@
         "zundamon",
         "metan"
       ],
-      "start": 123.563,
-      "end": 126.571,
+      "start": 149.879,
+      "end": 152.887,
       "sentences": [
         {
           "text": "原因が分かれば早いわ。",
-          "start": 123.563,
-          "end": 125.366
+          "start": 149.879,
+          "end": 151.682
         },
         {
           "text": "元に戻すわよ。",
-          "start": 125.366,
-          "end": 126.571
+          "start": 151.682,
+          "end": 152.887
         }
       ]
     },
@@ -843,35 +1037,45 @@
       "text": "了解なのだ！ えいっ。",
       "scene": "office",
       "expression": "normal",
-      "start": 126.921,
-      "end": 128.585,
+      "start": 153.237,
+      "end": 154.901,
       "sentences": [
         {
           "text": "了解なのだ！",
-          "start": 126.921,
-          "end": 128.084
+          "start": 153.237,
+          "end": 154.4
         },
         {
           "text": "えいっ。",
-          "start": 128.084,
-          "end": 128.585
+          "start": 154.4,
+          "end": 154.901
         }
       ]
     },
     {
+      "id": "turn-0053",
+      "speaker": "AI",
+      "text": "",
+      "scene": "office",
+      "start": 155.251,
+      "end": 155.251,
+      "insert": {
+        "kind": "chat",
+        "user": "ずんだもん",
+        "ai": [
+          "テストの回答です。"
+        ]
+      },
+      "sentences": []
+    },
+    {
       "id": "turn-0040",
       "speaker": "営業",
-      "text": "サービス、復旧しました。",
+      "text": "",
       "scene": "office",
-      "start": 128.935,
-      "end": 130.887,
-      "sentences": [
-        {
-          "text": "サービス、復旧しました。",
-          "start": 128.935,
-          "end": 130.887
-        }
-      ],
+      "start": 158.101,
+      "end": 158.101,
+      "sentences": [],
       "insert": {
         "kind": "mailer",
         "from": "システム監視",
@@ -879,25 +1083,26 @@
         "subject": "【自動通知】サービス復旧のお知らせ",
         "time": "14:32",
         "body": "対象サービスは正常化しました。\nご対応ありがとうございました。"
-      }
+      },
+      "pause": 0.6
     },
     {
       "id": "turn-0041",
       "speaker": "部長",
       "text": "……助かった。ギリギリ間に合ったな。",
       "scene": "office",
-      "start": 131.237,
-      "end": 133.317,
+      "start": 159.051,
+      "end": 161.131,
       "sentences": [
         {
           "text": "……助かった。",
-          "start": 131.237,
-          "end": 132.005
+          "start": 159.051,
+          "end": 159.819
         },
         {
           "text": "ギリギリ間に合ったな。",
-          "start": 132.005,
-          "end": 133.317
+          "start": 159.819,
+          "end": 161.131
         }
       ]
     },
@@ -907,13 +1112,13 @@
       "text": "ふ、ふええ……間に合ったのだ〜！",
       "scene": "office",
       "expression": "happy",
-      "start": 133.667,
-      "end": 136.995,
+      "start": 161.481,
+      "end": 164.809,
       "sentences": [
         {
           "text": "ふ、ふええ……間に合ったのだ〜！",
-          "start": 133.667,
-          "end": 136.995
+          "start": 161.481,
+          "end": 164.809
         }
       ]
     },
@@ -927,18 +1132,18 @@
         "zundamon",
         "metan"
       ],
-      "start": 137.345,
-      "end": 141.153,
+      "start": 165.159,
+      "end": 168.967,
       "sentences": [
         {
           "text": "……めたん。",
-          "start": 137.345,
-          "end": 137.996
+          "start": 165.159,
+          "end": 165.81
         },
         {
           "text": "やっぱり、AI（エーアイ）が悪かったのだ？",
-          "start": 137.996,
-          "end": 141.153
+          "start": 165.81,
+          "end": 168.967
         }
       ]
     },
@@ -948,13 +1153,13 @@
       "text": "ううん、違うわ。",
       "scene": "rooftop",
       "expression": "normal",
-      "start": 141.503,
-      "end": 143.381,
+      "start": 169.317,
+      "end": 171.195,
       "sentences": [
         {
           "text": "ううん、違うわ。",
-          "start": 141.503,
-          "end": 143.381
+          "start": 169.317,
+          "end": 171.195
         }
       ]
     },
@@ -964,18 +1169,18 @@
       "text": "AI（エーアイ）は、相談相手。すごく頼りになる。",
       "scene": "rooftop",
       "expression": "normal",
-      "start": 143.731,
-      "end": 146.835,
+      "start": 171.545,
+      "end": 174.649,
       "sentences": [
         {
           "text": "AI（エーアイ）は、相談相手。",
-          "start": 143.731,
-          "end": 145.597
+          "start": 171.545,
+          "end": 173.411
         },
         {
           "text": "すごく頼りになる。",
-          "start": 145.597,
-          "end": 146.835
+          "start": 173.411,
+          "end": 174.649
         }
       ]
     },
@@ -985,13 +1190,13 @@
       "text": "でも、最後に責任を持つのは、人間なの。",
       "scene": "rooftop",
       "expression": "normal",
-      "start": 147.185,
-      "end": 150.619,
+      "start": 174.999,
+      "end": 178.433,
       "sentences": [
         {
           "text": "でも、最後に責任を持つのは、人間なの。",
-          "start": 147.185,
-          "end": 150.619
+          "start": 174.999,
+          "end": 178.433
         }
       ]
     },
@@ -1002,13 +1207,13 @@
       "scene": "rooftop",
       "expression": "normal",
       "emphasis": true,
-      "start": 150.969,
-      "end": 152.889,
+      "start": 178.783,
+      "end": 180.703,
       "sentences": [
         {
           "text": "だから、レビューがあるのよ。",
-          "start": 150.969,
-          "end": 152.889
+          "start": 178.783,
+          "end": 180.703
         }
       ]
     },
@@ -1018,13 +1223,13 @@
       "text": "……都合のいいとこだけ読んじゃ、ダメなのだ……。",
       "scene": "rooftop",
       "expression": "normal",
-      "start": 153.239,
-      "end": 156.365,
+      "start": 181.053,
+      "end": 184.179,
       "sentences": [
         {
           "text": "……都合のいいとこだけ読んじゃ、ダメなのだ……。",
-          "start": 153.239,
-          "end": 156.365
+          "start": 181.053,
+          "end": 184.179
         }
       ]
     },
@@ -1033,19 +1238,19 @@
       "speaker": "zundamon",
       "text": "わかったのだ！ もう二度と、AI（エーアイ）は使わないのだ！",
       "scene": "rooftop",
-      "expression": "panic",
-      "start": 156.715,
-      "end": 160.843,
+      "expression": "trouble",
+      "start": 184.529,
+      "end": 188.657,
       "sentences": [
         {
           "text": "わかったのだ！",
-          "start": 156.715,
-          "end": 157.771
+          "start": 184.529,
+          "end": 185.585
         },
         {
           "text": "もう二度と、AI（エーアイ）は使わないのだ！",
-          "start": 157.771,
-          "end": 160.843
+          "start": 185.585,
+          "end": 188.657
         }
       ]
     },
@@ -1055,13 +1260,13 @@
       "text": "いや、使いなさい。",
       "scene": "rooftop",
       "expression": "trouble",
-      "start": 161.193,
-      "end": 162.921,
+      "start": 189.007,
+      "end": 190.735,
       "sentences": [
         {
           "text": "いや、使いなさい。",
-          "start": 161.193,
-          "end": 162.921
+          "start": 189.007,
+          "end": 190.735
         }
       ]
     },
@@ -1071,13 +1276,13 @@
       "text": "ちゃんと最後まで読んで、確認してね。",
       "scene": "rooftop",
       "expression": "normal",
-      "start": 163.271,
-      "end": 166.033,
+      "start": 191.085,
+      "end": 193.847,
       "sentences": [
         {
           "text": "ちゃんと最後まで読んで、確認してね。",
-          "start": 163.271,
-          "end": 166.033
+          "start": 191.085,
+          "end": 193.847
         }
       ]
     },
@@ -1086,22 +1291,49 @@
       "speaker": "zundamon",
       "text": "……うっ。善処するのだ……。",
       "scene": "rooftop",
-      "expression": "happy",
-      "start": 166.383,
-      "end": 168.047,
+      "expression": "panic",
+      "start": 194.197,
+      "end": 195.861,
       "sentences": [
         {
           "text": "……うっ。",
-          "start": 166.383,
-          "end": 166.81
+          "start": 194.197,
+          "end": 194.624
         },
         {
           "text": "善処するのだ……。",
-          "start": 166.81,
-          "end": 168.047
+          "start": 194.624,
+          "end": 195.861
         }
       ]
+    },
+    {
+      "id": "turn-0057",
+      "speaker": "zundamon",
+      "text": "",
+      "scene": "rooftop",
+      "start": 196.211,
+      "end": 196.211,
+      "sentences": []
     }
   ],
-  "audio": "story-01.mp3"
+  "audio": "story-01.mp3",
+  "bgm": [
+    {
+      "from": 0,
+      "to": 51,
+      "file": "",
+      "volume": 0.25
+    },
+    {
+      "start": 0,
+      "end": 181.22,
+      "file": "bgm/bgm1.mp3",
+      "volume": 0.05,
+      "fadeIn": 0.6,
+      "fadeOut": 1
+    }
+  ],
+  "idleFace": "hold",
+  "overlays": []
 }

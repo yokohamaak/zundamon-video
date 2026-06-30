@@ -25,6 +25,10 @@ export type Turn = {
   text: string;
   start: number;
   end: number;
+  // true のとき、直前の同話者ターンを上段に残して2段吹き出しにする。
+  continueBubble?: boolean;
+  // true のとき、句点や ! ? によるこの行の自動多段吹き出しを無効化する。
+  disableAutoBubbleSplit?: boolean;
   sentences?: Sentence[];
   emotion?: Emotion;
   // スライドイン画像オーバーレイ（小演出）。build が文字位置start/end→絶対秒へ解決して付与。

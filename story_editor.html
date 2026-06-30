@@ -199,6 +199,26 @@
   }
   .badge-insert { background: rgba(91,141,238,.2); color: var(--accent); }
   .badge-fx { background: rgba(251,191,36,.15); color: var(--yellow); }
+  .badge-bubble { background: rgba(139,92,246,.15); color: #b596ff; }
+  .badge-warn {
+    background: linear-gradient(135deg, #ffd84d, #ffb84d);
+    color: #332100;
+    border: none;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-weight: 800;
+    box-shadow: 0 1px 0 rgba(255,255,255,.25) inset;
+  }
+  .field-help { font-size: 11px; color: var(--text2); line-height: 1.5; }
+  .field-help.warn {
+    color: #5a3900;
+    background: linear-gradient(135deg, #fff3bf, #ffd98a);
+    border: 1px solid #f1b94a;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-top: 6px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.35) inset;
+  }
 
   /* ── 中央ペイン: Remotion Player ── */
   .preview-toolbar {
@@ -247,6 +267,17 @@
     opacity: 0;
     pointer-events: none;
   }
+  .overlay-box-text {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-align: center;
+    pointer-events: none;
+  }
   .overlay-box.inactive {
     border-style: dashed;
   }
@@ -272,6 +303,68 @@
     border: 2px solid var(--accent);
     cursor: nwse-resize;
     pointer-events: auto;
+  }
+  .overlay-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,10,15,.68);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 120;
+    padding: 24px;
+  }
+  .overlay-modal {
+    width: min(860px, calc(100vw - 48px));
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .overlay-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .overlay-modal-title {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .overlay-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+  }
+  .color-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .color-picker {
+    width: 44px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    cursor: pointer;
+  }
+  .overlay-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
   }
   .timeline-header {
     display: flex; align-items: center; gap: 8px; flex-shrink: 0;
@@ -688,7 +781,8 @@
         <option value="4">400%</option>
       </select>
       <span class="preview-status" id="playerStatus" style="margin-left:8px;">story-player.js を読み込み中...</span>
-      <button class="btn btn-secondary btn-sm" id="btnAddOverlay" style="margin-left:auto; font-size:12px; padding:2px 8px;">＋Overlay</button>
+      <button class="btn btn-secondary btn-sm" id="btnAddOverlay" style="margin-left:auto; font-size:12px; padding:2px 8px;">＋画像Overlay</button>
+      <button class="btn btn-secondary btn-sm" id="btnAddTextOverlay" style="font-size:12px; padding:2px 8px;">＋字幕</button>
     </div>
     <div class="preview-scroll">
       <div class="preview-scroll-inner">
@@ -705,7 +799,8 @@
     <div class="timeline-header">
       <span>タイムライン</span>
       <button class="btn btn-secondary btn-sm" id="btnAddBgmRegion" style="margin-left:8px; font-size:12px; padding:2px 8px;">＋BGM</button>
-      <button class="btn btn-secondary btn-sm" id="btnAddOverlayTimeline" style="font-size:12px; padding:2px 8px;">＋Overlay</button>
+      <button class="btn btn-secondary btn-sm" id="btnAddOverlayTimeline" style="font-size:12px; padding:2px 8px;">＋画像Overlay</button>
+      <button class="btn btn-secondary btn-sm" id="btnAddTextOverlayTimeline" style="font-size:12px; padding:2px 8px;">＋字幕</button>
       <label for="timelineZoom" style="margin-left:auto;">ズーム</label>
       <select class="field-select" id="timelineZoom" style="width:auto; padding:2px 6px; font-size:12px;">
         <option value="1">フィット</option>
@@ -743,11 +838,17 @@
     <div id="overlayRegionEditor" style="padding:6px 10px; background:var(--surface); border-top:1px solid var(--border); min-height:32px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       <span id="overlayRegionEditorHint" style="font-size:12px; color:var(--text2);">Overlay区間を選択 / ドラッグで移動・リサイズ</span>
       <div id="overlayRegionEditorFields" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; width:100%;">
+        <select id="overlayRegionKind" class="field-select" style="width:112px; flex-shrink:0;">
+          <option value="image">画像</option>
+          <option value="text">字幕</option>
+        </select>
         <select id="overlayRegionFile" class="field-select" style="flex:1; min-width:160px; max-width:260px;"></select>
+        <input id="overlayRegionText" class="field-input" type="text" placeholder="字幕テキスト" style="flex:1; min-width:220px; display:none;">
         <select id="overlayRegionLayer" class="field-select" style="width:132px; flex-shrink:0;">
           <option value="normal">通常</option>
           <option value="over-insert">insert上</option>
         </select>
+        <button id="overlayRegionDetailBtn" class="btn btn-secondary btn-sm" style="display:none; flex-shrink:0;">字幕詳細</button>
         <label style="font-size:12px; color:var(--text2); flex-shrink:0;">opacity</label>
         <input type="range" id="overlayRegionOpacity" min="0" max="1" step="0.05" value="1" style="width:80px; accent-color:var(--accent); flex-shrink:0;">
         <span id="overlayRegionOpacityDisp" style="font-size:12px; color:var(--text2); flex-shrink:0; min-width:26px;">1.00</span>
@@ -759,6 +860,69 @@
         <input type="number" id="overlayRegionEnd" class="field-input" min="0" step="0.1" style="width:64px; flex-shrink:0;">
         <span id="overlayRegionAnchorInfo" style="font-size:11px; color:var(--text2); flex:1 1 180px;"></span>
         <button id="overlayRegionDelete" class="btn btn-danger btn-sm" style="flex-shrink:0;">削除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay-modal-backdrop" id="overlayModalBackdrop">
+    <div class="overlay-modal">
+      <div class="overlay-modal-header">
+        <div class="overlay-modal-title">字幕の詳細設定</div>
+        <button id="overlayModalClose" class="btn btn-secondary btn-sm">閉じる</button>
+      </div>
+      <div class="overlay-modal-grid">
+        <div class="field-row" style="grid-column:1 / -1;">
+          <label class="field-label">字幕テキスト</label>
+          <textarea class="field-textarea" id="overlayModalText" style="min-height:96px;"></textarea>
+        </div>
+        <div class="color-field">
+          <label class="field-label">文字色</label>
+          <div class="color-row">
+            <input id="overlayModalTextColor" class="color-picker" type="color">
+            <input id="overlayModalTextColorHex" class="field-input" type="text" placeholder="#ffffff">
+          </div>
+        </div>
+        <div class="color-field">
+          <label class="field-label">文字サイズ</label>
+          <input id="overlayModalFontSize" class="field-input" type="number" min="12" step="1">
+        </div>
+        <div class="field-row" style="grid-column:1 / -1;">
+          <label class="toggle-row">
+            <input id="overlayModalCenterX" type="checkbox">
+            <span>左右中央配置に固定</span>
+          </label>
+        </div>
+        <div class="color-field">
+          <label class="field-label">背景色</label>
+          <div class="color-row">
+            <input id="overlayModalBgColor" class="color-picker" type="color">
+            <input id="overlayModalBgColorHex" class="field-input" type="text" placeholder="#0f1117">
+          </div>
+        </div>
+        <div class="color-field">
+          <label class="field-label">背景透過</label>
+          <div class="color-row">
+            <input id="overlayModalBgOpacity" type="range" min="0" max="1" step="0.05" value="0.7" style="flex:1; accent-color:var(--accent);">
+            <span id="overlayModalBgOpacityDisp" style="font-size:12px; color:var(--text2); min-width:34px;">0.70</span>
+          </div>
+        </div>
+        <div class="color-field">
+          <label class="field-label">枠色</label>
+          <div class="color-row">
+            <input id="overlayModalBorderColor" class="color-picker" type="color">
+            <input id="overlayModalBorderColorHex" class="field-input" type="text" placeholder="#ffffff">
+          </div>
+        </div>
+        <div class="color-field">
+          <label class="field-label">枠透過</label>
+          <div class="color-row">
+            <input id="overlayModalBorderOpacity" type="range" min="0" max="1" step="0.05" value="1" style="flex:1; accent-color:var(--accent);">
+            <span id="overlayModalBorderOpacityDisp" style="font-size:12px; color:var(--text2); min-width:34px;">1.00</span>
+          </div>
+        </div>
+      </div>
+      <div class="overlay-modal-actions">
+        <button id="overlayModalDone" class="btn btn-primary btn-sm">閉じる</button>
       </div>
     </div>
   </div>
@@ -777,6 +941,20 @@
           <div class="field-row">
             <label class="field-label">話者</label>
             <select class="field-select" id="fSpeaker"></select>
+          </div>
+          <div class="field-row">
+            <label class="field-label">ナレーション</label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fNarration">
+              <span>声だけにする</span>
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field-label">ナレーション音声</label>
+            <select class="field-select" id="fNarrationVoice">
+              <option value="">(なし)</option>
+            </select>
+            <div class="field-help" id="fNarrationHelp">オンの時は吹き出し・立ち絵・話者寄り演出なしで、この音声だけを使います。</div>
           </div>
           <div class="field-row">
             <label class="field-label">セリフ</label>
@@ -815,6 +993,31 @@
           <div class="field-row">
             <label class="field-label">ポーズ秒 (pause)</label>
             <input type="number" class="field-input" id="fPause" min="0" step="0.1" placeholder="0.0">
+          </div>
+          <div class="field-row">
+            <label class="field-label">声プリセット</label>
+            <select class="field-select" id="fVoicePreset">
+              <option value="">通常</option>
+              <option value="monotone-male">棒読み（男性）</option>
+              <option value="monotone-female">棒読み（女性）</option>
+            </select>
+            <div class="field-help" id="fVoicePresetHelp">この行だけ speed / pitch / intonation を上書きします。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">吹き出し</label>
+            <select class="field-select" id="fContinueBubble">
+              <option value="">単独吹き出し</option>
+              <option value="1">前の下に続ける</option>
+            </select>
+            <div class="field-help" id="fContinueBubbleHelp"></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">自動分割</label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fAutoBubbleSplit">
+              <span>この行だけ無効</span>
+            </label>
+            <div class="field-help" id="fAutoBubbleSplitHelp">句点や ! ? による自動多段化を、この行だけ止めます。</div>
           </div>
 
           <div class="section-divider">SE（任意）</div>
@@ -1012,6 +1215,15 @@ function speakerColor(sp) {
   return SPEAKER_COLORS[sp] || "#8892aa";
 }
 
+function isNarrationTurnData(turn) {
+  return !!(turn && turn.narrationVoice);
+}
+
+function displaySpeakerLabel(turn) {
+  if (isNarrationTurnData(turn)) return `ナレーション (${turn.narrationVoice})`;
+  return turn.speaker || "";
+}
+
 // ============================================================
 // 初期化
 // ============================================================
@@ -1023,10 +1235,12 @@ async function init() {
     ]);
     storyData = await storyRes.json();
     meta = await metaRes.json();
+    normalizeStoryVoicePresets(storyData);
 
     document.getElementById("storyTitle").value = storyData.title || "";
     document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
     buildSpeakerSelect();
+    buildNarrationSpeakerSelect();
     buildSceneSelect();
     buildExpressionSelect();
     buildMultiSpeakers();
@@ -1094,6 +1308,7 @@ let overlayImageSizes = {};    // { "overlays/x.png": {w,h} }
 let _selectedOverlayId = null; // 選択中 overlay.id
 let _overlayTimelineDrag = null;   // null | { op, id, origStart, origEnd, startX }
 let _overlayPreviewDrag = null;    // null | { op:"move"|"resize", id, startX, startY, origX, origY, origW, aspect }
+let _overlayModalOpen = false;
 
 const OVERLAY_MIN_DUR = 0.2;
 const OVERLAY_MIN_W = 0.06;
@@ -1201,6 +1416,35 @@ function defaultOverlaySrc() {
   return imgs[0] || "";
 }
 
+function normalizeHexColor(value, fallback = "#ffffff") {
+  const v = String(value || "").trim();
+  if (/^#([0-9a-fA-F]{6})$/.test(v)) return v.toLowerCase();
+  if (/^#([0-9a-fA-F]{3})$/.test(v)) {
+    const s = v.slice(1);
+    return `#${s[0]}${s[0]}${s[1]}${s[1]}${s[2]}${s[2]}`.toLowerCase();
+  }
+  return fallback;
+}
+
+function hexToRgba(hex, alpha) {
+  const h = normalizeHexColor(hex);
+  const a = Math.max(0, Math.min(1, Number(alpha)));
+  const n = parseInt(h.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function overlayLabel(overlay) {
+  if (!overlay) return "overlay";
+  if (overlay.kind === "text") {
+    const text = String(overlay.text || "").trim();
+    return text ? `字幕: ${text}` : "字幕";
+  }
+  return String(overlay.src || "overlay").replace(/^overlays\//, "");
+}
+
 function selectedOverlayIndex() {
   return ensureOverlayArray().findIndex((o) => o.id === _selectedOverlayId);
 }
@@ -1256,6 +1500,39 @@ function createOverlayAtPlayhead() {
   markDirty();
   // 新規追加直後は、デバウンス待ちだと古い story のままシークして
   // 「選択されたのに実プレビューへ出ない」ことがある。先に即時反映する。
+  flushPlayerUpdate();
+  requestAnimationFrame(() => selectOverlay(overlay.id, true));
+  return overlay;
+}
+
+function createTextOverlayAtPlayhead() {
+  ensureOverlayArray();
+  const script = currentScriptForTiming();
+  if (!script.length) return null;
+  const start = _snapT(_playheadTime);
+  const end = Math.min(_timelineTotal(), start + 2.5);
+  const overlay = {
+    id: generateOverlayId(),
+    kind: "text",
+    layer: "normal",
+    text: "字幕テキスト",
+    textColor: "#ffffff",
+    bgColor: "#0f1117",
+    bgOpacity: 0.72,
+    borderColor: "#ffffff",
+    borderOpacity: 1,
+    fontSize: 34,
+    centerX: true,
+    x: 0.5,
+    y: 0.88,
+    w: 0.72,
+    opacity: 1,
+    z: ensureOverlayArray().length,
+    start: overlayTimeToAnchor(start, script),
+    end: overlayTimeToAnchor(Math.max(start + OVERLAY_MIN_DUR, end), script),
+  };
+  ensureOverlayArray().push(overlay);
+  markDirty();
   flushPlayerUpdate();
   requestAnimationFrame(() => selectOverlay(overlay.id, true));
   return overlay;
@@ -1442,7 +1719,7 @@ function drawScriptTimeline() {
       if (x2 - x1 > 36) {
         ctx.fillStyle = "#18120d";
         ctx.font = "10px system-ui, sans-serif";
-        ctx.fillText((item.overlay.src || "overlay").replace(/^overlays\//, ""), x1 + 4, item.y + 10);
+        ctx.fillText(overlayLabel(item.overlay), x1 + 4, item.y + 10);
       }
     });
   });
@@ -1671,12 +1948,22 @@ function renderOverlayEditor() {
   if (!overlay) {
     hint.style.display = "";
     fields.style.display = "none";
+    closeOverlayModal();
     return;
   }
   hint.style.display = "none";
   fields.style.display = "flex";
 
+  const kindSel = document.getElementById("overlayRegionKind");
   const fileSel = document.getElementById("overlayRegionFile");
+  const textInp = document.getElementById("overlayRegionText");
+  const detailBtn = document.getElementById("overlayRegionDetailBtn");
+  const isText = overlay.kind === "text";
+  if (kindSel) kindSel.value = overlay.kind || "image";
+  if (fileSel) fileSel.style.display = isText ? "none" : "";
+  if (textInp) textInp.style.display = isText ? "" : "none";
+  if (detailBtn) detailBtn.style.display = isText ? "" : "none";
+
   if (fileSel) {
     fileSel.innerHTML = "";
     const blank = document.createElement("option");
@@ -1695,6 +1982,7 @@ function renderOverlayEditor() {
     }
     fileSel.value = overlay.src || "";
   }
+  if (textInp) textInp.value = overlay.text || "";
   const layerSel = document.getElementById("overlayRegionLayer");
   if (layerSel) layerSel.value = overlay.layer || "normal";
   const opacity = document.getElementById("overlayRegionOpacity");
@@ -1714,13 +2002,36 @@ function renderOverlayEditor() {
   if (anchorInfo) {
     anchorInfo.textContent = `${overlay.start.turnId || "-"} + ${overlay.start.at || 0}s 〜 ${overlay.end.turnId || "-"} + ${overlay.end.at || 0}s`;
   }
+  syncOverlayModalFromOverlay(overlay);
 }
 
 function collectOverlayEditor() {
   const overlay = getOverlayById(_selectedOverlayId);
   if (!overlay) return;
+  const kindSel = document.getElementById("overlayRegionKind");
+  if (kindSel) overlay.kind = kindSel.value || "image";
   const fileSel = document.getElementById("overlayRegionFile");
-  if (fileSel) overlay.src = fileSel.value;
+  if (overlay.kind === "image") {
+    closeOverlayModal();
+    if (fileSel) overlay.src = fileSel.value;
+    delete overlay.text;
+    delete overlay.textColor;
+    delete overlay.bgColor;
+    delete overlay.bgOpacity;
+    delete overlay.borderColor;
+    delete overlay.borderOpacity;
+    delete overlay.fontSize;
+  } else {
+    const textInp = document.getElementById("overlayRegionText");
+    overlay.text = textInp ? textInp.value : "";
+    overlay.textColor = normalizeHexColor(overlay.textColor, "#ffffff");
+    overlay.bgColor = normalizeHexColor(overlay.bgColor, "#0f1117");
+    overlay.bgOpacity = typeof overlay.bgOpacity === "number" ? overlay.bgOpacity : 0.72;
+    overlay.borderColor = normalizeHexColor(overlay.borderColor, "#ffffff");
+    overlay.borderOpacity = typeof overlay.borderOpacity === "number" ? overlay.borderOpacity : 1;
+    overlay.fontSize = overlay.fontSize ? (parseInt(String(overlay.fontSize), 10) || 34) : 34;
+    delete overlay.src;
+  }
   const layerSel = document.getElementById("overlayRegionLayer");
   if (layerSel) overlay.layer = layerSel.value || "normal";
   const opacity = document.getElementById("overlayRegionOpacity");
@@ -1739,6 +2050,61 @@ function collectOverlayEditor() {
   renderOverlayEditor();
   renderOverlayEditLayer();
   drawScriptTimeline();
+}
+
+function syncOverlayModalFromOverlay(overlay) {
+  if (!overlay || overlay.kind !== "text") return;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  setVal("overlayModalText", overlay.text || "");
+  setVal("overlayModalTextColor", normalizeHexColor(overlay.textColor, "#ffffff"));
+  setVal("overlayModalTextColorHex", normalizeHexColor(overlay.textColor, "#ffffff"));
+  setVal("overlayModalBgColor", normalizeHexColor(overlay.bgColor, "#0f1117"));
+  setVal("overlayModalBgColorHex", normalizeHexColor(overlay.bgColor, "#0f1117"));
+  setVal("overlayModalBorderColor", normalizeHexColor(overlay.borderColor, "#ffffff"));
+  setVal("overlayModalBorderColorHex", normalizeHexColor(overlay.borderColor, "#ffffff"));
+  setVal("overlayModalFontSize", overlay.fontSize != null ? overlay.fontSize : 34);
+  setVal("overlayModalBgOpacity", overlay.bgOpacity != null ? overlay.bgOpacity : 0.72);
+  setVal("overlayModalBorderOpacity", overlay.borderOpacity != null ? overlay.borderOpacity : 1);
+  const centerXCb = document.getElementById("overlayModalCenterX");
+  if (centerXCb) centerXCb.checked = !!overlay.centerX;
+  const bgDisp = document.getElementById("overlayModalBgOpacityDisp");
+  if (bgDisp) bgDisp.textContent = Number(overlay.bgOpacity != null ? overlay.bgOpacity : 0.72).toFixed(2);
+  const borderDisp = document.getElementById("overlayModalBorderOpacityDisp");
+  if (borderDisp) borderDisp.textContent = Number(overlay.borderOpacity != null ? overlay.borderOpacity : 1).toFixed(2);
+}
+
+function collectOverlayModal() {
+  const overlay = getOverlayById(_selectedOverlayId);
+  if (!overlay || overlay.kind !== "text") return;
+  overlay.text = document.getElementById("overlayModalText")?.value || "";
+  overlay.textColor = normalizeHexColor(document.getElementById("overlayModalTextColorHex")?.value, "#ffffff");
+  overlay.bgColor = normalizeHexColor(document.getElementById("overlayModalBgColorHex")?.value, "#0f1117");
+  overlay.borderColor = normalizeHexColor(document.getElementById("overlayModalBorderColorHex")?.value, "#ffffff");
+  overlay.fontSize = parseInt(document.getElementById("overlayModalFontSize")?.value || "34", 10) || 34;
+  overlay.bgOpacity = parseFloat(document.getElementById("overlayModalBgOpacity")?.value || "0.72");
+  overlay.borderOpacity = parseFloat(document.getElementById("overlayModalBorderOpacity")?.value || "1");
+  overlay.centerX = !!document.getElementById("overlayModalCenterX")?.checked;
+  if (overlay.centerX) overlay.x = 0.5;
+  markDirty();
+  notifyPlayerUpdate();
+  renderOverlayEditor();
+  renderOverlayEditLayer();
+  drawScriptTimeline();
+}
+
+function openOverlayModal() {
+  const overlay = getOverlayById(_selectedOverlayId);
+  if (!overlay || overlay.kind !== "text") return;
+  syncOverlayModalFromOverlay(overlay);
+  const backdrop = document.getElementById("overlayModalBackdrop");
+  if (backdrop) backdrop.style.display = "flex";
+  _overlayModalOpen = true;
+}
+
+function closeOverlayModal() {
+  const backdrop = document.getElementById("overlayModalBackdrop");
+  if (backdrop) backdrop.style.display = "none";
+  _overlayModalOpen = false;
 }
 
 // BGMエディタの各コントロールにイベントを設定（一度だけ呼ぶ）
@@ -1795,8 +2161,14 @@ function _setupBgmRegionEditorEvents() {
 }
 
 function _setupOverlayEditorEvents() {
+  const kindSel = document.getElementById("overlayRegionKind");
+  if (kindSel) kindSel.addEventListener("change", collectOverlayEditor);
   const fileSel = document.getElementById("overlayRegionFile");
   if (fileSel) fileSel.addEventListener("change", collectOverlayEditor);
+  const textInp = document.getElementById("overlayRegionText");
+  if (textInp) textInp.addEventListener("input", collectOverlayEditor);
+  const detailBtn = document.getElementById("overlayRegionDetailBtn");
+  if (detailBtn) detailBtn.addEventListener("click", openOverlayModal);
   const layerSel = document.getElementById("overlayRegionLayer");
   if (layerSel) layerSel.addEventListener("change", collectOverlayEditor);
   const opacity = document.getElementById("overlayRegionOpacity");
@@ -1824,6 +2196,51 @@ function _setupOverlayEditorEvents() {
     renderOverlayEditor();
     renderOverlayEditLayer();
     drawScriptTimeline();
+  });
+
+  const bindColorPair = (pickerId, hexId) => {
+    const picker = document.getElementById(pickerId);
+    const hex = document.getElementById(hexId);
+    if (picker && hex) {
+      picker.addEventListener("input", () => {
+        hex.value = picker.value;
+        collectOverlayModal();
+      });
+      hex.addEventListener("change", () => {
+        hex.value = normalizeHexColor(hex.value, picker.value || "#ffffff");
+        picker.value = hex.value;
+        collectOverlayModal();
+      });
+    }
+  };
+  bindColorPair("overlayModalTextColor", "overlayModalTextColorHex");
+  bindColorPair("overlayModalBgColor", "overlayModalBgColorHex");
+  bindColorPair("overlayModalBorderColor", "overlayModalBorderColorHex");
+  const modalText = document.getElementById("overlayModalText");
+  if (modalText) modalText.addEventListener("input", collectOverlayModal);
+  const modalFont = document.getElementById("overlayModalFontSize");
+  if (modalFont) modalFont.addEventListener("change", collectOverlayModal);
+  const centerXCb = document.getElementById("overlayModalCenterX");
+  if (centerXCb) centerXCb.addEventListener("change", collectOverlayModal);
+  const bgOpacity = document.getElementById("overlayModalBgOpacity");
+  const bgOpacityDisp = document.getElementById("overlayModalBgOpacityDisp");
+  if (bgOpacity) bgOpacity.addEventListener("input", () => {
+    if (bgOpacityDisp) bgOpacityDisp.textContent = parseFloat(bgOpacity.value).toFixed(2);
+    collectOverlayModal();
+  });
+  const borderOpacity = document.getElementById("overlayModalBorderOpacity");
+  const borderOpacityDisp = document.getElementById("overlayModalBorderOpacityDisp");
+  if (borderOpacity) borderOpacity.addEventListener("input", () => {
+    if (borderOpacityDisp) borderOpacityDisp.textContent = parseFloat(borderOpacity.value).toFixed(2);
+    collectOverlayModal();
+  });
+  const modalClose = document.getElementById("overlayModalClose");
+  if (modalClose) modalClose.addEventListener("click", closeOverlayModal);
+  const modalDone = document.getElementById("overlayModalDone");
+  if (modalDone) modalDone.addEventListener("click", closeOverlayModal);
+  const backdrop = document.getElementById("overlayModalBackdrop");
+  if (backdrop) backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeOverlayModal();
   });
 }
 
@@ -2052,27 +2469,37 @@ function renderOverlayEditLayer() {
   const active = activeOverlaysAt(_playheadTime, false);
   const overlay = active.find((item) => item.id === selected.id);
   if (!overlay) return;
-  ensureOverlayImageSize(overlay.src);
-  const size = overlayImageSizes[overlay.src] || { w: 16, h: 9 };
-  const aspect = size.h > 0 ? size.w / size.h : 16 / 9;
   const widthPx = overlay.w * rect.width;
-  const heightPx = widthPx / Math.max(0.1, aspect);
   const box = document.createElement("div");
   box.className = "overlay-box";
   box.dataset.id = overlay.id;
-  box.style.left = (overlay.x * rect.width) + "px";
+  box.style.left = (((overlay.kind === "text" && overlay.centerX) ? 0.5 : overlay.x) * rect.width) + "px";
   box.style.top = (overlay.y * rect.height) + "px";
   box.style.width = widthPx + "px";
-  box.style.height = heightPx + "px";
-
-  const img = document.createElement("img");
-  img.src = overlay.src ? ("/preview-assets/" + overlay.src) : "";
-  img.alt = overlay.src || overlay.id;
-  box.appendChild(img);
+  if (overlay.kind === "text") {
+    const text = document.createElement("div");
+    text.className = "overlay-box-text";
+    text.textContent = overlay.text || "";
+    text.style.color = normalizeHexColor(overlay.textColor, "#ffffff");
+    text.style.background = hexToRgba(overlay.bgColor || "#0f1117", overlay.bgOpacity != null ? overlay.bgOpacity : 0.72);
+    text.style.border = `4px solid ${hexToRgba(overlay.borderColor || "#ffffff", overlay.borderOpacity != null ? overlay.borderOpacity : 1)}`;
+    text.style.fontSize = (overlay.fontSize || 34) + "px";
+    box.appendChild(text);
+  } else {
+    ensureOverlayImageSize(overlay.src);
+    const size = overlayImageSizes[overlay.src] || { w: 16, h: 9 };
+    const aspect = size.h > 0 ? size.w / size.h : 16 / 9;
+    const heightPx = widthPx / Math.max(0.1, aspect);
+    box.style.height = heightPx + "px";
+    const img = document.createElement("img");
+    img.src = overlay.src ? ("/preview-assets/" + overlay.src) : "";
+    img.alt = overlay.src || overlay.id;
+    box.appendChild(img);
+  }
 
   const label = document.createElement("div");
   label.className = "overlay-box-label";
-  label.textContent = (overlay.src || overlay.id).replace(/^overlays\//, "");
+  label.textContent = overlayLabel(overlay);
   box.appendChild(label);
 
   const handle = document.createElement("div");
@@ -2095,8 +2522,8 @@ function beginOverlayPreviewDrag(e, id, op) {
   if (!overlay) return;
   selectOverlay(id, false);
   const aspect = 16 / 9;
-  ensureOverlayImageSize(overlay.src);
-  const cached = overlayImageSizes[overlay.src];
+  if (overlay.kind === "image") ensureOverlayImageSize(overlay.src);
+  const cached = overlay.kind === "image" ? overlayImageSizes[overlay.src] : null;
   _overlayPreviewDrag = {
     op,
     id,
@@ -2228,6 +2655,23 @@ function buildSpeakerSelect() {
   }
 }
 
+function buildNarrationSpeakerSelect() {
+  const sel = document.getElementById("fNarrationVoice");
+  sel.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = ""; none.textContent = "(なし)";
+  sel.appendChild(none);
+  for (const sp of (meta.narrationSpeakers || [])) {
+    const o = document.createElement("option");
+    o.value = sp; o.textContent = sp;
+    sel.appendChild(o);
+  }
+}
+
+function defaultNarrationSpeaker() {
+  return (meta.narrationSpeakers && meta.narrationSpeakers[0]) || "";
+}
+
 function buildSceneSelect() {
   // シーンは scene_editor で登録済みのものから選ぶ（ドロップダウン）。
   // 自由入力にはしない（新規シーンは scene_editor で作ってから選ぶ運用）。
@@ -2327,7 +2771,7 @@ function renderList() {
     row.dataset.idx = i;
 
     // アイコン
-    const icon = speakerIcon(turn.speaker);
+    const icon = speakerIcon(isNarrationTurnData(turn) ? "__narration__" : turn.speaker);
     row.appendChild(icon);
 
     // 本文
@@ -2335,7 +2779,7 @@ function renderList() {
     body.className = "turn-body";
     const spEl = document.createElement("div");
     spEl.className = "turn-speaker";
-    spEl.textContent = turn.speaker;
+    spEl.textContent = displaySpeakerLabel(turn);
     const textEl = document.createElement("div");
     textEl.className = "turn-text";
     textEl.textContent = turn.text;
@@ -2343,10 +2787,24 @@ function renderList() {
     // バッジ
     const badges = document.createElement("div");
     badges.className = "turn-badges";
+    if (isNarrationTurnData(turn)) badges.appendChild(makeBadge("ナレーション", "warn"));
     if (turn.emphasis) badges.appendChild(makeBadge("ズーム", "fx"));
     if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
+    const bubbleInfo = getContinueBubbleInfo(script, i);
+    const autoInfo = getAutoBubbleInfo(turn);
+    if (!isNarrationTurnData(turn) && bubbleInfo.valid) {
+      badges.appendChild(makeBadge("2段目", "bubble"));
+      badges.appendChild(makeBadge("同時消え", "bubble"));
+    } else if (!isNarrationTurnData(turn) && bubbleInfo.active) {
+      badges.appendChild(makeBadge("続き指定", "warn"));
+    } else if (!isNarrationTurnData(turn) && isContinueBubbleParent(script, i)) {
+      badges.appendChild(makeBadge("1段目", "bubble"));
+    }
+    if (autoInfo.active) badges.appendChild(makeBadge(`自動${autoInfo.count}段`, "warn"));
+    if (turn.disableAutoBubbleSplit) badges.appendChild(makeBadge("自動分割OFF", "warn"));
+    if (bubbleLengthWarning(turn)) badges.appendChild(makeBadge("長い", "warn"));
 
     body.appendChild(spEl);
     body.appendChild(textEl);
@@ -2387,11 +2845,130 @@ function followPlaybackTurn(idx) {
 function makeBadge(text, type) {
   const b = document.createElement("span");
   b.className = "badge badge-" + type;
-  b.textContent = text;
+  b.textContent = type === "warn" ? "!" + text : text;
   return b;
 }
 
+const AUTO_SENTENCE_RE = /[^。！？!?]*[。！？!?]+[」』）)】〕》〉”’"']*|[^。！？!?]+/g;
+
+function normalizeSentenceSourceText(turn) {
+  return String(turn && turn.text || "").replace(/\s+/g, "");
+}
+
+function predictedAutoBubbleTexts(turn) {
+  const text = String(turn && turn.text || "");
+  return (text.match(AUTO_SENTENCE_RE) || []).map(s => s.trim()).filter(Boolean);
+}
+
+function autoBubbleTexts(turn) {
+  if (!turn || turn.insert) return [];
+  if (turn.disableAutoBubbleSplit) return [];
+  const sentenceTexts = Array.isArray(turn.sentences)
+    ? turn.sentences.map(x => String(x && x.text || "").trim()).filter(Boolean)
+    : [];
+  if (sentenceTexts.length > 1) {
+    const joined = sentenceTexts.join("").replace(/\s+/g, "");
+    if (joined === normalizeSentenceSourceText(turn)) return sentenceTexts;
+  }
+  return predictedAutoBubbleTexts(turn);
+}
+
+function getAutoBubbleInfo(turn) {
+  const texts = autoBubbleTexts(turn);
+  const actual = Array.isArray(turn && turn.sentences) &&
+    turn.sentences.length > 1 &&
+    turn.sentences.map(x => String(x && x.text || "").trim()).filter(Boolean).length > 1;
+  return {
+    active: texts.length > 1,
+    actual,
+    count: texts.length,
+    texts,
+  };
+}
+
+function getContinueBubbleInfo(script, idx) {
+  const turn = script && script[idx];
+  const prev = idx > 0 && script ? script[idx - 1] : null;
+  if (!turn || !turn.continueBubble) return { active: false, valid: false, reason: "" };
+  if (!prev) return { active: true, valid: false, reason: "先頭行なので前のセリフに続けられません。" };
+  if ((prev.speaker || "") !== (turn.speaker || "")) return { active: true, valid: false, reason: "直前が別話者です。" };
+  if ((prev.scene || "") !== (turn.scene || "")) return { active: true, valid: false, reason: "直前とシーンが違います。" };
+  if (prev.insert) return { active: true, valid: false, reason: "直前がインサート表示です。" };
+  if (turn.insert) return { active: true, valid: false, reason: "この行がインサート表示です。" };
+  return { active: true, valid: true, reason: "" };
+}
+
+function isContinueBubbleParent(script, idx) {
+  return !!getContinueBubbleInfo(script, idx + 1).valid;
+}
+
+function bubbleLengthWarning(turn) {
+  if (!turn || turn.insert || isNarrationTurnData(turn)) return "";
+  const text = String(turn.text || "").replace(/\s+/g, "");
+  if (!text) return "";
+  const autoInfo = getAutoBubbleInfo(turn);
+  const limit = (turn.continueBubble || autoInfo.active) ? 20 : 24;
+  return text.length > limit
+    ? "この文字数から吹き出し文字が自動で小さくなります。分割を検討してください。"
+    : "";
+}
+
+const VOICE_PRESETS = {
+  "monotone-male": { speed: 0.88, pitch: 0.0, intonation: 0.0 },
+  "monotone-female": { speed: 0.90, pitch: 0.0, intonation: 0.0 },
+};
+
+const LEGACY_VOICE_PRESETS = {
+  "monotone-male": [
+    { speed: 0.96, pitch: -0.03, intonation: 0.45 },
+    { speed: 0.88, pitch: -0.12, intonation: 0.0 },
+  ],
+  "monotone-female": [
+    { speed: 0.98, pitch: 0.04, intonation: 0.5 },
+    { speed: 0.90, pitch: 0.08, intonation: 0.0 },
+    { speed: 0.90, pitch: 0.16, intonation: 0.0 },
+  ],
+};
+
+function voiceMatchesPreset(voice, preset) {
+  return !!(
+    voice &&
+    typeof voice === "object" &&
+    Number(voice.speed) === preset.speed &&
+    Number(voice.pitch) === preset.pitch &&
+    Number(voice.intonation) === preset.intonation
+  );
+}
+
+function voicePresetKey(turn) {
+  const voice = turn && turn.voice;
+  if (!voice || typeof voice !== "object") return "";
+  for (const [key, preset] of Object.entries(VOICE_PRESETS)) {
+    if (voiceMatchesPreset(voice, preset)) return key;
+  }
+  for (const [key, presets] of Object.entries(LEGACY_VOICE_PRESETS)) {
+    if ((presets || []).some((preset) => voiceMatchesPreset(voice, preset))) return key;
+  }
+  return "";
+}
+
+function normalizeStoryVoicePresets(data) {
+  if (!data || !Array.isArray(data.script)) return false;
+  let changed = false;
+  for (const turn of data.script) {
+    const key = voicePresetKey(turn);
+    if (!key) continue;
+    if (voiceMatchesPreset(turn.voice, VOICE_PRESETS[key])) continue;
+    if ((LEGACY_VOICE_PRESETS[key] || []).some((preset) => voiceMatchesPreset(turn.voice, preset))) {
+      turn.voice = { ...(turn.voice || {}), ...VOICE_PRESETS[key] };
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function speakerIcon(speaker) {
+  if (speaker === "__narration__") return fallbackIcon("ナ");
   const iconPath = meta.speakerIcons[speaker];
   if (iconPath) {
     const img = document.createElement("img");
@@ -2409,7 +2986,7 @@ function fallbackIcon(speaker) {
   const div = document.createElement("div");
   div.className = "turn-icon-fallback";
   div.style.background = speakerColor(speaker);
-  div.textContent = speaker.charAt(0).toUpperCase();
+  div.textContent = speaker === "ナ" ? "ナ" : speaker.charAt(0).toUpperCase();
   return div;
 }
 
@@ -2463,6 +3040,9 @@ function renderDetail() {
 
   // ── 基本タブ ──
   setField("fSpeaker", "select", turn.speaker || "");
+  document.getElementById("fNarration").checked = isNarrationTurnData(turn);
+  setField("fNarrationVoice", "select", turn.narrationVoice || "");
+  document.getElementById("fSpeaker").disabled = isNarrationTurnData(turn);
   setField("fText", "textarea", turn.text || "");
   // scene: 登録済みシーンのドロップダウン（未登録値は保持表示）
   setSceneValue(turn.scene);
@@ -2472,6 +3052,74 @@ function renderDetail() {
   document.getElementById("fFlashback").checked = !!turn.flashback;
   document.getElementById("fTelop").value = turn.telop || "";
   document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
+  setField("fVoicePreset", "select", voicePresetKey(turn));
+  setField("fContinueBubble", "select", turn.continueBubble ? "1" : "");
+  document.getElementById("fAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
+  const voicePresetHelp = document.getElementById("fVoicePresetHelp");
+  const narrationHelp = document.getElementById("fNarrationHelp");
+  if (narrationHelp) {
+    narrationHelp.className = "field-help" + (isNarrationTurnData(turn) ? " warn" : "");
+    narrationHelp.textContent = isNarrationTurnData(turn)
+      ? `この行はナレーション扱いです。音声は ${turn.narrationVoice} を使い、吹き出し・立ち絵・話者寄り演出は出ません。`
+      : "オンの時は吹き出し・立ち絵・話者寄り演出なしで、この音声だけを使います。";
+  }
+  if (voicePresetHelp) {
+    const preset = voicePresetKey(turn);
+    voicePresetHelp.textContent = preset === "monotone-male"
+      ? "この行は低抑揚の棒読み寄り設定です。"
+      : preset === "monotone-female"
+        ? "この行は女性寄りの低抑揚設定です。"
+        : "この行だけ speed / pitch / intonation を上書きします。";
+  }
+  const bubbleHelp = document.getElementById("fContinueBubbleHelp");
+  const autoBubbleSplitHelp = document.getElementById("fAutoBubbleSplitHelp");
+  if (bubbleHelp) {
+    if (isNarrationTurnData(turn)) {
+      bubbleHelp.className = "field-help warn";
+      bubbleHelp.textContent = "ナレーション行なので吹き出しは出ません。";
+    } else {
+    const info = getContinueBubbleInfo(storyData.script, selectedIdx);
+    const autoInfo = getAutoBubbleInfo(turn);
+    const warn = bubbleLengthWarning(turn);
+    const bubbleNotes = [];
+    if (info.active) {
+      bubbleNotes.push(info.valid
+        ? "この行は2段目になります。直前の同話者セリフが上段に残り、この行の終了で同時に消えます。"
+        : "⚠ " + info.reason);
+    } else if (isContinueBubbleParent(storyData.script, selectedIdx)) {
+      bubbleNotes.push("この行は次のセリフの1段目になります。");
+    } else {
+      bubbleNotes.push("通常の単独吹き出しです。");
+    }
+    if (autoInfo.active) {
+      bubbleNotes.push(
+        autoInfo.actual
+          ? `この行は音声生成済みの自動分割で ${autoInfo.count}段表示になります。句点や ! ? ごとに下へ増え、この行の終了でまとめて消えます。`
+          : `この行は保存内容から ${autoInfo.count}段の自動分割候補です。音声生成後に句点や ! ? ごとの ${autoInfo.count}段表示になります。`
+      );
+    }
+    bubbleHelp.className = "field-help" + ((info.active && !info.valid) || autoInfo.active || warn ? " warn" : "");
+    bubbleHelp.textContent = bubbleNotes.join(" ");
+    if (warn) {
+      bubbleHelp.textContent += " " + warn;
+      bubbleHelp.className = "field-help warn";
+    }
+    }
+  }
+  if (autoBubbleSplitHelp) {
+    if (isNarrationTurnData(turn)) {
+      autoBubbleSplitHelp.className = "field-help";
+      autoBubbleSplitHelp.textContent = "ナレーション行では自動分割設定は使いません。";
+    } else {
+      const autoInfo = getAutoBubbleInfo(turn);
+      autoBubbleSplitHelp.className = "field-help" + (turn.disableAutoBubbleSplit ? " warn" : "");
+      autoBubbleSplitHelp.textContent = turn.disableAutoBubbleSplit
+        ? "この行では句点や ! ? があっても吹き出しは自動で増えません。"
+        : (autoInfo.active
+            ? `この行は現在 ${autoInfo.count}段の自動分割対象です。止めたい場合はチェックを入れてください。`
+            : "句点や ! ? による自動多段化を、この行だけ止めます。");
+    }
+  }
 
   // enter / exit（チェックボックス群）
   setMultiSelect("fEnter", turn.enter || []);
@@ -2767,8 +3415,24 @@ function refreshTeamchatItems(items) {
 function collectBasic() {
   if (selectedIdx < 0) return;
   const turn = storyData.script[selectedIdx];
-  const oldSpeaker = turn.speaker, oldText = turn.text, oldPause = turn.pause;
-  turn.speaker = document.getElementById("fSpeaker").value;
+  const oldSpeaker = turn.speaker, oldText = turn.text, oldPause = turn.pause, oldVoice = JSON.stringify(turn.voice || null), oldNarration = turn.narrationVoice || "";
+  const narrationCheckbox = document.getElementById("fNarration");
+  const narrationVoiceEl = document.getElementById("fNarrationVoice");
+  let narrationEnabled = narrationCheckbox.checked;
+  let narrationVoiceVal = narrationVoiceEl.value;
+  if (!narrationEnabled && narrationVoiceVal) {
+    narrationEnabled = true;
+    narrationCheckbox.checked = true;
+  }
+  if (narrationEnabled && !narrationVoiceVal) {
+    narrationVoiceVal = turn.narrationVoice || defaultNarrationSpeaker();
+    narrationVoiceEl.value = narrationVoiceVal;
+  }
+  const speakerEl = document.getElementById("fSpeaker");
+  speakerEl.disabled = narrationEnabled;
+  turn.speaker = speakerEl.value;
+  if (narrationEnabled && narrationVoiceVal) turn.narrationVoice = narrationVoiceVal;
+  else delete turn.narrationVoice;
   turn.text = document.getElementById("fText").value;
   turn.scene = document.getElementById("fScene").value;
 
@@ -2790,6 +3454,24 @@ function collectBasic() {
   if (pauseVal !== "") turn.pause = parseFloat(pauseVal);
   else delete turn.pause;
 
+  const voicePresetVal = document.getElementById("fVoicePreset").value;
+  if (voicePresetVal && VOICE_PRESETS[voicePresetVal]) {
+    turn.voice = { ...VOICE_PRESETS[voicePresetVal] };
+  } else {
+    delete turn.voice;
+  }
+
+  const continueBubbleVal = document.getElementById("fContinueBubble").value;
+  if (continueBubbleVal) turn.continueBubble = true;
+  else delete turn.continueBubble;
+
+  const autoBubbleSplitVal = document.getElementById("fAutoBubbleSplit").checked;
+  if (autoBubbleSplitVal) turn.disableAutoBubbleSplit = true;
+  else delete turn.disableAutoBubbleSplit;
+
+  // 本文を変えたら、古い音声生成結果の字幕断片(sentences)はプレビューに使わない。
+  if (turn.text !== oldText) delete turn.sentences;
+
   const enter = getMultiSelect("fEnter");
   if (enter.length > 0) turn.enter = enter; else delete turn.enter;
 
@@ -2801,8 +3483,9 @@ function collectBasic() {
 
   markDirty();
   // 音声に影響する変更（話者/セリフ/間）なら「要・音声生成」にする。
-  if (turn.speaker !== oldSpeaker || turn.text !== oldText || turn.pause !== oldPause) markAudioDirty();
+  if (turn.speaker !== oldSpeaker || turn.text !== oldText || turn.pause !== oldPause || JSON.stringify(turn.voice || null) !== oldVoice || (turn.narrationVoice || "") !== oldNarration) markAudioDirty();
   renderList(); // バッジ等を更新
+  renderDetail(); // 吹き出し説明を更新
   notifyPlayerUpdate();
 }
 
@@ -2979,6 +3662,7 @@ function importStoryFromFile(file) {
           throw new Error("turn[" + i + "] に speaker/text/scene(文字列) が必要です");
       }
       storyData = data;
+      normalizeStoryVoicePresets(storyData);
       _selectedOverlayId = null;
       document.getElementById("storyTitle").value = storyData.title || "";
       document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
@@ -3012,6 +3696,7 @@ async function saveStory() {
     const result = await r.json();
     if (r.ok && result.ok) {
       isDirty = false;
+      flushPlayerUpdate();
       setStatus(audioDirty ? "dirty" : "ok", audioDirty ? "保存しました（音声生成が必要）" : "保存しました");
       setTimeout(() => {
         if (!isDirty) setStatus("", "");
@@ -3058,6 +3743,7 @@ async function generateAudio() {
     if (ok) {
       const sres = await fetch("/api/story"); // 実尺/audioが入ったstoryを再読込
       storyData = await sres.json();
+      normalizeStoryVoicePresets(storyData);
       _selectedOverlayId = null;
       renderList();
       if (selectedIdx >= 0) selectTurn(selectedIdx);
@@ -3347,9 +4033,15 @@ function setupEvents() {
     await ensureOverlayAssets();
     createOverlayAtPlayhead();
   });
+  document.getElementById("btnAddTextOverlay").addEventListener("click", () => {
+    createTextOverlayAtPlayhead();
+  });
   document.getElementById("btnAddOverlayTimeline").addEventListener("click", async () => {
     await ensureOverlayAssets();
     createOverlayAtPlayhead();
+  });
+  document.getElementById("btnAddTextOverlayTimeline").addEventListener("click", () => {
+    createTextOverlayAtPlayhead();
   });
 
   document.getElementById("storyTitle").addEventListener("input", markDirty);
@@ -3364,7 +4056,11 @@ function setupEvents() {
     const dx = (e.clientX - _overlayPreviewDrag.startX) / Math.max(1, rect.width);
     const dy = (e.clientY - _overlayPreviewDrag.startY) / Math.max(1, rect.height);
     if (_overlayPreviewDrag.op === "move") {
-      overlay.x = Math.max(0, Math.min(1, _overlayPreviewDrag.origX + dx));
+      if (!overlay.centerX) {
+        overlay.x = Math.max(0, Math.min(1, _overlayPreviewDrag.origX + dx));
+      } else {
+        overlay.x = 0.5;
+      }
       overlay.y = Math.max(0, Math.min(1, _overlayPreviewDrag.origY + dy));
     } else {
       const dw = dx;
@@ -3393,12 +4089,12 @@ function setupEvents() {
   });
 
   // 基本タブ: 変更をリアルタイム収集
-  const basicIds = ["fSpeaker", "fText", "fScene", "fExpression",
-                    "fEmphasis", "fShake", "fFlashback", "fTelop", "fPause", "fExitDir"];
+  const basicIds = ["fSpeaker", "fNarration", "fNarrationVoice", "fText", "fScene", "fExpression",
+                    "fEmphasis", "fShake", "fFlashback", "fTelop", "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
   for (const id of basicIds) {
     const el = document.getElementById(id);
     if (!el) continue;
-    const evt = (el.type === "checkbox") ? "change" : "input";
+    const evt = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
     el.addEventListener(evt, collectBasic);
   }
 
@@ -3526,6 +4222,7 @@ function setupEvents() {
         try {
           const sRes = await fetch("/api/story");
           storyData = await sRes.json();
+          normalizeStoryVoicePresets(storyData);
           document.getElementById("storyTitle").value = storyData.title || "";
           buildSceneSelect();
           buildExpressionSelect();

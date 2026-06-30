@@ -51,6 +51,11 @@ CONFIG = {
     }
 }
 
+NARRATION_VOICE_DEFAULTS = {
+    "棒読み男": {"speed": 0.88, "pitch": 0.0, "intonation": 0.0},
+    "棒読み女": {"speed": 0.90, "pitch": 0.0, "intonation": 0.0},
+}
+
 
 def main():
     data = json.load(open(STORY, encoding="utf-8"))
@@ -63,9 +68,18 @@ def main():
         pause = t.get("pause")
         if t.get("insert") and not (t.get("text") or "").strip() and not pause:
             pause = INSERT_HOLD
-        item = {"speaker": t["speaker"], "text": t["text"]}
+        narration_voice = t.get("narrationVoice")
+        speaker = narration_voice or t["speaker"]
+        item = {"speaker": speaker, "text": t["text"]}
         if pause:
             item["pause"] = pause
+        voice = None
+        if isinstance(t.get("voice"), dict) and t["voice"]:
+            voice = dict(t["voice"])
+        elif narration_voice in NARRATION_VOICE_DEFAULTS:
+            voice = dict(NARRATION_VOICE_DEFAULTS[narration_voice])
+        if voice:
+            item["voice"] = voice
         script.append(item)
 
     total = len(script)
@@ -77,6 +91,8 @@ def main():
         print(f"[{idx + 1:>3}/{n}] {turn['speaker']}: {head}…", flush=True)
 
     CONFIG["tts_voicevox"]["on_progress"] = on_progress
+    CONFIG["tts_voicevox"]["speakers"]["棒読み男"] = 11
+    CONFIG["tts_voicevox"]["speakers"]["棒読み女"] = 8
 
     pcm, turns, (channels, width, rate) = synthesize_dialogue(script, CONFIG)
     print(f"合成完了 → WAV書き出し: {OUT_WAV}", flush=True)

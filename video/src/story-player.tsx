@@ -101,8 +101,9 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
       controls
       showPlaybackRateControl={[0.5, 0.75, 1, 1.25, 1.5, 2]}
       initiallyMuted={false}
-      // voice + BGM(クロスフェードで最大2) + 同時SE複数 を同時に鳴らせるよう余裕を持たせる。
-      numberOfSharedAudioTags={24}
+      // モバイルでは共有 audio tag を増やしすぎると、主音声が頭に戻る不安定さが出やすい。
+      // このプレビューで実際に同時再生されるのは voice + BGM(最大2) + 数個のSE なので 8 で足りる。
+      numberOfSharedAudioTags={8}
       acknowledgeRemotionLicense
       style={{ width: "100%", height: "100%", background: "#080a0f" }}
       renderLoading={() => (
