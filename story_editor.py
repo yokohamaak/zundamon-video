@@ -435,7 +435,7 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "face",
-    "emphasis", "shake", "flashback", "telop", "pause", "insert",
+    "emphasis", "shake", "flashback", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "start", "end", "sentences",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer"}

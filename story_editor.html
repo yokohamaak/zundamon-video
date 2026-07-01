@@ -373,6 +373,48 @@
   .timeline-scroll {
     flex-shrink: 0; overflow-x: auto; overflow-y: hidden;
     border: 1px solid var(--border); border-radius: 6px;
+    position: relative;
+  }
+  .timeline-transition-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .timeline-transition-chip {
+    position: absolute;
+    top: 6px;
+    transform: translateX(-50%);
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .timeline-transition-labelbtn {
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(26,29,39,.94);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,.24);
+  }
+  .timeline-transition-labelbtn.active {
+    border-color: rgba(91,141,238,.75);
+    box-shadow: 0 0 0 1px rgba(91,141,238,.25), 0 8px 22px rgba(0,0,0,.28);
+  }
+  .timeline-transition-editor {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(91,141,238,.35);
+    background: rgba(26,29,39,.97);
+    box-shadow: 0 10px 28px rgba(0,0,0,.28);
+    backdrop-filter: blur(8px);
   }
 
   /* ── 右ペイン: 詳細 ── */
@@ -802,6 +844,11 @@
       <button class="btn btn-secondary btn-sm" id="btnAddBgmRegion" style="margin-left:8px; font-size:12px; padding:2px 8px;">＋BGM</button>
       <button class="btn btn-secondary btn-sm" id="btnAddOverlayTimeline" style="font-size:12px; padding:2px 8px;">＋画像Overlay</button>
       <button class="btn btn-secondary btn-sm" id="btnAddTextOverlayTimeline" style="font-size:12px; padding:2px 8px;">＋字幕</button>
+      <label for="timelineEditMode" style="margin-left:12px;">編集</label>
+      <select class="field-select" id="timelineEditMode" style="width:auto; padding:2px 6px; font-size:12px;">
+        <option value="normal">通常</option>
+        <option value="transition">トランジション</option>
+      </select>
       <label for="timelineZoom" style="margin-left:auto;">ズーム</label>
       <select class="field-select" id="timelineZoom" style="width:auto; padding:2px 6px; font-size:12px;">
         <option value="1">フィット</option>
@@ -815,6 +862,7 @@
       <canvas id="scriptTimeline" height="72"
         title="BGMレーン: ドラッグで区間作成/移動/リサイズ。セリフレーン: クリックでシーク"
         style="display:block; height:72px; background:var(--surface2); cursor:pointer;"></canvas>
+      <div id="timelineTransitionOverlay" class="timeline-transition-overlay"></div>
     </div>
     <!-- BGM区間エディタ（タイムライン直下） -->
     <div id="bgmRegionEditor" style="padding:6px 10px; background:var(--surface); border-top:1px solid var(--border); min-height:32px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -1248,6 +1296,7 @@ async function init() {
     ]);
     storyData = await storyRes.json();
     meta = await metaRes.json();
+    normalizeStoryTransitions(storyData);
     normalizeStoryVoicePresets(storyData);
 
     document.getElementById("storyTitle").value = storyData.title || "";
@@ -1323,6 +1372,8 @@ let _selectedOverlayId = null; // 選択中 overlay.id
 let _overlayTimelineDrag = null;   // null | { op, id, origStart, origEnd, startX }
 let _overlayPreviewDrag = null;    // null | { op:"move"|"resize", id, startX, startY, origX, origY, origW, aspect }
 let _overlayModalOpen = false;
+let _selectedTransitionBlockStartIdx = null;
+const TRANSITION_DEFAULT = "cut";
 
 const OVERLAY_MIN_DUR = 0.2;
 const OVERLAY_MIN_W = 0.06;
@@ -1649,7 +1700,10 @@ function drawScriptTimeline() {
   canvas.style.width = W + "px";
   canvas.style.height = H + "px";
   ctx.clearRect(0, 0, W, H);
-  if (!turns.length) return;
+  if (!turns.length) {
+    renderTimelineTransitionOverlay();
+    return;
+  }
   const total = _timelineTotal();
   const xOf = (sec) => Math.round((sec / total) * W);
   const yTalk = PAD;
@@ -1664,6 +1718,25 @@ function drawScriptTimeline() {
     ctx.globalAlpha = (i === selectedIdx) ? 1 : 0.7;
     ctx.fillRect(x1, yTalk, Math.max(2, x2 - x1 - 1), talkH);
     ctx.globalAlpha = 1;
+  }
+  const sceneBlocks = buildSceneBlocks(previewScriptTurns());
+  for (let i = 1; i < sceneBlocks.length; i++) {
+    const block = sceneBlocks[i];
+    const x = xOf(block.start);
+    const marker = transitionMarkerStyle(block.transition);
+    if (marker.marker === "line") {
+      ctx.fillStyle = marker.color;
+      ctx.fillRect(x - 1, yTalk - 8, 2, 16);
+    } else {
+      ctx.fillStyle = marker.color;
+      ctx.beginPath();
+      ctx.moveTo(x, yTalk - 9);
+      ctx.lineTo(x + 6, yTalk - 3);
+      ctx.lineTo(x, yTalk + 3);
+      ctx.lineTo(x - 6, yTalk - 3);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
   // BGM レーン
   const regions = _bgmRegions();
@@ -1754,6 +1827,7 @@ function drawScriptTimeline() {
       scrollEl.scrollLeft = Math.max(0, phx - view / 2);
     }
   }
+  renderTimelineTransitionOverlay();
 }
 
 function scheduleTimelineDraw() {
@@ -2260,12 +2334,30 @@ function _setupOverlayEditorEvents() {
 
 function setupScriptTimeline() {
   const canvas = document.getElementById("scriptTimeline");
+  const scrollEl = document.getElementById("timelineScroll");
   if (!canvas) return;
 
   _setupBgmRegionEditorEvents();
   _setupOverlayEditorEvents();
   ensureAudioAssets(); // 早期ロード
   ensureOverlayAssets();
+
+  if (scrollEl) scrollEl.addEventListener("scroll", renderTimelineTransitionOverlay);
+  const modeSel = document.getElementById("timelineEditMode");
+  if (modeSel) {
+    modeSel.addEventListener("change", () => {
+      clearSelectedTransitionBlock();
+      drawScriptTimeline();
+    });
+  }
+  document.addEventListener("mousedown", (e) => {
+    const overlayEl = document.getElementById("timelineTransitionOverlay");
+    const mode = document.getElementById("timelineEditMode");
+    if (!overlayEl || !mode || mode.value !== "transition") return;
+    if (overlayEl.contains(e.target)) return;
+    clearSelectedTransitionBlock();
+    renderTimelineTransitionOverlay();
+  });
 
   // ============================================================
   // BGMレーン D&D: mousedown
@@ -2284,6 +2376,7 @@ function setupScriptTimeline() {
       const t = Math.max(0, _timelineXtoT(canvas, cx));
       if (window.storyPlayer && playerReady) window.storyPlayer.seekToTime(t);
       const idx = turnIndexAtTime(t);
+      clearSelectedTransitionBlock();
       if (idx >= 0) selectTurn(idx, false);
       _playheadTime = t;
       _selectedOverlayId = null;
@@ -2296,6 +2389,7 @@ function setupScriptTimeline() {
     const ovHit = _overlayHitTest(canvas, cx, cy);
     if (ovHit) {
       e.preventDefault();
+      clearSelectedTransitionBlock();
       _selectedBgmIdx = -1;
       _overlayTimelineDrag = {
         op: ovHit.type,
@@ -2310,6 +2404,7 @@ function setupScriptTimeline() {
 
     // BGMレーン → D&D 開始
     e.preventDefault();
+    clearSelectedTransitionBlock();
     const hit = _bgmHitTest(canvas, cx, cy);
     if (!hit) return;
 
@@ -2616,6 +2711,169 @@ function withProvisionalTimings(script) {
     }
   }
   return copy;
+}
+
+function normalizeTransitionValue(value) {
+  switch (value) {
+    case "fade-black":
+    case "cut":
+    case "fade-white":
+    case "wipe-left":
+    case "wipe-right":
+    case "slide-left":
+    case "slide-right":
+      return value;
+    default:
+      return TRANSITION_DEFAULT;
+  }
+}
+
+function transitionMarkerStyle(transition) {
+  switch (transition) {
+    case "cut":
+      return { color: "rgba(148,163,184,.92)", marker: "line", label: "cut" };
+    case "fade-white":
+      return { color: "rgba(241,245,249,.96)", marker: "diamond", label: "f-white" };
+    case "wipe-left":
+      return { color: "rgba(56,189,248,.96)", marker: "line", label: "wipe<" };
+    case "wipe-right":
+      return { color: "rgba(56,189,248,.96)", marker: "line", label: "wipe>" };
+    case "slide-left":
+      return { color: "rgba(167,139,250,.96)", marker: "line", label: "slide<" };
+    case "slide-right":
+      return { color: "rgba(167,139,250,.96)", marker: "line", label: "slide>" };
+    default:
+      return { color: "rgba(251,191,36,.96)", marker: "diamond", label: "fade" };
+  }
+}
+
+function clearSelectedTransitionBlock() {
+  _selectedTransitionBlockStartIdx = null;
+}
+
+function previewScriptTurns() {
+  return storyData && storyData.script ? withProvisionalTimings(storyData.script) : [];
+}
+
+function buildSceneBlocks(script) {
+  const turns = Array.isArray(script) ? script : [];
+  const blocks = [];
+  for (let i = 0; i < turns.length; i++) {
+    const turn = turns[i];
+    const last = blocks[blocks.length - 1];
+    if (last && last.scene === turn.scene) {
+      last.endIdx = i;
+      last.end = Math.max(last.end, turn.end || turn.start || 0);
+      continue;
+    }
+    const rawTurn = storyData && Array.isArray(storyData.script) ? storyData.script[i] : null;
+    blocks.push({
+      scene: turn.scene || "",
+      startIdx: i,
+      endIdx: i,
+      start: turn.start || 0,
+      end: turn.end || turn.start || 0,
+      transition: normalizeTransitionValue(rawTurn && rawTurn.transition),
+    });
+  }
+  return blocks;
+}
+
+function normalizeStoryTransitions(data) {
+  if (!data || !Array.isArray(data.script)) return false;
+  let changed = false;
+  let lastScene = Symbol("init");
+  for (let i = 0; i < data.script.length; i++) {
+    const turn = data.script[i];
+    const scene = turn && typeof turn.scene === "string" ? turn.scene : "";
+    const normalized = normalizeTransitionValue(turn && turn.transition);
+    if (scene !== lastScene) {
+      if (turn.transition !== normalized) {
+        turn.transition = normalized;
+        changed = true;
+      }
+      lastScene = scene;
+      continue;
+    }
+    if (turn && "transition" in turn) {
+      delete turn.transition;
+      changed = true;
+    }
+  }
+  return changed;
+}
+function transitionOptionsHtml(selected) {
+  const options = [
+    ["cut", "cut（カット）"],
+    ["fade-black", "fade-black（暗転）"],
+    ["fade-white", "fade-white（白フェード）"],
+    ["wipe-left", "wipe-left（左からワイプ）"],
+    ["wipe-right", "wipe-right（右からワイプ）"],
+    ["slide-left", "slide-left（左からスライド）"],
+    ["slide-right", "slide-right（右からスライド）"],
+  ];
+  return options.map(([value, label]) =>
+    `<option value="${value}"${value === selected ? " selected" : ""}>${label}</option>`
+  ).join("");
+}
+
+function renderTimelineTransitionOverlay() {
+  const overlay = document.getElementById("timelineTransitionOverlay");
+  const canvas = document.getElementById("scriptTimeline");
+  const modeSel = document.getElementById("timelineEditMode");
+  if (!overlay || !canvas || !modeSel) return;
+  overlay.innerHTML = "";
+  if (modeSel.value !== "transition" || _selectedBgmIdx >= 0 || _selectedOverlayId) {
+    overlay.hidden = true;
+    return;
+  }
+  const blocks = buildSceneBlocks(previewScriptTurns());
+  if (blocks.length <= 1) {
+    overlay.hidden = true;
+    return;
+  }
+  overlay.hidden = false;
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const chip = document.createElement("div");
+    chip.className = "timeline-transition-chip";
+    const x = _timelineTtoX(canvas, block.start);
+    chip.style.left = `${x}px`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "timeline-transition-labelbtn" + (_selectedTransitionBlockStartIdx === block.startIdx ? " active" : "");
+    btn.textContent = transitionMarkerStyle(block.transition).label;
+    btn.title = `切り替え: ${block.transition}`;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      _selectedTransitionBlockStartIdx =
+        _selectedTransitionBlockStartIdx === block.startIdx ? null : block.startIdx;
+      renderTimelineTransitionOverlay();
+    });
+    chip.appendChild(btn);
+    if (_selectedTransitionBlockStartIdx === block.startIdx) {
+      const editor = document.createElement("div");
+      editor.className = "timeline-transition-editor";
+      const sel = document.createElement("select");
+      sel.className = "field-select";
+      sel.style.width = "auto";
+      sel.style.minWidth = "112px";
+      sel.style.padding = "2px 8px";
+      sel.style.fontSize = "12px";
+      sel.innerHTML = transitionOptionsHtml(block.transition);
+      sel.addEventListener("change", (e) => {
+        if (!storyData || !storyData.script || !storyData.script[block.startIdx]) return;
+        storyData.script[block.startIdx].transition = normalizeTransitionValue(e.target.value);
+        markDirty();
+        notifyPlayerUpdate();
+        drawScriptTimeline();
+      });
+      editor.appendChild(sel);
+      chip.appendChild(editor);
+    }
+    overlay.appendChild(chip);
+  }
 }
 
 // Player へ渡すプレビュー用 story（仮尺込み）。
@@ -3552,11 +3810,14 @@ function collectBasic() {
   const exitDir = document.getElementById("fExitDir").value;
   if (exitDir) turn.exitDir = exitDir; else delete turn.exitDir;
 
+  normalizeStoryTransitions(storyData);
+
   markDirty();
   // 音声に影響する変更（話者/セリフ/間）なら「要・音声生成」にする。
   if (turn.speaker !== oldSpeaker || turn.text !== oldText || turn.pause !== oldPause || JSON.stringify(turn.voice || null) !== oldVoice || (turn.narrationVoice || "") !== oldNarration) markAudioDirty();
   renderList(); // バッジ等を更新
   renderDetail(); // 吹き出し説明を更新
+  drawScriptTimeline();
   notifyPlayerUpdate();
 }
 
@@ -3733,6 +3994,7 @@ function importStoryFromFile(file) {
           throw new Error("turn[" + i + "] に speaker/text/scene(文字列) が必要です");
       }
       storyData = data;
+      normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
       _selectedOverlayId = null;
       document.getElementById("storyTitle").value = storyData.title || "";
@@ -3758,6 +4020,7 @@ async function saveStory() {
   setStatus("", "保存中...");
   // タイトル反映
   storyData.title = document.getElementById("storyTitle").value;
+  normalizeStoryTransitions(storyData);
   try {
     const r = await fetch("/api/story", {
       method: "POST",
@@ -3814,6 +4077,7 @@ async function generateAudio() {
     if (ok) {
       const sres = await fetch("/api/story"); // 実尺/audioが入ったstoryを再読込
       storyData = await sres.json();
+      normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
       _selectedOverlayId = null;
       renderList();
@@ -4316,6 +4580,7 @@ function setupEvents() {
         try {
           const sRes = await fetch("/api/story");
           storyData = await sRes.json();
+          normalizeStoryTransitions(storyData);
           normalizeStoryVoicePresets(storyData);
           document.getElementById("storyTitle").value = storyData.title || "";
           buildSceneSelect();

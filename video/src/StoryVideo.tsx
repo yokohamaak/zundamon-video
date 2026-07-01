@@ -65,6 +65,14 @@ export type StoryTurn = {
   speaker: string;
   text: string;
   scene: string;
+  transition?:
+    | "fade-black"
+    | "fade-white"
+    | "cut"
+    | "wipe-left"
+    | "wipe-right"
+    | "slide-left"
+    | "slide-right";
   expression?: StoryExpression;
   pose?:
     | "idle"
@@ -176,8 +184,6 @@ export type SceneDef = {
   // どのキャラをどのアンカーに置くか（charId→アンカー名）。
   // 省略時は登場順で left/right を自動割当。
   cast?: Record<string, string>;
-  // この場面に入るときの切り替え方式（省略時 fade-black）。今後 crossfade 等を追加予定。
-  transition?: "fade-black" | "cut";
   // 立ち絵の画角。"bust"=バストアップ（既定・office）、"full"=全身（server_room/rooftop/home 等）。
   figure?: "bust" | "full";
   // モブ（1枚絵）の立ち位置と大きさ。省略時は既定（中央やや下・標準）。
@@ -294,8 +300,38 @@ function isKnownChar(charId: string): boolean {
   return charId in CHARACTERS;
 }
 
+type TransitionKind =
+  | "fade-black"
+  | "fade-white"
+  | "cut"
+  | "wipe-left"
+  | "wipe-right"
+  | "slide-left"
+  | "slide-right";
+
+function normalizeTransition(transition?: string): TransitionKind {
+  switch (transition) {
+    case "fade-black":
+    case "fade-white":
+    case "cut":
+    case "wipe-left":
+    case "wipe-right":
+    case "slide-left":
+    case "slide-right":
+      return transition;
+    default:
+      return "cut";
+  }
+}
+
 // scene 名が連続する範囲を 1 区間（segment）にまとめる（§4.1）。
-type Segment = { scene: string; turns: StoryTurn[]; start: number; end: number };
+type Segment = {
+  scene: string;
+  turns: StoryTurn[];
+  start: number;
+  end: number;
+  transition: TransitionKind;
+};
 
 function buildSegments(script: StoryTurn[]): Segment[] {
   const segs: Segment[] = [];
@@ -305,7 +341,13 @@ function buildSegments(script: StoryTurn[]): Segment[] {
       last.turns.push(t);
       last.end = Math.max(last.end, t.end);
     } else {
-      segs.push({ scene: t.scene, turns: [t], start: t.start, end: t.end });
+      segs.push({
+        scene: t.scene,
+        turns: [t],
+        start: t.start,
+        end: t.end,
+        transition: normalizeTransition(t.transition),
+      });
     }
   }
   return segs;
@@ -1646,24 +1688,92 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   const stageTransform = `translate(${sfx}px, ${sfy}px) scale(${stageS})`;
 
-  // ── 場面切り替え演出（今は fade-black＝一瞬暗くする。後で方式を追加可能） ──
-  // 区間境界＝場面切替なので、各区間の頭で暗→明、次区間の直前で明→暗にして黒で隠す。
+  // ── 場面切り替え演出 ──────────────────────────────────────
   const FADE = 0.3; // 片側の秒数（総遷移 = 2×FADE）
   const segIndex = segments.findIndex((s) => s === seg);
+  const prevSeg = segIndex > 0 ? segments[segIndex - 1] : null;
   const nextSeg = segments[segIndex + 1];
-  let fadeOpacity = 0;
-  if ((sceneDef.transition ?? "fade-black") !== "cut" && seg.start > 1e-6) {
-    // この場面に入った直後：黒→明
-    fadeOpacity = Math.max(fadeOpacity, 1 - (t - seg.start) / FADE);
-  }
-  if (nextSeg) {
-    const nextTrans = scenes.scenes[nextSeg.scene]?.transition ?? "fade-black";
-    if (nextTrans !== "cut") {
-      // 次の場面の直前：明→黒
-      fadeOpacity = Math.max(fadeOpacity, 1 - (nextSeg.start - t) / FADE);
+  const entryProgress =
+    seg.start > 1e-6 ? clamp((t - seg.start) / FADE, 0, 1) : 1;
+  const exitProgress = nextSeg
+    ? clamp((t - (nextSeg.start - FADE)) / FADE, 0, 1)
+    : 0;
+  const inEntryWindow = seg.start > 1e-6 && t < seg.start + FADE;
+  const inExitWindow = !!nextSeg && t > nextSeg.start - FADE;
+  const entrySceneDef = prevSeg ? scenes.scenes[prevSeg.scene] : null;
+  const nextSceneDef = nextSeg ? scenes.scenes[nextSeg.scene] : null;
+
+  let currentStageClipPath: string | undefined;
+  let currentStageShiftX = 0;
+  let transitionCoverColor: string | null = null;
+  let transitionCoverOpacity = 0;
+  let incomingPlate: {
+    sceneDef: SceneDef;
+    clipPath?: string;
+    shiftX?: number;
+    key: string;
+  } | null = null;
+  let outgoingPlate: {
+    sceneDef: SceneDef;
+    shiftX?: number;
+    key: string;
+  } | null = null;
+
+  if (inEntryWindow) {
+    switch (seg.transition) {
+      case "fade-black":
+        transitionCoverColor = "#000";
+        transitionCoverOpacity = Math.max(transitionCoverOpacity, 1 - entryProgress);
+        break;
+      case "fade-white":
+        transitionCoverColor = "#fff";
+        transitionCoverOpacity = Math.max(transitionCoverOpacity, 1 - entryProgress);
+        break;
+    }
+  } else if (inExitWindow && nextSeg && nextSceneDef) {
+    switch (nextSeg.transition) {
+      case "fade-black":
+        transitionCoverColor = "#000";
+        transitionCoverOpacity = Math.max(transitionCoverOpacity, exitProgress);
+        break;
+      case "fade-white":
+        transitionCoverColor = "#fff";
+        transitionCoverOpacity = Math.max(transitionCoverOpacity, exitProgress);
+        break;
+      case "wipe-left":
+        currentStageClipPath = `inset(0 0 0 ${exitProgress * 100}%)`;
+        incomingPlate = {
+          sceneDef: nextSceneDef,
+          clipPath: `inset(0 ${(1 - exitProgress) * 100}% 0 0)`,
+          key: `next-${nextSeg.start}`,
+        };
+        break;
+      case "wipe-right":
+        currentStageClipPath = `inset(0 ${exitProgress * 100}% 0 0)`;
+        incomingPlate = {
+          sceneDef: nextSceneDef,
+          clipPath: `inset(0 0 0 ${(1 - exitProgress) * 100}%)`,
+          key: `next-${nextSeg.start}`,
+        };
+        break;
+      case "slide-left":
+        currentStageShiftX = width * exitProgress;
+        incomingPlate = {
+          sceneDef: nextSceneDef,
+          shiftX: -width * (1 - exitProgress),
+          key: `next-slide-${nextSeg.start}`,
+        };
+        break;
+      case "slide-right":
+        currentStageShiftX = -width * exitProgress;
+        incomingPlate = {
+          sceneDef: nextSceneDef,
+          shiftX: width * (1 - exitProgress),
+          key: `next-slide-${nextSeg.start}`,
+        };
+        break;
     }
   }
-  fadeOpacity = clamp(fadeOpacity, 0, 1);
 
   // ── 話者の音量（実音声の波形RMS）→ リップシンク。 ──
   // useAudioData は音声全体（166秒≒16MBのPCM）をブラウザで丸ごと展開するため、
@@ -1997,6 +2107,59 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   }
   // 白ディゾルブが出る間は黒フェードを抑制する（両立させると汚くなるため）。
   const suppressBlackFade = whiteFadeOpacity > 0;
+  const stageTransformWithShift = currentStageShiftX !== 0
+    ? `translateX(${currentStageShiftX}px) ${stageTransform}`
+    : stageTransform;
+
+  const renderScenePlate = (
+    plateSceneDef: SceneDef,
+    key: string,
+    opts?: { clipPath?: string; shiftX?: number; filter?: string }
+  ) => {
+    const plateBlur = Math.max(0, plateSceneDef.bgBlur ?? 0);
+    const plateScale = plateBlur > 0 ? 1 + Math.min(plateBlur, 32) / 180 : 1;
+    const plateTransform = opts?.shiftX
+      ? `translateX(${opts.shiftX}px)`
+      : undefined;
+    return (
+      <AbsoluteFill
+        key={key}
+        style={{
+          transform: plateTransform,
+          clipPath: opts?.clipPath,
+          filter: opts?.filter,
+          overflow: "hidden",
+        }}
+      >
+        <Img
+          src={staticFile(plateSceneDef.bg)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            filter: plateBlur > 0 ? `blur(${plateBlur}px)` : undefined,
+            transform: plateScale > 1 ? `scale(${plateScale})` : undefined,
+            transformOrigin: "center center",
+          }}
+        />
+        {plateSceneDef.front ? (
+          <Img
+            src={staticFile(plateSceneDef.front)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              pointerEvents: "none",
+            }}
+          />
+        ) : null}
+      </AbsoluteFill>
+    );
+  };
 
   // グレインのシードをフレームごとに変えてちらつきを出す（軽量: 数px の位置オフセット）。
   const grainOffsetX = (frame * 7) % 64;
@@ -2081,12 +2244,27 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         seMap={seMap}
         fps={fps}
       />
+      {outgoingPlate
+        ? renderScenePlate(outgoingPlate.sceneDef, outgoingPlate.key, {
+          shiftX: outgoingPlate.shiftX,
+          filter: stageFilter,
+        })
+        : null}
+      {incomingPlate
+        ? renderScenePlate(incomingPlate.sceneDef, incomingPlate.key, {
+          clipPath: incomingPlate.clipPath,
+          shiftX: incomingPlate.shiftX,
+          filter: stageFilter,
+        })
+        : null}
       {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る） */}
       <AbsoluteFill
         style={{
-          transform: stageTransform,
+          transform: stageTransformWithShift,
           transformOrigin: "0 0",
           filter: stageFilter,
+          clipPath: currentStageClipPath,
+          overflow: "hidden",
         }}
       >
         {/* 背景（back） */}
@@ -2208,10 +2386,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         </AbsoluteFill>
       ) : null}
 
-      {/* 場面切り替えの暗転（fade-black）。白ディゾルブ中は抑制。 */}
-      {fadeOpacity > 0 && !suppressBlackFade ? (
+      {/* 場面切り替えのフェード被せ。flashbackの白ディゾルブ中は黒被せを抑制。 */}
+      {transitionCoverColor && transitionCoverOpacity > 0 && !(transitionCoverColor === "#000" && suppressBlackFade) ? (
         <AbsoluteFill
-          style={{ background: "#000", opacity: fadeOpacity, pointerEvents: "none" }}
+          style={{ background: transitionCoverColor, opacity: transitionCoverOpacity, pointerEvents: "none" }}
         />
       ) : null}
 
