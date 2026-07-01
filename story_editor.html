@@ -1042,6 +1042,19 @@
               <span>回想</span>
             </label>
           </div>
+          <div class="field-help" id="fEmphasisHelp">チェックした行から話者寄りを開始します。</div>
+          <div class="field-row">
+            <label class="field-label">カメラ効果</label>
+            <select class="field-select" id="fCameraEffect">
+              <option value="">なし</option>
+              <option value="pull-out">引き</option>
+              <option value="pan-left">左パン</option>
+              <option value="pan-right">右パン</option>
+              <option value="tilt-left">左傾き</option>
+              <option value="tilt-right">右傾き</option>
+            </select>
+            <div class="field-help" id="fCameraEffectHelp">この行の間だけ追加でカメラを動かします。</div>
+          </div>
           <div class="field-row">
             <label class="field-label">テロップ (telop)</label>
             <input type="text" class="field-input" id="fTelop" placeholder="例: ― 前日 ―">
@@ -1280,9 +1293,83 @@ function isNarrationTurnData(turn) {
   return !!(turn && turn.narrationVoice);
 }
 
+function getEmphasisCarryInfo(script, idx) {
+  const turn = script && idx >= 0 ? script[idx] : null;
+  if (!turn || isNarrationTurnData(turn) || !turn.speaker) {
+    return { active: false, explicit: false, inherited: false, stop: false, startIdx: -1 };
+  }
+  let blockStart = idx;
+  while (blockStart > 0) {
+    const prev = script[blockStart - 1];
+    if (!prev || isNarrationTurnData(prev) || prev.speaker !== turn.speaker) break;
+    blockStart -= 1;
+  }
+  let startIdx = -1;
+  for (let i = blockStart; i <= idx; i++) {
+    const cur = script[i];
+    if (isNarrationTurnData(cur) || cur.speaker !== turn.speaker) continue;
+    if (cur.emphasis === false) {
+      startIdx = -1;
+      if (i === idx) {
+        return { active: false, explicit: false, inherited: false, stop: true, startIdx: -1 };
+      }
+      continue;
+    }
+    if (cur.emphasis === true) {
+      startIdx = i;
+    }
+  }
+  if (startIdx < 0) return { active: false, explicit: false, inherited: false, stop: false, startIdx: -1 };
+  return {
+    active: true,
+    explicit: turn.emphasis === true,
+    inherited: turn.emphasis !== true,
+    stop: false,
+    startIdx,
+  };
+}
+
+function getEmphasisIncomingInfo(script, idx) {
+  if (!script || idx < 0 || idx >= script.length) {
+    return { active: false, startIdx: -1 };
+  }
+  const turn = script[idx];
+  if (!turn || isNarrationTurnData(turn) || !turn.speaker) {
+    return { active: false, startIdx: -1 };
+  }
+  let blockStart = idx;
+  while (blockStart > 0) {
+    const prev = script[blockStart - 1];
+    if (!prev || isNarrationTurnData(prev) || prev.speaker !== turn.speaker) break;
+    blockStart -= 1;
+  }
+  let startIdx = -1;
+  for (let i = blockStart; i < idx; i++) {
+    const cur = script[i];
+    if (isNarrationTurnData(cur) || cur.speaker !== turn.speaker) continue;
+    if (cur.emphasis === false) {
+      startIdx = -1;
+      continue;
+    }
+    if (cur.emphasis === true) startIdx = i;
+  }
+  return { active: startIdx >= 0, startIdx };
+}
+
 function displaySpeakerLabel(turn) {
   if (isNarrationTurnData(turn)) return `ナレーション (${turn.narrationVoice})`;
   return turn.speaker || "";
+}
+
+function cameraEffectLabel(effect) {
+  switch (effect) {
+    case "pull-out": return "引き";
+    case "pan-left": return "左パン";
+    case "pan-right": return "右パン";
+    case "tilt-left": return "左傾き";
+    case "tilt-right": return "右傾き";
+    default: return effect || "";
+  }
 }
 
 // ============================================================
@@ -3111,9 +3198,13 @@ function renderList() {
     const badges = document.createElement("div");
     badges.className = "turn-badges";
     if (isNarrationTurnData(turn)) badges.appendChild(makeBadge("ナレーション", "warn"));
-    if (turn.emphasis) badges.appendChild(makeBadge("ズーム", "fx"));
+    const emphasisInfo = getEmphasisCarryInfo(script, i);
+    if (emphasisInfo.explicit) badges.appendChild(makeBadge("ズーム", "fx"));
+    else if (emphasisInfo.inherited) badges.appendChild(makeBadge("ズーム継続", "fx"));
+    else if (emphasisInfo.stop) badges.appendChild(makeBadge("ズーム終了", "warn"));
     if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
+    if (turn.cameraEffect) badges.appendChild(makeBadge("カメラ:" + cameraEffectLabel(turn.cameraEffect), "fx"));
     if (turn.pose) badges.appendChild(makeBadge("ポーズ:" + poseLabel(turn.pose), "fx"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
     const bubbleInfo = getContinueBubbleInfo(script, i);
@@ -3372,9 +3463,12 @@ function renderDetail() {
   setSceneValue(turn.scene);
   setField("fExpression", "select", turn.expression || "");
   setField("fPose", "select", turn.pose || "");
-  document.getElementById("fEmphasis").checked = !!turn.emphasis;
+  const emphasisInfo = getEmphasisCarryInfo(storyData.script, selectedIdx);
+  const emphasisEl = document.getElementById("fEmphasis");
+  emphasisEl.checked = emphasisInfo.active;
   document.getElementById("fShake").checked = !!turn.shake;
   document.getElementById("fFlashback").checked = !!turn.flashback;
+  setField("fCameraEffect", "select", turn.cameraEffect || "");
   document.getElementById("fTelop").value = turn.telop || "";
   document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
   setField("fVoicePreset", "select", voicePresetKey(turn));
@@ -3382,11 +3476,49 @@ function renderDetail() {
   document.getElementById("fAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
   const voicePresetHelp = document.getElementById("fVoicePresetHelp");
   const narrationHelp = document.getElementById("fNarrationHelp");
+  const emphasisHelp = document.getElementById("fEmphasisHelp");
+  const cameraEffectHelp = document.getElementById("fCameraEffectHelp");
   if (narrationHelp) {
     narrationHelp.className = "field-help" + (isNarrationTurnData(turn) ? " warn" : "");
     narrationHelp.textContent = isNarrationTurnData(turn)
       ? `この行はナレーション扱いです。音声は ${turn.narrationVoice} を使い、吹き出し・立ち絵・話者寄り演出は出ません。`
       : "オンの時は吹き出し・立ち絵・話者寄り演出なしで、この音声だけを使います。";
+  }
+  if (emphasisHelp) {
+    if (isNarrationTurnData(turn)) {
+      emphasisHelp.className = "field-help";
+      emphasisHelp.textContent = "ナレーション行ではズーム演出は出ません。";
+    } else if (emphasisInfo.explicit) {
+      emphasisHelp.className = "field-help warn";
+      emphasisHelp.textContent = "この行でズームを開始します。同じ話者が続く間は次の行にも継続します。";
+    } else if (emphasisInfo.inherited) {
+      emphasisHelp.className = "field-help warn";
+      emphasisHelp.textContent = `この行は turn ${emphasisInfo.startIdx + 1} のズームが継続中です。話者が切り替わるまで有効です。`;
+    } else if (emphasisInfo.stop) {
+      emphasisHelp.className = "field-help warn";
+      emphasisHelp.textContent = "この行ではズームを止めています。前のセリフまでで寄り演出が終わります。";
+    } else {
+      emphasisHelp.className = "field-help";
+      emphasisHelp.textContent = "チェックした行から話者寄りを開始します。";
+    }
+  }
+  if (cameraEffectHelp) {
+    if (isNarrationTurnData(turn)) {
+      cameraEffectHelp.className = "field-help";
+      cameraEffectHelp.textContent = "ナレーション行ではカメラ効果は出ません。";
+    } else if (turn.cameraEffect === "pull-out") {
+      cameraEffectHelp.className = "field-help warn";
+      cameraEffectHelp.textContent = "この行の間だけ少し引いて、距離を取った見せ方にします。";
+    } else if (turn.cameraEffect === "pan-left" || turn.cameraEffect === "pan-right") {
+      cameraEffectHelp.className = "field-help warn";
+      cameraEffectHelp.textContent = `この行の間だけ${cameraEffectLabel(turn.cameraEffect)}で視線を流します。`;
+    } else if (turn.cameraEffect === "tilt-left" || turn.cameraEffect === "tilt-right") {
+      cameraEffectHelp.className = "field-help warn";
+      cameraEffectHelp.textContent = `この行の間だけ${cameraEffectLabel(turn.cameraEffect)}で空気を少し崩します。`;
+    } else {
+      cameraEffectHelp.className = "field-help";
+      cameraEffectHelp.textContent = "この行の間だけ追加でカメラを動かします。";
+    }
   }
   if (voicePresetHelp) {
     const preset = voicePresetKey(turn);
@@ -3769,8 +3901,18 @@ function collectBasic() {
   if (pose) turn.pose = pose;
   else delete turn.pose;
 
-  turn.emphasis = document.getElementById("fEmphasis").checked || undefined;
-  if (!turn.emphasis) delete turn.emphasis;
+  const emphasisEl = document.getElementById("fEmphasis");
+  const emphasisChecked = emphasisEl.checked;
+  const incomingEmphasis = getEmphasisIncomingInfo(storyData.script, selectedIdx);
+  if (emphasisChecked) {
+    turn.emphasis = true;
+  } else {
+    if (incomingEmphasis.active) turn.emphasis = false;
+    else delete turn.emphasis;
+  }
+  const cameraEffect = document.getElementById("fCameraEffect").value;
+  if (cameraEffect) turn.cameraEffect = cameraEffect;
+  else delete turn.cameraEffect;
   turn.shake = document.getElementById("fShake").checked || undefined;
   if (!turn.shake) delete turn.shake;
   turn.flashback = document.getElementById("fFlashback").checked || undefined;
@@ -4448,7 +4590,7 @@ function setupEvents() {
 
   // 基本タブ: 変更をリアルタイム収集
   const basicIds = ["fSpeaker", "fNarration", "fNarrationVoice", "fText", "fScene", "fExpression", "fPose",
-                    "fEmphasis", "fShake", "fFlashback", "fTelop", "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
+                    "fEmphasis", "fShake", "fFlashback", "fCameraEffect", "fTelop", "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
   for (const id of basicIds) {
     const el = document.getElementById(id);
     if (!el) continue;

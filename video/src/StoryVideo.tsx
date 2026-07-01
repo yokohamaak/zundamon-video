@@ -33,6 +33,7 @@ const FB_GRAIN_OPACITY = 0.06;  // グレインの不透明度（0.0=なし・0.
 const FB_DISSOLVE_SEC = 0.3;    // 白ディゾルブ片側の秒数（合計 2×FB_DISSOLVE_SEC）
 const FB_TELOP_SEC = 1.2;       // テロップの表示秒数
 const FB_TELOP_FADE = 0.25;     // テロップのフェードイン/アウト秒数
+const CAMERA_EFFECT_SETTLE_SEC = 0.4; // パン/傾き/引きが到達するまでの固定秒数
 
 // ───────────────────────────────────────────────────────────
 // ストーリー調 会話劇動画（新ツール Phase 1）の描画。
@@ -91,8 +92,11 @@ export type StoryTurn = {
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
   face?: Record<string, "left" | "right">;
-  // 話者プッシュイン演出（emphasis=true のターン中、話者寄りへズームイン）。
+  // 話者プッシュイン演出の開始トリガー。
+  // emphasis=true のターンで寄りを開始し、同じ話者が続く間は維持する。
   emphasis?: boolean;
+  // その行だけ付ける追加カメラ効果。
+  cameraEffect?: "pull-out" | "pan-left" | "pan-right" | "tilt-left" | "tilt-right";
   // カメラシェイク演出（shake=true のターン中、ターン開始からの減衰振動オフセットを加算）。
   shake?: boolean;
   // 回想フラグ（true のターンが回想区間）。
@@ -1096,10 +1100,16 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
  */
 // bgOpacity = 背景（シーンを隠す全画面）の不透明度。opacity = パネル本体の不透明度。
 // 背景はフェードイン無しで即カバーし「インサート中に通常画面が一瞬透ける」のを防ぐ。
-const InsertOverlay: React.FC<{ insert: StoryInsert; bgOpacity: number; opacity: number }> = ({
+const InsertOverlay: React.FC<{
+  insert: StoryInsert;
+  bgOpacity: number;
+  opacity: number;
+  transform?: string;
+}> = ({
   insert,
   bgOpacity,
   opacity,
+  transform,
 }) => {
   // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
   const isLight = insert.kind === "mailer";
@@ -1110,6 +1120,8 @@ const InsertOverlay: React.FC<{ insert: StoryInsert; bgOpacity: number; opacity:
         opacity: bgOpacity,
         alignItems: "center",
         justifyContent: "center",
+        transform,
+        transformOrigin: "center center",
         // ごく薄いビネット（ライトは薄い暗縁・ダークはそのまま）
         boxShadow: isLight
           ? "inset 0 0 120px rgba(0,0,0,0.08)"
@@ -1266,6 +1278,57 @@ function continueBubbleGroupRange(script: StoryTurn[], activeIdx: number) {
   while (start > 0 && canContinueBubble(script[start - 1], script[start])) start -= 1;
   while (end < script.length - 1 && canContinueBubble(script[end], script[end + 1])) end += 1;
   return { start, end };
+}
+
+function resolveSpeakerFocusStart(script: StoryTurn[], activeIdx: number): number | null {
+  const activeTurn = script[activeIdx];
+  if (!activeTurn || isNarrationTurn(activeTurn) || !isKnownChar(activeTurn.speaker)) return null;
+  let blockStart = activeIdx;
+  while (blockStart > 0) {
+    const prevTurn = script[blockStart - 1];
+    if (!prevTurn || isNarrationTurn(prevTurn) || prevTurn.speaker !== activeTurn.speaker) break;
+    blockStart -= 1;
+  }
+  let focusStart: number | null = null;
+  for (let i = blockStart; i <= activeIdx; i += 1) {
+    const turn = script[i];
+    if (isNarrationTurn(turn) || turn.speaker !== activeTurn.speaker) continue;
+    if (turn.emphasis === false) {
+      focusStart = null;
+      continue;
+    }
+    if (turn.emphasis === true) {
+      focusStart = turn.start;
+    }
+  }
+  return focusStart;
+}
+
+function resolveCameraEffectRange(
+  script: StoryTurn[],
+  activeIdx: number,
+): { effect: NonNullable<StoryTurn["cameraEffect"]>; start: number; end: number; settleEnd: number } | null {
+  const activeTurn = script[activeIdx];
+  const effect = activeTurn?.cameraEffect;
+  if (!activeTurn || !effect || isNarrationTurn(activeTurn)) return null;
+  let startIdx = activeIdx;
+  let endIdx = activeIdx;
+  while (startIdx > 0) {
+    const prevTurn = script[startIdx - 1];
+    if (!prevTurn || isNarrationTurn(prevTurn) || prevTurn.cameraEffect !== effect) break;
+    startIdx -= 1;
+  }
+  while (endIdx < script.length - 1) {
+    const nextTurn = script[endIdx + 1];
+    if (!nextTurn || isNarrationTurn(nextTurn) || nextTurn.cameraEffect !== effect) break;
+    endIdx += 1;
+  }
+  return {
+    effect,
+    start: script[startIdx].start,
+    end: script[endIdx].end,
+    settleEnd: Math.min(script[startIdx].end, script[startIdx].start + CAMERA_EFFECT_SETTLE_SEC),
+  };
 }
 
 function bubbleBottomOffset(turn: StoryTurn, hasNextContinue: boolean): number {
@@ -1526,6 +1589,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const script = story.script;
   const segments = buildSegments(script);
   const active = activeTurnAt(script, t);
+  const activeIdx = script.findIndex((x) => x.id === active.id);
   const seg =
     segments.find((s) => s.turns.some((x) => x.id === active.id)) ??
     segments[0];
@@ -1625,31 +1689,62 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     s: lerp(tfPrev.s, tfCur.s, k),
   };
 
-  // 2. 話者プッシュイン（emphasis）。
+  // 2. 話者プッシュイン（emphasis を起点に、話者が変わるまで維持）。
   // focus のクランプ済み変換へ「変換ごと」補間する＝まっすぐ寄る。
-  const isFocusTurn =
-    !isNarrationTurn(active) &&
-    isKnownChar(active.speaker) &&
-    active.emphasis === true;
+  const focusStart = activeIdx >= 0 ? resolveSpeakerFocusStart(script, activeIdx) : null;
   let focusBubbleK = 0;
-  if (isFocusTurn) {
+  if (focusStart != null) {
     const anchorName = anchorOf[active.speaker] ?? "center";
     const speakerAnchor = sceneDef.anchors[anchorName] ?? { x: 0.5 };
     const focusTf = toTf({ s: tf.s + 0.3, cx: speakerAnchor.x, cy: 0.46 });
-    // ターン開始から 0.5s でイーズイン、ターン終了 0.5s 前からイーズアウト（台形）。
-    const turnDur = active.end - active.start;
-    const elapsed = t - active.start;
-    const fadeInDur = Math.min(0.5, turnDur * 0.5);
-    const fadeOutDur = Math.min(0.5, turnDur * 0.5);
-    const inK = clamp(elapsed / fadeInDur, 0, 1);
-    const outK = clamp((active.end - t) / fadeOutDur, 0, 1);
-    const focusK = easeInOutCubic(Math.min(inK, outK));
+    // emphasis を立てた時点から 0.5s でイーズインし、その後は話者交代まで維持する。
+    const focusK = easeInOutCubic(clamp((t - focusStart) / 0.5, 0, 1));
     focusBubbleK = focusK;
     tf = {
       tx: lerp(tf.tx, focusTf.tx, focusK),
       ty: lerp(tf.ty, focusTf.ty, focusK),
       s: lerp(tf.s, focusTf.s, focusK),
     };
+  }
+
+  // 3. 単発カメラ効果（その行だけ付ける軽い引き/パン）。
+  let stageRotateDeg = 0;
+  const cameraEffectRange = activeIdx >= 0 ? resolveCameraEffectRange(script, activeIdx) : null;
+  if (cameraEffectRange) {
+    const effectDur = Math.max(cameraEffectRange.settleEnd - cameraEffectRange.start, 0.001);
+    const effectK = easeInOutCubic(clamp((t - cameraEffectRange.start) / effectDur, 0, 1));
+    const baseTf = tf;
+    if (cameraEffectRange.effect === "pull-out") {
+      const effectCam = toTf({
+        s: Math.max(1, baseTf.s - 0.12),
+        cx: Tcur.cx,
+        cy: Tcur.cy,
+      });
+      tf = {
+        tx: lerp(baseTf.tx, effectCam.tx, effectK),
+        ty: lerp(baseTf.ty, effectCam.ty, effectK),
+        s: lerp(baseTf.s, effectCam.s, effectK),
+      };
+    } else if (cameraEffectRange.effect === "pan-left" || cameraEffectRange.effect === "pan-right") {
+      const dir = cameraEffectRange.effect === "pan-left" ? -1 : 1;
+      const panRoom = Math.max(0, -width * (1 - baseTf.s));
+      const panAmount = Math.min(panRoom * 0.22, width * 0.08) * dir;
+      const targetTx = clamp(baseTf.tx + panAmount, width * (1 - baseTf.s), 0);
+      tf = {
+        tx: lerp(baseTf.tx, targetTx, effectK),
+        ty: baseTf.ty,
+        s: baseTf.s,
+      };
+    } else if (cameraEffectRange.effect === "tilt-left" || cameraEffectRange.effect === "tilt-right") {
+      const dir = cameraEffectRange.effect === "tilt-left" ? -1 : 1;
+      stageRotateDeg = 2.4 * dir * effectK;
+      const targetS = Math.max(baseTf.s, 1.04);
+      tf = {
+        tx: baseTf.tx,
+        ty: baseTf.ty,
+        s: lerp(baseTf.s, targetS, effectK),
+      };
+    }
   }
 
   // 4. カメラシェイク（shake===true のターン中、減衰振動オフセットを translate に加算）。
@@ -1680,7 +1775,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const sfx = clamp(stageTx + shakeX, width * (1 - stageS), 0);
   const sfy = clamp(stageTy + shakeY, height * (1 - stageS), 0);
 
-  const stageTransform = `translate(${sfx}px, ${sfy}px) scale(${stageS})`;
+  const stageTransform = `translate(${sfx}px, ${sfy}px) scale(${stageS}) rotate(${stageRotateDeg}deg)`;
+  const insertShakeTransform = active.shake
+    ? `translate(${shakeX}px, ${shakeY}px) scale(1.02)`
+    : undefined;
 
   // ── 場面切り替え演出 ──────────────────────────────────────
   const FADE = 0.3; // 片側の秒数（総遷移 = 2×FADE）
@@ -2048,7 +2146,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
 
-  const activeIdx = script.findIndex((x) => x.id === active.id);
   const groupRange = activeIdx >= 0 ? continueBubbleGroupRange(script, activeIdx) : null;
   const bubbleGroup = groupRange
     ? script.slice(groupRange.start, groupRange.end + 1)
@@ -2200,10 +2297,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const activeOverlays = activeOverlaysAt(script, story.overlays, t);
   const normalOverlays = activeOverlays.filter((overlay) => !isOverInsertOverlay(overlay));
   const overInsertOverlays = activeOverlays.filter((overlay) => isOverInsertOverlay(overlay));
-  const activeIdx2 = script.findIndex((x) => x.id === active.id);
-  const nextTurn2 = activeIdx2 < script.length - 1 ? script[activeIdx2 + 1] : null;
+  const nextTurn2 = activeIdx < script.length - 1 ? script[activeIdx + 1] : null;
   // 隣のターンがインサートを持つか（種別問わず）。インサート同士の間は通常画面を出さない。
-  const prevHasInsert = activeIdx2 > 0 && !!script[activeIdx2 - 1].insert;
+  const prevHasInsert = activeIdx > 0 && !!script[activeIdx - 1].insert;
   const nextHasInsert = !!nextTurn2?.insert;
   let insertOpacity = 0;     // パネル本体（in/out両方フェード）
   let insertBgOpacity = 0;   // 背景＝シーン隠し
@@ -2212,7 +2308,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     // 空セリフのインサート(end==start)でも次ターンまで表示されるよう実効終端を使う。
     const dispEnd = nextTurn2 ? nextTurn2.start : active.end;
     // フェードイン: 直前がインサート/冒頭なら即1。背景はそもそもフェードインしない(即カバー)。
-    const fadeIn = (prevHasInsert || activeIdx2 === 0)
+    const fadeIn = (prevHasInsert || activeIdx === 0)
       ? 1
       : clamp((t - active.start) / INSERT_FADE, 0, 1);
     // フェードアウト: 次がインサートなら消さない(隙間で通常画面を出さない)。
@@ -2323,6 +2419,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           insert={activeInsert}
           bgOpacity={insertBgOpacity}
           opacity={insertOpacity}
+          transform={insertShakeTransform}
         />
       ) : null}
 

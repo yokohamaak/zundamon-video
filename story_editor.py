@@ -379,6 +379,7 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         "━━━ 使える演出（任意。付けると良くなる）━━━",
         '- "emphasis": true … 話者にズームイン（強調したい一言で）',
         '- "shake": true … 画面を揺らす（衝撃・驚き）',
+        '- "cameraEffect": "pull-out" / "pan-left" / "pan-right" / "tilt-left" / "tilt-right" … その行だけカメラに追加の動きを付ける',
         '- "flashback": true … 回想（彩度が落ちる。"telop" と併用推奨）',
         '- "telop": "― 前日 ―" … 画面隅に短時間出る字幕（時代・場面ラベル）',
         '- "pause": 0.5 … その台詞の後に入れる無音秒（間）',
@@ -435,7 +436,7 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "face",
-    "emphasis", "shake", "flashback", "telop", "pause", "transition", "insert",
+    "emphasis", "shake", "cameraEffect", "flashback", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "start", "end", "sentences",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer"}
