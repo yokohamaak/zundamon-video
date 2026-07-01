@@ -1124,6 +1124,25 @@ def _run_prep_story():
         print("[story] node が無いため prep-story をスキップ（手動: cd video && node scripts/prep-story.mjs）")
 
 
+def _run_build_story_player():
+    """起動時に story-player.js を再ビルドして、StoryVideo 側の変更をプレビューへ反映する。"""
+    video_dir = os.path.join(ROOT_DIR, "video")
+    script = os.path.join(video_dir, "scripts", "build-story-player.mjs")
+    if not os.path.isfile(script):
+        return
+    try:
+        r = subprocess.run(
+            ["node", "scripts/build-story-player.mjs"],
+            cwd=video_dir, capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            print("[story] story-player ビルド完了（StoryVideoの変更をプレビューへ反映）")
+        else:
+            print("[story] story-player ビルド失敗（続行）:\n" + (r.stderr or "").strip()[:300])
+    except FileNotFoundError:
+        print("[story] node が無いため story-player ビルドをスキップ（手動: cd video && node scripts/build-story-player.mjs）")
+
+
 def main():
     parser = argparse.ArgumentParser(description="ストーリーエディタ")
     parser.add_argument("--port", type=int, default=8771)
@@ -1132,6 +1151,7 @@ def main():
     args = parser.parse_args()
 
     _run_prep_story()  # 起動時に assets→public を同期(手動 prep-story 不要に)
+    _run_build_story_player()  # 起動時に player bundle を最新化
     # シーン/表情/ポーズは story_editor.py に統合済み。
 
     server = ThreadingHTTPServer((args.host, args.port), StoryEditorHandler)
