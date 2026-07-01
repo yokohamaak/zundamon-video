@@ -4055,6 +4055,12 @@ function setupTabs() {
   });
 }
 
+window.addEventListener("message", async (e) => {
+  if (e.origin !== window.location.origin) return;
+  if (e.data?.type !== "scene-editor-saved") return;
+  await refreshScenes();
+});
+
 // シーン編集後に台本側のシーンドロップダウンを最新化。
 async function refreshScenes() {
   try {

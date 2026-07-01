@@ -1139,6 +1139,9 @@ async function saveScenes() {
     if (r.ok && result.ok) {
       statusEl.className = 'status ok';
       statusEl.textContent = '保存しました';
+      try {
+        window.parent?.postMessage({ type: 'scene-editor-saved' }, window.location.origin);
+      } catch (e) {}
       setTimeout(() => { statusEl.textContent = ''; }, 3000);
     } else {
       statusEl.className = 'status err';
