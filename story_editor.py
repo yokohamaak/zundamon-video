@@ -377,15 +377,23 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         #   併せて _KNOWN_TURN_FIELDS / _KNOWN_INSERT_KINDS も更新。
         #   詳細手順: docs/new-effect-checklist.md
         "━━━ 使える演出（任意。付けると良くなる）━━━",
+        '- "transition": "cut" / "fade-black" / "fade-white" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" … シーンが切り替わる最初の行だけに付ける場面転換',
+        '- "pose": "idle" / "cheer" / "recoil" / "lean" / "droop" / "flustered" / "proud" / "step_in" / "step_back" / "listening" / "sneak" / "wobble" … その行の話者ポーズ',
         '- "emphasis": true … 話者にズームイン（強調したい一言で）',
         '- "shake": true … 画面を揺らす（衝撃・驚き）',
         '- "cameraEffect": "pull-out" / "pan-left" / "pan-right" / "tilt-left" / "tilt-right" … その行だけカメラに追加の動きを付ける',
         '- "flashback": true … 回想（彩度が落ちる。"telop" と併用推奨）',
         '- "telop": "― 前日 ―" … 画面隅に短時間出る字幕（時代・場面ラベル）',
         '- "pause": 0.5 … その台詞の後に入れる無音秒（間）',
+        '- "narrationVoice": "棒読み男" / "棒読み女" … この行だけナレーション化。speaker は元の登場人物のままでよい',
+        '- "voice": {"speed":0.88,"pitch":0.0,"intonation":0.0} … この行だけ声色を上書き（例: 棒読み演出）',
+        '- "noLipSync": true … この行だけ口パクしない（心の声・モノローグ向け）',
+        '- "continueBubble": true … 直前の同話者セリフを上段に残して2段吹き出しにする',
+        '- "disableAutoBubbleSplit": true … 句点や ! ? があってもこの行だけ吹き出し自動分割を止める',
         '- "enter": ["metan"] … そのターンでキャラを登場させる',
         '- "exit": ["metan"], "exitDir": "right" … キャラを退場させる',
         '- "face": {"zundamon":"left"} … 向きの明示（通常は不要）',
+        '- "se": [{"file":"se/alarm.mp3","at":0.0,"volume":0.9}] … この行だけ鳴らす手動SE',
         "",
         "━━━ インサート演出（\"insert\"。全画面にPC画面/チャット等を重ねる・任意）━━━",
         '- {"kind":"warning","title":"...","text":"..."} … ZunMonitor 警告画面(監視アラート)',
@@ -421,6 +429,8 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         + (', "_proposals": [ ... ] }' if experimental else " }"),
         "- 各ターンの必須キー: speaker, text, scene。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
+        '- narrationVoice / voice / noLipSync / continueBubble / disableAutoBubbleSplit / se / pose / transition も使ってよい。',
+        '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
          if experimental
          else "- scene は必ず上記リストのキーから選ぶ。speaker も上記の値のみ。"),
@@ -437,7 +447,8 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "face",
     "emphasis", "shake", "cameraEffect", "flashback", "telop", "pause", "transition", "insert",
-    "exit", "exitDir", "start", "end", "sentences",
+    "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble",
+    "disableAutoBubbleSplit", "start", "end", "sentences",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer"}
 

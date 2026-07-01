@@ -1073,6 +1073,14 @@
             <div class="field-help" id="fVoicePresetHelp">この行だけ speed / pitch / intonation を上書きします。</div>
           </div>
           <div class="field-row">
+            <label class="field-label">口パク</label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fNoLipSync">
+              <span>この行だけ口パクしない</span>
+            </label>
+            <div class="field-help" id="fNoLipSyncHelp">心の声やモノローグ用。音声は鳴りますが、話者の口だけ止めます。</div>
+          </div>
+          <div class="field-row">
             <label class="field-label">吹き出し</label>
             <select class="field-select" id="fContinueBubble">
               <option value="">単独吹き出し</option>
@@ -3207,6 +3215,7 @@ function renderList() {
     if (turn.cameraEffect) badges.appendChild(makeBadge("カメラ:" + cameraEffectLabel(turn.cameraEffect), "fx"));
     if (turn.pose) badges.appendChild(makeBadge("ポーズ:" + poseLabel(turn.pose), "fx"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
+    if (turn.noLipSync) badges.appendChild(makeBadge("口パクOFF", "warn"));
     const bubbleInfo = getContinueBubbleInfo(script, i);
     const autoInfo = getAutoBubbleInfo(turn);
     if (!isNarrationTurnData(turn) && bubbleInfo.valid) {
@@ -3472,9 +3481,11 @@ function renderDetail() {
   document.getElementById("fTelop").value = turn.telop || "";
   document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
   setField("fVoicePreset", "select", voicePresetKey(turn));
+  document.getElementById("fNoLipSync").checked = !!turn.noLipSync;
   setField("fContinueBubble", "select", turn.continueBubble ? "1" : "");
   document.getElementById("fAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
   const voicePresetHelp = document.getElementById("fVoicePresetHelp");
+  const noLipSyncHelp = document.getElementById("fNoLipSyncHelp");
   const narrationHelp = document.getElementById("fNarrationHelp");
   const emphasisHelp = document.getElementById("fEmphasisHelp");
   const cameraEffectHelp = document.getElementById("fCameraEffectHelp");
@@ -3527,6 +3538,17 @@ function renderDetail() {
       : preset === "monotone-female"
         ? "この行は女性寄りの低抑揚設定です。"
         : "この行だけ speed / pitch / intonation を上書きします。";
+  }
+  if (noLipSyncHelp) {
+    if (isNarrationTurnData(turn)) {
+      noLipSyncHelp.className = "field-help";
+      noLipSyncHelp.textContent = "ナレーション行では立ち絵が出ないため、この設定は実質使われません。";
+    } else {
+      noLipSyncHelp.className = "field-help" + (turn.noLipSync ? " warn" : "");
+      noLipSyncHelp.textContent = turn.noLipSync
+        ? "この行では音声は鳴りますが、話者の口パクだけ止めます。心の声や脳内ツッコミ向けです。"
+        : "心の声やモノローグ用。音声は鳴りますが、話者の口だけ止めます。";
+    }
   }
   const bubbleHelp = document.getElementById("fContinueBubbleHelp");
   const autoBubbleSplitHelp = document.getElementById("fAutoBubbleSplitHelp");
@@ -3931,6 +3953,10 @@ function collectBasic() {
   } else {
     delete turn.voice;
   }
+
+  const noLipSyncVal = document.getElementById("fNoLipSync").checked;
+  if (noLipSyncVal) turn.noLipSync = true;
+  else delete turn.noLipSync;
 
   const continueBubbleVal = document.getElementById("fContinueBubble").value;
   if (continueBubbleVal) turn.continueBubble = true;

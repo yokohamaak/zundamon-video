@@ -118,6 +118,7 @@ export type StoryTurn = {
   narrationVoice?: string;
   continueBubble?: boolean;
   disableAutoBubbleSplit?: boolean;
+  noLipSync?: boolean;
   sentences?: StorySentence[];
 };
 
@@ -1896,6 +1897,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const anchorName = anchorOf[charId] ?? "center";
     const anchor = sceneDef.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
     const isSpeaker = !isNarrationTurn(active) && charId === active.speaker;
+    const lipsyncEnabled = isSpeaker && !active.noLipSync;
     // 向き: 台本の face 指定 > x座標からの自動（中央を向く）。
     // 立ち絵素材は「画面左向き」が素なので、右を向かせるときだけ反転する。
     // 画面左半分(x<0.5)のキャラは右＝中央向き、右半分は左＝中央向き。x を動かせば向きも自動追従。
@@ -1980,7 +1982,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             fallbackGender={cdef.gender}
             active={isSpeaker}
             activatedAtFrame={Math.round(active.start * fps)}
-            amplitude={isSpeaker ? speakerAmp : 0}
+            amplitude={lipsyncEnabled ? speakerAmp : 0}
             emotion={isSpeaker ? emotion : idleEmotion}
             emotionAtFrame={Math.round(active.start * fps)}
             expressive={!!cdef.expressive}
