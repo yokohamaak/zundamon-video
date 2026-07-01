@@ -9,7 +9,7 @@
       "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.05,
-      "bgBlur": 8,
+      "bgBlur": 0,
       "cast": {
         "metan": "left",
         "zundamon": "right"
@@ -57,7 +57,7 @@
       "camera": "static",
       "figure": "full",
       "scale": 1.1,
-      "bgBlur": 6,
+      "bgBlur": 0,
       "anchors": {
         "center": {
           "x": 0.52,
@@ -100,7 +100,7 @@
       "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.35,
-      "bgBlur": 10,
+      "bgBlur": 0,
       "cast": {
         "zundamon": "right",
         "metan": "left"
@@ -144,7 +144,7 @@
       "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.3,
-      "bgBlur": 7,
+      "bgBlur": 0,
       "cast": {
         "zundamon": "right",
         "metan": "left"
@@ -187,8 +187,7 @@
       "shot": "solo",
       "camera": "static",
       "scale": 1.1,
-      "bgBlur": 6,
-      "transition": "fade-black",
+      "bgBlur": 0,
       "cast": {
         "zundamon": "center"
       },
@@ -223,6 +222,48 @@
       "figure": "full",
       "bgm": "bgm/bgm1.mp3",
       "bgmVolume": 0.1
+    },
+    "rooftop_blur": {
+      "label": "屋上 ぼやけ",
+      "bg": "background/rooftop.png",
+      "front": null,
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "scale": 1.1,
+      "bgBlur": 10,
+      "cast": {
+        "metan": "left",
+        "zundamon": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
     }
   }
 }

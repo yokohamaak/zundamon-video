@@ -1468,11 +1468,6 @@ const SeLayer: React.FC<{
       tryAdd(turn.start, seMap.insert?.[turn.insert.kind]);
     }
 
-    // 場面転換 SE（前ターンとシーンが変わったとき）
-    if (i > 0 && script[i - 1].scene !== turn.scene) {
-      tryAdd(turn.start, seMap.transition?.["fade-black"]);
-    }
-
     // 手動ワンショット SE
     for (const s of turn.se ?? []) {
       if (!s.file) continue;
@@ -1630,13 +1625,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     s: lerp(tfPrev.s, tfCur.s, k),
   };
 
-  // 2 & 3. 話者プッシュイン（emphasis）＋リアクション寄り（surprise）。
+  // 2. 話者プッシュイン（emphasis）。
   // focus のクランプ済み変換へ「変換ごと」補間する＝まっすぐ寄る。
   const isFocusTurn =
     !isNarrationTurn(active) &&
     isKnownChar(active.speaker) &&
-    (active.emphasis === true ||
-      active.expression === "surprise");
+    active.emphasis === true;
   let focusBubbleK = 0;
   if (isFocusTurn) {
     const anchorName = anchorOf[active.speaker] ?? "center";
