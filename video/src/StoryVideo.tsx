@@ -166,6 +166,8 @@ type Anchor = { x: number; y: number };
 export type SceneDef = {
   label?: string;
   bg: string;
+  // 背景(back)だけに掛ける被写界深度風のブラー量(px)。
+  bgBlur?: number;
   front?: string | null;
   shot?: "solo" | "duo" | "split";
   camera?: "static" | "slow-zoom";
@@ -1516,6 +1518,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   }
 
   const avScale = sceneDef.scale ?? 1.9;
+  const bgBlur = Math.max(0, sceneDef.bgBlur ?? 0);
+  const bgScale = bgBlur > 0 ? 1 + Math.min(bgBlur, 32) / 180 : 1;
 
   // ── 立ち位置は区間中ずっと固定（後から登場する人ぶんも最初から確保） ──
   const roster = segmentRoster(seg);
@@ -2094,6 +2098,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             width: "100%",
             height: "100%",
             objectFit: "cover",
+            filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+            transform: bgScale > 1 ? `scale(${bgScale})` : undefined,
+            transformOrigin: "center center",
           }}
         />
 

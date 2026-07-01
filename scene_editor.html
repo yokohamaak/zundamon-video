@@ -147,6 +147,7 @@
   .slider-row { display: flex; align-items: center; gap: 8px; }
   .slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
   .slider-val { font-size: 12px; color: var(--text); min-width: 32px; text-align: right; }
+  .slider-hint { font-size: 11px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
   .toggle-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .toggle-row input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
 
@@ -389,6 +390,15 @@
     </div>
 
     <div class="side-section">
+      <div class="section-title">背景ブラー</div>
+      <div class="slider-row">
+        <input type="range" id="bgBlurSlider" min="0" max="24" step="1" value="0">
+        <span class="slider-val" id="bgBlurVal">0px</span>
+      </div>
+      <div class="slider-hint">背景だけをぼかして、キャラを手前に浮かせる演出です。</div>
+    </div>
+
+    <div class="side-section">
       <div class="section-title">前景オーバーレイ</div>
       <label class="toggle-row">
         <input type="checkbox" id="frontToggle" checked>
@@ -540,6 +550,9 @@ function selectScene(id) {
   const scale = sc.scale != null ? sc.scale : 1.9;
   document.getElementById('scaleSlider').value = scale;
   document.getElementById('scaleVal').textContent = scale.toFixed(2);
+  const bgBlur = sc.bgBlur != null ? sc.bgBlur : 0;
+  document.getElementById('bgBlurSlider').value = bgBlur;
+  document.getElementById('bgBlurVal').textContent = `${bgBlur}px`;
   // bg/front セレクト
   setSelectValue('fBg', sc.bg || '');
   setSelectValue('fFront', sc.front || '__none__');
@@ -770,6 +783,11 @@ function renderPreview() {
   // 背景
   const bgEl = document.getElementById('stageBg');
   bgEl.style.backgroundImage = sc.bg ? `url(${IMG_BASE}${encodePathSegs(sc.bg)})` : 'none';
+  const bgBlur = Math.max(0, sc.bgBlur != null ? sc.bgBlur : 0);
+  const bgScale = bgBlur > 0 ? 1 + Math.min(bgBlur, 32) / 180 : 1;
+  bgEl.style.filter = bgBlur > 0 ? `blur(${bgBlur}px)` : 'none';
+  bgEl.style.transform = bgScale > 1 ? `scale(${bgScale})` : 'none';
+  bgEl.style.transformOrigin = 'center center';
 
   // 前景
   const frontEl = document.getElementById('stageFront');
@@ -1025,6 +1043,13 @@ function setupEvents() {
     if (sc) { sc.scale = v; renderPreview(); }
   });
 
+  document.getElementById('bgBlurSlider').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10) || 0;
+    document.getElementById('bgBlurVal').textContent = `${v}px`;
+    const sc = currentScene();
+    if (sc) { sc.bgBlur = v; renderPreview(); }
+  });
+
   document.getElementById('frontToggle').addEventListener('change', e => {
     showFront = e.target.checked;
     renderPreview();
@@ -1154,6 +1179,7 @@ function addScene() {
     shot: 'duo',
     camera: 'static',
     scale: 1.1,
+    bgBlur: 8,
     transition: 'fade-black',
     cast: {},
     mobs: mobsInit,

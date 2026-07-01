@@ -9,6 +9,7 @@
       "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.05,
+      "bgBlur": 8,
       "cast": {
         "metan": "left",
         "zundamon": "right"
@@ -56,6 +57,7 @@
       "camera": "static",
       "figure": "full",
       "scale": 1.1,
+      "bgBlur": 6,
       "anchors": {
         "center": {
           "x": 0.52,
@@ -98,6 +100,7 @@
       "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.35,
+      "bgBlur": 10,
       "cast": {
         "zundamon": "right",
         "metan": "left"
@@ -141,6 +144,7 @@
       "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.3,
+      "bgBlur": 7,
       "cast": {
         "zundamon": "right",
         "metan": "left"
@@ -183,6 +187,7 @@
       "shot": "solo",
       "camera": "static",
       "scale": 1.1,
+      "bgBlur": 6,
       "transition": "fade-black",
       "cast": {
         "zundamon": "center"
