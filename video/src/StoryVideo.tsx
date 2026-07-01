@@ -248,6 +248,8 @@ type Manifest = Record<string, Record<string, string>>;
 
 // expressions.json の型（キャラ→表情名→ExpressionCfg）
 export type ExpressionsMap = Record<string, Record<string, ExpressionCfg>>;
+export type PoseCfg = { arm?: string | null };
+export type PosesMap = Record<string, Record<string, PoseCfg>>;
 
 // se-map.json の型
 export type SeMapEntry = { file: string; volume: number; enabled: boolean };
@@ -264,6 +266,7 @@ export type StoryVideoProps = {
   manifest?: Manifest;
   audio?: string; // 音声ファイル（public配下・任意）
   expressions?: ExpressionsMap; // expressions.json（省略時は旧来の emotion ベース）
+  poses?: PosesMap; // poses.json（省略時はAvatar側の自動腕割当へフォールバック）
   seMap?: SeMap; // se-map.json（省略時はSE再生なし）
 };
 
@@ -1461,6 +1464,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   manifest,
   audio,
   expressions,
+  poses,
   seMap,
 }) => {
   const frame = useCurrentFrame();
@@ -1702,6 +1706,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const charKey = cdef.avatar; // "zundamon" / "metan"
     const charExprs = expressions?.[charKey];
     const baseExpressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
+    const poseCfg = active.pose ? poses?.[charKey]?.[active.pose] ?? null : null;
     const expressionCfg =
       baseExpressionCfg && active.pose
         ? { ...baseExpressionCfg, pose: active.pose }
@@ -1778,6 +1783,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             boxWidth={box.w}
             boxHeight={box.h}
             expressionCfg={isSpeaker ? expressionCfg : idleCfg}
+            poseName={isSpeaker ? active.pose : undefined}
+            poseArmStem={isSpeaker ? poseCfg?.arm ?? null : null}
           />
         </div>
       </div>

@@ -209,6 +209,114 @@
     background: var(--green); color: #07210f;
   }
   .mob-toggle-btn.off { background: var(--surface2); color: var(--text2); }
+
+  @media (max-width: 1100px) {
+    body { overflow: auto; }
+    .main {
+      flex-direction: column;
+      overflow: auto;
+    }
+    .preview-area {
+      flex: 0 0 auto;
+      min-height: 360px;
+      padding: 14px 12px 10px;
+    }
+    .preview-wrap {
+      max-width: 100%;
+      max-height: min(56vw, 58dvh);
+    }
+    .side {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      overflow: visible;
+    }
+    .side-section {
+      padding: 12px 14px;
+    }
+    .anchor-list {
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    html, body { font-size: 13px; }
+    body {
+      height: auto;
+      min-height: 100dvh;
+    }
+    .header {
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px 12px;
+      flex-wrap: wrap;
+    }
+    .header h1,
+    .scene-select,
+    .status {
+      width: 100%;
+    }
+    .scene-select {
+      min-height: 38px;
+    }
+    .btn {
+      flex: 1 1 0;
+      min-height: 38px;
+      padding: 8px 10px;
+    }
+    .status {
+      margin-left: 0;
+      text-align: left;
+    }
+    .preview-area {
+      min-height: 260px;
+      padding: 12px 10px 8px;
+    }
+    .preview-wrap {
+      width: 100%;
+      max-height: min(56vw, 44dvh);
+    }
+    .preview-info {
+      margin-top: 6px;
+      font-size: 10px;
+    }
+    .side-section {
+      padding: 12px 10px;
+    }
+    .anchor-item {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      padding: 8px 10px;
+    }
+    .anchor-name {
+      grid-column: 1 / -1;
+    }
+    .cast-row {
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .cast-char,
+    .cast-select {
+      width: 100%;
+    }
+    .add-scene-form {
+      flex-direction: column;
+    }
+    .mob-list-item {
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px;
+    }
+    .mob-list-coords {
+      width: 100%;
+      margin-left: 0;
+    }
+    .mob-toggle-btn {
+      margin-left: auto;
+    }
+  }
 </style>
 </head>
 <body>
@@ -315,6 +423,9 @@
 </div>
 
 <script>
+const API_BASE = window.SCENE_EDITOR_API_BASE || "";
+const IMG_BASE = window.SCENE_EDITOR_IMG_BASE || "/img/";
+
 // ============================================================
 // 定数
 // ============================================================
@@ -365,19 +476,19 @@ async function init() {
 }
 
 async function fetchScenes() {
-  const r = await fetch('/api/scenes');
+  const r = await fetch(API_BASE + '/scenes');
   scenesData = await r.json();
   if (!scenesData.scenes) scenesData.scenes = {};
 }
 
 async function fetchAssets() {
-  const r = await fetch('/api/list-assets');
+  const r = await fetch(API_BASE + '/list-assets');
   assets = await r.json();
 }
 
 async function fetchManifest() {
   try {
-    const r = await fetch('/avatars/manifest.json');
+    const r = await fetch(IMG_BASE + 'avatars/manifest.json');
     if (r.ok) manifestData = await r.json();
   } catch {}
 }
@@ -591,7 +702,7 @@ function buildMobList() {
     });
 
     const thumb = document.createElement('img');
-    thumb.src = '/' + mob.image;
+    thumb.src = IMG_BASE + mob.image;
     thumb.onerror = () => { thumb.style.display = 'none'; };
     const label = document.createElement('span');
     label.textContent = mob.id;
@@ -658,12 +769,12 @@ function renderPreview() {
 
   // 背景
   const bgEl = document.getElementById('stageBg');
-  bgEl.style.backgroundImage = sc.bg ? `url(/img/${encodePathSegs(sc.bg)})` : 'none';
+  bgEl.style.backgroundImage = sc.bg ? `url(${IMG_BASE}${encodePathSegs(sc.bg)})` : 'none';
 
   // 前景
   const frontEl = document.getElementById('stageFront');
   if (sc.front && showFront) {
-    frontEl.style.backgroundImage = `url(/img/${encodePathSegs(sc.front)})`;
+    frontEl.style.backgroundImage = `url(${IMG_BASE}${encodePathSegs(sc.front)})`;
     frontEl.style.display = '';
   } else {
     frontEl.style.display = 'none';
@@ -703,8 +814,8 @@ function renderPreview() {
     const isFull = (sc.figure ?? 'bust') === 'full';
     const manifestKey = isFull ? charId + '_full' : charId;
     const avatarBasePath = isFull
-      ? `/avatars/${charId}/full/`
-      : `/avatars/${charId}/`;
+      ? `${IMG_BASE}avatars/${charId}/full/`
+      : `${IMG_BASE}avatars/${charId}/`;
 
     // char-parts のサイズを figure に応じて設定（全身はキャラ別アスペクト＝renderと一致）
     const pbox = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
@@ -789,7 +900,7 @@ function renderPreview() {
     const mobEl = document.createElement('img');
     mobEl.className = 'mob-image' +
       (selectedMobId === mob.id ? ' mob-selected' : '');
-    mobEl.src = '/' + mob.image;
+    mobEl.src = IMG_BASE + mob.image;
     mobEl.alt = mob.id;
     mobEl.dataset.mobId = mob.id;
     mobEl.style.position = 'absolute';
@@ -994,7 +1105,7 @@ async function saveScenes() {
   statusEl.className = 'status';
   statusEl.textContent = '保存中...';
   try {
-    const r = await fetch('/api/scenes', {
+    const r = await fetch(API_BASE + '/scenes', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(scenesData)

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポーズエディタ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1016;
+    --surface: #171b24;
+    --surface2: #202634;
+    --border: #30384a;
+    --text: #e5ecf7;
+    --text2: #93a0b5;
+    --accent: #4f8cff;
+    --accent2: #ff9f43;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --danger: #f87171;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .header h1 { font-size: 15px; font-weight: 700; }
+  .tabs, .face-tabs { display: flex; gap: 6px; }
+  .tab, .face-tab, .btn {
+    border: 1px solid var(--border); border-radius: 6px; background: var(--surface2);
+    color: var(--text2); cursor: pointer; transition: .12s ease; font-size: 13px;
+  }
+  .tab, .face-tab { padding: 5px 12px; }
+  .tab.active, .face-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn { padding: 6px 14px; color: var(--text); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-export { background: var(--accent2); color: #161616; border-color: var(--accent2); }
+  .status { margin-left: auto; font-size: 12px; color: var(--text2); }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--danger); }
+  .status.dirty { color: var(--warn); }
+
+  .main { flex: 1; display: flex; min-height: 0; }
+  .pose-list {
+    width: 200px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 10px 8px;
+  }
+  .pose-title, .panel-title {
+    font-size: 11px; color: var(--text2); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .pose-item {
+    padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px;
+    background: var(--surface2); cursor: pointer; transition: .12s ease;
+  }
+  .pose-item:hover { border-color: var(--accent); }
+  .pose-item.active { border-color: var(--accent); background: rgba(79,140,255,.18); }
+  .pose-item-name { font-size: 13px; font-weight: 600; }
+  .pose-item-sub { margin-top: 4px; font-size: 11px; color: var(--text2); }
+
+  .preview-area {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 16px;
+  }
+  .preview-stage {
+    width: 420px; height: 420px; border-radius: 18px; overflow: hidden; position: relative;
+    background:
+      radial-gradient(circle at 35% 25%, rgba(255,255,255,.18), rgba(255,255,255,0) 34%),
+      linear-gradient(160deg, #314562 0%, #1d2330 48%, #0f1219 100%);
+    box-shadow: 0 16px 40px rgba(0,0,0,.35);
+  }
+  .preview-grid {
+    position: absolute; inset: 0; opacity: .12;
+    background-image:
+      linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .preview-avatar-wrap {
+    position: absolute; left: 50%; bottom: 18px; width: 360px; height: 360px; transform-origin: bottom center;
+  }
+  .preview-avatar {
+    position: relative; width: 100%; height: 100%; transform-origin: bottom center;
+  }
+  .preview-avatar img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom;
+  }
+  .preview-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .preview-chip {
+    padding: 5px 10px; border-radius: 999px; font-size: 12px; background: var(--surface2); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .preview-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2);
+    padding: 5px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  }
+
+  .arm-panel {
+    width: 430px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border);
+    overflow-y: auto; padding: 12px 14px;
+  }
+  .current { margin-bottom: 10px; font-size: 12px; color: var(--accent); }
+  .cand-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cand-item, .cand-none {
+    width: 122px; border: 2px solid transparent; border-radius: 10px; background: var(--surface2);
+    padding: 6px; cursor: pointer; transition: .12s ease;
+  }
+  .cand-item:hover, .cand-none:hover { border-color: var(--accent); }
+  .cand-item.selected, .cand-none.selected { border-color: var(--accent); background: rgba(79,140,255,.18); }
+  .cand-thumb-wrap {
+    width: 100%; aspect-ratio: 1/1; overflow: hidden; border-radius: 7px; background: #f2efe7;
+  }
+  .cand-thumb {
+    width: 100%; height: 100%; object-fit: contain; transform: scale(1.55); transform-origin: 50% 34%;
+  }
+  .cand-label { margin-top: 6px; font-size: 11px; color: var(--text2); text-align: center; }
+  .cand-none {
+    display: flex; align-items: center; justify-content: center; height: 122px; font-size: 13px; color: var(--text2);
+  }
+  .hint { margin-top: 12px; font-size: 12px; line-height: 1.6; color: var(--text2); }
+
+  .export-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.72); align-items: center; justify-content: center;
+  }
+  .export-overlay.show { display: flex; }
+  .export-box {
+    width: 620px; max-height: 70vh; display: flex; flex-direction: column; gap: 10px; padding: 16px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+  }
+  .export-log {
+    min-height: 220px; overflow: auto; padding: 10px; border-radius: 8px; background: #0c0f15;
+    color: var(--text2); font-size: 11px; white-space: pre-wrap; font-family: ui-monospace, monospace;
+  }
+
+  @media (max-width: 1200px) {
+    .main { flex-direction: column; overflow: auto; }
+    .pose-list, .arm-panel { width: auto; border: none; border-bottom: 1px solid var(--border); }
+    .preview-stage { width: min(84vw, 420px); height: min(84vw, 420px); }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>ポーズエディタ</h1>
+  <div class="tabs" id="charTabs">
+    <button class="tab active" data-char="zundamon">ずんだもん</button>
+    <button class="tab" data-char="metan">めたん</button>
+  </div>
+  <button class="btn btn-primary" id="btnSave">保存</button>
+  <button class="btn btn-export" id="btnExport">書き出し(腕差分再生成)</button>
+  <span class="status" id="statusMsg"></span>
+</div>
+
+<div class="main">
+  <div class="pose-list" id="poseList"></div>
+
+  <div class="preview-area">
+    <div class="preview-stage">
+      <div class="preview-grid"></div>
+      <div class="preview-avatar-wrap" id="previewWrap">
+        <div class="preview-avatar" id="previewAvatar"></div>
+      </div>
+    </div>
+    <div class="preview-meta">
+      <span class="preview-chip" id="previewPoseLabel"></span>
+      <span class="preview-chip" id="previewArmLabel"></span>
+    </div>
+    <div class="preview-tools">
+      <div class="face-tabs" id="faceTabs">
+        <button class="face-tab active" data-face="normal">通常顔</button>
+        <button class="face-tab" data-face="happy">喜び顔</button>
+        <button class="face-tab" data-face="surprise">驚き顔</button>
+        <button class="face-tab" data-face="trouble">困り顔</button>
+        <button class="face-tab" data-face="panic">焦り顔</button>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="flipToggle">
+        右向きで見る
+      </label>
+    </div>
+  </div>
+
+  <div class="arm-panel">
+    <div class="panel-title">腕差分</div>
+    <div class="current" id="currentArmLabel"></div>
+    <div class="cand-grid" id="armGrid"></div>
+    <div class="hint">
+      `自動` を選ぶと、`Avatar.tsx` 側の既定ロジックで腕が決まります。<br>
+      保存後に `story_editor` のプレビューへ反映したいときは、右上の書き出しを実行してください。
+    </div>
+  </div>
+</div>
+
+<div class="export-overlay" id="exportOverlay">
+  <div class="export-box">
+    <h2 id="exportTitle">書き出し中...</h2>
+    <pre class="export-log" id="exportLog"></pre>
+    <button class="btn" id="exportClose" disabled>閉じる</button>
+  </div>
+</div>
+
+<script>
+const API_BASE = window.POSE_EDITOR_API_BASE || "";
+const EXPORT_ENDPOINT = window.POSE_EDITOR_EXPORT_ENDPOINT || (API_BASE + "/api/export");
+const IMG_BASE = window.POSE_EDITOR_IMG_BASE || "/img/";
+
+let catalog = null;
+let poses = null;
+let expressions = null;
+let currentChar = "zundamon";
+let currentPose = "idle";
+let currentFace = "normal";
+let isDirty = false;
+let rafId = 0;
+
+const POSES = [
+  ["idle", "通常"],
+  ["cheer", "喜ぶ"],
+  ["recoil", "のけぞる"],
+  ["lean", "身を乗り出す"],
+  ["droop", "しょんぼり"],
+  ["flustered", "あたふた"],
+  ["proud", "得意げ"],
+  ["step_in", "一歩前へ"],
+  ["step_back", "一歩引く"],
+  ["listening", "聞き耳"],
+  ["sneak", "こそこそ"],
+  ["wobble", "ぐらぐら"],
+];
+const POSE_LABELS = Object.fromEntries(POSES);
+const FACE_ORDER = ["normal", "happy", "surprise", "trouble", "panic"];
+const PREVIEW_LAYERS = ["base", "shadow", "cheek", "arm", "eye", "mouth", "bangs", "brow", "fx"];
+const previewImgs = {};
+
+async function init() {
+  const [catalogRes, posesRes, exprRes] = await Promise.all([
+    fetch(API_BASE + "/api/catalog"),
+    fetch(API_BASE + "/api/poses"),
+    fetch(API_BASE + "/api/expressions"),
+  ]);
+  catalog = await catalogRes.json();
+  poses = await posesRes.json();
+  expressions = await exprRes.json();
+  ensurePoseMap();
+  buildCharTabs();
+  buildPoseList();
+  buildArmGrid();
+  buildFaceTabs();
+  renderPreview();
+  setupEvents();
+  startAnimation();
+}
+
+function ensurePoseMap() {
+  for (const char of Object.keys(catalog || {})) {
+    if (!poses[char]) poses[char] = {};
+    for (const [pose] of POSES) {
+      if (!poses[char][pose]) poses[char][pose] = { arm: null };
+    }
+  }
+}
+
+function buildCharTabs() {
+  document.getElementById("charTabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".tab");
+    if (!btn) return;
+    currentChar = btn.dataset.char;
+    document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el === btn));
+    buildPoseList();
+    buildArmGrid();
+    renderPreview();
+  });
+}
+
+function buildPoseList() {
+  const list = document.getElementById("poseList");
+  list.innerHTML = '<div class="pose-title">ポーズ</div>';
+  for (const [pose, label] of POSES) {
+    const item = document.createElement("div");
+    item.className = "pose-item" + (pose === currentPose ? " active" : "");
+    const armId = poses?.[currentChar]?.[pose]?.arm ?? null;
+    const armLabel = armId ? armLabelOf(currentChar, armId) : "自動";
+    item.innerHTML =
+      '<div class="pose-item-name">' + escapeHtml(label) + '</div>' +
+      '<div class="pose-item-sub">腕: ' + escapeHtml(armLabel) + '</div>';
+    item.addEventListener("click", () => {
+      currentPose = pose;
+      buildPoseList();
+      buildArmGrid();
+      renderPreview();
+    });
+    list.appendChild(item);
+  }
+}
+
+function buildArmGrid() {
+  const grid = document.getElementById("armGrid");
+  grid.innerHTML = "";
+  const currentArm = poses?.[currentChar]?.[currentPose]?.arm ?? null;
+
+  const none = document.createElement("div");
+  none.className = "cand-none" + (currentArm === null ? " selected" : "");
+      none.textContent = "自動";
+  none.addEventListener("click", () => assignArm(null));
+  grid.appendChild(none);
+
+  for (const arm of catalog?.[currentChar]?.arms || []) {
+    const item = document.createElement("div");
+    item.className = "cand-item" + (arm.id === currentArm ? " selected" : "");
+    item.innerHTML =
+      '<div class="cand-thumb-wrap"><img class="cand-thumb" src="' + IMG_BASE + arm.file + '" alt=""></div>' +
+      '<div class="cand-label">' + escapeHtml(arm.label) + "</div>";
+    item.addEventListener("click", () => assignArm(arm.id));
+    grid.appendChild(item);
+  }
+
+  const label = currentArm ? armLabelOf(currentChar, currentArm) : "自動";
+  document.getElementById("currentArmLabel").textContent = "現在: " + label;
+}
+
+function buildFaceTabs() {
+  document.getElementById("faceTabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".face-tab");
+    if (!btn) return;
+    currentFace = btn.dataset.face;
+    document.querySelectorAll(".face-tab").forEach((el) => el.classList.toggle("active", el === btn));
+    renderPreview();
+  });
+}
+
+function assignArm(armId) {
+  poses[currentChar][currentPose].arm = armId;
+  buildPoseList();
+  buildArmGrid();
+  renderPreview();
+  markDirty();
+}
+
+function renderPreview() {
+  const charCat = catalog?.[currentChar];
+  const expr = expressions?.[currentChar]?.[currentFace] || expressions?.[currentChar]?.normal || {};
+  const armId = poses?.[currentChar]?.[currentPose]?.arm ?? null;
+  const armSrc = armId ? resolveArmRuntimeSrc(currentChar, armId) : null;
+  const avatar = document.getElementById("previewAvatar");
+
+  const layers = {
+    base: charCat?.base ? IMG_BASE + charCat.base : null,
+    shadow: expr.shadow ? runtimePartSrc(currentChar, "shadow_" + expr.shadow) : null,
+    cheek: expr.cheek ? runtimePartSrc(currentChar, "cheek_" + expr.cheek) : null,
+    arm: armSrc,
+    eye: expr.eye ? runtimePartSrc(currentChar, "eye_" + expr.eye) : null,
+    mouth: expr.mouth_close ? runtimePartSrc(currentChar, "mouth_" + expr.mouth_close) : null,
+    bangs: charCat?.bangs ? IMG_BASE + charCat.bangs : null,
+    brow: expr.brow ? runtimePartSrc(currentChar, "brow_" + expr.brow) : null,
+    fx: expr.fx ? runtimePartSrc(currentChar, "fx_" + expr.fx) : null,
+  };
+
+  for (const key of PREVIEW_LAYERS) {
+    if (!previewImgs[key] || previewImgs[key].parentNode !== avatar) {
+      const img = document.createElement("img");
+      previewImgs[key] = img;
+      avatar.appendChild(img);
+    }
+    const img = previewImgs[key];
+    if (layers[key]) {
+      img.src = layers[key];
+      img.style.display = "";
+    } else {
+      img.style.display = "none";
+    }
+  }
+
+  document.getElementById("previewPoseLabel").textContent = "ポーズ: " + (POSE_LABELS[currentPose] || currentPose);
+  document.getElementById("previewArmLabel").textContent = "腕: " + (armId ? armLabelOf(currentChar, armId) : "自動");
+}
+
+function runtimePartSrc(char, stem) {
+  return IMG_BASE + "avatars/" + char + "/" + stem + ".png";
+}
+
+function resolveArmRuntimeSrc(char, armId) {
+  const item = (catalog?.[char]?.arms || []).find((arm) => arm.id === armId);
+  if (item?.runtimeFile) return IMG_BASE + item.runtimeFile;
+  return item ? IMG_BASE + item.file : null;
+}
+
+function armLabelOf(char, armId) {
+  return (catalog?.[char]?.arms || []).find((arm) => arm.id === armId)?.label || armId;
+}
+
+function startAnimation() {
+  const tick = () => {
+    animatePreview(performance.now() / 1000);
+    rafId = requestAnimationFrame(tick);
+  };
+  rafId = requestAnimationFrame(tick);
+}
+
+function animatePreview(time) {
+  const wrap = document.getElementById("previewWrap");
+  const avatar = document.getElementById("previewAvatar");
+  const flip = document.getElementById("flipToggle").checked ? -1 : 1;
+  let translateX = 0;
+  let translateY = Math.sin((time * Math.PI * 2) / 3) * 2;
+  let rotate = 0;
+  let scale = 1;
+  const p = currentPose;
+
+  if (p === "cheer") {
+    const hop = Math.max(0, Math.sin(time * Math.PI * 2 * 1.1)) * 8;
+    translateY -= hop + 4;
+    rotate += Math.sin(time * Math.PI * 2 * 1.3) * 2.2;
+    scale *= 1.018;
+  } else if (p === "recoil") {
+    const surge = Math.max(0, Math.sin(time * Math.PI * 2 * 0.7));
+    translateY -= surge * 14;
+    translateX += flip * -10 * surge;
+    rotate += flip * -4 * surge;
+    scale *= 1 + 0.02 * surge;
+  } else if (p === "lean") {
+    translateX += flip * 10;
+    translateY -= 4;
+    rotate += flip * 2.4;
+    scale *= 1.012;
+  } else if (p === "droop") {
+    translateY += 10;
+    rotate += flip * -1.6;
+    scale *= 0.98;
+  } else if (p === "flustered") {
+    translateX += Math.sin(time * Math.PI * 2 * 4.4) * 2.8;
+    translateY += Math.cos(time * Math.PI * 2 * 3.8) * 1.6;
+    rotate += Math.sin(time * Math.PI * 2 * 5.2) * 1.6;
+    scale *= 1.01;
+  } else if (p === "proud") {
+    translateY -= 8;
+    translateX += flip * 4;
+    rotate += flip * 3.2;
+    scale *= 1.026;
+  } else if (p === "step_in") {
+    translateX += flip * 12;
+    translateY -= 6;
+    rotate += flip * 1.8;
+    scale *= 1.02;
+  } else if (p === "step_back") {
+    translateX += flip * -12;
+    translateY += 3;
+    rotate += flip * -2.6;
+    scale *= 0.97;
+  } else if (p === "listening") {
+    const nod = Math.max(0, Math.sin(time * Math.PI * 2 * 0.9)) * 4;
+    translateX += flip * 7;
+    translateY -= nod;
+    rotate += flip * 4.2;
+    scale *= 1.008;
+  } else if (p === "sneak") {
+    translateX += flip * 9;
+    translateY += 8;
+    rotate += flip * 5.2;
+    scale *= 0.985;
+  } else if (p === "wobble") {
+    translateX += Math.sin(time * Math.PI * 2 * 2.1) * 5.5;
+    translateY -= Math.abs(Math.cos(time * Math.PI * 2 * 1.4)) * 2.5;
+    rotate += Math.sin(time * Math.PI * 2 * 2.6) * 4.6;
+    scale *= 1 + Math.sin(time * Math.PI * 2 * 1.9) * 0.012;
+  }
+
+  wrap.style.transform = "translateX(-50%)";
+  avatar.style.transform =
+    "translate(" + translateX + "px," + translateY + "px) scale(" + scale + ") rotate(" + rotate + "deg) scaleX(" + flip + ")";
+}
+
+function setupEvents() {
+  document.getElementById("btnSave").addEventListener("click", savePoses);
+  document.getElementById("btnExport").addEventListener("click", startExport);
+  document.getElementById("flipToggle").addEventListener("change", () => renderPreview());
+  document.getElementById("exportClose").addEventListener("click", () => {
+    document.getElementById("exportOverlay").classList.remove("show");
+  });
+  window.addEventListener("beforeunload", (e) => {
+    if (!isDirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+}
+
+async function savePoses() {
+  const s = document.getElementById("statusMsg");
+  s.className = "status";
+  s.textContent = "保存中...";
+  try {
+    const r = await fetch(API_BASE + "/api/poses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(poses),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      clearDirty();
+      try {
+        if (window.parent && window.parent !== window && window.parent.storyPlayer?.reloadPoses) {
+          window.parent.storyPlayer.reloadPoses();
+        }
+      } catch (e) {}
+    }
+    else {
+      s.className = "status err";
+      s.textContent = result.error || "保存失敗";
+    }
+  } catch (e) {
+    s.className = "status err";
+    s.textContent = "通信エラー";
+  }
+}
+
+async function startExport() {
+  const overlay = document.getElementById("exportOverlay");
+  const log = document.getElementById("exportLog");
+  const title = document.getElementById("exportTitle");
+  const close = document.getElementById("exportClose");
+  overlay.classList.add("show");
+  log.textContent = "";
+  title.textContent = "書き出し中...";
+  close.disabled = true;
+  try {
+    const r = await fetch(EXPORT_ENDPOINT, { method: "POST" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let done = false;
+    while (!done) {
+      const { value, done: d } = await reader.read();
+      done = d;
+      if (!value) continue;
+      const text = decoder.decode(value, { stream: true });
+      if (text.includes("__DONE__ ok")) {
+        log.textContent += text.replace("__DONE__ ok\n", "");
+        title.textContent = "書き出し完了";
+        try {
+          if (window.parent && window.parent !== window && window.parent.storyPlayer?.reloadPoses) {
+            window.parent.storyPlayer.reloadPoses();
+          }
+        } catch (e) {}
+        break;
+      }
+      if (text.includes("__DONE__ err")) {
+        log.textContent += text.replace("__DONE__ err", "[ERR] ");
+        title.textContent = "書き出し失敗";
+        break;
+      }
+      log.textContent += text;
+      log.scrollTop = log.scrollHeight;
+    }
+  } catch (e) {
+    log.textContent += "[ERROR] " + e + "\n";
+    title.textContent = "書き出し失敗";
+  }
+  close.disabled = false;
+}
+
+function markDirty() {
+  isDirty = true;
+  const s = document.getElementById("statusMsg");
+  s.className = "status dirty";
+  s.textContent = "未保存の変更あり";
+}
+
+function clearDirty() {
+  isDirty = false;
+  const s = document.getElementById("statusMsg");
+  s.className = "status ok";
+  s.textContent = "保存しました";
+  setTimeout(() => {
+    if (!isDirty) {
+      s.className = "status";
+      s.textContent = "";
+    }
+  }, 3000);
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+init().catch((e) => {
+  const s = document.getElementById("statusMsg");
+  s.className = "status err";
+  s.textContent = "初期化失敗: " + e.message;
+  console.error(e);
+});
+</script>
+</body>
+</html>

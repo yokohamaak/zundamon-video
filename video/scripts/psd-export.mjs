@@ -137,10 +137,22 @@ const CHARS = {
       // 注: 以前の body には ["!顔色","*ほっぺ"] と ["!眉","*普通眉"] が含まれていたが
       // Stage1 以降は cheek/brow を SLOTS から独立書き出しするため除去。
     ],
-    // arm: body とは別に書き出す腕パーツ（zundaのみ）。
+    // arm: body とは別に書き出す腕パーツ。
     arm: {
       arm_normal: [["*服装1", "!左腕", "*基本"], ["*服装1", "!右腕", "*基本"]],
       arm_raise:  [["*服装1", "!左腕", "*手を挙げる"], ["*服装1", "!右腕", "*手を挙げる"]],
+    },
+    // 候補棚卸し用。現行buildでは使わず、candidates出力のみに使う。
+    armCandidates: {
+      arm_normal:    [["*服装1", "!左腕", "*基本"], ["*服装1", "!右腕", "*基本"]],
+      arm_raise:     [["*服装1", "!左腕", "*手を挙げる"], ["*服装1", "!右腕", "*手を挙げる"]],
+      arm_mouth:     [["*服装1", "!左腕", "*口元"], ["*服装1", "!右腕", "*口元"]],
+      arm_suffering: [["*服装1", "!左腕", "*苦しむ"], ["*服装1", "!右腕", "*苦しむ"]],
+      arm_waist:     [["*服装1", "!左腕", "*腰"], ["*服装1", "!右腕", "*腰"]],
+      arm_whisper:   [["*服装1", "!左腕", "*ひそひそ"], ["*服装1", "!右腕", "*基本"]],
+      arm_think:     [["*服装1", "!左腕", "*考える"], ["*服装1", "!右腕", "*基本"]],
+      arm_point:     [["*服装1", "!左腕", "*基本"], ["*服装1", "!右腕", "*指差し"]],
+      arm_mic:       [["*服装1", "!左腕", "*基本"], ["*服装1", "!右腕", "*マイク"]],
     },
     // タスクB: zunda は bangs なし
     extra: {},
@@ -155,7 +167,7 @@ const CHARS = {
   metan: {
     psd: "assets/avatars/metan/source/metan_2.1.psd",
     crop: { x: 110, y: 30, w: 840, h: 800 },
-    // 先生役: 腕差分なし。腕(普通)を土台に焼き込む。
+    // 先生役: 腕をbodyから外し、arm_* として差し替え可能にする。
     // 眉(!眉)と顔色(!顔色)は SLOTS から独立書き出しするため body から除去。
     // タスクB: 前髪もみあげ を body から除去し extra.bangs として独立パーツ化。
     //          PSD z順: 顔色(5) < 口(6) < 目(7) < 眉(8) < アクセサリ(9) < 前髪もみあげ(10)
@@ -164,14 +176,30 @@ const CHARS = {
       ["ツインドリル右"],
       ["ツインドリル左"],
       ["*白ロリ服", "!体"],
-      ["*白ロリ服", "!右腕", "*普通"],
-      ["*白ロリ服", "!左腕", "*普通"],
       // 注: 以前は ["!顔色","*普通2"] と ["!眉","*太眉ごきげん"] を body に含んでいたが除去。
       // 注: ["!前髪もみあげ"] は extra.bangs として独立（タスクB）。
       ["頭部アクセサリ", "ヘッドドレス"],
       ["頭部アクセサリ", "髪留めハート"],
     ],
-    arm: {}, // metan は腕なし（body に内包）
+    arm: {
+      arm_normal:   [["*白ロリ服", "!左腕", "*普通"], ["*白ロリ服", "!右腕", "*普通"]],
+    },
+    // 候補棚卸し兼 build 出力用。
+    armCandidates: {
+      arm_normal:   [["*白ロリ服", "!左腕", "*普通"], ["*白ロリ服", "!右腕", "*普通"]],
+      arm_hush:     [["*白ロリ服", "!左腕", "*ひそひそ"], ["*白ロリ服", "!右腕", "*普通"]],
+      arm_mouth:    [["*白ロリ服", "!左腕", "*口元に指"], ["*白ロリ服", "!右腕", "*普通"]],
+      arm_hold:     [["*白ロリ服", "!左腕", "*抱える"], ["*白ロリ服", "!右腕", "*普通"]],
+      arm_point:    [["*白ロリ服", "!左腕", "*普通"], ["*白ロリ服", "!右腕", "*指差す"]],
+      arm_present:  [["*白ロリ服", "!左腕", "*普通"], ["*白ロリ服", "!右腕", "*手をかざす"]],
+      arm_mic:      [["*白ロリ服", "!左腕", "*マイク"], ["*白ロリ服", "!右腕", "*普通"]],
+      arm_manju:    [
+        ["*白ロリ服", "!左腕", "*普通"],
+        ["*白ロリ服", "!右腕", "*普通"],
+        ["*白ロリ服", "!左腕", "まんじゅう袋"],
+        ["*白ロリ服", "!右腕", "まんじゅう"],
+      ],
+    },
     // タスクB: 常時パーツ(bangs)。build/build-full で arm と同様に書き出す。
     extra: {
       bangs: [["!前髪もみあげ"]],
@@ -323,13 +351,14 @@ if (mode === "build") {
   const dir = resolve(root, `assets/avatars/${charName}`);
   const slots = SLOTS[charName];
   const usedIds = collectUsedIds(charName);
+  const armParts = { ...(cfg.arm || {}), ...(cfg.armCandidates || {}) };
 
   // base（眉/顔色なし）
   writeFileSync(resolve(dir, "base.png"), compose(BODY));
   console.log(`[build] ${charName}/base.png`);
 
   // arm（zundaのみ）
-  for (const [stem, paths] of Object.entries(cfg.arm || {})) {
+  for (const [stem, paths] of Object.entries(armParts)) {
     writeFileSync(resolve(dir, `${stem}.png`), compose(paths));
     console.log(`[build] ${charName}/${stem}.png`);
   }
@@ -357,7 +386,7 @@ if (mode === "build") {
     }
   }
 
-  const total = 1 + Object.keys(cfg.arm || {}).length + Object.keys(cfg.extra || {}).length +
+  const total = 1 + Object.keys(armParts).length + Object.keys(cfg.extra || {}).length +
     ["cheek", "shadow", "brow", "eye", "mouth", "fx"].reduce((n, slot) => {
       return n + (usedIds[slot]?.size ?? 0);
     }, 0);
@@ -367,12 +396,13 @@ if (mode === "build") {
 if (mode === "build-full") {
   const slots = SLOTS[charName];
   const usedIds = collectUsedIds(charName);
+  const armParts = { ...(cfg.arm || {}), ...(cfg.armCandidates || {}) };
 
   // 全パーツを収集（bbox算出のため）
   // base + arm + extra + 各スロットの使用パーツ
   const allParts = [];
   allParts.push({ stem: "base", paths: BODY });
-  for (const [stem, paths] of Object.entries(cfg.arm || {})) {
+  for (const [stem, paths] of Object.entries(armParts)) {
     allParts.push({ stem, paths });
   }
   // タスクB: extra(bangs等)も union bbox に含める
@@ -437,7 +467,7 @@ if (mode === "build-full") {
 if (mode === "candidates") {
   // 全スロット・全候補を単体透過PNG（base合成なし）で書き出す。
   // 同一クロップ(cfg.crop)で書き出すので重ねれば位置が合う。
-  // プレビュー用途。base.png と arm_*.png はバスト用 assets/avatars/<char>/ から流用。
+  // プレビュー用途。base.png はバスト用 assets/avatars/<char>/ から流用。
   const dir = resolve(root, `assets/avatars/${charName}/candidates`);
   mkdirSync(dir, { recursive: true });
   // 旧候補(削除/改名されたid)が残らないよう、既存のpngを一旦掃除してから書き出す。
@@ -446,6 +476,13 @@ if (mode === "candidates") {
   }
   const slots = SLOTS[charName];
   let count = 0;
+
+  for (const [stem, layerPaths] of Object.entries(cfg.armCandidates || {})) {
+    const buf = compose(layerPaths);
+    writeFileSync(resolve(dir, `${stem}.png`), buf);
+    console.log(`[candidates] ${charName}/candidates/${stem}.png`);
+    count++;
+  }
 
   for (const slot of ["cheek", "shadow", "brow", "eye", "mouth", "fx"]) {
     const slotDef = slots[slot];

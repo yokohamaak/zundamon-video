@@ -731,6 +731,7 @@
       <div class="menu-dropdown" id="menuDropdown" style="display:none;">
         <button class="menu-item" id="tabScene" data-view="scene">シーン編集</button>
         <button class="menu-item" id="tabExpr" data-view="expr">表情編集</button>
+        <button class="menu-item" id="tabPose" data-view="pose">ポーズ編集</button>
         <button class="menu-item" id="tabGen" data-view="gen">台本生成</button>
         <button class="menu-item" id="tabAudio" data-view="audio">音（BGM/SE）</button>
         <div class="menu-sep"></div>
@@ -1071,7 +1072,7 @@
   </div>
 </div>
 
-<!-- シーン編集（scene_editor を iframe 埋め込み。story_editor 起動時に scene_editor も自動起動） -->
+<!-- シーン編集（story_editor.py 配下で同居配信） -->
 <div class="scene-view" id="viewScene" style="display:none;">
   <iframe id="sceneFrame" title="シーン編集"></iframe>
 </div>
@@ -1079,6 +1080,11 @@
 <!-- 表情編集（expression_editor を iframe 埋め込み。story_editor 起動時に expression_editor も自動起動） -->
 <div class="expr-view" id="viewExpr" style="display:none;">
   <iframe id="exprFrame" title="表情編集"></iframe>
+</div>
+
+<!-- ポーズ編集（story_editor.py 配下で同居配信） -->
+<div class="expr-view" id="viewPose" style="display:none;">
+  <iframe id="poseFrame" title="ポーズ編集"></iframe>
 </div>
 
 <!-- 音(BGM/SE)タブ -->
@@ -3964,8 +3970,8 @@ function setMobilePanel(panel) {
 // ============================================================
 // イベント設定
 // ============================================================
-// 台本/シーン/表情/台本生成/音 タブ切替。
-// シーンは scene_editor(8770)、表情は expression_editor(8772) を iframe で埋め込み（初回のみ読み込み）。
+// 台本/シーン/表情/ポーズ/台本生成/音 タブ切替。
+// シーン/表情/ポーズは story_editor.py 配下で iframe 埋め込み。
 // 他画面/ファイル操作のドロップダウンメニュー（クリックで下に開閉）。
 function setupHeaderMenu() {
   const btn = document.getElementById("menuBtn");
@@ -3986,19 +3992,22 @@ function setupTabs() {
   const tScript = document.getElementById("tabScript");
   const tScene = document.getElementById("tabScene");
   const tExpr = document.getElementById("tabExpr");
+  const tPose = document.getElementById("tabPose");
   const tGen = document.getElementById("tabGen");
   const tAudio = document.getElementById("tabAudio");
   const vScript = document.getElementById("viewScript");
   const vScene = document.getElementById("viewScene");
   const vExpr = document.getElementById("viewExpr");
+  const vPose = document.getElementById("viewPose");
   const vGen = document.getElementById("viewGen");
   const vAudio = document.getElementById("viewAudio");
   const sceneFrame = document.getElementById("sceneFrame");
   const exprFrame = document.getElementById("exprFrame");
+  const poseFrame = document.getElementById("poseFrame");
 
   function activateTab(active) {
     // タブボタンのactive切替
-    [tScript, tScene, tExpr, tGen, tAudio].forEach(t => t.classList.toggle("active", t === active));
+    [tScript, tScene, tExpr, tPose, tGen, tAudio].forEach(t => t.classList.toggle("active", t === active));
     // メニュー内の画面が選ばれていればメニューボタンを強調。
     const mb = document.getElementById("menuBtn");
     if (mb) mb.classList.toggle("has-active", active !== tScript);
@@ -4006,6 +4015,7 @@ function setupTabs() {
     vScript.style.display = active === tScript ? "" : "none";
     vScene.style.display = active === tScene ? "" : "none";
     vExpr.style.display = active === tExpr ? "" : "none";
+    vPose.style.display = active === tPose ? "" : "none";
     vGen.style.display = active === tGen ? "flex" : "none";
     vAudio.style.display = active === tAudio ? "flex" : "none";
   }
@@ -4014,20 +4024,25 @@ function setupTabs() {
     activateTab(tScript);
     refreshScenes();            // シーンが編集された可能性 → 台本側のシーン選択肢を更新
     refreshExpressions();       // 表情が追加/削除された可能性 → 台本側の表情選択肢を更新
+    refreshPoses();             // ポーズエディタで腕差分が更新された可能性 → プレビューへ反映
     sizePlayerWrap();
   });
   tScene.addEventListener("click", () => {
     activateTab(tScene);
     if (!sceneFrame.getAttribute("src")) {
-      // scene_editor は story_editor 起動時に自動起動（localhost:8770）
-      sceneFrame.src = (location.protocol + "//" + location.hostname + ":8770/");
+      sceneFrame.src = "/scene-editor";
     }
   });
   tExpr.addEventListener("click", () => {
     activateTab(tExpr);
     if (!exprFrame.getAttribute("src")) {
-      // expression_editor は story_editor 起動時に自動起動（localhost:8772）
-      exprFrame.src = (location.protocol + "//" + location.hostname + ":8772/");
+      exprFrame.src = "/expression-editor";
+    }
+  });
+  tPose.addEventListener("click", () => {
+    activateTab(tPose);
+    if (!poseFrame.getAttribute("src")) {
+      poseFrame.src = "/pose-editor";
     }
   });
   tGen.addEventListener("click", () => {
@@ -4065,6 +4080,14 @@ async function refreshExpressions() {
     // 表情エディタで変えた表情パーツ/割当をプレビューにも反映する。
     if (window.storyPlayer && playerReady && window.storyPlayer.reloadExpressions) {
       window.storyPlayer.reloadExpressions();
+    }
+  } catch (e) { /* 失敗時は据え置き */ }
+}
+
+async function refreshPoses() {
+  try {
+    if (window.storyPlayer && playerReady && window.storyPlayer.reloadPoses) {
+      await window.storyPlayer.reloadPoses();
     }
   } catch (e) { /* 失敗時は据え置き */ }
 }

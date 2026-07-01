@@ -53,8 +53,9 @@ export type ExpressionCfg = {
     | "sneak"
     | "wobble"
     | null;
-  // 腕差分があるキャラ用。未指定時は従来どおり emotion から自動決定。
-  arm?: "normal" | "raise" | null;
+  // 腕差分があるキャラ用。arm_normal / arm_raise / arm_whisper などのstem名。
+  // 旧データ互換のため "normal" / "raise" も受け付ける。
+  arm?: string | null;
   eye: string;
   mouth_close: string;
   mouth_half: string;
@@ -134,6 +135,10 @@ export const Avatar: React.FC<{
   // 表情設定（expressions.json の該当エントリ）。
   // 指定がなければ旧来の emotion ベースのフォールバック挙動。
   expressionCfg?: ExpressionCfg | null;
+  // 台本turnのポーズ名。expressionCfg.pose より優先して使う。
+  poseName?: ExpressionCfg["pose"];
+  // ポーズ定義から解決した腕stem。expressionCfg.arm より優先。
+  poseArmStem?: string | null;
 }> = ({
   dir,
   manifest,
@@ -149,6 +154,8 @@ export const Avatar: React.FC<{
   boxWidth = 445,
   boxHeight = 445,
   expressionCfg,
+  poseName,
+  poseArmStem,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -204,7 +211,7 @@ export const Avatar: React.FC<{
     rotate += Math.sin(time * Math.PI * 2 * 3.5) * 0.9;
   }
 
-  const pose = expressionCfg?.pose ?? fallbackPose(emotion);
+  const pose = poseName ?? expressionCfg?.pose ?? fallbackPose(emotion);
   const poseStrength = expressive ? 1 : 0.65;
   const facingSign = flip ? -1 : 1;
   if (pose === "cheer") {
@@ -448,11 +455,19 @@ export const Avatar: React.FC<{
   // ② 腕レイヤー差し替え（arm_normal/arm_raise があれば）。
   //    驚き中は arm_raise（手を上げる）。口パク・まばたきは継続したまま腕だけ替わる。
   //    腕レイヤーが無いキャラ(例:めたん)は base に腕が含まれる前提で何もしない。
-  const armMode =
-    expressionCfg?.arm ??
-    (surprised || pose === "cheer" || pose === "proud" || pose === "step_in" ? "raise" : "normal");
-  let armStem = "arm_normal";
-  if (armMode === "raise" && part("arm_raise")) armStem = "arm_raise";
+  const autoArmStem =
+    surprised || pose === "cheer" || pose === "proud" || pose === "step_in"
+      ? "arm_raise"
+      : "arm_normal";
+  const requestedArm = poseArmStem ?? expressionCfg?.arm ?? autoArmStem;
+  let armStem = autoArmStem;
+  if (requestedArm === "raise") armStem = "arm_raise";
+  else if (requestedArm === "normal") armStem = "arm_normal";
+  else if (typeof requestedArm === "string" && requestedArm) armStem = requestedArm;
+  if (!part(armStem)) {
+    if (armStem !== "arm_normal" && part("arm_normal")) armStem = "arm_normal";
+    else if (armStem !== "arm_raise" && part("arm_raise")) armStem = "arm_raise";
+  }
   const armSrc = part(armStem);
 
   // ③ 重ね順: base → shadow → cheek → arm → eye → mouth → bangs → brow → fx（眉は髪より前面）

@@ -18,10 +18,10 @@
       "shadow": null,
       "pose": "cheer",
       "arm": "raise",
-      "eye": "smile",
-      "mouth_close": "smile_close",
-      "mouth_half": "smile_open",
-      "mouth_open": "smile_open",
+      "eye": "nikkori",
+      "mouth_close": "mufu",
+      "mouth_half": "ho",
+      "mouth_open": "open",
       "fx": null
     },
     "surprise": {
@@ -58,7 +58,7 @@
       "mouth_close": "close",
       "mouth_half": "o",
       "mouth_open": "hahee",
-      "fx": "sweat2"
+      "fx": "tears"
     }
   },
   "metan": {
@@ -78,10 +78,10 @@
       "cheek": "normal2",
       "shadow": null,
       "pose": "lean",
-      "eye": "smile",
-      "mouth_close": "smile_close",
-      "mouth_half": "smile_open",
-      "mouth_open": "smile_open",
+      "eye": "close",
+      "mouth_close": "close",
+      "mouth_half": "open",
+      "mouth_open": "open",
       "fx": null
     },
     "surprise": {

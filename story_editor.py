@@ -16,6 +16,10 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
 
+import expression_editor as expression_editor_module
+import pose_editor as pose_editor_module
+import scene_editor as scene_editor_module
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
@@ -32,7 +36,7 @@ _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 # /preview-assets/<path> として配信する（パストラバーサル防止付き）。
 # 許可するトップレベルディレクトリ名 or ファイル名の集合。
 _PREVIEW_ASSET_DIRS = {"avatars", "background", "mobs", "bgm", "se", "fonts", "overlays"}
-_PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "se-map.json",
+_PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "poses.json", "se-map.json",
                         "noise.png", "story-01.wav", "story-01.mp3",
                         "story.wav", "story.mp3"}
 
@@ -68,6 +72,37 @@ def _load_page():
     path = os.path.join(ROOT_DIR, "story_editor.html")
     with open(path, encoding="utf-8") as f:
         return f.read()
+
+
+def _load_pose_page():
+    html = pose_editor_module._load_page()
+    inject = (
+        "<script>"
+        'window.POSE_EDITOR_EXPORT_ENDPOINT="/api/pose-export";'
+        "</script>"
+    )
+    return html.replace("</head>", inject + "\n</head>", 1)
+
+
+def _load_expression_page():
+    html = expression_editor_module._load_page()
+    inject = (
+        "<script>"
+        'window.EXPRESSION_EDITOR_API_BASE="/api/expression";'
+        'window.EXPRESSION_EDITOR_EXPORT_ENDPOINT="/api/expression-export";'
+        "</script>"
+    )
+    return html.replace("</head>", inject + "\n</head>", 1)
+
+
+def _load_scene_page():
+    html = scene_editor_module._load_page()
+    inject = (
+        "<script>"
+        'window.SCENE_EDITOR_API_BASE="/api/scene";'
+        "</script>"
+    )
+    return html.replace("</head>", inject + "\n</head>", 1)
 
 
 def _load_story():
@@ -659,6 +694,45 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
 
+        elif path == "/pose-editor":
+            try:
+                body = _load_pose_page().encode("utf-8")
+            except FileNotFoundError:
+                self._send_error_json(500, "pose_editor.html が見つかりません")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, must-revalidate")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        elif path == "/expression-editor":
+            try:
+                body = _load_expression_page().encode("utf-8")
+            except FileNotFoundError:
+                self._send_error_json(500, "expression_editor.html が見つかりません")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, must-revalidate")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        elif path == "/scene-editor":
+            try:
+                body = _load_scene_page().encode("utf-8")
+            except FileNotFoundError:
+                self._send_error_json(500, "scene_editor.html が見つかりません")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, must-revalidate")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         elif path == "/story-player.js":
             self._send_file(
                 os.path.join(VIDEO_PUBLIC_DIR, "story-player.js"),
@@ -689,6 +763,52 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     "insertKinds": INSERT_KINDS,
                 }
                 self._send_json(meta)
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/catalog":
+            try:
+                self._send_json(pose_editor_module._build_catalog())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/poses":
+            try:
+                self._send_json(pose_editor_module._load_poses())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/expression/catalog":
+            try:
+                self._send_json(expression_editor_module._build_catalog())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/expression/expressions":
+            try:
+                self._send_json(expression_editor_module._load_expressions())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/scene/scenes":
+            try:
+                self._send_json(scene_editor_module._load_scenes())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/scene/list-assets":
+            try:
+                self._send_json(scene_editor_module._list_assets())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/expressions":
+            try:
+                if os.path.exists(EXPRESSIONS_JSON):
+                    with open(EXPRESSIONS_JSON, encoding="utf-8") as f:
+                        self._send_json(json.load(f))
+                else:
+                    self._send_json({})
             except Exception as e:
                 self._send_error_json(500, str(e))
 
@@ -839,6 +959,137 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                      else "__DONE__ err 音声生成に失敗（VOICEVOX起動を確認）\n")
             except Exception as e:
                 emit("__DONE__ err " + str(e) + "\n")
+        elif path == "/api/poses":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                pose_editor_module._save_poses(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/scene/scenes":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                scene_editor_module._save_scenes(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/expression/expressions":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                expression_editor_module._save_expressions(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/pose-export":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+
+            def emit(text):
+                try:
+                    self.wfile.write(text.encode("utf-8"))
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    return False
+
+            cmds = [
+                ["node", "scripts/psd-export.mjs", "candidates", "zundamon"],
+                ["node", "scripts/psd-export.mjs", "candidates", "metan"],
+                ["node", "scripts/psd-export.mjs", "build", "zundamon"],
+                ["node", "scripts/psd-export.mjs", "build-full", "zundamon"],
+                ["node", "scripts/psd-export.mjs", "build", "metan"],
+                ["node", "scripts/psd-export.mjs", "build-full", "metan"],
+                ["node", "scripts/prep-story.mjs"],
+                ["node", "scripts/build-story-player.mjs"],
+            ]
+            try:
+                video_dir = os.path.join(ROOT_DIR, "video")
+                for cmd in cmds:
+                    label = " ".join(cmd)
+                    if not emit(f"=== {label} ===\n"):
+                        break
+                    proc = subprocess.Popen(
+                        cmd,
+                        cwd=video_dir,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        bufsize=1,
+                    )
+                    for line in proc.stdout:
+                        if not emit(line):
+                            proc.kill()
+                            break
+                    proc.wait()
+                    if proc.returncode != 0:
+                        emit(f"__DONE__ err コマンド失敗: {label} (exit={proc.returncode})\n")
+                        return
+                emit("__DONE__ ok\n")
+            except Exception as e:
+                emit(f"__DONE__ err {e}\n")
+        elif path == "/api/expression-export":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+
+            def emit(text):
+                try:
+                    self.wfile.write(text.encode("utf-8"))
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    return False
+
+            cmds = [
+                ["node", "scripts/psd-export.mjs", "build", "zundamon"],
+                ["node", "scripts/psd-export.mjs", "build-full", "zundamon"],
+                ["node", "scripts/psd-export.mjs", "build", "metan"],
+                ["node", "scripts/psd-export.mjs", "build-full", "metan"],
+                ["node", "scripts/prep-story.mjs"],
+                ["node", "scripts/build-story-player.mjs"],
+            ]
+            try:
+                video_dir = os.path.join(ROOT_DIR, "video")
+                for cmd in cmds:
+                    label = " ".join(cmd)
+                    if not emit(f"=== {label} ===\n"):
+                        break
+                    proc = subprocess.Popen(
+                        cmd,
+                        cwd=video_dir,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        bufsize=1,
+                    )
+                    for line in proc.stdout:
+                        if not emit(line):
+                            proc.kill()
+                            break
+                    proc.wait()
+                    if proc.returncode != 0:
+                        emit(f"__DONE__ err コマンド失敗: {label} (exit={proc.returncode})\n")
+                        return
+                emit("__DONE__ ok\n")
+            except Exception as e:
+                emit(f"__DONE__ err {e}\n")
         else:
             self._send_error_json(404, "Not Found")
 
@@ -873,44 +1124,6 @@ def _run_prep_story():
         print("[story] node が無いため prep-story をスキップ（手動: cd video && node scripts/prep-story.mjs）")
 
 
-def _maybe_start_scene_editor(host="localhost"):
-    # シーンタブの iframe 用に scene_editor(8770) を自動起動する（既に起動済みなら何もしない）。
-    scene_py = os.path.join(ROOT_DIR, "scene_editor.py")
-    if not os.path.isfile(scene_py):
-        return
-    if _port_in_use(8770):
-        print("[story] scene_editor は既に起動済み (http://localhost:8770)")
-        return
-    try:
-        proc = subprocess.Popen(
-            [sys.executable, scene_py, "--host", host],
-            cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        atexit.register(lambda: proc.terminate())
-        print("[story] scene_editor を自動起動しました (http://localhost:8770)")
-    except Exception as e:
-        print(f"[story] scene_editor の自動起動に失敗: {e}（シーンタブは手動起動が必要）")
-
-
-def _maybe_start_expression_editor(host="localhost"):
-    # 表情タブの iframe 用に expression_editor(8772) を自動起動する（既に起動済みなら何もしない）。
-    expr_py = os.path.join(ROOT_DIR, "expression_editor.py")
-    if not os.path.isfile(expr_py):
-        return
-    if _port_in_use(8772):
-        print("[story] expression_editor は既に起動済み (http://localhost:8772)")
-        return
-    try:
-        proc = subprocess.Popen(
-            [sys.executable, expr_py, "--host", host],
-            cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        atexit.register(lambda: proc.terminate())
-        print("[story] expression_editor を自動起動しました (http://localhost:8772)")
-    except Exception as e:
-        print(f"[story] expression_editor の自動起動に失敗: {e}（表情タブは手動起動が必要）")
-
-
 def main():
     parser = argparse.ArgumentParser(description="ストーリーエディタ")
     parser.add_argument("--port", type=int, default=8771)
@@ -919,9 +1132,7 @@ def main():
     args = parser.parse_args()
 
     _run_prep_story()  # 起動時に assets→public を同期(手動 prep-story 不要に)
-    # サブエディタ(シーン/表情)も同じホストで待受（スマホからiframeを開けるように）。
-    _maybe_start_scene_editor(args.host)
-    _maybe_start_expression_editor(args.host)
+    # シーン/表情/ポーズは story_editor.py に統合済み。
 
     server = ThreadingHTTPServer((args.host, args.port), StoryEditorHandler)
     print(f"ストーリーエディタ起動: http://{args.host}:{args.port}")

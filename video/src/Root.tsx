@@ -6,6 +6,7 @@ import type {
   StoryScript,
   SceneLibrary,
   StoryVideoProps,
+  PosesMap,
   SeMap,
 } from "./StoryVideo";
 import "./fonts"; // import時に日本語フォントのロードを開始（豆腐防止）
@@ -30,6 +31,13 @@ async function loadStory(): Promise<StoryVideoProps> {
   } catch {
     // expressions.json 未配置時は旧来の emotion ベースにフォールバック
   }
+  let poses: PosesMap | undefined;
+  try {
+    const pres = await fetch(staticFile("poses.json"));
+    if (pres.ok) poses = await pres.json();
+  } catch {
+    // poses.json 未配置時はAvatar側の自動腕割当にフォールバック
+  }
   let seMap: SeMap | undefined;
   try {
     const sres = await fetch(staticFile("se-map.json"));
@@ -37,7 +45,7 @@ async function loadStory(): Promise<StoryVideoProps> {
   } catch {
     // se-map.json 未配置時は SE 再生なしにフォールバック
   }
-  return { story, scenes, manifest, audio: story.audio, expressions, seMap };
+  return { story, scenes, manifest, audio: story.audio, expressions, poses, seMap };
 }
 
 export const FPS = 30;

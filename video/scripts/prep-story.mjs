@@ -134,6 +134,23 @@ for (const [sub, exts, label] of [
   }
 }
 
+// poses.json を public/ にコピー（public/直置き運用）。
+// すでに public/poses.json にある場合はそのまま使う（上書きしない）。
+{
+  const posesDst = resolve(pubDir, "poses.json");
+  if (existsSync(posesDst)) {
+    console.log("[prep-story] poses.json は public/ に存在します（コピー不要）");
+  } else {
+    const posesAssets = resolve(root, "assets", "poses.json");
+    if (existsSync(posesAssets)) {
+      copyFileSync(posesAssets, posesDst);
+      console.log("[prep-story] copied poses.json from assets/");
+    } else {
+      console.warn("[prep-story] poses.json が見つかりません（public/ にも assets/ にもなし）");
+    }
+  }
+}
+
 // se-map.json を public/ に用意（public直置き運用）。
 // assets/se-map.json があればコピー。無ければ既存 public/se-map.json を尊重（上書きしない）。
 {

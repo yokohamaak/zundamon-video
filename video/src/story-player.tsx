@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { StoryVideo } from "./StoryVideo";
-import type { StoryScript, SceneLibrary, ExpressionsMap, SeMap } from "./StoryVideo";
+import type { StoryScript, SceneLibrary, ExpressionsMap, PosesMap, SeMap } from "./StoryVideo";
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -14,6 +14,7 @@ type StoryPlayerApi = {
   updateStory: (story: StoryScript) => void;
   reloadScenes: () => Promise<void>;
   reloadExpressions: () => Promise<void>;
+  reloadPoses: () => Promise<void>;
   seekToFrame: (frame: number) => void;
   seekToTime: (sec: number) => void;
   play: () => void;
@@ -35,6 +36,7 @@ type Props = {
   manifest?: Record<string, Record<string, string>>;
   audio?: string;
   expressions?: ExpressionsMap;
+  poses?: PosesMap;
   seMap?: SeMap;
 };
 
@@ -149,6 +151,14 @@ async function loadInitialProps(): Promise<Props> {
     // expressions.json 未配置時は旧来の emotion ベースにフォールバック
   }
 
+  let poses: PosesMap | undefined;
+  try {
+    const pRes = await fetch("/preview-assets/poses.json", { cache: "no-store" });
+    if (pRes.ok) poses = await pRes.json();
+  } catch {
+    // poses.json 未配置時はAvatar側の自動腕割当にフォールバック
+  }
+
   let seMap: SeMap | undefined;
   try {
     const sRes = await fetch("/preview-assets/se-map.json", { cache: "no-store" });
@@ -158,7 +168,7 @@ async function loadInitialProps(): Promise<Props> {
   }
 
   const audio = story.audio ?? undefined;
-  return { story, scenes, manifest, audio, expressions, seMap };
+  return { story, scenes, manifest, audio, expressions, poses, seMap };
 }
 
 window.storyPlayer = {
@@ -219,6 +229,18 @@ window.storyPlayer = {
       if (!res.ok) return;
       const expressions = await res.json();
       setPropsState((prev) => ({ ...prev, expressions } as Props));
+    } catch {
+      // 失敗時は据え置き
+    }
+  },
+
+  async reloadPoses() {
+    if (!setPropsState) return;
+    try {
+      const res = await fetch("/preview-assets/poses.json", { cache: "no-store" });
+      if (!res.ok) return;
+      const poses = await res.json();
+      setPropsState((prev) => ({ ...prev, poses } as Props));
     } catch {
       // 失敗時は据え置き
     }

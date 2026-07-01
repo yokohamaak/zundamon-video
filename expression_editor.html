@@ -185,6 +185,132 @@
     white-space: pre-wrap; min-height: 200px;
   }
   .export-close { margin-left: auto; }
+
+  @media (max-width: 1100px) {
+    body { overflow: auto; }
+    .main {
+      flex-direction: column;
+      overflow: auto;
+    }
+    .expr-list {
+      width: 100%;
+      max-height: 160px;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      overflow-y: auto;
+      overflow-x: hidden;
+      gap: 6px;
+      padding: 10px;
+    }
+    .expr-section-title {
+      width: 100%;
+      padding: 2px 2px 4px;
+    }
+    .expr-item,
+    .expr-add-btn {
+      min-width: 148px;
+    }
+    .preview-area {
+      flex: 0 0 auto;
+      min-height: 320px;
+      padding: 14px 12px;
+    }
+    .slot-panel {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      overflow: visible;
+    }
+    .slot-section {
+      padding: 10px 12px;
+    }
+    .export-box {
+      width: min(560px, calc(100vw - 24px));
+      max-height: calc(100dvh - 24px);
+    }
+  }
+
+  @media (max-width: 720px) {
+    html, body { font-size: 13px; }
+    body {
+      height: auto;
+      min-height: 100dvh;
+    }
+    .header {
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px 12px;
+    }
+    .header h1 {
+      width: 100%;
+    }
+    .tabs {
+      width: 100%;
+    }
+    .tab {
+      flex: 1;
+      padding: 8px 10px;
+    }
+    .btn {
+      flex: 1 1 0;
+      min-height: 38px;
+      padding: 8px 10px;
+    }
+    .status {
+      width: 100%;
+      margin-left: 0;
+      text-align: left;
+    }
+    .expr-list {
+      max-height: 216px;
+      padding: 8px;
+    }
+    .expr-item,
+    .expr-add-btn {
+      min-width: calc(50% - 3px);
+      width: calc(50% - 3px);
+    }
+    .preview-area {
+      min-height: 260px;
+      gap: 10px;
+      padding: 12px 10px;
+    }
+    .preview-wrap {
+      max-width: 100%;
+    }
+    .mouth-toggle {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .mouth-btn {
+      min-width: 72px;
+      padding: 6px 10px;
+    }
+    .cand-grid {
+      gap: 5px;
+    }
+    .cand-thumb-wrap,
+    .cand-thumb {
+      width: 88px;
+      height: 88px;
+    }
+    .cand-label {
+      max-width: 88px;
+    }
+    .cand-none {
+      min-height: 38px;
+    }
+    .export-box {
+      padding: 14px 12px;
+    }
+    .export-log {
+      min-height: 160px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -238,6 +364,10 @@
 </div>
 
 <script>
+const API_BASE = window.EXPRESSION_EDITOR_API_BASE || "";
+const EXPORT_ENDPOINT = window.EXPRESSION_EDITOR_EXPORT_ENDPOINT || (API_BASE + "/api/export");
+const IMG_BASE = window.EXPRESSION_EDITOR_IMG_BASE || "/img/";
+
 // ============================================================
 // 状態
 // ============================================================
@@ -308,12 +438,12 @@ async function init() {
 }
 
 async function fetchCatalog() {
-  const r = await fetch("/api/catalog");
+  const r = await fetch(API_BASE + "/catalog");
   catalog = await r.json();
 }
 
 async function fetchExpressions() {
-  const r = await fetch("/api/expressions");
+  const r = await fetch(API_BASE + "/expressions");
   expressions = await r.json();
   rebuildExpressionList();
 }
@@ -551,7 +681,7 @@ function buildSlotPanel() {
       thumbWrap.className = "cand-thumb-wrap";
       const thumb = document.createElement("img");
       thumb.className = "cand-thumb";
-      thumb.src = "/img/" + cand.file;
+      thumb.src = IMG_BASE + cand.file;
       thumb.alt = cand.label;
       thumb.loading = "lazy";
       thumb.onerror = () => {
@@ -631,7 +761,7 @@ function renderPreview() {
   // !顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に。
   // mouth は currentMouthSlot の値を使う
   const layers = [
-    { key: "base",   src: charCat?.base ? "/img/" + charCat.base : null },
+    { key: "base",   src: charCat?.base ? IMG_BASE + charCat.base : null },
     { key: "shadow", src: _candidateSrc(charCat, "shadow", cfg["shadow"]) },
     { key: "cheek",  src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
     { key: "arm",    src: charCat?.arm  ? "/img/" + charCat.arm  : null },
@@ -664,7 +794,7 @@ function _candidateSrc(charCat, slot, id) {
   if (!id || !charCat) return null;
   const candidates = charCat.slots?.[slot] || [];
   const cand = candidates.find(c => c.id === id);
-  return cand ? "/img/" + cand.file : null;
+  return cand ? IMG_BASE + cand.file : null;
 }
 
 // ============================================================
@@ -693,7 +823,7 @@ async function saveExpressions() {
   s.className = "status";
   s.textContent = "保存中...";
   try {
-    const r = await fetch("/api/expressions", {
+    const r = await fetch(API_BASE + "/expressions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(expressions),
@@ -701,6 +831,11 @@ async function saveExpressions() {
     const result = await r.json();
     if (r.ok && result.ok) {
       clearDirty();
+      try {
+        if (window.parent && window.parent !== window && window.parent.storyPlayer?.reloadExpressions) {
+          window.parent.storyPlayer.reloadExpressions();
+        }
+      } catch (e) {}
     } else {
       s.className = "status err";
       s.textContent = result.error || "保存失敗";
@@ -726,7 +861,7 @@ async function startExport() {
   overlay.classList.add("show");
 
   try {
-    const r = await fetch("/api/export", { method: "POST" });
+    const r = await fetch(EXPORT_ENDPOINT, { method: "POST" });
     if (!r.ok) {
       log.textContent += "[ERROR] HTTP " + r.status + "\n";
       h2.textContent = "書き出し失敗";
@@ -746,6 +881,11 @@ async function startExport() {
         if (buf.includes("__DONE__ ok")) {
           log.textContent += buf.replace("__DONE__ ok\n", "");
           h2.textContent = "書き出し完了";
+          try {
+            if (window.parent && window.parent !== window && window.parent.storyPlayer?.reloadExpressions) {
+              window.parent.storyPlayer.reloadExpressions();
+            }
+          } catch (e) {}
           break;
         } else if (buf.includes("__DONE__ err")) {
           const errLine = buf.split("__DONE__ err")[1] || "";

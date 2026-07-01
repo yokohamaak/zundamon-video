@@ -1,0 +1,78 @@
+{
+  "zundamon": {
+    "idle": {
+      "arm": "arm_normal"
+    },
+    "cheer": {
+      "arm": "arm_raise"
+    },
+    "recoil": {
+      "arm": "arm_raise"
+    },
+    "lean": {
+      "arm": "arm_think"
+    },
+    "droop": {
+      "arm": "arm_waist"
+    },
+    "flustered": {
+      "arm": "arm_mouth"
+    },
+    "proud": {
+      "arm": "arm_point"
+    },
+    "step_in": {
+      "arm": "arm_point"
+    },
+    "step_back": {
+      "arm": "arm_waist"
+    },
+    "listening": {
+      "arm": "arm_think"
+    },
+    "sneak": {
+      "arm": "arm_whisper"
+    },
+    "wobble": {
+      "arm": "arm_suffering"
+    }
+  },
+  "metan": {
+    "idle": {
+      "arm": "arm_normal"
+    },
+    "cheer": {
+      "arm": "arm_present"
+    },
+    "recoil": {
+      "arm": "arm_mouth"
+    },
+    "lean": {
+      "arm": "arm_hold"
+    },
+    "droop": {
+      "arm": "arm_hold"
+    },
+    "flustered": {
+      "arm": "arm_mouth"
+    },
+    "proud": {
+      "arm": "arm_present"
+    },
+    "step_in": {
+      "arm": "arm_point"
+    },
+    "step_back": {
+      "arm": "arm_hold"
+    },
+    "listening": {
+      "arm": "arm_hush"
+    },
+    "sneak": {
+      "arm": "arm_hush"
+    },
+    "wobble": {
+      "arm": "arm_manju"
+    }
+  }
+}
