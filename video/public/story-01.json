@@ -53,6 +53,27 @@
       "expression": "normal",
       "transition": "cut",
       "pose": "proud",
+      "insert": {
+        "kind": "videocall",
+        "room": "開発定例会議",
+        "layout": "focus",
+        "participants": [
+          {
+            "speaker": "zundamon",
+            "bgStyle": "meeting_room"
+          },
+          {
+            "speaker": "営業",
+            "bgStyle": "office",
+            "muted": true
+          },
+          {
+            "speaker": "AI",
+            "name": "ZunAI",
+            "bgStyle": "ai"
+          }
+        ]
+      },
       "id": "turn-0003",
       "start": 13.521,
       "end": 19.164,
@@ -93,7 +114,22 @@
           "start": 21.861,
           "end": 26.618
         }
-      ]
+      ],
+      "insert": {
+        "kind": "videocall",
+        "room": "定例会議",
+        "layout": "focus",
+        "participants": [
+          {
+            "speaker": "zundamon",
+            "bgStyle": "office"
+          },
+          {
+            "speaker": "metan",
+            "bgStyle": "meeting_room"
+          }
+        ]
+      }
     },
     {
       "speaker": "zundamon",

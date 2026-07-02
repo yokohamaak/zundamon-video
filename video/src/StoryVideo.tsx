@@ -19,7 +19,20 @@ export type StoryInsert =
   | { kind: "chat"; user: string; ai: string[]; highlight?: number }
   | { kind: "ok"; text?: string }
   | { kind: "teamchat"; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
-  | { kind: "mailer"; from?: string; fromAddr?: string; subject: string; body: string; time?: string };
+  | { kind: "mailer"; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
+  | {
+    kind: "videocall";
+    room?: string;
+    layout?: "focus" | "grid";
+    activeSpeaker?: string;
+    participants: Array<{
+      speaker: string;
+      name?: string;
+      bgStyle?: "office" | "meeting_room" | "home" | "ai" | "green";
+      cameraOff?: boolean;
+      muted?: boolean;
+    }>;
+  };
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
@@ -254,13 +267,44 @@ const MOBS: Record<string, MobDef> = {
   },
 };
 const isMob = (id: string): boolean => id in MOBS;
-// セリフがインサート画面（チャット/AIチャット）に出ているターンか。
-// true のターンは吹き出しを出さない（画面と内容が重複するため）。
-function lineShownInInsert(turn: StoryTurn): boolean {
-  return (
-    !!turn.insert &&
-    (turn.insert.kind === "teamchat" || turn.insert.kind === "chat")
+function isInsertLineKind(insert: StoryInsert | null | undefined): boolean {
+  return !!insert && (
+    insert.kind === "teamchat" || insert.kind === "chat" || insert.kind === "videocall"
   );
+}
+
+function mergeVideoCallInsert(
+  base: Extract<StoryInsert, { kind: "videocall" }> | null,
+  patch: Extract<StoryInsert, { kind: "videocall" }>
+): Extract<StoryInsert, { kind: "videocall" }> {
+  return {
+    kind: "videocall",
+    room: patch.room ?? base?.room,
+    layout: patch.layout ?? base?.layout,
+    activeSpeaker: patch.activeSpeaker ?? base?.activeSpeaker,
+    participants:
+      patch.participants && patch.participants.length > 0
+        ? patch.participants
+        : (base?.participants ?? []),
+  };
+}
+
+function effectiveInsertAt(script: StoryTurn[], idx: number): StoryInsert | null {
+  const cur = script[idx];
+  if (!cur) return null;
+  if (cur.insert && cur.insert.kind !== "videocall") return cur.insert;
+  let merged: Extract<StoryInsert, { kind: "videocall" }> | null =
+    cur.insert?.kind === "videocall" ? cur.insert : null;
+  for (let i = idx - 1; i >= 0; i -= 1) {
+    const prev = script[i];
+    if (!prev || prev.scene !== cur.scene) break;
+    if (prev.insert && prev.insert.kind !== "videocall") break;
+    if (prev.insert?.kind === "videocall") {
+      merged = mergeVideoCallInsert(prev.insert, merged ?? prev.insert);
+      if (merged.participants.length > 0 && merged.layout && merged.room) break;
+    }
+  }
+  return merged;
 }
 // 取り乱し系の表情なら agitated（焦り/怒り）、それ以外は normal。
 // 未知の追加表情は normal 扱い（組み込み5種と比較してフォールバック）。
@@ -1410,6 +1454,474 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
   );
 };
 
+function videoParticipantAsset(speaker: string): {
+  kind: "char" | "mob" | "ai" | "unknown";
+  src?: string;
+  label: string;
+  accent: string;
+} {
+  if (speaker === "AI") {
+    return { kind: "ai", label: "ZunAI", accent: "#9ed957" };
+  }
+  if (speaker in CHARACTERS) {
+    const cdef = CHARACTERS[speaker];
+    return {
+      kind: "char",
+      src: staticFile(`avatars/${cdef.avatar}/icon.png`),
+      label: TEAMCHAT_DISPLAY[speaker] ?? speaker,
+      accent: cdef.bubbleColor ?? "#9ed957",
+    };
+  }
+  if (speaker in MOBS) {
+    const m = MOBS[speaker];
+    return {
+      kind: "mob",
+      src: staticFile(m.images.normal),
+      label: speaker,
+      accent: "#d7e56d",
+    };
+  }
+  return { kind: "unknown", label: speaker, accent: "#9ed957" };
+}
+
+function videoBgStyle(style: string | undefined): React.CSSProperties {
+  switch (style) {
+    case "home":
+      return {
+        background:
+          "linear-gradient(180deg, rgba(6,10,14,0.16), rgba(6,10,14,0.3))",
+        backgroundImage: `linear-gradient(180deg, rgba(8,12,16,0.08), rgba(8,12,16,0.34)), url(${staticFile("background/room.png")})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center center",
+      };
+    case "meeting_room":
+      return {
+        background:
+          "linear-gradient(180deg, rgba(6,10,14,0.18), rgba(6,10,14,0.34))",
+        backgroundImage: `linear-gradient(180deg, rgba(8,12,16,0.08), rgba(8,12,16,0.34)), url(${staticFile("background/kaigisitsu.png")})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center center",
+      };
+    case "ai":
+      return {
+        background:
+          "radial-gradient(circle at 30% 30%, rgba(158,217,87,0.28), transparent 24%), radial-gradient(circle at 75% 22%, rgba(52,164,118,0.2), transparent 20%), linear-gradient(135deg, #18281d 0%, #122018 44%, #0d1612 100%)",
+      };
+    case "green":
+      return {
+        background:
+          "linear-gradient(135deg, #234129 0%, #1a3322 48%, #13231a 100%)",
+      };
+    case "office":
+    default:
+      return {
+        background:
+          "linear-gradient(180deg, rgba(6,10,14,0.16), rgba(6,10,14,0.34))",
+        backgroundImage: `linear-gradient(180deg, rgba(8,12,16,0.08), rgba(8,12,16,0.34)), url(${staticFile("background/office_bg.png")})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center center",
+      };
+  }
+}
+
+const InsertVideoCall: React.FC<{
+  insert: Extract<StoryInsert, { kind: "videocall" }>;
+  activeSpeaker?: string;
+  focusScenePreview?: React.ReactNode;
+}> = ({ insert, activeSpeaker, focusScenePreview }) => {
+  const room = insert.room || "定例会議";
+  const layout = insert.layout || "focus";
+  const participants = (insert.participants || []).slice(0, 6);
+  const currentSpeaker = insert.activeSpeaker || activeSpeaker || participants[0]?.speaker || "";
+  const focus = participants.find((p) => p.speaker === currentSpeaker) || participants[0];
+  const others = participants.filter((p) => p !== focus);
+
+  const renderTile = (
+    participant: Extract<StoryInsert, { kind: "videocall" }>["participants"][number],
+    opts?: { large?: boolean }
+  ) => {
+    const asset = videoParticipantAsset(participant.speaker);
+    const name = participant.name || asset.label;
+    const isActive = participant.speaker === currentSpeaker;
+    const large = !!opts?.large;
+    const bg = videoBgStyle(participant.bgStyle || (participant.speaker === "AI" ? "ai" : "office"));
+    return (
+      <div
+        key={`${participant.speaker}-${name}`}
+        style={{
+          position: "relative",
+          height: "100%",
+          minHeight: large ? 720 : 0,
+          overflow: "hidden",
+          borderRadius: large ? 24 : 20,
+          border: isActive ? `4px solid ${asset.accent}` : "2px solid rgba(255,255,255,0.14)",
+          boxShadow: isActive
+            ? `0 0 0 6px rgba(158,217,87,0.18), 0 18px 36px rgba(0,0,0,0.34)`
+            : "0 14px 30px rgba(0,0,0,0.24)",
+          ...bg,
+        }}
+      >
+        {large && isActive && focusScenePreview ? (
+          <>
+            <div style={{ position: "absolute", inset: 0 }}>{focusScenePreview}</div>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02) 26%, rgba(0,0,0,0.22) 100%)",
+              }}
+            />
+          </>
+        ) : null}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 22%, rgba(0,0,0,0.14) 100%)",
+            opacity: large && isActive && focusScenePreview ? 0.32 : 1,
+          }}
+        />
+        {!focusScenePreview && asset.kind !== "ai" && !participant.cameraOff ? (
+          <>
+            <div
+              style={{
+                position: "absolute",
+                inset: large ? "10% 12% 22%" : "12% 10% 24%",
+                borderRadius: large ? 20 : 16,
+                background: "rgba(255,255,255,0.06)",
+                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: large ? "19%" : "22%",
+                background: "linear-gradient(180deg, rgba(10,14,18,0.12), rgba(8,11,15,0.42) 32%, rgba(8,11,15,0.78) 100%)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                left: large ? "18%" : "14%",
+                right: large ? "18%" : "14%",
+                bottom: large ? "16%" : "18%",
+                height: large ? 10 : 8,
+                borderRadius: 999,
+                background: "rgba(8,11,15,0.55)",
+              }}
+            />
+          </>
+        ) : null}
+        {participant.cameraOff ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#ecf7d4",
+              fontFamily: EXTRA_EFFECT_FONT,
+              fontSize: large ? 42 : 28,
+              letterSpacing: "0.08em",
+            }}
+          >
+            CAMERA OFF
+          </div>
+        ) : !large || !isActive || !focusScenePreview ? asset.kind === "ai" ? (
+          <>
+            <div
+              style={{
+                position: "absolute",
+                inset: "18% 20%",
+                borderRadius: 26,
+                border: "2px solid rgba(158,217,87,0.38)",
+                background:
+                  "linear-gradient(180deg, rgba(20,33,23,0.62), rgba(8,15,11,0.36))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  width: "74%",
+                  height: large ? 84 : 56,
+                }}
+              >
+                {Array.from({ length: 9 }, (_, i) => {
+                  const h = [0.22, 0.46, 0.68, 0.42, 0.88, 0.5, 0.74, 0.38, 0.26][i];
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        position: "absolute",
+                        left: `${i * 11}%`,
+                        bottom: 0,
+                        width: large ? 22 : 15,
+                        height: `${h * 100}%`,
+                        borderRadius: 999,
+                        background: i % 2 ? "#9ed957" : "#7de0b0",
+                        boxShadow: "0 0 18px rgba(158,217,87,0.3)",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                top: large ? 20 : 14,
+                right: large ? 20 : 14,
+                padding: large ? "8px 14px" : "6px 10px",
+                borderRadius: 999,
+                background: "rgba(12,24,15,0.72)",
+                border: "1px solid rgba(158,217,87,0.42)",
+                color: "#dff8bc",
+                fontFamily: EXTRA_EFFECT_FONT,
+                fontSize: large ? 20 : 14,
+                letterSpacing: "0.06em",
+              }}
+            >
+              ZunAI
+            </div>
+          </>
+        ) : asset.src ? (
+          <Img
+            src={asset.src}
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: large ? "4%" : "2%",
+              width: asset.kind === "char"
+                ? (large ? "34%" : "28%")
+                : (large ? "42%" : "46%"),
+              maxHeight: large ? "58%" : "54%",
+              transform: "translateX(-50%)",
+              objectFit: "contain",
+              filter: "drop-shadow(0 12px 20px rgba(0,0,0,0.34))",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#f6f7f9",
+              fontFamily: EXTRA_EFFECT_FONT,
+              fontSize: large ? 54 : 36,
+            }}
+          >
+            {name.charAt(0)}
+          </div>
+        ) : null}
+        <div
+          style={{
+            position: "absolute",
+            left: large ? 18 : 14,
+            right: large ? 18 : 14,
+            bottom: large ? 16 : 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              padding: large ? "8px 14px" : "6px 10px",
+              borderRadius: 999,
+              background: "rgba(9,13,20,0.68)",
+              color: "#ffffff",
+              fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif',
+              fontWeight: 700,
+              fontSize: large ? 26 : 18,
+              lineHeight: 1,
+            }}
+          >
+            {name}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {participant.muted ? (
+              <div
+                style={{
+                  width: large ? 34 : 26,
+                  height: large ? 34 : 26,
+                  borderRadius: "50%",
+                  background: "rgba(158,46,46,0.85)",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: large ? 18 : 14,
+                  fontWeight: 700,
+                }}
+              >
+                M
+              </div>
+            ) : null}
+            {isActive ? (
+              <div
+                style={{
+                  width: large ? 14 : 10,
+                  height: large ? 14 : 10,
+                  borderRadius: "50%",
+                  background: asset.accent,
+                  boxShadow: `0 0 ${large ? 14 : 10}px ${asset.accent}`,
+                }}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        background: "#101822",
+        border: "3px solid #9ed957",
+        borderRadius: 24,
+        width: 1500,
+        overflow: "hidden",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div
+        style={{
+          background: "linear-gradient(180deg, #243827 0%, #1c2d20 100%)",
+          padding: "16px 28px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid rgba(158,217,87,0.28)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div
+            style={{
+              width: 46,
+              height: 46,
+              borderRadius: 14,
+              background: "linear-gradient(135deg, #9ed957, #5fb84f)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#173017",
+              fontFamily: EXTRA_EFFECT_FONT,
+              fontWeight: 900,
+              fontSize: 22,
+            }}
+          >
+            ZM
+          </div>
+          <div>
+            <div style={{ color: "#f4ffe0", fontFamily: EXTRA_EFFECT_FONT, fontSize: 30, letterSpacing: "0.05em" }}>
+              ZunMeet
+            </div>
+            <div style={{ color: "#c4d8bc", fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif', fontSize: 20 }}>
+              {room}
+            </div>
+          </div>
+        </div>
+        <div style={{ color: "#cce7b4", fontFamily: EXTRA_EFFECT_FONT, fontSize: 18, letterSpacing: "0.08em" }}>
+          {participants.length} PARTICIPANTS
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: 22,
+          display: "grid",
+          gridTemplateColumns: layout === "focus" && focus ? "1.6fr 0.9fr" : "1fr",
+          gap: 18,
+          minHeight: 760,
+          alignItems: "stretch",
+          background: "linear-gradient(180deg, #121b24 0%, #0b1218 100%)",
+        }}
+      >
+        {layout === "focus" && focus ? (
+          <>
+            <div style={{ height: "100%" }}>{renderTile(focus, { large: true })}</div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr",
+                height: "100%",
+                gridAutoRows: "1fr",
+                gap: 16,
+              }}
+            >
+              {others.map((p) => renderTile(p))}
+            </div>
+          </>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 16,
+            }}
+          >
+            {participants.map((p) => renderTile(p))}
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          background: "#0c1319",
+          padding: "14px 24px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 18,
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        {[
+          { label: "mic", bg: "#24303b" },
+          { label: "cam", bg: "#24303b" },
+          { label: "share", bg: "#24303b" },
+          { label: "end", bg: "#a33e3e" },
+        ].map((ctl) => (
+          <div
+            key={ctl.label}
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              background: ctl.bg,
+              color: "#eef7e5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: EXTRA_EFFECT_FONT,
+              fontSize: 18,
+              letterSpacing: "0.04em",
+            }}
+          >
+            {ctl.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 /**
  * PC画面インサートのルートオーバーレイ。
  * opacity でフェードイン/アウトする（外側でアニメーション値を渡す）。
@@ -1421,11 +1933,15 @@ const InsertOverlay: React.FC<{
   bgOpacity: number;
   opacity: number;
   transform?: string;
+  activeSpeaker?: string;
+  focusScenePreview?: React.ReactNode;
 }> = ({
   insert,
   bgOpacity,
   opacity,
   transform,
+  activeSpeaker,
+  focusScenePreview,
 }) => {
   // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
   const isLight = insert.kind === "mailer";
@@ -1453,6 +1969,7 @@ const InsertOverlay: React.FC<{
         {insert.kind === "ok" && <InsertOk insert={insert} />}
         {insert.kind === "teamchat" && <InsertTeamChat insert={insert} />}
         {insert.kind === "mailer" && <InsertMailer insert={insert} />}
+        {insert.kind === "videocall" && <InsertVideoCall insert={insert} activeSpeaker={activeSpeaker} focusScenePreview={focusScenePreview} />}
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -1952,6 +2469,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const prevSeg = segIndex > 0 ? segments[segIndex - 1] : null;
   const nextSeg = segments[segIndex + 1];
   const sceneDef = scenes.scenes[active.scene];
+  const activeInsert = activeIdx >= 0 ? effectiveInsertAt(script, activeIdx) : null;
 
   // ── シーン未設定/未登録のフォールバック ──
   // scene 空("") = 暗転(真っ黒)。新規ターンの既定。音声/BGM/SE は継続させる。
@@ -2528,15 +3046,20 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const bubbleGroup = groupRange
     ? script.slice(groupRange.start, groupRange.end + 1)
     : [active];
+  const insertAtIdx = (idx: number) => (idx >= 0 ? effectiveInsertAt(script, idx) : null);
+  const activeInsertLine = isInsertLineKind(activeInsert);
   const visibleGroupCount = groupRange ? activeIdx - groupRange.start + 1 : 1;
   const shouldShowBubbleGroup =
-    !lineShownInInsert(active) &&
+    !activeInsertLine &&
     bubbleGroup.length > 1 &&
-    bubbleGroup.slice(0, visibleGroupCount).every((turn) => !lineShownInInsert(turn));
+    bubbleGroup.slice(0, visibleGroupCount).every((turn) => {
+      const idx = script.findIndex((x) => x.id === turn.id);
+      return !isInsertLineKind(insertAtIdx(idx));
+    });
   const autoBubbleTexts = bubbleSentenceTexts(active);
   const shouldShowAutoBubbleGroup =
     !shouldShowBubbleGroup &&
-    !lineShownInInsert(active) &&
+    !activeInsertLine &&
     autoBubbleTexts.length > 1;
   const autoBubbleVisibleCount = bubbleSentenceVisibleCount(active, t);
 
@@ -2579,6 +3102,115 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const stageTransformWithShift = currentStageShiftX !== 0
     ? `translateX(${currentStageShiftX}px) ${stageTransform}`
     : stageTransform;
+  const VIDEO_CALL_PREVIEW_W = 922;
+  const VIDEO_CALL_PREVIEW_H = 760;
+  const videoCallPreviewScale = Math.max(
+    VIDEO_CALL_PREVIEW_W / width,
+    VIDEO_CALL_PREVIEW_H / height
+  );
+  const videoCallPreviewOffsetY = (VIDEO_CALL_PREVIEW_H - height * videoCallPreviewScale) / 2;
+  const videoCallSpeakerStagePoint = (() => {
+    if (isKnownChar(active.speaker)) {
+      const anchorName = anchorOf[active.speaker] ?? "center";
+      const anchor = sceneDef.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
+      let slideOffsetPx = 0;
+      const entered = entrance[active.speaker] ?? seg.start;
+      const isInitial = entered <= seg.start + 1e-6;
+      const entersInstantly = !!instantEnter[active.speaker] || isFlashbackBoundaryStart(entered);
+      if (!isInitial && !entersInstantly) {
+        const sp = clamp((t - entered) / SLIDE_DUR, 0, 1);
+        const e = easeOutCubic(sp);
+        const fromXNorm = anchor.x < 0.5 ? -0.35 : 1.35;
+        slideOffsetPx = (1 - e) * (fromXNorm - anchor.x) * width;
+      }
+      const leaving = effectiveExitAt(active.speaker);
+      const exitsInstantly = exitDir[active.speaker] === "instant" || isFlashbackBoundaryStart(leaving);
+      if (leaving !== undefined && t >= leaving && !exitsInstantly) {
+        const sp = clamp((t - leaving) / SLIDE_DUR, 0, 1);
+        const e = easeInOutCubic(sp);
+        const dir = exitDir[active.speaker];
+        const toXNorm =
+          dir === "right" ? 1.35 : dir === "left" ? -0.35 : anchor.x < 0.5 ? -0.35 : 1.35;
+        slideOffsetPx = e * (toXNorm - anchor.x) * width;
+      }
+      return {
+        x: anchor.x * width + slideOffsetPx,
+        y: anchor.y * height,
+      };
+    }
+    if (isMob(active.speaker)) {
+      const m = MOBS[active.speaker];
+      const place = sceneDef.mobs?.[active.speaker];
+      const a = place ?? m.anchor ?? sceneDef.mobAnchor ?? { x: 0.5, y: 1.0 };
+      return { x: a.x * width, y: a.y * height };
+    }
+    return { x: width * 0.5, y: height * 0.6 };
+  })();
+  const videoCallSpeakerScreenX =
+    (currentStageShiftX + sfx) + videoCallSpeakerStagePoint.x * stageS;
+  const desiredVideoCallSpeakerX = VIDEO_CALL_PREVIEW_W * 0.56;
+  const rawVideoCallPreviewOffsetX = desiredVideoCallSpeakerX - videoCallSpeakerScreenX * videoCallPreviewScale;
+  const videoCallPreviewOffsetX = clamp(
+    rawVideoCallPreviewOffsetX,
+    VIDEO_CALL_PREVIEW_W - width * videoCallPreviewScale,
+    0
+  );
+  const videoCallFocusScenePreview = activeInsert?.kind === "videocall" ? (
+    <AbsoluteFill style={{ overflow: "hidden", background: "#0b1118" }}>
+      <div
+        style={{
+          position: "absolute",
+          left: videoCallPreviewOffsetX,
+          top: videoCallPreviewOffsetY,
+          width,
+          height,
+          transform: `scale(${videoCallPreviewScale})`,
+          transformOrigin: "0 0",
+        }}
+      >
+        <AbsoluteFill
+          style={{
+            transform: stageTransformWithShift,
+            transformOrigin: "0 0",
+            filter: isFlashback
+              ? `saturate(${FB_SATURATE}) brightness(${FB_BRIGHTNESS})`
+              : undefined,
+            clipPath: currentStageClipPath,
+            overflow: "hidden",
+          }}
+        >
+          <Img
+            src={staticFile(sceneDef.bg)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+              transform: bgScale > 1 ? `scale(${bgScale})` : undefined,
+              transformOrigin: "center center",
+            }}
+          />
+          {presentNow.map(renderAvatar)}
+          {!isNarrationTurn(active) && isMob(active.speaker) ? renderMob(active.speaker) : null}
+          {sceneDef.front ? (
+            <Img
+              src={staticFile(sceneDef.front)}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                pointerEvents: "none",
+              }}
+            />
+          ) : null}
+        </AbsoluteFill>
+      </div>
+    </AbsoluteFill>
+  ) : null;
 
   const renderScenePlate = (
     plateSceneDef: SceneDef,
@@ -2677,14 +3309,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // ── PC画面インサート フェード計算 ─────────────────────────
   // INSERT_FADE: フェードイン/アウトの片側秒数。
   const INSERT_FADE = 0.2;
-  const activeInsert = active.insert ?? null;
   const activeOverlays = activeOverlaysAt(script, story.overlays, t);
   const normalOverlays = activeOverlays.filter((overlay) => !isOverInsertOverlay(overlay));
   const overInsertOverlays = activeOverlays.filter((overlay) => isOverInsertOverlay(overlay));
   const nextTurn2 = activeIdx < script.length - 1 ? script[activeIdx + 1] : null;
   // 隣のターンがインサートを持つか（種別問わず）。インサート同士の間は通常画面を出さない。
-  const prevHasInsert = activeIdx > 0 && !!script[activeIdx - 1].insert;
-  const nextHasInsert = !!nextTurn2?.insert;
+  const prevHasInsert = activeIdx > 0 && !!effectiveInsertAt(script, activeIdx - 1);
+  const nextHasInsert = !!(nextTurn2 && effectiveInsertAt(script, activeIdx + 1));
   let insertOpacity = 0;     // パネル本体（in/out両方フェード）
   let insertBgOpacity = 0;   // 背景＝シーン隠し
   if (activeInsert) {
@@ -2798,6 +3429,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           bgOpacity={insertBgOpacity}
           opacity={insertOpacity}
           transform={insertShakeTransform}
+          activeSpeaker={active.speaker}
+          focusScenePreview={videoCallFocusScenePreview}
         />
       ) : null}
 
@@ -2821,7 +3454,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             autoBubbleVisibleCount,
             `bubble-auto-group-${active.id}`
           )
-        : (!isNarrationTurn(active) && !lineShownInInsert(active)
+        : (!isNarrationTurn(active) && !activeInsertLine
           ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false), !!active.continueBubble)
           : null)}
 

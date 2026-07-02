@@ -65,7 +65,7 @@ SPEAKER_ICONS = {
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
 # 組み込み5種（先頭順序固定用）
 BUILTIN_EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
-INSERT_KINDS = ["warning", "ok", "chat", "teamchat", "mailer"]
+INSERT_KINDS = ["warning", "ok", "chat", "teamchat", "mailer", "videocall"]
 
 _CT = {
     ".png": "image/png",
@@ -485,7 +485,7 @@ _KNOWN_TURN_FIELDS = {
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
 }
-_KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer"}
+_KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall"}
 
 
 def _import_script_text(raw):

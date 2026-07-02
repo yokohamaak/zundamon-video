@@ -1196,6 +1196,7 @@
               <option value="chat">ZunAI（AIチャット）</option>
               <option value="teamchat">ZunChat（チームチャット）</option>
               <option value="mailer">ZunMail（メール）</option>
+              <option value="videocall">ZunMeet（ビデオ会議）</option>
             </select>
           </div>
           <!-- 種別に応じた入力欄 -->
@@ -3874,6 +3875,48 @@ function renderInsertFields(insert) {
     container.appendChild(makeField("subject（件名）", "text", "fIMailSubject", insert.subject || ""));
     container.appendChild(makeTextareaField("body（本文）", "fIMailBody", insert.body || ""));
     container.appendChild(makeField("time（時刻・任意 例: 14:32）", "text", "fIMailTime", insert.time || ""));
+  } else if (kind === "videocall") {
+    container.appendChild(makeField("room（会議名・任意）", "text", "fIVRoom", insert.room || ""));
+    const layoutRow = document.createElement("div");
+    layoutRow.className = "field-row";
+    const layoutLbl = document.createElement("label");
+    layoutLbl.className = "field-label";
+    layoutLbl.textContent = "layout";
+    const layoutSel = document.createElement("select");
+    layoutSel.className = "field-select";
+    layoutSel.id = "fIVLayout";
+    [
+      { value: "focus", label: "focus（話者大）" },
+      { value: "grid", label: "grid（均等）" },
+    ].forEach(({ value, label }) => {
+      const o = document.createElement("option");
+      o.value = value;
+      o.textContent = label;
+      layoutSel.appendChild(o);
+    });
+    layoutSel.value = insert.layout || "focus";
+    layoutSel.addEventListener("change", collectInsert);
+    layoutRow.appendChild(layoutLbl);
+    layoutRow.appendChild(layoutSel);
+    container.appendChild(layoutRow);
+    container.appendChild(makeField("activeSpeaker（任意。未入力なら現在の話者）", "text", "fIVActiveSpeaker", insert.activeSpeaker || ""));
+    const section = document.createElement("div");
+    section.className = "section-divider";
+    section.textContent = "参加者（participants 配列）";
+    container.appendChild(section);
+    const wrap = document.createElement("div");
+    wrap.id = "fIVParticipants";
+    container.appendChild(wrap);
+    const parts = insert.participants || [];
+    for (let i = 0; i < parts.length; i++) {
+      wrap.appendChild(makeVideoCallParticipantItem(i, parts[i]));
+    }
+    container.appendChild(makeAddBtn("＋ 参加者を追加", () => {
+      const items = getVideoCallParticipants();
+      const turn = storyData.script[selectedIdx];
+      items.push({ speaker: (turn && turn.speaker) || "zundamon", bgStyle: "office", cameraOff: false, muted: false });
+      refreshVideoCallParticipants(items);
+    }));
   }
 }
 
@@ -4046,6 +4089,150 @@ function refreshTeamchatItems(items) {
   for (let i = 0; i < items.length; i++) {
     wrap.appendChild(makeTeamchatItem(i, items[i]));
   }
+  collectInsert();
+}
+
+function makeVideoCallParticipantItem(idx, part) {
+  const item = document.createElement("div");
+  item.className = "insert-array-item";
+  item.dataset.idx = idx;
+  const header = document.createElement("div");
+  header.className = "insert-item-header";
+  const lbl = document.createElement("span");
+  lbl.className = "insert-item-idx";
+  lbl.textContent = "participant[" + idx + "]";
+  const del = document.createElement("button");
+  del.className = "btn btn-danger btn-sm";
+  del.textContent = "削除";
+  del.addEventListener("click", () => {
+    const items = getVideoCallParticipants();
+    items.splice(idx, 1);
+    refreshVideoCallParticipants(items);
+  });
+  header.appendChild(lbl);
+  header.appendChild(del);
+  item.appendChild(header);
+
+  const speakerRow = document.createElement("div");
+  speakerRow.className = "field-row";
+  const speakerLbl = document.createElement("label");
+  speakerLbl.className = "field-label";
+  speakerLbl.textContent = "speaker";
+  const speakerSel = document.createElement("select");
+  speakerSel.className = "field-select";
+  speakerSel.dataset.field = "speaker";
+  speakerSel.dataset.idx = idx;
+  for (const sp of meta.speakers) {
+    const o = document.createElement("option");
+    o.value = sp;
+    o.textContent = sp;
+    speakerSel.appendChild(o);
+  }
+  if (part.speaker && !meta.speakers.includes(part.speaker)) {
+    const o = document.createElement("option");
+    o.value = part.speaker;
+    o.textContent = part.speaker;
+    speakerSel.insertBefore(o, speakerSel.firstChild);
+  }
+  speakerSel.value = part.speaker || "";
+  speakerSel.addEventListener("change", collectInsert);
+  speakerRow.appendChild(speakerLbl);
+  speakerRow.appendChild(speakerSel);
+  item.appendChild(speakerRow);
+
+  const nameRow = document.createElement("div");
+  nameRow.className = "field-row";
+  const nameLbl = document.createElement("label");
+  nameLbl.className = "field-label";
+  nameLbl.textContent = "name（任意）";
+  const nameInp = document.createElement("input");
+  nameInp.type = "text";
+  nameInp.className = "field-input";
+  nameInp.value = part.name || "";
+  nameInp.dataset.field = "name";
+  nameInp.dataset.idx = idx;
+  nameInp.addEventListener("change", collectInsert);
+  nameRow.appendChild(nameLbl);
+  nameRow.appendChild(nameInp);
+  item.appendChild(nameRow);
+
+  const bgRow = document.createElement("div");
+  bgRow.className = "field-row";
+  const bgLbl = document.createElement("label");
+  bgLbl.className = "field-label";
+  bgLbl.textContent = "bgStyle";
+  const bgSel = document.createElement("select");
+  bgSel.className = "field-select";
+  bgSel.dataset.field = "bgStyle";
+  bgSel.dataset.idx = idx;
+  [
+    ["office", "office"],
+    ["meeting_room", "meeting_room"],
+    ["home", "home"],
+    ["ai", "ai"],
+    ["green", "green"],
+  ].forEach(([value, label]) => {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = label;
+    bgSel.appendChild(o);
+  });
+  bgSel.value = part.bgStyle || "office";
+  bgSel.addEventListener("change", collectInsert);
+  bgRow.appendChild(bgLbl);
+  bgRow.appendChild(bgSel);
+  item.appendChild(bgRow);
+
+  const flagsRow = document.createElement("div");
+  flagsRow.className = "field-row";
+  flagsRow.style.display = "flex";
+  flagsRow.style.gap = "18px";
+  flagsRow.style.alignItems = "center";
+  const mkToggle = (field, label, checked) => {
+    const wrap = document.createElement("label");
+    wrap.className = "toggle-row";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !!checked;
+    cb.dataset.field = field;
+    cb.dataset.idx = idx;
+    cb.addEventListener("change", collectInsert);
+    wrap.appendChild(cb);
+    wrap.appendChild(document.createTextNode(label));
+    return wrap;
+  };
+  flagsRow.appendChild(mkToggle("cameraOff", "cameraOff", part.cameraOff));
+  flagsRow.appendChild(mkToggle("muted", "muted", part.muted));
+  item.appendChild(flagsRow);
+  return item;
+}
+
+function getVideoCallParticipants() {
+  const wrap = document.getElementById("fIVParticipants");
+  if (!wrap) return [];
+  const items = wrap.querySelectorAll(".insert-array-item");
+  return Array.from(items).map((item) => {
+    const speaker = item.querySelector("select[data-field=speaker]");
+    const name = item.querySelector("input[data-field=name]");
+    const bgStyle = item.querySelector("select[data-field=bgStyle]");
+    const cameraOff = item.querySelector("input[data-field=cameraOff]");
+    const muted = item.querySelector("input[data-field=muted]");
+    const out = {
+      speaker: speaker ? speaker.value : "",
+      bgStyle: bgStyle ? bgStyle.value : "office",
+    };
+    if (name && name.value) out.name = name.value;
+    if (cameraOff && cameraOff.checked) out.cameraOff = true;
+    if (muted && muted.checked) out.muted = true;
+    return out;
+  });
+}
+
+function refreshVideoCallParticipants(items) {
+  const wrap = document.getElementById("fIVParticipants");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  for (let i = 0; i < items.length; i++) wrap.appendChild(makeVideoCallParticipantItem(i, items[i]));
   collectInsert();
 }
 
@@ -4238,6 +4425,14 @@ function collectInsert() {
     ins.body = mBody ? mBody.value : "";
     const mTime = document.getElementById("fIMailTime");
     if (mTime && mTime.value) ins.time = mTime.value;
+  } else if (kind === "videocall") {
+    const room = document.getElementById("fIVRoom");
+    if (room && room.value) ins.room = room.value;
+    const layout = document.getElementById("fIVLayout");
+    if (layout && layout.value) ins.layout = layout.value;
+    const activeSpeaker = document.getElementById("fIVActiveSpeaker");
+    if (activeSpeaker && activeSpeaker.value) ins.activeSpeaker = activeSpeaker.value;
+    ins.participants = getVideoCallParticipants();
   }
 
   turn.insert = ins;
@@ -5085,6 +5280,16 @@ function buildDefaultInsert(kind, prev) {
       kind: "teamchat",
       channel: (prev && prev.kind === kind) ? (prev.channel || "") : "",
       messages: (prev && prev.kind === kind) ? (prev.messages || []) : [],
+    };
+  } else if (kind === "videocall") {
+    return {
+      kind: "videocall",
+      room: (prev && prev.kind === kind) ? (prev.room || "") : "定例会議",
+      layout: (prev && prev.kind === kind) ? (prev.layout || "focus") : "focus",
+      activeSpeaker: (prev && prev.kind === kind) ? (prev.activeSpeaker || "") : "",
+      participants: (prev && prev.kind === kind && prev.participants && prev.participants.length)
+        ? (prev.participants || [])
+        : [{ speaker: "zundamon", bgStyle: "office" }, { speaker: "metan", bgStyle: "meeting_room" }],
     };
   }
   return { kind };
