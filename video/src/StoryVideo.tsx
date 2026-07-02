@@ -1389,6 +1389,8 @@ const BgmLayer: React.FC<{
   type BgmInfo = { file: string; volume: number; fadeIn: number; fadeOut: number };
   const BGM_DEFAULT_VOL = 0.25;
   const BGM_DEFAULT_FADE = 0.6;
+  const isFiniteNumber = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value);
 
   // フォールバック用: シーン連動BGMの解決。
   const turnBgm = (_turnIdx: number, turn: StoryTurn): BgmInfo | null => {
@@ -1415,7 +1417,7 @@ const BgmLayer: React.FC<{
   if (bgmRegions && bgmRegions.length > 0) {
     // ── 時間ベース（タイムライン編集）── これが唯一の真実。隙間=無音。
     validSegs = bgmRegions
-      .filter((r) => r.file && r.end > r.start)
+      .filter((r) => r.file && isFiniteNumber(r.start) && isFiniteNumber(r.end) && r.end > r.start)
       .map((r) => ({
         file: r.file,
         volume: r.volume ?? BGM_DEFAULT_VOL,
@@ -1434,6 +1436,7 @@ const BgmLayer: React.FC<{
         segments.push({ file: "", volume: 0, fadeIn: 0, fadeOut: 0, startSec: 0, endSec: 0 });
         continue;
       }
+      if (!isFiniteNumber(turn.start) || !isFiniteNumber(turn.end)) continue;
       const last = segments[segments.length - 1];
       if (last && last.file === info.file) {
         last.endSec = turn.end;
@@ -1497,11 +1500,14 @@ const SeLayer: React.FC<{
 
   type SeEvent = { t: number; file: string; volume: number };
   const events: SeEvent[] = [];
+  const isFiniteNumber = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value);
 
   const tryAdd = (
     t: number,
     entry: SeMapEntry | undefined
   ) => {
+    if (!isFiniteNumber(t)) return;
     if (!entry) return;
     if (!entry.enabled) return;
     if (!entry.file) return;
@@ -1535,8 +1541,11 @@ const SeLayer: React.FC<{
     // 手動ワンショット SE
     for (const s of turn.se ?? []) {
       if (!s.file) continue;
+      if (!isFiniteNumber(turn.start)) continue;
+      const at = s.at ?? 0;
+      if (!isFiniteNumber(at)) continue;
       events.push({
-        t: turn.start + (s.at ?? 0),
+        t: turn.start + at,
         file: s.file,
         volume: s.volume ?? 0.7,
       });

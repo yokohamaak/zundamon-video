@@ -4212,9 +4212,9 @@ async function saveStory() {
 }
 
 // 音声生成（保存 → make_story_audio → story再読込 → 一覧/プレビュー更新）
-async function generateAudio() {
+async function generateAudio(confirmFirst = true) {
   const btn = document.getElementById("btnAudio");
-  if (!confirm("VOICEVOX で音声生成します（数十秒〜）。VOICEVOXエンジンを起動済みか確認してください。")) return;
+  if (confirmFirst && !confirm("VOICEVOX で音声生成します（数十秒〜）。VOICEVOXエンジンを起動済みか確認してください。")) return;
   btn.disabled = true;
   try {
     await saveStory();                       // 最新を保存してから生成（make_story_audioは保存済みJSONを読む）
@@ -4760,6 +4760,20 @@ function setupEvents() {
         } catch (_) { /* 再読込失敗時はレポートのみ表示して継続 */ }
         // レポート表示
         showImportReport(result.turns, result.report || null);
+        markAudioDirty();
+        setStatus("dirty", "台本を取り込みました（音声生成が必要）");
+        if (confirm("台本を取り込みました。続けて音声生成しますか？")) {
+          statusEl.style.color = "var(--text2)";
+          statusEl.textContent = "音声生成中...";
+          await generateAudio(false);
+          if (!audioDirty) {
+            statusEl.style.color = "var(--green)";
+            statusEl.textContent = "取り込み完了（音声生成も完了）";
+          } else {
+            statusEl.style.color = "var(--danger)";
+            statusEl.textContent = "取り込み完了（音声生成は失敗）";
+          }
+        }
       } else {
         statusEl.style.color = "var(--danger)";
         statusEl.textContent = "エラー: " + (result.error || "取り込み失敗");
