@@ -80,7 +80,19 @@ def test_import_recognizes_supported_story_fields():
     print("  現行サポート項目を取り込み時に新演出扱いしない: OK")
 
 
+def test_speakers_include_troublemaker_profiles():
+    for name in (
+        "troublemaker_male_normal",
+        "troublemaker_male_creepy",
+        "troublemaker_female_normal",
+        "troublemaker_female_creepy",
+    ):
+        assert name in se.SPEAKERS
+    print("  speakers: troublemaker男女4種がエディタ選択肢にある: OK")
+
+
 if __name__ == "__main__":
     test_prompt_mentions_current_story_fields()
     test_import_recognizes_supported_story_fields()
+    test_speakers_include_troublemaker_profiles()
     print("OK")

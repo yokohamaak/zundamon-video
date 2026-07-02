@@ -41,7 +41,11 @@ _PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "poses.json", "
                         "story.wav", "story.mp3"}
 
 # 話者一覧（StoryVideo.tsx の CHARACTERS / MOBS と二重管理。MVPのためハードコード）
-SPEAKERS = ["zundamon", "metan", "営業", "部長", "AI"]
+SPEAKERS = [
+    "zundamon", "metan", "営業", "部長", "AI",
+    "troublemaker_male_normal", "troublemaker_male_creepy",
+    "troublemaker_female_normal", "troublemaker_female_creepy",
+]
 NARRATION_SPEAKERS = ["棒読み男", "棒読み女"]
 
 # 話者アイコン（/img/<path> でアクセスできる video/public 配下の相対パス）
@@ -51,6 +55,10 @@ SPEAKER_ICONS = {
     "営業": "mobs/mob_normal.png",
     "部長": "mobs/manager_normal.png",
     "AI": None,
+    "troublemaker_male_normal": None,
+    "troublemaker_male_creepy": None,
+    "troublemaker_female_normal": None,
+    "troublemaker_female_creepy": None,
 }
 
 # 組み込み5種（フォールバック用・expressions.json が読めない場合に使用）

@@ -26,10 +26,14 @@ config（例）:
 標準ライブラリのみ。VOICEVOXエンジンのHTTP APIを叩く（自己ホスト・無料・課金なし）。
 """
 import io
+import hashlib
 import json
 import logging
 import os
 import re
+import shutil
+import subprocess
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -270,6 +274,8 @@ def _wav_params_and_frames(wav_bytes):
     with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
         params = (wf.getnchannels(), wf.getsampwidth(), wf.getframerate())
         nframes = wf.getnframes()
+        if nframes >= 0x7FFFFFFF:
+            raise ValueError(f"壊れたWAVヘッダを検出しました: nframes={nframes}")
         frames = wf.readframes(nframes)
         duration = nframes / wf.getframerate()
     return params, frames, duration
@@ -312,14 +318,27 @@ def _resolve_speaker_id(turn_speaker, speakers_map):
 
 
 def _resolve_voice_params(vc, speaker):
-    """全体デフォルト＋話者別上書きで (speed, pitch, intonation, volume) を決める。"""
+    """全体デフォルト＋話者別上書きで合成パラメータを決める。"""
     params = {
-        "speed": float(vc.get("speed", 1.0)),
-        "pitch": float(vc.get("pitch", 0.0)),
-        "intonation": float(vc.get("intonation", 1.0)),
-        "volume": float(vc.get("volume", 1.0)),
+        "speedScale": float(vc.get("speed", vc.get("speedScale", 1.0))),
+        "pitchScale": float(vc.get("pitch", vc.get("pitchScale", 0.0))),
+        "intonationScale": float(vc.get("intonation", vc.get("intonationScale", 1.0))),
+        "volumeScale": float(vc.get("volume", vc.get("volumeScale", 1.0))),
+        "prePhonemeLength": float(vc.get("pre_phoneme_length", vc.get("prePhonemeLength", 0.0))),
+        "postPhonemeLength": float(vc.get("post_phoneme_length", vc.get("postPhonemeLength", 0.1))),
     }
     override = (vc.get("voice_params") or {}).get(speaker, {})
+    alias_map = {
+        "speed": "speedScale",
+        "pitch": "pitchScale",
+        "intonation": "intonationScale",
+        "volume": "volumeScale",
+        "pre_phoneme_length": "prePhonemeLength",
+        "post_phoneme_length": "postPhonemeLength",
+    }
+    for src_key, dst_key in alias_map.items():
+        if src_key in override:
+            params[dst_key] = float(override[src_key])
     for k in params:
         if k in override:
             params[k] = float(override[k])
@@ -331,10 +350,89 @@ def _effective_voice(vp, turn):
     ev = dict(vp)
     over = turn.get("voice")
     if isinstance(over, dict):
+        alias_map = {
+            "speed": "speedScale",
+            "pitch": "pitchScale",
+            "intonation": "intonationScale",
+            "volume": "volumeScale",
+            "pre_phoneme_length": "prePhonemeLength",
+            "post_phoneme_length": "postPhonemeLength",
+        }
+        for src_key, dst_key in alias_map.items():
+            if src_key in over and over[src_key] is not None:
+                ev[dst_key] = float(over[src_key])
         for k in ev:
             if k in over and over[k] is not None:
                 ev[k] = float(over[k])
     return ev
+
+
+def _build_fx_filter_chain(fx):
+    if not isinstance(fx, dict):
+        return ""
+    filters = []
+    if fx.get("highpass") is not None:
+        filters.append(f"highpass=f={float(fx['highpass'])}")
+    if fx.get("lowpass") is not None:
+        filters.append(f"lowpass=f={float(fx['lowpass'])}")
+    if fx.get("volume") is not None:
+        filters.append(f"volume={float(fx['volume'])}")
+    return ",".join(filters)
+
+
+def _apply_fx_to_wav_bytes(wav_bytes, fx):
+    chain = _build_fx_filter_chain(fx)
+    if not chain:
+        return wav_bytes
+    if not shutil.which("ffmpeg"):
+        raise RuntimeError("ffmpeg が無いため audio fx を適用できません")
+    # pipe出力のWAVは長さ未確定ヘッダになり、waveモジュールが 0xFFFFFFFF フレームとして
+    # 誤解釈することがある。いったん一時ファイルへ書いて通常のWAVヘッダで受ける。
+    with tempfile.TemporaryDirectory() as d:
+        in_path = os.path.join(d, "in.wav")
+        out_path = os.path.join(d, "out.wav")
+        with open(in_path, "wb") as f:
+            f.write(wav_bytes)
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", in_path, "-af", chain, out_path],
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg fx適用失敗: {result.stderr.decode('utf-8', errors='ignore')}")
+        with open(out_path, "rb") as f:
+            return f.read()
+
+
+def _voice_cache_key(speaker, text, params, fx):
+    payload = {
+        "speaker": speaker,
+        "text": text,
+        "params": params or {},
+        "fx": fx or {},
+    }
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _load_cached_wav(cache_dir, key):
+    if not cache_dir:
+        return None
+    path = os.path.join(cache_dir, f"{key}.wav")
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as f:
+        return f.read()
+
+
+def _store_cached_wav(cache_dir, key, wav_bytes):
+    if not cache_dir:
+        return
+    os.makedirs(cache_dir, exist_ok=True)
+    path = os.path.join(cache_dir, f"{key}.wav")
+    tmp = f"{path}.tmp"
+    with open(tmp, "wb") as f:
+        f.write(wav_bytes)
+    os.replace(tmp, path)
 
 
 def _split_sentences(text):
@@ -424,6 +522,7 @@ def synthesize_dialogue(script, config):
     lead_in = float(vc.get("lead_in_silence", 0.0))
     # 全無声化で囁きになる相づち/笑いを有声な語へ置換（config.tts_voicevox.interjection_replace）。
     interjection_replace = vc.get("interjection_replace") or {}
+    cache_dir = vc.get("cache_dir")
 
     if not script:
         raise ValueError("空の台本です")
@@ -444,6 +543,7 @@ def synthesize_dialogue(script, config):
             on_progress(idx, len(script), turn)
         speaker_id = _resolve_speaker_id(speaker, speakers_map)
         vp = _effective_voice(_resolve_voice_params(vc, speaker), turn)  # 話者＋台詞ごとの声上書き
+        turn_fx = turn.get("audioFx") if isinstance(turn.get("audioFx"), dict) else None
         # chorus=True のターンは設定の全話者で同じ文を合成して重ねる（二人同時発話＝締めの挨拶等）。
         # ユニゾンが揃って聞こえるよう、話者ごとに違う speed/intonation を共通値に統一する
         # （声の個性は pitch で残す）。speed が違うとテンポがズレて二人がバラバラに聞こえるため。
@@ -453,10 +553,10 @@ def synthesize_dialogue(script, config):
             voices = []
             for n in chorus_names:
                 cvp = _effective_voice(_resolve_voice_params(vc, n), turn)
-                cvp = {**cvp, "speed": uni_speed, "intonation": uni_into}  # テンポ/抑揚を揃える
-                voices.append((_resolve_speaker_id(n, speakers_map), cvp))
+                cvp = {**cvp, "speedScale": uni_speed, "intonationScale": uni_into}  # テンポ/抑揚を揃える
+                voices.append((_resolve_speaker_id(n, speakers_map), cvp, turn_fx))
         else:
-            voices = [(speaker_id, vp)]
+            voices = [(speaker_id, vp, turn_fx)]
         turn_start = current
         captions = []
 
@@ -473,18 +573,28 @@ def synthesize_dialogue(script, config):
                 # 音声に渡すのは読み仮名を畳んだテキスト（字幕＝sentenceは原文のまま）。
                 spoken = _spoken_text(chunk)
                 outs = []
-                for sid, vparams in voices:
+                for sid, vparams, fx in voices:
+                    cache_key = _voice_cache_key(sid, chunk, vparams, fx)
+                    cached_wav = _load_cached_wav(cache_dir, cache_key)
+                    if cached_wav is not None:
+                        try:
+                            outs.append(_wav_params_and_frames(cached_wav))
+                            continue
+                        except ValueError as e:
+                            logger.warning(f"音声キャッシュ破損を検出。再生成します: {e}")
                     query = audio_query(base_url, spoken, sid)
                     # 「ふふ、」「ええ、」等の相づちが無声化で囁きになるのを防ぐ（先頭/末尾の無声ランを有声化）。
                     fix_devoiced_moras(
                         query, pitch_provider=lambda: _reference_pitch(base_url, sid, ref_pitch_cache))
-                    query["speedScale"] = vparams["speed"]
-                    query["pitchScale"] = vparams["pitch"]
-                    query["intonationScale"] = vparams["intonation"]
-                    query["volumeScale"] = vparams["volume"]
-                    query["prePhonemeLength"] = pre_phoneme    # 文先頭の無音（境目のカクつき低減）
-                    query["postPhonemeLength"] = post_phoneme   # 文末の余韻（文間の自然な間）
+                    query["speedScale"] = vparams["speedScale"]
+                    query["pitchScale"] = vparams["pitchScale"]
+                    query["intonationScale"] = vparams["intonationScale"]
+                    query["volumeScale"] = vparams["volumeScale"]
+                    query["prePhonemeLength"] = vparams.get("prePhonemeLength", pre_phoneme)
+                    query["postPhonemeLength"] = vparams.get("postPhonemeLength", post_phoneme)
                     wav_bytes = synthesis(base_url, query, sid)
+                    wav_bytes = _apply_fx_to_wav_bytes(wav_bytes, fx)
+                    _store_cached_wav(cache_dir, cache_key, wav_bytes)
                     outs.append(_wav_params_and_frames(wav_bytes))
 
                 params = outs[0][0]

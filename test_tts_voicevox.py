@@ -85,9 +85,18 @@ def test_per_speaker_voice_params():
         "speed": 1.0, "pitch": 0.0, "intonation": 1.0,
         "voice_params": {"四国めたん": {"speed": 0.92}, "ずんだもん": {"intonation": 1.3}},
     }
-    assert tv._resolve_voice_params(vc, "四国めたん") == {"speed": 0.92, "pitch": 0.0, "intonation": 1.0, "volume": 1.0}
-    assert tv._resolve_voice_params(vc, "ずんだもん") == {"speed": 1.0, "pitch": 0.0, "intonation": 1.3, "volume": 1.0}
-    assert tv._resolve_voice_params(vc, "知らない人") == {"speed": 1.0, "pitch": 0.0, "intonation": 1.0, "volume": 1.0}
+    assert tv._resolve_voice_params(vc, "四国めたん") == {
+        "speedScale": 0.92, "pitchScale": 0.0, "intonationScale": 1.0, "volumeScale": 1.0,
+        "prePhonemeLength": 0.0, "postPhonemeLength": 0.1,
+    }
+    assert tv._resolve_voice_params(vc, "ずんだもん") == {
+        "speedScale": 1.0, "pitchScale": 0.0, "intonationScale": 1.3, "volumeScale": 1.0,
+        "prePhonemeLength": 0.0, "postPhonemeLength": 0.1,
+    }
+    assert tv._resolve_voice_params(vc, "知らない人") == {
+        "speedScale": 1.0, "pitchScale": 0.0, "intonationScale": 1.0, "volumeScale": 1.0,
+        "prePhonemeLength": 0.0, "postPhonemeLength": 0.1,
+    }
 
     # synthesisに正しいパラメータが渡るか（queryに反映）
     _install_fakes()
@@ -290,6 +299,74 @@ def test_per_turn_voice_override():
     print("  per-turn voice: speed/volume上書き＋話者値維持 OK")
 
 
+def test_voice_param_scale_keys():
+    _install_fakes()
+    script = [{"speaker": "四国めたん", "text": "確認。", "voice": {"speedScale": 1.08, "prePhonemeLength": 0.04}}]
+    cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2}}}
+    tv.synthesize_dialogue(script, cfg)
+    q = _last_queries[0]
+    assert q["speedScale"] == 1.08
+    assert q["prePhonemeLength"] == 0.04
+    print("  scale-keys: VOICEVOX生パラメータ名でも上書き可能 OK")
+
+
+def test_voice_cache_key_changes_with_fx_and_params():
+    k1 = tv._voice_cache_key(11, "確認はしていません。", {"speedScale": 1.08}, {"lowpass": 7200})
+    k2 = tv._voice_cache_key(11, "確認はしていません。", {"speedScale": 1.09}, {"lowpass": 7200})
+    k3 = tv._voice_cache_key(11, "確認はしていません。", {"speedScale": 1.08}, {"lowpass": 5200})
+    assert k1 != k2 and k1 != k3
+    print("  cache-key: params/fx差分でキーが変わる OK")
+
+
+def test_cache_reuses_generated_wav():
+    import tempfile
+    _install_fakes()
+    script = [{"speaker": "四国めたん", "text": "確認。"}]
+    with tempfile.TemporaryDirectory() as d:
+        cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2}, "cache_dir": d}}
+        tv.synthesize_dialogue(script, cfg)
+        first = len(_last_queries)
+        tv.synthesize_dialogue(script, cfg)
+        assert len(_last_queries) == first, "同一キーはキャッシュ再利用"
+    print("  cache-hit: 同一speaker/text/paramsで再合成しない OK")
+
+
+def test_cache_miss_when_fx_changes():
+    import tempfile
+    _install_fakes()
+    script = [{"speaker": "四国めたん", "text": "確認。", "audioFx": {"volume": 0.9}}]
+    with tempfile.TemporaryDirectory() as d:
+        cfg = {"tts_voicevox": {"speakers": {"四国めたん": 2}, "cache_dir": d}}
+        tv.synthesize_dialogue(script, cfg)
+        first = len(_last_queries)
+        script[0]["audioFx"] = {"volume": 0.8}
+        tv.synthesize_dialogue(script, cfg)
+        assert len(_last_queries) == first + 1, "fx差分は再生成"
+    print("  cache-miss: fx変更時は再生成 OK")
+
+
+def test_apply_fx_keeps_reasonable_wav_duration():
+    import shutil
+    if not shutil.which("ffmpeg"):
+        print("  fx-duration: ffmpeg無しのためスキップ"); return
+    src = _make_wav(0.25)
+    out = tv._apply_fx_to_wav_bytes(src, {"volume": 0.82, "lowpass": 5200})
+    _params, _frames, duration = tv._wav_params_and_frames(out)
+    assert 0.20 <= duration <= 0.30, duration
+    print("  fx-duration: 後段fx後もWAV尺が壊れない OK")
+
+
+def test_broken_cached_wav_is_rejected():
+    bad = _make_wav(0.1)[:40] + (2147483647).to_bytes(4, "little") + _make_wav(0.1)[44:]
+    try:
+        tv._wav_params_and_frames(bad)
+    except ValueError as e:
+        assert "壊れたWAVヘッダ" in str(e)
+        print("  broken-cache: 壊れたWAVヘッダを拒否 OK")
+        return
+    raise AssertionError("壊れたWAVを拒否していない")
+
+
 def test_per_turn_pause():
     import shutil
     if not shutil.which("ffmpeg"):
@@ -402,6 +479,11 @@ if __name__ == "__main__":
     test_mix_pcm_clamp()
     test_unknown_speaker()
     test_per_turn_voice_override()
+    test_voice_param_scale_keys()
+    test_voice_cache_key_changes_with_fx_and_params()
+    test_cache_reuses_generated_wav()
+    test_cache_miss_when_fx_changes()
+    test_apply_fx_keeps_reasonable_wav_duration()
     test_per_turn_pause()
     test_sentence_keeps_closing_bracket()
     test_reading_gloss_pure()
