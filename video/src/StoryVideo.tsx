@@ -3,7 +3,6 @@ import {
   Audio,
   getRemotionEnvironment,
   Img,
-  interpolate,
   Sequence,
   staticFile,
   useCurrentFrame,
@@ -90,6 +89,7 @@ export type StoryTurn = {
     | "wobble";
   enter?: string[];
   enterMode?: "instant";
+  speakerAnchor?: string;
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
   face?: Record<string, "left" | "right">;
@@ -107,6 +107,14 @@ export type StoryTurn = {
   telopSize?: number;
   telopX?: number;
   telopY?: number;
+  // 追加の単発演出。主に行頭〜行末の短い強調演出として使う。
+  impactText?: string;
+  zoomPunch?: boolean;
+  quoteFreeze?: boolean;
+  stampRain?: string;
+  typingFlood?: boolean;
+  sparkleBurst?: boolean;
+  irisOut?: boolean;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
   pause?: number;
   // PC画面インサート演出（このターン中に全画面PC画面UIを重ねる）。
@@ -435,6 +443,27 @@ function assignAnchors(chars: string[]): Record<string, string> {
   return map;
 }
 
+function resolveAnchorMapAt(
+  seg: Segment,
+  roster: string[],
+  sceneDef: SceneDef,
+  tb: number
+): Record<string, string> {
+  const map: Record<string, string> = { ...assignAnchors(roster), ...(sceneDef.cast ?? {}) };
+  for (const turn of seg.turns) {
+    if (turn.start > tb + 1e-6) break;
+    if (
+      !isNarrationTurn(turn) &&
+      isKnownChar(turn.speaker) &&
+      typeof turn.speakerAnchor === "string" &&
+      turn.speakerAnchor
+    ) {
+      map[turn.speaker] = turn.speakerAnchor;
+    }
+  }
+  return map;
+}
+
 // segment 全体で登場する全キャラ（登場順）。立ち位置を区間中ずっと固定するため最終集合で決める。
 // モブ（CHARACTERS 未定義）はレイアウトから除外する。
 function segmentRoster(seg: Segment): string[] {
@@ -505,6 +534,274 @@ const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const easeInOutCubic = (x: number) =>
   x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+const easeOutBack = (x: number) => {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+};
+
+const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+
+function mediaStaticSrc(path: string): string {
+  const qidx = path.indexOf("?");
+  if (qidx < 0) return staticFile(path);
+  const base = path.slice(0, qidx);
+  const suffix = path.slice(qidx);
+  return `${staticFile(base)}${suffix}`;
+}
+
+const ExtraEffectsLayer: React.FC<{
+  active: StoryTurn;
+  progress: number;
+  width: number;
+  height: number;
+}> = ({ active, progress, width, height }) => {
+  const layers: React.ReactNode[] = [];
+  const dur = Math.max(active.end - active.start, 0.001);
+  const burstIn = clamp(progress / 0.18, 0, 1);
+  const burstOut = 1 - clamp((progress - 0.58) / 0.22, 0, 1);
+
+  if (active.zoomPunch) {
+    const local = clamp(progress / 0.18, 0, 1);
+    const punch = Math.sin(local * Math.PI);
+    const scale = 1 + 0.14 * punch;
+    layers.push(
+      <AbsoluteFill
+        key="zoomPunch"
+        style={{
+          pointerEvents: "none",
+          boxShadow: `inset 0 0 0 ${Math.round(18 * punch)}px rgba(255,255,255,${0.11 * punch})`,
+          transform: `scale(${scale})`,
+          transformOrigin: "center center",
+        }}
+      />
+    );
+  }
+
+  if (active.impactText) {
+    const scale = lerp(1.7, 1, easeOutBack(burstIn));
+    const opacity = clamp(Math.min(burstIn * 1.1, burstOut), 0, 1);
+    layers.push(
+      <AbsoluteFill
+        key="impactText"
+        style={{ pointerEvents: "none", alignItems: "center", justifyContent: "center" }}
+      >
+        <div
+          style={{
+            transform: `translateY(${-height * 0.02}px) scale(${scale}) rotate(-2deg)`,
+            opacity,
+            padding: "20px 42px",
+            borderRadius: 22,
+            color: "#fff6cf",
+            background: "linear-gradient(135deg, rgba(176,31,31,0.92), rgba(245,142,42,0.92))",
+            border: "5px solid rgba(255,245,202,0.96)",
+            boxShadow: "0 18px 44px rgba(0,0,0,0.42)",
+            fontFamily: EXTRA_EFFECT_FONT,
+            fontWeight: 900,
+            fontSize: Math.round(Math.min(width * 0.07, 110)),
+            lineHeight: 1.1,
+            letterSpacing: "0.08em",
+            textAlign: "center",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {active.impactText}
+        </div>
+      </AbsoluteFill>
+    );
+  }
+
+  if (active.quoteFreeze) {
+    const hold = clamp(progress / 0.14, 0, 1);
+    const fade = 1 - clamp((progress - 0.72) / 0.18, 0, 1);
+    const opacity = clamp(Math.min(hold, fade), 0, 1);
+    layers.push(
+      <AbsoluteFill
+        key="quoteFreeze"
+        style={{
+          pointerEvents: "none",
+          background: `rgba(10, 12, 18, ${0.22 * opacity})`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            width: Math.min(width * 0.8, 1180),
+            transform: `scale(${lerp(0.94, 1, easeOutCubic(hold))})`,
+            opacity,
+            borderLeft: "10px solid #f5c54c",
+            background: "rgba(18, 24, 35, 0.84)",
+            color: "#f8fafc",
+            padding: "28px 38px 24px",
+            borderRadius: 24,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.46)",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: EXTRA_EFFECT_FONT,
+              fontSize: 28,
+              letterSpacing: "0.12em",
+              color: "#f5c54c",
+              marginBottom: 14,
+            }}
+          >
+            PROBLEM QUOTE
+          </div>
+          <div
+            style={{
+              fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif',
+              fontWeight: 800,
+              fontSize: Math.round(Math.min(width * 0.042, 62)),
+              lineHeight: 1.45,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            「{active.text}」
+          </div>
+        </div>
+      </AbsoluteFill>
+    );
+  }
+
+  if (active.stampRain) {
+    const text = active.stampRain;
+    const opacity = clamp(Math.min(progress / 0.16, 1 - Math.max(0, progress - 0.76) / 0.18), 0, 1);
+    const stamps = Array.from({ length: 8 }, (_, i) => {
+      const x = [0.12, 0.28, 0.44, 0.62, 0.78, 0.2, 0.55, 0.84][i];
+      const delay = i * 0.05;
+      const p = clamp((progress - delay) / 0.46, 0, 1);
+      const y = lerp(-0.16, 1.08, easeOutCubic(p));
+      const rot = [-14, 8, -6, 12, -10, 6, -12, 10][i];
+      const scale = 0.86 + (i % 3) * 0.12;
+      return (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${x * 100}%`,
+            top: `${y * 100}%`,
+            transform: `translate(-50%, -50%) rotate(${rot}deg) scale(${scale})`,
+            opacity: opacity * clamp(p * 1.2, 0, 1),
+            padding: "10px 22px",
+            borderRadius: 999,
+            background: "rgba(255,255,255,0.92)",
+            border: "4px solid #5fb84f",
+            color: "#1f4e1a",
+            fontFamily: EXTRA_EFFECT_FONT,
+            fontSize: 42,
+            fontWeight: 900,
+            boxShadow: "0 10px 24px rgba(0,0,0,0.22)",
+          }}
+        >
+          {text}
+        </div>
+      );
+    });
+    layers.push(<AbsoluteFill key="stampRain" style={{ pointerEvents: "none", overflow: "hidden" }}>{stamps}</AbsoluteFill>);
+  }
+
+  if (active.typingFlood) {
+    const opacity = clamp(Math.min(progress / 0.12, 1 - Math.max(0, progress - 0.82) / 0.16), 0, 1);
+    const rows = Array.from({ length: 9 }, (_, i) => {
+      const x = i % 2 === 0 ? 0.06 : 0.48;
+      const delay = i * 0.035;
+      const p = clamp((progress - delay) / 0.38, 0, 1);
+      const y = lerp(-0.12, 0.92, easeOutCubic(p));
+      return (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${x * 100}%`,
+            top: `${y * 100}%`,
+            width: `${(i % 2 === 0 ? 0.4 : 0.46) * 100}%`,
+            transform: "translateY(-50%)",
+            opacity: opacity * clamp(p * 1.1, 0, 1),
+            background: i % 3 === 0 ? "rgba(247, 193, 76, 0.92)" : "rgba(255,255,255,0.92)",
+            color: "#172032",
+            borderRadius: 16,
+            padding: "14px 18px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              background: i % 3 === 0 ? "#ad4f00" : "#5fb84f",
+              flexShrink: 0,
+            }}
+          />
+          <div style={{ fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif', fontWeight: 800, fontSize: 28 }}>
+            {["新着メッセージ", "追加通知", "返信が増加", "全社チャット更新", "コメント集中"][i % 5]}
+          </div>
+        </div>
+      );
+    });
+    layers.push(<AbsoluteFill key="typingFlood" style={{ pointerEvents: "none", overflow: "hidden" }}>{rows}</AbsoluteFill>);
+  }
+
+  if (active.sparkleBurst) {
+    const opacity = clamp(Math.min(progress / 0.14, 1 - Math.max(0, progress - 0.68) / 0.2), 0, 1);
+    const sparks = Array.from({ length: 10 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 10;
+      const dist = lerp(40, 260, easeOutCubic(clamp(progress / 0.32, 0, 1)));
+      const x = width * 0.5 + Math.cos(angle) * dist;
+      const y = height * 0.45 + Math.sin(angle) * dist * 0.72;
+      const scale = 0.7 + (i % 4) * 0.18;
+      return (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: x,
+            top: y,
+            transform: `translate(-50%, -50%) scale(${scale}) rotate(${i * 18}deg)`,
+            opacity,
+            color: i % 2 === 0 ? "#fff2a3" : "#baf7df",
+            fontSize: 58,
+            textShadow: "0 0 24px rgba(255,255,255,0.4)",
+          }}
+        >
+          ✦
+        </div>
+      );
+    });
+    layers.push(<AbsoluteFill key="sparkleBurst" style={{ pointerEvents: "none" }}>{sparks}</AbsoluteFill>);
+  }
+
+  if (active.irisOut) {
+    const p = clamp((progress - 0.72) / 0.28, 0, 1);
+    if (p > 0) {
+      const radius = lerp(Math.max(width, height) * 0.78, 0, easeInOutCubic(p));
+      layers.push(
+        <AbsoluteFill
+          key="irisOut"
+          style={{
+            pointerEvents: "none",
+            background: "#000",
+            maskImage: `radial-gradient(circle ${radius}px at 50% 50%, transparent 0, transparent ${Math.max(
+              radius - 1,
+              0
+            )}px, #000 ${radius}px, #000 100%)`,
+            WebkitMaskImage: `radial-gradient(circle ${radius}px at 50% 50%, transparent 0, transparent ${Math.max(
+              radius - 1,
+              0
+            )}px, #000 ${radius}px, #000 100%)`,
+          }}
+        />
+      );
+    }
+  }
+
+  return layers.length ? <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>{layers}</AbsoluteFill> : null;
+};
 
 // ─── PC画面インサートコンポーネント ─────────────────────────
 
@@ -1625,15 +1922,19 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const t = frame / fps;
+  const audioSrc = audio ?? "story-01.wav";
+  const audioQueryIndex = audioSrc.indexOf("?");
+  const audioBase = audioQueryIndex >= 0 ? audioSrc.slice(0, audioQueryIndex) : audioSrc;
+  const audioSuffix = audioQueryIndex >= 0 ? audioSrc.slice(audioQueryIndex) : "";
   // 口パク解析は再生用 audio とは別ソースを優先する。
   // モバイルでは同じ圧縮音声(mp3等)を「再生」と「解析」で同時に扱うと
   // プレイヤー側の音声が頭に戻る不安定さが出ることがあるため、同名wavがあればそちらを使う。
-  const analysisAudio = audio && !/\.wav$/i.test(audio)
-    ? audio.replace(/\.[^.]+$/i, ".wav")
-    : (audio ?? "story-01.wav");
+  const analysisAudio = !/\.wav$/i.test(audioBase)
+    ? `${audioBase.replace(/\.[^.]+$/i, ".wav")}${audioSuffix}`
+    : audioSrc;
   // ※ windowInSeconds は動的変更不可（固定値）。フックは無条件呼び出し。
   const { audioData, dataOffsetInSeconds } = useWindowedAudioData({
-    src: staticFile(analysisAudio),
+    src: mediaStaticSrc(analysisAudio),
     frame,
     fps,
     windowInSeconds: 1,
@@ -1642,6 +1943,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const script = story.script;
   const segments = buildSegments(script);
   const active = activeTurnAt(script, t);
+  const activeProgress = clamp((t - active.start) / Math.max(active.end - active.start, 0.001), 0, 1);
   const activeIdx = script.findIndex((x) => x.id === active.id);
   const seg =
     segments.find((s) => s.turns.some((x) => x.id === active.id)) ??
@@ -1666,7 +1968,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           fontFamily: "sans-serif",
         }}
       >
-        {audio ? <Audio src={staticFile(audio)} /> : null}
+        {audio ? <Audio src={mediaStaticSrc(audioSrc)} /> : null}
         <BgmLayer script={script} scenes={scenes} bgmRegions={story.bgm} fps={fps} />
         <SeLayer script={script} seMap={seMap} fps={fps} />
         {active.scene ? <span>未登録シーン: {active.scene}</span> : null}
@@ -1688,8 +1990,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   // ── 立ち位置は区間中ずっと固定（後から登場する人ぶんも最初から確保） ──
   const roster = segmentRoster(seg);
-  // 登場順の自動割当を土台に、シーンの cast（charId→アンカー名）で上書き。
-  const anchorOf = { ...assignAnchors(roster), ...(sceneDef.cast ?? {}) };
+  const anchorOfAt = (tb: number) => resolveAnchorMapAt(seg, roster, sceneDef, tb);
+  const anchorOf = anchorOfAt(t);
   const entrance = entranceTimes(seg);
   const instantEnter = instantEnterChars(seg);
   const exit = exitTimes(seg);
@@ -1730,8 +2032,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     roster.filter(
       (c) => entrance[c] <= tb + 1e-6 && (effectiveExitAt(c) === undefined || tb <= effectiveExitAt(c)! + 1e-6)
     );
-  const Tcur = targetCam(presentAt(times[idx]), anchorOf, sceneDef);
-  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOf, sceneDef) : Tcur;
+  const Tcur = targetCam(presentAt(times[idx]), anchorOfAt(times[idx]), sceneDef);
+  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOfAt(times[idx - 1]), sceneDef) : Tcur;
   const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
   // cam(s,cx,cy) → クランプ済みステージ変換(tx,ty,s)。
   // ★「補間してからクランプ」ではなく「クランプ済み変換同士を補間」する。
@@ -1877,11 +2179,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   let incomingPlate: {
     sceneDef: SceneDef;
     clipPath?: string;
-    shiftX?: number;
-    key: string;
-  } | null = null;
-  let outgoingPlate: {
-    sceneDef: SceneDef;
     shiftX?: number;
     key: string;
   } | null = null;
@@ -2409,7 +2706,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   return (
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
-      {audio ? <Audio src={staticFile(audio)} /> : null}
+      {audio ? <Audio src={mediaStaticSrc(audioSrc)} /> : null}
       <BgmLayer
         script={script}
         scenes={scenes}
@@ -2421,12 +2718,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         seMap={seMap}
         fps={fps}
       />
-      {outgoingPlate
-        ? renderScenePlate(outgoingPlate.sceneDef, outgoingPlate.key, {
-          shiftX: outgoingPlate.shiftX,
-          filter: stageFilter,
-        })
-        : null}
       {incomingPlate
         ? renderScenePlate(incomingPlate.sceneDef, incomingPlate.key, {
           clipPath: incomingPlate.clipPath,
@@ -2533,6 +2824,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         : (!isNarrationTurn(active) && !lineShownInInsert(active)
           ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false), !!active.continueBubble)
           : null)}
+
+      <ExtraEffectsLayer
+        active={active}
+        progress={activeProgress}
+        width={width}
+        height={height}
+      />
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}
       {telopText && telopOpacity > 0 ? (

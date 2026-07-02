@@ -23,7 +23,10 @@
   },
   "AI": {
     "engine": "voicevox",
-    "speaker": 8
+    "speaker": 8,
+    "params": {
+      "intonationScale": 0.18
+    }
   },
   "棒読み男": {
     "engine": "voicevox",

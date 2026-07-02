@@ -45,6 +45,11 @@ let playerRef: PlayerRef | null = null;
 let setPropsState: React.Dispatch<React.SetStateAction<Props>> | null = null;
 let onPlayerReady: (() => void) | null = null;
 
+function withAudioCacheBust(audio: string | undefined, token: number | string = Date.now()) {
+  if (!audio) return undefined;
+  return `${audio}${audio.includes("?") ? "&" : "?"}v=${token}`;
+}
+
 // Remotion の staticFile は window.remotion_staticBase が設定されていると
 // "staticBase/path" を返す。mount 前にこの値を /preview-assets に設定することで
 // StoryVideo.tsx 内の全 staticFile() 呼び出しが /preview-assets/ を指すようになる。
@@ -167,7 +172,7 @@ async function loadInitialProps(): Promise<Props> {
     // se-map.json 未配置時は SE 再生なしにフォールバック
   }
 
-  const audio = story.audio ?? undefined;
+  const audio = withAudioCacheBust(story.audio);
   return { story, scenes, manifest, audio, expressions, poses, seMap };
 }
 
@@ -203,7 +208,9 @@ window.storyPlayer = {
       const duration = story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
       const prevDuration = prev.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
       // audio は story.audio を優先（変更されていれば更新）
-      const audio = story.audio ?? prev.audio;
+      const prevBase = (prev.audio || "").split("?")[0];
+      const nextBase = story.audio || "";
+      const audio = nextBase && nextBase !== prevBase ? withAudioCacheBust(nextBase) : prev.audio;
       return { ...prev, story, audio, _duration: Math.max(duration, prevDuration) } as Props;
     });
   },
@@ -293,7 +300,7 @@ window.storyPlayer = {
       setPropsState((prev) => ({
         ...prev,
         ...(scenes ? { scenes } : {}),
-        ...(story ? { story, audio: story.audio ?? prev.audio } : {}),
+        ...(story ? { story, audio: withAudioCacheBust(story.audio) ?? prev.audio } : {}),
         ...(seMap ? { seMap } : {}),
       } as Props));
     } catch {

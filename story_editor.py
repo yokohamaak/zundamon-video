@@ -255,7 +255,7 @@ def _update_scene_bgm(updates):
 
 
 def _load_scenes_detail():
-    """story-scenes.json から [{key,label,figure}] を返す（プロンプト用）。"""
+    """story-scenes.json からプロンプト用のシーン情報を返す。"""
     if not os.path.exists(SCENES_JSON):
         return []
     try:
@@ -267,10 +267,16 @@ def _load_scenes_detail():
     for k, v in d.get("scenes", {}).items():
         if not isinstance(v, dict):
             continue
+        anchors = v.get("anchors") if isinstance(v.get("anchors"), dict) else {}
+        cast = v.get("cast") if isinstance(v.get("cast"), dict) else {}
         out.append({
             "key": k,
             "label": v.get("label") or k,
             "figure": v.get("figure", "bust"),
+            "shot": v.get("shot", "duo"),
+            "anchors": list(anchors.keys()),
+            "cast": cast,
+            "soloZoom": bool(v.get("soloZoom", True)),
         })
     return out
 
@@ -316,8 +322,16 @@ def _build_script_prompt(theme, length, notes, mode="safe",
     scenes = _load_scenes_detail()
     if scenes:
         scene_lines = "\n".join(
-            "- %s … %s（%s）" % (
-                s["key"], s["label"], "全身" if s["figure"] == "full" else "バスト"
+            "- %s … %s（%s / %s / anchors: %s%s）" % (
+                s["key"],
+                s["label"],
+                "全身" if s["figure"] == "full" else "バスト",
+                "1人向け" if s["shot"] == "solo" else "2人向け",
+                ", ".join(s["anchors"]) if s["anchors"] else "なし",
+                (
+                    " / 既定配置: " +
+                    ", ".join("%s=%s" % (name, anchor) for name, anchor in s["cast"].items())
+                ) if s["cast"] else ""
             ) for s in scenes
         )
         first_scene = scenes[0]["key"]
@@ -377,7 +391,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         ("※ 上は既存シーン。話に必要なら新しい scene 名を作って使ってもよい"
          "（新シーンは後で手作業で用意される。下記 _proposals に列挙すること）。"
          if experimental
-         else "※ scene は各ターンの背景。リストのキーのみ使う。場面転換は話の区切りで行う。"),
+         else "※ scene は各ターンの背景。リストのキーのみ使う。anchors は speakerAnchor で使える立ち位置名。場面転換は話の区切りで行う。"),
         "",
         "━━━ 表情（expression に使う値・各ターンに付ける）━━━",
         expr_list,
@@ -394,14 +408,18 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "cameraEffect": "pull-out" / "pan-left" / "pan-right" / "tilt-left" / "tilt-right" … その行だけカメラに追加の動きを付ける',
         '- "flashback": true … 回想（彩度が落ちる。"telop" と併用推奨）',
         '- "telop": "― 前日 ―" … 画面隅に短時間出る字幕（時代・場面ラベル）',
+        '- "telopX": 0.05, "telopY": 0.06, "telopSize": 1.0 … テロップの位置と大きさを微調整',
         '- "pause": 0.5 … その台詞の後に入れる無音秒（間）',
         '- "narrationVoice": "棒読み男" / "棒読み女" … この行だけナレーション化。speaker は元の登場人物のままでよい',
         '- "voice": {"speed":0.88,"pitch":0.0,"intonation":0.0} … この行だけ声色を上書き（例: 棒読み演出）',
         '- "noLipSync": true … この行だけ口パクしない（心の声・モノローグ向け）',
         '- "continueBubble": true … 直前の同話者セリフを上段に残して2段吹き出しにする',
         '- "disableAutoBubbleSplit": true … 句点や ! ? があってもこの行だけ吹き出し自動分割を止める',
+        '- "speakerAnchor": "left" … その行の話者を指定アンカー位置へ立たせる。以後そのシーン中はその位置を使う',
         '- "enter": ["metan"] … そのターンでキャラを登場させる',
-        '- "exit": ["metan"], "exitDir": "right" … キャラを退場させる',
+        '- "enter": ["metan"], "enterMode": "instant" … スライドなしで即時登場させる（回想の切り替え向け）',
+        '- "exit": ["metan"], "exitDir": "right" … キャラを右へスライド退場させる',
+        '- "exit": ["metan"], "exitDir": "instant" … シーン境界まで立たせたまま即時退場させる',
         '- "face": {"zundamon":"left"} … 向きの明示（通常は不要）',
         '- "se": [{"file":"se/alarm.mp3","at":0.0,"volume":0.9}] … この行だけ鳴らす手動SE',
         "",
@@ -446,7 +464,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         + (', "_proposals": [ ... ] }' if experimental else " }"),
         "- 各ターンの必須キー: speaker, text, scene。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
-        '- narrationVoice / voice / noLipSync / continueBubble / disableAutoBubbleSplit / se / pose / transition も使ってよい。',
+        '- narrationVoice / voice / noLipSync / continueBubble / disableAutoBubbleSplit / speakerAnchor / telopX / telopY / telopSize / se / pose / transition も使ってよい。',
         '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
          if experimental
@@ -464,7 +482,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "face",
     "emphasis", "shake", "cameraEffect", "flashback", "telop", "pause", "transition", "insert",
-    "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble",
+    "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer"}
@@ -977,10 +995,12 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     return False
 
             try:
+                env = dict(os.environ)
+                env["STORY_AUDIO_FORCE_REBUILD"] = "1"
                 proc = subprocess.Popen(
                     [sys.executable, "-u", "make_story_audio.py", "story-01"],
                     cwd=ROOT_DIR, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, text=True, bufsize=1,
+                    stderr=subprocess.STDOUT, text=True, bufsize=1, env=env,
                 )
                 for line in proc.stdout:
                     if not emit(line):

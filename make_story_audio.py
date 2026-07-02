@@ -19,7 +19,7 @@ DEFAULT_VOICE_PROFILES = {
     "metan": {"engine": "voicevox", "speaker": 2, "params": {"speedScale": 0.92}},
     "営業": {"engine": "voicevox", "speaker": 11},
     "部長": {"engine": "voicevox", "speaker": 13},
-    "AI": {"engine": "voicevox", "speaker": 8},
+    "AI": {"engine": "voicevox", "speaker": 8, "params": {"intonationScale": 0.18}},
     "棒読み男": {
         "engine": "voicevox",
         "speaker": 11,
@@ -164,6 +164,11 @@ def render_story_audio(basename, voice_profiles_path=VOICE_PROFILES_PATH):
         print(f"[{idx + 1:>3}/{n}] {turn['speaker']}: {head}…", flush=True)
 
     config = build_tts_config(voice_profiles, on_progress=on_progress)
+    cache_dir = ((config.get("tts_voicevox") or {}).get("cache_dir"))
+    if os.environ.get("STORY_AUDIO_FORCE_REBUILD") == "1" and cache_dir:
+        if os.path.isdir(cache_dir):
+            shutil.rmtree(cache_dir, ignore_errors=True)
+            print(f"音声キャッシュ削除: {cache_dir}", flush=True)
     pcm, turns, (channels, width, rate) = synthesize_dialogue(script, config)
     print(f"合成完了 → WAV書き出し: {out_wav}", flush=True)
 

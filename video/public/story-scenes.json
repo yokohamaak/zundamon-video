@@ -51,6 +51,56 @@
       "soloZoomCy": 0.45,
       "soloZoomScale": 1.2
     },
+    "meeting_room": {
+      "label": "会議室",
+      "bg": "background/office_bg.png",
+      "front": "background/office_fg.png",
+      "shot": "duo",
+      "camera": "static",
+      "figure": "full",
+      "scale": 1.08,
+      "bgBlur": 0,
+      "cast": {
+        "metan": "left",
+        "zundamon": "right"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.52,
+          "y": 0.63
+        },
+        "left": {
+          "x": 0.3,
+          "y": 0.6
+        },
+        "right": {
+          "x": 0.74,
+          "y": 0.6
+        }
+      },
+      "mobAnchor": {
+        "x": 0.5,
+        "y": 0.95
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.18,
+          "y": 0.66,
+          "scale": 0.58,
+          "hidden": false
+        },
+        "部長": {
+          "x": 0.86,
+          "y": 0.66,
+          "scale": 0.62,
+          "hidden": false
+        }
+      },
+      "bgm": "bgm/bgm1.mp3",
+      "bgmVolume": 0.1,
+      "soloZoomCy": 0.48,
+      "soloZoomScale": 1.14
+    },
     "home": {
       "label": "自宅",
       "bg": "background/room.png",
@@ -264,6 +314,272 @@
         "right": {
           "x": 0.74,
           "y": 0.665
+        }
+      }
+    },
+    "izakaya": {
+      "label": "居酒屋",
+      "bg": "background/izakaya.png",
+      "front": "background/izakaya_fg.png",
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomCy": 0.58,
+      "scale": 1.5,
+      "bgBlur": 3,
+      "cast": {
+        "metan": "right",
+        "zundamon": "left"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.275,
+          "y": 0.629
+        },
+        "right": {
+          "x": 0.737,
+          "y": 0.679
+        }
+      }
+    },
+    "park_night": {
+      "label": "公園（夜）",
+      "bg": "background/park_yoru.png",
+      "front": null,
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomCy": 0.58,
+      "scale": 1.5,
+      "bgBlur": 2,
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "park_day": {
+      "label": "公園（昼）",
+      "bg": "background/park_hiru.png",
+      "front": null,
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomCy": 0.58,
+      "scale": 1.5,
+      "bgBlur": 2,
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "kyutoshitsu": {
+      "label": "給湯室",
+      "bg": "background/kyutoshitsu.png",
+      "front": null,
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomCy": 0.58,
+      "scale": 1.55,
+      "bgBlur": 2,
+      "cast": {
+        "metan": "left",
+        "zundamon": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.33,
+          "y": 0.669
+        },
+        "right": {
+          "x": 0.714,
+          "y": 0.655
+        }
+      }
+    },
+    "train-hiru": {
+      "label": "電車（昼）",
+      "bg": "background/train_hiru.png",
+      "front": null,
+      "figure": "full",
+      "shot": "solo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomCy": 0.58,
+      "scale": 1.85,
+      "bgBlur": 3,
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.535,
+          "y": 0.735
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "train-night": {
+      "label": "電車（夜）",
+      "bg": "background/train_yoru.png",
+      "front": null,
+      "figure": "full",
+      "shot": "solo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomCy": 0.58,
+      "scale": 1.85,
+      "bgBlur": 3,
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.535,
+          "y": 0.735
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
         }
       }
     }

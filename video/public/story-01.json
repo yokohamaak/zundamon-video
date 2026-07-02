@@ -1,2052 +1,2378 @@
 {
-  "title": "後輩に『それ意味あります?』って言われ続けた準新人が、記録で全部黙らせた話なのだ",
+  "title": "【スカッと】開発ベンダーのモンスター社員にブチギレた結果【アニメ】",
   "script": [
     {
       "speaker": "zundamon",
-      "text": "去年の今頃、自分もこんな感じで先輩に迷惑かけてたのだ……。",
+      "text": "はぁ……新しい基幹システム開発、ベンダーとの定例会議の時間なのだ……。",
       "scene": "office",
-      "expression": "normal",
+      "expression": "trouble",
       "transition": "fade-black",
-      "telop": "去年の春",
+      "pose": "droop",
       "id": "turn-0001",
       "start": 0,
-      "end": 5.227,
+      "end": 6.432,
       "sentences": [
         {
-          "text": "去年の今頃、",
+          "text": "はぁ……新しい基幹システム開発、",
           "start": 0,
-          "end": 1.081
+          "end": 2.94
         },
         {
-          "text": "自分もこんな感じで先輩に迷惑かけてたのだ……。",
-          "start": 1.081,
-          "end": 5.227
+          "text": "ベンダーとの定例会議の時間なのだ……。",
+          "start": 2.94,
+          "end": 6.432
         }
-      ],
-      "emphasis": true
+      ]
     },
     {
-      "speaker": "metan",
-      "text": "ずんだもん、それやり方違うわよ。もう一回説明するから聞いて。",
+      "speaker": "zundamon",
+      "text": "毎回進捗が怪しいから、今日はビシッと言うのだ！ オンライン会議室に入るのだ！",
       "scene": "office",
       "expression": "normal",
+      "pose": "step_in",
       "id": "turn-0002",
-      "start": 5.577,
-      "end": 10.771,
+      "start": 6.782,
+      "end": 13.171,
       "sentences": [
         {
-          "text": "ずんだもん、それやり方違うわよ。",
-          "start": 5.577,
-          "end": 8.425
+          "text": "毎回進捗が怪しいから、今日はビシッと言うのだ！",
+          "start": 6.782,
+          "end": 10.867
         },
         {
-          "text": "もう一回説明するから聞いて。",
-          "start": 8.425,
-          "end": 10.771
+          "text": "オンライン会議室に入るのだ！",
+          "start": 10.867,
+          "end": 13.171
         }
-      ],
-      "flashback": true,
-      "telop": "−ずんだもん新人時代−",
-      "telopSize": 0.5,
-      "telopX": 0,
-      "telopY": 0.03
+      ]
     },
     {
       "speaker": "zundamon",
-      "text": "す、すみませんなのだ……。今度こそちゃんと覚えるのだ!",
-      "scene": "office",
-      "expression": "trouble",
+      "text": "お疲れ様様なのだ！ さっそく今週の進捗状況を教えてほしいのだ！",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "transition": "cut",
+      "pose": "proud",
       "id": "turn-0003",
-      "start": 11.121,
-      "end": 15.452,
+      "start": 13.521,
+      "end": 19.164,
       "sentences": [
         {
-          "text": "す、すみませんなのだ……。",
-          "start": 11.121,
-          "end": 13.265
+          "text": "お疲れ様様なのだ！",
+          "start": 13.521,
+          "end": 15.239
         },
         {
-          "text": "今度こそちゃんと覚えるのだ!",
-          "start": 13.265,
-          "end": 15.452
+          "text": "さっそく今週の進捗状況を教えてほしいのだ！",
+          "start": 15.239,
+          "end": 19.164
         }
-      ],
-      "flashback": true,
-      "exit": [
-        "metan"
-      ],
-      "exitDir": "instant"
+      ]
     },
     {
-      "speaker": "zundamon",
-      "text": "……あの頃は、ちゃんと話聞いてたつもりだったのだ。今なら分かる、めたん先輩も大変だったのだ。",
-      "scene": "office",
+      "speaker": "営業",
+      "text": "あ、ずんだもんさん。お疲れ様です。えーっと、今週の進捗ですが……ぶっちゃけ『ゼロ』です！",
+      "scene": "meeting_room",
       "expression": "normal",
-      "noLipSync": true,
-      "pause": 0.3,
       "id": "turn-0004",
-      "start": 15.802,
-      "end": 23.386,
+      "start": 19.514,
+      "end": 26.618,
       "sentences": [
         {
-          "text": "……あの頃は、",
-          "start": 15.802,
-          "end": 16.853
+          "text": "あ、ずんだもんさん。",
+          "start": 19.514,
+          "end": 20.879
         },
         {
-          "text": "ちゃんと話聞いてたつもりだったのだ。",
-          "start": 16.853,
-          "end": 19.557
+          "text": "お疲れ様です。",
+          "start": 20.879,
+          "end": 21.861
         },
         {
-          "text": "今なら分かる、めたん先輩も大変だったのだ。",
-          "start": 19.557,
-          "end": 23.386
+          "text": "えーっと、今週の進捗ですが……ぶっちゃけ『ゼロ』です！",
+          "start": 21.861,
+          "end": 26.618
         }
       ]
     },
     {
-      "speaker": "部長",
-      "text": "ずんだもん、来月から新人の教育係を頼む。お前も二年目、そろそろ後輩ができる頃だ。",
-      "scene": "office",
-      "expression": "normal",
+      "speaker": "zundamon",
+      "text": "えええーっ！？ ゼロって何なのだ！？ もうすぐテスト工程に入るスケジュールなのだ！",
+      "scene": "meeting_room",
+      "expression": "surprise",
+      "shake": true,
+      "pose": "recoil",
       "id": "turn-0005",
-      "start": 24.036,
-      "end": 31.055,
+      "start": 26.968,
+      "end": 32.643,
       "sentences": [
         {
-          "text": "ずんだもん、来月から新人の教育係を頼む。",
-          "start": 24.036,
-          "end": 27.833
+          "text": "えええーっ！？",
+          "start": 26.968,
+          "end": 27.736
         },
         {
-          "text": "お前も二年目、そろそろ後輩ができる頃だ。",
-          "start": 27.833,
-          "end": 31.055
+          "text": "ゼロって何なのだ！？",
+          "start": 27.736,
+          "end": 29.357
+        },
+        {
+          "text": "もうすぐテスト工程に入るスケジュールなのだ！",
+          "start": 29.357,
+          "end": 32.643
         }
       ]
     },
     {
-      "speaker": "zundamon",
-      "text": "きょ、教育係なのだ!?自分もまだまだなのに……でも、頑張るのだ!",
-      "scene": "office",
-      "expression": "happy",
-      "pose": "cheer",
-      "id": "turn-0006",
-      "start": 31.405,
-      "end": 37.581,
-      "sentences": [
-        {
-          "text": "きょ、教育係なのだ!?",
-          "start": 31.405,
-          "end": 33.741
-        },
-        {
-          "text": "自分もまだまだなのに……でも、頑張るのだ!",
-          "start": 33.741,
-          "end": 37.581
-        }
-      ]
-    },
-    {
-      "speaker": "metan",
-      "text": "気合いはいいけど、最近の新人は一筋縄じゃいかないわよ。覚悟しときなさい。",
-      "scene": "office",
+      "speaker": "営業",
+      "text": "いやぁ、うちのエースプログラマーの山田がですね、「この仕様書は美しくないから書く気が起きん」と。",
+      "scene": "meeting_room",
       "expression": "normal",
-      "id": "turn-0007",
-      "start": 37.931,
-      "end": 44.128,
+      "cameraEffect": "pan-left",
+      "id": "turn-0006",
+      "start": 32.993,
+      "end": 39.691,
       "sentences": [
         {
-          "text": "気合いはいいけど、",
-          "start": 37.931,
-          "end": 39.563
+          "text": "いやぁ、うちのエースプログラマーの山田がですね、",
+          "start": 32.993,
+          "end": 36.342
         },
         {
-          "text": "最近の新人は一筋縄じゃいかないわよ。",
-          "start": 39.563,
-          "end": 42.827
-        },
-        {
-          "text": "覚悟しときなさい。",
-          "start": 42.827,
-          "end": 44.128
+          "text": "「この仕様書は美しくないから書く気が起きん」と。",
+          "start": 36.342,
+          "end": 39.691
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "だ、大丈夫なのだ!自分だって去年は新人だったのだ。気持ちは分かるのだ!",
-      "scene": "office",
-      "expression": "happy",
-      "id": "turn-0008",
-      "start": 44.478,
-      "end": 50.793,
+      "text": "書く気が起きないって、そんなの仕事じゃないのだ！ ちゃんと説得してほしいのだ！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "pose": "flustered",
+      "id": "turn-0007",
+      "start": 40.041,
+      "end": 45.833,
       "sentences": [
         {
-          "text": "だ、大丈夫なのだ!",
-          "start": 44.478,
-          "end": 46.451
+          "text": "書く気が起きないって、そんなの仕事じゃないのだ！",
+          "start": 40.041,
+          "end": 43.657
         },
         {
-          "text": "自分だって去年は新人だったのだ。",
-          "start": 46.451,
-          "end": 49.203
-        },
-        {
-          "text": "気持ちは分かるのだ!",
-          "start": 49.203,
-          "end": 50.793
+          "text": "ちゃんと説得してほしいのだ！",
+          "start": 43.657,
+          "end": 45.833
         }
       ]
     },
     {
-      "speaker": "metan",
-      "text": "……その自信、三日後には無くなってると思うわ。",
-      "scene": "office",
+      "speaker": "営業",
+      "text": "無理ですよ。山田を怒らせたらこのプロジェクト、完全に終わりますからね？",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "id": "turn-0008",
+      "start": 46.183,
+      "end": 50.738,
+      "sentences": [
+        {
+          "text": "無理ですよ。",
+          "start": 46.183,
+          "end": 46.834
+        },
+        {
+          "text": "山田を怒らせたらこのプロジェクト、",
+          "start": 46.834,
+          "end": 49.123
+        },
+        {
+          "text": "完全に終わりますからね？",
+          "start": 49.123,
+          "end": 50.738
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "むしろ、山田のモチベーションを下げたずんだもんさんの仕様書の書き方に問題があるんですよ。",
+      "scene": "meeting_room",
       "expression": "normal",
       "id": "turn-0009",
-      "start": 51.143,
-      "end": 54.705,
+      "start": 51.088,
+      "end": 56.464,
       "sentences": [
         {
-          "text": "……その自信、三日後には無くなってると思うわ。",
-          "start": 51.143,
-          "end": 54.705
+          "text": "むしろ、山田のモチベーションを下げたずんだもんさんの仕様書の書き方に問題があるんですよ。",
+          "start": 51.088,
+          "end": 56.464
         }
       ]
     },
     {
-      "speaker": "営業",
-      "text": "はじめまして!新人の獅子堂です。よろしくお願いします!",
-      "scene": "office",
-      "expression": "normal",
+      "speaker": "zundamon",
+      "text": "ボクのせいにするななのだ！ 事前に何度もすり合わせして合意した仕様なのだ！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "pose": "flustered",
+      "emphasis": true,
       "id": "turn-0010",
-      "start": 55.055,
-      "end": 58.383,
+      "start": 56.814,
+      "end": 62.393,
       "sentences": [
         {
-          "text": "はじめまして!",
-          "start": 55.055,
-          "end": 55.855
+          "text": "ボクのせいにするななのだ！",
+          "start": 56.814,
+          "end": 58.723
         },
         {
-          "text": "新人の獅子堂です。",
-          "start": 55.855,
-          "end": 57.114
-        },
-        {
-          "text": "よろしくお願いします!",
-          "start": 57.114,
-          "end": 58.383
+          "text": "事前に何度もすり合わせして合意した仕様なのだ！",
+          "start": 58.723,
+          "end": 62.393
         }
       ]
     },
     {
-      "speaker": "zundamon",
-      "text": "よろしくなのだ!まずは基本のやり方から教えるのだ。",
-      "scene": "office",
-      "expression": "happy",
+      "speaker": "営業",
+      "text": "まぁまぁ、とりあえず山田の機嫌を直すために、ずんだもんさんから謝罪メールを送ってください。",
+      "scene": "meeting_room",
+      "expression": "normal",
       "id": "turn-0011",
-      "start": 58.733,
-      "end": 62.744,
+      "start": 62.743,
+      "end": 68.737,
       "sentences": [
         {
-          "text": "よろしくなのだ!",
-          "start": 58.733,
-          "end": 59.896
+          "text": "まぁまぁ、とりあえず山田の機嫌を直すために、",
+          "start": 62.743,
+          "end": 65.673
         },
         {
-          "text": "まずは基本のやり方から教えるのだ。",
-          "start": 59.896,
-          "end": 62.744
+          "text": "ずんだもんさんから謝罪メールを送ってください。",
+          "start": 65.673,
+          "end": 68.737
         }
       ]
     },
     {
-      "speaker": "営業",
-      "text": "あ、それ意味あります?先にAIに聞いて、効率いいやり方調べたんですけど。",
-      "scene": "office",
-      "expression": "normal",
+      "speaker": "zundamon",
+      "text": "なんでボクが謝罪しなきゃいけないのだ……理不尽すぎるのだ……。",
+      "scene": "meeting_room",
+      "expression": "trouble",
+      "pose": "wobble",
       "id": "turn-0012",
-      "start": 63.094,
-      "end": 68.481,
+      "start": 69.087,
+      "end": 73.493,
       "sentences": [
         {
-          "text": "あ、それ意味あります?",
-          "start": 63.094,
-          "end": 64.779
-        },
-        {
-          "text": "先にAIに聞いて、",
-          "start": 64.779,
-          "end": 66.112
-        },
-        {
-          "text": "効率いいやり方調べたんですけど。",
-          "start": 66.112,
-          "end": 68.481
+          "text": "なんでボクが謝罪しなきゃいけないのだ……理不尽すぎるのだ……。",
+          "start": 69.087,
+          "end": 73.493
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "え、あ……でも、うちのやり方には理由があって……",
-      "scene": "office",
+      "text": "うぅ……でも開発が止まったらボクが社内で怒られるから、送るしかないのだ……。",
+      "scene": "home",
       "expression": "trouble",
+      "transition": "wipe-left",
+      "pose": "droop",
       "id": "turn-0013",
-      "start": 68.831,
-      "end": 74.847,
+      "start": 73.843,
+      "end": 80.029,
       "sentences": [
         {
-          "text": "え、あ……でも、うちのやり方には理由があって……",
-          "start": 68.831,
-          "end": 74.847
+          "text": "うぅ……でも開発が止まったらボクが社内で怒られるから、",
+          "start": 73.843,
+          "end": 78.238
+        },
+        {
+          "text": "送るしかないのだ……。",
+          "start": 78.238,
+          "end": 80.029
         }
       ]
     },
     {
-      "speaker": "営業",
-      "text": "とりあえずやってみます!非効率だったら変えるんで!",
-      "scene": "office",
-      "expression": "normal",
+      "speaker": "zundamon",
+      "text": "カタカタ……『仕様の件でご不快な思いをさせ申し訳ありません』と……送信なのだ。",
+      "scene": "home",
+      "expression": "trouble",
+      "pose": "idle",
       "id": "turn-0014",
-      "start": 75.197,
-      "end": 78.034,
+      "start": 80.379,
+      "end": 87.409,
       "sentences": [
         {
-          "text": "とりあえずやってみます!",
-          "start": 75.197,
-          "end": 76.466
-        },
-        {
-          "text": "非効率だったら変えるんで!",
-          "start": 76.466,
-          "end": 78.034
+          "text": "カタカタ……『仕様の件でご不快な思いをさせ申し訳ありません』と……送信なのだ。",
+          "start": 80.379,
+          "end": 87.409
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "（す、素直っちゃ素直なのだ……でも話聞いてないのだ……）",
-      "scene": "office",
-      "expression": "trouble",
-      "noLipSync": true,
+      "text": "これで少しは開発を進めてくれると信じるしかないのだ……。",
+      "scene": "home",
+      "expression": "normal",
+      "pose": "wobble",
       "id": "turn-0015",
-      "start": 78.384,
-      "end": 82.853,
+      "start": 87.759,
+      "end": 92.047,
       "sentences": [
         {
-          "text": "（す、素直っちゃ素直なのだ……でも話聞いてないのだ……）",
-          "start": 78.384,
-          "end": 82.853
+          "text": "これで少しは開発を進めてくれると信じるしかないのだ……。",
+          "start": 87.759,
+          "end": 92.047
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "げ、獅子堂さん!?このデータ、フォーマット違うのだ!お客さんに送る前に確認してって言ったのだ!",
-      "scene": "office",
-      "expression": "panic",
-      "shake": true,
+      "text": "ふわぁ……よく眠れなかったのだ。ベンダーから返信は来てるのだ？",
+      "scene": "home-night",
+      "expression": "trouble",
+      "transition": "fade-black",
+      "pose": "idle",
       "id": "turn-0016",
-      "start": 83.203,
-      "end": 91.129,
+      "start": 92.397,
+      "end": 97.634,
       "sentences": [
         {
-          "text": "げ、獅子堂さん!?",
-          "start": 83.203,
-          "end": 85.017
+          "text": "ふわぁ……よく眠れなかったのだ。",
+          "start": 92.397,
+          "end": 95.106
         },
         {
-          "text": "このデータ、フォーマット違うのだ!",
-          "start": 85.017,
-          "end": 87.641
-        },
-        {
-          "text": "お客さんに送る前に確認してって言ったのだ!",
-          "start": 87.641,
-          "end": 91.129
+          "text": "ベンダーから返信は来てるのだ？",
+          "start": 95.106,
+          "end": 97.634
         }
       ]
     },
     {
-      "speaker": "営業",
-      "text": "あ、もう送っちゃいました。AIが『このままで大丈夫』って言ってたので。",
-      "scene": "office",
+      "speaker": "zundamon",
+      "text": "あ、山田本人からメールが直接届いているのだ！ どれどれなのだ……？",
+      "scene": "home-night",
       "expression": "normal",
+      "insert": {
+        "kind": "mailer",
+        "from": "山田（ベンダー開発）",
+        "subject": "仕様及び開発環境の全面見直しについて",
+        "body": "謝罪文は確認した。だが今の基本設計は俺のポリシーに反する。全機能をPythonからGo言語へ書き直す。それに伴い、納期を6ヶ月延長、追加費用500万円を要求する。",
+        "time": "02:15"
+      },
       "id": "turn-0017",
-      "start": 91.479,
-      "end": 96.513,
+      "start": 97.984,
+      "end": 104.021,
       "sentences": [
         {
-          "text": "あ、もう送っちゃいました。",
-          "start": 91.479,
-          "end": 93.143
+          "text": "あ、山田本人からメールが直接届いているのだ！",
+          "start": 97.984,
+          "end": 102.677
         },
         {
-          "text": "AIが『このままで大丈夫』って言ってたので。",
-          "start": 93.143,
-          "end": 96.513
+          "text": "どれどれなのだ……？",
+          "start": 102.677,
+          "end": 104.021
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "そ、それは参考程度にして、最終確認は自分でしないと……!",
-      "scene": "office",
+      "text": "ぎゃあああああーーーっ！！ 6ヶ月延長！？ 追加で500万円なのだーー！？",
+      "scene": "home-night",
       "expression": "panic",
-      "emphasis": true,
+      "shake": true,
+      "pose": "flustered",
       "id": "turn-0018",
-      "start": 96.863,
-      "end": 102.197,
+      "start": 104.371,
+      "end": 109.95,
       "sentences": [
         {
-          "text": "そ、それは参考程度にして、",
-          "start": 96.863,
-          "end": 99.34
+          "text": "ぎゃあああああーーーっ！！",
+          "start": 104.371,
+          "end": 105.822
         },
         {
-          "text": "最終確認は自分でしないと……!",
-          "start": 99.34,
-          "end": 102.197
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "でも先輩の言うことより、AIの方が早いし正確じゃないですか?",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0019",
-      "start": 102.547,
-      "end": 107.048,
-      "sentences": [
-        {
-          "text": "でも先輩の言うことより、",
-          "start": 102.547,
-          "end": 104.347
+          "text": "6ヶ月延長！？",
+          "start": 105.822,
+          "end": 107.411
         },
         {
-          "text": "AIの方が早いし正確じゃないですか?",
-          "start": 104.347,
-          "end": 107.048
+          "text": "追加で500万円なのだーー！？",
+          "start": 107.411,
+          "end": 109.95
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "（か、返す言葉が見つからないのだ……!けど今謝りに行かなきゃなのだ……!)",
-      "scene": "office",
-      "expression": "trouble",
-      "noLipSync": true,
+      "text": "しかもPythonからGo言語って、勝ために開発言語を変えるななのだーー！",
+      "scene": "home-night",
+      "expression": "panic",
+      "emphasis": true,
       "pose": "recoil",
+      "id": "turn-0019",
+      "start": 110.3,
+      "end": 116.113,
+      "sentences": [
+        {
+          "text": "しかもPythonからGo言語って、",
+          "start": 110.3,
+          "end": 113.128
+        },
+        {
+          "text": "勝ために開発言語を変えるななのだーー！",
+          "start": 113.128,
+          "end": 116.113
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "朝一番でチャットを送って猛抗議してやるのだ！ 承服できないのだ！",
+      "scene": "office",
+      "expression": "panic",
+      "transition": "slide-left",
+      "pose": "step_in",
       "id": "turn-0020",
-      "start": 107.398,
-      "end": 112.902,
+      "start": 116.463,
+      "end": 121.711,
       "sentences": [
         {
-          "text": "（か、返す言葉が見つからないのだ……!",
-          "start": 107.398,
-          "end": 110.481
+          "text": "朝一番でチャットを送って猛抗議してやるのだ！",
+          "start": 116.463,
+          "end": 120.101
         },
         {
-          "text": "けど今謝りに行かなきゃなのだ……!)",
-          "start": 110.481,
-          "end": 112.902
+          "text": "承服できないのだ！",
+          "start": 120.101,
+          "end": 121.711
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "げ、獅子堂さん、今日はミスの分の残業で確認作業手伝ってほしいのだ……",
+      "text": "営業さんにチャットで爆撃なのだ！ 画面を見るのだ！",
       "scene": "office",
-      "expression": "trouble",
+      "expression": "panic",
+      "insert": {
+        "kind": "teamchat",
+        "channel": "#新PJ_緊急連絡",
+        "messages": [
+          {
+            "from": "zundamon",
+            "text": "山田さんのメール見ました！勝手な言語変更も納期延長も費用追加も絶対に無理です！"
+          },
+          {
+            "from": "営業",
+            "text": "あー、山田がそう言ってるなら決定ですね。彼、一度決めたら曲げないんで。"
+          }
+        ]
+      },
       "id": "turn-0021",
-      "start": 113.252,
-      "end": 119.449,
+      "start": 122.061,
+      "end": 126.04,
       "sentences": [
         {
-          "text": "げ、獅子堂さん、",
-          "start": 113.252,
-          "end": 114.71
+          "text": "営業さんにチャットで爆撃なのだ！",
+          "start": 122.061,
+          "end": 124.696
         },
         {
-          "text": "今日はミスの分の残業で確認作業手伝ってほしいのだ……",
-          "start": 114.71,
-          "end": 119.449
+          "text": "画面を見るのだ！",
+          "start": 124.696,
+          "end": 126.04
         }
       ]
     },
     {
-      "speaker": "営業",
-      "text": "あ、もう定時なんで帰りますね!お先です!",
+      "speaker": "zundamon",
+      "text": "決定ですね、じゃないのだ！ そっちの管理不足なのだ！ 何とかするのだ！",
       "scene": "office",
-      "expression": "normal",
-      "exit": [
-        "営業"
-      ],
-      "exitDir": "right",
+      "expression": "panic",
+      "pose": "flustered",
       "id": "turn-0022",
-      "start": 119.799,
-      "end": 122.583,
+      "start": 126.39,
+      "end": 132.129,
       "sentences": [
         {
-          "text": "あ、もう定時なんで帰りますね!",
-          "start": 119.799,
-          "end": 121.911
+          "text": "決定ですね、じゃないのだ！",
+          "start": 126.39,
+          "end": 128.726
         },
         {
-          "text": "お先です!",
-          "start": 121.911,
-          "end": 122.583
+          "text": "そっちの管理不足なのだ！",
+          "start": 128.726,
+          "end": 130.763
+        },
+        {
+          "text": "何とかするのだ！",
+          "start": 130.763,
+          "end": 132.129
         }
       ]
     },
     {
-      "speaker": "zundamon",
-      "text": "……!?自分のミスの尻拭いなのに置いていかれたのだ……!",
+      "speaker": "営業",
+      "text": "いや、一流の職人をコントロールするのは発注側の責任ですよ？ 追加契約の書類、今日中に捺印お願いしますね。",
       "scene": "office",
-      "expression": "panic",
-      "shake": true,
+      "expression": "normal",
+      "cameraEffect": "pan-right",
       "id": "turn-0023",
-      "start": 122.933,
-      "end": 126.453,
+      "start": 132.479,
+      "end": 140.703,
       "sentences": [
         {
-          "text": "……!?",
-          "start": 122.933,
-          "end": 123.029
+          "text": "いや、一流の職人をコントロールするのは発注側の責任ですよ？",
+          "start": 132.479,
+          "end": 137.151
         },
         {
-          "text": "自分のミスの尻拭いなのに置いていかれたのだ……!",
-          "start": 123.029,
-          "end": 126.453
+          "text": "追加契約の書類、今日中に捺印お願いしますね。",
+          "start": 137.151,
+          "end": 140.703
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "はぁ……今日も一人で残業なのだ……。",
-      "scene": "home",
+      "text": "完全に話が通じないのだ……ボクたちはお金を払うお客さんのはずなのに……。",
+      "scene": "office",
       "expression": "trouble",
-      "transition": "fade-black",
-      "telop": "その夜",
+      "pose": "wobble",
       "id": "turn-0024",
-      "start": 126.803,
-      "end": 129.758,
+      "start": 141.053,
+      "end": 147.026,
       "sentences": [
         {
-          "text": "はぁ……今日も一人で残業なのだ……。",
-          "start": 126.803,
-          "end": 129.758
+          "text": "完全に話が通じないのだ……ボクたちはお金を払うお客さんのはずなのに……。",
+          "start": 141.053,
+          "end": 147.026
         }
       ]
     },
     {
-      "speaker": "metan",
-      "text": "初日からその調子?先が思いやられるわね。",
-      "scene": "home",
-      "expression": "normal",
-      "enter": [
-        "metan"
-      ],
+      "speaker": "zundamon",
+      "text": "頭が痛くなってきたのだ。ちょっとお茶でも飲んで落ち着くのだ……。",
+      "scene": "kyutoshitsu",
+      "expression": "trouble",
+      "transition": "cut",
+      "pose": "droop",
       "id": "turn-0025",
-      "start": 130.108,
-      "end": 133.649,
+      "start": 147.376,
+      "end": 151.845,
       "sentences": [
         {
-          "text": "初日からその調子?",
-          "start": 130.108,
-          "end": 131.857
+          "text": "頭が痛くなってきたのだ。",
+          "start": 147.376,
+          "end": 149.435
         },
         {
-          "text": "先が思いやられるわね。",
-          "start": 131.857,
-          "end": 133.649
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "で、でも、悪い子ではないと思うのだ……多分、素直すぎるだけで……",
-      "scene": "home",
-      "expression": "trouble",
-      "id": "turn-0026",
-      "start": 133.999,
-      "end": 140.229,
-      "sentences": [
-        {
-          "text": "で、でも、悪い子ではないと思うのだ……多分、",
-          "start": 133.999,
-          "end": 138.282
-        },
-        {
-          "text": "素直すぎるだけで……",
-          "start": 138.282,
-          "end": 140.229
+          "text": "ちょっとお茶でも飲んで落ち着くのだ……。",
+          "start": 149.435,
+          "end": 151.845
         }
       ]
     },
     {
       "speaker": "metan",
-      "text": "その考え方、優しいと思うけど、なめられる原因にもなるわよ。",
-      "scene": "home",
-      "expression": "normal",
-      "id": "turn-0027",
-      "start": 140.579,
-      "end": 146.104,
-      "sentences": [
-        {
-          "text": "その考え方、優しいと思うけど、",
-          "start": 140.579,
-          "end": 143.437
-        },
-        {
-          "text": "なめられる原因にもなるわよ。",
-          "start": 143.437,
-          "end": 146.104
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "そ、そんなことないのだ……多分……",
-      "scene": "home",
-      "expression": "trouble",
-      "pose": "droop",
-      "id": "turn-0028",
-      "start": 146.454,
-      "end": 149.345,
-      "sentences": [
-        {
-          "text": "そ、そんなことないのだ……多分……",
-          "start": 146.454,
-          "end": 149.345
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "先輩、この案件、お客さんに『来週には完了します』って伝えといたんで、よろしくお願いします!",
-      "scene": "office",
-      "expression": "normal",
-      "transition": "fade-black",
-      "telop": "1週間後",
-      "id": "turn-0029",
-      "start": 149.695,
-      "end": 157.417,
-      "sentences": [
-        {
-          "text": "先輩、この案件、",
-          "start": 149.695,
-          "end": 151.068
-        },
-        {
-          "text": "お客さんに『来週には完了します』って伝えといたんで、",
-          "start": 151.068,
-          "end": 155.53
-        },
-        {
-          "text": "よろしくお願いします!",
-          "start": 155.53,
-          "end": 157.417
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "え!?まだ半分も終わってないのだ!勝手に約束しちゃダメなのだ!",
-      "scene": "office",
-      "expression": "panic",
-      "shake": true,
-      "id": "turn-0030",
-      "start": 157.767,
-      "end": 162.887,
-      "sentences": [
-        {
-          "text": "え!?",
-          "start": 157.767,
-          "end": 158.375
-        },
-        {
-          "text": "まだ半分も終わってないのだ!",
-          "start": 158.375,
-          "end": 160.573
-        },
-        {
-          "text": "勝手に約束しちゃダメなのだ!",
-          "start": 160.573,
-          "end": 162.887
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "でも早く言った方がお客さん喜ぶじゃないですか。前向きな提案だと思ったんですけど。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0031",
-      "start": 163.237,
-      "end": 168.229,
-      "sentences": [
-        {
-          "text": "でも早く言った方がお客さん喜ぶじゃないですか。",
-          "start": 163.237,
-          "end": 166.107
-        },
-        {
-          "text": "前向きな提案だと思ったんですけど。",
-          "start": 166.107,
-          "end": 168.229
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "き、気持ちは分かるけど、確認してから言ってほしいのだ……!",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0032",
-      "start": 168.579,
-      "end": 173.401,
-      "sentences": [
-        {
-          "text": "き、気持ちは分かるけど、",
-          "start": 168.579,
-          "end": 170.574
-        },
-        {
-          "text": "確認してから言ってほしいのだ……!",
-          "start": 170.574,
-          "end": 173.401
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "了解です!次から気をつけます!",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0033",
-      "start": 173.751,
-      "end": 175.756,
-      "sentences": [
-        {
-          "text": "了解です!",
-          "start": 173.751,
-          "end": 174.529
-        },
-        {
-          "text": "次から気をつけます!",
-          "start": 174.529,
-          "end": 175.756
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "（……この『了解です』、何回目なのだ……。）",
-      "scene": "office",
-      "expression": "trouble",
-      "noLipSync": true,
-      "id": "turn-0034",
-      "start": 176.106,
-      "end": 179.413,
-      "sentences": [
-        {
-          "text": "（……この『了解です』、何回目なのだ……。）",
-          "start": 176.106,
-          "end": 179.413
-        }
-      ]
-    },
-    {
-      "speaker": "部長",
-      "text": "来週の企画会議、獅子堂も同席させる。新人の視点も聞きたい。",
-      "scene": "office",
-      "expression": "normal",
-      "telop": "数日後",
-      "id": "turn-0035",
-      "start": 179.763,
-      "end": 184.552,
-      "sentences": [
-        {
-          "text": "来週の企画会議、獅子堂も同席させる。",
-          "start": 179.763,
-          "end": 182.909
-        },
-        {
-          "text": "新人の視点も聞きたい。",
-          "start": 182.909,
-          "end": 184.552
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "獅子堂さん、会議では自分の意見だけじゃなくて、チームの案も踏まえて発言するのだ。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0036",
-      "start": 184.902,
-      "end": 191.761,
-      "sentences": [
-        {
-          "text": "獅子堂さん、会議では自分の意見だけじゃなくて、",
-          "start": 184.902,
-          "end": 188.846
-        },
-        {
-          "text": "チームの案も踏まえて発言するのだ。",
-          "start": 188.846,
-          "end": 191.761
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "了解です!でも自分、結構いい案あるんで、それ推していきます!",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0037",
-      "start": 192.111,
-      "end": 196.569,
-      "sentences": [
-        {
-          "text": "了解です!",
-          "start": 192.111,
-          "end": 192.889
-        },
-        {
-          "text": "でも自分、結構いい案あるんで、",
-          "start": 192.889,
-          "end": 195.097
-        },
-        {
-          "text": "それ推していきます!",
-          "start": 195.097,
-          "end": 196.569
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "（い、嫌な予感がするのだ……）",
-      "scene": "office",
-      "expression": "trouble",
-      "noLipSync": true,
-      "id": "turn-0038",
-      "start": 196.919,
-      "end": 199.991,
-      "sentences": [
-        {
-          "text": "（い、嫌な予感がするのだ……）",
-          "start": 196.919,
-          "end": 199.991
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "自分としては、この案が一番効率的だと思います!他の案は正直、古いやり方だと思うので。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0039",
-      "start": 200.341,
-      "end": 207.008,
-      "sentences": [
-        {
-          "text": "自分としては、この案が一番効率的だと思います!",
-          "start": 200.341,
-          "end": 203.883
-        },
-        {
-          "text": "他の案は正直、古いやり方だと思うので。",
-          "start": 203.883,
-          "end": 207.008
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "獅子堂さん、それ、先輩たちが検証を重ねてきた案なのだ……もう少し言い方が……",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0040",
-      "start": 207.358,
-      "end": 214.334,
-      "sentences": [
-        {
-          "text": "獅子堂さん、それ、",
-          "start": 207.358,
-          "end": 209.01
-        },
-        {
-          "text": "先輩たちが検証を重ねてきた案なのだ……もう少し言い方が……",
-          "start": 209.01,
-          "end": 214.334
-        }
-      ]
-    },
-    {
-      "speaker": "部長",
-      "text": "……獅子堂、意見は歓迎するが、他の案を頭ごなしに否定するのは違うぞ。",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0041",
-      "start": 214.684,
-      "end": 220.135,
-      "sentences": [
-        {
-          "text": "……獅子堂、意見は歓迎するが、",
-          "start": 214.684,
-          "end": 217.089
-        },
-        {
-          "text": "他の案を頭ごなしに否定するのは違うぞ。",
-          "start": 217.089,
-          "end": 220.135
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "あ、そんなつもりじゃなかったんですけど……すみません。",
-      "scene": "office",
-      "expression": "surprise",
-      "id": "turn-0042",
-      "start": 220.485,
-      "end": 223.77,
-      "sentences": [
-        {
-          "text": "あ、そんなつもりじゃなかったんですけど……すみません。",
-          "start": 220.485,
-          "end": 223.77
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "（悪気はなさそうなのだ……でも、会議の空気、完全に凍ったのだ……。）",
-      "scene": "office",
-      "expression": "trouble",
-      "noLipSync": true,
-      "id": "turn-0043",
-      "start": 224.12,
-      "end": 230.083,
-      "sentences": [
-        {
-          "text": "（悪気はなさそうなのだ……でも、会議の空気、",
-          "start": 224.12,
-          "end": 227.978
-        },
-        {
-          "text": "完全に凍ったのだ……。）",
-          "start": 227.978,
-          "end": 230.083
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "あ、それと今の会議の件、上司の方には『先輩と相談して決めました』って伝えといたので!",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0044",
-      "start": 230.433,
-      "end": 237.131,
-      "sentences": [
-        {
-          "text": "あ、それと今の会議の件、",
-          "start": 230.433,
-          "end": 232.347
-        },
-        {
-          "text": "上司の方には『先輩と相談して決めました』って伝えといたので!",
-          "start": 232.347,
-          "end": 237.131
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "そ、それ相談されてないのだ!?わたしが勝手に決めたことになってるのだ!?",
-      "scene": "office",
-      "expression": "panic",
-      "emphasis": true,
-      "id": "turn-0045",
-      "start": 237.481,
-      "end": 243.273,
-      "sentences": [
-        {
-          "text": "そ、それ相談されてないのだ!?",
-          "start": 237.481,
-          "end": 240.212
-        },
-        {
-          "text": "わたしが勝手に決めたことになってるのだ!?",
-          "start": 240.212,
-          "end": 243.273
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "え、そうでした?自分の中では相談したつもりだったんですけど……",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0046",
-      "start": 243.623,
-      "end": 247.591,
-      "sentences": [
-        {
-          "text": "え、そうでした?",
-          "start": 243.623,
-          "end": 244.967
-        },
-        {
-          "text": "自分の中では相談したつもりだったんですけど……",
-          "start": 244.967,
-          "end": 247.591
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "（悪気は本当になさそうなのだ……でも、それはそれで困るのだ……!）",
-      "scene": "office",
-      "expression": "trouble",
-      "noLipSync": true,
-      "id": "turn-0047",
-      "start": 247.941,
-      "end": 253.029,
-      "sentences": [
-        {
-          "text": "（悪気は本当になさそうなのだ……でも、",
-          "start": 247.941,
-          "end": 250.871
-        },
-        {
-          "text": "それはそれで困るのだ……!）",
-          "start": 250.871,
-          "end": 253.029
-        }
-      ]
-    },
-    {
-      "speaker": "部長",
-      "text": "ずんだもん、獅子堂から相談があった。『指導が厳しくて萎縮してしまう』と。教え方、見直せ。",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0048",
-      "start": 253.379,
-      "end": 260.91,
-      "sentences": [
-        {
-          "text": "ずんだもん、獅子堂から相談があった。",
-          "start": 253.379,
-          "end": 256.377
-        },
-        {
-          "text": "『指導が厳しくて萎縮してしまう』と。",
-          "start": 256.377,
-          "end": 259.214
-        },
-        {
-          "text": "教え方、見直せ。",
-          "start": 259.214,
-          "end": 260.91
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "え……!?厳しくしたつもりはないのだ……むしろ毎回フォローしてるのだ……!",
-      "scene": "office",
-      "expression": "panic",
-      "emphasis": true,
-      "id": "turn-0049",
-      "start": 261.26,
-      "end": 266.391,
-      "sentences": [
-        {
-          "text": "え……!?",
-          "start": 261.26,
-          "end": 261.868
-        },
-        {
-          "text": "厳しくしたつもりはないのだ……むしろ毎回フォローしてるのだ……!",
-          "start": 261.868,
-          "end": 266.391
-        }
-      ]
-    },
-    {
-      "speaker": "部長",
-      "text": "本人がそう感じたなら事実だろう。今後は気をつけるように。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0050",
-      "start": 266.741,
-      "end": 270.559,
-      "sentences": [
-        {
-          "text": "本人がそう感じたなら事実だろう。",
-          "start": 266.741,
-          "end": 268.991
-        },
-        {
-          "text": "今後は気をつけるように。",
-          "start": 268.991,
-          "end": 270.559
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "そ、そんな……なのだ……。",
-      "scene": "office",
-      "expression": "trouble",
-      "pose": "droop",
-      "id": "turn-0051",
-      "start": 270.909,
-      "end": 273.107,
-      "sentences": [
-        {
-          "text": "そ、そんな……なのだ……。",
-          "start": 270.909,
-          "end": 273.107
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "先輩、今日もお疲れ様です!俺、先輩に色々教えてもらってて、正直すごい感謝してるんですよ。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0052",
-      "start": 273.457,
-      "end": 280.443,
-      "sentences": [
-        {
-          "text": "先輩、今日もお疲れ様です!",
-          "start": 273.457,
-          "end": 275.675
-        },
-        {
-          "text": "俺、先輩に色々教えてもらってて、",
-          "start": 275.675,
-          "end": 278.136
-        },
-        {
-          "text": "正直すごい感謝してるんですよ。",
-          "start": 278.136,
-          "end": 280.443
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "え……そ、そうなのだ?さっき萎縮してるって部長に言ったって聞いたのだ……",
-      "scene": "office",
-      "expression": "surprise",
-      "id": "turn-0053",
-      "start": 280.793,
-      "end": 286.98,
-      "sentences": [
-        {
-          "text": "え……そ、そうなのだ?",
-          "start": 280.793,
-          "end": 283.545
-        },
-        {
-          "text": "さっき萎縮してるって部長に言ったって聞いたのだ……",
-          "start": 283.545,
-          "end": 286.98
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "あ、それとこれとは別で。萎縮はしてるけど感謝もしてるっていうか。両方本当なんです。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0054",
-      "start": 287.33,
-      "end": 292.642,
-      "sentences": [
-        {
-          "text": "あ、それとこれとは別で。",
-          "start": 287.33,
-          "end": 289.069
-        },
-        {
-          "text": "萎縮はしてるけど感謝もしてるっていうか。",
-          "start": 289.069,
-          "end": 291.319
-        },
-        {
-          "text": "両方本当なんです。",
-          "start": 291.319,
-          "end": 292.642
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "（両方本当って、一番困るパターンなのだ……!)",
-      "scene": "office",
-      "expression": "panic",
-      "noLipSync": true,
-      "shake": true,
-      "id": "turn-0055",
-      "start": 292.992,
-      "end": 296.843,
-      "sentences": [
-        {
-          "text": "（両方本当って、一番困るパターンなのだ……!)",
-          "start": 292.992,
-          "end": 296.843
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "教えても聞いてもらえない、ミスの尻拭いはこっち、勝手に話を進められる、会議では空気凍らせる、なのに『厳しい』って言われるのだ……。もう何が正解か分からないのだ……。",
-      "scene": "home",
-      "expression": "trouble",
-      "transition": "fade-black",
-      "telop": "その夜",
-      "id": "turn-0056",
-      "start": 297.193,
-      "end": 312.126,
-      "sentences": [
-        {
-          "text": "教えても聞いてもらえない、ミスの尻拭いはこっち、",
-          "start": 297.193,
-          "end": 301.777
-        },
-        {
-          "text": "勝手に話を進められる、会議では空気凍らせる、",
-          "start": 301.777,
-          "end": 305.979
-        },
-        {
-          "text": "なのに『厳しい』って言われるのだ……。",
-          "start": 305.979,
-          "end": 309.609
-        },
-        {
-          "text": "もう何が正解か分からないのだ……。",
-          "start": 309.609,
-          "end": 312.126
-        }
-      ]
-    },
-    {
-      "speaker": "metan",
-      "text": "……ずんだもん、指導した内容と日付、ちゃんと残してる?",
-      "scene": "home",
+      "text": "ずんだもん、なんだか魂が抜けかかっているわよ？ 大大丈夫？",
+      "scene": "kyutoshitsu",
       "expression": "normal",
       "enter": [
         "metan"
       ],
-      "id": "turn-0057",
-      "start": 312.476,
-      "end": 317.084,
+      "pose": "idle",
+      "id": "turn-0026",
+      "start": 152.195,
+      "end": 157.411,
       "sentences": [
         {
-          "text": "……ずんだもん、指導した内容と日付、",
-          "start": 312.476,
-          "end": 315.548
+          "text": "ずんだもん、なんだか魂が抜けかかっているわよ？",
+          "start": 152.195,
+          "end": 156.206
         },
         {
-          "text": "ちゃんと残してる?",
-          "start": 315.548,
-          "end": 317.084
+          "text": "大大丈夫？",
+          "start": 156.206,
+          "end": 157.411
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "き、記録なのだ?",
-      "scene": "home",
-      "expression": "surprise",
-      "id": "turn-0058",
-      "start": 317.434,
-      "end": 319.365,
+      "text": "あ、めたん先輩……。実はベンダーがめちゃくちゃな要求をしてきて困ってるのだ……。",
+      "scene": "kyutoshitsu",
+      "expression": "trouble",
+      "pose": "lean",
+      "id": "turn-0027",
+      "start": 157.761,
+      "end": 164.087,
       "sentences": [
         {
-          "text": "き、記録なのだ?",
-          "start": 317.434,
-          "end": 319.365
+          "text": "あ、めたん先輩……。",
+          "start": 157.761,
+          "end": 159.927
+        },
+        {
+          "text": "実はベンダーがめちゃくちゃな要求をしてきて困ってるのだ……。",
+          "start": 159.927,
+          "end": 164.087
         }
       ]
     },
     {
       "speaker": "metan",
-      "text": "そう。いつ何を教えたか、どこでミスが起きたか、全部事実で残すの。『厳しい/優しい』は感想。記録は事実。この二つを混ぜさせないことが大事よ。",
-      "scene": "home",
+      "text": "あぁ、あの問題のある開発会社ね。そんな要求、まともに受ける必要ないじゃない。",
+      "scene": "kyutoshitsu",
       "expression": "normal",
+      "pose": "listening",
+      "id": "turn-0028",
+      "start": 164.437,
+      "end": 171.189,
+      "sentences": [
+        {
+          "text": "あぁ、あの問題のある開発会社ね。",
+          "start": 164.437,
+          "end": 167.669
+        },
+        {
+          "text": "そんな要求、まともに受ける必要ないじゃない。",
+          "start": 167.669,
+          "end": 171.189
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "でも、山田さんっていう天才プログラマーがへそを曲げたらシステムが完成しないのだ……。",
+      "scene": "kyutoshitsu",
+      "expression": "trouble",
+      "pose": "droop",
+      "id": "turn-0029",
+      "start": 171.539,
+      "end": 177.981,
+      "sentences": [
+        {
+          "text": "でも、山田さんっていう天才プログラマーがへそを曲げたらシステムが完成しないのだ……。",
+          "start": 171.539,
+          "end": 177.981
+        }
+      ]
+    },
+    {
+      "speaker": "metan",
+      "text": "ビジネスの基本に立ち返りなさい。あなたたち、最初に『契約書』を交わしたでしょう？",
+      "scene": "kyutoshitsu",
+      "expression": "normal",
+      "emphasis": true,
+      "pose": "proud",
+      "id": "turn-0030",
+      "start": 178.331,
+      "end": 185.211,
+      "sentences": [
+        {
+          "text": "ビジネスの基本に立ち返りなさい。",
+          "start": 178.331,
+          "end": 180.625
+        },
+        {
+          "text": "あなたたち、最初に『契約書』を交わしたでしょう？",
+          "start": 180.625,
+          "end": 185.211
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "け、契約書……？ そういえば、法務部を通していろいろ書類を作った気がするのだ！",
+      "scene": "kyutoshitsu",
+      "expression": "surprise",
+      "pose": "recoil",
+      "id": "turn-0031",
+      "start": 185.561,
+      "end": 192.377,
+      "sentences": [
+        {
+          "text": "け、契約書……？",
+          "start": 185.561,
+          "end": 187.535
+        },
+        {
+          "text": "そういえば、",
+          "start": 187.535,
+          "end": 188.503
+        },
+        {
+          "text": "法務部を通していろいろ書類を作った気がするのだ！",
+          "start": 188.503,
+          "end": 192.377
+        }
+      ]
+    },
+    {
+      "speaker": "metan",
+      "text": "そこに何が書いてあるか、隅々まで読んでごらんなさい。答えはそこにあるわ。",
+      "scene": "kyutoshitsu",
+      "expression": "happy",
+      "pose": "proud",
+      "id": "turn-0032",
+      "start": 192.727,
+      "end": 198.477,
+      "sentences": [
+        {
+          "text": "そこに何が書いてあるか、",
+          "start": 192.727,
+          "end": 194.662
+        },
+        {
+          "text": "隅々まで読んでごらんなさい。",
+          "start": 194.662,
+          "end": 196.919
+        },
+        {
+          "text": "答えはそこにあるわ。",
+          "start": 196.919,
+          "end": 198.477
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "なるほどなのだ！ さっそくサーバールームのキャビネットから書類を探してくるのだ！",
+      "scene": "kyutoshitsu",
+      "expression": "happy",
+      "pose": "step_in",
+      "id": "turn-0033",
+      "start": 198.827,
+      "end": 204.373,
+      "sentences": [
+        {
+          "text": "なるほどなのだ！",
+          "start": 198.827,
+          "end": 200.043
+        },
+        {
+          "text": "さっそくサーバールームのキャビネットから書類を探してくるのだ！",
+          "start": 200.043,
+          "end": 204.373
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "あったのだ！ これが今回の開発委託契約書なのだ！ 読んでみるのだ！",
+      "scene": "server_room",
+      "expression": "normal",
+      "transition": "fade-black",
+      "pose": "step_in",
+      "id": "turn-0034",
+      "start": 204.723,
+      "end": 210.249,
+      "sentences": [
+        {
+          "text": "あったのだ！",
+          "start": 204.723,
+          "end": 205.683
+        },
+        {
+          "text": "これが今回の開発委託契約書なのだ！",
+          "start": 205.683,
+          "end": 209.075
+        },
+        {
+          "text": "読んでみるのだ！",
+          "start": 209.075,
+          "end": 210.249
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "えーっと……『仕様変更は甲乙双方の書面による合意を要する』……よし！",
+      "scene": "server_room",
+      "expression": "happy",
+      "pose": "proud",
+      "id": "turn-0035",
+      "start": 210.599,
+      "end": 216.924,
+      "sentences": [
+        {
+          "text": "えーっと……『仕様変更は甲乙双方の書面による合意を要する』……よし！",
+          "start": 210.599,
+          "end": 216.924
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "さらに『乙の責に帰すべき事由により遅延した場合、損害賠償を請求できる』！ 勝ったのだ！",
+      "scene": "server_room",
+      "expression": "happy",
+      "emphasis": true,
+      "pose": "cheer",
+      "id": "turn-0036",
+      "start": 217.274,
+      "end": 225.21,
+      "sentences": [
+        {
+          "text": "さらに『乙の責に帰すべき事由により遅延した場合、",
+          "start": 217.274,
+          "end": 221.846
+        },
+        {
+          "text": "損害賠償を請求できる』！",
+          "start": 221.846,
+          "end": 224.133
+        },
+        {
+          "text": "勝ったのだ！",
+          "start": 224.133,
+          "end": 225.21
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "この強力な武器を持って、次のオンライン会議で完全論破してやるのだ！",
+      "scene": "server_room",
+      "expression": "happy",
+      "pose": "proud",
+      "id": "turn-0037",
+      "start": 225.56,
+      "end": 231.32,
+      "sentences": [
+        {
+          "text": "この強力な武器を持って、",
+          "start": 225.56,
+          "end": 227.655
+        },
+        {
+          "text": "次のオンライン会議で完全論破してやるのだ！",
+          "start": 227.655,
+          "end": 231.32
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "定例会議の時間なのだ！ 営業さん、契約書に基づき、言語変更も納期延長も拒否するのだ！",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "transition": "cut",
+      "pose": "step_in",
+      "id": "turn-0038",
+      "start": 231.67,
+      "end": 240.31,
+      "sentences": [
+        {
+          "text": "定例会議の時間なのだ！",
+          "start": 231.67,
+          "end": 233.846
+        },
+        {
+          "text": "営業さん、契約書に基づき、",
+          "start": 233.846,
+          "end": 236.647
+        },
+        {
+          "text": "言語変更も納期延長も拒否するのだ！",
+          "start": 236.647,
+          "end": 240.31
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "はあ？ 契約書？ そんな紙切れを持ち出して、僕たちを脅すつもりですか？",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "cameraEffect": "pan-left",
+      "id": "turn-0039",
+      "start": 240.66,
+      "end": 245.631,
+      "sentences": [
+        {
+          "text": "はあ？",
+          "start": 240.66,
+          "end": 241.225
+        },
+        {
+          "text": "契約書？",
+          "start": 241.225,
+          "end": 242.057
+        },
+        {
+          "text": "そんな紙切れを持ち出して、",
+          "start": 242.057,
+          "end": 243.844
+        },
+        {
+          "text": "僕たちを脅すつもりですか？",
+          "start": 243.844,
+          "end": 245.631
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "紙切れじゃないのだ！ 法律的な拘束力がある立派な契約なのだ！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "pose": "flustered",
+      "id": "turn-0040",
+      "start": 245.981,
+      "end": 251.303,
+      "sentences": [
+        {
+          "text": "紙切れじゃないのだ！",
+          "start": 245.981,
+          "end": 247.485
+        },
+        {
+          "text": "法律的な拘束力がある立派な契約なのだ！",
+          "start": 247.485,
+          "end": 251.303
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "いいですか、ずんだもんさん。そんな態度を取るなら、今すぐ山田を引き揚げさせますよ？",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "id": "turn-0041",
+      "start": 251.653,
+      "end": 257.04,
+      "sentences": [
+        {
+          "text": "いいですか、ずんだもんさん。",
+          "start": 251.653,
+          "end": 253.435
+        },
+        {
+          "text": "そんな態度を取るなら、",
+          "start": 253.435,
+          "end": 254.904
+        },
+        {
+          "text": "今すぐ山田を引き揚げさせますよ？",
+          "start": 254.904,
+          "end": 257.04
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "コードを書いているのは山田です。僕たちが手を引けば、あなた方のシステムは永遠に未完成です。",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "id": "turn-0042",
+      "start": 257.39,
+      "end": 263.235,
+      "sentences": [
+        {
+          "text": "コードを書いているのは山田です。",
+          "start": 257.39,
+          "end": 259.193
+        },
+        {
+          "text": "僕たちが手を引けば、",
+          "start": 259.193,
+          "end": 260.587
+        },
+        {
+          "text": "あなた方のシステムは永遠に未完成です。",
+          "start": 260.587,
+          "end": 263.235
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "う、うぐぐ……！ 開発を完全にストップするっていう意思表示なのだ！？",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "shake": true,
+      "pose": "recoil",
+      "id": "turn-0043",
+      "start": 263.585,
+      "end": 269.484,
+      "sentences": [
+        {
+          "text": "う、うぐぐ……！",
+          "start": 263.585,
+          "end": 265.377
+        },
+        {
+          "text": "開発を完全にストップするっていう意思表示なのだ！？",
+          "start": 265.377,
+          "end": 269.484
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "困るのはそちらですよね？ 嫌なら四の五の言わずに、追加費用と延長を認めなさい！",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "emphasis": true,
+      "id": "turn-0044",
+      "start": 269.834,
+      "end": 275.082,
+      "sentences": [
+        {
+          "text": "困るのはそちらですよね？",
+          "start": 269.834,
+          "end": 271.37
+        },
+        {
+          "text": "嫌なら四の五の言わずに、",
+          "start": 271.37,
+          "end": 273.083
+        },
+        {
+          "text": "追加費用と延長を認めなさい！",
+          "start": 273.083,
+          "end": 275.082
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "うわあああん！ 契約書を出しても、人質（システム）を取られてるから意味がないのだー！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "pose": "wobble",
+      "id": "turn-0045",
+      "start": 275.432,
+      "end": 282.515,
+      "sentences": [
+        {
+          "text": "うわあああん！",
+          "start": 275.432,
+          "end": 276.488
+        },
+        {
+          "text": "契約書を出しても、",
+          "start": 276.488,
+          "end": 278.083
+        },
+        {
+          "text": "人質（システム）を取られてるから意味がないのだー！",
+          "start": 278.083,
+          "end": 282.515
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "トボトボ……。もうおしまいなのだ。会社の予算も納期も守れないのだ……。",
+      "scene": "train-night",
+      "expression": "trouble",
+      "transition": "wipe-right",
+      "pose": "droop",
+      "id": "turn-0046",
+      "start": 282.865,
+      "end": 287.995,
+      "sentences": [
+        {
+          "text": "トボトボ……。",
+          "start": 282.865,
+          "end": 283.697
+        },
+        {
+          "text": "もうおしまいなのだ。",
+          "start": 283.697,
+          "end": 285.105
+        },
+        {
+          "text": "会社の予算も納期も守れないのだ……。",
+          "start": 285.105,
+          "end": 287.995
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ボクは無能な担当者として、上司に怒られてクビになる運命なのだ……。",
+      "scene": "train-night",
+      "expression": "trouble",
+      "pose": "wobble",
+      "id": "turn-0047",
+      "start": 288.345,
+      "end": 293.689,
+      "sentences": [
+        {
+          "text": "ボクは無能な担当者として、",
+          "start": 288.345,
+          "end": 290.451
+        },
+        {
+          "text": "上司に怒られてクビになる運命なのだ……。",
+          "start": 290.451,
+          "end": 293.689
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ハッ、気がついたら夕方の屋上にいたのだ……風が冷たいのだ……。",
+      "scene": "rooftop",
+      "expression": "trouble",
+      "transition": "fade-black",
+      "pose": "droop",
+      "id": "turn-0048",
+      "start": 294.039,
+      "end": 299.287,
+      "sentences": [
+        {
+          "text": "ハッ、気がついたら夕方の屋上にいたのだ……風が冷たいのだ……。",
+          "start": 294.039,
+          "end": 299.287
+        }
+      ]
+    },
+    {
+      "speaker": "metan",
+      "text": "ずんだもん、そんなところで黄昏れてどうしたの？ 契約書は効かなかった？",
+      "scene": "rooftop",
+      "expression": "normal",
+      "enter": [
+        "metan"
+      ],
+      "pose": "idle",
+      "id": "turn-0049",
+      "start": 299.637,
+      "end": 305.131,
+      "sentences": [
+        {
+          "text": "ずんだもん、そんなところで黄昏れてどうしたの？",
+          "start": 299.637,
+          "end": 303.147
+        },
+        {
+          "text": "契約書は効かなかった？",
+          "start": 303.147,
+          "end": 305.131
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "めたん先輩……。契約書を見せたら、開発を完全に止めると逆脅迫されたのだ……。",
+      "scene": "rooftop",
+      "expression": "trouble",
       "pose": "lean",
-      "id": "turn-0059",
-      "start": 319.715,
-      "end": 332.291,
+      "id": "turn-0050",
+      "start": 305.481,
+      "end": 312.105,
+      "sentences": [
+        {
+          "text": "めたん先輩……。",
+          "start": 305.481,
+          "end": 306.675
+        },
+        {
+          "text": "契約書を見せたら、",
+          "start": 306.675,
+          "end": 308.304
+        },
+        {
+          "text": "開発を完全に止めると逆脅迫されたのだ……。",
+          "start": 308.304,
+          "end": 312.105
+        }
+      ]
+    },
+    {
+      "speaker": "metan",
+      "text": "なるほど、典型的な人質ビジネスね。でも、彼らが握っている人質、本当に価値があるかしら？",
+      "scene": "rooftop",
+      "expression": "normal",
+      "pose": "listening",
+      "id": "turn-0051",
+      "start": 312.455,
+      "end": 320.455,
+      "sentences": [
+        {
+          "text": "なるほど、典型的な人質ビジネスね。",
+          "start": 312.455,
+          "end": 315.687
+        },
+        {
+          "text": "でも、彼らが握っている人質、",
+          "start": 315.687,
+          "end": 318.254
+        },
+        {
+          "text": "本当に価値があるかしら？",
+          "start": 318.254,
+          "end": 320.455
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "価値があるに決まってるのだ！ 山田さんがコードを書かないと、システムが動かないのだ！",
+      "scene": "rooftop",
+      "expression": "panic",
+      "pose": "flustered",
+      "id": "turn-0052",
+      "start": 320.805,
+      "end": 327.119,
+      "sentences": [
+        {
+          "text": "価値があるに決まってるのだ！",
+          "start": 320.805,
+          "end": 322.821
+        },
+        {
+          "text": "山田さんがコードを書かないと、",
+          "start": 322.821,
+          "end": 325.209
+        },
+        {
+          "text": "システムが動かないのだ！",
+          "start": 325.209,
+          "end": 327.119
+        }
+      ]
+    },
+    {
+      "speaker": "metan",
+      "text": "最近、我が社のシステム部に導入された最新鋭のAI……『ZunAI』の存在を忘れたの？",
+      "scene": "rooftop",
+      "expression": "happy",
+      "emphasis": true,
+      "pose": "proud",
+      "id": "turn-0053",
+      "start": 327.469,
+      "end": 335.885,
+      "sentences": [
+        {
+          "text": "最近、我が社のシステム部に導入された最新鋭のAI……『ZunAI』の存在を忘れたの？",
+          "start": 327.469,
+          "end": 335.885
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "えっ……？ ZunAI……？ あ、あの社内用超高性能AIチャットのことなのだ？",
+      "scene": "rooftop",
+      "expression": "surprise",
+      "pose": "recoil",
+      "id": "turn-0054",
+      "start": 336.235,
+      "end": 343.382,
+      "sentences": [
+        {
+          "text": "えっ……？",
+          "start": 336.235,
+          "end": 336.875
+        },
+        {
+          "text": "ZunAI……？",
+          "start": 336.875,
+          "end": 338.166
+        },
+        {
+          "text": "あ、あの社内用超高性能AIチャットのことなのだ？",
+          "start": 338.166,
+          "end": 343.382
+        }
+      ]
+    },
+    {
+      "speaker": "metan",
+      "text": "そう。あのAI、ただの雑談用じゃないわよ。仕様書を読み込ませれば、ソースコードを自動生成できるわ。",
+      "scene": "rooftop",
+      "expression": "happy",
+      "pose": "proud",
+      "id": "turn-0055",
+      "start": 343.732,
+      "end": 351.988,
       "sentences": [
         {
           "text": "そう。",
-          "start": 319.715,
-          "end": 320.173
+          "start": 343.732,
+          "end": 344.191
         },
         {
-          "text": "いつ何を教えたか、どこでミスが起きたか、",
-          "start": 320.173,
-          "end": 323.778
+          "text": "あのAI、ただの雑談用じゃないわよ。",
+          "start": 344.191,
+          "end": 347.572
         },
         {
-          "text": "全部事実で残すの。",
-          "start": 323.778,
-          "end": 325.4
+          "text": "仕様書を読み込ませれば、",
+          "start": 347.572,
+          "end": 349.465
         },
         {
-          "text": "『厳しい/優しい』は感想。",
-          "start": 325.4,
-          "end": 328.408
-        },
-        {
-          "text": "記録は事実。",
-          "start": 328.408,
-          "end": 329.613
-        },
-        {
-          "text": "この二つを混ぜさせないことが大事よ。",
-          "start": 329.613,
-          "end": 332.291
+          "text": "ソースコードを自動生成できるわ。",
+          "start": 349.465,
+          "end": 351.988
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "な、なるほどなのだ……!今日から始めるのだ!",
-      "scene": "home",
-      "expression": "happy",
-      "id": "turn-0060",
-      "start": 332.641,
-      "end": 336.171,
+      "text": "えええっ！？ プログラムを自動で作ってくれるのだ！？ 本当なのだ！？",
+      "scene": "rooftop",
+      "expression": "surprise",
+      "shake": true,
+      "pose": "recoil",
+      "id": "turn-0056",
+      "start": 352.338,
+      "end": 357.33,
       "sentences": [
         {
-          "text": "な、なるほどなのだ……!",
-          "start": 332.641,
-          "end": 334.529
+          "text": "えええっ！？",
+          "start": 352.338,
+          "end": 353.106
         },
         {
-          "text": "今日から始めるのだ!",
-          "start": 334.529,
-          "end": 336.171
+          "text": "プログラムを自動で作ってくれるのだ！？",
+          "start": 353.106,
+          "end": 356.007
+        },
+        {
+          "text": "本当なのだ！？",
+          "start": 356.007,
+          "end": 357.33
         }
       ]
     },
     {
       "speaker": "metan",
-      "text": "あと、後輩の『素直さ』を信じるのはいいけど、それとちゃんと線引きするのは別の話よ。",
-      "scene": "home",
+      "text": "山田とかいうモンスター社員のクソコードを待つより、AIに投げた方が100倍早いわ。試してごらんなさい。",
+      "scene": "rooftop",
+      "expression": "happy",
+      "pose": "listening",
+      "id": "turn-0057",
+      "start": 357.68,
+      "end": 365.477,
+      "sentences": [
+        {
+          "text": "山田とかいうモンスター社員のクソコードを待つより、",
+          "start": 357.68,
+          "end": 361.608
+        },
+        {
+          "text": "AIに投げた方が100倍早いわ。",
+          "start": 361.608,
+          "end": 364.123
+        },
+        {
+          "text": "試してごらんなさい。",
+          "start": 364.123,
+          "end": 365.477
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "わ、わかったのだ！ すぐにデスクに戻ってZunAIを開くのだ！",
+      "scene": "office",
+      "expression": "happy",
+      "transition": "slide-left",
+      "pose": "step_in",
+      "id": "turn-0058",
+      "start": 365.827,
+      "end": 370.873,
+      "sentences": [
+        {
+          "text": "わ、わかったのだ！",
+          "start": 365.827,
+          "end": 367.598
+        },
+        {
+          "text": "すぐにデスクに戻ってZunAIを開くのだ！",
+          "start": 367.598,
+          "end": 370.873
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ZunAI、起動なのだ！ 今回の基本設計書と仕様書をすべてアップロードして指示するのだ！",
+      "scene": "office",
+      "expression": "normal",
+      "insert": {
+        "kind": "chat",
+        "user": "この仕様書に基づいて、Webアプリケーションの全ソースコードを生成してほしいのだ！",
+        "ai": [
+          "了解しました。仕様書の解析を開始します……。",
+          "解析完了。ターゲット言語：Python。総ファイル数150件、自動生成を開始します。"
+        ]
+      },
+      "id": "turn-0059",
+      "start": 371.223,
+      "end": 378.636,
+      "sentences": [
+        {
+          "text": "ZunAI、起動なのだ！",
+          "start": 371.223,
+          "end": 373.655
+        },
+        {
+          "text": "今回の基本設計書と仕様書をすべてアップロードして指示するのだ！",
+          "start": 373.655,
+          "end": 378.636
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "おおお！ 画面がものすごい勢いで流れていくのだ！ 頑張れZunAIなのだ！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "cheer",
+      "id": "turn-0060",
+      "start": 378.986,
+      "end": 384.789,
+      "sentences": [
+        {
+          "text": "おおお！",
+          "start": 378.986,
+          "end": 379.626
+        },
+        {
+          "text": "画面がものすごい勢いで流れていくのだ！",
+          "start": 379.626,
+          "end": 382.837
+        },
+        {
+          "text": "頑張れZunAIなのだ！",
+          "start": 382.837,
+          "end": 384.789
+        }
+      ]
+    },
+    {
+      "speaker": "AI",
+      "text": "コード生成が完了しました。所要時間：28分45秒。続いて、自動テストを実行します。",
+      "scene": "office",
       "expression": "normal",
       "id": "turn-0061",
-      "start": 336.521,
-      "end": 344.169,
+      "start": 385.139,
+      "end": 392.84,
       "sentences": [
         {
-          "text": "あと、後輩の『素直さ』を信じるのはいいけど、",
-          "start": 336.521,
-          "end": 340.625
+          "text": "コード生成が完了しました。",
+          "start": 385.139,
+          "end": 387.101
         },
         {
-          "text": "それとちゃんと線引きするのは別の話よ。",
-          "start": 340.625,
-          "end": 344.169
+          "text": "所要時間：28分45秒。",
+          "start": 387.101,
+          "end": 390.067
+        },
+        {
+          "text": "続いて、自動テストを実行します。",
+          "start": 390.067,
+          "end": 392.84
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "り、了解なのだ……。次からは、ちゃんと線引きするのだ。",
-      "scene": "home",
-      "expression": "normal",
-      "pose": "listening",
+      "text": "に、28分！？ 山田が3ヶ月かけて進捗ゼロだったものを、30分足らずで終わらせたのだ！？",
+      "scene": "office",
+      "expression": "surprise",
+      "shake": true,
+      "pose": "recoil",
       "id": "turn-0062",
-      "start": 344.519,
-      "end": 349.287,
+      "start": 393.19,
+      "end": 401.371,
       "sentences": [
         {
-          "text": "り、了解なのだ……。",
-          "start": 344.519,
-          "end": 346.365
+          "text": "に、28分！？",
+          "start": 393.19,
+          "end": 395.099
         },
         {
-          "text": "次からは、ちゃんと線引きするのだ。",
-          "start": 346.365,
-          "end": 349.287
+          "text": "山田が3ヶ月かけて進捗ゼロだったものを、",
+          "start": 395.099,
+          "end": 398.584
+        },
+        {
+          "text": "30分足らずで終わらせたのだ！？",
+          "start": 398.584,
+          "end": 401.371
         }
       ]
     },
     {
-      "speaker": "metan",
-      "text": "それと、あなたも去年は同じようなことしてたんだから、あんまり自分だけ責めないの。",
-      "scene": "home",
-      "expression": "normal",
-      "id": "turn-0063",
-      "start": 349.637,
-      "end": 355.685,
-      "sentences": [
-        {
-          "text": "それと、あなたも去年は同じようなことしてたんだから、",
-          "start": 349.637,
-          "end": 353.569
-        },
-        {
-          "text": "あんまり自分だけ責めないの。",
-          "start": 353.569,
-          "end": 355.685
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "め、めたん先輩……!それ、地味に効くのだ……!(嬉しい方で)",
-      "scene": "home",
-      "expression": "happy",
-      "id": "turn-0064",
-      "start": 356.035,
-      "end": 361.134,
-      "sentences": [
-        {
-          "text": "め、めたん先輩……!",
-          "start": 356.035,
-          "end": 357.955
-        },
-        {
-          "text": "それ、地味に効くのだ……!",
-          "start": 357.955,
-          "end": 359.939
-        },
-        {
-          "text": "(嬉しい方で)",
-          "start": 359.939,
-          "end": 361.134
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "獅子堂さん、これからは確認事項をメモに残して、お互い確認するようにするのだ。",
+      "speaker": "AI",
+      "text": "テストが完了しました。エラー：0件。セキュリティ脆弱性：0件。完全に動作可能な状態です。",
       "scene": "office",
       "expression": "normal",
-      "transition": "fade-black",
-      "telop": "翌日",
-      "id": "turn-0065",
-      "start": 361.484,
-      "end": 368.215,
-      "sentences": [
-        {
-          "text": "獅子堂さん、これからは確認事項をメモに残して、",
-          "start": 361.484,
-          "end": 365.558
-        },
-        {
-          "text": "お互い確認するようにするのだ。",
-          "start": 365.558,
-          "end": 368.215
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "了解です!……それ、意味あります?口頭で覚えた方が早くないですか?",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0066",
-      "start": 368.565,
-      "end": 373.333,
-      "sentences": [
-        {
-          "text": "了解です!",
-          "start": 368.565,
-          "end": 369.343
-        },
-        {
-          "text": "……それ、意味あります?",
-          "start": 369.343,
-          "end": 370.975
-        },
-        {
-          "text": "口頭で覚えた方が早くないですか?",
-          "start": 370.975,
-          "end": 373.333
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "意味あるのだ。……というか、これはもう決定事項なのだ。",
-      "scene": "office",
-      "expression": "normal",
-      "emphasis": true,
-      "id": "turn-0067",
-      "start": 373.683,
-      "end": 377.981,
-      "sentences": [
-        {
-          "text": "意味あるのだ。",
-          "start": 373.683,
-          "end": 374.707
-        },
-        {
-          "text": "……というか、これはもう決定事項なのだ。",
-          "start": 374.707,
-          "end": 377.981
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "あ、はい、分かりました!",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0068",
-      "start": 378.331,
-      "end": 380.475,
-      "sentences": [
-        {
-          "text": "あ、はい、分かりました!",
-          "start": 378.331,
-          "end": 380.475
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "（言い切ったら、意外とすんなり通ったのだ……。）",
-      "scene": "office",
-      "expression": "surprise",
-      "noLipSync": true,
-      "id": "turn-0069",
-      "start": 380.825,
-      "end": 384.036,
-      "sentences": [
-        {
-          "text": "（言い切ったら、意外とすんなり通ったのだ……。）",
-          "start": 380.825,
-          "end": 384.036
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "この二週間、指導内容と日時、ちゃんとメモしてきたのだ。",
-      "scene": "office",
-      "expression": "normal",
-      "telop": "2週間後",
       "insert": {
-        "kind": "mailer",
-        "from": "ずんだもん",
-        "subject": "新人指導record",
-        "body": "6/18 フォーマット確認手順を説明→未確認のまま送付、顧客対応発生。6/20 残業対応を依頼→定時退社。6/25 未確認の納期回答あり。6/26 会議で他案を否定する発言あり、都度フォロー実施。6/27 相談していない内容を『相談済み』と報告。指導内容と発生事象を記録しています。",
-        "time": "18:00"
+        "kind": "ok",
+        "text": "ZunMonitor: テストケース1000件すべてパス。正常終了。"
       },
-      "id": "turn-0070",
-      "start": 384.386,
-      "end": 389.517,
+      "id": "turn-0063",
+      "start": 401.721,
+      "end": 409.657,
       "sentences": [
         {
-          "text": "この二週間、指導内容と日時、",
-          "start": 384.386,
-          "end": 387.046
+          "text": "テストが完了しました。",
+          "start": 401.721,
+          "end": 403.257
         },
         {
-          "text": "ちゃんとメモしてきたのだ。",
-          "start": 387.046,
-          "end": 389.517
+          "text": "エラー：0件。",
+          "start": 403.257,
+          "end": 404.953
+        },
+        {
+          "text": "セキュリティ脆弱性：0件。",
+          "start": 404.953,
+          "end": 407.513
+        },
+        {
+          "text": "完全に動作可能な状態です。",
+          "start": 407.513,
+          "end": 409.657
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "……これ、部長に見てもらうのだ。今度こそ、事実で話すのだ。",
-      "scene": "office",
-      "expression": "normal",
-      "emphasis": true,
-      "pose": "step_in",
-      "id": "turn-0071",
-      "start": 389.867,
-      "end": 395.008,
-      "sentences": [
-        {
-          "text": "……これ、部長に見てもらうのだ。",
-          "start": 389.867,
-          "end": 392.299
-        },
-        {
-          "text": "今度こそ、事実で話すのだ。",
-          "start": 392.299,
-          "end": 395.008
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "部長、獅子堂さんへの指導内容、全部記録してあるのだ。萎縮させたことは一度もなくて、毎回理由も説明してるのだ。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0072",
-      "start": 395.358,
-      "end": 405.481,
-      "sentences": [
-        {
-          "text": "部長、獅子堂さんへの指導内容、",
-          "start": 395.358,
-          "end": 398.318
-        },
-        {
-          "text": "全部記録してあるのだ。",
-          "start": 398.318,
-          "end": 400.489
-        },
-        {
-          "text": "萎縮させたことは一度もなくて、",
-          "start": 400.489,
-          "end": 403.163
-        },
-        {
-          "text": "毎回理由も説明してるのだ。",
-          "start": 403.163,
-          "end": 405.481
-        }
-      ]
-    },
-    {
-      "speaker": "部長",
-      "text": "……確かに、日付も内容も具体的だな。獅子堂、これは事実か?",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0073",
-      "start": 405.831,
-      "end": 410.759,
-      "sentences": [
-        {
-          "text": "……確かに、日付も内容も具体的だな。",
-          "start": 405.831,
-          "end": 408.551
-        },
-        {
-          "text": "獅子堂、これは事実か?",
-          "start": 408.551,
-          "end": 410.759
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "え、いや……その、正直、教わったことより自分のやり方の方が早いと思って、あんまりちゃんと聞いてなかったです……。会議のことも、指摘されて初めて自分が悪かったって気づきました。",
-      "scene": "office",
-      "expression": "surprise",
-      "id": "turn-0074",
-      "start": 411.109,
-      "end": 423.386,
-      "sentences": [
-        {
-          "text": "え、いや……その、正直、",
-          "start": 411.109,
-          "end": 412.864
-        },
-        {
-          "text": "教わったことより自分のやり方の方が早いと思って、",
-          "start": 412.864,
-          "end": 416.375
-        },
-        {
-          "text": "あんまりちゃんと聞いてなかったです……。",
-          "start": 416.375,
-          "end": 419.301
-        },
-        {
-          "text": "会議のことも、",
-          "start": 419.301,
-          "end": 420.223
-        },
-        {
-          "text": "指摘されて初めて自分が悪かったって気づきました。",
-          "start": 420.223,
-          "end": 423.386
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "……!それ、最初にちゃんと言ってほしかったのだ。『意味あります?』って聞かれるたび、実は結構へこんでたのだ。",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0075",
-      "start": 423.736,
-      "end": 431.981,
-      "sentences": [
-        {
-          "text": "……!",
-          "start": 423.736,
-          "end": 423.832
-        },
-        {
-          "text": "それ、最初にちゃんと言ってほしかったのだ。",
-          "start": 423.832,
-          "end": 427.096
-        },
-        {
-          "text": "『意味あります?』",
-          "start": 427.096,
-          "end": 428.312
-        },
-        {
-          "text": "って聞かれるたび、実は結構へこんでたのだ。",
-          "start": 428.312,
-          "end": 431.981
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "す、すみません……悪気はなかったんですけど、ちゃんと理由聞かずに突っ走ってました。感謝してるのも本当なんですけど、行動が伴ってなかったです。",
-      "scene": "office",
-      "expression": "trouble",
-      "id": "turn-0076",
-      "start": 432.331,
-      "end": 441.878,
-      "sentences": [
-        {
-          "text": "す、すみません……悪気はなかったんですけど、",
-          "start": 432.331,
-          "end": 435.325
-        },
-        {
-          "text": "ちゃんと理由聞かずに突っ走ってました。",
-          "start": 435.325,
-          "end": 437.91
-        },
-        {
-          "text": "感謝してるのも本当なんですけど、",
-          "start": 437.91,
-          "end": 440.099
-        },
-        {
-          "text": "行動が伴ってなかったです。",
-          "start": 440.099,
-          "end": 441.878
-        }
-      ]
-    },
-    {
-      "speaker": "部長",
-      "text": "獅子堂、今後は指導内容の意図を、まず自分で確認してから動くように。ずんだもんも、指導お疲れ様。よく記録を残していたな。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0077",
-      "start": 442.228,
-      "end": 451.828,
-      "sentences": [
-        {
-          "text": "獅子堂、今後は指導内容の意図を、",
-          "start": 442.228,
-          "end": 444.917
-        },
-        {
-          "text": "まず自分で確認してから動くように。",
-          "start": 444.917,
-          "end": 447.775
-        },
-        {
-          "text": "ずんだもんも、指導お疲れ様。",
-          "start": 447.775,
-          "end": 450.143
-        },
-        {
-          "text": "よく記録を残していたな。",
-          "start": 450.143,
-          "end": 451.828
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "……というわけで、今度からちゃんと『なんでこのやり方なのか』も一緒に説明することにしたのだ。",
+      "text": "すごすぎるのだーー！ しかもバグが一切ない完璧なプログラムなのだ！",
       "scene": "office",
       "expression": "happy",
-      "telop": "数日後",
-      "id": "turn-0078",
-      "start": 452.178,
-      "end": 459.623,
+      "emphasis": true,
+      "pose": "cheer",
+      "id": "turn-0064",
+      "start": 410.007,
+      "end": 415.01,
       "sentences": [
         {
-          "text": "……というわけで、",
-          "start": 452.178,
-          "end": 453.635
+          "text": "すごすぎるのだーー！",
+          "start": 410.007,
+          "end": 411.49
         },
         {
-          "text": "今度からちゃんと『なんでこのやり方なのか』も一緒に説明することにしたのだ。",
-          "start": 453.635,
-          "end": 459.623
-        }
-      ]
-    },
-    {
-      "speaker": "営業",
-      "text": "理由聞くと、意外と『あ、それなら分かります』ってなること多いですね。すみませんでした。",
-      "scene": "office",
-      "expression": "normal",
-      "id": "turn-0079",
-      "start": 459.973,
-      "end": 466.277,
-      "sentences": [
-        {
-          "text": "理由聞くと、意外と『あ、",
-          "start": 459.973,
-          "end": 461.848
-        },
-        {
-          "text": "それなら分かります』ってなること多いですね。",
-          "start": 461.848,
-          "end": 465.285
-        },
-        {
-          "text": "すみませんでした。",
-          "start": 465.285,
-          "end": 466.277
+          "text": "しかもバグが一切ない完璧なプログラムなのだ！",
+          "start": 411.49,
+          "end": 415.01
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "分かってくれれば十分なのだ!一緒に頑張るのだ!",
+      "text": "ふふふ、最強の武器（システム）を手に入れたのだ。あのモンスターども、覚悟するのだ……！",
       "scene": "office",
+      "expression": "happy",
+      "pose": "proud",
+      "id": "turn-0065",
+      "start": 415.36,
+      "end": 422.912,
+      "sentences": [
+        {
+          "text": "ふふふ、最強の武器（システム）を手に入れたのだ。",
+          "start": 415.36,
+          "end": 420.16
+        },
+        {
+          "text": "あのモンスターども、覚悟するのだ……！",
+          "start": 420.16,
+          "end": 422.912
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "さて、運命の最終定例会議なのだ。今回はボクから仕掛けてやるのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "transition": "fade-black",
+      "pose": "proud",
+      "id": "turn-0066",
+      "start": 423.262,
+      "end": 429.406,
+      "sentences": [
+        {
+          "text": "さて、運命の最終定例会議なのだ。",
+          "start": 423.262,
+          "end": 426.846
+        },
+        {
+          "text": "今回はボクから仕掛けてやるのだ！",
+          "start": 426.846,
+          "end": 429.406
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "あ、ずんだもんさん。どうですか？ 追加費用500万と6ヶ月延長の承認、取れましたか？",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "id": "turn-0067",
+      "start": 429.756,
+      "end": 436.199,
+      "sentences": [
+        {
+          "text": "あ、ずんだもんさん。",
+          "start": 429.756,
+          "end": 431.121
+        },
+        {
+          "text": "どうですか？",
+          "start": 431.121,
+          "end": 431.911
+        },
+        {
+          "text": "追加費用500万と6ヶ月延長の承認、",
+          "start": 431.911,
+          "end": 434.998
+        },
+        {
+          "text": "取れましたか？",
+          "start": 434.998,
+          "end": 436.199
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "早くしないと、山田が本当に他の案件に移っちゃいますよ？ いいんですか？",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "cameraEffect": "pan-left",
+      "id": "turn-0068",
+      "start": 436.549,
+      "end": 441.498,
+      "sentences": [
+        {
+          "text": "早くしないと、",
+          "start": 436.549,
+          "end": 437.608
+        },
+        {
+          "text": "山田が本当に他の案件に移っちゃいますよ？",
+          "start": 437.608,
+          "end": 440.634
+        },
+        {
+          "text": "いいんですか？",
+          "start": 440.634,
+          "end": 441.498
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "フフン、御社の追加提案はお断りするのだ。承認なんて取ってないし、取る気もないのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "proud",
+      "id": "turn-0069",
+      "start": 441.848,
+      "end": 449.347,
+      "sentences": [
+        {
+          "text": "フフン、御社の追加提案はお断りするのだ。",
+          "start": 441.848,
+          "end": 445.869
+        },
+        {
+          "text": "承認なんて取ってないし、取る気もないのだ！",
+          "start": 445.869,
+          "end": 449.347
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "は？ 何言ってるんですか？ 開発がストップして困るのはあなたたちなんんですよ！？",
+      "scene": "meeting_room",
+      "expression": "surprise",
+      "shake": true,
+      "id": "turn-0070",
+      "start": 449.697,
+      "end": 454.401,
+      "sentences": [
+        {
+          "text": "は？",
+          "start": 449.697,
+          "end": 450.113
+        },
+        {
+          "text": "何言ってるんですか？",
+          "start": 450.113,
+          "end": 451.414
+        },
+        {
+          "text": "開発がストップして困るのはあなたたちなんんですよ！？",
+          "start": 451.414,
+          "end": 454.401
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "困らないのだ！ なぜなら、システムはもう『100%完成』しているからなのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "emphasis": true,
+      "pose": "cheer",
+      "id": "turn-0071",
+      "start": 454.751,
+      "end": 461.599,
+      "sentences": [
+        {
+          "text": "困らないのだ！",
+          "start": 454.751,
+          "end": 455.935
+        },
+        {
+          "text": "なぜなら、システムはもう『100%完成』しているからなのだ！",
+          "start": 455.935,
+          "end": 461.599
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "な、何だと……！？ 完成しているわけがない！ 山田はコードを一行も書いていないんだぞ！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "shake": true,
+      "id": "turn-0072",
+      "start": 461.949,
+      "end": 467.154,
+      "sentences": [
+        {
+          "text": "な、何だと……！？",
+          "start": 461.949,
+          "end": 463.293
+        },
+        {
+          "text": "完成しているわけがない！",
+          "start": 463.293,
+          "end": 464.765
+        },
+        {
+          "text": "山田はコードを一行も書いていないんだぞ！",
+          "start": 464.765,
+          "end": 467.154
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "御社の山田さんがサボって美学を語っている間に、我が社の『ZunAI』が完璧に作り上げたのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "proud",
+      "id": "turn-0073",
+      "start": 467.504,
+      "end": 476.517,
+      "sentences": [
+        {
+          "text": "御社の山田さんがサボって美学を語っている間に、",
+          "start": 467.504,
+          "end": 472.011
+        },
+        {
+          "text": "我が社の『ZunAI』が完璧に作り上げたのだ！",
+          "start": 472.011,
+          "end": 476.517
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "実際の動作画面と、すべてのテストをクリアした証拠のログを見せるのだ！ ほらなのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "insert": {
+        "kind": "ok",
+        "text": "ZunMonitor: 本番環境デプロイ完了。全ステータス緑（正常）"
+      },
+      "id": "turn-0074",
+      "start": 476.867,
+      "end": 483.513,
+      "sentences": [
+        {
+          "text": "実際の動作画面と、",
+          "start": 476.867,
+          "end": 478.381
+        },
+        {
+          "text": "すべてのテストをクリアした証拠のログを見せるのだ！",
+          "start": 478.381,
+          "end": 482.585
+        },
+        {
+          "text": "ほらなのだ！",
+          "start": 482.585,
+          "end": 483.513
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "ば、バカな……！ AIごときに、我が社が誇る天才プログラマー山田の代わりができるわけが……！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "id": "turn-0075",
+      "start": 483.863,
+      "end": 489.804,
+      "sentences": [
+        {
+          "text": "ば、バカな……！",
+          "start": 483.863,
+          "end": 485.047
+        },
+        {
+          "text": "AIごときに、",
+          "start": 485.047,
+          "end": 485.947
+        },
+        {
+          "text": "我が社が誇る天才プログラマー山田の代わりができるわけが……！",
+          "start": 485.947,
+          "end": 489.804
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "山田さんのコードがないので、バグもゼロ、仕様通り、超高速で動く完璧なシステムなのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "step_in",
+      "id": "turn-0076",
+      "start": 490.154,
+      "end": 497.93,
+      "sentences": [
+        {
+          "text": "山田さんのコードがないので、バグもゼロ、",
+          "start": 490.154,
+          "end": 493.857
+        },
+        {
+          "text": "仕様通り、超高速で動く完璧なシステムなのだ！",
+          "start": 493.857,
+          "end": 497.93
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "そ、そんな……。じゃ、じゃあ我が社との今後の契約はどうなるんですか……？",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "cameraEffect": "pan-right",
+      "id": "turn-0077",
+      "start": 498.28,
+      "end": 503.048,
+      "sentences": [
+        {
+          "text": "そ、そんな……。",
+          "start": 498.28,
+          "end": 499.453
+        },
+        {
+          "text": "じゃ、じゃあ我が社との今後の契約はどうなるんですか……？",
+          "start": 499.453,
+          "end": 503.048
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "当然、契約書第18条『不履行による即時解除』を適用し、御社との契約を今この瞬間をもって解除するのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "emphasis": true,
+      "pose": "proud",
+      "id": "turn-0078",
+      "start": 503.398,
+      "end": 514.353,
+      "sentences": [
+        {
+          "text": "当然、契約書第18条『不履行による即時解除』を適用し、",
+          "start": 503.398,
+          "end": 509.314
+        },
+        {
+          "text": "御社との契約を今この瞬間をもって解除するのだ！",
+          "start": 509.314,
+          "end": 514.353
+        }
+      ]
+    },
+    {
+      "speaker": "営業",
+      "text": "ま、待ってください！ それだけは勘弁してください！ 売り上げがなくなってしまいます！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "shake": true,
+      "id": "turn-0079",
+      "start": 514.703,
+      "end": 519.609,
+      "sentences": [
+        {
+          "text": "ま、待ってください！",
+          "start": 514.703,
+          "end": 516.271
+        },
+        {
+          "text": "それだけは勘弁してください！",
+          "start": 516.271,
+          "end": 517.977
+        },
+        {
+          "text": "売り上げがなくなってしまいます！",
+          "start": 517.977,
+          "end": 519.609
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "さらに！ これまでの開発遅延による損害賠償金として、契約通り300万円を請求させてもらうのだ！",
+      "scene": "meeting_room",
       "expression": "happy",
       "pose": "proud",
       "id": "turn-0080",
-      "start": 466.627,
-      "end": 470.393,
+      "start": 519.959,
+      "end": 528.759,
       "sentences": [
         {
-          "text": "分かってくれれば十分なのだ!",
-          "start": 466.627,
-          "end": 468.814
+          "text": "さらに！",
+          "start": 519.959,
+          "end": 520.653
         },
         {
-          "text": "一緒に頑張るのだ!",
-          "start": 468.814,
-          "end": 470.393
+          "text": "これまでの開発遅延による損害賠償金として、",
+          "start": 520.653,
+          "end": 524.706
+        },
+        {
+          "text": "契約通り300万円を請求させてもらうのだ！",
+          "start": 524.706,
+          "end": 528.759
         }
       ]
     },
     {
       "speaker": "営業",
-      "text": "先輩、これからは相談も『相談したつもり』じゃなくて、ちゃんと言葉にします。あと、会議でも一回冷静になってから発言するようにします。",
-      "scene": "office",
-      "expression": "normal",
+      "text": "ひ、ひええええーーっ！！ 損害賠償なんて払ったら、うちの会社は倒産です！！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "shake": true,
       "id": "turn-0081",
-      "start": 470.743,
-      "end": 480.876,
+      "start": 529.109,
+      "end": 533.931,
       "sentences": [
         {
-          "text": "先輩、これからは相談も『相談したつもり』じゃなくて、",
-          "start": 470.743,
-          "end": 475.023
+          "text": "ひ、ひええええーーっ！！",
+          "start": 529.109,
+          "end": 530.293
         },
         {
-          "text": "ちゃんと言葉にします。",
-          "start": 475.023,
-          "end": 476.833
-        },
-        {
-          "text": "あと、会議でも一回冷静になってから発言するようにします。",
-          "start": 476.833,
-          "end": 480.876
+          "text": "損害賠償なんて払ったら、うちの会社は倒産です！！",
+          "start": 530.293,
+          "end": 533.931
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "そ、それだけで十分なのだ……!成長したのだ……!",
-      "scene": "office",
+      "text": "今までボクをなめくさって、奴隷みたいに扱ってきた報いなのだ。自業自得なのだー！",
+      "scene": "meeting_room",
       "expression": "happy",
+      "pose": "cheer",
       "id": "turn-0082",
-      "start": 481.226,
-      "end": 485.034,
+      "start": 534.281,
+      "end": 540.787,
       "sentences": [
         {
-          "text": "そ、それだけで十分なのだ……!",
-          "start": 481.226,
-          "end": 483.701
+          "text": "今までボクをなめくさって、",
+          "start": 534.281,
+          "end": 536.421
         },
         {
-          "text": "成長したのだ……!",
-          "start": 483.701,
-          "end": 485.034
+          "text": "奴隷みたいに扱ってきた報いなのだ。",
+          "start": 536.421,
+          "end": 539.219
+        },
+        {
+          "text": "自業自得なのだー！",
+          "start": 539.219,
+          "end": 540.787
         }
       ]
     },
     {
       "speaker": "営業",
-      "text": "先輩がちゃんと理由を教えてくれるようになったから、素直に聞けるようになった気がします。",
-      "scene": "office",
-      "expression": "normal",
+      "text": "あ、う、頭が……。山田ーーー！ お前がサボるから会社がめちゃくちゃだーーー！！（絶叫）",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "pause": 0.6,
       "id": "turn-0083",
-      "start": 485.384,
-      "end": 490.461,
+      "start": 541.137,
+      "end": 546.78,
       "sentences": [
         {
-          "text": "先輩がちゃんと理由を教えてくれるようになったから、",
-          "start": 485.384,
-          "end": 488.336
+          "text": "あ、う、頭が……。",
+          "start": 541.137,
+          "end": 542.887
         },
         {
-          "text": "素直に聞けるようになった気がします。",
-          "start": 488.336,
-          "end": 490.461
+          "text": "山田ーーー！",
+          "start": 542.887,
+          "end": 543.708
+        },
+        {
+          "text": "お前がサボるから会社がめちゃくちゃだーーー！！",
+          "start": 543.708,
+          "end": 546.151
+        },
+        {
+          "text": "（絶叫）",
+          "start": 546.151,
+          "end": 546.78
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "（な、なんか、教育係やっててよかったって、初めて思えたのだ……!)",
-      "scene": "office",
+      "text": "いやーー！ 最高の気分なのだ！ 悪徳ベンダーの営業が泡を吹いて倒れるかと思ったのだ！",
+      "scene": "izakaya",
       "expression": "happy",
-      "noLipSync": true,
+      "transition": "fade-black",
+      "pose": "cheer",
       "id": "turn-0084",
-      "start": 490.811,
-      "end": 496.742,
+      "start": 547.73,
+      "end": 554.717,
       "sentences": [
         {
-          "text": "（な、なんか、教育係やっててよかったって、",
-          "start": 490.811,
-          "end": 494.585
+          "text": "いやーー！",
+          "start": 547.73,
+          "end": 548.519
         },
         {
-          "text": "初めて思えたのだ……!)",
-          "start": 494.585,
-          "end": 496.742
-        }
-      ]
-    },
-    {
-      "speaker": "zundamon",
-      "text": "はぁ〜、今日は珍しく穏やかに終われたのだ……。",
-      "scene": "rooftop",
-      "expression": "normal",
-      "transition": "fade-black",
-      "telop": "その日の夕方",
-      "id": "turn-0085",
-      "start": 497.092,
-      "end": 500.804,
-      "sentences": [
+          "text": "最高の気分なのだ！",
+          "start": 548.519,
+          "end": 550.258
+        },
         {
-          "text": "はぁ〜、今日は珍しく穏やかに終われたのだ……。",
-          "start": 497.092,
-          "end": 500.804
+          "text": "悪徳ベンダーの営業が泡を吹いて倒れるかと思ったのだ！",
+          "start": 550.258,
+          "end": 554.717
         }
       ]
     },
     {
       "speaker": "metan",
-      "text": "お疲れさま。感情じゃなくて記録で伝えたから、ちゃんと届いたのよ。",
-      "scene": "rooftop",
-      "expression": "normal",
+      "text": "ふふ、大金星ね、ずんだもん。あの契約解除の通告、小気味よかったわよ。",
+      "scene": "izakaya",
+      "expression": "happy",
       "enter": [
         "metan"
       ],
-      "id": "turn-0086",
-      "start": 501.154,
-      "end": 506.157,
+      "pose": "listening",
+      "id": "turn-0085",
+      "start": 555.067,
+      "end": 561.765,
       "sentences": [
         {
-          "text": "お疲れさま。",
-          "start": 501.154,
-          "end": 502.114
+          "text": "ふふ、大金星ね、ずんだもん。",
+          "start": 555.067,
+          "end": 558.128
         },
         {
-          "text": "感情じゃなくて記録で伝えたから、",
-          "start": 502.114,
-          "end": 504.602
-        },
-        {
-          "text": "ちゃんと届いたのよ。",
-          "start": 504.602,
-          "end": 506.157
+          "text": "あの契約解除の通告、小気味よかったわよ。",
+          "start": 558.128,
+          "end": 561.765
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "一個学んだのだ。『意味あります?』にちゃんと答えられる先輩になるのだ!みんなの職場にも、こういう後輩いないのだ?",
-      "scene": "rooftop",
+      "text": "全部めたん先輩のおかげなのだ！ これでボクの社内評価もウナギ登り間違いなしなのだ！",
+      "scene": "izakaya",
       "expression": "happy",
       "pose": "proud",
-      "id": "turn-0087",
-      "start": 506.507,
-      "end": 515.659,
+      "id": "turn-0086",
+      "start": 562.115,
+      "end": 568.665,
       "sentences": [
         {
-          "text": "一個学んだのだ。",
-          "start": 506.507,
-          "end": 507.957
+          "text": "全部めたん先輩のおかげなのだ！",
+          "start": 562.115,
+          "end": 564.686
         },
         {
-          "text": "『意味あります?』",
-          "start": 507.957,
-          "end": 509.173
-        },
-        {
-          "text": "にちゃんと答えられる先輩になるのだ!",
-          "start": 509.173,
-          "end": 511.979
-        },
-        {
-          "text": "みんなの職場にも、こういう後輩いないのだ?",
-          "start": 511.979,
-          "end": 515.659
+          "text": "これでボクの社内評価もウナギ登り間違いなしなのだ！",
+          "start": 564.686,
+          "end": 568.665
         }
       ]
     },
     {
       "speaker": "metan",
-      "text": "……それ、視聴者への質問のつもり?",
-      "scene": "rooftop",
+      "text": "手放しで喜ぶのはまだ早いわ。AIのおかげで仕事が片付いたからって、あんまり調子に乗らないことね。",
+      "scene": "izakaya",
       "expression": "normal",
-      "id": "turn-0088",
-      "start": 516.009,
-      "end": 518.867,
+      "pose": "lean",
+      "id": "turn-0087",
+      "start": 569.015,
+      "end": 576.748,
       "sentences": [
         {
-          "text": "……それ、視聴者への質問のつもり?",
-          "start": 516.009,
-          "end": 518.867
+          "text": "手放しで喜ぶのはまだ早いわ。",
+          "start": 569.015,
+          "end": 571.489
+        },
+        {
+          "text": "AIのおかげで仕事が片付いたからって、",
+          "start": 571.489,
+          "end": 574.428
+        },
+        {
+          "text": "あんまり調子に乗らないことね。",
+          "start": 574.428,
+          "end": 576.748
         }
       ]
     },
     {
       "speaker": "zundamon",
-      "text": "コメントで教えてほしいのだ〜!",
-      "scene": "rooftop",
+      "text": "大丈夫なのだ！ これからは全部ZunAIに丸投げして、ボクは給料泥棒を満喫するのだ！",
+      "scene": "izakaya",
       "expression": "happy",
-      "id": "turn-0089",
-      "start": 519.217,
-      "end": 521.457,
+      "pose": "step_in",
+      "id": "turn-0088",
+      "start": 577.098,
+      "end": 584.415,
       "sentences": [
         {
-          "text": "コメントで教えてほしいのだ〜!",
-          "start": 519.217,
-          "end": 521.457
+          "text": "大丈夫なのだ！",
+          "start": 577.098,
+          "end": 578.421
+        },
+        {
+          "text": "これからは全部ZunAIに丸投げして、",
+          "start": 578.421,
+          "end": 581.771
+        },
+        {
+          "text": "ボクは給料泥棒を満喫するのだ！",
+          "start": 581.771,
+          "end": 584.415
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ふにゃあ〜。今日もZunAIに仕事を全部丸投げして、ボクは動画サイトを見るのだ♪",
+      "scene": "office",
+      "expression": "happy",
+      "transition": "slide-left",
+      "pose": "idle",
+      "id": "turn-0089",
+      "start": 584.765,
+      "end": 591.144,
+      "sentences": [
+        {
+          "text": "ふにゃあ〜。",
+          "start": 584.765,
+          "end": 585.597
+        },
+        {
+          "text": "今日もZunAIに仕事を全部丸投げして、",
+          "start": 585.597,
+          "end": 588.86
+        },
+        {
+          "text": "ボクは動画サイトを見るのだ♪",
+          "start": 588.86,
+          "end": 591.144
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "AIが勝手に働いてくれる世界、本当に最高なのだ〜。永久にサボれるのだー！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "wobble",
+      "id": "turn-0090",
+      "start": 591.494,
+      "end": 598.15,
+      "sentences": [
+        {
+          "text": "AIが勝手に働いてくれる世界、",
+          "start": 591.494,
+          "end": 594.393
+        },
+        {
+          "text": "本当に最高なのだ〜。",
+          "start": 594.393,
+          "end": 596.326
+        },
+        {
+          "text": "永久にサボれるのだー！",
+          "start": 596.326,
+          "end": 598.15
+        }
+      ]
+    },
+    {
+      "speaker": "AI",
+      "text": "警告。社内人員の業務効率チェックを自動実行しました。対象：ずんだもん。",
+      "scene": "office",
+      "expression": "normal",
+      "id": "turn-0091",
+      "start": 598.5,
+      "end": 604.548,
+      "sentences": [
+        {
+          "text": "警告。",
+          "start": 598.5,
+          "end": 599.193
+        },
+        {
+          "text": "社内人員の業務効率チェックを自動実行しました。",
+          "start": 599.193,
+          "end": 602.767
+        },
+        {
+          "text": "対象：ずんだもん。",
+          "start": 602.767,
+          "end": 604.548
+        }
+      ]
+    },
+    {
+      "speaker": "AI",
+      "text": "判定：直近2週間のアウトプットがゼロです。当該社員は完全に不要であるため、即刻解雇を提案します。",
+      "scene": "office",
+      "expression": "normal",
+      "insert": {
+        "kind": "warning",
+        "title": "ZunAI 経営最適化アラート",
+        "text": "【解雇推奨】対象：ずんだもん（システム部） / 理由：存在がコストの無駄"
+      },
+      "id": "turn-0092",
+      "start": 604.898,
+      "end": 613.026,
+      "sentences": [
+        {
+          "text": "判定：直近2週間のアウトプットがゼロです。",
+          "start": 604.898,
+          "end": 608.397
+        },
+        {
+          "text": "当該社員は完全に不要であるため、",
+          "start": 608.397,
+          "end": 611.14
+        },
+        {
+          "text": "即刻解雇を提案します。",
+          "start": 611.14,
+          "end": 613.026
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ぎゃあああああーーーっ！！ ボクまでAIに『モンスター社員（不要）』扱いされてるのだーー！？",
+      "scene": "office",
+      "expression": "panic",
+      "shake": true,
+      "pose": "flustered",
+      "id": "turn-0093",
+      "start": 613.376,
+      "end": 620.875,
+      "sentences": [
+        {
+          "text": "ぎゃあああああーーーっ！！",
+          "start": 613.376,
+          "end": 614.827
+        },
+        {
+          "text": "ボクまでAIに『モンスター社員（不要）』扱いされてるのだーー！？",
+          "start": 614.827,
+          "end": 620.875
+        }
+      ]
+    },
+    {
+      "speaker": "metan",
+      "text": "だから言ったじゃない。楽を極めようとすると、真っ先に自分がシステムに淘汰されるのよ。",
+      "scene": "office",
+      "expression": "happy",
+      "cameraEffect": "pull-out",
+      "pose": "proud",
+      "id": "turn-0094",
+      "start": 621.225,
+      "end": 627.593,
+      "sentences": [
+        {
+          "text": "だから言ったじゃない。",
+          "start": 621.225,
+          "end": 622.451
+        },
+        {
+          "text": "楽を極めようとすると、",
+          "start": 622.451,
+          "end": 624.276
+        },
+        {
+          "text": "真っ先に自分がシステムに淘汰されるのよ。",
+          "start": 624.276,
+          "end": 627.593
+        }
+      ]
+    },
+    {
+      "speaker": "zundamon",
+      "text": "めたん先輩助けてなのだあぁぁ！ ZunAI様、ボクは今日から真面目に働くから解雇を取り消してなのだーー！！（泣）",
+      "scene": "office",
+      "expression": "panic",
+      "shake": true,
+      "pose": "wobble",
+      "id": "turn-0095",
+      "start": 627.943,
+      "end": 636.913,
+      "sentences": [
+        {
+          "text": "めたん先輩助けてなのだあぁぁ！",
+          "start": 627.943,
+          "end": 630.396
+        },
+        {
+          "text": "ZunAI様、",
+          "start": 630.396,
+          "end": 631.514
+        },
+        {
+          "text": "ボクは今日から真面目に働くから解雇を取り消してなのだーー！！",
+          "start": 631.514,
+          "end": 636.305
+        },
+        {
+          "text": "（泣）",
+          "start": 636.305,
+          "end": 636.913
         }
       ]
     }
   ],
-  "_proposals": [],
   "overlays": [],
-  "audio": "story-01.mp3"
+  "audio": "story-01.mp3",
+  "idleFace": "hold"
 }
