@@ -60,7 +60,7 @@ export type ExpressionCfg = {
   mouth_close: string;
   mouth_half: string;
   mouth_open: string;
-  fx: string | null;
+  fx: string | string[] | null;
 };
 
 // 焦り(panic)時に追加する汗ドロップの位置（キャラ別・キャンバス比%）。
@@ -402,20 +402,29 @@ export const Avatar: React.FC<{
   const showFxSurprise =
     emotion === "surprise" && reactT >= 0 && reactT < REACT_DUR;
 
-  let fxSrc: string | null;
+  const fxIds = hasCfg
+    ? Array.isArray(expressionCfg!.fx)
+      ? expressionCfg!.fx.filter((id): id is string => typeof id === "string" && !!id)
+      : expressionCfg!.fx
+      ? [expressionCfg!.fx]
+      : []
+    : [];
+  let fxSrcs: string[];
   if (hasCfg) {
-    const cfg = expressionCfg!;
-    const fxFile = cfg.fx ? part(`fx_${cfg.fx}`) : null;
+    const fxFiles = fxIds
+      .map((id) => part(`fx_${id}`))
+      .filter((src): src is string => !!src);
     // cfg.fx が設定されていれば表示する。surprise だけは「一瞬の反応」なので反応中のみ、
     // それ以外(trouble/panic/happy 等)は表情が続く間ずっと出す。
-    fxSrc = emotion === "surprise" ? (showFxSurprise ? fxFile : null) : fxFile;
+    fxSrcs = emotion === "surprise" ? (showFxSurprise ? fxFiles : []) : fxFiles;
   } else {
     // 旧来の emotion ベース（後方互換）
-    fxSrc = showFxSurprise
+    const fallbackFx = showFxSurprise
       ? part("fx_surprise")
       : emotion === "panic"
       ? part("fx_sweat") || part("fx_surprise")
       : null;
+    fxSrcs = fallbackFx ? [fallbackFx] : [];
   }
 
   // ── cheek（顔色）の解決 ──
@@ -447,7 +456,7 @@ export const Avatar: React.FC<{
     return wrap(
       <>
         {layer(poseSrc, "pose")}
-        {fxSrc ? layer(fxSrc, "fx") : null}
+        {fxSrcs.map((fxSrc, index) => layer(fxSrc, `fx-${index}`))}
       </>
     );
   }
@@ -486,12 +495,12 @@ export const Avatar: React.FC<{
       {bangsSrc ? layer(bangsSrc, "bangs") : null}
       {/* 眉は髪/前髪より前面に描く（前髪に隠れず必ず見えるように）。 */}
       {browSrc ? layer(browSrc, "brow") : null}
-      {fxSrc ? layer(fxSrc, "fx") : null}
+      {fxSrcs.map((fxSrc, index) => layer(fxSrc, `fx-${index}`))}
       {/* 焦り(panic)：汗を増やす。同じ汗ドロップを位置/サイズ違いで複数重ねる。
           位置はキャラごと（目に被らないよう調整）。dx/dyはキャンバス比%。 */}
-      {emotion === "panic" && fxSrc
+      {emotion === "panic" && fxSrcs[0]
         ? (SWEAT_EXTRA[dir ?? ""] ?? []).map((o, i) =>
-            layer(fxSrc!, `fx-${i}`, {
+            layer(fxSrcs[0], `fx-extra-${i}`, {
               transform: `translate(${o.dx}%, ${o.dy}%) scale(${o.s})`,
             })
           )

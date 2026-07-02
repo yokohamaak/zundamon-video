@@ -425,6 +425,32 @@ const EXPR_LABEL = {
 // !顔色グループ内は下→上が かげり→青ざめ（shadowをcheekより下に）。bangsはmouthの後。
 const LAYER_KEYS = ["base", "shadow", "cheek", "arm", "brow", "eye", "mouth", "bangs", "fx"];
 
+function isMultiSlot(slot) {
+  return slot === "fx";
+}
+
+function normalizeSlotValue(slot, value) {
+  if (!isMultiSlot(slot)) return value ?? null;
+  if (Array.isArray(value)) return value.filter((v) => typeof v === "string" && v);
+  if (typeof value === "string" && value) return [value];
+  return [];
+}
+
+function currentSlotValue(cfg, slot) {
+  return normalizeSlotValue(slot, cfg?.[slot]);
+}
+
+function currentSlotLabel(slot, candidates, value) {
+  if (!isMultiSlot(slot)) {
+    return candidates.find(c => c.id === value)?.label ?? (value === null ? "なし" : (value || "未設定"));
+  }
+  const ids = normalizeSlotValue(slot, value);
+  if (ids.length === 0) return "なし";
+  return ids
+    .map((id) => candidates.find((c) => c.id === id)?.label ?? id)
+    .join(" / ");
+}
+
 // ============================================================
 // 初期化
 // ============================================================
@@ -627,7 +653,7 @@ function buildSlotPanel() {
 
     const catalogKey = slotToCatalogKey(slot);
     const candidates = charSlots[catalogKey] || [];
-    const currentId = cfg[slot] ?? null;
+    const currentValue = currentSlotValue(cfg, slot);
 
     if (candidates.length === 0) {
       const warn = document.createElement("div");
@@ -642,7 +668,7 @@ function buildSlotPanel() {
     const curr = document.createElement("div");
     curr.className = "slot-current";
     curr.id = `slot-curr-${slot}`;
-    const currLabel = candidates.find(c => c.id === currentId)?.label ?? (currentId || "未設定");
+    const currLabel = currentSlotLabel(slot, candidates, currentValue);
     curr.textContent = "現在: " + currLabel;
     section.appendChild(curr);
 
@@ -652,11 +678,12 @@ function buildSlotPanel() {
     // fx と shadow はnullを選べる（「なし」が既定）
     if (slot === "fx" || slot === "shadow") {
       const noneEl = document.createElement("div");
-      noneEl.className = "cand-none" + (currentId === null ? " selected" : "");
+      const isSelected = isMultiSlot(slot) ? currentValue.length === 0 : currentValue === null;
+      noneEl.className = "cand-none" + (isSelected ? " selected" : "");
       noneEl.dataset.slot = slot;
       noneEl.dataset.id = "__none__";
       noneEl.textContent = "なし";
-      noneEl.addEventListener("click", () => assignSlot(slot, null, noneEl.dataset.id, grid));
+      noneEl.addEventListener("click", () => assignSlot(slot, null, noneEl.dataset.id, grid, candidates));
       grid.appendChild(noneEl);
     }
 
@@ -665,11 +692,14 @@ function buildSlotPanel() {
       let selClass = "";
       if (slot.startsWith("mouth_")) {
         // mouth_* スロットは currentMouthSlot と一致するときにハイライト色を変える
-        if (cand.id === currentId) {
+        if (cand.id === currentValue) {
           selClass = slot === currentMouthSlot ? " selected-mouth" : " selected";
         }
       } else {
-        if (cand.id === currentId) selClass = " selected";
+        const selected = isMultiSlot(slot)
+          ? currentValue.includes(cand.id)
+          : cand.id === currentValue;
+        if (selected) selClass = " selected";
       }
       item.className = "cand-item" + selClass;
       item.dataset.slot = slot;
@@ -697,7 +727,7 @@ function buildSlotPanel() {
 
       item.appendChild(thumbWrap);
       item.appendChild(label);
-      item.addEventListener("click", () => assignSlot(slot, cand.id, cand.id, grid));
+      item.addEventListener("click", () => assignSlot(slot, cand.id, cand.id, grid, candidates));
       grid.appendChild(item);
     }
 
@@ -709,14 +739,30 @@ function buildSlotPanel() {
 // ============================================================
 // スロット割当
 // ============================================================
-function assignSlot(slot, value, dataId, grid) {
+function assignSlot(slot, value, dataId, grid, candidates) {
   if (!expressions[currentChar]) expressions[currentChar] = {};
   if (!expressions[currentChar][currentExpr]) expressions[currentChar][currentExpr] = {};
-  expressions[currentChar][currentExpr][slot] = value;
+  let nextValue = value;
+  if (isMultiSlot(slot)) {
+    const current = currentSlotValue(expressions[currentChar][currentExpr], slot);
+    if (value === null) {
+      nextValue = [];
+    } else {
+      nextValue = current.includes(value)
+        ? current.filter((id) => id !== value)
+        : [...current, value];
+    }
+  }
+  expressions[currentChar][currentExpr][slot] = nextValue;
 
   // グリッド内の selected クラスを更新
   for (const el of grid.querySelectorAll(".cand-item, .cand-none")) {
-    const isMatch = el.dataset.id === dataId;
+    const selectedValues = isMultiSlot(slot)
+      ? currentSlotValue(expressions[currentChar][currentExpr], slot)
+      : expressions[currentChar][currentExpr][slot];
+    const isMatch = isMultiSlot(slot)
+      ? (el.dataset.id === "__none__" ? selectedValues.length === 0 : selectedValues.includes(el.dataset.id))
+      : el.dataset.id === dataId;
     if (slot.startsWith("mouth_")) {
       el.classList.toggle("selected-mouth", isMatch && slot === currentMouthSlot);
       el.classList.toggle("selected", isMatch && slot !== currentMouthSlot);
@@ -728,11 +774,7 @@ function assignSlot(slot, value, dataId, grid) {
   // 現在割当表示更新
   const currEl = document.getElementById("slot-curr-" + slot);
   if (currEl) {
-    const charSlots = catalog?.[currentChar]?.slots;
-    const catalogKey = slotToCatalogKey(slot);
-    const candidates = charSlots?.[catalogKey] || [];
-    const label = candidates.find(c => c.id === value)?.label ?? (value === null ? "なし" : value);
-    currEl.textContent = "現在: " + label;
+    currEl.textContent = "現在: " + currentSlotLabel(slot, candidates, expressions[currentChar][currentExpr][slot]);
   }
 
   markDirty();
@@ -757,6 +799,8 @@ function renderPreview() {
   const charCat = catalog?.[currentChar];
   const cfg = currentCfg();
 
+  const fxSrcs = _candidateSrcs(charCat, "fx", cfg["fx"]);
+
   // 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
   // !顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に。
   // mouth は currentMouthSlot の値を使う
@@ -769,7 +813,6 @@ function renderPreview() {
     { key: "eye",    src: _candidateSrc(charCat, "eye",    cfg["eye"]) },
     { key: "mouth",  src: _candidateSrc(charCat, "mouth",  cfg[currentMouthSlot]) },
     { key: "bangs",  src: _bangsSrc(charCat) },
-    { key: "fx",     src: _candidateSrc(charCat, "fx",     cfg["fx"]) },
   ];
 
   // 既存の img を再利用/追加/削除
@@ -788,6 +831,24 @@ function renderPreview() {
       img.style.display = "none";
     }
   }
+
+  for (const key of Object.keys(_previewImgs)) {
+    if (key.startsWith("fx-")) {
+      _previewImgs[key].style.display = "none";
+    }
+  }
+  fxSrcs.forEach((src, index) => {
+    const key = `fx-${index}`;
+    if (!_previewImgs[key] || _previewImgs[key].parentNode !== canvas) {
+      const img = document.createElement("img");
+      img.dataset.layerKey = key;
+      canvas.appendChild(img);
+      _previewImgs[key] = img;
+    }
+    const img = _previewImgs[key];
+    if (img.src !== location.origin + src) img.src = src;
+    img.style.display = "";
+  });
 }
 
 function _candidateSrc(charCat, slot, id) {
@@ -795,6 +856,13 @@ function _candidateSrc(charCat, slot, id) {
   const candidates = charCat.slots?.[slot] || [];
   const cand = candidates.find(c => c.id === id);
   return cand ? IMG_BASE + cand.file : null;
+}
+
+function _candidateSrcs(charCat, slot, ids) {
+  const list = normalizeSlotValue(slot, ids);
+  return list
+    .map((id) => _candidateSrc(charCat, slot, id))
+    .filter(Boolean);
 }
 
 // ============================================================
