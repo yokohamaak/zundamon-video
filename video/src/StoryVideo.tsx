@@ -1530,24 +1530,34 @@ function videoBgStyle(style: string | undefined): React.CSSProperties {
 }
 
 // ZunMeet パネルのレイアウト定数。
-// focus レイアウトの大タイルは fr 比率でなく px 固定にして実寸を確定させ、
-// 大タイル内シーンプレビューの座標計算（VIDEO_CALL_PREVIEW_*）と共有する。
-// 比率の近似値をプレビュー側に別途持つと、実タイルとずれてキャラ位置が狂う。
+// タイル幅は fr 比率でなく px で確定させ、フィード（立ち絵）のスケール計算と共有する。
 const VC_PANEL_W = 1500;      // パネル全体の幅
 const VC_GRID_PAD = 22;       // タイルグリッドの padding
 const VC_GRID_GAP = 18;       // タイル間の gap
 const VC_TILE_H = 760;        // タイルの高さ（focus時はグリッド高さを固定）
 const VC_FOCUS_TILE_W = 920;  // focus時の大タイル幅
+// focus時の小タイル幅（右カラム）＝残り幅。
+const VC_SMALL_TILE_W = VC_PANEL_W - VC_GRID_PAD * 2 - VC_GRID_GAP - VC_FOCUS_TILE_W; // 518
+// grid時のタイル幅（2列均等）。
+const VC_GRID_TILE_W = Math.round((VC_PANEL_W - VC_GRID_PAD * 2 - VC_GRID_GAP) / 2); // 719
+// タイル幅に対する立ち絵の表示幅の割合。大小タイルで同一＝「同じ映像がサイズだけ変わる」。
+const VC_FEED_AVATAR_FRAC = 0.5;
 
 type VideoCallParticipant = NonNullable<
   Extract<StoryInsert, { kind: "videocall" }>["participants"]
 >[number];
 
+// タイルの中身（カメラ映像風の描画）は大小共通・固定。
+// フォーカス切替は「どのタイルを大きく表示するか」だけを変え、描画方法は変えない。
+// renderFeed: 参加者のライブフィード（立ち絵アニメ合成）。StoryVideo 本体から渡される。
 const InsertVideoCall: React.FC<{
   insert: Extract<StoryInsert, { kind: "videocall" }>;
   activeSpeaker?: string;
-  focusScenePreview?: React.ReactNode;
-}> = ({ insert, activeSpeaker, focusScenePreview }) => {
+  renderFeed?: (
+    participant: VideoCallParticipant,
+    opts: { large: boolean; tileW: number }
+  ) => React.ReactNode;
+}> = ({ insert, activeSpeaker, renderFeed }) => {
   const room = insert.room || "定例会議";
   const layout = insert.layout || "focus";
   const participants = (insert.participants || []).slice(0, 6);
@@ -1564,6 +1574,11 @@ const InsertVideoCall: React.FC<{
     const isActive = participant.speaker === currentSpeaker;
     const large = !!opts?.large;
     const bg = videoBgStyle(participant.bgStyle || (participant.speaker === "AI" ? "ai" : "office"));
+    const tileW = large ? VC_FOCUS_TILE_W : layout === "grid" ? VC_GRID_TILE_W : VC_SMALL_TILE_W;
+    const feedNode =
+      !participant.cameraOff && asset.kind !== "ai" && renderFeed
+        ? renderFeed(participant, { large, tileW })
+        : null;
     return (
       <div
         key={`${participant.speaker}-${name}`}
@@ -1580,29 +1595,15 @@ const InsertVideoCall: React.FC<{
           ...bg,
         }}
       >
-        {large && isActive && focusScenePreview ? (
-          <>
-            <div style={{ position: "absolute", inset: 0 }}>{focusScenePreview}</div>
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02) 26%, rgba(0,0,0,0.22) 100%)",
-              }}
-            />
-          </>
-        ) : null}
         <div
           style={{
             position: "absolute",
             inset: 0,
             background:
               "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 22%, rgba(0,0,0,0.14) 100%)",
-            opacity: large && isActive && focusScenePreview ? 0.32 : 1,
           }}
         />
-        {!focusScenePreview && asset.kind !== "ai" && !participant.cameraOff ? (
+        {asset.kind !== "ai" && !participant.cameraOff ? (
           <>
             <div
               style={{
@@ -1652,7 +1653,7 @@ const InsertVideoCall: React.FC<{
           >
             CAMERA OFF
           </div>
-        ) : !large || !isActive || !focusScenePreview ? asset.kind === "ai" ? (
+        ) : asset.kind === "ai" ? (
           <>
             <div
               style={{
@@ -1712,6 +1713,8 @@ const InsertVideoCall: React.FC<{
               ZunAI
             </div>
           </>
+        ) : feedNode ? (
+          feedNode
         ) : asset.src ? (
           <Img
             src={asset.src}
@@ -1743,7 +1746,7 @@ const InsertVideoCall: React.FC<{
           >
             {name.charAt(0)}
           </div>
-        ) : null}
+        )}
         <div
           style={{
             position: "absolute",
@@ -1957,14 +1960,17 @@ const InsertOverlay: React.FC<{
   opacity: number;
   transform?: string;
   activeSpeaker?: string;
-  focusScenePreview?: React.ReactNode;
+  renderVideoCallFeed?: (
+    participant: VideoCallParticipant,
+    opts: { large: boolean; tileW: number }
+  ) => React.ReactNode;
 }> = ({
   insert,
   bgOpacity,
   opacity,
   transform,
   activeSpeaker,
-  focusScenePreview,
+  renderVideoCallFeed,
 }) => {
   // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
   const isLight = insert.kind === "mailer";
@@ -1992,7 +1998,7 @@ const InsertOverlay: React.FC<{
         {insert.kind === "ok" && <InsertOk insert={insert} />}
         {insert.kind === "teamchat" && <InsertTeamChat insert={insert} />}
         {insert.kind === "mailer" && <InsertMailer insert={insert} />}
-        {insert.kind === "videocall" && <InsertVideoCall insert={insert} activeSpeaker={activeSpeaker} focusScenePreview={focusScenePreview} />}
+        {insert.kind === "videocall" && <InsertVideoCall insert={insert} activeSpeaker={activeSpeaker} renderFeed={renderVideoCallFeed} />}
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -3125,116 +3131,93 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const stageTransformWithShift = currentStageShiftX !== 0
     ? `translateX(${currentStageShiftX}px) ${stageTransform}`
     : stageTransform;
-  // ZunMeet focus大タイルの実寸（InsertVideoCall のレイアウト定数と共有）。
-  const VIDEO_CALL_PREVIEW_W = VC_FOCUS_TILE_W;
-  const VIDEO_CALL_PREVIEW_H = VC_TILE_H;
-  const videoCallPreviewScale = Math.max(
-    VIDEO_CALL_PREVIEW_W / width,
-    VIDEO_CALL_PREVIEW_H / height
-  );
-  const videoCallPreviewOffsetY = (VIDEO_CALL_PREVIEW_H - height * videoCallPreviewScale) / 2;
-  const videoCallSpeakerStagePoint = (() => {
-    if (isKnownChar(active.speaker)) {
-      const anchorName = anchorOf[active.speaker] ?? "center";
-      const anchor = sceneDef.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
-      let slideOffsetPx = 0;
-      const entered = entrance[active.speaker] ?? seg.start;
-      const isInitial = entered <= seg.start + 1e-6;
-      const entersInstantly = !!instantEnter[active.speaker] || isFlashbackBoundaryStart(entered);
-      if (!isInitial && !entersInstantly) {
-        const sp = clamp((t - entered) / SLIDE_DUR, 0, 1);
-        const e = easeOutCubic(sp);
-        const fromXNorm = anchor.x < 0.5 ? -0.35 : 1.35;
-        slideOffsetPx = (1 - e) * (fromXNorm - anchor.x) * width;
-      }
-      const leaving = effectiveExitAt(active.speaker);
-      const exitsInstantly = exitDir[active.speaker] === "instant" || isFlashbackBoundaryStart(leaving);
-      if (leaving !== undefined && t >= leaving && !exitsInstantly) {
-        const sp = clamp((t - leaving) / SLIDE_DUR, 0, 1);
-        const e = easeInOutCubic(sp);
-        const dir = exitDir[active.speaker];
-        const toXNorm =
-          dir === "right" ? 1.35 : dir === "left" ? -0.35 : anchor.x < 0.5 ? -0.35 : 1.35;
-        slideOffsetPx = e * (toXNorm - anchor.x) * width;
-      }
-      return {
-        x: anchor.x * width + slideOffsetPx,
-        y: anchor.y * height,
-      };
-    }
-    if (isMob(active.speaker)) {
-      const m = MOBS[active.speaker];
-      const place = sceneDef.mobs?.[active.speaker];
-      const a = place ?? m.anchor ?? sceneDef.mobAnchor ?? { x: 0.5, y: 1.0 };
-      return { x: a.x * width, y: a.y * height };
-    }
-    return { x: width * 0.5, y: height * 0.6 };
-  })();
-  const videoCallSpeakerScreenX =
-    (currentStageShiftX + sfx) + videoCallSpeakerStagePoint.x * stageS;
-  const desiredVideoCallSpeakerX = VIDEO_CALL_PREVIEW_W * 0.56;
-  const rawVideoCallPreviewOffsetX = desiredVideoCallSpeakerX - videoCallSpeakerScreenX * videoCallPreviewScale;
-  const videoCallPreviewOffsetX = clamp(
-    rawVideoCallPreviewOffsetX,
-    VIDEO_CALL_PREVIEW_W - width * videoCallPreviewScale,
-    0
-  );
-  const videoCallFocusScenePreview = activeInsert?.kind === "videocall" ? (
-    <AbsoluteFill style={{ overflow: "hidden", background: "#0b1118" }}>
-      <div
-        style={{
-          position: "absolute",
-          left: videoCallPreviewOffsetX,
-          top: videoCallPreviewOffsetY,
-          width,
-          height,
-          transform: `scale(${videoCallPreviewScale})`,
-          transformOrigin: "0 0",
-        }}
-      >
-        <AbsoluteFill
+  // ZunMeet タイル用ライブフィード（カメラ映像風の合成）。
+  // 全タイル共通の描画方式: bgStyle 背景（renderTile側）＋ここで立ち絵を下端中央に合成する。
+  // 立ち絵の表示幅はタイル幅の一定割合＝フォーカス切替では「同じ映像のサイズと場所」だけが変わる。
+  const renderVideoCallFeed = (
+    participant: VideoCallParticipant,
+    opts: { large: boolean; tileW: number }
+  ): React.ReactNode => {
+    const speaker = participant.speaker;
+    const isSpeaking = !isNarrationTurn(active) && active.speaker === speaker;
+    const dispW = opts.tileW * VC_FEED_AVATAR_FRAC;
+    if (isKnownChar(speaker)) {
+      const cdef = CHARACTERS[speaker];
+      // 話者は現在ターンの表情/ポーズ/リップシンク、非話者は normal で待機。
+      const exprKey = isSpeaking ? active.expression ?? "normal" : "normal";
+      const emotion = EXPRESSION_TO_EMOTION[exprKey] ?? EXPRESSION_TO_EMOTION["normal"];
+      const charExprs = expressions?.[cdef.avatar];
+      const expressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
+      const poseCfg = isSpeaking && active.pose ? poses?.[cdef.avatar]?.[active.pose] ?? null : null;
+      const k = dispW / AVATAR_BOX;
+      return (
+        <div
           style={{
-            transform: stageTransformWithShift,
-            transformOrigin: "0 0",
-            filter: isFlashback
-              ? `saturate(${FB_SATURATE}) brightness(${FB_BRIGHTNESS})`
-              : undefined,
-            clipPath: currentStageClipPath,
-            overflow: "hidden",
+            position: "absolute",
+            left: "50%",
+            bottom: 0,
+            width: dispW,
+            height: dispW,
+            transform: "translateX(-50%)",
+            filter: "drop-shadow(0 12px 20px rgba(0,0,0,0.34))",
           }}
         >
-          <Img
-            src={staticFile(sceneDef.bg)}
+          <div
             style={{
               position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
-              transform: bgScale > 1 ? `scale(${bgScale})` : undefined,
-              transformOrigin: "center center",
+              left: 0,
+              bottom: 0,
+              width: AVATAR_BOX,
+              height: AVATAR_BOX,
+              transform: `scale(${k})`,
+              transformOrigin: "bottom left",
             }}
-          />
-          {presentNow.map(renderAvatar)}
-          {!isNarrationTurn(active) && isMob(active.speaker) ? renderMob(active.speaker) : null}
-          {sceneDef.front ? (
-            <Img
-              src={staticFile(sceneDef.front)}
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                pointerEvents: "none",
-              }}
+          >
+            <Avatar
+              dir={cdef.avatar}
+              manifest={manifest?.[cdef.avatar]}
+              fallbackGender={cdef.gender}
+              active={isSpeaking}
+              activatedAtFrame={Math.round(active.start * fps)}
+              amplitude={isSpeaking && !active.noLipSync ? speakerAmp : 0}
+              emotion={emotion}
+              emotionAtFrame={Math.round(active.start * fps)}
+              expressive={!!cdef.expressive}
+              flip={false}
+              popScale={false}
+              boxWidth={AVATAR_BOX}
+              boxHeight={AVATAR_BOX}
+              expressionCfg={expressionCfg}
+              poseName={isSpeaking ? active.pose : undefined}
+              poseArmStem={isSpeaking ? poseCfg?.arm ?? null : null}
             />
-          ) : null}
-        </AbsoluteFill>
-      </div>
-    </AbsoluteFill>
-  ) : null;
+          </div>
+        </div>
+      );
+    }
+    if (isMob(speaker)) {
+      return (
+        <img
+          src={staticFile(mobImage(speaker, isSpeaking ? active.expression : undefined))}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 0,
+            width: dispW,
+            maxHeight: "78%",
+            transform: "translateX(-50%)",
+            objectFit: "contain",
+            objectPosition: "bottom center",
+            filter: "drop-shadow(0 12px 20px rgba(0,0,0,0.34))",
+          }}
+        />
+      );
+    }
+    return null; // 未知話者は renderTile 側のフォールバック（頭文字）に任せる
+  };
 
   const renderScenePlate = (
     plateSceneDef: SceneDef,
@@ -3454,7 +3437,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           opacity={insertOpacity}
           transform={insertShakeTransform}
           activeSpeaker={active.speaker}
-          focusScenePreview={videoCallFocusScenePreview}
+          renderVideoCallFeed={renderVideoCallFeed}
         />
       ) : null}
 
