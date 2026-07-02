@@ -3876,7 +3876,13 @@ function renderInsertFields(insert) {
     container.appendChild(makeTextareaField("body（本文）", "fIMailBody", insert.body || ""));
     container.appendChild(makeField("time（時刻・任意 例: 14:32）", "text", "fIMailTime", insert.time || ""));
   } else if (kind === "videocall") {
-    container.appendChild(makeField("room（会議名・任意）", "text", "fIVRoom", insert.room || ""));
+    // 継承モデル: 同シーン内の直前 videocall が土台。このターンには「上書きする差分」だけを保存する。
+    // （値をコピー保存すると、元ターンを編集しても後続ターンに反映されなくなる）
+    const inherited = findPreviousVideoCallInsert(selectedIdx);
+    container.appendChild(makeField(
+      "room（会議名・任意）", "text", "fIVRoom", insert.room || "",
+      inherited ? "継承: " + (inherited.room || "定例会議") : ""
+    ));
     const layoutRow = document.createElement("div");
     layoutRow.className = "field-row";
     const layoutLbl = document.createElement("label");
@@ -3886,6 +3892,7 @@ function renderInsertFields(insert) {
     layoutSel.className = "field-select";
     layoutSel.id = "fIVLayout";
     [
+      { value: "", label: inherited ? "（継承: " + (inherited.layout || "focus") + "）" : "（既定: focus）" },
       { value: "focus", label: "focus（話者大）" },
       { value: "grid", label: "grid（均等）" },
     ].forEach(({ value, label }) => {
@@ -3894,12 +3901,12 @@ function renderInsertFields(insert) {
       o.textContent = label;
       layoutSel.appendChild(o);
     });
-    layoutSel.value = insert.layout || "focus";
+    layoutSel.value = insert.layout || "";
     layoutSel.addEventListener("change", collectInsert);
     layoutRow.appendChild(layoutLbl);
     layoutRow.appendChild(layoutSel);
     container.appendChild(layoutRow);
-    container.appendChild(makeField("activeSpeaker（任意。未入力なら現在の話者）", "text", "fIVActiveSpeaker", insert.activeSpeaker || ""));
+    container.appendChild(makeField("activeSpeaker（任意。このターンのみ有効・未入力なら現在の話者）", "text", "fIVActiveSpeaker", insert.activeSpeaker || ""));
     const section = document.createElement("div");
     section.className = "section-divider";
     section.textContent = "参加者（participants 配列）";
@@ -3907,20 +3914,46 @@ function renderInsertFields(insert) {
     const wrap = document.createElement("div");
     wrap.id = "fIVParticipants";
     container.appendChild(wrap);
-    const parts = insert.participants || [];
-    for (let i = 0; i < parts.length; i++) {
-      wrap.appendChild(makeVideoCallParticipantItem(i, parts[i]));
+    const ownParts = insert.participants || [];
+    const inhParts = (inherited && inherited.participants) || [];
+    if (!ownParts.length && inhParts.length) {
+      // 継承中: 前のターンの参加者をそのまま使う。編集したいときだけ明示的に上書き開始。
+      const note = document.createElement("div");
+      note.className = "field-hint";
+      note.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
+      note.textContent = "継承中: " + inhParts.map((p) => p.name || p.speaker).join(", ") + "（前のターンの参加者を使用）";
+      container.appendChild(note);
+      container.appendChild(makeAddBtn("このターンで参加者を上書き編集", () => {
+        refreshVideoCallParticipants(JSON.parse(JSON.stringify(inhParts)));
+      }));
+    } else {
+      for (let i = 0; i < ownParts.length; i++) {
+        wrap.appendChild(makeVideoCallParticipantItem(i, ownParts[i]));
+      }
+      container.appendChild(makeAddBtn("＋ 参加者を追加", () => {
+        const items = getVideoCallParticipants();
+        const turn = storyData.script[selectedIdx];
+        items.push({ speaker: (turn && turn.speaker) || "zundamon", bgStyle: "office", cameraOff: false, muted: false });
+        refreshVideoCallParticipants(items);
+      }));
+      if (ownParts.length && inhParts.length) {
+        container.appendChild(makeAddBtn("継承に戻す（このターンの上書きを解除）", () => {
+          refreshVideoCallParticipants([]);
+        }));
+      }
     }
-    container.appendChild(makeAddBtn("＋ 参加者を追加", () => {
-      const items = getVideoCallParticipants();
-      const turn = storyData.script[selectedIdx];
-      items.push({ speaker: (turn && turn.speaker) || "zundamon", bgStyle: "office", cameraOff: false, muted: false });
-      refreshVideoCallParticipants(items);
-    }));
   }
 }
 
-function makeField(labelText, inputType, id, value) {
+// 選択中ターンの insert からインサート編集フォームを出し直す
+// （videocall の上書き⇄継承のように、値の有無で表示が変わるフォーム用）。
+function rerenderInsertFieldsForSelected() {
+  if (selectedIdx < 0) return;
+  const turn = storyData.script[selectedIdx];
+  renderInsertFields(turn && turn.insert ? turn.insert : null);
+}
+
+function makeField(labelText, inputType, id, value, placeholder) {
   const wrap = document.createElement("div");
   wrap.className = "field-row";
   const lbl = document.createElement("label");
@@ -3928,6 +3961,7 @@ function makeField(labelText, inputType, id, value) {
   const inp = document.createElement("input");
   inp.type = inputType; inp.className = "field-input";
   inp.id = id; inp.value = value;
+  if (placeholder) inp.placeholder = placeholder;
   inp.addEventListener("change", collectInsert);
   wrap.appendChild(lbl); wrap.appendChild(inp);
   return wrap;
@@ -4234,6 +4268,8 @@ function refreshVideoCallParticipants(items) {
   wrap.innerHTML = "";
   for (let i = 0; i < items.length; i++) wrap.appendChild(makeVideoCallParticipantItem(i, items[i]));
   collectInsert();
+  // 参加者の有無で「継承中サマリ ⇄ 上書き編集フォーム」の表示が変わるため出し直す。
+  rerenderInsertFieldsForSelected();
 }
 
 // ============================================================
@@ -4426,13 +4462,15 @@ function collectInsert() {
     const mTime = document.getElementById("fIMailTime");
     if (mTime && mTime.value) ins.time = mTime.value;
   } else if (kind === "videocall") {
+    // 差分パッチ保存: 空欄・空配列のフィールドは保存しない＝同シーン内の直前 videocall から継承。
     const room = document.getElementById("fIVRoom");
     if (room && room.value) ins.room = room.value;
     const layout = document.getElementById("fIVLayout");
     if (layout && layout.value) ins.layout = layout.value;
     const activeSpeaker = document.getElementById("fIVActiveSpeaker");
     if (activeSpeaker && activeSpeaker.value) ins.activeSpeaker = activeSpeaker.value;
-    ins.participants = getVideoCallParticipants();
+    const parts = getVideoCallParticipants();
+    if (parts.length) ins.participants = parts;
   }
 
   turn.insert = ins;
@@ -5295,17 +5333,18 @@ function buildDefaultInsert(kind, prev) {
       messages: (prev && prev.kind === kind) ? (prev.messages || []) : [],
     };
   } else if (kind === "videocall") {
-    const inherited = (prev && prev.kind === kind)
-      ? prev
-      : findPreviousVideoCallInsert(selectedIdx);
+    if (prev && prev.kind === kind) return prev;
+    // 同シーン内に進行中の videocall があれば空パッチ（全項目継承）から始める。
+    // 値をコピーすると元ターンの編集が後続に反映されなくなるため、コピーはしない。
+    if (findPreviousVideoCallInsert(selectedIdx)) return { kind: "videocall" };
     return {
       kind: "videocall",
-      room: inherited ? (inherited.room || "") : "定例会議",
-      layout: inherited ? (inherited.layout || "focus") : "focus",
-      activeSpeaker: inherited ? (inherited.activeSpeaker || "") : "",
-      participants: (inherited && inherited.participants && inherited.participants.length)
-        ? (inherited.participants || [])
-        : [{ speaker: "zundamon", bgStyle: "office" }, { speaker: "metan", bgStyle: "meeting_room" }],
+      room: "定例会議",
+      layout: "focus",
+      participants: [
+        { speaker: "zundamon", bgStyle: "office" },
+        { speaker: "metan", bgStyle: "meeting_room" },
+      ],
     };
   }
   return { kind };

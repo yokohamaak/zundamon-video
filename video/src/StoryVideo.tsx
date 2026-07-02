@@ -25,7 +25,8 @@ export type StoryInsert =
     room?: string;
     layout?: "focus" | "grid";
     activeSpeaker?: string;
-    participants: Array<{
+    // 省略時は同シーン内の直前 videocall から継承する（差分パッチ運用）。
+    participants?: Array<{
       speaker: string;
       name?: string;
       bgStyle?: "office" | "meeting_room" | "home" | "ai" | "green";
@@ -293,18 +294,22 @@ function effectiveInsertAt(script: StoryTurn[], idx: number): StoryInsert | null
   const cur = script[idx];
   if (!cur) return null;
   if (cur.insert && cur.insert.kind !== "videocall") return cur.insert;
-  let merged: Extract<StoryInsert, { kind: "videocall" }> | null =
-    cur.insert?.kind === "videocall" ? cur.insert : null;
+  const own = cur.insert?.kind === "videocall" ? cur.insert : null;
+  let merged: Extract<StoryInsert, { kind: "videocall" }> | null = own;
   for (let i = idx - 1; i >= 0; i -= 1) {
     const prev = script[i];
     if (!prev || prev.scene !== cur.scene) break;
     if (prev.insert && prev.insert.kind !== "videocall") break;
     if (prev.insert?.kind === "videocall") {
       merged = mergeVideoCallInsert(prev.insert, merged ?? prev.insert);
-      if (merged.participants.length > 0 && merged.layout && merged.room) break;
+      if ((merged.participants?.length ?? 0) > 0 && merged.layout && merged.room) break;
     }
   }
-  return merged;
+  if (!merged) return null;
+  // activeSpeaker だけは継承しない：そのターン自身の指定のみ有効。
+  // 継承すると話者が交代してもフォーカスが付いてこないため、
+  // 未指定なら描画側（InsertVideoCall）が現在の話者へ自動追従する。
+  return { ...merged, activeSpeaker: own?.activeSpeaker };
 }
 // 取り乱し系の表情なら agitated（焦り/怒り）、それ以外は normal。
 // 未知の追加表情は normal 扱い（組み込み5種と比較してフォールバック）。
@@ -1524,6 +1529,20 @@ function videoBgStyle(style: string | undefined): React.CSSProperties {
   }
 }
 
+// ZunMeet パネルのレイアウト定数。
+// focus レイアウトの大タイルは fr 比率でなく px 固定にして実寸を確定させ、
+// 大タイル内シーンプレビューの座標計算（VIDEO_CALL_PREVIEW_*）と共有する。
+// 比率の近似値をプレビュー側に別途持つと、実タイルとずれてキャラ位置が狂う。
+const VC_PANEL_W = 1500;      // パネル全体の幅
+const VC_GRID_PAD = 22;       // タイルグリッドの padding
+const VC_GRID_GAP = 18;       // タイル間の gap
+const VC_TILE_H = 760;        // タイルの高さ（focus時はグリッド高さを固定）
+const VC_FOCUS_TILE_W = 920;  // focus時の大タイル幅
+
+type VideoCallParticipant = NonNullable<
+  Extract<StoryInsert, { kind: "videocall" }>["participants"]
+>[number];
+
 const InsertVideoCall: React.FC<{
   insert: Extract<StoryInsert, { kind: "videocall" }>;
   activeSpeaker?: string;
@@ -1537,7 +1556,7 @@ const InsertVideoCall: React.FC<{
   const others = participants.filter((p) => p !== focus);
 
   const renderTile = (
-    participant: Extract<StoryInsert, { kind: "videocall" }>["participants"][number],
+    participant: VideoCallParticipant,
     opts?: { large?: boolean }
   ) => {
     const asset = videoParticipantAsset(participant.speaker);
@@ -1793,7 +1812,7 @@ const InsertVideoCall: React.FC<{
         background: "#101822",
         border: "3px solid #9ed957",
         borderRadius: 24,
-        width: 1500,
+        width: VC_PANEL_W,
         overflow: "hidden",
         boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
         display: "flex",
@@ -1844,11 +1863,15 @@ const InsertVideoCall: React.FC<{
 
       <div
         style={{
-          padding: 22,
+          padding: VC_GRID_PAD,
           display: "grid",
-          gridTemplateColumns: layout === "focus" && focus ? "1.6fr 0.9fr" : "1fr",
-          gap: 18,
-          minHeight: 760,
+          // focus時は大タイル幅・グリッド高さをpx固定（プレビュー座標計算と一致させる）。
+          // grid時は従来どおり最小高さのみ（参加者数で伸びてよい）。
+          gridTemplateColumns: layout === "focus" && focus ? `${VC_FOCUS_TILE_W}px 1fr` : "1fr",
+          gap: VC_GRID_GAP,
+          ...(layout === "focus" && focus
+            ? { height: VC_TILE_H }
+            : { minHeight: VC_TILE_H }),
           alignItems: "stretch",
           background: "linear-gradient(180deg, #121b24 0%, #0b1218 100%)",
         }}
@@ -3102,8 +3125,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const stageTransformWithShift = currentStageShiftX !== 0
     ? `translateX(${currentStageShiftX}px) ${stageTransform}`
     : stageTransform;
-  const VIDEO_CALL_PREVIEW_W = 922;
-  const VIDEO_CALL_PREVIEW_H = 760;
+  // ZunMeet focus大タイルの実寸（InsertVideoCall のレイアウト定数と共有）。
+  const VIDEO_CALL_PREVIEW_W = VC_FOCUS_TILE_W;
+  const VIDEO_CALL_PREVIEW_H = VC_TILE_H;
   const videoCallPreviewScale = Math.max(
     VIDEO_CALL_PREVIEW_W / width,
     VIDEO_CALL_PREVIEW_H / height
