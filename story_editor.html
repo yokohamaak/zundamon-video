@@ -5257,6 +5257,19 @@ function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function findPreviousVideoCallInsert(idx) {
+  if (!storyData || !Array.isArray(storyData.script)) return null;
+  const cur = storyData.script[idx];
+  if (!cur) return null;
+  for (let i = idx - 1; i >= 0; i--) {
+    const prev = storyData.script[i];
+    if (!prev || prev.scene !== cur.scene) break;
+    if (prev.insert && prev.insert.kind === "videocall") return prev.insert;
+    if (prev.insert && prev.insert.kind !== "videocall") break;
+  }
+  return null;
+}
+
 function buildDefaultInsert(kind, prev) {
   if (kind === "warning") {
     return {
@@ -5282,13 +5295,16 @@ function buildDefaultInsert(kind, prev) {
       messages: (prev && prev.kind === kind) ? (prev.messages || []) : [],
     };
   } else if (kind === "videocall") {
+    const inherited = (prev && prev.kind === kind)
+      ? prev
+      : findPreviousVideoCallInsert(selectedIdx);
     return {
       kind: "videocall",
-      room: (prev && prev.kind === kind) ? (prev.room || "") : "定例会議",
-      layout: (prev && prev.kind === kind) ? (prev.layout || "focus") : "focus",
-      activeSpeaker: (prev && prev.kind === kind) ? (prev.activeSpeaker || "") : "",
-      participants: (prev && prev.kind === kind && prev.participants && prev.participants.length)
-        ? (prev.participants || [])
+      room: inherited ? (inherited.room || "") : "定例会議",
+      layout: inherited ? (inherited.layout || "focus") : "focus",
+      activeSpeaker: inherited ? (inherited.activeSpeaker || "") : "",
+      participants: (inherited && inherited.participants && inherited.participants.length)
+        ? (inherited.participants || [])
         : [{ speaker: "zundamon", bgStyle: "office" }, { speaker: "metan", bgStyle: "meeting_room" }],
     };
   }

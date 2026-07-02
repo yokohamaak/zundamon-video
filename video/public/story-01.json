@@ -114,22 +114,7 @@
           "start": 21.861,
           "end": 26.618
         }
-      ],
-      "insert": {
-        "kind": "videocall",
-        "room": "定例会議",
-        "layout": "focus",
-        "participants": [
-          {
-            "speaker": "zundamon",
-            "bgStyle": "office"
-          },
-          {
-            "speaker": "metan",
-            "bgStyle": "meeting_room"
-          }
-        ]
-      }
+      ]
     },
     {
       "speaker": "zundamon",
