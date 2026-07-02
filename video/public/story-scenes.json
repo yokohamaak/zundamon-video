@@ -3,12 +3,12 @@
   "scenes": {
     "office": {
       "label": "オフィス",
-      "bg": "background/office.png",
-      "front": "background/office_front.png",
+      "bg": "background/office_bg.png",
+      "front": "background/office_fg.png",
       "shot": "duo",
-      "camera": "slow-zoom",
+      "camera": "static",
       "figure": "full",
-      "scale": 1.05,
+      "scale": 1.2,
       "bgBlur": 0,
       "cast": {
         "metan": "left",
@@ -20,12 +20,12 @@
           "y": 0.748
         },
         "left": {
-          "x": 0.406,
-          "y": 0.572
+          "x": 0.415,
+          "y": 0.53
         },
         "right": {
           "x": 0.717,
-          "y": 0.681
+          "y": 0.586
         }
       },
       "mobAnchor": {
@@ -47,7 +47,9 @@
         }
       },
       "bgm": "bgm/bgm1.mp3",
-      "bgmVolume": 0.1
+      "bgmVolume": 0.1,
+      "soloZoomCy": 0.45,
+      "soloZoomScale": 1.2
     },
     "home": {
       "label": "自宅",
@@ -230,7 +232,7 @@
       "figure": "full",
       "shot": "duo",
       "camera": "static",
-      "scale": 1.1,
+      "scale": 1.25,
       "bgBlur": 10,
       "cast": {
         "metan": "left",
@@ -256,12 +258,12 @@
           "y": 0.68
         },
         "left": {
-          "x": 0.32,
-          "y": 0.68
+          "x": 0.279,
+          "y": 0.588
         },
         "right": {
-          "x": 0.68,
-          "y": 0.68
+          "x": 0.74,
+          "y": 0.665
         }
       }
     }

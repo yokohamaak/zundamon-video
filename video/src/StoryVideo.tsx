@@ -89,6 +89,7 @@ export type StoryTurn = {
     | "sneak"
     | "wobble";
   enter?: string[];
+  enterMode?: "instant";
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
   face?: Record<string, "left" | "right">;
@@ -103,14 +104,17 @@ export type StoryTurn = {
   flashback?: boolean;
   // テロップ（境界付近で短時間表示する時代テキスト。例「― 前日 ―」）。
   telop?: string;
+  telopSize?: number;
+  telopX?: number;
+  telopY?: number;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
   pause?: number;
   // PC画面インサート演出（このターン中に全画面PC画面UIを重ねる）。
   insert?: StoryInsert;
   // 退場するキャラ。このターンの終わり（end）にスライドアウトして以後は非表示。
   exit?: string[];
-  // 退場方向（"left"/"right"）。省略時は自分の居る側（近い画面端）へ。
-  exitDir?: "left" | "right";
+  // 退場方向（"left"/"right"）または即時退場（"instant"）。省略時は自分の居る側（近い画面端）へ。
+  exitDir?: "left" | "right" | "instant";
   // 手動ワンショット SE（ターン単位・at=ターン開始からの秒オフセット）。
   se?: TurnSe[];
   start: number;
@@ -184,6 +188,9 @@ export type SceneDef = {
   front?: string | null;
   shot?: "solo" | "duo" | "split";
   camera?: "static" | "slow-zoom";
+  soloZoom?: boolean;
+  soloZoomScale?: number;
+  soloZoomCy?: number;
   scale?: number; // 立ち絵の拡大率（既定 1.9）
   anchors: Record<string, Anchor>;
   // どのキャラをどのアンカーに置くか（charId→アンカー名）。
@@ -456,6 +463,17 @@ function entranceTimes(seg: Segment): Record<string, number> {
   return e;
 }
 
+function instantEnterChars(seg: Segment): Record<string, true> {
+  const out: Record<string, true> = {};
+  for (const turn of seg.turns) {
+    if (turn.enterMode !== "instant") continue;
+    for (const c of turn.enter ?? []) {
+      if (isKnownChar(c)) out[c] = true;
+    }
+  }
+  return out;
+}
+
 // 各キャラの退場時刻（秒）。turn.exit で指定されたキャラは、そのターンの end で退場する。
 function exitTimes(seg: Segment): Record<string, number> {
   const e: Record<string, number> = {};
@@ -468,8 +486,8 @@ function exitTimes(seg: Segment): Record<string, number> {
 }
 
 // 各キャラの退場方向（turn.exitDir）。省略時は undefined（＝自分の居る側へ）。
-function exitDirs(seg: Segment): Record<string, "left" | "right"> {
-  const d: Record<string, "left" | "right"> = {};
+function exitDirs(seg: Segment): Record<string, "left" | "right" | "instant"> {
+  const d: Record<string, "left" | "right" | "instant"> = {};
   for (const turn of seg.turns) {
     if (!turn.exitDir) continue;
     for (const c of turn.exit ?? []) {
@@ -1228,12 +1246,32 @@ function bubbleTextAt(turn: StoryTurn, t: number): string {
     return turn.text;
   }
   if (turn.sentences && turn.sentences.length) {
-    const s =
-      turn.sentences.find((x) => x.start <= t && t < x.end) ??
-      turn.sentences[turn.sentences.length - 1];
-    return s.text;
+    const groups = bubbleSentenceGroups(turn);
+    const sentenceIdx = turn.sentences.findIndex((x) => x.start <= t && t < x.end);
+    if (sentenceIdx >= 0) {
+      return groups.find((group) => group.startIdx <= sentenceIdx && sentenceIdx <= group.endIdx)?.text
+        ?? turn.sentences[sentenceIdx].text;
+    }
+    return groups[groups.length - 1]?.text ?? turn.sentences[turn.sentences.length - 1].text;
   }
   return turn.text;
+}
+
+function bubbleSentenceGroups(turn: StoryTurn): Array<{ text: string; startIdx: number; endIdx: number }> {
+  if (!turn.sentences?.length) return [{ text: turn.text, startIdx: 0, endIdx: 0 }];
+  const groups: Array<{ text: string; startIdx: number; endIdx: number }> = [];
+  const shouldMergeWithNext = (text: string) => /[、，,]$/.test(String(text || "").trim());
+  for (let i = 0; i < turn.sentences.length; i++) {
+    const cur = turn.sentences[i];
+    const prev = groups[groups.length - 1];
+    if (prev && shouldMergeWithNext(prev.text)) {
+      prev.text += cur.text;
+      prev.endIdx = i;
+      continue;
+    }
+    groups.push({ text: cur.text, startIdx: i, endIdx: i });
+  }
+  return groups;
 }
 
 function bubbleSentenceTexts(turn: StoryTurn): string[] {
@@ -1245,17 +1283,21 @@ function bubbleSentenceTexts(turn: StoryTurn): string[] {
     turn.text &&
     sentenceText === turn.text.replace(/\s+/g, "")
   ) {
-    return turn.sentences.map((x) => x.text);
+    return bubbleSentenceGroups(turn).map((group) => group.text);
   }
   return [turn.text];
 }
 
 function bubbleSentenceVisibleCount(turn: StoryTurn, t: number): number {
-  const texts = bubbleSentenceTexts(turn);
-  if (texts.length <= 1 || !turn.sentences?.length) return 1;
+  if (!turn.sentences?.length) return 1;
+  const groups = bubbleSentenceGroups(turn);
+  if (groups.length <= 1) return 1;
   const idx = turn.sentences.findIndex((x) => x.start <= t && t < x.end);
-  if (idx >= 0) return idx + 1;
-  return turn.sentences.length;
+  if (idx >= 0) {
+    const groupIdx = groups.findIndex((group) => group.startIdx <= idx && idx <= group.endIdx);
+    return groupIdx >= 0 ? groupIdx + 1 : 1;
+  }
+  return groups.length;
 }
 
 function isNarrationTurn(turn: StoryTurn | null | undefined): boolean {
@@ -1338,11 +1380,7 @@ function bubbleBottomOffset(turn: StoryTurn, hasNextContinue: boolean): number {
 }
 
 function bubbleFontSize(text: string, stacked: boolean): number {
-  const n = String(text || "").replace(/\s+/g, "").length;
-  const base = 54;
-  const softLimit = stacked ? 20 : 24;
-  if (n <= softLimit) return base;
-  return Math.max(34, base - (n - softLimit) * 2);
+  return stacked ? 52 : 54;
 }
 
 function bubbleSide(x: number, width: number): "left" | "right" {
@@ -1354,7 +1392,7 @@ function bubbleMetrics(text: string, stacked: boolean, maxWidth: number) {
   const fontSize = bubbleFontSize(text, stacked);
   const chars = String(text || "").replace(/\s+/g, "").length;
   const estTextWidth = chars * fontSize * 0.98;
-  const width = clamp(estTextWidth + 66, 120, maxWidth);
+  const width = Math.max(120, estTextWidth + 66);
   return { fontSize, width };
 }
 
@@ -1369,9 +1407,14 @@ function targetCam(
   const ax = (c: string) =>
     (sceneDef.anchors[anchorOf[c] ?? "center"] ?? { x: 0.5 }).x;
   if (chars.length <= 1) {
+    if (sceneDef.soloZoom === false) {
+      return { s: 1.0, cx: chars[0] ? ax(chars[0]) : 0.5, cy: 0.5 };
+    }
+    const soloZoomScale = sceneDef.soloZoomScale ?? 1.4;
+    const soloZoomCy = sceneDef.soloZoomCy ?? 0.58;
     // 単独：その人に寄る（背景もアップ）。cy を下げ気味にして胴まで見せ、
     // 顔を画面上側に置く＝足元の吹き出しスペースを確保する。
-    return { s: 1.4, cx: chars[0] ? ax(chars[0]) : 0.5, cy: 0.58 };
+    return { s: soloZoomScale, cx: chars[0] ? ax(chars[0]) : 0.5, cy: soloZoomCy };
   }
   // 複数：全員が収まる引き。
   const xs = chars.map(ax);
@@ -1603,6 +1646,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const seg =
     segments.find((s) => s.turns.some((x) => x.id === active.id)) ??
     segments[0];
+  const segIndex = segments.findIndex((s) => s === seg);
+  const prevSeg = segIndex > 0 ? segments[segIndex - 1] : null;
+  const nextSeg = segments[segIndex + 1];
   const sceneDef = scenes.scenes[active.scene];
 
   // ── シーン未設定/未登録のフォールバック ──
@@ -1631,19 +1677,41 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const avScale = sceneDef.scale ?? 1.9;
   const bgBlur = Math.max(0, sceneDef.bgBlur ?? 0);
   const bgScale = bgBlur > 0 ? 1 + Math.min(bgBlur, 32) / 180 : 1;
+  const flashbackBoundaryStarts = new Set<number>();
+  for (let i = 1; i < script.length; i++) {
+    if (!!script[i - 1].flashback !== !!script[i].flashback) {
+      flashbackBoundaryStarts.add(script[i].start);
+    }
+  }
+  const isFlashbackBoundaryStart = (at: number | undefined) =>
+    at !== undefined && flashbackBoundaryStarts.has(at);
 
   // ── 立ち位置は区間中ずっと固定（後から登場する人ぶんも最初から確保） ──
   const roster = segmentRoster(seg);
   // 登場順の自動割当を土台に、シーンの cast（charId→アンカー名）で上書き。
   const anchorOf = { ...assignAnchors(roster), ...(sceneDef.cast ?? {}) };
   const entrance = entranceTimes(seg);
+  const instantEnter = instantEnterChars(seg);
   const exit = exitTimes(seg);
   const exitDir = exitDirs(seg);
+  const effectiveExitAt = (charId: string) => {
+    const leaving = exit[charId];
+    if (leaving === undefined) return undefined;
+    if (exitDir[charId] === "instant" && nextSeg) {
+      return Math.max(leaving, nextSeg.start);
+    }
+    return leaving;
+  };
   // 表示中＝登場済み かつ（退場していない or 退場スライド中）。
   const presentNow = roster.filter(
     (c) =>
       entrance[c] <= t + 1e-6 &&
-      (exit[c] === undefined || t < exit[c] + SLIDE_DUR)
+      (
+        effectiveExitAt(c) === undefined ||
+        ((exitDir[c] === "instant" || isFlashbackBoundaryStart(effectiveExitAt(c)))
+          ? t <= effectiveExitAt(c)! + 1e-6
+          : t < effectiveExitAt(c)! + SLIDE_DUR)
+      )
   );
 
   // ── 仮想カメラ：登場/退場のたびに「寄り↔引き」を滑らかに遷移（カットしない） ──
@@ -1652,7 +1720,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const times = [
     ...new Set([
       ...roster.map((c) => entrance[c]),
-      ...Object.values(exit),
+      ...roster.map((c) => effectiveExitAt(c)).filter((v): v is number => typeof v === "number"),
     ]),
   ].sort((a, b) => a - b);
   let idx = 0;
@@ -1660,7 +1728,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // tb 時点で「画面にいる」キャラ＝登場済み かつ 退場時刻前。
   const presentAt = (tb: number) =>
     roster.filter(
-      (c) => entrance[c] <= tb + 1e-6 && (exit[c] === undefined || tb + 1e-6 < exit[c])
+      (c) => entrance[c] <= tb + 1e-6 && (effectiveExitAt(c) === undefined || tb <= effectiveExitAt(c)! + 1e-6)
     );
   const Tcur = targetCam(presentAt(times[idx]), anchorOf, sceneDef);
   const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOf, sceneDef) : Tcur;
@@ -1792,9 +1860,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   // ── 場面切り替え演出 ──────────────────────────────────────
   const FADE = 0.3; // 片側の秒数（総遷移 = 2×FADE）
-  const segIndex = segments.findIndex((s) => s === seg);
-  const prevSeg = segIndex > 0 ? segments[segIndex - 1] : null;
-  const nextSeg = segments[segIndex + 1];
   const entryProgress =
     seg.start > 1e-6 ? clamp((t - seg.start) / FADE, 0, 1) : 1;
   const exitProgress = nextSeg
@@ -1953,16 +2018,18 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     // 途中で登場するキャラ（区間の頭からいる人ではない）は、自分の側からスライドイン。
     const entered = entrance[charId] ?? seg.start;
     const isInitial = entered <= seg.start + 1e-6;
+    const entersInstantly = !!instantEnter[charId] || isFlashbackBoundaryStart(entered);
     let slideOffsetPx = 0;
-    if (!isInitial) {
+    if (!isInitial && !entersInstantly) {
       const sp = clamp((t - entered) / SLIDE_DUR, 0, 1); // 0.5秒で着地
       const e = easeOutCubic(sp);
       const fromXNorm = anchor.x < 0.5 ? -0.35 : 1.35; // 画面外（自分側）から
       slideOffsetPx = (1 - e) * (fromXNorm - anchor.x) * width;
     }
     // 退場：exit 時刻になったら自分の側へスライドアウト（0.5秒で画面外へ）。
-    const leaving = exit[charId];
-    if (leaving !== undefined && t >= leaving) {
+    const leaving = effectiveExitAt(charId);
+    const exitsInstantly = exitDir[charId] === "instant" || isFlashbackBoundaryStart(leaving);
+    if (leaving !== undefined && t >= leaving && !exitsInstantly) {
       const sp = clamp((t - leaving) / SLIDE_DUR, 0, 1);
       const e = easeInOutCubic(sp);
       // 退場方向：明示指定があればそちら、無ければ自分の居る側（近い端）へ。
@@ -2062,6 +2129,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     align: "left" | "right",
     widthPx: number
   ): React.CSSProperties => ({
+    display: "inline-block",
     width: widthPx,
     boxSizing: "border-box",
     background: "#ffffff",
@@ -2070,7 +2138,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     borderRadius: 18,
     border: `5px solid ${color}`,
     fontSize: bubbleMetrics(text, stacked, bubbleMaxWidth).fontSize,
-    lineHeight: 1.1,
+    lineHeight: 1.3,
     fontWeight: 700,
     fontFamily: "sans-serif",
     boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
@@ -2093,9 +2161,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const currentTop = height * lerp(0.95, 0.87, zoomBubbleK);
     return { side, groupCenterX, top: lerp(baseTop, currentTop, followK) };
   };
-  const renderBubble = (turn: StoryTurn, key: string, bottomOffset = 0) => {
+  const renderBubble = (turn: StoryTurn, key: string, bottomOffset = 0, stacked = false) => {
     const text = bubbleTextAt(turn, t);
-    const metrics = bubbleMetrics(text, bottomOffset > 0 || !!turn.continueBubble, bubbleMaxWidth);
+    const metrics = bubbleMetrics(text, stacked, bubbleMaxWidth);
     const { side, groupCenterX, top } = bubbleGroupPlacement(turn.speaker, metrics.width);
     const sx = side === "right"
       ? groupCenterX + metrics.width / 2
@@ -2109,7 +2177,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           left: sx,
           top: top - bottomOffset,
           transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)",
-          ...bubbleBoxStyle(color, text, bottomOffset > 0 || !!turn.continueBubble, side, metrics.width),
+          ...bubbleBoxStyle(color, text, stacked, side, metrics.width),
         }}
       >
         {text}
@@ -2126,6 +2194,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const groupWidth = metrics.reduce((max, item) => Math.max(max, item.width), 120);
     const { side, groupCenterX, top } = bubbleGroupPlacement(speaker, groupWidth);
     const color = CHARACTERS[speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
+    const bubbleStepX = side === "right" ? 18 : -18;
     return (
       <div
         key={key}
@@ -2147,6 +2216,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             key={`${key}-${idx}`}
             style={{
               ...bubbleBoxStyle(color, text, true, side, metrics[idx].width),
+              transform: `translateX(${idx * bubbleStepX}px)`,
               visibility: idx < visibleCount ? "visible" : "hidden",
             }}
           >
@@ -2274,18 +2344,21 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // 「現在」へ戻る境界など回想以外の telop は、従来どおり短時間だけ出す。
   let telopText: string | null = null;
   let telopOpacity = 0;
+  let telopTurn: StoryTurn | null = null;
   if (isFlashback) {
     const entered = [...fbBoundaries]
       .filter((b) => b.entering && b.at <= t + 1e-6)
       .pop();
     if (entered?.telop) {
       telopText = entered.telop;
+      telopTurn = script.find((turn) => turn.start === entered.at) ?? null;
       telopOpacity = clamp((t - entered.at) / FB_TELOP_FADE, 0, 1);
     }
   } else if (nearestBoundary?.telop && !nearestBoundary.entering) {
     const dt = t - nearestBoundary.at;
     if (dt >= -FB_TELOP_FADE && dt < FB_TELOP_SEC) {
       telopText = nearestBoundary.telop;
+      telopTurn = script.find((turn) => turn.start === nearestBoundary.at) ?? null;
       if (dt < FB_TELOP_FADE) {
         telopOpacity = clamp((dt + FB_TELOP_FADE) / FB_TELOP_FADE, 0, 1);
       } else if (dt >= FB_TELOP_SEC - FB_TELOP_FADE) {
@@ -2295,6 +2368,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       }
     }
   }
+  const telopX = typeof telopTurn?.telopX === "number" ? telopTurn.telopX : 0.045;
+  const telopY = typeof telopTurn?.telopY === "number" ? telopTurn.telopY : 0.06;
+  const telopSize = typeof telopTurn?.telopSize === "number" ? telopTurn.telopSize : 1;
 
   // 回想中はステージに彩度ダウン＋輝度微加の CSS filter を掛ける。
   const stageFilter = isFlashback
@@ -2455,32 +2531,33 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             `bubble-auto-group-${active.id}`
           )
         : (!isNarrationTurn(active) && !lineShownInInsert(active)
-          ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false))
+          ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false), !!active.continueBubble)
           : null)}
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}
       {telopText && telopOpacity > 0 ? (
         <AbsoluteFill
           style={{
-            alignItems: "flex-start",
-            justifyContent: "flex-start",
-            padding: `${Math.round(height * 0.06)}px ${Math.round(width * 0.045)}px`,
             pointerEvents: "none",
           }}
         >
           <div
             style={{
+              position: "absolute",
+              left: Math.round(width * telopX),
+              top: Math.round(height * telopY),
               background: "rgba(8, 8, 8, 0.6)",
               color: "#f4f0e8",
-              fontSize: 84,
+              fontSize: 84 * telopSize,
               fontWeight: 700,
               fontFamily: "sans-serif",
               letterSpacing: "0.12em",
-              padding: "18px 56px",
+              padding: `${Math.round(18 * telopSize)}px ${Math.round(56 * telopSize)}px`,
               borderRadius: 8,
               borderLeft: "10px solid #f4f0e8",
               boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
               opacity: telopOpacity,
+              transform: "translate(0, 0)",
             }}
           >
             {telopText}

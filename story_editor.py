@@ -298,7 +298,8 @@ def _load_story_world():
     return "\n".join(out).strip()
 
 
-def _build_script_prompt(theme, length, notes, mode="safe"):
+def _build_script_prompt(theme, length, notes, mode="safe",
+                         custom_world="", custom_example="", extra_rules=""):
     """AI(ChatGPT/Claude)に投げる台本生成プロンプトを組み立てて返す。
 
     現在ツールが対応しているシーン/キャラ/表情/演出/インサートと、
@@ -306,10 +307,11 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
     mode="experimental" のときは、新しい演出/新シーンの考案を促す版を返す。
     """
     experimental = (mode == "experimental")
-    world = _load_story_world()
+    world = (custom_world or "").strip() or _load_story_world()
     theme = (theme or "").strip() or "（ここに物語の題材・あらすじを入れてください）"
     length = (length or "").strip() or "5〜10分・全体で30〜60ターンほど（起承転結のある一話）"
     notes = (notes or "").strip() or "特になし"
+    extra_rules = (extra_rules or "").strip()
 
     scenes = _load_scenes_detail()
     if scenes:
@@ -325,7 +327,7 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
 
     expr_list = ", ".join(_load_expression_keys())
 
-    example = (
+    example = (custom_example or "").strip() or (
         '{\n'
         '  "title": "ZunAIが大丈夫って言ったのだ",\n'
         '  "script": [\n'
@@ -413,6 +415,13 @@ def _build_script_prompt(theme, length, notes, mode="safe"):
         "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat。",
     ]
 
+    if extra_rules:
+        parts += [
+            "",
+            "━━━ 追加ルール（ユーザー指定・優先）━━━",
+            extra_rules,
+        ]
+
     if experimental:
         parts += [
             "",
@@ -456,7 +465,7 @@ _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "face",
     "emphasis", "shake", "cameraEffect", "flashback", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble",
-    "disableAutoBubbleSplit", "start", "end", "sentences",
+    "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer"}
 
@@ -925,6 +934,9 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 prompt = _build_script_prompt(
                     params.get("theme"), params.get("length"), params.get("notes"),
                     params.get("mode", "safe"),
+                    params.get("customWorld", ""),
+                    params.get("customExample", ""),
+                    params.get("extraRules", ""),
                 )
                 self._send_json({"prompt": prompt})
             except Exception as e:

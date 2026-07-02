@@ -1060,6 +1060,15 @@
             <input type="text" class="field-input" id="fTelop" placeholder="例: ― 前日 ―">
           </div>
           <div class="field-row">
+            <label class="field-label">テロップ位置・サイズ</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <input type="number" class="field-input" id="fTelopX" min="0" max="1" step="0.01" placeholder="X 0..1" style="width:96px;">
+              <input type="number" class="field-input" id="fTelopY" min="0" max="1" step="0.01" placeholder="Y 0..1" style="width:96px;">
+              <input type="number" class="field-input" id="fTelopSize" min="0.5" max="3" step="0.1" placeholder="倍率" style="width:96px;">
+            </div>
+            <div class="field-help">未入力なら既定位置。X/Y は画面比率、サイズは 1.0 が標準です。</div>
+          </div>
+          <div class="field-row">
             <label class="field-label">ポーズ秒 (pause)</label>
             <input type="number" class="field-input" id="fPause" min="0" step="0.1" placeholder="0.0">
           </div>
@@ -1105,6 +1114,13 @@
           <div class="field-row">
             <label class="field-label">enter（このセリフで登場）</label>
             <div class="multi-select-wrap" id="fEnter"></div>
+            <div class="exit-dir-row">
+              登場方法:
+              <select class="field-select" id="fEnterMode" style="width:auto;padding:2px 6px;font-size:12px">
+                <option value="">(通常)</option>
+                <option value="instant">即時登場</option>
+              </select>
+            </div>
           </div>
           <div class="field-row">
             <label class="field-label">exit（このセリフ後に退場）</label>
@@ -1115,6 +1131,7 @@
                 <option value="">(自動)</option>
                 <option value="left">left</option>
                 <option value="right">right</option>
+                <option value="instant">即時退場</option>
               </select>
             </div>
           </div>
@@ -1225,6 +1242,20 @@
         <label class="field-label" for="genNotes">トーン・補足（任意）</label>
         <textarea class="field-textarea" id="genNotes" rows="2" placeholder="例: ずんだもん＋めたんの掛け合い、子供向けに分かりやすく"></textarea>
       </div>
+      <div class="field-row">
+        <label class="field-label" for="genCustomWorld">シリーズ設定・世界観（任意）</label>
+        <textarea class="field-textarea" id="genCustomWorld" rows="6" placeholder="空なら既定の story-world.md を使います。ここに入れると、この内容を優先します。"></textarea>
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="genCustomExample">出力例JSON（任意）</label>
+        <textarea class="field-textarea" id="genCustomExample" rows="8"
+          style="font-family:monospace; font-size:12px;"
+          placeholder='空なら既定の例を使います。例: { "title": "...", "script": [ ... ] }'></textarea>
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="genExtraRules">追加ルール（任意）</label>
+        <textarea class="field-textarea" id="genExtraRules" rows="4" placeholder="例: めたんは出さない / 3人会話にする / 教訓なし / コメディ寄り / 子供向け禁止 など"></textarea>
+      </div>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer;">
           <input type="checkbox" id="genExperimental" style="accent-color:var(--accent); width:14px; height:14px; margin-top:2px; flex-shrink:0; cursor:pointer;">
@@ -1246,6 +1277,9 @@
       </div>
       <div style="font-size:12px; color:var(--text2); line-height:1.6;">
         このプロンプトをChatGPTやClaudeに貼り付けてください。返ってきたJSONを下の欄に貼り付けて取り込みます。
+      </div>
+      <div style="font-size:12px; color:var(--text2); line-height:1.6;">
+        上の任意項目はこのブラウザの LocalStorage に保存されます。次回起動時も残ります。
       </div>
     </div>
 
@@ -1284,6 +1318,7 @@ let updateTimer = null;  // updateStory debounce タイマー
 let _timelineRaf = null; // 再生中タイムライン描画の間引き用
 let _lastTimelineDrawAt = 0;
 const _TIMELINE_DRAW_INTERVAL_MS = 80; // スマホ負荷対策: 12fps程度で十分
+const GEN_SETTINGS_KEY = "storyEditorGenSettingsV1";
 
 // 話者→背景色（アイコン未設定時の色丸）
 const SPEAKER_COLORS = {
@@ -1402,6 +1437,7 @@ async function init() {
     buildExpressionSelect();
     buildPoseSelect();
     buildMultiSpeakers();
+    loadGenSettings();
     renderList();
     setupEvents();
     setupTabs();
@@ -3253,6 +3289,23 @@ function updateSelectedTurnRow(prevIdx, nextIdx, scrollIntoView = false) {
   return true;
 }
 
+function keepSelectedTurnRowVisible(idx) {
+  const container = document.getElementById("scriptList");
+  if (!container) return false;
+  const row = idx >= 0 ? container.querySelector(`.turn-row[data-idx="${idx}"]`) : null;
+  if (!row) return false;
+  const rowTop = row.offsetTop;
+  const rowBottom = rowTop + row.offsetHeight;
+  const viewTop = container.scrollTop;
+  const viewBottom = viewTop + container.clientHeight;
+  if (rowTop < viewTop) {
+    container.scrollTop = rowTop;
+  } else if (rowBottom > viewBottom) {
+    container.scrollTop = Math.max(0, rowBottom - container.clientHeight);
+  }
+  return true;
+}
+
 function followPlaybackTurn(idx) {
   const prevIdx = selectedIdx;
   selectedIdx = idx;
@@ -3263,6 +3316,7 @@ function followPlaybackTurn(idx) {
     renderList();
     return;
   }
+  keepSelectedTurnRowVisible(idx);
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 
@@ -3479,6 +3533,9 @@ function renderDetail() {
   document.getElementById("fFlashback").checked = !!turn.flashback;
   setField("fCameraEffect", "select", turn.cameraEffect || "");
   document.getElementById("fTelop").value = turn.telop || "";
+  document.getElementById("fTelopX").value = turn.telopX != null ? turn.telopX : "";
+  document.getElementById("fTelopY").value = turn.telopY != null ? turn.telopY : "";
+  document.getElementById("fTelopSize").value = turn.telopSize != null ? turn.telopSize : "";
   document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
   setField("fVoicePreset", "select", voicePresetKey(turn));
   document.getElementById("fNoLipSync").checked = !!turn.noLipSync;
@@ -3603,6 +3660,7 @@ function renderDetail() {
   // enter / exit（チェックボックス群）
   setMultiSelect("fEnter", turn.enter || []);
   setMultiSelect("fExit", turn.exit || []);
+  setField("fEnterMode", "select", turn.enterMode || "");
   setField("fExitDir", "select", turn.exitDir || "");
 
   // ── 手動SE ──
@@ -3943,6 +4001,18 @@ function collectBasic() {
   const telop = document.getElementById("fTelop").value;
   if (telop) turn.telop = telop; else delete turn.telop;
 
+  const telopXVal = document.getElementById("fTelopX").value;
+  if (telopXVal !== "") turn.telopX = parseFloat(telopXVal);
+  else delete turn.telopX;
+
+  const telopYVal = document.getElementById("fTelopY").value;
+  if (telopYVal !== "") turn.telopY = parseFloat(telopYVal);
+  else delete turn.telopY;
+
+  const telopSizeVal = document.getElementById("fTelopSize").value;
+  if (telopSizeVal !== "") turn.telopSize = parseFloat(telopSizeVal);
+  else delete turn.telopSize;
+
   const pauseVal = document.getElementById("fPause").value;
   if (pauseVal !== "") turn.pause = parseFloat(pauseVal);
   else delete turn.pause;
@@ -3971,6 +4041,9 @@ function collectBasic() {
 
   const enter = getMultiSelect("fEnter");
   if (enter.length > 0) turn.enter = enter; else delete turn.enter;
+
+  const enterMode = document.getElementById("fEnterMode").value;
+  if (enterMode) turn.enterMode = enterMode; else delete turn.enterMode;
 
   const exit = getMultiSelect("fExit");
   if (exit.length > 0) turn.exit = exit; else delete turn.exit;
@@ -4295,6 +4368,48 @@ function setStatus(cls, msg) {
   el.textContent = msg;
 }
 
+function loadGenSettings() {
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(GEN_SETTINGS_KEY) || "{}") || {};
+  } catch (_) {}
+  const ids = [
+    "genTheme",
+    "genLength",
+    "genNotes",
+    "genCustomWorld",
+    "genCustomExample",
+    "genExtraRules",
+  ];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el) el.value = typeof saved[id] === "string" ? saved[id] : "";
+  }
+  const experimental = document.getElementById("genExperimental");
+  if (experimental) experimental.checked = !!saved.genExperimental;
+}
+
+function saveGenSettings() {
+  const data = {};
+  const ids = [
+    "genTheme",
+    "genLength",
+    "genNotes",
+    "genCustomWorld",
+    "genCustomExample",
+    "genExtraRules",
+  ];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    data[id] = el ? el.value : "";
+  }
+  const experimental = document.getElementById("genExperimental");
+  data.genExperimental = !!(experimental && experimental.checked);
+  try {
+    localStorage.setItem(GEN_SETTINGS_KEY, JSON.stringify(data));
+  } catch (_) {}
+}
+
 // ============================================================
 // 台本生成タブ: 取り込み結果レポート表示
 // ============================================================
@@ -4616,7 +4731,8 @@ function setupEvents() {
 
   // 基本タブ: 変更をリアルタイム収集
   const basicIds = ["fSpeaker", "fNarration", "fNarrationVoice", "fText", "fScene", "fExpression", "fPose",
-                    "fEmphasis", "fShake", "fFlashback", "fCameraEffect", "fTelop", "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
+                    "fEmphasis", "fShake", "fFlashback", "fCameraEffect", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
+                    "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
   for (const id of basicIds) {
     const el = document.getElementById(id);
     if (!el) continue;
@@ -4679,7 +4795,11 @@ function setupEvents() {
     }
     const length = document.getElementById("genLength").value.trim();
     const notes = document.getElementById("genNotes").value.trim();
+    const customWorld = document.getElementById("genCustomWorld").value.trim();
+    const customExample = document.getElementById("genCustomExample").value.trim();
+    const extraRules = document.getElementById("genExtraRules").value.trim();
     const mode = document.getElementById("genExperimental").checked ? "experimental" : "safe";
+    saveGenSettings();
     const btn = document.getElementById("btnGenPrompt");
     btn.disabled = true;
     btn.textContent = "生成中...";
@@ -4687,7 +4807,7 @@ function setupEvents() {
       const r = await fetch("/api/script-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme, length, notes, mode }),
+        body: JSON.stringify({ theme, length, notes, mode, customWorld, customExample, extraRules }),
       });
       const result = await r.json();
       if (r.ok && result.prompt) {
@@ -4786,6 +4906,21 @@ function setupEvents() {
       if (statusEl.textContent === "送信中...") statusEl.textContent = "";
     }
   });
+
+  const genPersistIds = [
+    "genTheme",
+    "genLength",
+    "genNotes",
+    "genCustomWorld",
+    "genCustomExample",
+    "genExtraRules",
+  ];
+  for (const id of genPersistIds) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", saveGenSettings);
+  }
+  const genExperimentalEl = document.getElementById("genExperimental");
+  if (genExperimentalEl) genExperimentalEl.addEventListener("change", saveGenSettings);
 }
 
 function capitalize(s) {

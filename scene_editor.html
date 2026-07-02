@@ -372,6 +372,27 @@
           <option value="slow-zoom">slow-zoom（ゆっくりズーム）</option>
         </select>
       </div>
+      <div class="field-row">
+        <label class="field-label">1人時ズーム</label>
+        <select class="field-select" id="fSoloZoom">
+          <option value="1">ON（1人のとき寄る）</option>
+          <option value="0">OFF（引きのまま）</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">1人時ズーム倍率</label>
+        <div class="slider-row">
+          <input type="range" id="soloZoomScaleSlider" min="1.0" max="1.8" step="0.05" value="1.4">
+          <span class="slider-val" id="soloZoomScaleVal">1.40</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">1人時の縦位置</label>
+        <div class="slider-row">
+          <input type="range" id="soloZoomCySlider" min="0.45" max="0.7" step="0.01" value="0.58">
+          <span class="slider-val" id="soloZoomCyVal">0.58</span>
+        </div>
+      </div>
     </div>
 
     <div class="side-section">
@@ -539,6 +560,13 @@ function selectScene(id) {
   document.getElementById('fLabel').value = sc.label || '';
   document.getElementById('fShot').value = sc.shot || 'duo';
   document.getElementById('fCamera').value = sc.camera || 'static';
+  document.getElementById('fSoloZoom').value = sc.soloZoom === false ? '0' : '1';
+  const soloZoomScale = sc.soloZoomScale != null ? sc.soloZoomScale : 1.4;
+  document.getElementById('soloZoomScaleSlider').value = soloZoomScale;
+  document.getElementById('soloZoomScaleVal').textContent = soloZoomScale.toFixed(2);
+  const soloZoomCy = sc.soloZoomCy != null ? sc.soloZoomCy : 0.58;
+  document.getElementById('soloZoomCySlider').value = soloZoomCy;
+  document.getElementById('soloZoomCyVal').textContent = soloZoomCy.toFixed(2);
   const scale = sc.scale != null ? sc.scale : 1.9;
   document.getElementById('scaleSlider').value = scale;
   document.getElementById('scaleVal').textContent = scale.toFixed(2);
@@ -1075,6 +1103,26 @@ function setupEvents() {
     if (sc) sc.camera = e.target.value;
   });
 
+  document.getElementById('fSoloZoom').addEventListener('change', e => {
+    const sc = currentScene();
+    if (!sc) return;
+    sc.soloZoom = e.target.value !== '0';
+  });
+
+  document.getElementById('soloZoomScaleSlider').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    document.getElementById('soloZoomScaleVal').textContent = v.toFixed(2);
+    const sc = currentScene();
+    if (sc) sc.soloZoomScale = v;
+  });
+
+  document.getElementById('soloZoomCySlider').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    document.getElementById('soloZoomCyVal').textContent = v.toFixed(2);
+    const sc = currentScene();
+    if (sc) sc.soloZoomCy = v;
+  });
+
   document.getElementById('btnSave').addEventListener('click', saveScenes);
 
   document.getElementById('btnAddScene').addEventListener('click', addScene);
@@ -1168,6 +1216,9 @@ function addScene() {
     figure: 'full',
     shot: 'duo',
     camera: 'static',
+    soloZoom: true,
+    soloZoomScale: 1.4,
+    soloZoomCy: 0.58,
     scale: 1.1,
     bgBlur: 8,
     cast: {},
