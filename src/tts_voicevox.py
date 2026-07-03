@@ -574,7 +574,7 @@ def synthesize_dialogue(script, config):
                 spoken = _spoken_text(chunk)
                 outs = []
                 for sid, vparams, fx in voices:
-                    cache_key = _voice_cache_key(sid, chunk, vparams, fx)
+                    cache_key = _voice_cache_key(sid, spoken, vparams, fx)
                     cached_wav = _load_cached_wav(cache_dir, cache_key)
                     if cached_wav is not None:
                         try:

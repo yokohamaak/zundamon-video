@@ -999,12 +999,10 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     return False
 
             try:
-                env = dict(os.environ)
-                env["STORY_AUDIO_FORCE_REBUILD"] = "1"
                 proc = subprocess.Popen(
                     [sys.executable, "-u", "make_story_audio.py", "story-01"],
                     cwd=ROOT_DIR, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, text=True, bufsize=1, env=env,
+                    stderr=subprocess.STDOUT, text=True, bufsize=1,
                 )
                 for line in proc.stdout:
                     if not emit(line):
