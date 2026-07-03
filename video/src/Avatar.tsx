@@ -139,6 +139,10 @@ export const Avatar: React.FC<{
   poseName?: ExpressionCfg["pose"];
   // ポーズ定義から解決した腕stem。expressionCfg.arm より優先。
   poseArmStem?: string | null;
+  // ポーズごとの速度倍率。1.0基準。
+  poseSpeed?: number | null;
+  // ポーズごとの強さ倍率。1.0基準。
+  poseStrength?: number | null;
 }> = ({
   dir,
   manifest,
@@ -156,10 +160,15 @@ export const Avatar: React.FC<{
   expressionCfg,
   poseName,
   poseArmStem,
+  poseSpeed,
+  poseStrength,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const time = frame / fps;
+  const motionSpeed = Math.max(0.2, Math.min(3, poseSpeed ?? 1));
+  const motionStrength = Math.max(0, Math.min(3, poseStrength ?? 1));
+  const motionTime = time * motionSpeed;
 
   const hasParts = !!(dir && manifest && manifest.base);
 
@@ -174,12 +183,12 @@ export const Avatar: React.FC<{
     : 0;
 
   // 待機時の微呼吸（常時、ごく弱く）
-  const breath = Math.sin((time * Math.PI * 2) / 3) * 3;
+  const breath = Math.sin((motionTime * Math.PI * 2) / 3) * 3;
   // 発話中の体の揺れ（ゆっくりめ）
-  const sway = active ? Math.sin(time * Math.PI * 2 * 0.7) * 1.2 : 0;
+  const sway = active ? Math.sin(motionTime * Math.PI * 2 * 0.7) * 1.2 : 0;
   // 聞き手のうなずき（相槌）：時々ゆっくり頷く＝発話者の話を聞いている気配。静止による単調さを和らげる。
   // 約0.4Hz(≈2.5秒周期)で、下向き(+Y)に軽く一拍。max(0,sin)^3 で間隔を空けて自然に。
-  const nodPhase = Math.sin(time * Math.PI * 2 * 0.4 + (hash(dir ?? "x") % 7));
+  const nodPhase = Math.sin(motionTime * Math.PI * 2 * 0.4 + (hash(dir ?? "x") % 7));
   const nod = !active ? Math.max(0, nodPhase) ** 3 * 5 : 0;
 
   let translateY = breath - bounce * 8 + nod;
@@ -190,7 +199,7 @@ export const Avatar: React.FC<{
 
   // オーバーアクション（expressive＋発話者）。surprise: 跳ねて伸縮＋減衰ウォブル。happy: 小さくホップ。
   // ※大きすぎたので控えめに調整。
-  const reactT = frame - emotionAtFrame;
+  const reactT = (frame - emotionAtFrame) * motionSpeed;
   const REACT_DUR = Math.round(fps * 0.8);
   if (active && expressive && reactT >= 0 && reactT < REACT_DUR) {
     const p = reactT / REACT_DUR; // 0..1
@@ -208,68 +217,68 @@ export const Avatar: React.FC<{
 
   // 焦り(panic)：小刻みに震える（発話有無に関わらず持続）。
   if (emotion === "panic") {
-    rotate += Math.sin(time * Math.PI * 2 * 3.5) * 0.9;
+    rotate += Math.sin(motionTime * Math.PI * 2 * 3.5) * 0.9;
   }
 
   const pose = poseName ?? expressionCfg?.pose ?? fallbackPose(emotion);
-  const poseStrength = expressive ? 1 : 0.65;
+  const poseStrengthBase = (expressive ? 1 : 0.65) * motionStrength;
   const facingSign = flip ? -1 : 1;
   if (pose === "cheer") {
-    const hop = Math.max(0, Math.sin(time * Math.PI * 2 * (active ? 1.2 : 0.6))) * 8 * poseStrength;
-    translateY -= hop + (active ? 4 * poseStrength : 0);
-    rotate += Math.sin(time * Math.PI * 2 * 1.3) * 2.2 * poseStrength;
-    scale *= 1 + 0.018 * poseStrength;
+    const hop = Math.max(0, Math.sin(motionTime * Math.PI * 2 * (active ? 1.2 : 0.6))) * 8 * poseStrengthBase;
+    translateY -= hop + (active ? 4 * poseStrengthBase : 0);
+    rotate += Math.sin(motionTime * Math.PI * 2 * 1.3) * 2.2 * poseStrengthBase;
+    scale *= 1 + 0.018 * poseStrengthBase;
   } else if (pose === "recoil") {
     const surge = Math.sin(Math.min(Math.max(reactT, 0) / Math.max(REACT_DUR, 1), 1) * Math.PI);
-    translateY -= surge * 16 * poseStrength;
-    translateX += facingSign * -10 * surge * poseStrength;
-    rotate += facingSign * -4.2 * surge * poseStrength;
-    scale *= 1 + 0.025 * surge * poseStrength;
+    translateY -= surge * 16 * poseStrengthBase;
+    translateX += facingSign * -10 * surge * poseStrengthBase;
+    rotate += facingSign * -4.2 * surge * poseStrengthBase;
+    scale *= 1 + 0.025 * surge * poseStrengthBase;
   } else if (pose === "lean") {
-    translateX += facingSign * 10 * poseStrength;
-    translateY -= 4 * poseStrength;
-    rotate += facingSign * 2.4 * poseStrength;
-    scale *= 1 + 0.012 * poseStrength;
+    translateX += facingSign * 10 * poseStrengthBase;
+    translateY -= 4 * poseStrengthBase;
+    rotate += facingSign * 2.4 * poseStrengthBase;
+    scale *= 1 + 0.012 * poseStrengthBase;
   } else if (pose === "droop") {
-    translateY += 10 * poseStrength;
-    rotate += facingSign * -1.6 * poseStrength;
-    scale *= 1 - 0.02 * poseStrength;
+    translateY += 10 * poseStrengthBase;
+    rotate += facingSign * -1.6 * poseStrengthBase;
+    scale *= 1 - 0.02 * poseStrengthBase;
   } else if (pose === "flustered") {
-    translateX += Math.sin(time * Math.PI * 2 * 4.4) * 2.8 * poseStrength;
-    translateY += Math.cos(time * Math.PI * 2 * 3.8) * 1.6 * poseStrength;
-    rotate += Math.sin(time * Math.PI * 2 * 5.2) * 1.6 * poseStrength;
-    scale *= 1 + 0.01 * poseStrength;
+    translateX += Math.sin(motionTime * Math.PI * 2 * 4.4) * 2.8 * poseStrengthBase;
+    translateY += Math.cos(motionTime * Math.PI * 2 * 3.8) * 1.6 * poseStrengthBase;
+    rotate += Math.sin(motionTime * Math.PI * 2 * 5.2) * 1.6 * poseStrengthBase;
+    scale *= 1 + 0.01 * poseStrengthBase;
   } else if (pose === "proud") {
-    translateY -= 8 * poseStrength;
-    translateX += facingSign * 4 * poseStrength;
-    rotate += facingSign * 3.2 * poseStrength;
-    scale *= 1 + 0.026 * poseStrength;
+    translateY -= 8 * poseStrengthBase;
+    translateX += facingSign * 4 * poseStrengthBase;
+    rotate += facingSign * 3.2 * poseStrengthBase;
+    scale *= 1 + 0.026 * poseStrengthBase;
   } else if (pose === "step_in") {
-    translateX += facingSign * 12 * poseStrength;
-    translateY -= 6 * poseStrength;
-    rotate += facingSign * 1.8 * poseStrength;
-    scale *= 1 + 0.02 * poseStrength;
+    translateX += facingSign * 12 * poseStrengthBase;
+    translateY -= 6 * poseStrengthBase;
+    rotate += facingSign * 1.8 * poseStrengthBase;
+    scale *= 1 + 0.02 * poseStrengthBase;
   } else if (pose === "step_back") {
-    translateX += facingSign * -12 * poseStrength;
-    translateY += 3 * poseStrength;
-    rotate += facingSign * -2.6 * poseStrength;
-    scale *= 1 - 0.03 * poseStrength;
+    translateX += facingSign * -12 * poseStrengthBase;
+    translateY += 3 * poseStrengthBase;
+    rotate += facingSign * -2.6 * poseStrengthBase;
+    scale *= 1 - 0.03 * poseStrengthBase;
   } else if (pose === "listening") {
-    const listenNod = Math.max(0, Math.sin(time * Math.PI * 2 * 0.9)) * 4 * poseStrength;
-    translateX += facingSign * 7 * poseStrength;
+    const listenNod = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.9)) * 4 * poseStrengthBase;
+    translateX += facingSign * 7 * poseStrengthBase;
     translateY -= listenNod;
-    rotate += facingSign * 4.2 * poseStrength;
-    scale *= 1 + 0.008 * poseStrength;
+    rotate += facingSign * 4.2 * poseStrengthBase;
+    scale *= 1 + 0.008 * poseStrengthBase;
   } else if (pose === "sneak") {
-    translateX += facingSign * 9 * poseStrength;
-    translateY += 8 * poseStrength;
-    rotate += facingSign * 5.2 * poseStrength;
-    scale *= 1 - 0.015 * poseStrength;
+    translateX += facingSign * 9 * poseStrengthBase;
+    translateY += 8 * poseStrengthBase;
+    rotate += facingSign * 5.2 * poseStrengthBase;
+    scale *= 1 - 0.015 * poseStrengthBase;
   } else if (pose === "wobble") {
-    translateX += Math.sin(time * Math.PI * 2 * 2.1) * 5.5 * poseStrength;
-    translateY -= Math.abs(Math.cos(time * Math.PI * 2 * 1.4)) * 2.5 * poseStrength;
-    rotate += Math.sin(time * Math.PI * 2 * 2.6) * 4.6 * poseStrength;
-    scale *= 1 + Math.sin(time * Math.PI * 2 * 1.9) * 0.012 * poseStrength;
+    translateX += Math.sin(motionTime * Math.PI * 2 * 2.1) * 5.5 * poseStrengthBase;
+    translateY -= Math.abs(Math.cos(motionTime * Math.PI * 2 * 1.4)) * 2.5 * poseStrengthBase;
+    rotate += Math.sin(motionTime * Math.PI * 2 * 2.6) * 4.6 * poseStrengthBase;
+    scale *= 1 + Math.sin(motionTime * Math.PI * 2 * 1.9) * 0.012 * poseStrengthBase;
   }
 
   // 発話者だけ柔らかい影で手前に浮かせる（区別は透明化ではなくポップ＋影で表現）。

@@ -485,6 +485,23 @@ let selectedMobId = null;    // スケールスライダー対象モブID
 let showFront = true;
 let manifestData = null;     // avatars/manifest.json キャッシュ
 
+function compareUiText(a, b) {
+  return String(a || '').localeCompare(String(b || ''), 'ja', { numeric: true, sensitivity: 'base' });
+}
+
+function sortedStrings(values) {
+  return [...(values || [])].sort(compareUiText);
+}
+
+function sortedSceneIds() {
+  return Object.keys(scenesData.scenes || {}).sort((a, b) => {
+    const sa = scenesData.scenes?.[a];
+    const sb = scenesData.scenes?.[b];
+    const byLabel = compareUiText(sa?.label || a, sb?.label || b);
+    return byLabel || compareUiText(a, b);
+  });
+}
+
 // ============================================================
 // 初期化
 // ============================================================
@@ -495,7 +512,7 @@ async function init() {
   setupEvents();
   resizePreview();
   window.addEventListener('resize', resizePreview);
-  const firstId = Object.keys(scenesData.scenes || {})[0];
+  const firstId = sortedSceneIds()[0];
   if (firstId) selectScene(firstId);
 }
 
@@ -543,7 +560,7 @@ function resizePreview() {
 function populateSceneSelect() {
   const sel = document.getElementById('sceneSelect');
   sel.innerHTML = '';
-  for (const id of Object.keys(scenesData.scenes)) {
+  for (const id of sortedSceneIds()) {
     const sc = scenesData.scenes[id];
     const opt = document.createElement('option');
     opt.value = id;
@@ -610,7 +627,7 @@ function setSelectValue(id, val) {
 // bg/front セレクト構築
 // ============================================================
 function populateBgSelects() {
-  const bgs = assets?.backgrounds ?? [];
+  const bgs = sortedStrings(assets?.backgrounds ?? []);
   const bgSel = document.getElementById('fBg');
   const frontSel = document.getElementById('fFront');
   bgSel.innerHTML = '';
@@ -633,9 +650,9 @@ function buildCastRows() {
   if (!sc) return;
   const container = document.getElementById('castRows');
   container.innerHTML = '';
-  const chars = assets?.characters ?? [];
+  const chars = sortedStrings(assets?.characters ?? []);
   const cast = sc.cast || {};
-  const anchors = Object.keys(sc.anchors || {});
+  const anchors = sortedStrings(Object.keys(sc.anchors || {}));
   for (const ch of chars) {
     const row = document.createElement('div');
     row.className = 'cast-row';
@@ -673,7 +690,8 @@ function buildAnchorList() {
   if (!sc) return;
   const container = document.getElementById('anchorList');
   container.innerHTML = '';
-  for (const [name, coord] of Object.entries(sc.anchors || {})) {
+  for (const name of sortedStrings(Object.keys(sc.anchors || {}))) {
+    const coord = sc.anchors[name];
     const item = document.createElement('div');
     item.className = 'anchor-item';
     const nm = document.createElement('span');

@@ -2150,7 +2150,7 @@ function _updateBgmRegionEditor() {
     const noneOpt = document.createElement("option");
     noneOpt.value = ""; noneOpt.textContent = "なし";
     fileSel.appendChild(noneOpt);
-    const bgmFiles = (audioAssets && audioAssets.bgm) ? audioAssets.bgm : [];
+    const bgmFiles = sortedStrings((audioAssets && audioAssets.bgm) ? audioAssets.bgm : []);
     for (const f of bgmFiles) {
       const opt = document.createElement("option");
       opt.value = f; opt.textContent = f.replace(/^bgm\//, "");
@@ -2240,7 +2240,7 @@ function renderOverlayEditor() {
     const blank = document.createElement("option");
     blank.value = ""; blank.textContent = "画像なし";
     fileSel.appendChild(blank);
-    const imgs = overlayAssets && Array.isArray(overlayAssets.images) ? overlayAssets.images : [];
+    const imgs = sortedStrings(overlayAssets && Array.isArray(overlayAssets.images) ? overlayAssets.images : []);
     for (const img of imgs) {
       const opt = document.createElement("option");
       opt.value = img; opt.textContent = img.replace(/^overlays\//, "");
@@ -3103,7 +3103,7 @@ function flushPlayerUpdate() {
 function buildSpeakerSelect() {
   const sel = document.getElementById("fSpeaker");
   sel.innerHTML = "";
-  for (const sp of meta.speakers) {
+  for (const sp of sortedStrings(meta.speakers)) {
     const o = document.createElement("option");
     o.value = sp; o.textContent = sp;
     sel.appendChild(o);
@@ -3116,7 +3116,7 @@ function buildNarrationSpeakerSelect() {
   const none = document.createElement("option");
   none.value = ""; none.textContent = "(なし)";
   sel.appendChild(none);
-  for (const sp of (meta.narrationSpeakers || [])) {
+  for (const sp of sortedStrings(meta.narrationSpeakers || [])) {
     const o = document.createElement("option");
     o.value = sp; o.textContent = sp;
     sel.appendChild(o);
@@ -3136,11 +3136,11 @@ function buildSceneSelect() {
   const blackOpt = document.createElement("option");
   blackOpt.value = ""; blackOpt.textContent = "（暗転・黒）";
   sel.appendChild(blackOpt);
-  // シーンはアルファベット順（今後追加されたものも自動で整列）。
-  const sorted = [...meta.scenes].sort((a, b) => a.localeCompare(b));
+  const sorted = sortedKeysBySceneLabel(sceneDefs?.scenes || Object.fromEntries((meta.scenes || []).map((id) => [id, { label: id }])));
   for (const sc of sorted) {
+    const label = sceneDefs?.scenes?.[sc]?.label || sc;
     const o = document.createElement("option");
-    o.value = sc; o.textContent = sc;
+    o.value = sc; o.textContent = label;
     sel.appendChild(o);
   }
 }
@@ -3150,8 +3150,9 @@ function setSceneValue(scene) {
   const sel = document.getElementById("fScene");
   const val = scene || "";
   if (val && !Array.from(sel.options).some((o) => o.value === val)) {
+    const label = sceneDefs?.scenes?.[val]?.label || val;
     const o = document.createElement("option");
-    o.value = val; o.textContent = "(未登録) " + val;
+    o.value = val; o.textContent = "(未登録) " + label;
     sel.appendChild(o);
   }
   sel.value = val;
@@ -3159,7 +3160,7 @@ function setSceneValue(scene) {
 
 function sceneAnchorNames(scene) {
   const sc = sceneDefs && sceneDefs.scenes ? sceneDefs.scenes[scene] : null;
-  return Object.keys((sc && sc.anchors) || {});
+  return sortedStrings(Object.keys((sc && sc.anchors) || {}));
 }
 
 function buildSpeakerAnchorSelect(scene, value = "") {
@@ -3243,7 +3244,7 @@ function _buildExpressionOptions(prevValue) {
   const none = document.createElement("option");
   none.value = ""; none.textContent = "(なし)";
   sel.appendChild(none);
-  for (const ex of meta.expressions) {
+  for (const ex of sortedStrings(meta.expressions)) {
     const o = document.createElement("option");
     o.value = ex; o.textContent = ex;
     sel.appendChild(o);
@@ -3262,7 +3263,7 @@ function buildMultiSpeakers() {
 function buildMultiSelect(containerId, speakers) {
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = "";
-  for (const sp of speakers) {
+  for (const sp of sortedStrings(speakers)) {
     const label = document.createElement("label");
     label.className = "multi-check";
     const cb = document.createElement("input");
@@ -3428,8 +3429,21 @@ function normalizeSentenceSourceText(turn) {
   return String(turn && turn.text || "").replace(/\s+/g, "");
 }
 
+function normalizeSpokenText(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function manualBubbleSplitTexts(text) {
+  return String(text || "")
+    .split(/\r?\n+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 function predictedAutoBubbleTexts(turn) {
   const text = String(turn && turn.text || "");
+  const manualSplits = manualBubbleSplitTexts(text);
+  if (manualSplits.length > 1) return manualSplits;
   return (text.match(AUTO_SENTENCE_RE) || []).map(s => s.trim()).filter(Boolean);
 }
 
@@ -3477,13 +3491,18 @@ function isContinueBubbleParent(script, idx) {
 
 function bubbleLengthWarning(turn) {
   if (!turn || turn.insert || isNarrationTurnData(turn)) return "";
-  const text = String(turn.text || "").replace(/\s+/g, "");
-  if (!text) return "";
   const autoInfo = getAutoBubbleInfo(turn);
+  const parts = autoInfo.active ? autoInfo.texts : [String(turn.text || "")];
+  const lengths = parts
+    .map(text => String(text || "").replace(/\s+/g, "").length)
+    .filter(len => len > 0);
+  if (!lengths.length) return "";
   const limit = (turn.continueBubble || autoInfo.active) ? 20 : 24;
-  return text.length > limit
-    ? "この文字数から吹き出し文字が自動で小さくなります。分割を検討してください。"
-    : "";
+  const longest = Math.max(...lengths);
+  if (longest <= limit) return "";
+  return autoInfo.active
+    ? "分割後も一部の吹き出しが長く、文字が自動で小さくなります。"
+    : "この文字数から吹き出し文字が自動で小さくなります。分割を検討してください。";
 }
 
 const VOICE_PRESETS = {
@@ -4060,7 +4079,7 @@ function makeTeamchatItem(idx, msg) {
   fromLbl.className = "field-label"; fromLbl.textContent = "from";
   const fromSel = document.createElement("select");
   fromSel.className = "field-select"; fromSel.dataset.field = "from"; fromSel.dataset.idx = idx;
-  for (const sp of meta.speakers) {
+  for (const sp of sortedStrings(meta.speakers)) {
     const o = document.createElement("option");
     o.value = sp; o.textContent = sp;
     fromSel.appendChild(o);
@@ -4178,7 +4197,7 @@ function makeVideoCallParticipantItem(idx, part) {
   speakerSel.className = "field-select";
   speakerSel.dataset.field = "speaker";
   speakerSel.dataset.idx = idx;
-  for (const sp of meta.speakers) {
+  for (const sp of sortedStrings(meta.speakers)) {
     const o = document.createElement("option");
     o.value = sp;
     o.textContent = sp;
@@ -4301,6 +4320,7 @@ function collectBasic() {
   if (selectedIdx < 0) return;
   const turn = storyData.script[selectedIdx];
   const oldSpeaker = turn.speaker, oldText = turn.text, oldPause = turn.pause, oldVoice = JSON.stringify(turn.voice || null), oldNarration = turn.narrationVoice || "";
+  const oldSpokenText = normalizeSpokenText(oldText);
   const narrationCheckbox = document.getElementById("fNarration");
   const narrationVoiceEl = document.getElementById("fNarrationVoice");
   let narrationEnabled = narrationCheckbox.checked;
@@ -4408,7 +4428,7 @@ function collectBasic() {
   else delete turn.disableAutoBubbleSplit;
 
   // 本文を変えたら、古い音声生成結果の字幕断片(sentences)はプレビューに使わない。
-  if (turn.text !== oldText) delete turn.sentences;
+  if (normalizeSpokenText(turn.text) !== oldSpokenText) delete turn.sentences;
 
   const enter = getMultiSelect("fEnter");
   if (enter.length > 0) turn.enter = enter; else delete turn.enter;
@@ -4426,7 +4446,7 @@ function collectBasic() {
 
   markDirty();
   // 音声に影響する変更（話者/セリフ/間）なら「要・音声生成」にする。
-  if (turn.speaker !== oldSpeaker || turn.text !== oldText || turn.pause !== oldPause || JSON.stringify(turn.voice || null) !== oldVoice || (turn.narrationVoice || "") !== oldNarration) markAudioDirty();
+  if (turn.speaker !== oldSpeaker || normalizeSpokenText(turn.text) !== oldSpokenText || turn.pause !== oldPause || JSON.stringify(turn.voice || null) !== oldVoice || (turn.narrationVoice || "") !== oldNarration) markAudioDirty();
   renderList(); // バッジ等を更新
   renderDetail(); // 吹き出し説明を更新
   drawScriptTimeline();
@@ -5323,6 +5343,21 @@ function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function compareUiText(a, b) {
+  return String(a || "").localeCompare(String(b || ""), "ja", { numeric: true, sensitivity: "base" });
+}
+
+function sortedStrings(values) {
+  return [...(values || [])].sort(compareUiText);
+}
+
+function sortedKeysBySceneLabel(mapObj) {
+  return Object.keys(mapObj || {}).sort((a, b) => {
+    const byLabel = compareUiText(mapObj?.[a]?.label || a, mapObj?.[b]?.label || b);
+    return byLabel || compareUiText(a, b);
+  });
+}
+
 function findPreviousVideoCallInsert(idx) {
   if (!storyData || !Array.isArray(storyData.script)) return null;
   const cur = storyData.script[idx];
@@ -5516,10 +5551,10 @@ function renderSeMapSection() {
     },
   };
 
-  const categories = Object.keys(CATEGORY_LABELS);
+  const categories = sortedStrings(Object.keys(CATEGORY_LABELS));
   for (const cat of categories) {
     const events = seMap[cat] || {};
-    const eventKeys = Object.keys(events);
+    const eventKeys = sortedStrings(Object.keys(events));
     if (eventKeys.length === 0) continue;
 
     // カテゴリ見出し
@@ -5545,7 +5580,7 @@ function renderSeMapSection() {
       const noneOpt = document.createElement("option");
       noneOpt.value = ""; noneOpt.textContent = "なし";
       sel.appendChild(noneOpt);
-      for (const seFile of (audioAssets.se || [])) {
+      for (const seFile of sortedStrings(audioAssets.se || [])) {
         const opt = document.createElement("option");
         opt.value = seFile; opt.textContent = seFile;
         sel.appendChild(opt);
@@ -5647,7 +5682,7 @@ function renderSceneBgmSection() {
     container.appendChild(note);
   }
 
-  const sceneKeys = Object.keys(sceneBgmData || {});
+  const sceneKeys = sortedKeysBySceneLabel(sceneBgmData || {});
   if (sceneKeys.length === 0) {
     container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">シーンが未登録です</div>";
     return;
@@ -5672,7 +5707,7 @@ function renderSceneBgmSection() {
     const noneOpt = document.createElement("option");
     noneOpt.value = ""; noneOpt.textContent = "なし";
     sel.appendChild(noneOpt);
-    for (const bgmFile of (audioAssets.bgm || [])) {
+    for (const bgmFile of sortedStrings(audioAssets.bgm || [])) {
       const opt = document.createElement("option");
       opt.value = bgmFile; opt.textContent = bgmFile;
       sel.appendChild(opt);
@@ -5781,7 +5816,7 @@ function makeManualSeRow(idx, seItem) {
   const noneOpt = document.createElement("option");
   noneOpt.value = ""; noneOpt.textContent = "なし";
   sel.appendChild(noneOpt);
-  const seFiles = audioAssets ? (audioAssets.se || []) : [];
+  const seFiles = audioAssets ? sortedStrings(audioAssets.se || []) : [];
   for (const f of seFiles) {
     const opt = document.createElement("option");
     opt.value = f; opt.textContent = f.replace(/^se\//, "");

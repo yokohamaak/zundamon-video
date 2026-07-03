@@ -91,6 +91,26 @@
     border: 1px solid var(--border);
   }
   .preview-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .motion-controls {
+    width: 420px;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 72px;
+    gap: 10px 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .motion-label { font-size: 12px; color: var(--text2); }
+  .motion-slider { width: 100%; accent-color: var(--accent); }
+  .motion-value {
+    font-size: 12px;
+    color: var(--text);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
   .toggle {
     display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2);
     padding: 5px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
@@ -179,6 +199,16 @@
         右向きで見る
       </label>
     </div>
+    <div class="motion-controls">
+      <div class="motion-label">動きの速さ</div>
+      <div class="motion-value" id="speedValue">1.00x</div>
+      <input class="motion-slider" type="range" id="speedSlider" min="0.4" max="2.5" step="0.05" value="1">
+      <button class="btn" id="speedReset">標準</button>
+      <div class="motion-label">動きの強さ</div>
+      <div class="motion-value" id="strengthValue">1.00x</div>
+      <input class="motion-slider" type="range" id="strengthSlider" min="0.4" max="2.5" step="0.05" value="1">
+      <button class="btn" id="strengthReset">標準</button>
+    </div>
   </div>
 
   <div class="arm-panel">
@@ -256,7 +286,9 @@ function ensurePoseMap() {
   for (const char of Object.keys(catalog || {})) {
     if (!poses[char]) poses[char] = {};
     for (const [pose] of POSES) {
-      if (!poses[char][pose]) poses[char][pose] = { arm: null };
+      if (!poses[char][pose]) poses[char][pose] = { arm: null, speed: 1, strength: 1 };
+      if (poses[char][pose].speed == null) poses[char][pose].speed = 1;
+      if (poses[char][pose].strength == null) poses[char][pose].strength = 1;
     }
   }
 }
@@ -317,6 +349,7 @@ function buildArmGrid() {
 
   const label = currentArm ? armLabelOf(currentChar, currentArm) : "自動";
   document.getElementById("currentArmLabel").textContent = "現在: " + label;
+  syncMotionControls();
 }
 
 function buildFaceTabs() {
@@ -335,6 +368,24 @@ function assignArm(armId) {
   buildArmGrid();
   renderPreview();
   markDirty();
+}
+
+function currentPoseCfg() {
+  if (!poses[currentChar]) poses[currentChar] = {};
+  if (!poses[currentChar][currentPose]) poses[currentChar][currentPose] = { arm: null, speed: 1, strength: 1 };
+  if (poses[currentChar][currentPose].speed == null) poses[currentChar][currentPose].speed = 1;
+  if (poses[currentChar][currentPose].strength == null) poses[currentChar][currentPose].strength = 1;
+  return poses[currentChar][currentPose];
+}
+
+function syncMotionControls() {
+  const cfg = currentPoseCfg();
+  const speed = Number(cfg.speed ?? 1);
+  const strength = Number(cfg.strength ?? 1);
+  document.getElementById("speedSlider").value = String(speed);
+  document.getElementById("strengthSlider").value = String(strength);
+  document.getElementById("speedValue").textContent = speed.toFixed(2) + "x";
+  document.getElementById("strengthValue").textContent = strength.toFixed(2) + "x";
 }
 
 function renderPreview() {
@@ -401,68 +452,72 @@ function animatePreview(time) {
   const wrap = document.getElementById("previewWrap");
   const avatar = document.getElementById("previewAvatar");
   const flip = document.getElementById("flipToggle").checked ? -1 : 1;
+  const cfg = currentPoseCfg();
+  const motionSpeed = Math.max(0.2, Math.min(3, Number(cfg.speed ?? 1)));
+  const motionStrength = Math.max(0, Math.min(3, Number(cfg.strength ?? 1)));
+  const motionTime = time * motionSpeed;
   let translateX = 0;
-  let translateY = Math.sin((time * Math.PI * 2) / 3) * 2;
+  let translateY = Math.sin((motionTime * Math.PI * 2) / 3) * 2;
   let rotate = 0;
   let scale = 1;
   const p = currentPose;
 
   if (p === "cheer") {
-    const hop = Math.max(0, Math.sin(time * Math.PI * 2 * 1.1)) * 8;
-    translateY -= hop + 4;
-    rotate += Math.sin(time * Math.PI * 2 * 1.3) * 2.2;
-    scale *= 1.018;
+    const hop = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 1.1)) * 8 * motionStrength;
+    translateY -= hop + 4 * motionStrength;
+    rotate += Math.sin(motionTime * Math.PI * 2 * 1.3) * 2.2 * motionStrength;
+    scale *= 1 + 0.018 * motionStrength;
   } else if (p === "recoil") {
-    const surge = Math.max(0, Math.sin(time * Math.PI * 2 * 0.7));
-    translateY -= surge * 14;
-    translateX += flip * -10 * surge;
-    rotate += flip * -4 * surge;
-    scale *= 1 + 0.02 * surge;
+    const surge = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.7));
+    translateY -= surge * 14 * motionStrength;
+    translateX += flip * -10 * surge * motionStrength;
+    rotate += flip * -4 * surge * motionStrength;
+    scale *= 1 + 0.02 * surge * motionStrength;
   } else if (p === "lean") {
-    translateX += flip * 10;
-    translateY -= 4;
-    rotate += flip * 2.4;
-    scale *= 1.012;
+    translateX += flip * 10 * motionStrength;
+    translateY -= 4 * motionStrength;
+    rotate += flip * 2.4 * motionStrength;
+    scale *= 1 + 0.012 * motionStrength;
   } else if (p === "droop") {
-    translateY += 10;
-    rotate += flip * -1.6;
-    scale *= 0.98;
+    translateY += 10 * motionStrength;
+    rotate += flip * -1.6 * motionStrength;
+    scale *= 1 - 0.02 * motionStrength;
   } else if (p === "flustered") {
-    translateX += Math.sin(time * Math.PI * 2 * 4.4) * 2.8;
-    translateY += Math.cos(time * Math.PI * 2 * 3.8) * 1.6;
-    rotate += Math.sin(time * Math.PI * 2 * 5.2) * 1.6;
-    scale *= 1.01;
+    translateX += Math.sin(motionTime * Math.PI * 2 * 4.4) * 2.8 * motionStrength;
+    translateY += Math.cos(motionTime * Math.PI * 2 * 3.8) * 1.6 * motionStrength;
+    rotate += Math.sin(motionTime * Math.PI * 2 * 5.2) * 1.6 * motionStrength;
+    scale *= 1 + 0.01 * motionStrength;
   } else if (p === "proud") {
-    translateY -= 8;
-    translateX += flip * 4;
-    rotate += flip * 3.2;
-    scale *= 1.026;
+    translateY -= 8 * motionStrength;
+    translateX += flip * 4 * motionStrength;
+    rotate += flip * 3.2 * motionStrength;
+    scale *= 1 + 0.026 * motionStrength;
   } else if (p === "step_in") {
-    translateX += flip * 12;
-    translateY -= 6;
-    rotate += flip * 1.8;
-    scale *= 1.02;
+    translateX += flip * 12 * motionStrength;
+    translateY -= 6 * motionStrength;
+    rotate += flip * 1.8 * motionStrength;
+    scale *= 1 + 0.02 * motionStrength;
   } else if (p === "step_back") {
-    translateX += flip * -12;
-    translateY += 3;
-    rotate += flip * -2.6;
-    scale *= 0.97;
+    translateX += flip * -12 * motionStrength;
+    translateY += 3 * motionStrength;
+    rotate += flip * -2.6 * motionStrength;
+    scale *= 1 - 0.03 * motionStrength;
   } else if (p === "listening") {
-    const nod = Math.max(0, Math.sin(time * Math.PI * 2 * 0.9)) * 4;
-    translateX += flip * 7;
+    const nod = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.9)) * 4 * motionStrength;
+    translateX += flip * 7 * motionStrength;
     translateY -= nod;
-    rotate += flip * 4.2;
-    scale *= 1.008;
+    rotate += flip * 4.2 * motionStrength;
+    scale *= 1 + 0.008 * motionStrength;
   } else if (p === "sneak") {
-    translateX += flip * 9;
-    translateY += 8;
-    rotate += flip * 5.2;
-    scale *= 0.985;
+    translateX += flip * 9 * motionStrength;
+    translateY += 8 * motionStrength;
+    rotate += flip * 5.2 * motionStrength;
+    scale *= 1 - 0.015 * motionStrength;
   } else if (p === "wobble") {
-    translateX += Math.sin(time * Math.PI * 2 * 2.1) * 5.5;
-    translateY -= Math.abs(Math.cos(time * Math.PI * 2 * 1.4)) * 2.5;
-    rotate += Math.sin(time * Math.PI * 2 * 2.6) * 4.6;
-    scale *= 1 + Math.sin(time * Math.PI * 2 * 1.9) * 0.012;
+    translateX += Math.sin(motionTime * Math.PI * 2 * 2.1) * 5.5 * motionStrength;
+    translateY -= Math.abs(Math.cos(motionTime * Math.PI * 2 * 1.4)) * 2.5 * motionStrength;
+    rotate += Math.sin(motionTime * Math.PI * 2 * 2.6) * 4.6 * motionStrength;
+    scale *= 1 + Math.sin(motionTime * Math.PI * 2 * 1.9) * 0.012 * motionStrength;
   }
 
   wrap.style.transform = "translateX(-50%)";
@@ -474,6 +529,26 @@ function setupEvents() {
   document.getElementById("btnSave").addEventListener("click", savePoses);
   document.getElementById("btnExport").addEventListener("click", startExport);
   document.getElementById("flipToggle").addEventListener("change", () => renderPreview());
+  document.getElementById("speedSlider").addEventListener("input", (e) => {
+    currentPoseCfg().speed = parseFloat(e.target.value);
+    syncMotionControls();
+    markDirty();
+  });
+  document.getElementById("strengthSlider").addEventListener("input", (e) => {
+    currentPoseCfg().strength = parseFloat(e.target.value);
+    syncMotionControls();
+    markDirty();
+  });
+  document.getElementById("speedReset").addEventListener("click", () => {
+    currentPoseCfg().speed = 1;
+    syncMotionControls();
+    markDirty();
+  });
+  document.getElementById("strengthReset").addEventListener("click", () => {
+    currentPoseCfg().strength = 1;
+    syncMotionControls();
+    markDirty();
+  });
   document.getElementById("exportClose").addEventListener("click", () => {
     document.getElementById("exportOverlay").classList.remove("show");
   });

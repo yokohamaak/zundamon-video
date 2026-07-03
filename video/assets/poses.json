@@ -1,78 +1,126 @@
 {
   "zundamon": {
     "idle": {
-      "arm": "arm_normal"
+      "arm": "arm_normal",
+      "speed": 1,
+      "strength": 1
     },
     "cheer": {
-      "arm": "arm_raise"
+      "arm": "arm_raise",
+      "speed": 1,
+      "strength": 1
     },
     "recoil": {
-      "arm": "arm_raise"
+      "arm": "arm_raise",
+      "speed": 1,
+      "strength": 1
     },
     "lean": {
-      "arm": "arm_think"
+      "arm": "arm_think",
+      "speed": 1,
+      "strength": 1
     },
     "droop": {
-      "arm": "arm_waist"
+      "arm": "arm_waist",
+      "speed": 1,
+      "strength": 1
     },
     "flustered": {
-      "arm": "arm_mouth"
+      "arm": "arm_mouth",
+      "speed": 0.65,
+      "strength": 1
     },
     "proud": {
-      "arm": "arm_point"
+      "arm": "arm_point",
+      "speed": 1,
+      "strength": 1
     },
     "step_in": {
-      "arm": "arm_point"
+      "arm": "arm_point",
+      "speed": 1,
+      "strength": 1
     },
     "step_back": {
-      "arm": "arm_waist"
+      "arm": "arm_waist",
+      "speed": 1,
+      "strength": 1
     },
     "listening": {
-      "arm": "arm_think"
+      "arm": "arm_think",
+      "speed": 1,
+      "strength": 1
     },
     "sneak": {
-      "arm": "arm_whisper"
+      "arm": "arm_whisper",
+      "speed": 1,
+      "strength": 1
     },
     "wobble": {
-      "arm": "arm_suffering"
+      "arm": "arm_suffering",
+      "speed": 0.7,
+      "strength": 0.6
     }
   },
   "metan": {
     "idle": {
-      "arm": "arm_normal"
+      "arm": "arm_normal",
+      "speed": 1,
+      "strength": 1
     },
     "cheer": {
-      "arm": "arm_present"
+      "arm": "arm_mouth",
+      "speed": 0.8,
+      "strength": 0.75
     },
     "recoil": {
-      "arm": "arm_mouth"
+      "arm": "arm_mouth",
+      "speed": 1,
+      "strength": 1
     },
     "lean": {
-      "arm": "arm_hold"
+      "arm": "arm_hold",
+      "speed": 1,
+      "strength": 1
     },
     "droop": {
-      "arm": "arm_hold"
+      "arm": "arm_hold",
+      "speed": 1,
+      "strength": 1
     },
     "flustered": {
-      "arm": "arm_mouth"
+      "arm": "arm_mouth",
+      "speed": 0.7,
+      "strength": 0.85
     },
     "proud": {
-      "arm": "arm_present"
+      "arm": "arm_present",
+      "speed": 1,
+      "strength": 1
     },
     "step_in": {
-      "arm": "arm_point"
+      "arm": "arm_point",
+      "speed": 1,
+      "strength": 1
     },
     "step_back": {
-      "arm": "arm_hold"
+      "arm": "arm_hold",
+      "speed": 1,
+      "strength": 1
     },
     "listening": {
-      "arm": "arm_hush"
+      "arm": "arm_hush",
+      "speed": 1,
+      "strength": 1
     },
     "sneak": {
-      "arm": "arm_hush"
+      "arm": "arm_hush",
+      "speed": 1,
+      "strength": 1
     },
     "wobble": {
-      "arm": "arm_manju"
+      "arm": "arm_hold",
+      "speed": 0.75,
+      "strength": 0.55
     }
   }
 }

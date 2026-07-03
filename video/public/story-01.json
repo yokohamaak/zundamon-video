@@ -3,26 +3,14 @@
   "script": [
     {
       "speaker": "zundamon",
-      "text": "はぁ……新しい基幹システム開発、ベンダーとの定例会議の時間なのだ……。",
+      "text": "はぁ……新しい基幹システム開発、\nベンダーとの定例会議の時間なのだ……。",
       "scene": "office",
       "expression": "trouble",
       "transition": "fade-black",
       "pose": "droop",
       "id": "turn-0001",
       "start": 0,
-      "end": 6.432,
-      "sentences": [
-        {
-          "text": "はぁ……新しい基幹システム開発、",
-          "start": 0,
-          "end": 2.94
-        },
-        {
-          "text": "ベンダーとの定例会議の時間なのだ……。",
-          "start": 2.94,
-          "end": 6.432
-        }
-      ]
+      "end": 6.432
     },
     {
       "speaker": "zundamon",

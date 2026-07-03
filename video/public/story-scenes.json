@@ -459,7 +459,7 @@
       "camera": "static",
       "soloZoom": true,
       "soloZoomScale": 1.4,
-      "soloZoomCy": 0.58,
+      "soloZoomCy": 0.47,
       "scale": 1.55,
       "bgBlur": 2,
       "cast": {
@@ -503,8 +503,8 @@
       "shot": "solo",
       "camera": "static",
       "soloZoom": true,
-      "soloZoomScale": 1.4,
-      "soloZoomCy": 0.58,
+      "soloZoomScale": 1.25,
+      "soloZoomCy": 0.46,
       "scale": 1.85,
       "bgBlur": 3,
       "cast": {
@@ -547,8 +547,8 @@
       "shot": "solo",
       "camera": "static",
       "soloZoom": true,
-      "soloZoomScale": 1.4,
-      "soloZoomCy": 0.58,
+      "soloZoomScale": 1.25,
+      "soloZoomCy": 0.46,
       "scale": 1.85,
       "bgBlur": 3,
       "cast": {

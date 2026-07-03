@@ -123,6 +123,10 @@ def build_tts_config(voice_profiles, on_progress=None):
     return cfg
 
 
+def normalize_spoken_text(text):
+    return " ".join(str(text or "").split())
+
+
 def build_script_turns(data, voice_profiles):
     insert_hold = 2.5
     script = []
@@ -134,7 +138,7 @@ def build_script_turns(data, voice_profiles):
         speaker = narration_voice or t["speaker"]
         if speaker not in voice_profiles:
             raise KeyError(f"話者プロファイルがありません: {speaker}")
-        item = {"speaker": speaker, "text": t["text"]}
+        item = {"speaker": speaker, "text": normalize_spoken_text(t.get("text", ""))}
         if pause:
             item["pause"] = pause
         if isinstance(t.get("voice"), dict) and t["voice"]:

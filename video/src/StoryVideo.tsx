@@ -331,7 +331,11 @@ type Manifest = Record<string, Record<string, string>>;
 
 // expressions.json の型（キャラ→表情名→ExpressionCfg）
 export type ExpressionsMap = Record<string, Record<string, ExpressionCfg>>;
-export type PoseCfg = { arm?: string | null };
+export type PoseCfg = {
+  arm?: string | null;
+  speed?: number | null;
+  strength?: number | null;
+};
 export type PosesMap = Record<string, Record<string, PoseCfg>>;
 
 // se-map.json の型
@@ -2127,8 +2131,17 @@ function bubbleSentenceGroups(turn: StoryTurn): Array<{ text: string; startIdx: 
   return groups;
 }
 
+function manualBubbleSplitTexts(text: string | null | undefined): string[] {
+  return String(text ?? "")
+    .split(/\r?\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function bubbleSentenceTexts(turn: StoryTurn): string[] {
   if (turn.disableAutoBubbleSplit) return [turn.text];
+  const manualSplits = manualBubbleSplitTexts(turn.text);
+  if (manualSplits.length > 1) return manualSplits;
   const sentenceText = turn.sentences?.map((x) => x.text).join("") ?? "";
   if (
     turn.sentences &&
@@ -2142,6 +2155,8 @@ function bubbleSentenceTexts(turn: StoryTurn): string[] {
 }
 
 function bubbleSentenceVisibleCount(turn: StoryTurn, t: number): number {
+  const manualSplits = manualBubbleSplitTexts(turn.text);
+  if (manualSplits.length > 1) return manualSplits.length;
   if (!turn.sentences?.length) return 1;
   const groups = bubbleSentenceGroups(turn);
   if (groups.length <= 1) return 1;
@@ -2923,6 +2938,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             expressionCfg={isSpeaker ? expressionCfg : idleCfg}
             poseName={isSpeaker ? active.pose : undefined}
             poseArmStem={isSpeaker ? poseCfg?.arm ?? null : null}
+            poseSpeed={isSpeaker ? poseCfg?.speed ?? null : null}
+            poseStrength={isSpeaker ? poseCfg?.strength ?? null : null}
           />
         </div>
       </div>
@@ -3201,6 +3218,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
               expressionCfg={expressionCfg}
               poseName={isSpeaking ? active.pose : undefined}
               poseArmStem={isSpeaking ? poseCfg?.arm ?? null : null}
+              poseSpeed={isSpeaking ? poseCfg?.speed ?? null : null}
+              poseStrength={isSpeaking ? poseCfg?.strength ?? null : null}
             />
           </div>
         </div>
