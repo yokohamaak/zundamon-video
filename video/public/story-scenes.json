@@ -46,8 +46,6 @@
           "hidden": true
         }
       },
-      "bgm": "bgm/bgm1.mp3",
-      "bgmVolume": 0.1,
       "soloZoomCy": 0.45,
       "soloZoomScale": 1.2
     },
@@ -96,8 +94,6 @@
           "hidden": false
         }
       },
-      "bgm": "bgm/bgm1.mp3",
-      "bgmVolume": 0.1,
       "soloZoomCy": 0.48,
       "soloZoomScale": 1.14
     },
@@ -140,9 +136,7 @@
           "scale": 0.85,
           "hidden": true
         }
-      },
-      "bgm": "bgm/bgm1.mp3",
-      "bgmVolume": 0.1
+      }
     },
     "server_room": {
       "label": "サーバールーム",
@@ -184,9 +178,7 @@
           "scale": 0.85,
           "hidden": true
         }
-      },
-      "bgm": "bgm/bgm1.mp3",
-      "bgmVolume": 0.1
+      }
     },
     "rooftop": {
       "label": "屋上（夕方）",
@@ -228,9 +220,7 @@
           "scale": 0.85,
           "hidden": true
         }
-      },
-      "bgm": "bgm/bgm.mp3",
-      "bgmVolume": 0.1
+      }
     },
     "home-night": {
       "label": "自宅夜",
@@ -271,9 +261,7 @@
           "hidden": true
         }
       },
-      "figure": "full",
-      "bgm": "bgm/bgm1.mp3",
-      "bgmVolume": 0.1
+      "figure": "full"
     },
     "rooftop_blur": {
       "label": "屋上 ぼやけ",
