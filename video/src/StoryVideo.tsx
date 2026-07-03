@@ -3349,10 +3349,86 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     return null; // 未知話者は renderTile 側のフォールバック（頭文字）に任せる
   };
 
+  // ワイプ/スライドで先出しする次シーンの「開始直後の静止フレーム」のキャラ。
+  // 次シーン冒頭からいる面子だけを、アニメーション無しの静止ポーズで描く
+  // （途中登場のキャラは従来通りシーン開始後に自分でスライドインする＝対象外）。
+  // これが無いと、ワイプ中は背景だけ見えてキャラは次シーンが始まった瞬間に
+  // 突然ポップインしてしまう。
+  const renderNextSceneAvatarsGhost = () => {
+    if (!nextSeg || !nextSceneDef) return null;
+    const nextActive = nextSeg.turns[0];
+    if (!nextActive) return null;
+    const nextRoster = segmentRoster(nextSeg);
+    const nextAnchorOf = resolveAnchorMapAt(nextSeg, nextRoster, nextSceneDef, nextSeg.start);
+    const nextEntrance = entranceTimes(nextSeg);
+    const nextPresent = nextRoster.filter(
+      (c) => (nextEntrance[c] ?? nextSeg.start) <= nextSeg.start + 1e-6
+    );
+    const isFull = (nextSceneDef.figure ?? "bust") === "full";
+    return nextPresent.map((charId) => {
+      const cdef = CHARACTERS[charId];
+      if (!cdef) return null;
+      const anchorName = nextAnchorOf[charId] ?? "center";
+      const anchor = nextSceneDef!.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
+      const isSpeaker = !isNarrationTurn(nextActive) && charId === nextActive.speaker;
+      const want: "left" | "right" =
+        nextActive.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
+      const flip = want === "right";
+      const exprKey = nextActive.expression ?? "normal";
+      const charKey = cdef.avatar;
+      const charExprs = expressions?.[charKey];
+      const baseExpressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
+      const poseCfg = nextActive.pose ? poses?.[charKey]?.[nextActive.pose] ?? null : null;
+      const expressionCfg =
+        baseExpressionCfg && nextActive.pose
+          ? { ...baseExpressionCfg, pose: nextActive.pose }
+          : baseExpressionCfg;
+      const emotion = EXPRESSION_TO_EMOTION[exprKey] ?? EXPRESSION_TO_EMOTION["normal"];
+      const avatarDir = isFull ? `${cdef.avatar}/full` : cdef.avatar;
+      const manifestKey = isFull ? `${cdef.avatar}_full` : cdef.avatar;
+      const avatarManifest = manifest?.[manifestKey];
+      const box = isFull ? fullBoxSize(cdef.avatar) : { w: AVATAR_BOX, h: AVATAR_BOX };
+      return (
+        <div
+          key={`ghost-${charId}`}
+          style={{
+            position: "absolute",
+            left: anchor.x * width,
+            top: anchor.y * height,
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <div style={{ transform: `scale(${nextSceneDef!.scale ?? 1.9})`, transformOrigin: "center" }}>
+            <Avatar
+              dir={avatarDir}
+              manifest={avatarManifest}
+              fallbackGender={cdef.gender}
+              active={isSpeaker}
+              activatedAtFrame={Math.round(nextSeg!.start * fps)}
+              amplitude={0}
+              emotion={emotion}
+              emotionAtFrame={Math.round(nextSeg!.start * fps)}
+              expressive={!!cdef.expressive}
+              flip={flip}
+              popScale={false}
+              boxWidth={box.w}
+              boxHeight={box.h}
+              expressionCfg={expressionCfg}
+              poseName={isSpeaker ? nextActive.pose : undefined}
+              poseArmStem={isSpeaker ? poseCfg?.arm ?? null : null}
+              poseSpeed={isSpeaker ? poseCfg?.speed ?? null : null}
+              poseStrength={isSpeaker ? poseCfg?.strength ?? null : null}
+            />
+          </div>
+        </div>
+      );
+    });
+  };
+
   const renderScenePlate = (
     plateSceneDef: SceneDef,
     key: string,
-    opts?: { clipPath?: string; shiftX?: number; filter?: string }
+    opts?: { clipPath?: string; shiftX?: number; filter?: string; children?: React.ReactNode }
   ) => {
     const plateBlur = Math.max(0, plateSceneDef.bgBlur ?? 0);
     const plateScale = plateBlur > 0 ? 1 + Math.min(plateBlur, 32) / 180 : 1;
@@ -3382,6 +3458,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             transformOrigin: "center center",
           }}
         />
+        {opts?.children}
         {plateSceneDef.front ? (
           <Img
             src={staticFile(plateSceneDef.front)}
@@ -3491,6 +3568,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           clipPath: incomingPlate.clipPath,
           shiftX: incomingPlate.shiftX,
           filter: stageFilter,
+          children: renderNextSceneAvatarsGhost(),
         })
         : null}
       {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る） */}
