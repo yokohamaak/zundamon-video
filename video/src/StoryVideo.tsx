@@ -22,6 +22,8 @@ export type StoryInsert =
   | { kind: "mailer"; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
   | {
     kind: "videocall";
+    // end=true のターンで通話を終了する（そのターンから通常画面に戻り、以降へ継承しない）。
+    end?: boolean;
     room?: string;
     layout?: "focus" | "grid";
     activeSpeaker?: string;
@@ -268,10 +270,10 @@ const MOBS: Record<string, MobDef> = {
   },
 };
 const isMob = (id: string): boolean => id in MOBS;
+// セリフ文字がインサートUI内に表示される種別（吹き出しを抑制する）。
+// videocall はUI内にセリフが出ないため対象外＝通常の吹き出しを通話画面の手前に出す。
 function isInsertLineKind(insert: StoryInsert | null | undefined): boolean {
-  return !!insert && (
-    insert.kind === "teamchat" || insert.kind === "chat" || insert.kind === "videocall"
-  );
+  return !!insert && (insert.kind === "teamchat" || insert.kind === "chat");
 }
 
 function mergeVideoCallInsert(
@@ -295,12 +297,16 @@ function effectiveInsertAt(script: StoryTurn[], idx: number): StoryInsert | null
   if (!cur) return null;
   if (cur.insert && cur.insert.kind !== "videocall") return cur.insert;
   const own = cur.insert?.kind === "videocall" ? cur.insert : null;
+  // 終了マーカー: このターンから通常画面に戻す。
+  if (own?.end) return null;
   let merged: Extract<StoryInsert, { kind: "videocall" }> | null = own;
   for (let i = idx - 1; i >= 0; i -= 1) {
     const prev = script[i];
     if (!prev || prev.scene !== cur.scene) break;
     if (prev.insert && prev.insert.kind !== "videocall") break;
     if (prev.insert?.kind === "videocall") {
+      // 終了マーカーより前へは遡らない＝終了済みの通話は継承されない。
+      if (prev.insert.end) break;
       merged = mergeVideoCallInsert(prev.insert, merged ?? prev.insert);
       if ((merged.participants?.length ?? 0) > 0 && merged.layout && merged.room) break;
     }
@@ -1541,7 +1547,11 @@ const VC_SMALL_TILE_W = VC_PANEL_W - VC_GRID_PAD * 2 - VC_GRID_GAP - VC_FOCUS_TI
 // grid時のタイル幅（2列均等）。
 const VC_GRID_TILE_W = Math.round((VC_PANEL_W - VC_GRID_PAD * 2 - VC_GRID_GAP) / 2); // 719
 // タイル幅に対する立ち絵の表示幅の割合。大小タイルで同一＝「同じ映像がサイズだけ変わる」。
-const VC_FEED_AVATAR_FRAC = 0.5;
+const VC_FEED_AVATAR_FRAC = 0.8;
+// 立ち絵を下へずらす割合（立ち絵高さ基準）。胸元をクロップして顔に寄せる（Webカメラのアップ感）。
+const VC_FEED_BOTTOM_SHIFT = 0.12;
+// モブ（1枚絵）の表示幅割合。立ち絵より横長の素材が多いので控えめにする。
+const VC_FEED_MOB_FRAC = 0.62;
 
 type VideoCallParticipant = NonNullable<
   Extract<StoryInsert, { kind: "videocall" }>["participants"]
@@ -3155,7 +3165,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           style={{
             position: "absolute",
             left: "50%",
-            bottom: 0,
+            // 下へはみ出させて胸元をクロップ＝顔に寄せる（タイル側 overflow:hidden）。
+            bottom: -dispW * VC_FEED_BOTTOM_SHIFT,
             width: dispW,
             height: dispW,
             transform: "translateX(-50%)",
@@ -3206,8 +3217,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             position: "absolute",
             left: "50%",
             bottom: 0,
-            width: dispW,
-            maxHeight: "78%",
+            width: opts.tileW * VC_FEED_MOB_FRAC,
+            maxHeight: "88%",
             transform: "translateX(-50%)",
             objectFit: "contain",
             objectPosition: "bottom center",

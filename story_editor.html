@@ -3879,6 +3879,28 @@ function renderInsertFields(insert) {
     // 継承モデル: 同シーン内の直前 videocall が土台。このターンには「上書きする差分」だけを保存する。
     // （値をコピー保存すると、元ターンを編集しても後続ターンに反映されなくなる）
     const inherited = findPreviousVideoCallInsert(selectedIdx);
+    // 通話終了マーカー（end=true）: このターンから通常画面に戻る。
+    const endRow = document.createElement("label");
+    endRow.className = "toggle-row";
+    const endCb = document.createElement("input");
+    endCb.type = "checkbox";
+    endCb.id = "fIVEnd";
+    endCb.checked = !!insert.end;
+    endCb.addEventListener("change", () => {
+      collectInsert();
+      rerenderInsertFieldsForSelected();
+    });
+    endRow.appendChild(endCb);
+    endRow.appendChild(document.createTextNode("このターンで通話を終了（ZunMeet画面を閉じる）"));
+    container.appendChild(endRow);
+    if (insert.end) {
+      const endNote = document.createElement("div");
+      endNote.className = "field-hint";
+      endNote.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
+      endNote.textContent = "このターン以降は通常画面に戻ります（同シーン内の通話継承もここで止まります）。";
+      container.appendChild(endNote);
+      return;
+    }
     container.appendChild(makeField(
       "room（会議名・任意）", "text", "fIVRoom", insert.room || "",
       inherited ? "継承: " + (inherited.room || "定例会議") : ""
@@ -4462,15 +4484,21 @@ function collectInsert() {
     const mTime = document.getElementById("fIMailTime");
     if (mTime && mTime.value) ins.time = mTime.value;
   } else if (kind === "videocall") {
-    // 差分パッチ保存: 空欄・空配列のフィールドは保存しない＝同シーン内の直前 videocall から継承。
-    const room = document.getElementById("fIVRoom");
-    if (room && room.value) ins.room = room.value;
-    const layout = document.getElementById("fIVLayout");
-    if (layout && layout.value) ins.layout = layout.value;
-    const activeSpeaker = document.getElementById("fIVActiveSpeaker");
-    if (activeSpeaker && activeSpeaker.value) ins.activeSpeaker = activeSpeaker.value;
-    const parts = getVideoCallParticipants();
-    if (parts.length) ins.participants = parts;
+    const endCb = document.getElementById("fIVEnd");
+    if (endCb && endCb.checked) {
+      // 終了マーカー: 他のフィールドは持たない。
+      ins.end = true;
+    } else {
+      // 差分パッチ保存: 空欄・空配列のフィールドは保存しない＝同シーン内の直前 videocall から継承。
+      const room = document.getElementById("fIVRoom");
+      if (room && room.value) ins.room = room.value;
+      const layout = document.getElementById("fIVLayout");
+      if (layout && layout.value) ins.layout = layout.value;
+      const activeSpeaker = document.getElementById("fIVActiveSpeaker");
+      if (activeSpeaker && activeSpeaker.value) ins.activeSpeaker = activeSpeaker.value;
+      const parts = getVideoCallParticipants();
+      if (parts.length) ins.participants = parts;
+    }
   }
 
   turn.insert = ins;

@@ -429,8 +429,12 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- {"kind":"chat","user":"質問文","ai":["返答1","返答2"]} … ZunAI（社内AIチャット）',
         '- {"kind":"teamchat","channel":"#障害対応","messages":[{"from":"営業","text":"..."}]} … ZunChat（社内チャット・複数人）',
         '- {"kind":"mailer","from":"差出人","subject":"件名","body":"本文","time":"10:00"} … ZunMail（メール）',
+        '- {"kind":"videocall","room":"定例会議","layout":"focus","participants":[{"speaker":"zundamon","bgStyle":"office"},{"speaker":"metan","bgStyle":"home"}]}'
+        ' … ZunMeet（ビデオ会議画面）。一度出すと同シーン内の後続ターンへ自動継続するので、後続ターンには insert を書かない。'
+        ' bgStyle は office / meeting_room / home / ai / green。話者のタイルが自動で大きく表示される',
+        '- {"kind":"videocall","end":true} … 進行中のZunMeet通話をこのターンで終了して通常画面に戻す',
         "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
-        "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat。",
+        "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat / ZunMeet=videocall。",
     ]
 
     if extra_rules:
