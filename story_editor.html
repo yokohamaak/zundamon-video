@@ -148,6 +148,10 @@
   .scene-view, .expr-view { flex: 1; overflow: hidden; }
   .scene-view iframe, .expr-view iframe { width: 100%; height: 100%; border: none; display: block; }
 
+  /* 音声生成/台本取り込み等、非同期でstoryData全体を差し替える処理の実行中は
+     編集操作をロックする（生成完了時に編集内容が巻き戻る/selectedIdxがズレる事故を防止）。 */
+  .script-editing-locked { pointer-events: none; opacity: .55; transition: opacity .15s; }
+
   /* ── 左ペイン: 台本一覧 ── */
   .pane-left {
     grid-area: left;
@@ -5159,6 +5163,21 @@ async function saveStory() {
   }
 }
 
+// 音声生成/台本取り込みのように非同期でstoryData全体を差し替える処理の間、
+// 台本編集(追加/引継/削除/並び替え/詳細フォーム)をロックする。
+// ロックせずに編集を許すと、処理完了時の再読込で編集内容が丸ごと巻き戻り、
+// selectedIdxはそのままなので全く別のターンが表示される事故が起きる。
+function lockScriptEditing() {
+  document.querySelectorAll(".pane-left, .pane-right").forEach(
+    (el) => el.classList.add("script-editing-locked")
+  );
+}
+function unlockScriptEditing() {
+  document.querySelectorAll(".pane-left, .pane-right").forEach(
+    (el) => el.classList.remove("script-editing-locked")
+  );
+}
+
 // 音声生成（保存 → make_story_audio → story再読込 → 一覧/プレビュー更新）
 async function generateAudio(confirmFirst = true) {
   const btn = document.getElementById("btnAudio");
@@ -5166,6 +5185,9 @@ async function generateAudio(confirmFirst = true) {
   btn.disabled = true;
   try {
     await saveStory();                       // 最新を保存してから生成（make_story_audioは保存済みJSONを読む）
+    // 生成中(数十秒〜)に編集を続けると、完了時の再読込で編集内容が丸ごと巻き戻り、
+    // selectedIdxはそのままなので別ターンが表示される事故が起きるため編集をロックする。
+    lockScriptEditing();
     setStatus("busy", "音声生成 準備中…（VOICEVOX）");
     const r = await fetch("/api/audio", { method: "POST" });
     // 進捗を逐次ストリーム受信（[N/total] 話者: … 行を最新で表示）
@@ -5196,6 +5218,7 @@ async function generateAudio(confirmFirst = true) {
       normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
       _selectedOverlayId = null;
+      if (selectedIdx >= storyData.script.length) selectedIdx = storyData.script.length - 1;
       renderList();
       if (selectedIdx >= 0) selectTurn(selectedIdx);
       if (window.storyPlayer && playerReady) await window.storyPlayer.reloadAudio();
@@ -5210,6 +5233,7 @@ async function generateAudio(confirmFirst = true) {
     setStatus("err", "音声生成 通信エラー");
   } finally {
     btn.disabled = false;
+    unlockScriptEditing();
   }
 }
 
@@ -5749,6 +5773,7 @@ function setupEvents() {
     const statusEl = document.getElementById("genImportStatus");
     const btn = document.getElementById("btnImportScript");
     btn.disabled = true;
+    lockScriptEditing(); // 取り込み中の編集も同様にstoryData全体巻き戻り事故の元になるためロック
     statusEl.style.color = "var(--text2)";
     statusEl.textContent = "送信中...";
     try {
@@ -5800,6 +5825,7 @@ function setupEvents() {
       statusEl.textContent = "通信エラー: " + e.message;
     } finally {
       btn.disabled = false;
+      unlockScriptEditing();
       if (statusEl.textContent === "送信中...") statusEl.textContent = "";
     }
   });
