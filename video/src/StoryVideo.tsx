@@ -685,17 +685,17 @@ const ExtraEffectsLayer: React.FC<{
   const burstOut = 1 - clamp((progress - 0.58) / 0.22, 0, 1);
 
   if (active.zoomPunch) {
-    const local = clamp(progress / Math.max(zoomPunchCfg.duration, 0.001), 0, 1);
+    // 実際のステージ拡大は StoryVideo 本体側の stageS 計算に組み込み済み（下記参照）。
+    // ここでは重ねて光る縁取りフラッシュだけを描く（透明レイヤーなのでtransform/scaleは無意味）。
+    // duration は「秒」指定なので、progress*dur で発動(ターン開始)からの経過秒数に変換する。
+    const local = clamp((progress * dur) / Math.max(zoomPunchCfg.duration, 0.001), 0, 1);
     const punch = Math.sin(local * Math.PI);
-    const scale = 1 + Math.max(0, zoomPunchCfg.scale - 1) * punch;
     layers.push(
       <AbsoluteFill
         key="zoomPunch"
         style={{
           pointerEvents: "none",
           boxShadow: `inset 0 0 0 ${Math.round(18 * punch * zoomPunchCfg.borderStrength)}px rgba(255,255,255,${0.11 * punch * zoomPunchCfg.borderStrength})`,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
         }}
       />
     );
@@ -905,7 +905,10 @@ const ExtraEffectsLayer: React.FC<{
   }
 
   if (active.irisOut) {
-    const p = clamp((progress - irisOutCfg.start) / Math.max(irisOutCfg.duration, 0.05), 0, 1);
+    // duration は「秒」指定(UI表示どおり)。progressはターン内の0-1割合なので、
+    // (progress-start)*dur で「発動してからの経過秒数」に変換してから比較する
+    // （そのまま割ると、ターンの長さによって体感速度が変わってしまうため）。
+    const p = clamp(((progress - irisOutCfg.start) * dur) / Math.max(irisOutCfg.duration, 0.05), 0, 1);
     if (p > 0) {
       const radius = lerp(Math.max(width, height) * irisOutCfg.startRadius, 0, easeInOutCubic(p));
       layers.push(
@@ -2825,6 +2828,21 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     stageS = shakeS;
     stageTx = clamp(tf.tx, width * (1 - shakeS), 0);
     stageTy = clamp(tf.ty, height * (1 - shakeS), 0);
+  }
+
+  // 5. ズームパンチ（zoomPunch===true のターン開始直後、一瞬だけステージ全体を追加でパンチイン）。
+  // 以前はステージと連動しない透明レイヤーの拡大＋薄い縁取りのみで体感できなかったため、
+  // 実際にステージ(背景・キャラ)を一瞬拡大する演出に変更した。
+  if (active.zoomPunch) {
+    const zoomPunchCfg = resolveEffectSettings(
+      mergeEffectSettings(story.effectSettings, active.effectSettings)
+    ).zoomPunch;
+    // duration は「秒」指定。ターン開始からの経過秒数(t - active.start)で比較する
+    // （activeProgressのようなターン内0-1割合のまま割ると、ターンの長さで体感速度が変わってしまう）。
+    const local = clamp((t - active.start) / Math.max(zoomPunchCfg.duration, 0.001), 0, 1);
+    const punch = Math.sin(local * Math.PI);
+    const punchScale = 1 + Math.max(0, zoomPunchCfg.scale - 1) * punch;
+    stageS = stageS * punchScale;
   }
 
   // shakeX/Y を加算した最終値をスケール clamp 内に収める（黒縁が出ないよう）。
