@@ -4989,18 +4989,30 @@ function addTurnAfter(inheritScene = false) {
   const script = storyData.script;
   const refTurn = selectedIdx >= 0 && selectedIdx < script.length
     ? script[selectedIdx] : null;
-  // 既定は暗転(黒) scene=""。inheritScene のときだけ直前(選択)ターンのシーンを引き継ぐ。
-  const scene = (inheritScene && refTurn) ? (refTurn.scene || "") : "";
-  const newTurn = {
-    id: generateId(script),
-    speaker: refTurn ? refTurn.speaker : (meta.speakers[0] || ""),
-    text: "",
-    scene,
-    start: 0,
-    end: 0,
-  };
-  if (inheritScene && refTurn && refTurn.insert) {
-    newTurn.insert = JSON.parse(JSON.stringify(refTurn.insert));
+  let newTurn;
+  if (inheritScene && refTurn) {
+    // 「引継」＝選択ターンの丸ごとコピー。id/start/end は新規採番のためリセットし、
+    // transition/enter/exit は1回きりの演出(シーン切替の合図・登退場)なので複製すると
+    // 二重に発火してしまうため引き継がない。それ以外(表情・ポーズ・セリフ等)は全てコピー。
+    newTurn = JSON.parse(JSON.stringify(refTurn));
+    newTurn.id = generateId(script);
+    newTurn.start = 0;
+    newTurn.end = 0;
+    delete newTurn.sentences;
+    delete newTurn.transition;
+    delete newTurn.enter;
+    delete newTurn.exit;
+    delete newTurn.exitDir;
+  } else {
+    // 既定は暗転(黒) scene=""の空ターン。
+    newTurn = {
+      id: generateId(script),
+      speaker: refTurn ? refTurn.speaker : (meta.speakers[0] || ""),
+      text: "",
+      scene: "",
+      start: 0,
+      end: 0,
+    };
   }
   const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : script.length;
   script.splice(insertAt, 0, newTurn);
