@@ -4437,11 +4437,11 @@ function makeInsertWidthField(insert, inherited = false) {
   slider.className = "field-input";
   slider.id = "fIWidth";
   slider.min = "0.6";
-  slider.max = "1.4";
+  slider.max = "2.2";
   slider.step = "0.02";
   slider.value = String(
     typeof insert?.width === "number" && Number.isFinite(insert.width)
-      ? Math.max(0.6, Math.min(1.4, insert.width))
+      ? Math.max(0.6, Math.min(2.2, insert.width))
       : 1
   );
   slider.style.cssText = "flex:1; accent-color:var(--accent);";
@@ -5021,7 +5021,7 @@ function collectInsert() {
     : 1;
   const widthBase = kind === "videocall" ? inheritedVideoCallWidth : 1;
   if (Number.isFinite(widthVal) && Math.abs(widthVal - widthBase) > 0.001) {
-    ins.width = Math.max(0.6, Math.min(1.4, widthVal));
+    ins.width = Math.max(0.6, Math.min(2.2, widthVal));
   }
 
   if (kind !== "videocall") {

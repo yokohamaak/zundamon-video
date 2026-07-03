@@ -941,7 +941,7 @@ const DEFAULT_INSERT_WIDTH = 1;
 const DEFAULT_INSERT_FONT_SCALE = 1;
 
 function insertWidthScale(insert: { width?: number } | null | undefined): number {
-  return clamp(insert?.width ?? DEFAULT_INSERT_WIDTH, 0.6, 1.4);
+  return clamp(insert?.width ?? DEFAULT_INSERT_WIDTH, 0.6, 2.2);
 }
 
 // 文字サイズの倍率（幅と同じ0.6〜1.6の範囲）。各要素のfontSizeに一律で掛ける。
