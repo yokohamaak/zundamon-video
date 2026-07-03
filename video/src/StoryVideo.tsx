@@ -249,9 +249,6 @@ export type SceneDef = {
   // モブ別の配置（scene_editor で D&D 編集）。x,y=正規化座標, scale=拡大率。
   // hidden=true で立ち絵を非表示（チャット/音声のみ登場にする）。
   mobs?: Record<string, { x: number; y: number; scale?: number; hidden?: boolean }>;
-  // BGM（このシーンに設定するBGMファイル・例 "bgm/bgm.mp3"）。
-  bgm?: string;
-  bgmVolume?: number;
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef> };
@@ -2399,28 +2396,13 @@ function targetCam(
 // ─── BGMレイヤー ────────────────────────────────────────────
 // BGM。story.bgm(時間ベース区間)があればそれを再生（隙間=無音）。無ければシーン連動。
 const BgmLayer: React.FC<{
-  script: StoryTurn[];
-  scenes: SceneLibrary;
   bgmRegions?: BgmRegion[];
   fps: number;
-}> = ({ script, scenes, bgmRegions, fps }) => {
-  type BgmInfo = { file: string; volume: number; fadeIn: number; fadeOut: number };
+}> = ({ bgmRegions, fps }) => {
   const BGM_DEFAULT_VOL = 0.25;
   const BGM_DEFAULT_FADE = 0.6;
   const isFiniteNumber = (value: unknown): value is number =>
     typeof value === "number" && Number.isFinite(value);
-
-  // フォールバック用: シーン連動BGMの解決。
-  const turnBgm = (_turnIdx: number, turn: StoryTurn): BgmInfo | null => {
-    const sceneDef = scenes.scenes[turn.scene];
-    if (!sceneDef?.bgm) return null;
-    return {
-      file: sceneDef.bgm,
-      volume: sceneDef.bgmVolume ?? BGM_DEFAULT_VOL,
-      fadeIn: BGM_DEFAULT_FADE,
-      fadeOut: BGM_DEFAULT_FADE,
-    };
-  };
 
   type BgmSegment = {
     file: string;
@@ -2431,47 +2413,17 @@ const BgmLayer: React.FC<{
     endSec: number;
   };
 
-  let validSegs: BgmSegment[];
-  if (bgmRegions && bgmRegions.length > 0) {
-    // ── 時間ベース（タイムライン編集）── これが唯一の真実。隙間=無音。
-    validSegs = bgmRegions
-      .filter((r) => r.file && isFiniteNumber(r.start) && isFiniteNumber(r.end) && r.end > r.start)
-      .map((r) => ({
-        file: r.file,
-        volume: r.volume ?? BGM_DEFAULT_VOL,
-        fadeIn: r.fadeIn ?? BGM_DEFAULT_FADE,
-        fadeOut: r.fadeOut ?? BGM_DEFAULT_FADE,
-        startSec: r.start,
-        endSec: r.end,
-      }));
-  } else {
-    // ── フォールバック: シーン連動BGMを per-turn で区間化 ──
-    const segments: BgmSegment[] = [];
-    for (let i = 0; i < script.length; i++) {
-      const turn = script[i];
-      const info = turnBgm(i, turn);
-      if (!info) {
-        segments.push({ file: "", volume: 0, fadeIn: 0, fadeOut: 0, startSec: 0, endSec: 0 });
-        continue;
-      }
-      if (!isFiniteNumber(turn.start) || !isFiniteNumber(turn.end)) continue;
-      const last = segments[segments.length - 1];
-      if (last && last.file === info.file) {
-        last.endSec = turn.end;
-        last.fadeOut = info.fadeOut;
-      } else {
-        segments.push({
-          file: info.file,
-          volume: info.volume,
-          fadeIn: info.fadeIn,
-          fadeOut: info.fadeOut,
-          startSec: turn.start,
-          endSec: turn.end,
-        });
-      }
-    }
-    validSegs = segments.filter((s) => !!s.file);
-  }
+  // 時間ベース（タイムライン編集）のみが唯一の真実。隙間=無音。
+  const validSegs: BgmSegment[] = (bgmRegions || [])
+    .filter((r) => r.file && isFiniteNumber(r.start) && isFiniteNumber(r.end) && r.end > r.start)
+    .map((r) => ({
+      file: r.file,
+      volume: r.volume ?? BGM_DEFAULT_VOL,
+      fadeIn: r.fadeIn ?? BGM_DEFAULT_FADE,
+      fadeOut: r.fadeOut ?? BGM_DEFAULT_FADE,
+      startSec: r.start,
+      endSec: r.end,
+    }));
 
   return (
     <>
@@ -2648,7 +2600,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         }}
       >
         {audio ? <Audio src={mediaStaticSrc(audioSrc)} /> : null}
-        <BgmLayer script={script} scenes={scenes} bgmRegions={story.bgm} fps={fps} />
+        <BgmLayer bgmRegions={story.bgm} fps={fps} />
         <SeLayer script={script} seMap={seMap} fps={fps} />
         {active.scene ? <span>未登録シーン: {active.scene}</span> : null}
       </AbsoluteFill>
@@ -3590,8 +3542,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     <AbsoluteFill style={{ background: "#000", overflow: "hidden" }}>
       {audio ? <Audio src={mediaStaticSrc(audioSrc)} /> : null}
       <BgmLayer
-        script={script}
-        scenes={scenes}
         bgmRegions={story.bgm}
         fps={fps}
       />

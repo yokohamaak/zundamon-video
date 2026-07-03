@@ -528,14 +528,6 @@
   .se-event-sel { flex: 1; }
   .se-event-vol { width: 90px; flex-shrink: 0; }
   .se-enabled-cb { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
-  .scene-bgm-row {
-    display: flex; align-items: center; gap: 8px; padding: 5px 0;
-    border-bottom: 1px solid rgba(46,51,71,.5);
-  }
-  .scene-bgm-row:last-child { border-bottom: none; }
-  .scene-bgm-label { min-width: 120px; font-size: 12px; color: var(--text); flex-shrink: 0; }
-  .scene-bgm-sel { flex: 1; }
-  .scene-bgm-vol { width: 90px; flex-shrink: 0; }
   .bgm-range-item {
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 5px; padding: 8px 10px;
@@ -1256,20 +1248,6 @@
       </div>
     </div>
 
-    <!-- セクションB: シーン別BGM -->
-    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
-      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
-        シーン別 BGM
-      </div>
-      <div id="sceneBgmContainer" style="display:flex; flex-direction:column; gap:6px;">
-        <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
-      </div>
-      <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
-        <button class="btn btn-primary btn-sm" id="btnSaveSceneBgm">シーンBGMを保存</button>
-        <span id="sceneBgmStatus" style="font-size:12px;"></span>
-      </div>
-    </div>
-
     <!-- セクションC: 読み替え辞書 -->
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
       <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
@@ -1877,7 +1855,6 @@ window.addEventListener("story-player-frame", (e) => {
 // ============================================================
 // プレビュー下タイムライン（セリフ＋BGM）。既存データ/連動を流用。
 // ============================================================
-let _sceneBgmMap = null;   // { sceneKey: {bgm, bgmVolume} }
 let _playheadTime = 0;     // 現在の再生位置(秒)
 const _SPK_COLORS = { zundamon: "#5fb84f", metan: "#e87bb0", "営業": "#9aa0a6", "部長": "#7a8190", "AI": "#5b8dee" };
 
@@ -1898,15 +1875,6 @@ const TRANSITION_DEFAULT = "cut";
 const OVERLAY_MIN_DUR = 0.2;
 const OVERLAY_MIN_W = 0.06;
 const OVERLAY_MAX_W = 1.0;
-
-async function ensureSceneBgmMap() {
-  if (_sceneBgmMap) return _sceneBgmMap;
-  try {
-    const r = await fetch("/api/scene-bgm", { cache: "no-store" });
-    if (r.ok) _sceneBgmMap = await r.json();
-  } catch (e) { /* 無視 */ }
-  return _sceneBgmMap || {};
-}
 
 function ensureOverlayArray() {
   if (!storyData.overlays) storyData.overlays = [];
@@ -2124,29 +2092,13 @@ function createTextOverlayAtPlayhead() {
 }
 
 function _bgmRegions() {
-  // 時間ベース: storyData.bgm = [{start,end,file,volume,fadeIn,fadeOut}]
-  // file あり & end>start のものだけ表示。空ならシーン連動フォールバック表示。
+  // 時間ベース: storyData.bgm = [{start,end,file,volume,fadeIn,fadeOut}]。
+  // file あり & end>start のものだけ表示。BGMはこれが唯一の設定手段。
   const direct = (storyData && storyData.bgm) ? storyData.bgm : [];
-  const timeBased = direct.filter(o => o.file && typeof o.start === "number" && typeof o.end === "number" && o.end > o.start);
-  if (timeBased.length > 0) {
-    return timeBased.slice().sort((a, b) => a.start - b.start);
-  }
-  // フォールバック: シーン連動（ターン単位→時間変換）。表示専用(編集不可)
-  const turns = previewScriptTurns();
-  const scn = _sceneBgmMap || {};
-  const regions = [];
-  for (let i = 0; i < turns.length; i++) {
-    const sc = scn[turns[i].scene];
-    const f = sc && sc.bgm ? sc.bgm : null;
-    if (!f) continue;
-    const last = regions[regions.length - 1];
-    if (last && last.file === f && last._endIdx === i - 1) {
-      last._endIdx = i; last.end = turns[i].end || 0;
-    } else {
-      regions.push({ file: f, start: turns[i].start || 0, end: turns[i].end || 0, _endIdx: i, _sceneFallback: true });
-    }
-  }
-  return regions;
+  return direct
+    .filter(o => o.file && typeof o.start === "number" && typeof o.end === "number" && o.end > o.start)
+    .slice()
+    .sort((a, b) => a.start - b.start);
 }
 
 function _overlayTimelineItems() {
@@ -3158,7 +3110,6 @@ function setupScriptTimeline() {
     renderOverlayEditLayer();
   });
   window.addEventListener("resize", drawScriptTimeline);
-  ensureSceneBgmMap().then(drawScriptTimeline);
 }
 
 function renderOverlayEditLayer() {
@@ -5829,9 +5780,6 @@ function setupEvents() {
   // 音タブ: SEマッピング保存
   document.getElementById("btnSaveSeMap").addEventListener("click", saveSeMap);
 
-  // 音タブ: シーンBGM保存
-  document.getElementById("btnSaveSceneBgm").addEventListener("click", saveSceneBgm);
-
   // 音タブ: 読み替え辞書
   document.getElementById("btnSaveReadings").addEventListener("click", saveReadings);
   document.getElementById("btnAddReading").addEventListener("click", () => {
@@ -6130,20 +6078,9 @@ function buildDefaultInsert(kind, prev) {
 // ============================================================
 let audioAssets = null;   // { bgm: [...], se: [...] }
 let seMap = null;         // se-map.json の中身
-let sceneBgmData = null;  // { sceneKey: {label, bgm, bgmVolume}, ... }
 let readingsMap = null;   // config/readings.json の中身（_comment除く）
 let kanjiReadingsMap = null;  // config/kanji_readings.json の中身（_comment除く）
 let audioLoaded = false;  // 初回ロード済みフラグ
-
-function hasTimelineBgmOverride() {
-  const bgm = storyData && Array.isArray(storyData.bgm) ? storyData.bgm : [];
-  return bgm.some((r) =>
-    r && r.file &&
-    typeof r.start === "number" &&
-    typeof r.end === "number" &&
-    r.end > r.start
-  );
-}
 
 function isIOSVolumeLimited() {
   const ua = navigator.userAgent || "";
@@ -6260,21 +6197,18 @@ async function loadAudioPanel() {
   // 毎回再取得したい場合は audioLoaded をリセットして呼べばよい。
   if (audioLoaded) return;
   try {
-    const [assetsRes, seRes, sceneBgmRes, readingsRes, kanjiRes] = await Promise.all([
+    const [assetsRes, seRes, readingsRes, kanjiRes] = await Promise.all([
       fetch("/api/audio-assets"),
       fetch("/api/se-map"),
-      fetch("/api/scene-bgm"),
       fetch("/api/readings"),
       fetch("/api/kanji-readings"),
     ]);
     audioAssets = await assetsRes.json();
     seMap = await seRes.json();
-    sceneBgmData = await sceneBgmRes.json();
     readingsMap = await readingsRes.json();
     kanjiReadingsMap = await kanjiRes.json();
     audioLoaded = true;
     renderSeMapSection();
-    renderSceneBgmSection();
     renderReadingsSection();
     renderKanjiReadingsSection();
   } catch (e) {
@@ -6410,130 +6344,6 @@ async function saveSeMap() {
       statusEl.textContent = "保存しました（プレビュー反映済み）";
       setTimeout(() => { statusEl.textContent = ""; }, 2500);
       // プレビューのPlayerへ最新のse-mapを反映（再生すれば鳴る）。
-      if (window.storyPlayer && playerReady && window.storyPlayer.reloadAudio) {
-        window.storyPlayer.reloadAudio();
-      }
-    } else {
-      statusEl.style.color = "var(--danger)";
-      statusEl.textContent = "保存失敗: " + (result.error || r.status);
-    }
-  } catch (e) {
-    statusEl.style.color = "var(--danger)";
-    statusEl.textContent = "通信エラー";
-  }
-}
-
-// ============================================================
-// セクションB: シーン別BGM
-// ============================================================
-function renderSceneBgmSection() {
-  const container = document.getElementById("sceneBgmContainer");
-  container.innerHTML = "";
-  const overridden = hasTimelineBgmOverride();
-
-  if (overridden) {
-    const note = document.createElement("div");
-    note.style.cssText = "font-size:12px; line-height:1.6; color:var(--yellow); background:rgba(251,191,36,.08); border-left:3px solid var(--yellow); padding:8px 10px; border-radius:4px;";
-    note.textContent = "現在はタイムラインBGMが有効です。シーン別BGMの設定は保存されますが、プレビュー再生には反映されません。反映したい場合は台本タブのBGM区間を削除してください。";
-    container.appendChild(note);
-  }
-
-  const sceneKeys = sortedKeysBySceneLabel(sceneBgmData || {});
-  if (sceneKeys.length === 0) {
-    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">シーンが未登録です</div>";
-    return;
-  }
-
-  for (const sk of sceneKeys) {
-    const sc = sceneBgmData[sk];
-    const row = document.createElement("div");
-    row.className = "scene-bgm-row";
-
-    // シーン名ラベル
-    const lbl = document.createElement("span");
-    lbl.className = "scene-bgm-label";
-    lbl.textContent = sc.label || sk;
-    lbl.title = sk;
-    row.appendChild(lbl);
-
-    // BGMドロップダウン
-    const sel = document.createElement("select");
-    sel.className = "field-select scene-bgm-sel";
-    sel.dataset.key = sk;
-    const noneOpt = document.createElement("option");
-    noneOpt.value = ""; noneOpt.textContent = "なし";
-    sel.appendChild(noneOpt);
-    for (const bgmFile of sortedStrings(audioAssets.bgm || [])) {
-      const opt = document.createElement("option");
-      opt.value = bgmFile; opt.textContent = bgmFile;
-      sel.appendChild(opt);
-    }
-    sel.value = sc.bgm || "";
-    if (overridden) sel.disabled = true;
-    row.appendChild(sel);
-
-    // 音量スライダー
-    const volWrap = document.createElement("div");
-    volWrap.style.cssText = "display:flex; align-items:center; gap:4px; flex-shrink:0;";
-    const volSlider = document.createElement("input");
-    volSlider.type = "range"; volSlider.min = "0"; volSlider.max = "1"; volSlider.step = "0.05";
-    volSlider.value = sc.bgmVolume != null ? sc.bgmVolume : 0.25;
-    volSlider.className = "scene-bgm-vol";
-    volSlider.style.cssText = "width:90px; accent-color:var(--accent);";
-    if (overridden) volSlider.disabled = true;
-    const volDisp = document.createElement("span");
-    volDisp.className = "vol-display";
-    volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
-    volSlider.addEventListener("input", () => {
-      volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
-    });
-    volWrap.appendChild(volSlider);
-    volWrap.appendChild(volDisp);
-    row.appendChild(volWrap);
-    row.appendChild(makeAudioPlayBtn(() => sel.value, () => parseFloat(volSlider.value)));
-
-    container.appendChild(row);
-  }
-}
-
-async function saveSceneBgm() {
-  const statusEl = document.getElementById("sceneBgmStatus");
-  if (hasTimelineBgmOverride()) {
-    statusEl.style.color = "var(--yellow)";
-    statusEl.textContent = "タイムラインBGMが優先中です。変更したい場合は台本タブのBGM区間を削除してください。";
-    return;
-  }
-  statusEl.style.color = "var(--text2)";
-  statusEl.textContent = "保存中...";
-  try {
-    // UI から収集
-    const updates = {};
-    const container = document.getElementById("sceneBgmContainer");
-    const rows = container.querySelectorAll(".scene-bgm-row");
-    for (const row of rows) {
-      const sel = row.querySelector(".scene-bgm-sel");
-      const volSlider = row.querySelector("input[type=range]");
-      if (!sel) continue;
-      const sk = sel.dataset.key;
-      updates[sk] = {
-        bgm: sel.value || null,
-        volume: volSlider ? parseFloat(volSlider.value) : 0.25,
-      };
-    }
-    const r = await fetch("/api/scene-bgm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ updates }),
-    });
-    const result = await r.json();
-    if (r.ok && result.ok) {
-      statusEl.style.color = "var(--green)";
-      statusEl.textContent = "保存しました（プレビュー反映済み）";
-      setTimeout(() => { statusEl.textContent = ""; }, 2500);
-      // タイムラインのBGM表示を最新化
-      _sceneBgmMap = null;
-      ensureSceneBgmMap().then(drawScriptTimeline);
-      // プレビューのPlayerへ最新のシーンBGMを反映。
       if (window.storyPlayer && playerReady && window.storyPlayer.reloadAudio) {
         window.storyPlayer.reloadAudio();
       }

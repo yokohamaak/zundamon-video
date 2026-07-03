@@ -305,38 +305,6 @@ def _save_kanji_readings(entries):
         json.dump(out, f, ensure_ascii=False, indent=2)
 
 
-def _update_scene_bgm(updates):
-    """story-scenes.json の各シーンに bgm/bgmVolume を反映する。
-
-    updates = { sceneKey: {"bgm": "bgm/x.mp3"|null, "volume": 0.25}, ... }
-    bgm が null/空なら該当シーンから bgm/bgmVolume を削除する。
-    """
-    if not isinstance(updates, dict):
-        raise ValueError("updates が不正です")
-    if not os.path.exists(SCENES_JSON):
-        raise ValueError("story-scenes.json がありません")
-    with open(SCENES_JSON, encoding="utf-8") as f:
-        data = json.load(f)
-    scenes = data.get("scenes", {})
-    for key, val in updates.items():
-        if key not in scenes or not isinstance(scenes[key], dict):
-            continue
-        if not isinstance(val, dict):
-            continue
-        bgm = val.get("bgm")
-        if bgm:
-            scenes[key]["bgm"] = bgm
-            vol = val.get("volume")
-            if isinstance(vol, (int, float)):
-                scenes[key]["bgmVolume"] = vol
-        else:
-            scenes[key].pop("bgm", None)
-            scenes[key].pop("bgmVolume", None)
-    with open(SCENES_JSON, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    return len(updates)
-
-
 def _load_scenes_detail():
     """story-scenes.json からプロンプト用のシーン情報を返す。"""
     if not os.path.exists(SCENES_JSON):
@@ -976,24 +944,6 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
-        elif path == "/api/scene-bgm":
-            # シーン別BGM編集用: 各シーンの label/bgm/bgmVolume を返す。
-            try:
-                out = {}
-                if os.path.exists(SCENES_JSON):
-                    with open(SCENES_JSON, encoding="utf-8") as f:
-                        scenes = json.load(f).get("scenes", {})
-                    for k, v in scenes.items():
-                        if isinstance(v, dict):
-                            out[k] = {
-                                "label": v.get("label") or k,
-                                "bgm": v.get("bgm"),
-                                "bgmVolume": v.get("bgmVolume"),
-                            }
-                self._send_json(out)
-            except Exception as e:
-                self._send_error_json(500, str(e))
-
         elif path.startswith("/img/"):
             rel = path[len("/img/"):]
             safe = _safe_path(VIDEO_PUBLIC_DIR, rel)
@@ -1054,17 +1004,6 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     # VOICEVOX未起動等でも保存自体は成功しているので警告として返す。
                     self._send_json({"ok": True, "synced": 0, "syncWarning": str(e)})
-            except (json.JSONDecodeError, ValueError) as e:
-                self._send_error_json(400, str(e))
-            except Exception as e:
-                self._send_error_json(500, str(e))
-        elif path == "/api/scene-bgm":
-            length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(length)
-            try:
-                params = json.loads(body.decode("utf-8")) if body else {}
-                n = _update_scene_bgm(params.get("updates", {}))
-                self._send_json({"ok": True, "updated": n})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:
