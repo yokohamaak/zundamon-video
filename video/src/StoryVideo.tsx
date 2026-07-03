@@ -2819,14 +2819,28 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     : undefined;
 
   // ── 場面切り替え演出 ──────────────────────────────────────
-  const FADE = 0.3; // 片側の秒数（総遷移 = 2×FADE）
-  const entryProgress =
-    seg.start > 1e-6 ? clamp((t - seg.start) / FADE, 0, 1) : 1;
+  // 片側の秒数（総遷移 = 2×FADE）。フェードはゆったり、ワイプ/スライドは機敏に。
+  const FADE_BY_TRANSITION: Record<string, number> = {
+    "fade-black": 0.38,
+    "fade-white": 0.38,
+    "wipe-left": 0.22,
+    "wipe-right": 0.22,
+    "slide-left": 0.22,
+    "slide-right": 0.22,
+  };
+  const DEFAULT_FADE = 0.3;
+  const entryFade = FADE_BY_TRANSITION[seg.transition] ?? DEFAULT_FADE;
+  const exitFade = nextSeg
+    ? FADE_BY_TRANSITION[nextSeg.transition] ?? DEFAULT_FADE
+    : DEFAULT_FADE;
+  const entryProgress = easeInOutCubic(
+    seg.start > 1e-6 ? clamp((t - seg.start) / entryFade, 0, 1) : 1
+  );
   const exitProgress = nextSeg
-    ? clamp((t - (nextSeg.start - FADE)) / FADE, 0, 1)
+    ? easeInOutCubic(clamp((t - (nextSeg.start - exitFade)) / exitFade, 0, 1))
     : 0;
-  const inEntryWindow = seg.start > 1e-6 && t < seg.start + FADE;
-  const inExitWindow = !!nextSeg && t > nextSeg.start - FADE;
+  const inEntryWindow = seg.start > 1e-6 && t < seg.start + entryFade;
+  const inExitWindow = !!nextSeg && t > nextSeg.start - exitFade;
   const entrySceneDef = prevSeg ? scenes.scenes[prevSeg.scene] : null;
   const nextSceneDef = nextSeg ? scenes.scenes[nextSeg.scene] : null;
 
