@@ -2196,7 +2196,10 @@ function _timelineTotal() {
 function drawScriptTimeline() {
   const canvas = document.getElementById("scriptTimeline");
   if (!canvas) return;
-  const turns = storyData ? storyData.script : [];
+  // previewScriptTurns() で仮尺補正した時刻を使う。プレイヤー(buildPreviewStory)や
+  // 場面転換アイコン(buildSceneBlocks)と同じ時刻基準に揃えないと、セリフ帯だけ
+  // 古い(未補正の)時刻のままズレて見える。
+  const turns = previewScriptTurns();
   const ctx = canvas.getContext("2d");
   // 横ズーム: スクロール領域の幅 × 倍率 をキャンバス幅にする（拡大時は横スクロール）。
   const scrollEl = document.getElementById("timelineScroll");
@@ -2235,7 +2238,7 @@ function drawScriptTimeline() {
     ctx.fillRect(x1, yTalk, Math.max(2, x2 - x1 - 1), talkH);
     ctx.globalAlpha = 1;
   }
-  const sceneBlocks = buildSceneBlocks(previewScriptTurns());
+  const sceneBlocks = buildSceneBlocks(turns);
   for (let i = 1; i < sceneBlocks.length; i++) {
     const block = sceneBlocks[i];
     const x = xOf(block.start);
