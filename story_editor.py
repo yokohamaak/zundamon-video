@@ -10,6 +10,8 @@ import argparse
 import atexit
 import json
 import os
+import re
+import signal
 import socket
 import subprocess
 import sys
@@ -151,6 +153,13 @@ def _save_story(data):
     _validate_story(data)
     with open(STORY_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _safe_export_filename(title):
+    """タイトルから書き出しファイル名を作る。OSで問題になりうる文字だけ除去する。"""
+    cleaned = re.sub(r'[\\/:*?"<>|\r\n\t]', "", (title or "")).strip()
+    cleaned = cleaned or "story"
+    return cleaned + ".mp4"
 
 
 def _load_scenes_keys():
@@ -1126,6 +1135,84 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                      else "__DONE__ err 音声生成に失敗（VOICEVOX起動を確認）\n")
             except Exception as e:
                 emit("__DONE__ err " + str(e) + "\n")
+        elif path == "/api/export":
+            # 動画書き出し（prep-story → remotion render）。進捗をストリーミングで逐次返す。
+            # remotion render はプログレスバーを \r で更新するため、\n だけでなく \r も
+            # 行区切りとして扱い、進捗を都度クライアントへ流す。
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")
+            self.end_headers()
+
+            def emit2(text):
+                try:
+                    self.wfile.write(text.encode("utf-8"))
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    return False
+
+            try:
+                title = _load_story().get("title", "")
+                filename = _safe_export_filename(title)
+                video_dir = os.path.join(ROOT_DIR, "video")
+                out_dir = os.path.join(video_dir, "out")
+                os.makedirs(out_dir, exist_ok=True)
+                out_rel = os.path.join("out", filename)
+
+                emit2("[prep] アセット準備中...\n")
+                prep = subprocess.run(
+                    ["node", "scripts/prep-story.mjs"],
+                    cwd=video_dir, capture_output=True, text=True,
+                )
+                if prep.returncode != 0:
+                    emit2("__DONE__ err prep-story 失敗: " + (prep.stderr or "").strip()[:300] + "\n")
+                else:
+                    remotion_bin = os.path.join(video_dir, "node_modules", ".bin", "remotion")
+                    proc = subprocess.Popen(
+                        [remotion_bin, "render", "StoryVideo", out_rel],
+                        cwd=video_dir, stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT, text=True, bufsize=1,
+                        start_new_session=True,  # 独立プロセスグループ化（下記killpgに必要）
+                    )
+                    buf = ""
+                    killed = False
+                    while True:
+                        chunk = proc.stdout.read(256)
+                        if not chunk:
+                            break
+                        buf += chunk
+                        while True:
+                            idx_n = buf.find("\n")
+                            idx_r = buf.find("\r")
+                            candidates = [i for i in (idx_n, idx_r) if i != -1]
+                            if not candidates:
+                                break
+                            idx = min(candidates)
+                            line = buf[:idx].strip()
+                            buf = buf[idx + 1:]
+                            if line and not emit2(line + "\n"):
+                                killed = True
+                                break
+                        if killed:
+                            break
+                    if killed:
+                        # remotionはレンダリング用にchrome-headless-shellを複数子プロセスとして
+                        # 起動する。proc.kill()は直接の子(remotion本体)しか殺せず、孫プロセスの
+                        # chrome-headless-shellが残留してCPU/メモリを食い続けるため、
+                        # プロセスグループごとkillする。
+                        try:
+                            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    proc.wait()
+                    if proc.returncode == 0:
+                        emit2("__DONE__ ok " + out_rel + "\n")
+                    else:
+                        emit2("__DONE__ err 書き出しに失敗しました（詳細はターミナルのログを確認）\n")
+            except Exception as e:
+                emit2("__DONE__ err " + str(e) + "\n")
         elif path == "/api/poses":
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)

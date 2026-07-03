@@ -802,7 +802,7 @@
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
   <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
   <input type="file" id="importFile" accept=".json,application/json" style="display:none">
-  <button class="btn btn-secondary" disabled title="次フェーズ（書き出し）">🎬 書き出し</button>
+  <button class="btn btn-secondary" id="btnExportVideo" title="保存してRemotionで動画を書き出す（video/out/ にタイトル名で出力）">🎬 書き出し</button>
   <span class="status" id="statusMsg"></span>
 </div>
 
@@ -5245,6 +5245,50 @@ async function generateAudio(confirmFirst = true) {
   }
 }
 
+// 動画書き出し（保存 → prep-story → remotion render → video/out/<タイトル>.mp4）
+async function exportVideo() {
+  const btn = document.getElementById("btnExportVideo");
+  if (!confirm("保存して動画を書き出します（数分かかることがあります）。よろしいですか？")) return;
+  btn.disabled = true;
+  lockScriptEditing(); // 書き出し中の編集はサーバー側の書き出し対象に反映されないため
+  try {
+    await saveStory();
+    setStatus("busy", "書き出し 準備中…");
+    const r = await fetch("/api/export", { method: "POST" });
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "", ok = false, errMsg = "", outPath = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n");
+      buf = lines.pop();
+      for (const ln of lines) {
+        const s = ln.trim();
+        if (!s) continue;
+        if (s.startsWith("__DONE__")) {
+          ok = s.startsWith("__DONE__ ok");
+          if (ok) outPath = s.replace("__DONE__ ok", "").trim();
+          else errMsg = s.replace("__DONE__ err", "").trim();
+        } else {
+          setStatus("busy", "書き出し: " + s);
+        }
+      }
+    }
+    if (ok) {
+      setStatus("ok", "書き出し 完了: video/" + outPath);
+    } else {
+      setStatus("err", "書き出し 失敗: " + (errMsg || "不明なエラー"));
+    }
+  } catch (e) {
+    setStatus("err", "書き出し 通信エラー");
+  } finally {
+    btn.disabled = false;
+    unlockScriptEditing();
+  }
+}
+
 // ============================================================
 // ユーティリティ
 // ============================================================
@@ -5576,6 +5620,7 @@ function setupEvents() {
     e.target.value = ""; // 同じファイルを再選択できるようリセット
   });
   document.getElementById("btnAudio").addEventListener("click", generateAudio);
+  document.getElementById("btnExportVideo").addEventListener("click", exportVideo);
   document.getElementById("btnAdd").addEventListener("click", () => addTurnAfter(false));
   document.getElementById("btnAddInherit").addEventListener("click", () => addTurnAfter(true));
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
