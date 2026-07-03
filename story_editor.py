@@ -26,6 +26,11 @@ STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
 EXPRESSIONS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "expressions.json")
 SE_MAP_JSON = os.path.join(VIDEO_PUBLIC_DIR, "se-map.json")
+READINGS_JSON = os.path.join(ROOT_DIR, "config", "readings.json")
+READINGS_COMMENT = (
+    "英字→カタカナ読み(音声専用・字幕は英字のまま)。ここに書くと組み込み辞書を上書き/追記します。"
+    "キーは英字語、値はカタカナ。"
+)
 BGM_DIR = os.path.join(VIDEO_PUBLIC_DIR, "bgm")
 SE_DIR = os.path.join(VIDEO_PUBLIC_DIR, "se")
 OVERLAYS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "overlays")
@@ -220,6 +225,37 @@ def _save_se_map(data):
         raise ValueError("se-map は object である必要があります")
     with open(SE_MAP_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _load_readings():
+    """config/readings.json を返す（_comment 等の先頭アンダースコアキーは除く）。"""
+    if not os.path.exists(READINGS_JSON):
+        return {}
+    try:
+        with open(READINGS_JSON, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {k: v for k, v in data.items() if isinstance(k, str) and not k.startswith("_")}
+
+
+def _save_readings(entries):
+    if not isinstance(entries, dict):
+        raise ValueError("entries は object である必要があります")
+    cleaned = {}
+    for k, v in entries.items():
+        if not isinstance(k, str) or not k.strip():
+            continue
+        if not isinstance(v, str) or not v.strip():
+            continue
+        cleaned[k.strip().lower()] = v.strip()
+    out = {"_comment": READINGS_COMMENT}
+    out.update(dict(sorted(cleaned.items())))
+    os.makedirs(os.path.dirname(READINGS_JSON), exist_ok=True)
+    with open(READINGS_JSON, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=2)
 
 
 def _update_scene_bgm(updates):
@@ -881,6 +917,12 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/readings":
+            try:
+                self._send_json(_load_readings())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path == "/api/scene-bgm":
             # シーン別BGM編集用: 各シーンの label/bgm/bgmVolume を返す。
             try:
@@ -931,6 +973,17 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             try:
                 data = json.loads(body.decode("utf-8"))
                 _save_se_map(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/readings":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                _save_readings(data)
                 self._send_json({"ok": True})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))

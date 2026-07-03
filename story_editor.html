@@ -1266,6 +1266,24 @@
       </div>
     </div>
 
+    <!-- セクションC: 読み替え辞書 -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        読み替え辞書
+      </div>
+      <div style="font-size:12px; color:var(--text2); line-height:1.6;">
+        英字などを音声合成時だけ指定の読み（カタカナ）に置き換えます。字幕表示には影響しません。保存後、台本タブの「音声生成」で反映されます。
+      </div>
+      <input type="text" id="readingsFilter" class="field-input" placeholder="絞り込み（英単語）" style="max-width:240px;">
+      <div id="readingsList" style="display:flex; flex-direction:column; gap:6px; max-height:360px; overflow-y:auto;">
+        <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
+      </div>
+      <button class="insert-add-btn" id="btnAddReading" style="align-self:flex-start;">＋ 読み替え追加</button>
+      <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
+        <button class="btn btn-primary btn-sm" id="btnSaveReadings">読み替え辞書を保存</button>
+        <span id="readingsStatus" style="font-size:12px;"></span>
+      </div>
+    </div>
 
   </div>
 </div>
@@ -2090,7 +2108,7 @@ function _bgmRegions() {
     return timeBased.slice().sort((a, b) => a.start - b.start);
   }
   // フォールバック: シーン連動（ターン単位→時間変換）。表示専用(編集不可)
-  const turns = storyData ? storyData.script : [];
+  const turns = previewScriptTurns();
   const scn = _sceneBgmMap || {};
   const regions = [];
   for (let i = 0; i < turns.length; i++) {
@@ -2149,7 +2167,7 @@ function _overlayLaneY(canvas) {
 }
 
 function _timelineTotal() {
-  const turns = storyData ? storyData.script : [];
+  const turns = previewScriptTurns();
   let m = 1;
   for (const t of turns) m = Math.max(m, t.end || 0);
   return m;
@@ -3954,7 +3972,7 @@ function selectTurn(idx, doSeek = true) {
 
 // 時刻(秒)に対応する turn の index（start <= t の最後のターン）。
 function turnIndexAtTime(t) {
-  const s = storyData ? storyData.script : [];
+  const s = previewScriptTurns();
   let idx = -1;
   for (let i = 0; i < s.length; i++) {
     if ((s[i].start || 0) <= t + 1e-6) idx = i; else break;
@@ -5598,6 +5616,13 @@ function setupEvents() {
   // 音タブ: シーンBGM保存
   document.getElementById("btnSaveSceneBgm").addEventListener("click", saveSceneBgm);
 
+  // 音タブ: 読み替え辞書
+  document.getElementById("btnSaveReadings").addEventListener("click", saveReadings);
+  document.getElementById("btnAddReading").addEventListener("click", () => {
+    document.getElementById("readingsList").appendChild(makeReadingRow("", ""));
+  });
+  document.getElementById("readingsFilter").addEventListener("input", applyReadingsFilter);
+
   // 音タブ: プレビュー再生/停止
   document.getElementById("btnAudioPlay").addEventListener("click", toggleAudioPreview);
 
@@ -5882,6 +5907,7 @@ function buildDefaultInsert(kind, prev) {
 let audioAssets = null;   // { bgm: [...], se: [...] }
 let seMap = null;         // se-map.json の中身
 let sceneBgmData = null;  // { sceneKey: {label, bgm, bgmVolume}, ... }
+let readingsMap = null;   // config/readings.json の中身（_comment除く）
 let audioLoaded = false;  // 初回ロード済みフラグ
 
 function hasTimelineBgmOverride() {
@@ -6009,17 +6035,20 @@ async function loadAudioPanel() {
   // 毎回再取得したい場合は audioLoaded をリセットして呼べばよい。
   if (audioLoaded) return;
   try {
-    const [assetsRes, seRes, sceneBgmRes] = await Promise.all([
+    const [assetsRes, seRes, sceneBgmRes, readingsRes] = await Promise.all([
       fetch("/api/audio-assets"),
       fetch("/api/se-map"),
       fetch("/api/scene-bgm"),
+      fetch("/api/readings"),
     ]);
     audioAssets = await assetsRes.json();
     seMap = await seRes.json();
     sceneBgmData = await sceneBgmRes.json();
+    readingsMap = await readingsRes.json();
     audioLoaded = true;
     renderSeMapSection();
     renderSceneBgmSection();
+    renderReadingsSection();
   } catch (e) {
     document.getElementById("seMapContainer").innerHTML =
       "<div style=\"color:var(--danger);font-size:12px;\">読み込みエラー: " + e.message + "</div>";
@@ -6401,6 +6430,103 @@ function collectManualSe() {
     delete turn.se;
   }
   markDirty();
+}
+
+// ============================================================
+// セクションC: 読み替え辞書
+// ============================================================
+function makeReadingRow(word, reading) {
+  const row = document.createElement("div");
+  row.className = "reading-row";
+  row.style.cssText = "display:flex; align-items:center; gap:8px;";
+
+  const wordInp = document.createElement("input");
+  wordInp.type = "text";
+  wordInp.className = "field-input reading-word";
+  wordInp.style.cssText = "flex:1;";
+  wordInp.placeholder = "英単語（例: api）";
+  wordInp.value = word || "";
+  row.appendChild(wordInp);
+
+  const arrow = document.createElement("span");
+  arrow.textContent = "→";
+  arrow.style.cssText = "color:var(--text2); flex-shrink:0;";
+  row.appendChild(arrow);
+
+  const readingInp = document.createElement("input");
+  readingInp.type = "text";
+  readingInp.className = "field-input reading-value";
+  readingInp.style.cssText = "flex:1;";
+  readingInp.placeholder = "読み（カタカナ、例: エーピーアイ）";
+  readingInp.value = reading || "";
+  row.appendChild(readingInp);
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "btn btn-danger btn-sm";
+  delBtn.style.flexShrink = "0";
+  delBtn.textContent = "×";
+  delBtn.addEventListener("click", () => { row.remove(); });
+  row.appendChild(delBtn);
+
+  return row;
+}
+
+function renderReadingsSection() {
+  const container = document.getElementById("readingsList");
+  container.innerHTML = "";
+  const keys = sortedStrings(Object.keys(readingsMap || {}));
+  for (const key of keys) {
+    container.appendChild(makeReadingRow(key, readingsMap[key]));
+  }
+  if (container.children.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">読み替え辞書が空です</div>";
+  }
+}
+
+function applyReadingsFilter() {
+  const filter = (document.getElementById("readingsFilter").value || "").trim().toLowerCase();
+  const rows = document.querySelectorAll("#readingsList .reading-row");
+  for (const row of rows) {
+    const wordInp = row.querySelector(".reading-word");
+    const match = !filter || (wordInp.value || "").toLowerCase().includes(filter);
+    row.style.display = match ? "" : "none";
+  }
+}
+
+async function saveReadings() {
+  const statusEl = document.getElementById("readingsStatus");
+  statusEl.style.color = "var(--text2)";
+  statusEl.textContent = "保存中...";
+  try {
+    const rows = document.querySelectorAll("#readingsList .reading-row");
+    const entries = {};
+    for (const row of rows) {
+      const word = row.querySelector(".reading-word").value.trim();
+      const reading = row.querySelector(".reading-value").value.trim();
+      if (!word || !reading) continue;
+      entries[word.toLowerCase()] = reading;
+    }
+    const r = await fetch("/api/readings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entries),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      readingsMap = entries;
+      renderReadingsSection();
+      applyReadingsFilter();
+      statusEl.style.color = "var(--green)";
+      statusEl.textContent = "保存しました";
+      setTimeout(() => { statusEl.textContent = ""; }, 2500);
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "保存失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
 }
 
 // ============================================================
