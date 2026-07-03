@@ -2294,7 +2294,9 @@ function resolveSpeakerFocusStart(script: StoryTurn[], activeIdx: number): numbe
       focusStart = null;
       continue;
     }
-    if (turn.emphasis === true) {
+    if (turn.emphasis === true && focusStart === null) {
+      // 既に寄っている区間で emphasis:true が連続しても開始時刻を上書きしない。
+      // 上書きすると寄り→引き→寄りの縮小アニメが毎ターン再生されてしまう。
       focusStart = turn.start;
     }
   }
@@ -2819,16 +2821,17 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     : undefined;
 
   // ── 場面切り替え演出 ──────────────────────────────────────
-  // 片側の秒数（総遷移 = 2×FADE）。
+  // 片側の秒数（総遷移 = 2×FADE）。種類による差は付けず統一。
+  const TRANSITION_FADE = 0.9;
   const FADE_BY_TRANSITION: Record<string, number> = {
-    "fade-black": 0.38,
-    "fade-white": 0.38,
-    "wipe-left": 0.9,
-    "wipe-right": 0.9,
-    "slide-left": 0.9,
-    "slide-right": 0.9,
+    "fade-black": TRANSITION_FADE,
+    "fade-white": TRANSITION_FADE,
+    "wipe-left": TRANSITION_FADE,
+    "wipe-right": TRANSITION_FADE,
+    "slide-left": TRANSITION_FADE,
+    "slide-right": TRANSITION_FADE,
   };
-  const DEFAULT_FADE = 0.3;
+  const DEFAULT_FADE = TRANSITION_FADE;
   const entryFade = FADE_BY_TRANSITION[seg.transition] ?? DEFAULT_FADE;
   const exitFade = nextSeg
     ? FADE_BY_TRANSITION[nextSeg.transition] ?? DEFAULT_FADE
