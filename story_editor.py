@@ -21,6 +21,8 @@ import pose_editor as pose_editor_module
 import scene_editor as scene_editor_module
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
+from tts_voicevox import sync_kanji_readings_to_voicevox  # noqa: E402
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
@@ -30,6 +32,11 @@ READINGS_JSON = os.path.join(ROOT_DIR, "config", "readings.json")
 READINGS_COMMENT = (
     "英字→カタカナ読み(音声専用・字幕は英字のまま)。ここに書くと組み込み辞書を上書き/追記します。"
     "キーは英字語、値はカタカナ。"
+)
+KANJI_READINGS_JSON = os.path.join(ROOT_DIR, "config", "kanji_readings.json")
+KANJI_READINGS_COMMENT = (
+    "漢字の文脈依存の読み修正（例: 「あの方」が「あのほう」と誤読される場合の是正）。"
+    "音声生成時にVOICEVOXのユーザー辞書へ同期される。キーは表層形、値はカタカナ発音。"
 )
 BGM_DIR = os.path.join(VIDEO_PUBLIC_DIR, "bgm")
 SE_DIR = os.path.join(VIDEO_PUBLIC_DIR, "se")
@@ -255,6 +262,37 @@ def _save_readings(entries):
     out.update(dict(sorted(cleaned.items())))
     os.makedirs(os.path.dirname(READINGS_JSON), exist_ok=True)
     with open(READINGS_JSON, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=2)
+
+
+def _load_kanji_readings():
+    """config/kanji_readings.json を返す（_comment 等の先頭アンダースコアキーは除く）。"""
+    if not os.path.exists(KANJI_READINGS_JSON):
+        return {}
+    try:
+        with open(KANJI_READINGS_JSON, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {k: v for k, v in data.items() if isinstance(k, str) and not k.startswith("_")}
+
+
+def _save_kanji_readings(entries):
+    if not isinstance(entries, dict):
+        raise ValueError("entries は object である必要があります")
+    cleaned = {}
+    for k, v in entries.items():
+        if not isinstance(k, str) or not k.strip():
+            continue
+        if not isinstance(v, str) or not v.strip():
+            continue
+        cleaned[k.strip()] = v.strip()
+    out = {"_comment": KANJI_READINGS_COMMENT}
+    out.update(dict(sorted(cleaned.items())))
+    os.makedirs(os.path.dirname(KANJI_READINGS_JSON), exist_ok=True)
+    with open(KANJI_READINGS_JSON, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
 
 
@@ -923,6 +961,12 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/kanji-readings":
+            try:
+                self._send_json(_load_kanji_readings())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path == "/api/scene-bgm":
             # シーン別BGM編集用: 各シーンの label/bgm/bgmVolume を返す。
             try:
@@ -985,6 +1029,22 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 data = json.loads(body.decode("utf-8"))
                 _save_readings(data)
                 self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/kanji-readings":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                _save_kanji_readings(data)
+                try:
+                    synced = sync_kanji_readings_to_voicevox(path=KANJI_READINGS_JSON)
+                    self._send_json({"ok": True, "synced": synced})
+                except Exception as e:
+                    # VOICEVOX未起動等でも保存自体は成功しているので警告として返す。
+                    self._send_json({"ok": True, "synced": 0, "syncWarning": str(e)})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:

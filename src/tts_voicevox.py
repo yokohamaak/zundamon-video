@@ -142,8 +142,70 @@ def _spoken_text(text):
     return t
 
 
-def _http_post(url, data=None, headers=None, timeout=60):
-    req = urllib.request.Request(url, data=data, headers=headers or {}, method="POST")
+KANJI_READINGS_PATH = os.path.join("config", "kanji_readings.json")
+
+
+def _load_kanji_readings(path=KANJI_READINGS_PATH):
+    """config/kanji_readings.json（漢字の文脈依存の読み修正）を返す。{表層形: カタカナ発音}。"""
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError) as e:
+        logger.warning(f"config/kanji_readings.json 読込失敗（スキップ）: {e}")
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {k: v for k, v in data.items() if isinstance(k, str) and not k.startswith("_")
+            and isinstance(v, str) and v}
+
+
+def sync_kanji_readings_to_voicevox(base_url=None, path=KANJI_READINGS_PATH, timeout=10):
+    """config/kanji_readings.json の内容をVOICEVOXユーザー辞書へ反映する（追加/読み変更のみ・削除はしない）。
+
+    VOICEVOXのユーザー辞書は形態素解析の単語登録なので、単純な文字列置換と違い
+    「方法」等の無関係な熟語を巻き込まない。エンジン未起動時は警告して何もしない。
+    """
+    entries = _load_kanji_readings(path)
+    if not entries:
+        return 0
+    base_url = base_url or os.environ.get("VOICEVOX_URL") or DEFAULT_BASE_URL
+    try:
+        raw = _http_get(f"{base_url}/user_dict", timeout=timeout)
+        existing = json.loads(raw)
+    except Exception as e:
+        logger.warning(f"VOICEVOXユーザー辞書の取得に失敗（同期をスキップ）: {e}")
+        return 0
+    by_surface = {v.get("surface"): (uuid, v) for uuid, v in existing.items()}
+    synced = 0
+    for surface, pronunciation in entries.items():
+        q = {
+            "surface": surface, "pronunciation": pronunciation,
+            "accent_type": 0, "word_type": "COMMON_NOUN", "priority": 10,
+        }
+        qs = urllib.parse.urlencode(q)
+        try:
+            if surface in by_surface:
+                uuid, cur = by_surface[surface]
+                if cur.get("pronunciation") == pronunciation:
+                    continue
+                _http_post(f"{base_url}/user_dict_word/{uuid}?{qs}", timeout=timeout, method="PUT")
+            else:
+                _http_post(f"{base_url}/user_dict_word?{qs}", timeout=timeout)
+            synced += 1
+        except Exception as e:
+            logger.warning(f"VOICEVOXユーザー辞書登録失敗（{surface}）: {e}")
+    return synced
+
+
+def _http_get(url, timeout=60):
+    with urllib.request.urlopen(url, timeout=timeout) as resp:
+        return resp.read()
+
+
+def _http_post(url, data=None, headers=None, timeout=60, method="POST"):
+    req = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
 
@@ -526,6 +588,8 @@ def synthesize_dialogue(script, config):
 
     if not script:
         raise ValueError("空の台本です")
+
+    sync_kanji_readings_to_voicevox(base_url)
 
     pcm_chunks = []
     turns_out = []

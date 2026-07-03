@@ -1285,6 +1285,26 @@
       </div>
     </div>
 
+    <!-- セクションD: 漢字の読み修正 -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        漢字の読み修正
+      </div>
+      <div style="font-size:12px; color:var(--text2); line-height:1.6;">
+        「あの方」が「あのほう」と読まれる、のような文脈依存の誤読を直します。字幕表示には影響しません。
+        VOICEVOXのユーザー辞書（単語単位）に登録するため、「方法」など無関係な語は巻き込みません。
+        保存時にVOICEVOXへ即時反映されます（起動している必要があります）。
+      </div>
+      <div id="kanjiReadingsList" style="display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto;">
+        <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
+      </div>
+      <button class="insert-add-btn" id="btnAddKanjiReading" style="align-self:flex-start;">＋ 読み修正を追加</button>
+      <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
+        <button class="btn btn-primary btn-sm" id="btnSaveKanjiReadings">読み修正を保存</button>
+        <span id="kanjiReadingsStatus" style="font-size:12px;"></span>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -5623,6 +5643,12 @@ function setupEvents() {
   });
   document.getElementById("readingsFilter").addEventListener("input", applyReadingsFilter);
 
+  // 音タブ: 漢字の読み修正
+  document.getElementById("btnSaveKanjiReadings").addEventListener("click", saveKanjiReadings);
+  document.getElementById("btnAddKanjiReading").addEventListener("click", () => {
+    document.getElementById("kanjiReadingsList").appendChild(makeKanjiReadingRow("", ""));
+  });
+
   // 音タブ: プレビュー再生/停止
   document.getElementById("btnAudioPlay").addEventListener("click", toggleAudioPreview);
 
@@ -5908,6 +5934,7 @@ let audioAssets = null;   // { bgm: [...], se: [...] }
 let seMap = null;         // se-map.json の中身
 let sceneBgmData = null;  // { sceneKey: {label, bgm, bgmVolume}, ... }
 let readingsMap = null;   // config/readings.json の中身（_comment除く）
+let kanjiReadingsMap = null;  // config/kanji_readings.json の中身（_comment除く）
 let audioLoaded = false;  // 初回ロード済みフラグ
 
 function hasTimelineBgmOverride() {
@@ -6035,20 +6062,23 @@ async function loadAudioPanel() {
   // 毎回再取得したい場合は audioLoaded をリセットして呼べばよい。
   if (audioLoaded) return;
   try {
-    const [assetsRes, seRes, sceneBgmRes, readingsRes] = await Promise.all([
+    const [assetsRes, seRes, sceneBgmRes, readingsRes, kanjiRes] = await Promise.all([
       fetch("/api/audio-assets"),
       fetch("/api/se-map"),
       fetch("/api/scene-bgm"),
       fetch("/api/readings"),
+      fetch("/api/kanji-readings"),
     ]);
     audioAssets = await assetsRes.json();
     seMap = await seRes.json();
     sceneBgmData = await sceneBgmRes.json();
     readingsMap = await readingsRes.json();
+    kanjiReadingsMap = await kanjiRes.json();
     audioLoaded = true;
     renderSeMapSection();
     renderSceneBgmSection();
     renderReadingsSection();
+    renderKanjiReadingsSection();
   } catch (e) {
     document.getElementById("seMapContainer").innerHTML =
       "<div style=\"color:var(--danger);font-size:12px;\">読み込みエラー: " + e.message + "</div>";
@@ -6519,6 +6549,94 @@ async function saveReadings() {
       statusEl.style.color = "var(--green)";
       statusEl.textContent = "保存しました";
       setTimeout(() => { statusEl.textContent = ""; }, 2500);
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "保存失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
+}
+
+// ============================================================
+// セクションD: 漢字の読み修正
+// ============================================================
+function makeKanjiReadingRow(word, reading) {
+  const row = document.createElement("div");
+  row.className = "kanji-reading-row";
+  row.style.cssText = "display:flex; align-items:center; gap:8px;";
+
+  const wordInp = document.createElement("input");
+  wordInp.type = "text";
+  wordInp.className = "field-input kanji-reading-word";
+  wordInp.style.cssText = "flex:1;";
+  wordInp.placeholder = "誤読される表記（例: あの方）";
+  wordInp.value = word || "";
+  row.appendChild(wordInp);
+
+  const arrow = document.createElement("span");
+  arrow.textContent = "→";
+  arrow.style.cssText = "color:var(--text2); flex-shrink:0;";
+  row.appendChild(arrow);
+
+  const readingInp = document.createElement("input");
+  readingInp.type = "text";
+  readingInp.className = "field-input kanji-reading-value";
+  readingInp.style.cssText = "flex:1;";
+  readingInp.placeholder = "正しい読み（カタカナ、例: アノカタ）";
+  readingInp.value = reading || "";
+  row.appendChild(readingInp);
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "btn btn-danger btn-sm";
+  delBtn.style.flexShrink = "0";
+  delBtn.textContent = "×";
+  delBtn.addEventListener("click", () => { row.remove(); });
+  row.appendChild(delBtn);
+
+  return row;
+}
+
+function renderKanjiReadingsSection() {
+  const container = document.getElementById("kanjiReadingsList");
+  container.innerHTML = "";
+  const keys = sortedStrings(Object.keys(kanjiReadingsMap || {}));
+  for (const key of keys) {
+    container.appendChild(makeKanjiReadingRow(key, kanjiReadingsMap[key]));
+  }
+  if (container.children.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">読み修正が未登録です</div>";
+  }
+}
+
+async function saveKanjiReadings() {
+  const statusEl = document.getElementById("kanjiReadingsStatus");
+  statusEl.style.color = "var(--text2)";
+  statusEl.textContent = "保存中...";
+  try {
+    const rows = document.querySelectorAll("#kanjiReadingsList .kanji-reading-row");
+    const entries = {};
+    for (const row of rows) {
+      const word = row.querySelector(".kanji-reading-word").value.trim();
+      const reading = row.querySelector(".kanji-reading-value").value.trim();
+      if (!word || !reading) continue;
+      entries[word] = reading;
+    }
+    const r = await fetch("/api/kanji-readings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entries),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      kanjiReadingsMap = entries;
+      renderKanjiReadingsSection();
+      statusEl.style.color = result.syncWarning ? "var(--yellow)" : "var(--green)";
+      statusEl.textContent = result.syncWarning
+        ? "保存しました（VOICEVOX未反映: " + result.syncWarning + "）"
+        : "保存しました（VOICEVOX辞書に反映済み）";
+      setTimeout(() => { statusEl.textContent = ""; }, 4000);
     } else {
       statusEl.style.color = "var(--danger)";
       statusEl.textContent = "保存失敗: " + (result.error || r.status);
