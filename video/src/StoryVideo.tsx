@@ -2823,10 +2823,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const FADE_BY_TRANSITION: Record<string, number> = {
     "fade-black": 0.38,
     "fade-white": 0.38,
-    "wipe-left": 0.5,
-    "wipe-right": 0.5,
-    "slide-left": 0.5,
-    "slide-right": 0.5,
+    "wipe-left": 0.9,
+    "wipe-right": 0.9,
+    "slide-left": 0.9,
+    "slide-right": 0.9,
   };
   const DEFAULT_FADE = 0.3;
   const entryFade = FADE_BY_TRANSITION[seg.transition] ?? DEFAULT_FADE;
