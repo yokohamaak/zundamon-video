@@ -2821,8 +2821,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // ── 場面切り替え演出 ──────────────────────────────────────
   // 片側の秒数（総遷移 = 2×FADE）。フェードはゆったり、ワイプ/スライドは機敏に。
   const FADE_BY_TRANSITION: Record<string, number> = {
-    "fade-black": 0.7,
-    "fade-white": 0.7,
+    "fade-black": 0.38,
+    "fade-white": 0.38,
     "wipe-left": 0.22,
     "wipe-right": 0.22,
     "slide-left": 0.22,
