@@ -15,13 +15,14 @@ import type { Emotion, Gender } from "./types";
 
 // ─── PC画面インサート型定義 ──────────────────────────────────
 export type StoryInsert =
-  | { kind: "warning"; title?: string; text: string }
-  | { kind: "chat"; user: string; ai: string[]; highlight?: number }
-  | { kind: "ok"; text?: string }
-  | { kind: "teamchat"; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
-  | { kind: "mailer"; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
+  | { kind: "warning"; width?: number; title?: string; text: string }
+  | { kind: "chat"; width?: number; user: string; ai: string[]; highlight?: number }
+  | { kind: "ok"; width?: number; text?: string }
+  | { kind: "teamchat"; width?: number; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
+  | { kind: "mailer"; width?: number; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
   | {
     kind: "videocall";
+    width?: number;
     // end=true のターンで通話を終了する（そのターンから通常画面に戻り、以降へ継承しない）。
     end?: boolean;
     room?: string;
@@ -131,6 +132,7 @@ export type StoryTurn = {
   typingFlood?: boolean;
   sparkleBurst?: boolean;
   irisOut?: boolean;
+  effectSettings?: StoryEffectSettings;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
   pause?: number;
   // PC画面インサート演出（このターン中に全画面PC画面UIを重ねる）。
@@ -177,6 +179,24 @@ export type StoryOverlay = {
   end: StoryOverlayAnchor;
 };
 
+export type StoryEffectSettings = {
+  zoomPunch?: { scale?: number; duration?: number; borderStrength?: number };
+  quoteFreeze?: { fadeIn?: number; fadeOutStart?: number; fadeOutDuration?: number; backdropOpacity?: number };
+  stampRain?: { count?: number; fallDuration?: number; stagger?: number; spread?: number };
+  typingFlood?: { rows?: number; flowDuration?: number; stagger?: number };
+  sparkleBurst?: { count?: number; spread?: number; duration?: number };
+  irisOut?: { start?: number; duration?: number; startRadius?: number };
+};
+
+type ResolvedEffectSettings = {
+  zoomPunch: { scale: number; duration: number; borderStrength: number };
+  quoteFreeze: { fadeIn: number; fadeOutStart: number; fadeOutDuration: number; backdropOpacity: number };
+  stampRain: { count: number; fallDuration: number; stagger: number; spread: number };
+  typingFlood: { rows: number; flowDuration: number; stagger: number };
+  sparkleBurst: { count: number; spread: number; duration: number };
+  irisOut: { start: number; duration: number; startRadius: number };
+};
+
 // BGM 区間。時間ベース（start/end=秒）。タイムラインでD&D編集する。
 // この配列があれば BGM はこれが唯一の真実（区間の隙間=無音）。空ならシーン連動にフォールバック。
 export type BgmRegion = {
@@ -198,6 +218,7 @@ export type StoryScript = {
   // 聞き役(非話者)の表情: "normal"=常に真顔(既定) / "hold"=直前に自分が話した表情を保持
   // （surprise/panic は除外して normal）。
   idleFace?: "normal" | "hold";
+  effectSettings?: StoryEffectSettings;
   overlays?: StoryOverlay[];
   script: StoryTurn[];
 };
@@ -282,6 +303,7 @@ function mergeVideoCallInsert(
 ): Extract<StoryInsert, { kind: "videocall" }> {
   return {
     kind: "videocall",
+    width: patch.width ?? base?.width,
     room: patch.room ?? base?.room,
     layout: patch.layout ?? base?.layout,
     activeSpeaker: patch.activeSpeaker ?? base?.activeSpeaker,
@@ -600,6 +622,40 @@ const easeOutBack = (x: number) => {
 };
 
 const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
+  zoomPunch: { scale: 1.14, duration: 0.18, borderStrength: 1 },
+  quoteFreeze: { fadeIn: 0.14, fadeOutStart: 0.72, fadeOutDuration: 0.18, backdropOpacity: 0.22 },
+  stampRain: { count: 8, fallDuration: 0.46, stagger: 0.05, spread: 1 },
+  typingFlood: { rows: 9, flowDuration: 0.38, stagger: 0.035 },
+  sparkleBurst: { count: 10, spread: 260, duration: 0.32 },
+  irisOut: { start: 0.72, duration: 0.28, startRadius: 0.78 },
+};
+
+function resolveEffectSettings(settings?: StoryEffectSettings): ResolvedEffectSettings {
+  return {
+    zoomPunch: { ...DEFAULT_EFFECT_SETTINGS.zoomPunch, ...(settings?.zoomPunch || {}) },
+    quoteFreeze: { ...DEFAULT_EFFECT_SETTINGS.quoteFreeze, ...(settings?.quoteFreeze || {}) },
+    stampRain: { ...DEFAULT_EFFECT_SETTINGS.stampRain, ...(settings?.stampRain || {}) },
+    typingFlood: { ...DEFAULT_EFFECT_SETTINGS.typingFlood, ...(settings?.typingFlood || {}) },
+    sparkleBurst: { ...DEFAULT_EFFECT_SETTINGS.sparkleBurst, ...(settings?.sparkleBurst || {}) },
+    irisOut: { ...DEFAULT_EFFECT_SETTINGS.irisOut, ...(settings?.irisOut || {}) },
+  };
+}
+
+function mergeEffectSettings(
+  base?: StoryEffectSettings,
+  override?: StoryEffectSettings
+): StoryEffectSettings | undefined {
+  if (!base && !override) return undefined;
+  return {
+    zoomPunch: { ...(base?.zoomPunch || {}), ...(override?.zoomPunch || {}) },
+    quoteFreeze: { ...(base?.quoteFreeze || {}), ...(override?.quoteFreeze || {}) },
+    stampRain: { ...(base?.stampRain || {}), ...(override?.stampRain || {}) },
+    typingFlood: { ...(base?.typingFlood || {}), ...(override?.typingFlood || {}) },
+    sparkleBurst: { ...(base?.sparkleBurst || {}), ...(override?.sparkleBurst || {}) },
+    irisOut: { ...(base?.irisOut || {}), ...(override?.irisOut || {}) },
+  };
+}
 
 function mediaStaticSrc(path: string): string {
   const qidx = path.indexOf("?");
@@ -614,22 +670,30 @@ const ExtraEffectsLayer: React.FC<{
   progress: number;
   width: number;
   height: number;
-}> = ({ active, progress, width, height }) => {
+  settings?: StoryEffectSettings;
+}> = ({ active, progress, width, height, settings }) => {
   const layers: React.ReactNode[] = [];
+  const effectSettings = resolveEffectSettings(mergeEffectSettings(settings, active.effectSettings));
+  const zoomPunchCfg = effectSettings.zoomPunch;
+  const quoteFreezeCfg = effectSettings.quoteFreeze;
+  const stampRainCfg = effectSettings.stampRain;
+  const typingFloodCfg = effectSettings.typingFlood;
+  const sparkleBurstCfg = effectSettings.sparkleBurst;
+  const irisOutCfg = effectSettings.irisOut;
   const dur = Math.max(active.end - active.start, 0.001);
-  const burstIn = clamp(progress / 0.18, 0, 1);
+  const burstIn = clamp(progress / Math.max(zoomPunchCfg.duration, 0.001), 0, 1);
   const burstOut = 1 - clamp((progress - 0.58) / 0.22, 0, 1);
 
   if (active.zoomPunch) {
-    const local = clamp(progress / 0.18, 0, 1);
+    const local = clamp(progress / Math.max(zoomPunchCfg.duration, 0.001), 0, 1);
     const punch = Math.sin(local * Math.PI);
-    const scale = 1 + 0.14 * punch;
+    const scale = 1 + Math.max(0, zoomPunchCfg.scale - 1) * punch;
     layers.push(
       <AbsoluteFill
         key="zoomPunch"
         style={{
           pointerEvents: "none",
-          boxShadow: `inset 0 0 0 ${Math.round(18 * punch)}px rgba(255,255,255,${0.11 * punch})`,
+          boxShadow: `inset 0 0 0 ${Math.round(18 * punch * zoomPunchCfg.borderStrength)}px rgba(255,255,255,${0.11 * punch * zoomPunchCfg.borderStrength})`,
           transform: `scale(${scale})`,
           transformOrigin: "center center",
         }}
@@ -671,15 +735,15 @@ const ExtraEffectsLayer: React.FC<{
   }
 
   if (active.quoteFreeze) {
-    const hold = clamp(progress / 0.14, 0, 1);
-    const fade = 1 - clamp((progress - 0.72) / 0.18, 0, 1);
+    const hold = clamp(progress / Math.max(quoteFreezeCfg.fadeIn, 0.001), 0, 1);
+    const fade = 1 - clamp((progress - quoteFreezeCfg.fadeOutStart) / Math.max(quoteFreezeCfg.fadeOutDuration, 0.001), 0, 1);
     const opacity = clamp(Math.min(hold, fade), 0, 1);
     layers.push(
       <AbsoluteFill
         key="quoteFreeze"
         style={{
           pointerEvents: "none",
-          background: `rgba(10, 12, 18, ${0.22 * opacity})`,
+          background: `rgba(10, 12, 18, ${quoteFreezeCfg.backdropOpacity * opacity})`,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -727,10 +791,13 @@ const ExtraEffectsLayer: React.FC<{
   if (active.stampRain) {
     const text = active.stampRain;
     const opacity = clamp(Math.min(progress / 0.16, 1 - Math.max(0, progress - 0.76) / 0.18), 0, 1);
-    const stamps = Array.from({ length: 8 }, (_, i) => {
-      const x = [0.12, 0.28, 0.44, 0.62, 0.78, 0.2, 0.55, 0.84][i];
-      const delay = i * 0.05;
-      const p = clamp((progress - delay) / 0.46, 0, 1);
+    const baseXs = [0.12, 0.28, 0.44, 0.62, 0.78, 0.2, 0.55, 0.84, 0.35, 0.7, 0.9, 0.08];
+    const count = Math.max(1, Math.min(12, Math.round(stampRainCfg.count)));
+    const spread = clamp(stampRainCfg.spread, 0.4, 1.4);
+    const stamps = Array.from({ length: count }, (_, i) => {
+      const x = clamp(0.5 + (baseXs[i % baseXs.length] - 0.5) * spread, 0.04, 0.96);
+      const delay = i * stampRainCfg.stagger;
+      const p = clamp((progress - delay) / Math.max(stampRainCfg.fallDuration, 0.05), 0, 1);
       const y = lerp(-0.16, 1.08, easeOutCubic(p));
       const rot = [-14, 8, -6, 12, -10, 6, -12, 10][i];
       const scale = 0.86 + (i % 3) * 0.12;
@@ -763,10 +830,11 @@ const ExtraEffectsLayer: React.FC<{
 
   if (active.typingFlood) {
     const opacity = clamp(Math.min(progress / 0.12, 1 - Math.max(0, progress - 0.82) / 0.16), 0, 1);
-    const rows = Array.from({ length: 9 }, (_, i) => {
+    const rowCount = Math.max(2, Math.min(12, Math.round(typingFloodCfg.rows)));
+    const rows = Array.from({ length: rowCount }, (_, i) => {
       const x = i % 2 === 0 ? 0.06 : 0.48;
-      const delay = i * 0.035;
-      const p = clamp((progress - delay) / 0.38, 0, 1);
+      const delay = i * typingFloodCfg.stagger;
+      const p = clamp((progress - delay) / Math.max(typingFloodCfg.flowDuration, 0.05), 0, 1);
       const y = lerp(-0.12, 0.92, easeOutCubic(p));
       return (
         <div
@@ -808,9 +876,10 @@ const ExtraEffectsLayer: React.FC<{
 
   if (active.sparkleBurst) {
     const opacity = clamp(Math.min(progress / 0.14, 1 - Math.max(0, progress - 0.68) / 0.2), 0, 1);
-    const sparks = Array.from({ length: 10 }, (_, i) => {
-      const angle = (Math.PI * 2 * i) / 10;
-      const dist = lerp(40, 260, easeOutCubic(clamp(progress / 0.32, 0, 1)));
+    const sparkCount = Math.max(4, Math.min(20, Math.round(sparkleBurstCfg.count)));
+    const sparks = Array.from({ length: sparkCount }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / sparkCount;
+      const dist = lerp(40, sparkleBurstCfg.spread, easeOutCubic(clamp(progress / Math.max(sparkleBurstCfg.duration, 0.05), 0, 1)));
       const x = width * 0.5 + Math.cos(angle) * dist;
       const y = height * 0.45 + Math.sin(angle) * dist * 0.72;
       const scale = 0.7 + (i % 4) * 0.18;
@@ -836,9 +905,9 @@ const ExtraEffectsLayer: React.FC<{
   }
 
   if (active.irisOut) {
-    const p = clamp((progress - 0.72) / 0.28, 0, 1);
+    const p = clamp((progress - irisOutCfg.start) / Math.max(irisOutCfg.duration, 0.05), 0, 1);
     if (p > 0) {
-      const radius = lerp(Math.max(width, height) * 0.78, 0, easeInOutCubic(p));
+      const radius = lerp(Math.max(width, height) * irisOutCfg.startRadius, 0, easeInOutCubic(p));
       layers.push(
         <AbsoluteFill
           key="irisOut"
@@ -865,10 +934,16 @@ const ExtraEffectsLayer: React.FC<{
 // ─── PC画面インサートコンポーネント ─────────────────────────
 
 const INSERT_BG = "#11151c";
+const DEFAULT_INSERT_WIDTH = 1;
+
+function insertWidthScale(insert: { width?: number } | null | undefined): number {
+  return clamp(insert?.width ?? DEFAULT_INSERT_WIDTH, 0.6, 1.4);
+}
 
 /** 警告ダイアログ */
 const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }> }> = ({ insert }) => {
   const title = insert.title ?? "警告";
+  const panelWidth = Math.round(860 * insertWidthScale(insert));
   return (
     <div
       style={{
@@ -876,8 +951,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
         border: "3px solid #9ed957",
         borderRadius: 16,
         padding: "48px 64px",
-        maxWidth: 860,
-        width: "100%",
+        width: panelWidth,
         boxShadow: "0 0 0 1px rgba(95,184,79,0.25), 0 24px 64px rgba(0,0,0,0.6)",
         display: "flex",
         flexDirection: "column",
@@ -928,6 +1002,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
           lineHeight: 1.5,
           fontWeight: 400,
           letterSpacing: "0.03em",
+          whiteSpace: "pre-wrap",
         }}
       >
         {insert.text}
@@ -938,13 +1013,14 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
 
 /** AIチャット（ZunAI） */
 const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> = ({ insert }) => {
+  const panelWidth = Math.round(920 * insertWidthScale(insert));
   return (
     <div
       style={{
         background: "#181c24",
         border: "2px solid #3e8b39",
         borderRadius: 20,
-        width: 920,
+        width: panelWidth,
         overflow: "hidden",
         boxShadow: "0 24px 64px rgba(0,0,0,0.65)",
         display: "flex",
@@ -1005,6 +1081,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
               lineHeight: 1.5,
               maxWidth: "76%",
               fontWeight: 500,
+              whiteSpace: "pre-wrap",
             }}
           >
             {insert.user}
@@ -1028,6 +1105,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
                   fontWeight: 400,
                   border: isHighlighted ? "2.5px solid #e07840" : "2px solid #2f3a50",
                   boxShadow: isHighlighted ? "0 0 0 4px rgba(224,120,64,0.18)" : "none",
+                  whiteSpace: "pre-wrap",
                 }}
               >
                 {msg}
@@ -1043,6 +1121,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
 /** ステータスOK画面 */
 const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ insert }) => {
   const text = insert.text ?? "正常";
+  const panelWidth = Math.round(640 * insertWidthScale(insert));
   return (
     <div
       style={{
@@ -1050,8 +1129,7 @@ const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ 
         border: "3px solid #2ea86a",
         borderRadius: 20,
         padding: "56px 80px",
-        maxWidth: 640,
-        width: "100%",
+        width: panelWidth,
         boxShadow: "0 0 0 1px rgba(46,168,106,0.2), 0 24px 64px rgba(0,0,0,0.6)",
         display: "flex",
         flexDirection: "column",
@@ -1089,6 +1167,8 @@ const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ 
           fontFamily: "sans-serif",
           fontWeight: 600,
           letterSpacing: "0.06em",
+          whiteSpace: "pre-wrap",
+          textAlign: "center",
         }}
       >
         {text}
@@ -1134,13 +1214,14 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
   insert,
 }) => {
   const channel = insert.channel ?? "general";
+  const panelWidth = Math.round(1480 * insertWidthScale(insert));
   return (
     <div
       style={{
         background: "#f6f8fc",
         border: "3px solid #9ed957",
         borderRadius: 22,
-        width: 1480,
+        width: panelWidth,
         overflow: "hidden",
         boxShadow: "0 24px 64px rgba(0,0,0,0.45)",
         display: "flex",
@@ -1300,6 +1381,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
                     fontFamily: "sans-serif",
                     lineHeight: 1.45,
                     fontWeight: 400,
+                    whiteSpace: "pre-wrap",
                   }}
                 >
                   {msg.text}
@@ -1318,6 +1400,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
   // 差出人の頭文字とアバター色
   const fromName = insert.from ?? "送信者";
   const initial = fromName.charAt(0).toUpperCase() || "?";
+  const panelWidth = Math.round(1380 * insertWidthScale(insert));
   // アバター色は headletter のコードポイントから決定論的に選ぶ（固定色・ランダムでない）
   const AVATAR_COLORS = ["#1a73e8", "#0f9d58", "#f4511e", "#8430ce", "#188038", "#d50000"];
   const avatarColor = AVATAR_COLORS[fromName.charCodeAt(0) % AVATAR_COLORS.length];
@@ -1327,7 +1410,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
       style={{
         background: "#f6f8fc",
         borderRadius: 12,
-        width: 1380,
+        width: panelWidth,
         overflow: "hidden",
         boxShadow: "0 4px 24px rgba(60,64,67,0.18), 0 1px 6px rgba(60,64,67,0.1)",
         display: "flex",
@@ -1541,15 +1624,16 @@ function videoBgStyle(style: string | undefined): React.CSSProperties {
 
 // ZunMeet パネルのレイアウト定数。
 // タイル幅は fr 比率でなく px で確定させ、フィード（立ち絵）のスケール計算と共有する。
-const VC_PANEL_W = 1500;      // パネル全体の幅
-const VC_GRID_PAD = 22;       // タイルグリッドの padding
-const VC_GRID_GAP = 18;       // タイル間の gap
-const VC_TILE_H = 760;        // タイルの高さ（focus時はグリッド高さを固定）
-const VC_FOCUS_TILE_W = 920;  // focus時の大タイル幅
-// focus時の小タイル幅（右カラム）＝残り幅。
-const VC_SMALL_TILE_W = VC_PANEL_W - VC_GRID_PAD * 2 - VC_GRID_GAP - VC_FOCUS_TILE_W; // 518
-// grid時のタイル幅（2列均等）。
-const VC_GRID_TILE_W = Math.round((VC_PANEL_W - VC_GRID_PAD * 2 - VC_GRID_GAP) / 2); // 719
+function getVideoCallLayoutMetrics(scale: number) {
+  const panelW = Math.round(1500 * scale);      // パネル全体の幅
+  const gridPad = Math.round(22 * scale);       // タイルグリッドの padding
+  const gridGap = Math.round(18 * scale);       // タイル間の gap
+  const tileH = Math.round(760 * scale);        // タイルの高さ（focus時はグリッド高さを固定）
+  const focusTileW = Math.round(920 * scale);   // focus時の大タイル幅
+  const smallTileW = panelW - gridPad * 2 - gridGap - focusTileW;
+  const gridTileW = Math.round((panelW - gridPad * 2 - gridGap) / 2);
+  return { panelW, gridPad, gridGap, tileH, focusTileW, smallTileW, gridTileW };
+}
 // タイル幅に対する立ち絵の表示幅の割合。大小タイルで同一＝「同じ映像がサイズだけ変わる」。
 const VC_FEED_AVATAR_FRAC = 0.8;
 // 立ち絵を下へずらす割合（立ち絵高さ基準）。胸元をクロップして顔に寄せる（Webカメラのアップ感）。
@@ -1572,6 +1656,8 @@ const InsertVideoCall: React.FC<{
     opts: { large: boolean; tileW: number }
   ) => React.ReactNode;
 }> = ({ insert, activeSpeaker, renderFeed }) => {
+  const vcScale = insertWidthScale(insert);
+  const vc = getVideoCallLayoutMetrics(vcScale);
   const room = insert.room || "定例会議";
   const layout = insert.layout || "focus";
   const participants = (insert.participants || []).slice(0, 6);
@@ -1588,7 +1674,7 @@ const InsertVideoCall: React.FC<{
     const isActive = participant.speaker === currentSpeaker;
     const large = !!opts?.large;
     const bg = videoBgStyle(participant.bgStyle || (participant.speaker === "AI" ? "ai" : "office"));
-    const tileW = large ? VC_FOCUS_TILE_W : layout === "grid" ? VC_GRID_TILE_W : VC_SMALL_TILE_W;
+    const tileW = large ? vc.focusTileW : layout === "grid" ? vc.gridTileW : vc.smallTileW;
     const feedNode =
       !participant.cameraOff && asset.kind !== "ai" && renderFeed
         ? renderFeed(participant, { large, tileW })
@@ -1829,7 +1915,7 @@ const InsertVideoCall: React.FC<{
         background: "#101822",
         border: "3px solid #9ed957",
         borderRadius: 24,
-        width: VC_PANEL_W,
+        width: vc.panelW,
         overflow: "hidden",
         boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
         display: "flex",
@@ -1880,15 +1966,15 @@ const InsertVideoCall: React.FC<{
 
       <div
         style={{
-          padding: VC_GRID_PAD,
+          padding: vc.gridPad,
           display: "grid",
           // focus時は大タイル幅・グリッド高さをpx固定（プレビュー座標計算と一致させる）。
           // grid時は従来どおり最小高さのみ（参加者数で伸びてよい）。
-          gridTemplateColumns: layout === "focus" && focus ? `${VC_FOCUS_TILE_W}px 1fr` : "1fr",
-          gap: VC_GRID_GAP,
+          gridTemplateColumns: layout === "focus" && focus ? `${vc.focusTileW}px 1fr` : "1fr",
+          gap: vc.gridGap,
           ...(layout === "focus" && focus
-            ? { height: VC_TILE_H }
-            : { minHeight: VC_TILE_H }),
+            ? { height: vc.tileH }
+            : { minHeight: vc.tileH }),
           alignItems: "stretch",
           background: "linear-gradient(180deg, #121b24 0%, #0b1218 100%)",
         }}
@@ -3065,7 +3151,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const groupWidth = metrics.reduce((max, item) => Math.max(max, item.width), 120);
     const { side, groupCenterX, top } = bubbleGroupPlacement(speaker, groupWidth);
     const color = CHARACTERS[speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
-    const bubbleStepX = side === "right" ? 18 : -18;
+    const bubbleStepX = side === "right" ? -18 : 18;
     return (
       <div
         key={key}
@@ -3500,6 +3586,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         progress={activeProgress}
         width={width}
         height={height}
+        settings={story.effectSettings}
       />
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}

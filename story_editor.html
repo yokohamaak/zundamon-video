@@ -996,6 +996,7 @@
       <div class="tab-content">
         <!-- 基本タブ -->
         <div class="tab-panel active" id="tabBasic">
+          <div class="section-divider">セリフ</div>
           <div class="field-row">
             <label class="field-label">話者</label>
             <select class="field-select" id="fSpeaker"></select>
@@ -1006,115 +1007,11 @@
               <input type="checkbox" id="fNarration">
               <span>声だけにする</span>
             </label>
-          </div>
-          <div class="field-row">
-            <label class="field-label">ナレーション音声</label>
-            <select class="field-select" id="fNarrationVoice">
-              <option value="">(なし)</option>
-            </select>
             <div class="field-help" id="fNarrationHelp">オンの時は吹き出し・立ち絵・話者寄り演出なしで、この音声だけを使います。</div>
           </div>
           <div class="field-row">
             <label class="field-label">セリフ</label>
             <textarea class="field-textarea" id="fText"></textarea>
-          </div>
-          <div class="field-row">
-            <label class="field-label">シーン</label>
-            <select class="field-select" id="fScene"></select>
-          </div>
-          <div class="field-row">
-            <label class="field-label">立ち位置</label>
-            <select class="field-select" id="fSpeakerAnchor">
-              <option value="">(シーン既定)</option>
-            </select>
-            <div class="field-help">この行の話者が立つアンカーです。未指定ならシーン既定を使います。</div>
-          </div>
-          <div class="field-row">
-            <label class="field-label">表情</label>
-            <select class="field-select" id="fExpression">
-              <option value="">(なし)</option>
-            </select>
-          </div>
-          <div class="field-row">
-            <label class="field-label">ポーズ</label>
-            <select class="field-select" id="fPose">
-              <option value="">auto</option>
-            </select>
-            <div class="field-help">未指定なら表情に応じて自動で決まります。</div>
-          </div>
-
-          <div class="section-divider">演出</div>
-          <div class="fx-grid" style="margin-bottom:10px">
-            <label class="toggle-row">
-              <input type="checkbox" id="fEmphasis">
-              <span>ズーム</span>
-            </label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fShake">
-              <span>シェイク</span>
-            </label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fFlashback">
-              <span>回想</span>
-            </label>
-          </div>
-          <div class="field-help" id="fEmphasisHelp">チェックした行から話者寄りを開始します。</div>
-          <div class="field-row">
-            <label class="field-label">カメラ効果</label>
-            <select class="field-select" id="fCameraEffect">
-              <option value="">なし</option>
-              <option value="pull-out">引き</option>
-              <option value="pan-left">左パン</option>
-              <option value="pan-right">右パン</option>
-              <option value="tilt-left">左傾き</option>
-              <option value="tilt-right">右傾き</option>
-            </select>
-            <div class="field-help" id="fCameraEffectHelp">この行の間だけ追加でカメラを動かします。</div>
-          </div>
-          <div class="field-row">
-            <label class="field-label">テロップ (telop)</label>
-            <input type="text" class="field-input" id="fTelop" placeholder="例: ― 前日 ―">
-          </div>
-          <div class="field-row">
-            <label class="field-label">テロップ位置・サイズ</label>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <input type="number" class="field-input" id="fTelopX" min="0" max="1" step="0.01" placeholder="X 0..1" style="width:96px;">
-              <input type="number" class="field-input" id="fTelopY" min="0" max="1" step="0.01" placeholder="Y 0..1" style="width:96px;">
-              <input type="number" class="field-input" id="fTelopSize" min="0.5" max="3" step="0.1" placeholder="倍率" style="width:96px;">
-            </div>
-            <div class="field-help">未入力なら既定位置。X/Y は画面比率、サイズは 1.0 が標準です。</div>
-          </div>
-          <div class="field-row">
-            <label class="field-label">衝撃文字 (impactText)</label>
-            <input type="text" class="field-input" id="fImpactText" placeholder="例: 大型新人、襲来">
-            <div class="field-help">画面中央に大きく一瞬出す文字です。空なら出しません。</div>
-          </div>
-          <div class="fx-grid" style="margin-bottom:10px">
-            <label class="toggle-row">
-              <input type="checkbox" id="fZoomPunch">
-              <span>ズームパンチ</span>
-            </label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fQuoteFreeze">
-              <span>引用止め</span>
-            </label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fTypingFlood">
-              <span>通知洪水</span>
-            </label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fSparkleBurst">
-              <span>キラッ</span>
-            </label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fIrisOut">
-              <span>アイリスアウト</span>
-            </label>
-          </div>
-          <div class="field-row">
-            <label class="field-label">スタンプ雨 (stampRain)</label>
-            <input type="text" class="field-input" id="fStampRain" placeholder="例: 期待">
-            <div class="field-help">短い単語を上から降らせます。空なら出しません。</div>
           </div>
           <div class="field-row">
             <label class="field-label">ポーズ秒 (pause)</label>
@@ -1154,13 +1051,33 @@
             <div class="field-help" id="fAutoBubbleSplitHelp">句点や ! ? による自動多段化を、この行だけ止めます。</div>
           </div>
 
-          <div class="section-divider">SE（任意）</div>
-          <div id="fSeList" style="margin-bottom:4px;"></div>
-          <button class="insert-add-btn" id="btnAddSe" style="margin-bottom:8px;">＋ SE追加</button>
-
-          <div class="section-divider">登退場</div>
+          <div class="section-divider">キャラクター</div>
           <div class="field-row">
-            <label class="field-label">enter（このセリフで登場）</label>
+            <label class="field-label">シーン</label>
+            <select class="field-select" id="fScene"></select>
+          </div>
+          <div class="field-row">
+            <label class="field-label">立ち位置</label>
+            <select class="field-select" id="fSpeakerAnchor">
+              <option value="">(シーン既定)</option>
+            </select>
+            <div class="field-help">この行の話者が立つアンカーです。未指定ならシーン既定を使います。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">表情</label>
+            <select class="field-select" id="fExpression">
+              <option value="">(なし)</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label class="field-label">ポーズ</label>
+            <select class="field-select" id="fPose">
+              <option value="">auto</option>
+            </select>
+            <div class="field-help">未指定なら表情に応じて自動で決まります。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">このセリフで登場</label>
             <div class="multi-select-wrap" id="fEnter"></div>
             <div class="exit-dir-row">
               登場方法:
@@ -1171,7 +1088,7 @@
             </div>
           </div>
           <div class="field-row">
-            <label class="field-label">exit（このセリフ後に退場）</label>
+            <label class="field-label">このセリフ後に退場</label>
             <div class="multi-select-wrap" id="fExit"></div>
             <div class="exit-dir-row">
               退場方向:
@@ -1183,6 +1100,89 @@
               </select>
             </div>
           </div>
+
+          <div class="section-divider">演出</div>
+          <div class="fx-grid" style="margin-bottom:10px">
+            <label class="toggle-row">
+              <input type="checkbox" id="fEmphasis">
+              <span>ズーム</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fShake">
+              <span>シェイク</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fFlashback">
+              <span>回想</span>
+            </label>
+          </div>
+          <div class="field-help" id="fEmphasisHelp">チェックした行から話者寄りを開始します。</div>
+          <div class="field-row">
+            <label class="field-label">カメラ効果</label>
+            <select class="field-select" id="fCameraEffect">
+              <option value="">なし</option>
+              <option value="pull-out">引き</option>
+              <option value="pan-left">左パン</option>
+              <option value="pan-right">右パン</option>
+              <option value="tilt-left">左傾き</option>
+              <option value="tilt-right">右傾き</option>
+            </select>
+            <div class="field-help" id="fCameraEffectHelp">この行の間だけ追加でカメラを動かします。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">テロップ</label>
+            <input type="text" class="field-input" id="fTelop" placeholder="例: ― 前日 ―">
+          </div>
+          <div class="field-row">
+            <label class="field-label">テロップ位置・サイズ</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <input type="number" class="field-input" id="fTelopX" min="0" max="1" step="0.01" placeholder="X 0..1" style="width:96px;">
+              <input type="number" class="field-input" id="fTelopY" min="0" max="1" step="0.01" placeholder="Y 0..1" style="width:96px;">
+              <input type="number" class="field-input" id="fTelopSize" min="0.5" max="3" step="0.1" placeholder="倍率" style="width:96px;">
+            </div>
+            <div class="field-help">未入力なら既定位置。X/Y は画面比率、サイズは 1.0 が標準です。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">衝撃文字</label>
+            <input type="text" class="field-input" id="fImpactText" placeholder="例: 大型新人、襲来">
+            <div class="field-help">画面中央に大きく一瞬出す文字です。空なら出しません。</div>
+          </div>
+          <div class="fx-grid" style="margin-bottom:10px">
+            <label class="toggle-row">
+              <input type="checkbox" id="fZoomPunch">
+              <span>ズームパンチ</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fQuoteFreeze">
+              <span>引用止め</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fTypingFlood">
+              <span>通知洪水</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fSparkleBurst">
+              <span>キラッ</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fIrisOut">
+              <span>アイリスアウト</span>
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field-label">スタンプ雨</label>
+            <input type="text" class="field-input" id="fStampRain" placeholder="例: 期待">
+            <div class="field-help">短い単語を上から降らせます。空なら出しません。</div>
+          </div>
+          <div class="section-divider">この行だけ上書き</div>
+          <div id="fTurnEffectSettings"></div>
+
+          <div class="section-divider">SE（任意）</div>
+          <div id="fSeList" style="margin-bottom:4px;"></div>
+          <button class="insert-add-btn" id="btnAddSe" style="margin-bottom:8px;">＋ SE追加</button>
+
+          <div class="section-divider">演出共通</div>
+          <div id="fEffectSettings"></div>
         </div>
 
         <!-- インサートタブ -->
@@ -1369,6 +1369,26 @@ let _timelineRaf = null; // 再生中タイムライン描画の間引き用
 let _lastTimelineDrawAt = 0;
 const _TIMELINE_DRAW_INTERVAL_MS = 80; // スマホ負荷対策: 12fps程度で十分
 const GEN_SETTINGS_KEY = "storyEditorGenSettingsV1";
+const EFFECT_SETTING_SPECS = [
+  { group: "zoomPunch", label: "ズームパンチ 拡大率", key: "scale", min: 1.02, max: 1.4, step: 0.01, defaultValue: 1.14, digits: 2 },
+  { group: "zoomPunch", label: "ズームパンチ 時間", key: "duration", min: 0.08, max: 0.5, step: 0.01, defaultValue: 0.18, digits: 2, unit: "秒" },
+  { group: "zoomPunch", label: "ズームパンチ 枠の強さ", key: "borderStrength", min: 0, max: 2, step: 0.05, defaultValue: 1, digits: 2 },
+  { group: "quoteFreeze", label: "引用止め 背景濃さ", key: "backdropOpacity", min: 0, max: 0.6, step: 0.02, defaultValue: 0.22, digits: 2 },
+  { group: "quoteFreeze", label: "引用止め フェードイン", key: "fadeIn", min: 0.05, max: 0.4, step: 0.01, defaultValue: 0.14, digits: 2, unit: "秒" },
+  { group: "quoteFreeze", label: "引用止め 余韻", key: "fadeOutDuration", min: 0.05, max: 0.4, step: 0.01, defaultValue: 0.18, digits: 2, unit: "秒" },
+  { group: "stampRain", label: "スタンプ雨 個数", key: "count", min: 1, max: 12, step: 1, defaultValue: 8, digits: 0 },
+  { group: "stampRain", label: "スタンプ雨 落下時間", key: "fallDuration", min: 0.15, max: 1, step: 0.01, defaultValue: 0.46, digits: 2, unit: "秒" },
+  { group: "stampRain", label: "スタンプ雨 横の広がり", key: "spread", min: 0.4, max: 1.4, step: 0.05, defaultValue: 1, digits: 2 },
+  { group: "typingFlood", label: "通知洪水 行数", key: "rows", min: 2, max: 12, step: 1, defaultValue: 9, digits: 0 },
+  { group: "typingFlood", label: "通知洪水 流れる速さ", key: "flowDuration", min: 0.12, max: 0.8, step: 0.01, defaultValue: 0.38, digits: 2, unit: "秒" },
+  { group: "typingFlood", label: "通知洪水 間隔", key: "stagger", min: 0.01, max: 0.12, step: 0.005, defaultValue: 0.035, digits: 3, unit: "秒" },
+  { group: "sparkleBurst", label: "キラッ 数", key: "count", min: 4, max: 20, step: 1, defaultValue: 10, digits: 0 },
+  { group: "sparkleBurst", label: "キラッ 広がり", key: "spread", min: 80, max: 420, step: 5, defaultValue: 260, digits: 0, unit: "px" },
+  { group: "sparkleBurst", label: "キラッ 時間", key: "duration", min: 0.1, max: 0.8, step: 0.01, defaultValue: 0.32, digits: 2, unit: "秒" },
+  { group: "irisOut", label: "アイリスアウト 開始位置", key: "start", min: 0.3, max: 0.95, step: 0.01, defaultValue: 0.72, digits: 2 },
+  { group: "irisOut", label: "アイリスアウト 閉じる時間", key: "duration", min: 0.08, max: 0.6, step: 0.01, defaultValue: 0.28, digits: 2, unit: "秒" },
+  { group: "irisOut", label: "アイリスアウト 初期半径", key: "startRadius", min: 0.2, max: 1.2, step: 0.02, defaultValue: 0.78, digits: 2 },
+];
 
 // 話者→背景色（アイコン未設定時の色丸）
 const SPEAKER_COLORS = {
@@ -1378,8 +1398,283 @@ const SPEAKER_COLORS = {
   "部長": "#fbbf24",
   "AI": "#a78bfa",
 };
+const SPEAKER_DISPLAY_NAMES = {
+  zundamon: "ずんだもん",
+  metan: "四国めたん",
+  AI: "ZunAI",
+};
 function speakerColor(sp) {
   return SPEAKER_COLORS[sp] || "#8892aa";
+}
+
+function speakerDisplayName(sp) {
+  return SPEAKER_DISPLAY_NAMES[sp] || sp || "";
+}
+
+function ensureEffectSettings() {
+  if (!storyData) return {};
+  if (!storyData.effectSettings || typeof storyData.effectSettings !== "object") {
+    storyData.effectSettings = {};
+  }
+  return storyData.effectSettings;
+}
+
+function getEffectSettingValue(spec) {
+  const settings = ensureEffectSettings();
+  const group = settings[spec.group] || {};
+  const raw = group[spec.key];
+  return Number.isFinite(raw) ? raw : spec.defaultValue;
+}
+
+function setEffectSettingValue(spec, value) {
+  const settings = ensureEffectSettings();
+  if (!settings[spec.group] || typeof settings[spec.group] !== "object") settings[spec.group] = {};
+  const group = settings[spec.group];
+  const clamped = Math.max(spec.min, Math.min(spec.max, value));
+  if (Math.abs(clamped - spec.defaultValue) < Math.max(spec.step / 2, 1e-6)) {
+    delete group[spec.key];
+  } else {
+    group[spec.key] = clamped;
+  }
+  if (!Object.keys(group).length) delete settings[spec.group];
+  if (!Object.keys(settings).length) delete storyData.effectSettings;
+}
+
+function formatEffectSettingValue(spec, value) {
+  const rounded = spec.digits > 0 ? value.toFixed(spec.digits) : String(Math.round(value));
+  return spec.unit ? `${rounded}${spec.unit}` : rounded;
+}
+
+function handleEffectSettingChange(spec, rawValue) {
+  const num = parseFloat(rawValue);
+  if (!Number.isFinite(num)) return;
+  setEffectSettingValue(spec, num);
+  markDirty();
+  renderEffectSettingsEditor();
+  notifyPlayerUpdate();
+}
+
+function makeSteppedNumberControl(spec) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = spec.label;
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%; flex-wrap:wrap;";
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.className = "field-input";
+  slider.min = String(spec.min);
+  slider.max = String(spec.max);
+  slider.step = String(spec.step);
+  slider.value = String(getEffectSettingValue(spec));
+  slider.style.cssText = "flex:1 1 220px; min-width:180px; accent-color:var(--accent);";
+  const num = document.createElement("input");
+  num.type = "number";
+  num.className = "field-input";
+  num.min = String(spec.min);
+  num.max = String(spec.max);
+  num.step = String(spec.step);
+  num.value = String(getEffectSettingValue(spec));
+  num.style.cssText = "width:92px; flex-shrink:0;";
+  const disp = document.createElement("span");
+  disp.style.cssText = "font-size:12px; color:var(--text2); min-width:56px;";
+  disp.textContent = formatEffectSettingValue(spec, getEffectSettingValue(spec));
+  const makeStepBtn = (delta, label) => {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-secondary btn-sm";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      const next = Math.max(spec.min, Math.min(spec.max, getEffectSettingValue(spec) + delta));
+      handleEffectSettingChange(spec, String(next));
+    });
+    return btn;
+  };
+  const syncOnly = (value) => {
+    const numVal = Math.max(spec.min, Math.min(spec.max, parseFloat(value)));
+    slider.value = String(numVal);
+    num.value = String(numVal);
+    disp.textContent = formatEffectSettingValue(spec, numVal);
+  };
+  slider.addEventListener("input", () => syncOnly(slider.value));
+  num.addEventListener("input", () => syncOnly(num.value || String(spec.defaultValue)));
+  slider.addEventListener("change", () => handleEffectSettingChange(spec, slider.value));
+  num.addEventListener("change", () => handleEffectSettingChange(spec, num.value || String(spec.defaultValue)));
+  const reset = document.createElement("button");
+  reset.className = "btn btn-secondary btn-sm";
+  reset.textContent = "既定";
+  reset.addEventListener("click", () => handleEffectSettingChange(spec, String(spec.defaultValue)));
+  body.appendChild(slider);
+  body.appendChild(makeStepBtn(-spec.step, "−"));
+  body.appendChild(num);
+  body.appendChild(makeStepBtn(spec.step, "＋"));
+  body.appendChild(disp);
+  body.appendChild(reset);
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
+}
+
+function renderEffectSettingsEditor() {
+  const container = document.getElementById("fEffectSettings");
+  if (!container) return;
+  container.innerHTML = "";
+  const intro = document.createElement("div");
+  intro.className = "field-help";
+  intro.textContent = "ここで設定した値は動画全体の演出に共通で効きます。スライダー、直接入力、±ボタンで調整できます。";
+  intro.style.marginBottom = "10px";
+  container.appendChild(intro);
+  for (const spec of EFFECT_SETTING_SPECS) {
+    container.appendChild(makeSteppedNumberControl(spec));
+  }
+}
+
+function activeTurnEffectGroups(turn) {
+  if (!turn) return [];
+  const groups = [];
+  if (turn.zoomPunch) groups.push("zoomPunch");
+  if (turn.quoteFreeze) groups.push("quoteFreeze");
+  if (turn.stampRain) groups.push("stampRain");
+  if (turn.typingFlood) groups.push("typingFlood");
+  if (turn.sparkleBurst) groups.push("sparkleBurst");
+  if (turn.irisOut) groups.push("irisOut");
+  return groups;
+}
+
+function ensureTurnEffectSettings(turn) {
+  if (!turn) return {};
+  if (!turn.effectSettings || typeof turn.effectSettings !== "object") {
+    turn.effectSettings = {};
+  }
+  return turn.effectSettings;
+}
+
+function getTurnEffectSettingRaw(turn, spec) {
+  const settings = turn && turn.effectSettings;
+  const group = settings && settings[spec.group];
+  const raw = group && group[spec.key];
+  return Number.isFinite(raw) ? raw : null;
+}
+
+function getTurnEffectSettingEffective(turn, spec) {
+  const raw = getTurnEffectSettingRaw(turn, spec);
+  return raw != null ? raw : getEffectSettingValue(spec);
+}
+
+function setTurnEffectSettingValue(turn, spec, value) {
+  if (!turn) return;
+  const settings = ensureTurnEffectSettings(turn);
+  if (!settings[spec.group] || typeof settings[spec.group] !== "object") settings[spec.group] = {};
+  const group = settings[spec.group];
+  group[spec.key] = Math.max(spec.min, Math.min(spec.max, value));
+}
+
+function clearTurnEffectSettingValue(turn, spec) {
+  if (!turn || !turn.effectSettings || !turn.effectSettings[spec.group]) return;
+  delete turn.effectSettings[spec.group][spec.key];
+  if (!Object.keys(turn.effectSettings[spec.group]).length) delete turn.effectSettings[spec.group];
+  if (!Object.keys(turn.effectSettings).length) delete turn.effectSettings;
+}
+
+function makeTurnEffectSettingControl(turn, spec) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = spec.label;
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%; flex-wrap:wrap;";
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.className = "field-input";
+  slider.min = String(spec.min);
+  slider.max = String(spec.max);
+  slider.step = String(spec.step);
+  slider.value = String(getTurnEffectSettingEffective(turn, spec));
+  slider.style.cssText = "flex:1 1 220px; min-width:180px; accent-color:var(--accent);";
+  const num = document.createElement("input");
+  num.type = "number";
+  num.className = "field-input";
+  num.min = String(spec.min);
+  num.max = String(spec.max);
+  num.step = String(spec.step);
+  num.value = String(getTurnEffectSettingEffective(turn, spec));
+  num.style.cssText = "width:92px; flex-shrink:0;";
+  const disp = document.createElement("span");
+  disp.style.cssText = "font-size:12px; color:var(--text2); min-width:56px;";
+  const state = document.createElement("span");
+  state.style.cssText = "font-size:11px; color:var(--text2); min-width:80px;";
+  const syncOnly = (value) => {
+    const numVal = Math.max(spec.min, Math.min(spec.max, parseFloat(value)));
+    slider.value = String(numVal);
+    num.value = String(numVal);
+    disp.textContent = formatEffectSettingValue(spec, numVal);
+    state.textContent = getTurnEffectSettingRaw(turn, spec) != null ? "この行で上書き" : "共通設定を継承";
+  };
+  const commit = (value) => {
+    const numVal = Math.max(spec.min, Math.min(spec.max, parseFloat(value)));
+    setTurnEffectSettingValue(turn, spec, numVal);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  };
+  syncOnly(slider.value);
+  slider.addEventListener("input", () => syncOnly(slider.value));
+  num.addEventListener("input", () => syncOnly(num.value || String(getEffectSettingValue(spec))));
+  slider.addEventListener("change", () => commit(slider.value));
+  num.addEventListener("change", () => commit(num.value || String(getEffectSettingValue(spec))));
+  const makeStepBtn = (delta, label) => {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-secondary btn-sm";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      const next = Math.max(spec.min, Math.min(spec.max, getTurnEffectSettingEffective(turn, spec) + delta));
+      commit(String(next));
+    });
+    return btn;
+  };
+  const reset = document.createElement("button");
+  reset.className = "btn btn-secondary btn-sm";
+  reset.textContent = "継承";
+  reset.addEventListener("click", () => {
+    clearTurnEffectSettingValue(turn, spec);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  });
+  body.appendChild(slider);
+  body.appendChild(makeStepBtn(-spec.step, "−"));
+  body.appendChild(num);
+  body.appendChild(makeStepBtn(spec.step, "＋"));
+  body.appendChild(disp);
+  body.appendChild(state);
+  body.appendChild(reset);
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
+}
+
+function renderTurnEffectSettings(turn) {
+  const container = document.getElementById("fTurnEffectSettings");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!turn) return;
+  const groups = activeTurnEffectGroups(turn);
+  const intro = document.createElement("div");
+  intro.className = "field-help";
+  intro.style.marginBottom = "10px";
+  if (!groups.length) {
+    intro.textContent = "この行で有効な演出がまだありません。上のチェックや入力を入れると、この行だけの上書き項目が出ます。";
+    container.appendChild(intro);
+    return;
+  }
+  intro.textContent = "未設定なら演出共通の値を使います。この行だけ少し強くしたい時だけ上書きしてください。";
+  container.appendChild(intro);
+  for (const spec of EFFECT_SETTING_SPECS) {
+    if (!groups.includes(spec.group)) continue;
+    container.appendChild(makeTurnEffectSettingControl(turn, spec));
+  }
 }
 
 function isNarrationTurnData(turn) {
@@ -1450,8 +1745,8 @@ function getEmphasisIncomingInfo(script, idx) {
 }
 
 function displaySpeakerLabel(turn) {
-  if (isNarrationTurnData(turn)) return `ナレーション (${turn.narrationVoice})`;
-  return turn.speaker || "";
+  if (isNarrationTurnData(turn)) return `ナレーション (${speakerDisplayName(turn.speaker)})`;
+  return speakerDisplayName(turn.speaker);
 }
 
 function cameraEffectLabel(effect) {
@@ -1484,7 +1779,6 @@ async function init() {
     document.getElementById("storyTitle").value = storyData.title || "";
     document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
     buildSpeakerSelect();
-    buildNarrationSpeakerSelect();
     buildSceneSelect();
     buildExpressionSelect();
     buildPoseSelect();
@@ -1549,6 +1843,7 @@ const _SPK_COLORS = { zundamon: "#5fb84f", metan: "#e87bb0", "営業": "#9aa0a6"
 let _selectedBgmIdx = -1;  // 選択中の storyData.bgm インデックス
 let _bgmDrag = null;       // null | { op:"move"|"resizeL"|"resizeR"|"create", idx, origStart, origEnd, startX, cursorX, newRegion }
 let _bgmDragThreshold = false; // create時のドラッグ閾値超え判定済みフラグ
+let _bgmDragMoved = false;
 let overlayAssets = null;      // { images: [...] }
 let overlayImageSizes = {};    // { "overlays/x.png": {w,h} }
 let _selectedOverlayId = null; // 選択中 overlay.id
@@ -2086,6 +2381,13 @@ function _timeBgmRegions() {
     .filter(r => r.file && typeof r.start === "number" && typeof r.end === "number" && r.end > r.start);
 }
 
+function _fallbackBgmRegions() {
+  if (_timeBgmRegions().length > 0) return [];
+  return _bgmRegions()
+    .filter(r => r && r._sceneFallback && r.file && typeof r.start === "number" && typeof r.end === "number" && r.end > r.start)
+    .map((r, i) => ({ ...r, _fallbackIdx: i }));
+}
+
 // ヒットテスト: BGMレーン上のどこをクリックしたか
 function _bgmHitTest(canvas, cx, cy) {
   const { yBgm, laneH } = _bgmLaneY(canvas);
@@ -2103,7 +2405,32 @@ function _bgmHitTest(canvas, cx, cy) {
       return { type: "move", idx: r._idx, region: r };
     }
   }
+  const fallbackRegions = _fallbackBgmRegions();
+  for (let i = fallbackRegions.length - 1; i >= 0; i--) {
+    const r = fallbackRegions[i];
+    const x1 = _timelineTtoX(canvas, r.start);
+    const x2 = _timelineTtoX(canvas, r.end);
+    if (cx >= x1 && cx <= x2) {
+      return { type: "fallback", idx: -1, region: r };
+    }
+  }
   return { type: "create", idx: -1, t };
+}
+
+function materializeFallbackBgmRegion(region) {
+  if (!storyData || !region || !region.file) return -1;
+  if (!storyData.bgm) storyData.bgm = [];
+  storyData.bgm.push({
+    start: region.start,
+    end: region.end,
+    file: region.file,
+    volume: typeof region.volume === "number" ? region.volume : 0.25,
+    fadeIn: typeof region.fadeIn === "number" ? region.fadeIn : 0.6,
+    fadeOut: typeof region.fadeOut === "number" ? region.fadeOut : 0.6,
+  });
+  markDirty();
+  notifyPlayerUpdate();
+  return storyData.bgm.length - 1;
 }
 
 function _overlayHitTest(canvas, cx, cy) {
@@ -2401,7 +2728,8 @@ function _setupBgmRegionEditorEvents() {
   const playBtn = document.getElementById("bgmRegionPlay");
   if (playBtn) playBtn.addEventListener("click", () => {
     const f = document.getElementById("bgmRegionFile");
-    if (f) previewAudioFile(f.value);
+    const volSlider = document.getElementById("bgmRegionVolume");
+    if (f) previewAudioFile(f.value, playBtn, volSlider ? parseFloat(volSlider.value) : 0.25);
   });
   const delBtn = document.getElementById("bgmRegionDelete");
   if (delBtn) delBtn.addEventListener("click", () => {
@@ -2595,11 +2923,29 @@ function setupScriptTimeline() {
       const t = _snapT(_timelineXtoT(canvas, cx));
       _bgmDrag = { op: "create", idx: -1, origStart: t, origEnd: t, startX: cx };
       _bgmDragThreshold = false;
+      _bgmDragMoved = false;
+    } else if (hit.type === "fallback") {
+      const idx = materializeFallbackBgmRegion(hit.region);
+      if (idx < 0) return;
+      _selectedBgmIdx = idx;
+      _selectedOverlayId = null;
+      _bgmDrag = null;
+      _bgmDragThreshold = false;
+      _bgmDragMoved = false;
+      _updateBgmRegionEditor();
+      ensureAudioAssets().then(() => _updateBgmRegionEditor());
+      renderOverlayEditor();
+      renderOverlayEditLayer();
+      drawScriptTimeline();
+      return;
     } else {
       const r = hit.region;
       _bgmDrag = { op: hit.type, idx: hit.idx, origStart: r.start, origEnd: r.end, startX: cx, cursorX: cx };
+      _bgmDragThreshold = false;
+      _bgmDragMoved = false;
       _selectedBgmIdx = hit.idx;
       _selectedOverlayId = null;
+      _updateBgmRegionEditor();
       ensureAudioAssets().then(() => _updateBgmRegionEditor());
       renderOverlayEditor();
       renderOverlayEditLayer();
@@ -2663,11 +3009,18 @@ function setupScriptTimeline() {
     const cx = _canvasX(canvas, e);
     const total = _timelineTotal();
     const dt = _timelineXtoT(canvas, cx - d.startX); // 移動量(秒)
+    if (Math.abs(cx - d.startX) > 4) {
+      _bgmDragThreshold = true;
+      _bgmDragMoved = true;
+    }
 
     if (d.op === "create") {
       const curT = _snapT(_timelineXtoT(canvas, cx));
       d.origEnd = Math.max(0, Math.min(total, curT));
       if (Math.abs(cx - d.startX) > 4) _bgmDragThreshold = true;
+      _bgmDragMoved = _bgmDragThreshold;
+    } else if (!_bgmDragMoved) {
+      return;
     } else if (d.op === "move") {
       const dur = d.origEnd - d.origStart;
       let ns = _snapT(d.origStart + dt);
@@ -2731,6 +3084,19 @@ function setupScriptTimeline() {
       drawScriptTimeline();
       ensureAudioAssets().then(() => _updateBgmRegionEditor());
     } else {
+      if (!_bgmDragMoved) {
+        _selectedBgmIdx = d.idx;
+        _selectedOverlayId = null;
+        const mid = (d.origStart + d.origEnd) / 2;
+        if (window.storyPlayer && playerReady) window.storyPlayer.seekToTime(mid);
+        _playheadTime = mid;
+        ensureAudioAssets().then(() => _updateBgmRegionEditor());
+        renderOverlayEditor();
+        renderOverlayEditLayer();
+        drawScriptTimeline();
+        canvas.style.cursor = "default";
+        return;
+      }
       // move/resize 確定
       markDirty();
       notifyPlayerUpdate();
@@ -3110,23 +3476,6 @@ function buildSpeakerSelect() {
   }
 }
 
-function buildNarrationSpeakerSelect() {
-  const sel = document.getElementById("fNarrationVoice");
-  sel.innerHTML = "";
-  const none = document.createElement("option");
-  none.value = ""; none.textContent = "(なし)";
-  sel.appendChild(none);
-  for (const sp of sortedStrings(meta.narrationSpeakers || [])) {
-    const o = document.createElement("option");
-    o.value = sp; o.textContent = sp;
-    sel.appendChild(o);
-  }
-}
-
-function defaultNarrationSpeaker() {
-  return (meta.narrationSpeakers && meta.narrationSpeakers[0]) || "";
-}
-
 function buildSceneSelect() {
   // シーンは scene_editor で登録済みのものから選ぶ（ドロップダウン）。
   // 自由入力にはしない（新規シーンは scene_editor で作ってから選ぶ運用）。
@@ -3269,7 +3618,7 @@ function buildMultiSelect(containerId, speakers) {
     const cb = document.createElement("input");
     cb.type = "checkbox"; cb.value = sp;
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(sp));
+    label.appendChild(document.createTextNode(speakerDisplayName(sp)));
     wrap.appendChild(label);
   }
 }
@@ -3634,8 +3983,6 @@ function renderDetail() {
   // ── 基本タブ ──
   setField("fSpeaker", "select", turn.speaker || "");
   document.getElementById("fNarration").checked = isNarrationTurnData(turn);
-  setField("fNarrationVoice", "select", turn.narrationVoice || "");
-  document.getElementById("fSpeaker").disabled = isNarrationTurnData(turn);
   setField("fText", "textarea", turn.text || "");
   // scene: 登録済みシーンのドロップダウン（未登録値は保持表示）
   setSceneValue(turn.scene);
@@ -3659,6 +4006,7 @@ function renderDetail() {
   document.getElementById("fTypingFlood").checked = !!turn.typingFlood;
   document.getElementById("fSparkleBurst").checked = !!turn.sparkleBurst;
   document.getElementById("fIrisOut").checked = !!turn.irisOut;
+  renderTurnEffectSettings(turn);
   document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
   setField("fVoicePreset", "select", voicePresetKey(turn));
   document.getElementById("fNoLipSync").checked = !!turn.noLipSync;
@@ -3672,7 +4020,7 @@ function renderDetail() {
   if (narrationHelp) {
     narrationHelp.className = "field-help" + (isNarrationTurnData(turn) ? " warn" : "");
     narrationHelp.textContent = isNarrationTurnData(turn)
-      ? `この行はナレーション扱いです。音声は ${turn.narrationVoice} を使い、吹き出し・立ち絵・話者寄り演出は出ません。`
+      ? `この行はナレーション扱いです。音声は話者 ${turn.speaker} を使い、吹き出し・立ち絵・話者寄り演出は出ません。`
       : "オンの時は吹き出し・立ち絵・話者寄り演出なしで、この音声だけを使います。";
   }
   if (emphasisHelp) {
@@ -3788,6 +4136,7 @@ function renderDetail() {
 
   // ── 手動SE ──
   renderManualSe();
+  renderEffectSettingsEditor();
 
   // ── インサートタブ ──
   const kind = turn.insert ? turn.insert.kind : "";
@@ -3840,11 +4189,17 @@ function renderInsertFields(insert) {
 
   if (!kind) return;
 
+  const effectiveVideoCall = kind === "videocall" ? resolveEffectiveVideoCallInsert(selectedIdx) : null;
+  const widthSource = kind === "videocall"
+    ? { width: (typeof insert.width === "number" ? insert.width : effectiveVideoCall && effectiveVideoCall.width) }
+    : insert;
+  container.appendChild(makeInsertWidthField(widthSource, kind === "videocall" && effectiveVideoCall && typeof insert.width !== "number"));
+
   if (kind === "warning") {
     container.appendChild(makeField("title（任意）", "text", "fITitle", insert.title || ""));
-    container.appendChild(makeField("text", "text", "fIText", insert.text || ""));
+    container.appendChild(makeTextareaField("text", "fIText", insert.text || ""));
   } else if (kind === "ok") {
-    container.appendChild(makeField("text（任意）", "text", "fIText", insert.text || ""));
+    container.appendChild(makeTextareaField("text（任意）", "fIText", insert.text || ""));
   } else if (kind === "chat") {
     container.appendChild(makeField("user", "text", "fIChatUser", insert.user || ""));
     // ai: string[]
@@ -4008,6 +4363,64 @@ function makeField(labelText, inputType, id, value, placeholder) {
   return wrap;
 }
 
+function makeInsertWidthField(insert, inherited = false) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "横幅";
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; align-items:center; gap:10px; width:100%;";
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.className = "field-input";
+  slider.id = "fIWidth";
+  slider.min = "0.6";
+  slider.max = "1.4";
+  slider.step = "0.02";
+  slider.value = String(
+    typeof insert?.width === "number" && Number.isFinite(insert.width)
+      ? Math.max(0.6, Math.min(1.4, insert.width))
+      : 1
+  );
+  slider.style.cssText = "flex:1; accent-color:var(--accent);";
+  const disp = document.createElement("span");
+  disp.id = "fIWidthDisp";
+  disp.style.cssText = "font-size:12px; color:var(--text2); min-width:52px; text-align:right;";
+  const sync = () => {
+    disp.textContent = Math.round(parseFloat(slider.value || "1") * 100) + "%";
+  };
+  sync();
+  slider.addEventListener("input", () => {
+    sync();
+    collectInsert();
+  });
+  slider.addEventListener("change", () => {
+    sync();
+    collectInsert();
+  });
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "btn btn-secondary btn-sm";
+  resetBtn.textContent = "100%";
+  resetBtn.addEventListener("click", () => {
+    slider.value = "1";
+    sync();
+    collectInsert();
+  });
+  row.appendChild(slider);
+  row.appendChild(disp);
+  row.appendChild(resetBtn);
+  wrap.appendChild(lbl);
+  wrap.appendChild(row);
+  const help = document.createElement("div");
+  help.className = "field-help";
+  help.textContent = inherited
+    ? "動かすとこのターンだけ上書きされます。未変更なら継承中の幅を使います。"
+    : "動かすとプレビューに即反映されます。各 Zun インサートごとに調整できます。";
+  wrap.appendChild(help);
+  return wrap;
+}
+
 function makeTextareaField(labelText, id, value) {
   const wrap = document.createElement("div");
   wrap.className = "field-row";
@@ -4046,8 +4459,9 @@ function makeChatAiItem(idx, value) {
     refreshChatAiItems(items);
   });
   header.appendChild(lbl); header.appendChild(del);
-  const inp = document.createElement("input");
-  inp.type = "text"; inp.className = "field-input"; inp.value = value;
+  const inp = document.createElement("textarea");
+  inp.className = "field-textarea field-input";
+  inp.value = value;
   inp.dataset.field = "ai"; inp.dataset.idx = idx;
   inp.addEventListener("change", collectInsert);
   item.appendChild(header); item.appendChild(inp);
@@ -4098,8 +4512,8 @@ function makeTeamchatItem(idx, msg) {
   textRow.className = "field-row";
   const textLbl = document.createElement("label");
   textLbl.className = "field-label"; textLbl.textContent = "text";
-  const textInp = document.createElement("input");
-  textInp.type = "text"; textInp.className = "field-input";
+  const textInp = document.createElement("textarea");
+  textInp.className = "field-textarea field-input";
   textInp.value = msg.text || "";
   textInp.dataset.field = "text"; textInp.dataset.idx = idx;
   textInp.addEventListener("change", collectInsert);
@@ -4125,7 +4539,7 @@ function makeTeamchatItem(idx, msg) {
 function getChatAiItems() {
   const wrap = document.getElementById("fIAiItems");
   if (!wrap) return [];
-  const inputs = wrap.querySelectorAll("input[type=text]");
+  const inputs = wrap.querySelectorAll("textarea[data-field=ai]");
   return Array.from(inputs).map(inp => inp.value);
 }
 
@@ -4147,7 +4561,7 @@ function getTeamchatMessages() {
   const items = wrap.querySelectorAll(".insert-array-item");
   return Array.from(items).map(item => {
     const fromSel = item.querySelector("select[data-field=from]");
-    const textInp = item.querySelector("input[data-field=text]");
+    const textInp = item.querySelector("textarea[data-field=text]");
     const hlCb = item.querySelector("input[data-field=highlight]");
     return {
       from: fromSel ? fromSel.value : "",
@@ -4322,21 +4736,10 @@ function collectBasic() {
   const oldSpeaker = turn.speaker, oldText = turn.text, oldPause = turn.pause, oldVoice = JSON.stringify(turn.voice || null), oldNarration = turn.narrationVoice || "";
   const oldSpokenText = normalizeSpokenText(oldText);
   const narrationCheckbox = document.getElementById("fNarration");
-  const narrationVoiceEl = document.getElementById("fNarrationVoice");
   let narrationEnabled = narrationCheckbox.checked;
-  let narrationVoiceVal = narrationVoiceEl.value;
-  if (!narrationEnabled && narrationVoiceVal) {
-    narrationEnabled = true;
-    narrationCheckbox.checked = true;
-  }
-  if (narrationEnabled && !narrationVoiceVal) {
-    narrationVoiceVal = turn.narrationVoice || defaultNarrationSpeaker();
-    narrationVoiceEl.value = narrationVoiceVal;
-  }
   const speakerEl = document.getElementById("fSpeaker");
-  speakerEl.disabled = narrationEnabled;
   turn.speaker = speakerEl.value;
-  if (narrationEnabled && narrationVoiceVal) turn.narrationVoice = narrationVoiceVal;
+  if (narrationEnabled && turn.speaker) turn.narrationVoice = turn.speaker;
   else delete turn.narrationVoice;
   turn.text = document.getElementById("fText").value;
   turn.scene = document.getElementById("fScene").value;
@@ -4467,6 +4870,15 @@ function collectInsert() {
   }
 
   let ins = { kind };
+  const widthEl = document.getElementById("fIWidth");
+  const widthVal = widthEl ? parseFloat(widthEl.value) : 1;
+  const inheritedVideoCallWidth = kind === "videocall"
+    ? (resolveEffectiveVideoCallInsert(selectedIdx, { ignoreOwnWidth: true })?.width ?? 1)
+    : 1;
+  const widthBase = kind === "videocall" ? inheritedVideoCallWidth : 1;
+  if (Number.isFinite(widthVal) && Math.abs(widthVal - widthBase) > 0.001) {
+    ins.width = Math.max(0.6, Math.min(1.4, widthVal));
+  }
 
   if (kind === "warning") {
     const title = document.getElementById("fITitle");
@@ -4546,6 +4958,9 @@ function addTurnAfter(inheritScene = false) {
     start: 0,
     end: 0,
   };
+  if (inheritScene && refTurn && refTurn.insert) {
+    newTurn.insert = JSON.parse(JSON.stringify(refTurn.insert));
+  }
   const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : script.length;
   script.splice(insertAt, 0, newTurn);
   markDirty();
@@ -5141,7 +5556,7 @@ function setupEvents() {
   });
 
   // 基本タブ: 変更をリアルタイム収集
-  const basicIds = ["fSpeaker", "fNarration", "fNarrationVoice", "fText", "fScene", "fExpression", "fPose",
+  const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose",
                     "fSpeakerAnchor", "fEmphasis", "fShake", "fFlashback", "fCameraEffect", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
                     "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
                     "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
@@ -5371,37 +5786,85 @@ function findPreviousVideoCallInsert(idx) {
   return null;
 }
 
+function resolveEffectiveVideoCallInsert(idx, opts = {}) {
+  if (!storyData || !Array.isArray(storyData.script) || idx < 0) return null;
+  const cur = storyData.script[idx];
+  if (!cur) return null;
+  const own = cur.insert && cur.insert.kind === "videocall" ? cur.insert : null;
+  if (own && own.end) return null;
+  let merged = own ? JSON.parse(JSON.stringify(own)) : { kind: "videocall" };
+  if (opts.ignoreOwnWidth && merged) delete merged.width;
+  for (let i = idx - 1; i >= 0; i--) {
+    const prev = storyData.script[i];
+    if (!prev || prev.scene !== cur.scene) break;
+    if (prev.insert && prev.insert.kind !== "videocall") break;
+    if (prev.insert && prev.insert.kind === "videocall") {
+      if (prev.insert.end) break;
+      merged = {
+        kind: "videocall",
+        width: merged.width != null ? merged.width : prev.insert.width,
+        room: merged.room != null ? merged.room : prev.insert.room,
+        layout: merged.layout != null ? merged.layout : prev.insert.layout,
+        activeSpeaker: merged.activeSpeaker != null ? merged.activeSpeaker : prev.insert.activeSpeaker,
+        participants: (merged.participants && merged.participants.length) ? merged.participants : prev.insert.participants,
+      };
+      if (merged.width != null && merged.room && merged.layout && merged.participants && merged.participants.length) break;
+    }
+  }
+  return merged;
+}
+
 function buildDefaultInsert(kind, prev) {
   if (kind === "warning") {
     return {
       kind: "warning",
+      width: (prev && typeof prev.width === "number") ? prev.width : undefined,
       title: (prev && prev.kind === kind) ? (prev.title || "") : "",
       text: (prev && prev.kind === kind) ? (prev.text || "") : "",
     };
   } else if (kind === "ok") {
     return {
       kind: "ok",
+      width: (prev && typeof prev.width === "number") ? prev.width : undefined,
       text: (prev && prev.kind === kind) ? (prev.text || "") : "",
     };
   } else if (kind === "chat") {
     return {
       kind: "chat",
+      width: (prev && typeof prev.width === "number") ? prev.width : undefined,
       user: (prev && prev.kind === kind) ? (prev.user || "") : "",
       ai: (prev && prev.kind === kind) ? (prev.ai || []) : [],
     };
   } else if (kind === "teamchat") {
     return {
       kind: "teamchat",
+      width: (prev && typeof prev.width === "number") ? prev.width : undefined,
       channel: (prev && prev.kind === kind) ? (prev.channel || "") : "",
       messages: (prev && prev.kind === kind) ? (prev.messages || []) : [],
+    };
+  } else if (kind === "mailer") {
+    return {
+      kind: "mailer",
+      width: (prev && typeof prev.width === "number") ? prev.width : undefined,
+      from: (prev && prev.kind === kind) ? (prev.from || "") : "",
+      fromAddr: (prev && prev.kind === kind) ? (prev.fromAddr || "") : "",
+      subject: (prev && prev.kind === kind) ? (prev.subject || "") : "",
+      body: (prev && prev.kind === kind) ? (prev.body || "") : "",
+      time: (prev && prev.kind === kind) ? (prev.time || "") : "",
     };
   } else if (kind === "videocall") {
     if (prev && prev.kind === kind) return prev;
     // 同シーン内に進行中の videocall があれば空パッチ（全項目継承）から始める。
     // 値をコピーすると元ターンの編集が後続に反映されなくなるため、コピーはしない。
-    if (findPreviousVideoCallInsert(selectedIdx)) return { kind: "videocall" };
+    if (findPreviousVideoCallInsert(selectedIdx)) {
+      return {
+        kind: "videocall",
+        width: (prev && typeof prev.width === "number") ? prev.width : undefined,
+      };
+    }
     return {
       kind: "videocall",
+      width: (prev && typeof prev.width === "number") ? prev.width : undefined,
       room: "定例会議",
       layout: "focus",
       participants: [
@@ -5410,7 +5873,7 @@ function buildDefaultInsert(kind, prev) {
       ],
     };
   }
-  return { kind };
+  return { kind, width: (prev && typeof prev.width === "number") ? prev.width : undefined };
 }
 
 // ============================================================
@@ -5447,25 +5910,61 @@ function updateAudioPlatformNote() {
 // 音タブ: 各音源の試聴（単体再生）
 // ============================================================
 let _previewAudioEl = null;
-function previewAudioFile(file) {
+let _previewAudioFile = "";
+let _previewAudioBtn = null;
+
+function _setPreviewAudioBtn(btn, playing) {
+  if (!btn) return;
+  btn.textContent = playing ? "■" : "▶";
+  btn.title = playing ? "停止" : "試聴";
+}
+
+function _clearPreviewAudioBtn() {
+  if (_previewAudioBtn) _setPreviewAudioBtn(_previewAudioBtn, false);
+  _previewAudioBtn = null;
+}
+
+function stopPreviewAudio() {
+  if (_previewAudioEl) {
+    _previewAudioEl.pause();
+    _previewAudioEl.currentTime = 0;
+    _previewAudioEl = null;
+  }
+  _previewAudioFile = "";
+  _clearPreviewAudioBtn();
+}
+
+function previewAudioFile(file, btn = null, volume = 0.9) {
   // file 例: "se/surprise.mp3" / "bgm/bgm.mp3"。/preview-assets/ 経由(Range対応)で配信。
   if (!file) return;
   try {
-    if (_previewAudioEl) { _previewAudioEl.pause(); _previewAudioEl = null; }
+    if (_previewAudioEl && _previewAudioFile === file && _previewAudioBtn === btn) {
+      stopPreviewAudio();
+      return;
+    }
+    stopPreviewAudio();
     _previewAudioEl = new Audio("/preview-assets/" + file);
-    _previewAudioEl.volume = 0.9;
+    _previewAudioFile = file;
+    _previewAudioBtn = btn;
+    _setPreviewAudioBtn(btn, true);
+    _previewAudioEl.volume = Math.max(0, Math.min(1, Number.isFinite(volume) ? volume : 0.9));
+    _previewAudioEl.addEventListener("ended", stopPreviewAudio, { once: true });
     _previewAudioEl.play().catch(() => {});
   } catch (e) { /* 無視 */ }
 }
 // クリックで getFile() のファイルを試聴する小さな▶ボタンを作る。
-function makeAudioPlayBtn(getFile) {
+function makeAudioPlayBtn(getFile, getVolume = null) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "btn btn-secondary btn-sm";
   b.textContent = "▶";
   b.title = "試聴";
   b.style.cssText = "flex-shrink:0; padding:2px 9px;";
-  b.addEventListener("click", (e) => { e.preventDefault(); previewAudioFile(getFile()); });
+  b.addEventListener("click", (e) => {
+    e.preventDefault();
+    const volume = typeof getVolume === "function" ? getVolume() : 0.9;
+    previewAudioFile(getFile(), b, volume);
+  });
   return b;
 }
 
@@ -5590,7 +6089,6 @@ function renderSeMapSection() {
         seMap[cat][evtKey].file = sel.value;
       });
       row.appendChild(sel);
-      row.appendChild(makeAudioPlayBtn(() => sel.value));
 
       // 有効(ON/OFF)チェックボックス＋ラベル
       const TOOLTIP = "OFFにすると、ファイルを設定していてもこのSEは鳴りません（自動再生を無効化）";
@@ -5628,6 +6126,7 @@ function renderSeMapSection() {
       volWrap.appendChild(volSlider);
       volWrap.appendChild(volDisp);
       row.appendChild(volWrap);
+      row.appendChild(makeAudioPlayBtn(() => sel.value, () => parseFloat(volSlider.value)));
 
       container.appendChild(row);
     }
@@ -5715,7 +6214,6 @@ function renderSceneBgmSection() {
     sel.value = sc.bgm || "";
     if (overridden) sel.disabled = true;
     row.appendChild(sel);
-    row.appendChild(makeAudioPlayBtn(() => sel.value));
 
     // 音量スライダー
     const volWrap = document.createElement("div");
@@ -5735,6 +6233,7 @@ function renderSceneBgmSection() {
     volWrap.appendChild(volSlider);
     volWrap.appendChild(volDisp);
     row.appendChild(volWrap);
+    row.appendChild(makeAudioPlayBtn(() => sel.value, () => parseFloat(volSlider.value)));
 
     container.appendChild(row);
   }
@@ -5831,7 +6330,13 @@ function makeManualSeRow(idx, seItem) {
   sel.value = seItem.file || "";
   sel.addEventListener("change", () => { collectManualSe(); });
   row.appendChild(sel);
-  row.appendChild(makeAudioPlayBtn(() => sel.value));
+  row.appendChild(makeAudioPlayBtn(
+    () => sel.value,
+    () => {
+      const v = parseFloat(volInp.value);
+      return Number.isFinite(v) ? v : 0.8;
+    }
+  ));
 
   // at（オフセット秒）
   const atLbl = document.createElement("span");
