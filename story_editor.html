@@ -3281,17 +3281,25 @@ function provisionalDuration(text) {
   return Math.max(1.2, n / 7.5);
 }
 
-// 音声未生成(timing未確定 = end<=start)のターンに文字数ベースの仮尺を与えた
-// プレビュー用 script を返す。実データ(storyData)は変更しない。
-// 未確定ターンが無ければそのまま返す。
+// ターンの時刻が実際に音声生成済み(信頼できる)かどうか。
+// end>start なら確定済みとみなせるが、「セリフ無し+pauseだけ」のターンは
+// 音声生成後も実際に end===start(尺ゼロ)になる。sentences フィールドは
+// 生成時にしか書き込まれない(空配列でも必ず存在する)ため、end>start でなくても
+// sentences があれば「生成済みで意図的に尺ゼロ」と判定できる。
+function isTurnTimingConfirmed(t) {
+  return t.end > t.start || Array.isArray(t.sentences);
+}
+
+// 音声未生成(timing未確定)のターンに文字数ベースの仮尺を与えたプレビュー用
+// script を返す。実データ(storyData)は変更しない。未確定ターンが無ければそのまま返す。
 function withProvisionalTimings(script) {
   if (!Array.isArray(script)) return script;
-  if (!script.some((t) => !(t.end > t.start))) return script; // 全て確定済み
+  if (!script.some((t) => !isTurnTimingConfirmed(t))) return script; // 全て確定済み
   const copy = script.map((t) => ({ ...t }));
   let shift = 0; // 仮挿入で後続を後ろへずらす累積秒
   for (let i = 0; i < copy.length; i++) {
     const t = copy[i];
-    if (t.end > t.start) {
+    if (isTurnTimingConfirmed(t)) {
       // 確定済み: 仮挿入分だけ後ろへシフト(相対的な間隔は保つ)
       t.start += shift;
       t.end += shift;
