@@ -4248,6 +4248,14 @@ function renderInsertFields(insert) {
     : insert;
   container.appendChild(makeInsertWidthField(widthSource, kind === "videocall" && effectiveVideoCall && typeof insert.width !== "number"));
 
+  const INSERT_DEFAULT_BG = {
+    warning: "#1a1d24", chat: "#181c24", ok: "#141e18", teamchat: "#f6f8fc", mailer: "#f6f8fc",
+  };
+  if (kind !== "videocall") {
+    container.appendChild(makeInsertFontScaleField(insert));
+    container.appendChild(makeInsertBgField(insert, INSERT_DEFAULT_BG[kind] || "#1a1d24"));
+  }
+
   if (kind === "warning") {
     container.appendChild(makeField("title（任意）", "text", "fITitle", insert.title || ""));
     container.appendChild(makeTextareaField("text", "fIText", insert.text || ""));
@@ -4470,6 +4478,89 @@ function makeInsertWidthField(insert, inherited = false) {
   help.textContent = inherited
     ? "動かすとこのターンだけ上書きされます。未変更なら継承中の幅を使います。"
     : "動かすとプレビューに即反映されます。各 Zun インサートごとに調整できます。";
+  wrap.appendChild(help);
+  return wrap;
+}
+
+function makeInsertFontScaleField(insert) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "文字サイズ";
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; align-items:center; gap:10px; width:100%;";
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.className = "field-input";
+  slider.id = "fIFontScale";
+  slider.min = "0.6";
+  slider.max = "1.6";
+  slider.step = "0.02";
+  slider.value = String(
+    typeof insert?.fontScale === "number" && Number.isFinite(insert.fontScale)
+      ? Math.max(0.6, Math.min(1.6, insert.fontScale))
+      : 1
+  );
+  slider.style.cssText = "flex:1; accent-color:var(--accent);";
+  const disp = document.createElement("span");
+  disp.id = "fIFontScaleDisp";
+  disp.style.cssText = "font-size:12px; color:var(--text2); min-width:52px; text-align:right;";
+  const sync = () => {
+    disp.textContent = Math.round(parseFloat(slider.value || "1") * 100) + "%";
+  };
+  sync();
+  slider.addEventListener("input", () => { sync(); collectInsert(); });
+  slider.addEventListener("change", () => { sync(); collectInsert(); });
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "btn btn-secondary btn-sm";
+  resetBtn.textContent = "100%";
+  resetBtn.addEventListener("click", () => {
+    slider.value = "1";
+    sync();
+    collectInsert();
+  });
+  row.appendChild(slider);
+  row.appendChild(disp);
+  row.appendChild(resetBtn);
+  wrap.appendChild(lbl);
+  wrap.appendChild(row);
+  const help = document.createElement("div");
+  help.className = "field-help";
+  help.textContent = "パネル内の文字サイズ全体を一律で拡大縮小します。";
+  wrap.appendChild(help);
+  return wrap;
+}
+
+function makeInsertBgField(insert, defaultColor) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "背景色";
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; align-items:center; gap:10px; width:100%;";
+  const picker = document.createElement("input");
+  picker.type = "color";
+  picker.id = "fIBg";
+  picker.value = (insert && typeof insert.bg === "string" && insert.bg) || defaultColor;
+  picker.dataset.default = defaultColor;
+  picker.style.cssText = "width:48px; height:30px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer;";
+  picker.addEventListener("input", collectInsert);
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "btn btn-secondary btn-sm";
+  resetBtn.textContent = "既定色に戻す";
+  resetBtn.addEventListener("click", () => {
+    picker.value = defaultColor;
+    collectInsert();
+  });
+  row.appendChild(picker);
+  row.appendChild(resetBtn);
+  wrap.appendChild(lbl);
+  wrap.appendChild(row);
+  const help = document.createElement("div");
+  help.className = "field-help";
+  help.textContent = "既定（黒/白）から変更するとこのターンだけ上書きされます。";
   wrap.appendChild(help);
   return wrap;
 }
@@ -4931,6 +5022,19 @@ function collectInsert() {
   const widthBase = kind === "videocall" ? inheritedVideoCallWidth : 1;
   if (Number.isFinite(widthVal) && Math.abs(widthVal - widthBase) > 0.001) {
     ins.width = Math.max(0.6, Math.min(1.4, widthVal));
+  }
+
+  if (kind !== "videocall") {
+    const fontScaleEl = document.getElementById("fIFontScale");
+    const fontScaleVal = fontScaleEl ? parseFloat(fontScaleEl.value) : 1;
+    if (Number.isFinite(fontScaleVal) && Math.abs(fontScaleVal - 1) > 0.001) {
+      ins.fontScale = Math.max(0.6, Math.min(1.6, fontScaleVal));
+    }
+    const bgEl = document.getElementById("fIBg");
+    const bgDefault = bgEl ? bgEl.dataset.default : null;
+    if (bgEl && bgEl.value && bgEl.value.toLowerCase() !== (bgDefault || "").toLowerCase()) {
+      ins.bg = bgEl.value;
+    }
   }
 
   if (kind === "warning") {

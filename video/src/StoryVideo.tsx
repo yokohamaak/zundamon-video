@@ -15,11 +15,11 @@ import type { Emotion, Gender } from "./types";
 
 // ─── PC画面インサート型定義 ──────────────────────────────────
 export type StoryInsert =
-  | { kind: "warning"; width?: number; title?: string; text: string }
-  | { kind: "chat"; width?: number; user: string; ai: string[]; highlight?: number }
-  | { kind: "ok"; width?: number; text?: string }
-  | { kind: "teamchat"; width?: number; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
-  | { kind: "mailer"; width?: number; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
+  | { kind: "warning"; width?: number; fontScale?: number; bg?: string; title?: string; text: string }
+  | { kind: "chat"; width?: number; fontScale?: number; bg?: string; user: string; ai: string[]; highlight?: number }
+  | { kind: "ok"; width?: number; fontScale?: number; bg?: string; text?: string }
+  | { kind: "teamchat"; width?: number; fontScale?: number; bg?: string; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
+  | { kind: "mailer"; width?: number; fontScale?: number; bg?: string; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
   | {
     kind: "videocall";
     width?: number;
@@ -935,19 +935,31 @@ const ExtraEffectsLayer: React.FC<{
 
 const INSERT_BG = "#11151c";
 const DEFAULT_INSERT_WIDTH = 1;
+const DEFAULT_INSERT_FONT_SCALE = 1;
 
 function insertWidthScale(insert: { width?: number } | null | undefined): number {
   return clamp(insert?.width ?? DEFAULT_INSERT_WIDTH, 0.6, 1.4);
+}
+
+// 文字サイズの倍率（幅と同じ0.6〜1.6の範囲）。各要素のfontSizeに一律で掛ける。
+function insertFontScale(insert: { fontScale?: number } | null | undefined): number {
+  return clamp(insert?.fontScale ?? DEFAULT_INSERT_FONT_SCALE, 0.6, 1.6);
+}
+
+// 背景色（未指定ならkindごとの既定色を使う）。
+function insertBg(insert: { bg?: string } | null | undefined, fallback: string): string {
+  return insert?.bg || fallback;
 }
 
 /** 警告ダイアログ */
 const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }> }> = ({ insert }) => {
   const title = insert.title ?? "警告";
   const panelWidth = Math.round(860 * insertWidthScale(insert));
+  const fs = insertFontScale(insert);
   return (
     <div
       style={{
-        background: "#1a1d24",
+        background: insertBg(insert, "#1a1d24"),
         border: "3px solid #9ed957",
         borderRadius: 16,
         padding: "48px 64px",
@@ -961,7 +973,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
       {/* アプリ名（ZunMonitor=監視ツール） */}
       <div
         style={{
-          fontSize: 26,
+          fontSize: 26 * fs,
           color: "#5fb84f",
           fontFamily: "sans-serif",
           fontWeight: 700,
@@ -978,10 +990,10 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
           gap: 20,
         }}
       >
-        <span style={{ fontSize: 56, lineHeight: 1, color: "#e87b3a" }}>⚠</span>
+        <span style={{ fontSize: 56 * fs, lineHeight: 1, color: "#e87b3a" }}>⚠</span>
         <span
           style={{
-            fontSize: 44,
+            fontSize: 44 * fs,
             fontWeight: 700,
             color: "#e87b3a",
             fontFamily: "sans-serif",
@@ -996,7 +1008,7 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
       {/* 本文 */}
       <div
         style={{
-          fontSize: 48,
+          fontSize: 48 * fs,
           color: "#e8e0d6",
           fontFamily: "sans-serif",
           lineHeight: 1.5,
@@ -1014,10 +1026,11 @@ const InsertWarning: React.FC<{ insert: Extract<StoryInsert, { kind: "warning" }
 /** AIチャット（ZunAI） */
 const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> = ({ insert }) => {
   const panelWidth = Math.round(920 * insertWidthScale(insert));
+  const fs = insertFontScale(insert);
   return (
     <div
       style={{
-        background: "#181c24",
+        background: insertBg(insert, "#181c24"),
         border: "2px solid #3e8b39",
         borderRadius: 20,
         width: panelWidth,
@@ -1049,7 +1062,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
         />
         <span
           style={{
-            fontSize: 34,
+            fontSize: 34 * fs,
             fontWeight: 700,
             color: "#bdf08a",
             fontFamily: "sans-serif",
@@ -1076,7 +1089,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
               color: "#fff",
               borderRadius: "18px 4px 18px 18px",
               padding: "16px 24px",
-              fontSize: 38,
+              fontSize: 38 * fs,
               fontFamily: "sans-serif",
               lineHeight: 1.5,
               maxWidth: "76%",
@@ -1098,7 +1111,7 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
                   color: isHighlighted ? "#f0e0c0" : "#c8d0e0",
                   borderRadius: "4px 18px 18px 18px",
                   padding: "16px 24px",
-                  fontSize: 38,
+                  fontSize: 38 * fs,
                   fontFamily: "sans-serif",
                   lineHeight: 1.5,
                   maxWidth: "76%",
@@ -1122,10 +1135,11 @@ const InsertChat: React.FC<{ insert: Extract<StoryInsert, { kind: "chat" }> }> =
 const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ insert }) => {
   const text = insert.text ?? "正常";
   const panelWidth = Math.round(640 * insertWidthScale(insert));
+  const fs = insertFontScale(insert);
   return (
     <div
       style={{
-        background: "#141e18",
+        background: insertBg(insert, "#141e18"),
         border: "3px solid #2ea86a",
         borderRadius: 20,
         padding: "56px 80px",
@@ -1140,7 +1154,7 @@ const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ 
       {/* アプリ名（ZunMonitor=監視ツール・正常） */}
       <div
         style={{
-          fontSize: 26,
+          fontSize: 26 * fs,
           color: "#5fae84",
           fontFamily: "sans-serif",
           fontWeight: 700,
@@ -1151,7 +1165,7 @@ const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ 
       </div>
       <div
         style={{
-          fontSize: 96,
+          fontSize: 96 * fs,
           color: "#2ea86a",
           lineHeight: 1,
           fontFamily: "sans-serif",
@@ -1162,7 +1176,7 @@ const InsertOk: React.FC<{ insert: Extract<StoryInsert, { kind: "ok" }> }> = ({ 
       </div>
       <div
         style={{
-          fontSize: 56,
+          fontSize: 56 * fs,
           color: "#a0e8c0",
           fontFamily: "sans-serif",
           fontWeight: 600,
@@ -1215,10 +1229,11 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
 }) => {
   const channel = insert.channel ?? "general";
   const panelWidth = Math.round(1480 * insertWidthScale(insert));
+  const fs = insertFontScale(insert);
   return (
     <div
       style={{
-        background: "#f6f8fc",
+        background: insertBg(insert, "#f6f8fc"),
         border: "3px solid #9ed957",
         borderRadius: 22,
         width: panelWidth,
@@ -1277,7 +1292,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
         {/* チャンネル名 */}
         <span
           style={{
-            fontSize: 48,
+            fontSize: 48 * fs,
             fontWeight: 700,
             color: "#1f4012",
             fontFamily: "sans-serif",
@@ -1290,7 +1305,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
         <div
           style={{ width: 1.5, height: 28, background: "#7cb84a", marginLeft: 4, marginRight: 4 }}
         />
-        <span style={{ fontSize: 28, color: "#3f6a2a", fontFamily: "sans-serif", fontWeight: 600 }}>
+        <span style={{ fontSize: 28 * fs, color: "#3f6a2a", fontFamily: "sans-serif", fontWeight: 600 }}>
           ZunChat
         </span>
       </div>
@@ -1365,7 +1380,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
               <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
                 <span
                   style={{
-                    fontSize: 40,
+                    fontSize: 40 * fs,
                     fontWeight: 700,
                     color: nameColor,
                     fontFamily: "sans-serif",
@@ -1376,7 +1391,7 @@ const InsertTeamChat: React.FC<{ insert: Extract<StoryInsert, { kind: "teamchat"
                 </span>
                 <span
                   style={{
-                    fontSize: 54,
+                    fontSize: 54 * fs,
                     color: "#2a2e38",
                     fontFamily: "sans-serif",
                     lineHeight: 1.45,
@@ -1401,6 +1416,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
   const fromName = insert.from ?? "送信者";
   const initial = fromName.charAt(0).toUpperCase() || "?";
   const panelWidth = Math.round(1380 * insertWidthScale(insert));
+  const fs = insertFontScale(insert);
   // アバター色は headletter のコードポイントから決定論的に選ぶ（固定色・ランダムでない）
   const AVATAR_COLORS = ["#1a73e8", "#0f9d58", "#f4511e", "#8430ce", "#188038", "#d50000"];
   const avatarColor = AVATAR_COLORS[fromName.charCodeAt(0) % AVATAR_COLORS.length];
@@ -1408,7 +1424,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
   return (
     <div
       style={{
-        background: "#f6f8fc",
+        background: insertBg(insert, "#f6f8fc"),
         borderRadius: 12,
         width: panelWidth,
         overflow: "hidden",
@@ -1429,10 +1445,10 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
           borderBottom: "1px solid #e0e0e0",
         }}
       >
-        <span style={{ fontSize: 34, color: "#5fb84f", lineHeight: 1 }}>✉</span>
+        <span style={{ fontSize: 34 * fs, color: "#5fb84f", lineHeight: 1 }}>✉</span>
         <span
           style={{
-            fontSize: 32,
+            fontSize: 32 * fs,
             fontWeight: 700,
             color: "#5fb84f",
             letterSpacing: "0.01em",
@@ -1458,7 +1474,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
         {/* 件名 */}
         <div
           style={{
-            fontSize: 56,
+            fontSize: 56 * fs,
             fontWeight: 700,
             color: "#202124",
             lineHeight: 1.3,
@@ -1487,7 +1503,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
               alignItems: "center",
               justifyContent: "center",
               color: "#ffffff",
-              fontSize: 34,
+              fontSize: 34 * fs,
               fontWeight: 700,
             }}
           >
@@ -1496,11 +1512,11 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
           {/* 差出人名・アドレス */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-              <span style={{ fontSize: 38, fontWeight: 600, color: "#202124" }}>
+              <span style={{ fontSize: 38 * fs, fontWeight: 600, color: "#202124" }}>
                 {fromName}
               </span>
               {insert.fromAddr ? (
-                <span style={{ fontSize: 30, color: "#80868b" }}>
+                <span style={{ fontSize: 30 * fs, color: "#80868b" }}>
                   {"<"}{insert.fromAddr}{">"}
                 </span>
               ) : null}
@@ -1508,7 +1524,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
           </div>
           {/* 時刻（右端） */}
           {insert.time ? (
-            <div style={{ fontSize: 32, color: "#80868b", flexShrink: 0 }}>
+            <div style={{ fontSize: 32 * fs, color: "#80868b", flexShrink: 0 }}>
               {insert.time}
             </div>
           ) : null}
@@ -1520,7 +1536,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
         {/* 本文 */}
         <div
           style={{
-            fontSize: 42,
+            fontSize: 42 * fs,
             color: "#3c4043",
             lineHeight: 1.65,
             fontWeight: 400,
@@ -1539,7 +1555,7 @@ const InsertMailer: React.FC<{ insert: Extract<StoryInsert, { kind: "mailer" }> 
                 border: "1px solid #dadce0",
                 borderRadius: 20,
                 padding: "10px 28px",
-                fontSize: 28,
+                fontSize: 28 * fs,
                 color: "#5f6368",
               }}
             >
