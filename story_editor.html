@@ -1274,7 +1274,7 @@
       <div style="font-size:12px; color:var(--text2); line-height:1.6;">
         英字などを音声合成時だけ指定の読み（カタカナ）に置き換えます。字幕表示には影響しません。保存後、台本タブの「音声生成」で反映されます。
       </div>
-      <input type="text" id="readingsFilter" class="field-input" placeholder="絞り込み（英単語）" style="max-width:240px;">
+      <input type="text" id="readingsFilter" class="field-input" placeholder="絞り込み" style="max-width:240px;">
       <div id="readingsList" style="display:flex; flex-direction:column; gap:6px; max-height:360px; overflow-y:auto;">
         <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
       </div>
@@ -6444,7 +6444,7 @@ function makeReadingRow(word, reading) {
   wordInp.type = "text";
   wordInp.className = "field-input reading-word";
   wordInp.style.cssText = "flex:1;";
-  wordInp.placeholder = "英単語（例: api）";
+  wordInp.placeholder = "英字表記（例: k8s, 7zip）";
   wordInp.value = word || "";
   row.appendChild(wordInp);
 
