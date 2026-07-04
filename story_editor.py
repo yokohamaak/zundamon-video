@@ -429,6 +429,7 @@ def _load_scenes_detail():
             "anchors": list(anchors.keys()),
             "cast": cast,
             "soloZoom": bool(v.get("soloZoom", True)),
+            "camera": v.get("camera", "static"),
         })
     return out
 
@@ -474,11 +475,12 @@ def _build_script_prompt(theme, length, notes, mode="safe",
     scenes = _load_scenes_detail()
     if scenes:
         scene_lines = "\n".join(
-            "- %s … %s（%s / %s / anchors: %s%s）" % (
+            "- %s … %s（%s / %s / %s / anchors: %s%s）" % (
                 s["key"],
                 s["label"],
                 "全身" if s["figure"] == "full" else "バスト",
                 "1人向け" if s["shot"] == "solo" else "2人向け",
+                "ゆっくりズーム" if s.get("camera") == "slow-zoom" else "固定カメラ",
                 ", ".join(s["anchors"]) if s["anchors"] else "なし",
                 (
                     " / 既定配置: " +
@@ -493,17 +495,26 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 
     expr_list = ", ".join(_load_expression_keys())
 
+    mob_list = "、".join(_load_mobs().keys()) or "（未登録）"
+
     example = (custom_example or "").strip() or (
         '{\n'
-        '  "title": "ZunAIが大丈夫って言ったのだ",\n'
+        '  "title": "【スカッと】開発ベンダーのモンスター社員にブチギレた結果【アニメ】",\n'
         '  "script": [\n'
-        '    { "speaker": "zundamon", "text": "た、大変なのだ! ZunMonitorが真っ赤なのだ〜!!",'
-        ' "scene": "FIRST", "expression": "panic",'
-        ' "insert": {"kind":"warning","title":"ZunMonitor","text":"本番サーバ 応答なし"} },\n'
-        '    { "speaker": "metan", "text": "落ち着いて、ずんだもん。……昨日、わたしがいない間に何かした?",'
-        ' "scene": "FIRST", "expression": "normal" },\n'
-        '    { "speaker": "zundamon", "text": "き、昨日は……ZunAIに言われた通り、設定を新しくしただけなのだ……。",'
-        ' "scene": "FIRST", "expression": "trouble", "flashback": true, "telop": "― 前日 ―", "pause": 0.4 }\n'
+        '    { "speaker": "zundamon", "text": "はぁ……新しい基幹システム開発、\\nベンダーとの定例会議の時間なのだ……。",'
+        ' "scene": "FIRST", "expression": "trouble", "pose": "droop" },\n'
+        '    { "speaker": "zundamon", "text": "毎回進捗が怪しいから、今日はビシッと言うのだ！ オンライン会議室に入るのだ！",'
+        ' "scene": "FIRST", "expression": "normal", "pose": "step_in" },\n'
+        '    { "speaker": "zundamon", "text": "お疲れ様なのだ！ \\nさっそく今週の進捗状況を教えてほしいのだ！",'
+        ' "scene": "meeting_room", "expression": "normal", "transition": "fade-black", "pose": "proud",'
+        ' "insert": {"kind":"videocall","room":"開発定例会議","layout":"focus",'
+        '"participants":[{"speaker":"zundamon","bgStyle":"office"},{"speaker":"営業","bgStyle":"office"},{"speaker":"AI","bgStyle":"ai","name":"ZunAI"}]} },\n'
+        '    { "speaker": "営業", "text": "あ、ずんだもんさん。お疲れ様です。えーっと、今週の進捗ですが……『ゼロ』です！",'
+        ' "scene": "meeting_room", "expression": "normal" },\n'
+        '    { "speaker": "zundamon", "text": "えええーっ！？ ゼロって何なのだ！？ もうすぐテスト工程に入るスケジュールなのだ！",'
+        ' "scene": "meeting_room", "expression": "surprise", "shake": true, "pose": "recoil" },\n'
+        '    { "speaker": "metan", "text": "最近、我が社のシステム部に導入された最新鋭のAI……\\n『ZunAI』の存在を忘れたの？",'
+        ' "scene": "rooftop", "expression": "happy", "emphasis": true, "pose": "proud", "transition": "wipe-left" }\n'
         '  ]\n'
         '}'
     ).replace("FIRST", first_scene)
@@ -535,7 +546,9 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         "━━━ speaker に使う値 ━━━",
         "- zundamon … ずんだもん（主人公）",
         "- metan … 四国めたん（先輩）",
-        "- 営業 / 部長 / AI … 脇役。画面に立ち絵は出さず、チャットや声のみで登場。ZunAI(社内AI)のセリフは speaker=\"AI\" を使う。",
+        "- " + mob_list + " … モブキャラ（1枚絵・口パク簡易）。videocall/teamchat等の脇役として登場できる。",
+        "- AI … 社内AI「ZunAI」。セリフのspeakerは必ず\"AI\"。",
+        "- troublemaker_male_normal / troublemaker_male_creepy / troublemaker_female_normal / troublemaker_female_creepy … 画面に姿を出さない声のみのキャラ（電話越し・チャットのみ等）。",
         "",
         ("━━━ シーン（scene の値・既存。新規も可）━━━" if experimental
          else "━━━ 使えるシーン（scene に使う値。リスト以外は使用不可）━━━"),
@@ -574,6 +587,16 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "exit": ["metan"], "exitDir": "instant" … シーン境界まで立たせたまま即時退場させる',
         '- "face": {"zundamon":"left"} … 向きの明示（通常は不要）',
         '- "se": [{"file":"se/alarm.mp3","at":0.0,"volume":0.9}] … この行だけ鳴らす手動SE',
+        '- "impactText": "ドン！" … 漫画風の大きな一撃テキストをバーンと出す（ここぞという一言に）',
+        '- "zoomPunch": true … 話し始めに一瞬強く寄って戻る（縁が光る）強調。emphasisより短く鋭い',
+        '- "quoteFreeze": true … 画面を暗くしてそのターンのtextを大きな引用カードで見せる（名言・宣言の一文向け）',
+        '- "stampRain": "完了！" … 指定文字の判子（スタンプ）が降ってくる（達成・完了の演出）',
+        '- "typingFlood": true … チャット通知風のカードが次々流れる（通知殺到・炎上感）',
+        '- "sparkleBurst": true … キラッと光の粒が弾ける（閃き・良い知らせ）',
+        '- "irisOut": true … 円が閉じて（または開いて）暗転する古典的な締め演出。話の最後のターンでのみ使う。'
+        ' 位置・速さ等は effectSettings.irisOut で調整可能だが、基本は true だけで良い',
+        '- "effectSettings": {"irisOut":{"closeStart":1.0,"closeEnd":2.5}} … 上記演出の細かい調整（このターンだけ上書き）。'
+        ' 通常は不要（既定値で自然に動く）',
         "",
         "━━━ インサート演出（\"insert\"。全画面にPC画面/チャット等を重ねる・任意）━━━",
         '- {"kind":"warning","title":"...","text":"..."} … ZunMonitor 警告画面(監視アラート)',
@@ -583,10 +606,13 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- {"kind":"mailer","from":"差出人","subject":"件名","body":"本文","time":"10:00"} … ZunMail（メール）',
         '- {"kind":"videocall","room":"定例会議","layout":"focus","participants":[{"speaker":"zundamon","bgStyle":"office"},{"speaker":"metan","bgStyle":"home"}]}'
         ' … ZunMeet（ビデオ会議画面）。一度出すと同シーン内の後続ターンへ自動継続するので、後続ターンには insert を書かない。'
-        ' bgStyle は office / meeting_room / home / ai / green。話者のタイルが自動で大きく表示される',
+        ' bgStyle は office / meeting_room / home / ai / green。話者のタイルが自動で大きく表示される。'
+        ' 参加者ごとに bgImage で用意済みの背景画像(例: "background/ベンダー会議室.png")を bgStyle の代わりに指定してもよい',
         '- {"kind":"videocall","end":true} … 進行中のZunMeet通話をこのターンで終了して通常画面に戻す',
         "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
         "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat / ZunMeet=videocall。",
+        '※ どのkindも共通で "width"(パネル幅倍率) / "bg"(パネル自体の背景色) / "backdropBg"(画面全体の背景色)'
+        ' / "backdropImage"(画面全体の背景画像) を上書きできるが、通常は既定のままでよい。',
     ]
 
     if extra_rules:
@@ -620,7 +646,8 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         + (', "_proposals": [ ... ] }' if experimental else " }"),
         "- 各ターンの必須キー: speaker, text, scene。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
-        '- narrationVoice / voice / noLipSync / continueBubble / disableAutoBubbleSplit / speakerAnchor / telopX / telopY / telopSize / se / pose / transition も使ってよい。',
+        '- narrationVoice / voice / noLipSync / continueBubble / disableAutoBubbleSplit / speakerAnchor / telopX / telopY / telopSize / se / pose / transition'
+        ' / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood / sparkleBurst / irisOut / effectSettings も使ってよい。',
         '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
          if experimental
@@ -636,10 +663,12 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
-    "id", "speaker", "text", "scene", "expression", "pose", "enter", "face",
+    "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterMode", "face",
     "emphasis", "shake", "cameraEffect", "flashback", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
+    "impactText", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
+    "irisOut", "effectSettings", "audioFx", "chorus", "closing",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall"}
 
