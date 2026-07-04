@@ -644,7 +644,9 @@ const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
   stampRain: { count: 8, fallDuration: 0.46, stagger: 0.05, spread: 1 },
   typingFlood: { rows: 9, flowDuration: 0.38, stagger: 0.035 },
   sparkleBurst: { count: 10, spread: 260, duration: 0.32 },
-  irisOut: { cx: 0.5, cy: 0.5, startRadius: 0.55, color: "#000000", closeStart: 1.7, closeEnd: 2.0 },
+  // startRadius=1.0で対角線(=四隅)にちょうど触れる大きさ。1.0未満だと閉じ始める前から
+  // 常に黒い縁が見えてしまうため、既定値は少し余裕を持たせて画面を完全に覆う値にする。
+  irisOut: { cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0 },
 };
 
 function resolveEffectSettings(settings?: StoryEffectSettings): ResolvedEffectSettings {
@@ -927,8 +929,15 @@ const ExtraEffectsLayer: React.FC<{
     // 3) 収縮（closeStart→closeEndでinitial半径→0、この2値だけがユーザー指定＝ターン開始からの絶対秒数）
     const diag = Math.sqrt(width * width + height * height) / 2;
     const baseRadius = diag * irisOutCfg.startRadius;
-    const closeEnd = Math.max(irisOutCfg.closeEnd, 0.05);
-    const closeStart = clamp(irisOutCfg.closeStart, 0, closeEnd);
+    // 設定値がターン長(dur)を超えていても、ターン末尾では必ず閉じきった状態にする
+    // （pause秒の変更は音声再生成まで dur に反映されないため、値が古いままズレることがある）。
+    // closeEndをdurに収めた上で、指定していた「閉じる所要時間」は変えずに開始側もスライドする
+    // （開始だけclampすると閉区間の幅が潰れて閉じきらないまま止まって見えるため）。
+    const rawCloseEnd = Math.max(irisOutCfg.closeEnd, 0.05);
+    const rawCloseStart = clamp(irisOutCfg.closeStart, 0, rawCloseEnd);
+    const closeDuration = Math.max(rawCloseEnd - rawCloseStart, 0.05);
+    const closeEnd = Math.min(rawCloseEnd, dur);
+    const closeStart = Math.max(0, closeEnd - closeDuration);
     const elapsed = progress * dur;
     const appearDur = Math.min(0.2, closeStart); // 出現速度は固定（設定不可）
     let radius: number;
