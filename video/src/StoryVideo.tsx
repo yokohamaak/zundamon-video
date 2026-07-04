@@ -2291,6 +2291,11 @@ function isNarrationTurn(turn: StoryTurn | null | undefined): boolean {
   return !!turn?.narrationVoice;
 }
 
+// セリフ無し（間・待機用）のターンかどうか。空の吹き出しを出さないための判定。
+function hasBubbleText(turn: StoryTurn | null | undefined): boolean {
+  return !!turn?.text?.trim();
+}
+
 function canContinueBubble(prevTurn: StoryTurn | null, activeTurn: StoryTurn): boolean {
   return !!(
     prevTurn &&
@@ -3664,21 +3669,21 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           先の段数ぶんも最初から予約して位置を固定する。インサートより前面。 */}
       {/* セリフがチャット/AIチャット画面に出ているターンは吹き出しを出さない。
           前後ターンも各自の insert 種別で判定し、遷移時のチラ見え漏れを防ぐ。 */}
-      {!isNarrationTurn(active) && shouldShowBubbleGroup
+      {!isNarrationTurn(active) && hasBubbleText(active) && shouldShowBubbleGroup
         ? renderBubbleGroup(
           bubbleGroup[0]?.speaker ?? active.speaker,
           bubbleGroup.map((turn) => bubbleTextAt(turn, t)),
           visibleGroupCount,
           `bubble-group-${bubbleGroup[0]?.id ?? active.id}`
         )
-        : !isNarrationTurn(active) && shouldShowAutoBubbleGroup
+        : !isNarrationTurn(active) && hasBubbleText(active) && shouldShowAutoBubbleGroup
           ? renderBubbleGroup(
             active.speaker,
             autoBubbleTexts,
             autoBubbleVisibleCount,
             `bubble-auto-group-${active.id}`
           )
-        : (!isNarrationTurn(active) && !activeInsertLine
+        : (!isNarrationTurn(active) && !activeInsertLine && hasBubbleText(active)
           ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false), !!active.continueBubble)
           : null)}
 
