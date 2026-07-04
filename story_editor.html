@@ -2337,6 +2337,14 @@ function _timelineTotal() {
   const turns = previewScriptTurns();
   let m = 1;
   for (const t of turns) m = Math.max(m, t.end || 0);
+  // 最後のターンのpauseは次ターンが無いため次のturn.startには反映されず、
+  // 末尾の無音として動画/音声の尺自体を伸ばす（Root.tsx/story-player.tsx/
+  // tts_voicevox.py と同じ扱い）。ここで考慮しないとBGM区間等をその分だけ
+  // 動画終端より手前までしかドラッグできなくなる。
+  const last = turns[turns.length - 1];
+  if (last && typeof last.pause === "number") {
+    m = Math.max(m, (last.end || 0) + last.pause);
+  }
   return m;
 }
 
