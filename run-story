@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
-# ストーリー動画ラッパー（薄い）。build-story-01.py / make_story_audio.py / npm story系 / scene_editor.py を
+# ストーリー動画ラッパー（薄い）。story_editor.py / Studio / remotion render を
 # 覚えやすい名前で叩くだけ。本編用 ./run のストーリー版。
 # 使い方:
 #   ./run-story <コマンド> [引数]   … 直接実行
 #   ./run-story                     … 番号メニュー（引数なし）
 #   ./run-story help                … 一覧
 # Python/JS側は無改変。RUN_DRY=1 を付けると実行せずコマンドだけ表示（確認用）。
+#
+# 台本編集・シーン/表情/ポーズ編集・台本生成・音(BGM/SE)設定・音声生成・書き出しは
+# すべて `./run-story story` の中(タブ切替)で完結する。CLIコマンドは
+# 「ブラウザを開かずに済ませたい/確認したい」補助操作だけを残している。
 set -euo pipefail
 cd "$(dirname "$0")"
 
 PY="$(command -v python3 || command -v python || echo python3)"
 STORY="story-01"                         # 台本/音声のファイル名ベース（public/<STORY>.json / .wav）
-BUILD="video/scripts/build-story-01.py"  # 台本JSON生成
-JSON="video/public/${STORY}.json"
 
 # コマンド表示して実行（RUN_DRY=1 なら表示のみ）。
 run() { echo "▶ $*"; [ "${RUN_DRY:-}" = "1" ] || eval "$*"; }
@@ -25,23 +27,21 @@ z2h() {
   printf '%s' "$s"
 }
 
-# 台本JSONを生成（フラグ反映・仮タイミング）。※実尺は audio で上書きされる。
-cmd_build() {
-  run "$PY $BUILD"
-  echo "  → 次は audio で実尺を焼き込み（VOICEVOX必要）"
-}
+# ストーリーエディタ（台本編集・シーン/表情/ポーズ・台本生成・音・音声生成・書き出しをすべて内包）。
+cmd_story() { run "$PY story_editor.py"; }
 
-# 音声生成（VOICEVOX）＋ start/end/sentences を JSON に書き戻し。
-cmd_audio() {
-  echo "※ VOICEVOX エンジンを起動しておくこと（http://localhost:50021）"
-  run "$PY make_story_audio.py ${STORY}"
-}
+# ストーリーエディタを 0.0.0.0 で起動（Tailscale経由でスマホから開くレビュー用）。
+cmd_story_ts() { run "$PY story_editor.py --host 0.0.0.0"; }
 
-# Studioで全体プレビュー（HMR）。
+# Studioで全体プレビュー(HMR)。エディタのPlayterより高精細に確認したい時用。
 cmd_dev() { run "cd video && npm run dev:story"; }
 
-# 全体を書き出し → video/out/story.mp4
-cmd_render() { run "cd video && npm run render:story"; }
+# 全体を書き出し → video/out/<タイトル>.mp4（エディタの書き出しボタンと同じ命名）。
+cmd_render() {
+  local filename
+  filename="$($PY -c "import story_editor as s; print(s._safe_export_filename(s._load_story().get('title','')))")"
+  run "cd video && npm run prep:story && npx remotion render StoryVideo \"out/${filename}\""
+}
 
 # 1フレームだけ静止画書き出し（確認用）。$1=フレーム番号（既定0）。
 cmd_still() {
@@ -49,74 +49,51 @@ cmd_still() {
   run "cd video && npx remotion still StoryVideo out/still-${f}.png --frame=${f}"
 }
 
-# シーンライブラリ編集ツール（anchor/scale をブラウザで調整）。
-cmd_scene() { run "$PY scene_editor.py"; }
+# 音声だけCLIで再生成（VOICEVOX）＋ start/end/sentences を JSON に書き戻し。
+# エディタの「🔊 音声生成」ボタンと同じ処理。ブラウザを開かずに済ませたい時用。
+cmd_audio() {
+  echo "※ VOICEVOX エンジンを起動しておくこと（http://localhost:50021）"
+  run "$PY make_story_audio.py ${STORY}"
+}
 
-# ストーリーエディタ（台本編集ツール）を起動。
-cmd_story() { run "$PY story_editor.py"; }
-
-# ストーリーエディタを 0.0.0.0 で起動（Tailscale経由でスマホから開くレビュー用）。
-# サブエディタ(シーン/表情)も同じく 0.0.0.0 待受になる。
-cmd_story_ts() { run "$PY story_editor.py --host 0.0.0.0"; }
-
-# 表情エディタ（スロット割当・プレビュー・書き出し）を起動。
-# 初回は candidates を事前生成: node video/scripts/psd-export.mjs candidates zundamon/metan
-cmd_expr() { run "$PY expression_editor.py"; }
-
-# ストーリーエディタ用 Remotion Player を esbuild でビルド。
-# story_editor.py の起動前に1回実行する（中央ペインのプレビュー用）。
-cmd_player_build() { run "cd video && node scripts/build-story-player.mjs"; }
-
-# assets/ → public/ を同期（背景/BGM/SE/立ち絵/manifest）。素材を足したら実行。
-# ※ story エディタは起動時に自動で実行するので、通常は手動不要。
+# assets/ → public/ を同期（背景/BGM/SE/立ち絵/manifest）。
+# story_editor.py 起動時に自動実行されるため、通常は不要（素材反映がおかしい時の手動フォールバック）。
 cmd_prep() { run "cd video && node scripts/prep-story.mjs"; }
 
-# 本番フル: build → audio → render（VOICEVOX必要）。
-cmd_all() {
-  cmd_build
-  cmd_audio
-  cmd_render
-}
+# ストーリーエディタ用 Remotion Player を esbuild でビルド。
+# story_editor.py 起動時に自動実行されるため、通常は不要（プレビューが古いままの時の手動フォールバック）。
+cmd_player_build() { run "cd video && node scripts/build-story-player.mjs"; }
 
 cmd_help() {
   cat <<'EOF'
 ストーリー動画ラッパー  ./run-story <コマンド> [引数]   （引数なしでメニュー）
 
-  build         台本JSONを生成（フラグ反映・仮タイミング）
-  audio         音声生成(VOICEVOX)＋実尺をJSONに書き戻し
-  dev           Studioで全体プレビュー(HMR)
-  render        全体を書き出し → video/out/story.mp4
-  still [N]     1フレームだけ静止画 → video/out/still-N.png（確認用）
-  story         ストーリーエディタ(台本編集) を起動
+  story         ストーリーエディタ起動（台本編集・シーン/表情/ポーズ・台本生成・音・音声生成・書き出し）
   review-ts     エディタを0.0.0.0で起動（Tailscale経由でスマホから開くレビュー用）
-  player-build  エディタ用 Remotion Player をビルド（story の初回起動前に実行）
-  scene         シーン編集ツール(anchor/scale) を起動
-  expr          表情エディタ(スロット割当・プレビュー・書き出し) を起動
-  all           build → audio → render（本番フル・VOICEVOX必要）
+  dev           Studioで全体プレビュー(HMR)
+  render        全体を書き出し → video/out/<タイトル>.mp4
+  still [N]     1フレームだけ静止画 → video/out/still-N.png（確認用）
+  audio         音声だけCLIで再生成(VOICEVOX)＋実尺をJSONに書き戻し（ブラウザ不要な時用）
+  prep          手動フォールバック: assets→public 同期（通常はstory起動時に自動実行）
+  player-build  手動フォールバック: エディタ用Playerビルド（通常はstory起動時に自動実行）
   help          この一覧
 
-セリフ/演出フラグを変えた時: build → audio →（必要なら）render
-配置/サイズだけ直す時:        scene で調整 → render
-初回 story エディタ起動前:    player-build を1回実行しておく
-表情編集:                     expr (初回は candidates を自動確認、未生成なら案内)
+基本の流れ:            ./run-story story で編集・音声生成 →（必要なら dev で確認）→ render
+スマホから編集/レビュー: ./run-story review-ts
 EOF
 }
 
 # 引数あり → 直接実行
 if [ $# -gt 0 ]; then
   case "$1" in
-    build)         cmd_build ;;
-    audio)         cmd_audio ;;
+    story)         cmd_story ;;
+    review-ts)     cmd_story_ts ;;
     dev)           cmd_dev ;;
     render)        cmd_render ;;
     still)         cmd_still "$(z2h "${2:-0}")" ;;
-    story)         cmd_story ;;
-    review-ts)     cmd_story_ts ;;
-    player-build)  cmd_player_build ;;
+    audio)         cmd_audio ;;
     prep)          cmd_prep ;;
-    scene)         cmd_scene ;;
-    expr)          cmd_expr ;;
-    all)           cmd_all ;;
+    player-build)  cmd_player_build ;;
     help|-h|--help) cmd_help ;;
     *) echo "不明なコマンド: $1"; echo; cmd_help; exit 1 ;;
   esac
@@ -125,31 +102,25 @@ fi
 
 # 引数なし → 番号メニュー
 echo "=== ストーリー動画メニュー === (${STORY})"
-echo "  1) build         台本JSON生成（フラグ反映・仮タイミング）"
-echo "  2) audio         音声生成(VOICEVOX)＋実尺書き戻し"
+echo "  1) story         ストーリーエディタ（台本編集・シーン/表情/ポーズ・台本生成・音・音声生成・書き出し）"
+echo "  2) review-ts     エディタを0.0.0.0で起動（Tailscaleでスマホから）"
 echo "  3) dev           Studioで全体プレビュー(HMR)"
-echo "  4) render        全体を書き出し → video/out/story.mp4"
+echo "  4) render        全体を書き出し → video/out/<タイトル>.mp4"
 echo "  5) still         1フレーム静止画（フレーム番号を聞く）"
-echo "  6) story         ストーリーエディタ(台本編集)"
-echo "  6t) review-ts    エディタを0.0.0.0で起動（Tailscaleでスマホから）"
-echo "  7) player-build  エディタ用プレイヤーをビルド（初回story前に必要）"
-echo "  8) scene         シーン編集ツール(anchor/scale)"
-echo "  9) expr          表情エディタ(スロット割当・プレビュー・書き出し)"
-echo "  a) all           build→audio→render（本番フル）"
+echo "  6) audio         音声だけCLIで再生成（ブラウザ不要な時用）"
+echo "  7) prep          手動フォールバック: assets→public 同期"
+echo "  8) player-build  手動フォールバック: エディタ用Playerビルド"
 echo "  0) help"
 read -rp "番号: " n
 n="$(z2h "$n")"
 case "$n" in
-  1) cmd_build ;;
-  2) cmd_audio ;;
+  1) cmd_story ;;
+  2) cmd_story_ts ;;
   3) cmd_dev ;;
   4) cmd_render ;;
   5) read -rp "フレーム番号: " f; cmd_still "$(z2h "$f")" ;;
-  6) cmd_story ;;
-  6t|6T) cmd_story_ts ;;
-  7) cmd_player_build ;;
-  8) cmd_scene ;;
-  9) cmd_expr ;;
-  a|A) cmd_all ;;
+  6) cmd_audio ;;
+  7) cmd_prep ;;
+  8) cmd_player_build ;;
   0|*) cmd_help ;;
 esac

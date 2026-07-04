@@ -65,10 +65,15 @@
 1. `./run-story story`
 2. 台本編集 or 台本生成タブでドラフト取り込み
 3. `🔊 音声生成` で `start/end/sentences/audio` を確定
-4. `./run-story dev` で確認
-5. `./run-story render` で `video/out/story.mp4`
+4. （必要なら）`./run-story dev` で確認
+5. `./run-story render` で `video/out/<タイトル>.mp4`（エディタ内の書き出しボタンと同じ命名。ファイル名はタイトルから自動生成）
+
+シーン編集・表情編集・ポーズ編集・台本生成・音(BGM/SE)設定は全て `./run-story story` の中のタブでできるため、
+単体コマンドは用意していない。
 
 ## 6. 補足
-- `story_editor.py` 起動時に `prep-story.mjs` と `build-story-player.mjs` が自動実行される。
+- `story_editor.py` 起動時に `prep-story.mjs` と `build-story-player.mjs` が自動実行される
+  （`./run-story prep` / `player-build` は素材反映やプレビューがおかしい時の手動フォールバック）。
 - BGM は `story.bgm` があれば時間ベース編集を優先し、空ならシーン別BGMへフォールバックする。
 - ナレーション行は `narrationVoice` を使い、吹き出し・立ち絵・話者ズームを出さない。
+- `video/scripts/build-story-01.py` はエディタ登場前の初期生成用スクリプトで現在は不使用（実行すると台本が初期版で上書きされるため触らないこと）。
