@@ -224,9 +224,12 @@ def _safe_export_filename(title):
 
 
 def _safe_mob_image_filename(name):
-    """モブ画像アップロード用のファイル名サニタイズ（英数字・_・-・.のみ許可）。"""
-    cleaned = re.sub(r"[^A-Za-z0-9_.\-]", "_", (name or "").strip())
-    cleaned = cleaned.lstrip(".").strip("_") or "mob_image"
+    """モブ画像アップロード用のファイル名サニタイズ。
+    OSで問題になりうる記号だけ除去し、日本語のモブ名はそのまま残す
+    （全角文字を"_"に潰すと別モブ名が同じファイル名に衝突し、
+    一方の画像がもう一方で上書きされるバグになるため）。"""
+    cleaned = re.sub(r'[\\/:*?"<>|\r\n\t]', "", (name or "")).strip(". ")
+    cleaned = cleaned or "mob_image"
     ext = os.path.splitext(cleaned)[1].lower()
     if ext not in _IMAGE_EXTS:
         cleaned += ".png"
