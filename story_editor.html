@@ -4222,9 +4222,12 @@ function renderInsertFields(insert) {
   const INSERT_DEFAULT_BG = {
     warning: "#1a1d24", chat: "#181c24", ok: "#141e18", teamchat: "#f6f8fc", mailer: "#f6f8fc",
   };
+  const INSERT_DEFAULT_BACKDROP_BG = { mailer: "#e8eaf0" };
   if (kind !== "videocall") {
     container.appendChild(makeInsertFontScaleField(insert));
     container.appendChild(makeInsertBgField(insert, INSERT_DEFAULT_BG[kind] || "#1a1d24"));
+    container.appendChild(makeInsertBackdropBgField(insert, INSERT_DEFAULT_BACKDROP_BG[kind] || "#11151c"));
+    container.appendChild(makeInsertBackdropImageField(insert));
   }
 
   if (kind === "warning") {
@@ -4532,6 +4535,120 @@ function makeInsertBgField(insert, defaultColor) {
   const help = document.createElement("div");
   help.className = "field-help";
   help.textContent = "既定（黒/白）から変更するとこのターンだけ上書きされます。";
+  wrap.appendChild(help);
+  return wrap;
+}
+
+// インサートパネルの「周り」（全画面の背景）の色。パネル自体の背景色(makeInsertBgField)とは別。
+function makeInsertBackdropBgField(insert, defaultColor) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "周りの背景色";
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; align-items:center; gap:10px; width:100%;";
+  const picker = document.createElement("input");
+  picker.type = "color";
+  picker.id = "fIBackdropBg";
+  picker.value = (insert && typeof insert.backdropBg === "string" && insert.backdropBg) || defaultColor;
+  picker.dataset.default = defaultColor;
+  picker.style.cssText = "width:48px; height:30px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer;";
+  picker.addEventListener("input", collectInsert);
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "btn btn-secondary btn-sm";
+  resetBtn.textContent = "既定色に戻す";
+  resetBtn.addEventListener("click", () => {
+    picker.value = defaultColor;
+    collectInsert();
+  });
+  row.appendChild(picker);
+  row.appendChild(resetBtn);
+  wrap.appendChild(lbl);
+  wrap.appendChild(row);
+  const help = document.createElement("div");
+  help.className = "field-help";
+  help.textContent = "パネルの外側・画面全体の背景色です（背景画像を指定した場合は画像の下に敷かれます）。";
+  wrap.appendChild(help);
+  return wrap;
+}
+
+// インサートパネルの「周り」の背景画像。overlays/ 配下から選択、または新規アップロード。
+function makeInsertBackdropImageField(insert) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "周りの背景画像";
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; align-items:center; gap:8px; width:100%;";
+
+  const sel = document.createElement("select");
+  sel.id = "fIBackdropImage";
+  sel.className = "field-select";
+  sel.style.flex = "1";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "画像なし";
+  sel.appendChild(blank);
+  const current = (insert && insert.backdropImage) || "";
+  const imgs = sortedStrings((overlayAssets && Array.isArray(overlayAssets.images)) ? overlayAssets.images : []);
+  for (const img of imgs) {
+    const opt = document.createElement("option");
+    opt.value = img;
+    opt.textContent = img.replace(/^overlays\//, "");
+    sel.appendChild(opt);
+  }
+  if (current && !imgs.includes(current)) {
+    const opt = document.createElement("option");
+    opt.value = current;
+    opt.textContent = current;
+    sel.appendChild(opt);
+  }
+  sel.value = current;
+  sel.addEventListener("change", collectInsert);
+  row.appendChild(sel);
+
+  const fileInp = document.createElement("input");
+  fileInp.type = "file";
+  fileInp.accept = "image/png,image/jpeg,image/webp";
+  fileInp.style.cssText = "font-size:11px; width:140px;";
+  fileInp.addEventListener("change", async () => {
+    const file = fileInp.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch("/api/overlay-assets/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, dataUrl }),
+      });
+      const result = await r.json();
+      if (r.ok && result.ok) {
+        overlayAssets = null; // 再取得させて一覧に反映
+        await ensureOverlayAssets();
+        const opt = document.createElement("option");
+        opt.value = result.path;
+        opt.textContent = result.path.replace(/^overlays\//, "");
+        sel.appendChild(opt);
+        sel.value = result.path;
+        collectInsert();
+      }
+    } catch (e) { /* アップロード失敗時は据え置き */ }
+    fileInp.value = "";
+  });
+  row.appendChild(fileInp);
+
+  wrap.appendChild(lbl);
+  wrap.appendChild(row);
+  const help = document.createElement("div");
+  help.className = "field-help";
+  help.textContent = "画面全体に敷く背景画像です。未指定なら周りの背景色のみになります。";
   wrap.appendChild(help);
   return wrap;
 }
@@ -5005,6 +5122,15 @@ function collectInsert() {
     const bgDefault = bgEl ? bgEl.dataset.default : null;
     if (bgEl && bgEl.value && bgEl.value.toLowerCase() !== (bgDefault || "").toLowerCase()) {
       ins.bg = bgEl.value;
+    }
+    const backdropBgEl = document.getElementById("fIBackdropBg");
+    const backdropBgDefault = backdropBgEl ? backdropBgEl.dataset.default : null;
+    if (backdropBgEl && backdropBgEl.value && backdropBgEl.value.toLowerCase() !== (backdropBgDefault || "").toLowerCase()) {
+      ins.backdropBg = backdropBgEl.value;
+    }
+    const backdropImageEl = document.getElementById("fIBackdropImage");
+    if (backdropImageEl && backdropImageEl.value) {
+      ins.backdropImage = backdropImageEl.value;
     }
   }
 

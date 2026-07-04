@@ -15,11 +15,11 @@ import type { Emotion, Gender } from "./types";
 
 // ─── PC画面インサート型定義 ──────────────────────────────────
 export type StoryInsert =
-  | { kind: "warning"; width?: number; fontScale?: number; bg?: string; title?: string; text: string }
-  | { kind: "chat"; width?: number; fontScale?: number; bg?: string; user: string; ai: string[]; highlight?: number }
-  | { kind: "ok"; width?: number; fontScale?: number; bg?: string; text?: string }
-  | { kind: "teamchat"; width?: number; fontScale?: number; bg?: string; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
-  | { kind: "mailer"; width?: number; fontScale?: number; bg?: string; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
+  | { kind: "warning"; width?: number; fontScale?: number; bg?: string; backdropBg?: string; backdropImage?: string; title?: string; text: string }
+  | { kind: "chat"; width?: number; fontScale?: number; bg?: string; backdropBg?: string; backdropImage?: string; user: string; ai: string[]; highlight?: number }
+  | { kind: "ok"; width?: number; fontScale?: number; bg?: string; backdropBg?: string; backdropImage?: string; text?: string }
+  | { kind: "teamchat"; width?: number; fontScale?: number; bg?: string; backdropBg?: string; backdropImage?: string; channel?: string; messages: { from: string; text: string; highlight?: boolean }[] }
+  | { kind: "mailer"; width?: number; fontScale?: number; bg?: string; backdropBg?: string; backdropImage?: string; from?: string; fromAddr?: string; subject: string; body: string; time?: string }
   | {
     kind: "videocall";
     width?: number;
@@ -966,6 +966,16 @@ function insertFontScale(insert: { fontScale?: number } | null | undefined): num
 // 背景色（未指定ならkindごとの既定色を使う）。
 function insertBg(insert: { bg?: string } | null | undefined, fallback: string): string {
   return insert?.bg || fallback;
+}
+
+// インサート周り（パネルの外側全画面）の背景色/画像。videocallには無い。
+function insertBackdropBg(insert: StoryInsert | null | undefined, fallback: string): string {
+  if (!insert || insert.kind === "videocall") return fallback;
+  return insert.backdropBg || fallback;
+}
+function insertBackdropImage(insert: StoryInsert | null | undefined): string | undefined {
+  if (!insert || insert.kind === "videocall") return undefined;
+  return insert.backdropImage || undefined;
 }
 
 /** 警告ダイアログ */
@@ -2107,10 +2117,11 @@ const InsertOverlay: React.FC<{
 }) => {
   // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
   const isLight = insert.kind === "mailer";
+  const backdropImage = insertBackdropImage(insert);
   return (
     <AbsoluteFill
       style={{
-        background: isLight ? "#e8eaf0" : INSERT_BG,
+        background: insertBackdropBg(insert, isLight ? "#e8eaf0" : INSERT_BG),
         opacity: bgOpacity,
         alignItems: "center",
         justifyContent: "center",
@@ -2123,6 +2134,21 @@ const InsertOverlay: React.FC<{
         pointerEvents: "none",
       }}
     >
+      {backdropImage ? (
+        <Img
+          src={staticFile(backdropImage)}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      ) : null}
       <AbsoluteFill
         style={{ opacity, alignItems: "center", justifyContent: "center" }}
       >

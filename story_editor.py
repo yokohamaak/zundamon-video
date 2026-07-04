@@ -223,17 +223,28 @@ def _safe_export_filename(title):
     return cleaned + ".mp4"
 
 
-def _safe_mob_image_filename(name):
-    """モブ画像アップロード用のファイル名サニタイズ。
-    OSで問題になりうる記号だけ除去し、日本語のモブ名はそのまま残す
-    （全角文字を"_"に潰すと別モブ名が同じファイル名に衝突し、
+def _safe_image_filename(name, default_stem="image"):
+    """画像アップロード用のファイル名サニタイズ。
+    OSで問題になりうる記号だけ除去し、日本語名はそのまま残す
+    （全角文字を"_"に潰すと別名同士が同じファイル名に衝突し、
     一方の画像がもう一方で上書きされるバグになるため）。"""
     cleaned = re.sub(r'[\\/:*?"<>|\r\n\t]', "", (name or "")).strip(". ")
-    cleaned = cleaned or "mob_image"
+    cleaned = cleaned or default_stem
     ext = os.path.splitext(cleaned)[1].lower()
     if ext not in _IMAGE_EXTS:
         cleaned += ".png"
     return cleaned
+
+
+def _save_base64_image(dest_dir, filename, data_url):
+    """base64 dataURL をデコードして dest_dir/filename に保存する。"""
+    m = re.match(r"^data:image/[a-zA-Z0-9.+-]+;base64,(.+)$", data_url or "", re.S)
+    if not m:
+        raise ValueError("dataUrl の形式が不正です")
+    raw = base64.b64decode(m.group(1))
+    os.makedirs(dest_dir, exist_ok=True)
+    with open(os.path.join(dest_dir, filename), "wb") as f:
+        f.write(raw)
 
 
 def _load_scenes_keys():
@@ -1106,18 +1117,23 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
             try:
                 data = json.loads(body.decode("utf-8"))
-                filename = _safe_mob_image_filename(data.get("filename"))
-                data_url = data.get("dataUrl", "")
-                m = re.match(r"^data:image/[a-zA-Z0-9.+-]+;base64,(.+)$", data_url, re.S)
-                if not m:
-                    raise ValueError("dataUrl の形式が不正です")
-                raw = base64.b64decode(m.group(1))
+                filename = _safe_image_filename(data.get("filename"), "mob_image")
                 mobs_dir = os.path.join(VIDEO_PUBLIC_DIR, "mobs")
-                os.makedirs(mobs_dir, exist_ok=True)
-                out_path = os.path.join(mobs_dir, filename)
-                with open(out_path, "wb") as f:
-                    f.write(raw)
+                _save_base64_image(mobs_dir, filename, data.get("dataUrl", ""))
                 self._send_json({"ok": True, "path": f"mobs/{filename}"})
+            except (json.JSONDecodeError, ValueError, binascii.Error) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/overlay-assets/upload":
+            # インサート周りの背景画像等、汎用の画像アップロード先(public/overlays/)。
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                filename = _safe_image_filename(data.get("filename"), "overlay_image")
+                _save_base64_image(OVERLAYS_DIR, filename, data.get("dataUrl", ""))
+                self._send_json({"ok": True, "path": f"overlays/{filename}"})
             except (json.JSONDecodeError, ValueError, binascii.Error) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:
