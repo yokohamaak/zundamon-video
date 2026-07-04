@@ -81,7 +81,7 @@ const SWEAT_EXTRA: Record<string, { dx: number; dy: number; s: number }[]> = {
 
 // 口の開き判定しきい値（amplitude=波形RMS×LIPSYNC_GAIN, 0..1）。
 // 発話中の実測レンジ(≈0.10〜0.33)に合わせる。無音/語間は閉じ。
-const MOUTH_HALF = 0.06;
+export const MOUTH_HALF = 0.06;
 const MOUTH_OPEN = 0.18;
 
 // まばたき：周期(フレーム)の末尾BLINK_DURだけ目を閉じる。

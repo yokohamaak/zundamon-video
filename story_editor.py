@@ -8,6 +8,8 @@ turn の並び・話者・セリフ・場面・表情・演出・insertを編集
 """
 import argparse
 import atexit
+import base64
+import binascii
 import json
 import os
 import re
@@ -51,29 +53,88 @@ _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 # 許可するトップレベルディレクトリ名 or ファイル名の集合。
 _PREVIEW_ASSET_DIRS = {"avatars", "background", "mobs", "bgm", "se", "fonts", "overlays"}
 _PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "poses.json", "se-map.json",
-                        "noise.png", "story-01.wav", "story-01.mp3",
+                        "mobs.json", "noise.png", "story-01.wav", "story-01.mp3",
                         "story.wav", "story.mp3"}
 
-# 話者一覧（StoryVideo.tsx の CHARACTERS / MOBS と二重管理。MVPのためハードコード）
-SPEAKERS = [
-    "zundamon", "metan", "営業", "部長", "AI",
+MOBS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "mobs.json")
+# mobs.json が無いときのフォールバック（video/src/StoryVideo.tsx の DEFAULT_MOBS と同値）。
+DEFAULT_MOBS = {
+    "営業": {
+        "scale": 0.85,
+        "anchor": {"x": 0.5, "y": 0.99},
+        "images": {
+            "normal": {"closed": "mobs/mob_normal.png", "open": "mobs/mob_normal.png"},
+            "agitated": {"closed": "mobs/mob_panic.png", "open": "mobs/mob_panic.png"},
+        },
+    },
+    "部長": {
+        "scale": 0.62,
+        "anchor": {"x": 0.5, "y": 0.82},
+        "images": {
+            "normal": {"closed": "mobs/manager_normal.png", "open": "mobs/manager_normal.png"},
+            "agitated": {"closed": "mobs/manager_angry.png", "open": "mobs/manager_angry.png"},
+        },
+    },
+}
+
+
+def _load_mobs():
+    try:
+        with open(MOBS_JSON, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return dict(DEFAULT_MOBS)
+
+
+def _save_mobs(data):
+    if not isinstance(data, dict):
+        raise ValueError("mobs はオブジェクトである必要があります")
+    for name, d in data.items():
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("モブ名が不正です")
+        if not isinstance(d, dict) or not isinstance(d.get("images"), dict):
+            raise ValueError(f"モブ定義が不正です: {name}")
+        for state, pair in d["images"].items():
+            if not isinstance(pair, dict) or not pair.get("closed") or not pair.get("open"):
+                raise ValueError(f"{name}/{state} の画像(closed/open)が不正です")
+    with open(MOBS_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+# 話者一覧（zundamon/metan は StoryVideo.tsx の CHARACTERS 側でハードコード。
+# モブは mobs.json から動的に取得し、新規追加が即座に選択肢へ反映されるようにする）
+BASE_SPEAKERS = [
+    "zundamon", "metan", "AI",
     "troublemaker_male_normal", "troublemaker_male_creepy",
     "troublemaker_female_normal", "troublemaker_female_creepy",
 ]
 NARRATION_SPEAKERS = ["棒読み男", "棒読み女"]
 
-# 話者アイコン（/img/<path> でアクセスできる video/public 配下の相対パス）
-SPEAKER_ICONS = {
+# 話者アイコン（/preview-assets/<path> でアクセスできる video/public 配下の相対パス）
+BASE_SPEAKER_ICONS = {
     "zundamon": "avatars/zundamon/icon.png",
     "metan": "avatars/metan/icon.png",
-    "営業": "mobs/mob_normal.png",
-    "部長": "mobs/manager_normal.png",
     "AI": None,
     "troublemaker_male_normal": None,
     "troublemaker_male_creepy": None,
     "troublemaker_female_normal": None,
     "troublemaker_female_creepy": None,
 }
+
+
+def _current_speakers_and_icons():
+    mobs = _load_mobs()
+    speakers = list(BASE_SPEAKERS)
+    icons = dict(BASE_SPEAKER_ICONS)
+    for name, d in mobs.items():
+        speakers.append(name)
+        normal = (d.get("images") or {}).get("normal") or {}
+        icons[name] = normal.get("closed")
+    return speakers, icons
 
 # 組み込み5種（フォールバック用・expressions.json が読めない場合に使用）
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
@@ -160,6 +221,16 @@ def _safe_export_filename(title):
     cleaned = re.sub(r'[\\/:*?"<>|\r\n\t]', "", (title or "")).strip()
     cleaned = cleaned or "story"
     return cleaned + ".mp4"
+
+
+def _safe_mob_image_filename(name):
+    """モブ画像アップロード用のファイル名サニタイズ（英数字・_・-・.のみ許可）。"""
+    cleaned = re.sub(r"[^A-Za-z0-9_.\-]", "_", (name or "").strip())
+    cleaned = cleaned.lstrip(".").strip("_") or "mob_image"
+    ext = os.path.splitext(cleaned)[1].lower()
+    if ext not in _IMAGE_EXTS:
+        cleaned += ".png"
+    return cleaned
 
 
 def _load_scenes_keys():
@@ -854,11 +925,11 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
 
         elif path == "/api/meta":
             try:
+                speakers, speaker_icons = _current_speakers_and_icons()
                 meta = {
-                    # 話者一覧（StoryVideo.tsx の CHARACTERS/MOBS と二重管理）
-                    "speakers": SPEAKERS,
+                    "speakers": speakers,
                     "narrationSpeakers": NARRATION_SPEAKERS,
-                    "speakerIcons": SPEAKER_ICONS,
+                    "speakerIcons": speaker_icons,
                     "scenes": _load_scenes_keys(),
                     # expressions.json のキーから動的生成。読み込み失敗時は定数にフォールバック。
                     "expressions": _load_expression_keys(),
@@ -944,6 +1015,12 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/mobs":
+            try:
+                self._send_json(_load_mobs())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path.startswith("/img/"):
             rel = path[len("/img/"):]
             safe = _safe_path(VIDEO_PUBLIC_DIR, rel)
@@ -1005,6 +1082,40 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     # VOICEVOX未起動等でも保存自体は成功しているので警告として返す。
                     self._send_json({"ok": True, "synced": 0, "syncWarning": str(e)})
             except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/mobs":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                _save_mobs(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/mobs/upload-image":
+            # 画像アップロード（multipartは標準ライブラリのみ方針だと煩雑なため、
+            # base64 dataURLをJSONで受け取る簡易方式にする）。
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                filename = _safe_mob_image_filename(data.get("filename"))
+                data_url = data.get("dataUrl", "")
+                m = re.match(r"^data:image/[a-zA-Z0-9.+-]+;base64,(.+)$", data_url, re.S)
+                if not m:
+                    raise ValueError("dataUrl の形式が不正です")
+                raw = base64.b64decode(m.group(1))
+                mobs_dir = os.path.join(VIDEO_PUBLIC_DIR, "mobs")
+                os.makedirs(mobs_dir, exist_ok=True)
+                out_path = os.path.join(mobs_dir, filename)
+                with open(out_path, "wb") as f:
+                    f.write(raw)
+                self._send_json({"ok": True, "path": f"mobs/{filename}"})
+            except (json.JSONDecodeError, ValueError, binascii.Error) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:
                 self._send_error_json(500, str(e))

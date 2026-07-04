@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { StoryVideo } from "./StoryVideo";
-import type { StoryScript, SceneLibrary, ExpressionsMap, PosesMap, SeMap } from "./StoryVideo";
+import type { StoryScript, SceneLibrary, ExpressionsMap, PosesMap, SeMap, MobsMap } from "./StoryVideo";
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -15,6 +15,7 @@ type StoryPlayerApi = {
   reloadScenes: () => Promise<void>;
   reloadExpressions: () => Promise<void>;
   reloadPoses: () => Promise<void>;
+  reloadMobs: () => Promise<void>;
   seekToFrame: (frame: number) => void;
   seekToTime: (sec: number) => void;
   play: () => void;
@@ -38,6 +39,7 @@ type Props = {
   expressions?: ExpressionsMap;
   poses?: PosesMap;
   seMap?: SeMap;
+  mobs?: MobsMap;
 };
 
 let root: Root | null = null;
@@ -172,8 +174,16 @@ async function loadInitialProps(): Promise<Props> {
     // se-map.json 未配置時は SE 再生なしにフォールバック
   }
 
+  let mobs: MobsMap | undefined;
+  try {
+    const mobsRes = await fetch("/preview-assets/mobs.json", { cache: "no-store" });
+    if (mobsRes.ok) mobs = await mobsRes.json();
+  } catch {
+    // mobs.json 未配置時は組み込みの既定モブ定義にフォールバック
+  }
+
   const audio = withAudioCacheBust(story.audio);
-  return { story, scenes, manifest, audio, expressions, poses, seMap };
+  return { story, scenes, manifest, audio, expressions, poses, seMap, mobs };
 }
 
 window.storyPlayer = {
@@ -248,6 +258,19 @@ window.storyPlayer = {
       if (!res.ok) return;
       const poses = await res.json();
       setPropsState((prev) => ({ ...prev, poses } as Props));
+    } catch {
+      // 失敗時は据え置き
+    }
+  },
+
+  async reloadMobs() {
+    // モブキャラタブで保存された mobs.json を読み直してプレビューへ反映。
+    if (!setPropsState) return;
+    try {
+      const res = await fetch("/preview-assets/mobs.json", { cache: "no-store" });
+      if (!res.ok) return;
+      const mobs = await res.json();
+      setPropsState((prev) => ({ ...prev, mobs } as Props));
     } catch {
       // 失敗時は据え置き
     }

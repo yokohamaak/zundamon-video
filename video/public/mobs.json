@@ -1,0 +1,36 @@
+{
+  "営業": {
+    "scale": 0.85,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.99
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/mob_normal.png",
+        "open": "mobs/mob_normal.png"
+      },
+      "agitated": {
+        "closed": "mobs/mob_panic.png",
+        "open": "mobs/mob_panic.png"
+      }
+    }
+  },
+  "部長": {
+    "scale": 0.62,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.82
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/manager_normal.png",
+        "open": "mobs/manager_normal.png"
+      },
+      "agitated": {
+        "closed": "mobs/manager_angry.png",
+        "open": "mobs/manager_angry.png"
+      }
+    }
+  }
+}

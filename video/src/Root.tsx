@@ -8,6 +8,7 @@ import type {
   StoryVideoProps,
   PosesMap,
   SeMap,
+  MobsMap,
 } from "./StoryVideo";
 import "./fonts"; // import時に日本語フォントのロードを開始（豆腐防止）
 import type { Meta, Turn } from "./types";
@@ -45,7 +46,14 @@ async function loadStory(): Promise<StoryVideoProps> {
   } catch {
     // se-map.json 未配置時は SE 再生なしにフォールバック
   }
-  return { story, scenes, manifest, audio: story.audio, expressions, poses, seMap };
+  let mobs: MobsMap | undefined;
+  try {
+    const mobRes = await fetch(staticFile("mobs.json"));
+    if (mobRes.ok) mobs = await mobRes.json();
+  } catch {
+    // mobs.json 未配置時は組み込みの既定モブ定義にフォールバック
+  }
+  return { story, scenes, manifest, audio: story.audio, expressions, poses, seMap, mobs };
 }
 
 export const FPS = 30;

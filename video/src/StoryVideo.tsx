@@ -9,7 +9,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { useWindowedAudioData } from "@remotion/media-utils";
-import { Avatar } from "./Avatar";
+import { Avatar, MOUTH_HALF } from "./Avatar";
 import type { ExpressionCfg } from "./Avatar";
 import type { Emotion, Gender } from "./types";
 
@@ -269,24 +269,39 @@ const CHARACTERS: Record<string, CharDef> = {
   metan: { avatar: "metan", gender: "female", expressive: false, bubbleColor: "#e87bb0" }, // ピンク系
 };
 
-// モブ定義（いらすとや風の1枚絵・口パク無し）。話している間だけ立つ。
-// images: 状態キー→ファイル（normal / agitated）。表情で出し分ける。
+// モブ定義（いらすとや風の1枚絵）。話している間だけ立ち、発話中は口パク（closed/open差し替え）。
+// images: 状態キー(normal/agitated)→口の開閉2枚。表情とアンプで出し分ける。
 // 画像は public/mobs/<file>（assets/mobs を prep-story が public へコピー）。
-type MobDef = { images: Record<string, string>; scale?: number; flip?: boolean; anchor?: Anchor };
-const MOBS: Record<string, MobDef> = {
-  // 営業=ノートPC作業姿（画像下端=机／机frontで隠れる）。anchor.y を下げて机裏に。
+// 口の開閉画像を用意していないモブは closed/open に同じファイルを指定する（=口パクなしと同じ見た目）。
+export type MobImagePair = { closed: string; open: string };
+export type MobDef = {
+  images: Record<string, MobImagePair>;
+  scale?: number;
+  flip?: boolean;
+  anchor?: Anchor;
+};
+export type MobsMap = Record<string, MobDef>;
+// mobs.json 未配置時のフォールバック既定値（旧ハードコード値を踏襲）。
+const DEFAULT_MOBS: MobsMap = {
   営業: {
-    images: { normal: "mobs/mob_normal.png", agitated: "mobs/mob_panic.png" },
+    images: {
+      normal: { closed: "mobs/mob_normal.png", open: "mobs/mob_normal.png" },
+      agitated: { closed: "mobs/mob_panic.png", open: "mobs/mob_panic.png" },
+    },
     scale: 0.85,
     anchor: { x: 0.5, y: 0.99 },
   },
-  // 部長=バスト肖像（画像下端=胸）。anchor.y を上げて胸が机の高さに来るように。
   部長: {
-    images: { normal: "mobs/manager_normal.png", agitated: "mobs/manager_angry.png" },
+    images: {
+      normal: { closed: "mobs/manager_normal.png", open: "mobs/manager_normal.png" },
+      agitated: { closed: "mobs/manager_angry.png", open: "mobs/manager_angry.png" },
+    },
     scale: 0.62,
     anchor: { x: 0.5, y: 0.82 },
   },
 };
+// StoryVideo コンポーネント冒頭で props.mobs から差し替える（module-level・単一同期render前提）。
+let MOBS: MobsMap = DEFAULT_MOBS;
 const isMob = (id: string): boolean => id in MOBS;
 // セリフ文字がインサートUI内に表示される種別（吹き出しを抑制する）。
 // videocall はUI内にセリフが出ないため対象外＝通常の吹き出しを通話画面の手前に出す。
@@ -338,12 +353,13 @@ function effectiveInsertAt(script: StoryTurn[], idx: number): StoryInsert | null
 }
 // 取り乱し系の表情なら agitated（焦り/怒り）、それ以外は normal。
 // 未知の追加表情は normal 扱い（組み込み5種と比較してフォールバック）。
-function mobImage(mobId: string, expression?: StoryExpression): string {
+function mobImage(mobId: string, expression?: StoryExpression, mouthOpen?: boolean): string {
   const m = MOBS[mobId];
   const agitated =
     expression === "panic" || expression === "surprise" || expression === "trouble";
   const key = agitated && m.images.agitated ? "agitated" : "normal";
-  return m.images[key] ?? Object.values(m.images)[0];
+  const pair = m.images[key] ?? Object.values(m.images)[0];
+  return (mouthOpen ? pair.open : pair.closed) ?? pair.closed ?? pair.open;
 }
 
 type Manifest = Record<string, Record<string, string>>;
@@ -374,6 +390,7 @@ export type StoryVideoProps = {
   expressions?: ExpressionsMap; // expressions.json（省略時は旧来の emotion ベース）
   poses?: PosesMap; // poses.json（省略時はAvatar側の自動腕割当へフォールバック）
   seMap?: SeMap; // se-map.json（省略時はSE再生なし）
+  mobs?: MobsMap; // mobs.json（省略時は組み込みの既定モブ定義）
 };
 
 // 立ち絵ボックスサイズ。バスト用は 445×445（Avatar の既定値と同じ）。
@@ -1215,7 +1232,7 @@ function resolveTeamChatSender(from: string): {
   if (from in MOBS) {
     const m = MOBS[from];
     return {
-      imgSrc: staticFile(m.images.normal),
+      imgSrc: staticFile(m.images.normal.closed),
       name: from,
       nameColor: DEFAULT_BUBBLE_COLOR,
     };
@@ -1590,7 +1607,7 @@ function videoParticipantAsset(speaker: string): {
     const m = MOBS[speaker];
     return {
       kind: "mob",
-      src: staticFile(m.images.normal),
+      src: staticFile(m.images.normal.closed),
       label: speaker,
       accent: "#d7e56d",
     };
@@ -2548,7 +2565,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   expressions,
   poses,
   seMap,
+  mobs,
 }) => {
+  MOBS = mobs && Object.keys(mobs).length > 0 ? mobs : DEFAULT_MOBS;
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const t = frame / fps;
@@ -3036,6 +3055,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   };
 
   // モブ（1枚絵）描画：話者がモブのとき、その間だけ立たせる（フェードイン）。
+  // 発話中は speakerAmp（実音声RMS）に応じて口の開閉画像を切り替える（口パク）。
   // 画像が無ければ onError で非表示にし、render を壊さない（素材未配置でも安全）。
   const renderMob = (mobId: string) => {
     const m = MOBS[mobId];
@@ -3047,6 +3067,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const sc = place?.scale ?? m.scale ?? 1;
     const h = (sceneDef.mobHeight ?? 760) * sc;
     const inP = clamp((t - active.start) / 0.3, 0, 1); // 話し始めでフェードイン
+    const mouthOpen = !active.noLipSync && speakerAmp >= MOUTH_HALF;
     return (
       <div
         key={`mob-${mobId}`}
@@ -3060,7 +3081,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         }}
       >
         <img
-          src={staticFile(mobImage(mobId, active.expression))}
+          src={staticFile(mobImage(mobId, active.expression, mouthOpen))}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
@@ -3315,9 +3336,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       );
     }
     if (isMob(speaker)) {
+      const mouthOpen = isSpeaking && !active.noLipSync && speakerAmp >= MOUTH_HALF;
       return (
         <img
-          src={staticFile(mobImage(speaker, isSpeaking ? active.expression : undefined))}
+          src={staticFile(mobImage(speaker, isSpeaking ? active.expression : undefined, mouthOpen))}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}

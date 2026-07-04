@@ -780,6 +780,7 @@
         <button class="menu-item" id="tabPose" data-view="pose">ポーズ編集</button>
         <button class="menu-item" id="tabGen" data-view="gen">台本生成</button>
         <button class="menu-item" id="tabAudio" data-view="audio">音（BGM/SE）</button>
+        <button class="menu-item" id="tabMobs" data-view="mobs">モブキャラ</button>
         <div class="menu-sep"></div>
         <button class="menu-item" id="btnExport" title="編集中の台本をJSONに書き出す（別ストーリーへ切替/再開用）">⬇ エクスポート</button>
         <button class="menu-item" id="btnImport" title="JSONから台本を読み込む（現在の編集内容は置き換わる）">⬆ インポート</button>
@@ -1287,6 +1288,25 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- モブキャラ管理 -->
+<div id="viewMobs" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
+  <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
+    <div style="font-size:12px; color:var(--text2); line-height:1.6;">
+      立ち絵ではないモブキャラ（1枚絵）の登録・画像管理です。口の開閉画像を両方用意すると発話中に口パクします。
+      片方しか無い場合は同じ画像で構いません（自動的にもう片方へコピーされます）。
+      取り乱し表情は任意です。未設定なら通常表情の画像を使います。
+    </div>
+    <div id="mobsList" style="display:flex; flex-direction:column; gap:16px;">
+      <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
+    </div>
+    <button class="insert-add-btn" id="btnAddMob" style="align-self:flex-start;">＋ モブキャラ追加</button>
+    <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
+      <button class="btn btn-primary btn-sm" id="btnSaveMobs">モブキャラを保存</button>
+      <span id="mobsStatus" style="font-size:12px;"></span>
+    </div>
   </div>
 </div>
 
@@ -5548,29 +5568,32 @@ function setupTabs() {
   const tPose = document.getElementById("tabPose");
   const tGen = document.getElementById("tabGen");
   const tAudio = document.getElementById("tabAudio");
+  const tMobs = document.getElementById("tabMobs");
   const vScript = document.getElementById("viewScript");
   const vScene = document.getElementById("viewScene");
   const vExpr = document.getElementById("viewExpr");
   const vPose = document.getElementById("viewPose");
   const vGen = document.getElementById("viewGen");
   const vAudio = document.getElementById("viewAudio");
+  const vMobs = document.getElementById("viewMobs");
   const sceneFrame = document.getElementById("sceneFrame");
   const exprFrame = document.getElementById("exprFrame");
   const poseFrame = document.getElementById("poseFrame");
 
   function activateTab(active) {
     // タブボタンのactive切替
-    [tScript, tScene, tExpr, tPose, tGen, tAudio].forEach(t => t.classList.toggle("active", t === active));
+    [tScript, tScene, tExpr, tPose, tGen, tAudio, tMobs].forEach(t => t.classList.toggle("active", t === active));
     // メニュー内の画面が選ばれていればメニューボタンを強調。
     const mb = document.getElementById("menuBtn");
     if (mb) mb.classList.toggle("has-active", active !== tScript);
-    // ビューの表示/非表示（viewGen/viewAudio は flex なので空文字では flex で表示する）
+    // ビューの表示/非表示（viewGen/viewAudio/viewMobs は flex なので空文字では flex で表示する）
     vScript.style.display = active === tScript ? "" : "none";
     vScene.style.display = active === tScene ? "" : "none";
     vExpr.style.display = active === tExpr ? "" : "none";
     vPose.style.display = active === tPose ? "" : "none";
     vGen.style.display = active === tGen ? "flex" : "none";
     vAudio.style.display = active === tAudio ? "flex" : "none";
+    vMobs.style.display = active === tMobs ? "flex" : "none";
   }
 
   tScript.addEventListener("click", () => {
@@ -5605,6 +5628,10 @@ function setupTabs() {
     activateTab(tAudio);
     updateAudioPlatformNote();
     loadAudioPanel();
+  });
+  tMobs.addEventListener("click", () => {
+    activateTab(tMobs);
+    loadMobsPanel();
   });
 }
 
@@ -5791,6 +5818,12 @@ function setupEvents() {
   document.getElementById("btnSaveKanjiReadings").addEventListener("click", saveKanjiReadings);
   document.getElementById("btnAddKanjiReading").addEventListener("click", () => {
     document.getElementById("kanjiReadingsList").appendChild(makeKanjiReadingRow("", ""));
+  });
+
+  // モブキャラタブ
+  document.getElementById("btnSaveMobs").addEventListener("click", saveMobs);
+  document.getElementById("btnAddMob").addEventListener("click", () => {
+    document.getElementById("mobsList").appendChild(makeMobCard("", { scale: 1, anchor: { x: 0.5, y: 0.95 }, images: {} }));
   });
 
   // 音タブ: プレビュー再生/停止
@@ -6645,6 +6678,255 @@ async function saveKanjiReadings() {
         ? "保存しました（VOICEVOX未反映: " + result.syncWarning + "）"
         : "保存しました（VOICEVOX辞書に反映済み）";
       setTimeout(() => { statusEl.textContent = ""; }, 4000);
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "保存失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
+}
+
+// ============================================================
+// モブキャラ管理
+// ============================================================
+let mobsMap = {};
+let mobsLoaded = false;
+
+async function loadMobsPanel() {
+  if (mobsLoaded) return;
+  try {
+    const res = await fetch("/api/mobs");
+    mobsMap = await res.json();
+    mobsLoaded = true;
+    renderMobsSection();
+  } catch (e) {
+    document.getElementById("mobsList").innerHTML = "<div style=\"font-size:12px;color:var(--danger);\">読み込み失敗</div>";
+  }
+}
+
+function renderMobsSection() {
+  const container = document.getElementById("mobsList");
+  container.innerHTML = "";
+  const keys = sortedStrings(Object.keys(mobsMap || {}));
+  for (const key of keys) {
+    container.appendChild(makeMobCard(key, mobsMap[key]));
+  }
+  if (container.children.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">モブキャラが登録されていません</div>";
+  }
+}
+
+// 1枚の画像アップロード枠（file input + サムネイル + パス表示）。
+// アップロード成功で pathInput.value にサーバ側の相対パス（例: mobs/xxx.png）が入る。
+function makeMobImageSlot(labelText, currentPath, mobNameGetter, stateKey, mouthKey) {
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex; align-items:center; gap:8px;";
+
+  const label = document.createElement("span");
+  label.textContent = labelText;
+  label.style.cssText = "font-size:12px; color:var(--text2); width:110px; flex-shrink:0;";
+  wrap.appendChild(label);
+
+  const thumb = document.createElement("img");
+  thumb.className = "mob-image-thumb";
+  thumb.style.cssText = "width:48px; height:48px; object-fit:contain; background:var(--bg); border:1px solid var(--border); border-radius:4px;";
+  thumb.src = currentPath ? "/preview-assets/" + currentPath : "";
+  thumb.onerror = () => { thumb.style.visibility = "hidden"; };
+  wrap.appendChild(thumb);
+
+  const pathInput = document.createElement("input");
+  pathInput.type = "hidden";
+  pathInput.className = "mob-image-path";
+  pathInput.dataset.state = stateKey;
+  pathInput.dataset.mouth = mouthKey;
+  pathInput.value = currentPath || "";
+  wrap.appendChild(pathInput);
+
+  const pathText = document.createElement("span");
+  pathText.className = "mob-image-path-text";
+  pathText.textContent = currentPath || "(未設定)";
+  pathText.style.cssText = "font-size:11px; color:var(--text2); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+  wrap.appendChild(pathText);
+
+  const fileInp = document.createElement("input");
+  fileInp.type = "file";
+  fileInp.accept = "image/png,image/jpeg,image/webp";
+  fileInp.style.cssText = "font-size:11px; width:150px;";
+  fileInp.addEventListener("change", async () => {
+    const file = fileInp.files[0];
+    if (!file) return;
+    pathText.textContent = "アップロード中...";
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const mobName = mobNameGetter() || "mob";
+      const ext = (file.name.match(/\.[a-zA-Z0-9]+$/) || [".png"])[0];
+      const filename = `${mobName}_${stateKey}_${mouthKey}${ext}`;
+      const r = await fetch("/api/mobs/upload-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename, dataUrl }),
+      });
+      const result = await r.json();
+      if (r.ok && result.ok) {
+        pathInput.value = result.path;
+        pathText.textContent = result.path;
+        thumb.style.visibility = "visible";
+        thumb.src = "/preview-assets/" + result.path + "?t=" + Date.now();
+      } else {
+        pathText.textContent = "アップロード失敗: " + (result.error || r.status);
+      }
+    } catch (e) {
+      pathText.textContent = "アップロード失敗";
+    }
+  });
+  wrap.appendChild(fileInp);
+
+  return wrap;
+}
+
+function makeMobCard(name, def) {
+  def = def || { scale: 1, anchor: { x: 0.5, y: 0.95 }, images: {} };
+  const card = document.createElement("div");
+  card.className = "mob-card";
+  card.style.cssText = "background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; display:flex; flex-direction:column; gap:10px;";
+
+  const head = document.createElement("div");
+  head.style.cssText = "display:flex; align-items:center; gap:10px;";
+
+  const nameInp = document.createElement("input");
+  nameInp.type = "text";
+  nameInp.className = "field-input mob-name";
+  nameInp.placeholder = "モブ名（例: 後輩）";
+  nameInp.value = name || "";
+  nameInp.style.cssText = "font-weight:700; width:160px;";
+  head.appendChild(nameInp);
+
+  const nameGetter = () => (nameInp.value || "").trim();
+
+  const scaleLabel = document.createElement("span");
+  scaleLabel.textContent = "倍率";
+  scaleLabel.style.cssText = "font-size:12px; color:var(--text2);";
+  head.appendChild(scaleLabel);
+
+  const scaleInp = document.createElement("input");
+  scaleInp.type = "number";
+  scaleInp.className = "field-input mob-scale";
+  scaleInp.step = "0.01";
+  scaleInp.min = "0.1";
+  scaleInp.max = "3";
+  scaleInp.value = def.scale ?? 1;
+  scaleInp.style.cssText = "width:70px;";
+  head.appendChild(scaleInp);
+
+  const anchorXLabel = document.createElement("span");
+  anchorXLabel.textContent = "アンカーX";
+  anchorXLabel.style.cssText = "font-size:12px; color:var(--text2);";
+  head.appendChild(anchorXLabel);
+
+  const anchorXInp = document.createElement("input");
+  anchorXInp.type = "number";
+  anchorXInp.className = "field-input mob-anchor-x";
+  anchorXInp.step = "0.01";
+  anchorXInp.min = "0";
+  anchorXInp.max = "1";
+  anchorXInp.value = def.anchor?.x ?? 0.5;
+  anchorXInp.style.cssText = "width:70px;";
+  head.appendChild(anchorXInp);
+
+  const anchorYLabel = document.createElement("span");
+  anchorYLabel.textContent = "アンカーY";
+  anchorYLabel.style.cssText = "font-size:12px; color:var(--text2);";
+  head.appendChild(anchorYLabel);
+
+  const anchorYInp = document.createElement("input");
+  anchorYInp.type = "number";
+  anchorYInp.className = "field-input mob-anchor-y";
+  anchorYInp.step = "0.01";
+  anchorYInp.min = "0";
+  anchorYInp.max = "1.2";
+  anchorYInp.value = def.anchor?.y ?? 0.95;
+  anchorYInp.style.cssText = "width:70px;";
+  head.appendChild(anchorYInp);
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "btn btn-danger btn-sm";
+  delBtn.textContent = "このモブを削除";
+  delBtn.style.marginLeft = "auto";
+  delBtn.addEventListener("click", () => { card.remove(); });
+  head.appendChild(delBtn);
+
+  card.appendChild(head);
+
+  const normalTitle = document.createElement("div");
+  normalTitle.textContent = "通常表情";
+  normalTitle.style.cssText = "font-size:12px; font-weight:700; color:var(--text2); margin-top:4px;";
+  card.appendChild(normalTitle);
+  card.appendChild(makeMobImageSlot("画像（口閉じ）", def.images?.normal?.closed, nameGetter, "normal", "closed"));
+  card.appendChild(makeMobImageSlot("画像（口開け）", def.images?.normal?.open, nameGetter, "normal", "open"));
+
+  const agitatedTitle = document.createElement("div");
+  agitatedTitle.textContent = "取り乱し表情（任意・未設定なら通常表情を使用）";
+  agitatedTitle.style.cssText = "font-size:12px; font-weight:700; color:var(--text2); margin-top:4px;";
+  card.appendChild(agitatedTitle);
+  card.appendChild(makeMobImageSlot("画像（口閉じ）", def.images?.agitated?.closed, nameGetter, "agitated", "closed"));
+  card.appendChild(makeMobImageSlot("画像（口開け）", def.images?.agitated?.open, nameGetter, "agitated", "open"));
+
+  return card;
+}
+
+async function saveMobs() {
+  const statusEl = document.getElementById("mobsStatus");
+  statusEl.style.color = "var(--text2)";
+  statusEl.textContent = "保存中...";
+  try {
+    const cards = document.querySelectorAll("#mobsList .mob-card");
+    const entries = {};
+    for (const card of cards) {
+      const name = card.querySelector(".mob-name").value.trim();
+      if (!name) continue;
+      const scale = parseFloat(card.querySelector(".mob-scale").value) || 1;
+      const ax = parseFloat(card.querySelector(".mob-anchor-x").value);
+      const ay = parseFloat(card.querySelector(".mob-anchor-y").value);
+      const images = {};
+      const slots = card.querySelectorAll(".mob-image-path");
+      const byState = {};
+      for (const inp of slots) {
+        const state = inp.dataset.state;
+        const mouth = inp.dataset.mouth;
+        byState[state] = byState[state] || {};
+        byState[state][mouth] = inp.value.trim();
+      }
+      // 片方しか無ければもう片方へコピー（口パク無しと同じ見た目で動作させる）。
+      for (const state of Object.keys(byState)) {
+        const pair = byState[state];
+        if (!pair.closed && !pair.open) continue; // 両方未設定ならそのstateは登録しない
+        pair.closed = pair.closed || pair.open;
+        pair.open = pair.open || pair.closed;
+        images[state] = pair;
+      }
+      if (!images.normal) continue; // 通常表情の画像が無いモブは保存しない
+      entries[name] = { scale, anchor: { x: ax, y: ay }, images };
+    }
+    const r = await fetch("/api/mobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entries),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      mobsMap = entries;
+      renderMobsSection();
+      if (window.storyPlayer && playerReady) window.storyPlayer.reloadMobs();
+      statusEl.style.color = "var(--green)";
+      statusEl.textContent = "保存しました";
+      setTimeout(() => { statusEl.textContent = ""; }, 2500);
     } else {
       statusEl.style.color = "var(--danger)";
       statusEl.textContent = "保存失敗: " + (result.error || r.status);
