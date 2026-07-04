@@ -33,6 +33,9 @@ export type StoryInsert =
       speaker: string;
       name?: string;
       bgStyle?: "office" | "meeting_room" | "home" | "ai" | "green";
+      // 上記5種のプリセット以外に、自分で追加した画像(public/background/配下)を直接指定したい場合に使う。
+      // 指定されていればbgStyleより優先する。
+      bgImage?: string;
       cameraOff?: boolean;
       muted?: boolean;
     }>;
@@ -1664,6 +1667,16 @@ function videoParticipantAsset(speaker: string): {
   return { kind: "unknown", label: speaker, accent: "#9ed957" };
 }
 
+// participant.bgImage（自分で追加した画像）用。5種のプリセットと同じ暗め加工で重ねる。
+function videoBgImageStyle(imagePath: string): React.CSSProperties {
+  return {
+    background: "linear-gradient(180deg, rgba(6,10,14,0.16), rgba(6,10,14,0.34))",
+    backgroundImage: `linear-gradient(180deg, rgba(8,12,16,0.08), rgba(8,12,16,0.34)), url(${staticFile(imagePath)})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center center",
+  };
+}
+
 function videoBgStyle(style: string | undefined): React.CSSProperties {
   switch (style) {
     case "home":
@@ -1755,7 +1768,9 @@ const InsertVideoCall: React.FC<{
     const name = participant.name || asset.label;
     const isActive = participant.speaker === currentSpeaker;
     const large = !!opts?.large;
-    const bg = videoBgStyle(participant.bgStyle || (participant.speaker === "AI" ? "ai" : "office"));
+    const bg = participant.bgImage
+      ? videoBgImageStyle(participant.bgImage)
+      : videoBgStyle(participant.bgStyle || (participant.speaker === "AI" ? "ai" : "office"));
     const tileW = large ? vc.focusTileW : layout === "grid" ? vc.gridTileW : vc.smallTileW;
     const feedNode =
       !participant.cameraOff && asset.kind !== "ai" && renderFeed

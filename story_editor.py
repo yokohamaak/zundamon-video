@@ -45,6 +45,7 @@ KANJI_READINGS_COMMENT = (
 BGM_DIR = os.path.join(VIDEO_PUBLIC_DIR, "bgm")
 SE_DIR = os.path.join(VIDEO_PUBLIC_DIR, "se")
 OVERLAYS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "overlays")
+BACKGROUND_DIR = os.path.join(VIDEO_PUBLIC_DIR, "background")
 _AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
 _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
@@ -301,6 +302,21 @@ def _list_overlay_assets():
     if not os.path.isdir(OVERLAYS_DIR):
         return out
     for root, _dirs, files in os.walk(OVERLAYS_DIR):
+        for fn in sorted(files):
+            if not fn.lower().endswith(_IMAGE_EXTS):
+                continue
+            abs_path = os.path.join(root, fn)
+            rel = os.path.relpath(abs_path, VIDEO_PUBLIC_DIR).replace("\\", "/")
+            out.append(rel)
+    return sorted(out)
+
+
+def _list_background_assets():
+    """public/background 配下の画像一覧を返す（background/ 付き相対パス）。"""
+    out = []
+    if not os.path.isdir(BACKGROUND_DIR):
+        return out
+    for root, _dirs, files in os.walk(BACKGROUND_DIR):
         for fn in sorted(files):
             if not fn.lower().endswith(_IMAGE_EXTS):
                 continue
@@ -1011,6 +1027,12 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/background-assets":
+            try:
+                self._send_json({"images": _list_background_assets()})
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path == "/api/se-map":
             try:
                 self._send_json(_load_se_map())
@@ -1134,6 +1156,19 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 filename = _safe_image_filename(data.get("filename"), "overlay_image")
                 _save_base64_image(OVERLAYS_DIR, filename, data.get("dataUrl", ""))
                 self._send_json({"ok": True, "path": f"overlays/{filename}"})
+            except (json.JSONDecodeError, ValueError, binascii.Error) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/background-assets/upload":
+            # ZunMeet等の参加者背景に使う画像アップロード先(public/background/)。
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                filename = _safe_image_filename(data.get("filename"), "background_image")
+                _save_base64_image(BACKGROUND_DIR, filename, data.get("dataUrl", ""))
+                self._send_json({"ok": True, "path": f"background/{filename}"})
             except (json.JSONDecodeError, ValueError, binascii.Error) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:

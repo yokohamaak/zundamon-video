@@ -2067,6 +2067,17 @@ async function ensureOverlayAssets() {
   return overlayAssets || { images: [] };
 }
 
+let backgroundAssets = null; // { images: [...] } (ZunMeet参加者の背景画像一覧)
+
+async function ensureBackgroundAssets() {
+  if (backgroundAssets) return backgroundAssets;
+  try {
+    const r = await fetch("/api/background-assets");
+    if (r.ok) backgroundAssets = await r.json();
+  } catch (e) { /* 無視 */ }
+  return backgroundAssets || { images: [] };
+}
+
 function ensureOverlayImageSize(src) {
   if (!src || overlayImageSizes[src]) return;
   const img = new Image();
@@ -3026,6 +3037,7 @@ function setupScriptTimeline() {
   _setupOverlayEditorEvents();
   ensureAudioAssets(); // 早期ロード
   ensureOverlayAssets();
+  ensureBackgroundAssets();
 
   if (scrollEl) scrollEl.addEventListener("scroll", renderTimelineTransitionOverlay);
   const modeSel = document.getElementById("timelineEditMode");
@@ -4970,6 +4982,84 @@ function refreshTeamchatItems(items) {
   collectInsert();
 }
 
+// ZunMeet参加者の背景に、bgStyleの5プリセット以外の自分で追加した画像を使うための欄。
+// background/配下の画像から選択、または新規アップロード（インサート背景画像と同じ方式）。
+function makeVideoCallBgImageField(idx, part) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "背景画像（任意）";
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%;";
+
+  const sel = document.createElement("select");
+  sel.className = "field-select";
+  sel.dataset.field = "bgImage";
+  sel.dataset.idx = idx;
+  sel.style.flex = "1";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "画像なし（上のbgStyleを使う）";
+  sel.appendChild(blank);
+  const current = part.bgImage || "";
+  const imgs = sortedStrings((backgroundAssets && Array.isArray(backgroundAssets.images)) ? backgroundAssets.images : []);
+  for (const img of imgs) {
+    const opt = document.createElement("option");
+    opt.value = img;
+    opt.textContent = img.replace(/^background\//, "");
+    sel.appendChild(opt);
+  }
+  if (current && !imgs.includes(current)) {
+    const opt = document.createElement("option");
+    opt.value = current;
+    opt.textContent = current;
+    sel.appendChild(opt);
+  }
+  sel.value = current;
+  sel.addEventListener("change", collectInsert);
+  body.appendChild(sel);
+
+  const fileInp = document.createElement("input");
+  fileInp.type = "file";
+  fileInp.accept = "image/png,image/jpeg,image/webp";
+  fileInp.style.cssText = "font-size:11px; width:140px;";
+  fileInp.addEventListener("change", async () => {
+    const file = fileInp.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch("/api/background-assets/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, dataUrl }),
+      });
+      const result = await r.json();
+      if (r.ok && result.ok) {
+        backgroundAssets = null; // 再取得させて一覧に反映
+        await ensureBackgroundAssets();
+        const opt = document.createElement("option");
+        opt.value = result.path;
+        opt.textContent = result.path.replace(/^background\//, "");
+        sel.appendChild(opt);
+        sel.value = result.path;
+        collectInsert();
+      }
+    } catch (e) { /* アップロード失敗時は据え置き */ }
+    fileInp.value = "";
+  });
+  body.appendChild(fileInp);
+
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
+}
+
 function makeVideoCallParticipantItem(idx, part) {
   const item = document.createElement("div");
   item.className = "insert-array-item";
@@ -5060,6 +5150,7 @@ function makeVideoCallParticipantItem(idx, part) {
   bgRow.appendChild(bgLbl);
   bgRow.appendChild(bgSel);
   item.appendChild(bgRow);
+  item.appendChild(makeVideoCallBgImageField(idx, part));
 
   const flagsRow = document.createElement("div");
   flagsRow.className = "field-row";
@@ -5093,6 +5184,7 @@ function getVideoCallParticipants() {
     const speaker = item.querySelector("select[data-field=speaker]");
     const name = item.querySelector("input[data-field=name]");
     const bgStyle = item.querySelector("select[data-field=bgStyle]");
+    const bgImage = item.querySelector("select[data-field=bgImage]");
     const cameraOff = item.querySelector("input[data-field=cameraOff]");
     const muted = item.querySelector("input[data-field=muted]");
     const out = {
@@ -5100,6 +5192,7 @@ function getVideoCallParticipants() {
       bgStyle: bgStyle ? bgStyle.value : "office",
     };
     if (name && name.value) out.name = name.value;
+    if (bgImage && bgImage.value) out.bgImage = bgImage.value;
     if (cameraOff && cameraOff.checked) out.cameraOff = true;
     if (muted && muted.checked) out.muted = true;
     return out;
