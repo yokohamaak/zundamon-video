@@ -928,12 +928,17 @@ const ExtraEffectsLayer: React.FC<{
   }
 
   if (active.irisOut) {
-    // 経過秒数(elapsed)ベースの2フェーズ：
-    // 1) 保持（初期半径のまま。初期半径は画面を覆う大きさが基本＝見た目には何も起きていない状態）
-    // 2) 収縮（closeStart→closeEndで初期半径→0へ連続的に縮む。この間に顔サイズなどを通過する）
+    // 経過秒数(elapsed)ベースの3フェーズ：
+    // 1) 登場（ターン開始時点では画面を覆う大きさ＝見た目には何も起きていない状態から、
+    //    固定の速度で少しゆっくりめに「初期の◯」(startRadius)まで縮む）
+    // 2) 保持（初期の◯のまま）
+    // 3) 収縮（closeStart→closeEndで初期の◯→0へ連続的に縮む。この間に顔サイズなどを通過する）
     // closeStart/closeEndの2値だけがユーザー指定＝ターン開始からの絶対秒数。
     const diag = Math.sqrt(width * width + height * height) / 2;
     const baseRadius = diag * irisOutCfg.startRadius;
+    // 登場アニメーションの開始半径（画面を確実に覆う大きさ。対角線の1.3倍）。
+    const coverRadius = diag * 1.3;
+    const APPEAR_DUR = 0.6; // 固定・少しゆっくりめ（設定不可）
     // このターン開始からの実経過秒数（クランプ無し）。pause秒による次ターンまでの
     // 間（gap）も含めて動けるよう、progress(セリフ実尺で1.0固定)ではなくこちらを使う。
     // 未指定時のみ従来どおり progress*dur にフォールバック。
@@ -947,8 +952,11 @@ const ExtraEffectsLayer: React.FC<{
     const closeDuration = Math.max(rawCloseEnd - rawCloseStart, 0.05);
     const closeEnd = Math.min(rawCloseEnd, window);
     const closeStart = Math.max(0, closeEnd - closeDuration);
+    const appearDur = Math.min(APPEAR_DUR, closeStart);
     let radius: number;
-    if (elapsed < closeStart) {
+    if (appearDur > 0 && elapsed < appearDur) {
+      radius = lerp(coverRadius, baseRadius, easeInOutCubic(clamp(elapsed / appearDur, 0, 1)));
+    } else if (elapsed < closeStart) {
       radius = baseRadius;
     } else {
       const cp = clamp((elapsed - closeStart) / Math.max(closeEnd - closeStart, 0.05), 0, 1);
