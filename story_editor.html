@@ -1425,10 +1425,14 @@ const EFFECT_SETTING_SPECS = [
   { group: "sparkleBurst", label: "キラッ 数", key: "count", min: 4, max: 20, step: 1, defaultValue: 10, digits: 0 },
   { group: "sparkleBurst", label: "キラッ 広がり", key: "spread", min: 80, max: 420, step: 5, defaultValue: 260, digits: 0, unit: "px" },
   { group: "sparkleBurst", label: "キラッ 時間", key: "duration", min: 0.1, max: 0.8, step: 0.01, defaultValue: 0.32, digits: 2, unit: "秒" },
-  { group: "irisOut", label: "アイリスアウト 開始位置", key: "start", min: 0.3, max: 0.95, step: 0.01, defaultValue: 0.72, digits: 2 },
-  { group: "irisOut", label: "アイリスアウト 閉じる時間", key: "duration", min: 0.08, max: 2.5, step: 0.02, defaultValue: 0.28, digits: 2, unit: "秒" },
-  { group: "irisOut", label: "アイリスアウト 初期半径", key: "startRadius", min: 0.2, max: 1.2, step: 0.02, defaultValue: 0.78, digits: 2 },
+  { group: "irisOut", label: "アイリスアウト 中心X", key: "cx", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
+  { group: "irisOut", label: "アイリスアウト 中心Y", key: "cy", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
+  { group: "irisOut", label: "アイリスアウト 初期半径", key: "startRadius", min: 0.15, max: 1.3, step: 0.02, defaultValue: 0.55, digits: 2 },
+  { group: "irisOut", label: "アイリスアウト 閉じ始め", key: "closeStart", min: 0, max: 8, step: 0.05, defaultValue: 1.7, digits: 2, unit: "秒" },
+  { group: "irisOut", label: "アイリスアウト 閉じ終わり", key: "closeEnd", min: 0, max: 8, step: 0.05, defaultValue: 2.0, digits: 2, unit: "秒" },
 ];
+// 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
+const IRIS_OUT_DEFAULT_COLOR = "#000000";
 
 // 話者→背景色（アイコン未設定時の色丸）
 const SPEAKER_COLORS = {
@@ -1478,6 +1482,150 @@ function setEffectSettingValue(spec, value) {
   }
   if (!Object.keys(group).length) delete settings[spec.group];
   if (!Object.keys(settings).length) delete storyData.effectSettings;
+}
+
+// irisOutの色はスライダー系(EFFECT_SETTING_SPECS)では扱えないので専用ヘルパーで管理する。
+function getEffectIrisOutColor() {
+  const settings = ensureEffectSettings();
+  return (settings.irisOut && settings.irisOut.color) || IRIS_OUT_DEFAULT_COLOR;
+}
+function setEffectIrisOutColor(value) {
+  const settings = ensureEffectSettings();
+  if (!settings.irisOut || typeof settings.irisOut !== "object") settings.irisOut = {};
+  if (value && value.toLowerCase() !== IRIS_OUT_DEFAULT_COLOR) {
+    settings.irisOut.color = value;
+  } else {
+    delete settings.irisOut.color;
+  }
+  if (!Object.keys(settings.irisOut).length) delete settings.irisOut;
+  if (!Object.keys(settings).length) delete storyData.effectSettings;
+}
+function getTurnIrisOutColorRaw(turn) {
+  return (turn && turn.effectSettings && turn.effectSettings.irisOut && turn.effectSettings.irisOut.color) || null;
+}
+function getTurnIrisOutColorEffective(turn) {
+  return getTurnIrisOutColorRaw(turn) || getEffectIrisOutColor();
+}
+function setTurnIrisOutColor(turn, value) {
+  if (!turn) return;
+  const settings = ensureTurnEffectSettings(turn);
+  if (!settings.irisOut || typeof settings.irisOut !== "object") settings.irisOut = {};
+  settings.irisOut.color = value;
+}
+function clearTurnIrisOutColor(turn) {
+  if (!turn || !turn.effectSettings || !turn.effectSettings.irisOut) return;
+  delete turn.effectSettings.irisOut.color;
+  if (!Object.keys(turn.effectSettings.irisOut).length) delete turn.effectSettings.irisOut;
+  if (!Object.keys(turn.effectSettings).length) delete turn.effectSettings;
+}
+
+function makeEffectColorControl() {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "アイリスアウト 色";
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%;";
+  const picker = document.createElement("input");
+  picker.type = "color";
+  picker.value = getEffectIrisOutColor();
+  picker.style.cssText = "width:48px; height:30px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer;";
+  picker.addEventListener("input", () => {
+    setEffectIrisOutColor(picker.value);
+    markDirty();
+    notifyPlayerUpdate();
+  });
+  const reset = document.createElement("button");
+  reset.className = "btn btn-secondary btn-sm";
+  reset.textContent = "既定";
+  reset.addEventListener("click", () => {
+    picker.value = IRIS_OUT_DEFAULT_COLOR;
+    setEffectIrisOutColor(IRIS_OUT_DEFAULT_COLOR);
+    markDirty();
+    notifyPlayerUpdate();
+  });
+  body.appendChild(picker);
+  body.appendChild(reset);
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
+}
+
+// プレビュー上を1回クリックしたら、そこをアイリスアウトの中心(cx/cy)にする。
+// 画像Overlayのドラッグ位置指定と同じ座標変換(rect基準の正規化0-1)を使う。
+function armIrisOutPositionPick(turn) {
+  const wrap = document.getElementById("playerWrap");
+  if (!wrap) return;
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:absolute; inset:0; z-index:50; cursor:crosshair; background:rgba(255,255,255,0.06);";
+  overlay.title = "クリックでアイリスアウトの中心位置を指定";
+  overlay.addEventListener("click", (e) => {
+    const rect = wrap.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    const cxSpec = EFFECT_SETTING_SPECS.find((s) => s.group === "irisOut" && s.key === "cx");
+    const cySpec = EFFECT_SETTING_SPECS.find((s) => s.group === "irisOut" && s.key === "cy");
+    setTurnEffectSettingValue(turn, cxSpec, x);
+    setTurnEffectSettingValue(turn, cySpec, y);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+    overlay.remove();
+  });
+  wrap.appendChild(overlay);
+}
+
+function makeIrisOutPositionPickControl(turn) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "位置をクリックで指定";
+  const btn = document.createElement("button");
+  btn.className = "btn btn-secondary btn-sm";
+  btn.textContent = "プレビューをクリック";
+  btn.addEventListener("click", () => armIrisOutPositionPick(turn));
+  row.appendChild(lbl);
+  row.appendChild(btn);
+  return row;
+}
+
+function makeTurnEffectColorControl(turn) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "アイリスアウト 色";
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%;";
+  const picker = document.createElement("input");
+  picker.type = "color";
+  picker.value = getTurnIrisOutColorEffective(turn);
+  const state = document.createElement("span");
+  state.style.cssText = "font-size:11px; color:var(--text2);";
+  state.textContent = getTurnIrisOutColorRaw(turn) != null ? "この行で上書き" : "共通設定を継承";
+  picker.addEventListener("change", () => {
+    setTurnIrisOutColor(turn, picker.value);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  });
+  const reset = document.createElement("button");
+  reset.className = "btn btn-secondary btn-sm";
+  reset.textContent = "継承";
+  reset.addEventListener("click", () => {
+    clearTurnIrisOutColor(turn);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  });
+  body.appendChild(picker);
+  body.appendChild(reset);
+  body.appendChild(state);
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
 }
 
 function formatEffectSettingValue(spec, value) {
@@ -1567,6 +1715,9 @@ function renderEffectSettingsEditor() {
   container.appendChild(intro);
   for (const spec of EFFECT_SETTING_SPECS) {
     container.appendChild(makeSteppedNumberControl(spec));
+    if (spec.group === "irisOut" && spec.key === "closeEnd") {
+      container.appendChild(makeEffectColorControl());
+    }
   }
 }
 
@@ -1713,7 +1864,13 @@ function renderTurnEffectSettings(turn) {
   container.appendChild(intro);
   for (const spec of EFFECT_SETTING_SPECS) {
     if (!groups.includes(spec.group)) continue;
+    if (spec.group === "irisOut" && spec.key === "cx") {
+      container.appendChild(makeIrisOutPositionPickControl(turn));
+    }
     container.appendChild(makeTurnEffectSettingControl(turn, spec));
+    if (spec.group === "irisOut" && spec.key === "closeEnd") {
+      container.appendChild(makeTurnEffectColorControl(turn));
+    }
   }
 }
 

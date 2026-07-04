@@ -185,7 +185,9 @@ export type StoryEffectSettings = {
   stampRain?: { count?: number; fallDuration?: number; stagger?: number; spread?: number };
   typingFlood?: { rows?: number; flowDuration?: number; stagger?: number };
   sparkleBurst?: { count?: number; spread?: number; duration?: number };
-  irisOut?: { start?: number; duration?: number; startRadius?: number };
+  // cx/cy: 円の中心(0-1)。startRadius: 出現時の半径（画面対角線の半分=1）。
+  // closeStart/closeEnd: ターン開始からの経過秒数（絶対値。ターン長による自動調整はしない）。
+  irisOut?: { cx?: number; cy?: number; startRadius?: number; closeStart?: number; closeEnd?: number; color?: string };
 };
 
 type ResolvedEffectSettings = {
@@ -194,7 +196,7 @@ type ResolvedEffectSettings = {
   stampRain: { count: number; fallDuration: number; stagger: number; spread: number };
   typingFlood: { rows: number; flowDuration: number; stagger: number };
   sparkleBurst: { count: number; spread: number; duration: number };
-  irisOut: { start: number; duration: number; startRadius: number };
+  irisOut: { cx: number; cy: number; startRadius: number; color: string; closeStart: number; closeEnd: number };
 };
 
 // BGM 区間。時間ベース（start/end=秒）。タイムラインでD&D編集する。
@@ -642,7 +644,7 @@ const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
   stampRain: { count: 8, fallDuration: 0.46, stagger: 0.05, spread: 1 },
   typingFlood: { rows: 9, flowDuration: 0.38, stagger: 0.035 },
   sparkleBurst: { count: 10, spread: 260, duration: 0.32 },
-  irisOut: { start: 0.72, duration: 0.28, startRadius: 0.78 },
+  irisOut: { cx: 0.5, cy: 0.5, startRadius: 0.55, color: "#000000", closeStart: 1.7, closeEnd: 2.0 },
 };
 
 function resolveEffectSettings(settings?: StoryEffectSettings): ResolvedEffectSettings {
@@ -919,30 +921,45 @@ const ExtraEffectsLayer: React.FC<{
   }
 
   if (active.irisOut) {
-    // duration は「秒」指定(UI表示どおり)。progressはターン内の0-1割合なので、
-    // (progress-start)*dur で「発動してからの経過秒数」に変換してから比較する
-    // （そのまま割ると、ターンの長さによって体感速度が変わってしまうため）。
-    const p = clamp(((progress - irisOutCfg.start) * dur) / Math.max(irisOutCfg.duration, 0.05), 0, 1);
-    if (p > 0) {
-      const radius = lerp(Math.max(width, height) * irisOutCfg.startRadius, 0, easeInOutCubic(p));
-      layers.push(
-        <AbsoluteFill
-          key="irisOut"
-          style={{
-            pointerEvents: "none",
-            background: "#000",
-            maskImage: `radial-gradient(circle ${radius}px at 50% 50%, transparent 0, transparent ${Math.max(
-              radius - 1,
-              0
-            )}px, #000 ${radius}px, #000 100%)`,
-            WebkitMaskImage: `radial-gradient(circle ${radius}px at 50% 50%, transparent 0, transparent ${Math.max(
-              radius - 1,
-              0
-            )}px, #000 ${radius}px, #000 100%)`,
-          }}
-        />
-      );
+    // 経過秒数(elapsed)ベースの3フェーズ：
+    // 1) 出現（0→initial半径、固定速度でポップイン）
+    // 2) 保持（initial半径のまま）
+    // 3) 収縮（closeStart→closeEndでinitial半径→0、この2値だけがユーザー指定＝ターン開始からの絶対秒数）
+    const diag = Math.sqrt(width * width + height * height) / 2;
+    const baseRadius = diag * irisOutCfg.startRadius;
+    const closeEnd = Math.max(irisOutCfg.closeEnd, 0.05);
+    const closeStart = clamp(irisOutCfg.closeStart, 0, closeEnd);
+    const elapsed = progress * dur;
+    const appearDur = Math.min(0.2, closeStart); // 出現速度は固定（設定不可）
+    let radius: number;
+    if (appearDur > 0 && elapsed < appearDur) {
+      radius = lerp(0, baseRadius, easeInOutCubic(clamp(elapsed / appearDur, 0, 1)));
+    } else if (elapsed < closeStart) {
+      radius = baseRadius;
+    } else {
+      const cp = clamp((elapsed - closeStart) / Math.max(closeEnd - closeStart, 0.05), 0, 1);
+      radius = lerp(baseRadius, 0, easeInOutCubic(cp));
     }
+    const cxPct = clamp(irisOutCfg.cx, 0, 1) * 100;
+    const cyPct = clamp(irisOutCfg.cy, 0, 1) * 100;
+    const color = irisOutCfg.color || "#000000";
+    layers.push(
+      <AbsoluteFill
+        key="irisOut"
+        style={{
+          pointerEvents: "none",
+          background: color,
+          maskImage: `radial-gradient(circle ${radius}px at ${cxPct}% ${cyPct}%, transparent 0, transparent ${Math.max(
+            radius - 1,
+            0
+          )}px, ${color} ${radius}px, ${color} 100%)`,
+          WebkitMaskImage: `radial-gradient(circle ${radius}px at ${cxPct}% ${cyPct}%, transparent 0, transparent ${Math.max(
+            radius - 1,
+            0
+          )}px, ${color} ${radius}px, ${color} 100%)`,
+        }}
+      />
+    );
   }
 
   return layers.length ? <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>{layers}</AbsoluteFill> : null;
