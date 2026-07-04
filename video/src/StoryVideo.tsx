@@ -3754,7 +3754,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         height={height}
         settings={story.effectSettings}
         rawElapsedSinceStart={t - active.start}
-        availableWindow={(script[activeIdx + 1]?.start ?? active.end) - active.start}
+        availableWindow={
+          (script[activeIdx + 1]?.start ?? active.end + (active.pause ?? 0)) - active.start
+        }
       />
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}

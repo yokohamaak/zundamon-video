@@ -70,9 +70,11 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
   const ref = useRef<PlayerRef>(null);
   const [props, setProps] = useState(initialProps);
 
+  const lastTurn = props.story.script[props.story.script.length - 1];
+  const tailPause = lastTurn?.pause ?? 0;
   const duration = Math.max(
     1,
-    Math.ceil(props.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0) * FPS) + FPS
+    Math.ceil((props.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0) + tailPause) * FPS) + FPS
   );
 
   useEffect(() => {

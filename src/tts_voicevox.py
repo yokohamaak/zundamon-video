@@ -691,12 +691,18 @@ def synthesize_dialogue(script, config):
             "sentences": captions,
         })
 
-        # ターン間の無音＝全体設定(inter_turn_pause)＋この台詞の pause（任意の間）。最後の後には付けない。
+        # ターン間の無音＝全体設定(inter_turn_pause)＋この台詞の pause（任意の間）。
         sil = pause + float(turn.get("pause", 0) or 0)
         # 次のターンが別の章（＝次のネタ）に変わるなら、境目に追加の間を足してネタの区切りを立てる。
         if idx < len(script) - 1 and script[idx + 1].get("chapter") != turn.get("chapter"):
             sil += chapter_gap
-        if sil > 0 and idx < len(script) - 1:
+        is_last = idx == len(script) - 1
+        if is_last:
+            # 最後のターンには次ターンが無いため全体設定(inter_turn_pause)は意味を持たない。
+            # ただしこのターン自身の pause だけは末尾の余韻（アイリスアウト等の演出用の間）
+            # として音声に残す。
+            sil = float(turn.get("pause", 0) or 0)
+        if sil > 0:
             if ref_params is None:
                 # まだ一度も合成しておらずWAV形式が不明。後で先頭にまとめて付ける。
                 pending_head_sil += sil

@@ -152,8 +152,12 @@ export const RemotionRoot: React.FC = () => {
           const props = await loadStory();
           // 尺: 台本の最終 end（秒）× fps + 末尾マージン 30 フレーム。
           const end = props.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
+          // 最後のターンの pause は音声側にも末尾の無音として反映される（tts_voicevox.py）。
+          // アイリスアウト等、末尾ターンの演出がその間を使えるよう尺にも加える。
+          const lastTurn = props.story.script[props.story.script.length - 1];
+          const tailPause = lastTurn?.pause ?? 0;
           return {
-            durationInFrames: Math.max(1, Math.ceil(end * FPS) + 30),
+            durationInFrames: Math.max(1, Math.ceil((end + tailPause) * FPS) + 30),
             props,
           };
         }}
