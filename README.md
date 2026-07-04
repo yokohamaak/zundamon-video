@@ -1,30 +1,29 @@
 # zundamon-video
 
-ずんだもん×四国めたんの掛け合いで **「実は〇〇」のテクノロジー雑学動画** を自動生成するパイプライン。
-1本=1小テーマに「実は」ネタを複数束ねる（例「実は知らないデジタルの名前の謎」）。各ネタは intro→各ネタ(trivia)→outro の章立てで、ネタごとに被写体が変わる。
+ずんだもん×四国めたんの **ストーリー調 会話劇動画** をローカル完結で制作するツール群。
+台本編集・演出・音声生成(VOICEVOX)・書き出し(Remotion)までブラウザのエディタで一気通貫。
 
 ```
-Gemini（掛け合い台本） → VOICEVOX（音声） → フリー素材画像（Wikimedia/Pexels/Pixabay） → Remotion（描画）
+ストーリーエディタ（台本/演出/シーン/表情/ポーズ/音） → VOICEVOX（音声） → Remotion（描画）
 ```
 
-- **いちばん簡単な実行** → `./run`（番号メニュー）/ `./run help`（一覧）。フラグを覚えず本編・ショートを回せる薄いラッパー
-- **実行方法・全オプション** → **[USAGE.md](USAGE.md)**（コマンド/オプションのチートシート）
-- 制作ワークフロー・データ構造 → **[WORKFLOW.md](WORKFLOW.md)**
-- 設計・実装計画 → **[PLAN.md](PLAN.md)**
+- **いちばん簡単な実行** → `./run-story`（番号メニュー）/ `./run-story help`（一覧）
+- 現在仕様の詳細 → **[docs/run-story-current-spec.md](docs/run-story-current-spec.md)**
 
 ## 構成
-- `src/story_script.py` … Gemini で「実は〇〇雑学」掛け合い台本を生成
-- `src/tts_voicevox.py` … VOICEVOX で音声合成
-- `src/manual_cuts.py` … 画像の手動差し替えフォールバック
-- `src/image_fetch.py` … 画像取得の振り分け（Wikimedia / Pexels / Pixabay）※Phase2
-- `main_story.py` … パイプライン統合
-- `video/` … Remotion 描画プロジェクト
+- `story_editor.py` / `story_editor.html` … ストーリーエディタ本体（台本・演出・シーン・表情・ポーズ・台本生成・音・書き出し）
+- `scene_editor.py` / `expression_editor.py` / `pose_editor.py` … エディタ内タブとして同居配信されるサブエディタ
+- `make_story_audio.py` + `src/tts_voicevox.py` … VOICEVOX 音声生成と実尺の台本書き戻し
+- `video/` … Remotion 描画プロジェクト（`StoryVideo` コンポジション）
+- `config/` … 読み仮名辞書・声プロファイル
+- `legacy-dialogue/` … **凍結中**の旧・掛け合い雑学動画パイプライン（下記）
+
+## 旧・掛け合い雑学動画（凍結）
+「実は〇〇雑学」の掛け合い動画パイプライン（Gemini台本 → フリー素材画像 → Remotion）は開発凍結し、
+共有コードのスナップショットごと `legacy-dialogue/` に隔離済み。詳細・再開手順は
+**[legacy-dialogue/README.md](legacy-dialogue/README.md)** を参照。
 
 ## 環境変数（`.env`）
-| 変数 | 用途 |
-|---|---|
-| `GEMINI_API_KEY` | 台本生成 |
-| `PEXELS_API_KEY` | ambient画像取得（Phase2） |
-| `PIXABAY_API_KEY` | ambient画像取得（Phase2） |
-
-無料枠のみ使用。秘密情報は `.env` 管理（コミット禁止）。画像は商用可ライセンス（PD/CC0/CC-BY/Pexels/Pixabay）のみ使用。
+現行のストーリーツールは外部APIを使わない（VOICEVOXはローカルエンジン）。
+`.env` は凍結中の掛け合いパイプライン用（`legacy-dialogue/README.md` 参照）。
+秘密情報は `.env` 管理（コミット禁止）。

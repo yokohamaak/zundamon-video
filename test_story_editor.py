@@ -87,7 +87,7 @@ def test_speakers_include_troublemaker_profiles():
         "troublemaker_female_normal",
         "troublemaker_female_creepy",
     ):
-        assert name in se.SPEAKERS
+        assert name in se.BASE_SPEAKERS
     print("  speakers: troublemaker男女4種がエディタ選択肢にある: OK")
 
 
