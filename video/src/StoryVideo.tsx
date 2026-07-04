@@ -689,7 +689,12 @@ const ExtraEffectsLayer: React.FC<{
   width: number;
   height: number;
   settings?: StoryEffectSettings;
-}> = ({ active, progress, width, height, settings }) => {
+  // このターン開始からの実経過秒数（クランプ無し）。pause秒による次ターンまでの
+  // 間（gap）でもiris-outが動き続けられるよう、progress(0-1に固定)とは別に渡す。
+  rawElapsedSinceStart?: number;
+  // セリフ実尺(dur)+次ターン開始までのgapを含めた、このターンに使える最大秒数（固定値）。
+  availableWindow?: number;
+}> = ({ active, progress, width, height, settings, rawElapsedSinceStart, availableWindow }) => {
   const layers: React.ReactNode[] = [];
   const effectSettings = resolveEffectSettings(mergeEffectSettings(settings, active.effectSettings));
   const zoomPunchCfg = effectSettings.zoomPunch;
@@ -929,16 +934,19 @@ const ExtraEffectsLayer: React.FC<{
     // 3) 収縮（closeStart→closeEndでinitial半径→0、この2値だけがユーザー指定＝ターン開始からの絶対秒数）
     const diag = Math.sqrt(width * width + height * height) / 2;
     const baseRadius = diag * irisOutCfg.startRadius;
-    // 設定値がターン長(dur)を超えていても、ターン末尾では必ず閉じきった状態にする
-    // （pause秒の変更は音声再生成まで dur に反映されないため、値が古いままズレることがある）。
-    // closeEndをdurに収めた上で、指定していた「閉じる所要時間」は変えずに開始側もスライドする
-    // （開始だけclampすると閉区間の幅が潰れて閉じきらないまま止まって見えるため）。
+    // このターン開始からの実経過秒数（クランプ無し）。pause秒による次ターンまでの
+    // 間（gap）も含めて動けるよう、progress(セリフ実尺で1.0固定)ではなくこちらを使う。
+    // 未指定時のみ従来どおり progress*dur にフォールバック。
+    const elapsed = rawElapsedSinceStart ?? progress * dur;
+    const window = Math.max(availableWindow ?? dur, dur);
+    // 設定値が「セリフ実尺(dur)+pauseの間」を超えていても、その末尾では必ず閉じきった
+    // 状態にする。closeEndを上限に収めた上で、指定していた「閉じる所要時間」は変えずに
+    // 開始側もスライドする（開始だけclampすると閉区間の幅が潰れて閉じきらずに止まって見えるため）。
     const rawCloseEnd = Math.max(irisOutCfg.closeEnd, 0.05);
     const rawCloseStart = clamp(irisOutCfg.closeStart, 0, rawCloseEnd);
     const closeDuration = Math.max(rawCloseEnd - rawCloseStart, 0.05);
-    const closeEnd = Math.min(rawCloseEnd, dur);
+    const closeEnd = Math.min(rawCloseEnd, window);
     const closeStart = Math.max(0, closeEnd - closeDuration);
-    const elapsed = progress * dur;
     const appearDur = Math.min(0.2, closeStart); // 出現速度は固定（設定不可）
     let radius: number;
     if (appearDur > 0 && elapsed < appearDur) {
@@ -3745,6 +3753,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         width={width}
         height={height}
         settings={story.effectSettings}
+        rawElapsedSinceStart={t - active.start}
+        availableWindow={(script[activeIdx + 1]?.start ?? active.end) - active.start}
       />
 
       {/* テロップ（回想境界付近：「― 前日 ―」「― 現在 ―」等）。ローワーサード風の帯。 */}
