@@ -5,7 +5,7 @@
 //   - avatars（パーツ立ち絵）＋ manifest.json
 //   - background（シーン背景）
 //   - fonts（日本語フォント）
-// story-sample.json / story-scenes.json は public/ に直接置く運用（git追跡済み）。
+// story-scenes.json は public/ に直接置く運用（git追跡済み）。
 import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { resolve, parse as parsePath } from "node:path";
 
@@ -167,7 +167,7 @@ for (const [sub, exts, label] of [
 }
 
 // 固定入力の存在チェック（無ければ警告のみ。描画側でも未登録fallbackする）。
-for (const f of ["story-sample.json", "story-scenes.json"]) {
+for (const f of ["story-scenes.json"]) {
   if (!existsSync(resolve(pubDir, f))) {
     console.warn(`[prep-story] ${f} が public/ にありません（git追跡済みのはず）`);
   }
