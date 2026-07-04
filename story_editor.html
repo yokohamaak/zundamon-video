@@ -794,6 +794,9 @@
   </select>
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
   <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
+  <label class="toggle-row" id="forceRebuildRow" style="font-size:11px; color:var(--text2); gap:4px;" title="読み替え辞書・漢字の読み修正がキャッシュに反映されない時だけ使う（生成が遅くなります）">
+    <input type="checkbox" id="chkForceRebuild">キャッシュ無視
+  </label>
   <input type="file" id="importFile" accept=".json,application/json" style="display:none">
   <button class="btn btn-secondary" id="btnExportVideo" title="保存してRemotionで動画を書き出す（video/out/ にタイトル名で出力）">🎬 書き出し</button>
   <span class="status" id="statusMsg"></span>
@@ -5647,8 +5650,13 @@ async function generateAudio(confirmFirst = true) {
     // 生成中(数十秒〜)に編集を続けると、完了時の再読込で編集内容が丸ごと巻き戻り、
     // selectedIdxはそのままなので別ターンが表示される事故が起きるため編集をロックする。
     lockScriptEditing();
-    setStatus("busy", "音声生成 準備中…（VOICEVOX）");
-    const r = await fetch("/api/audio", { method: "POST" });
+    const forceRebuild = !!document.getElementById("chkForceRebuild")?.checked;
+    setStatus("busy", forceRebuild ? "音声生成 準備中…（キャッシュ無視・時間がかかります）" : "音声生成 準備中…（VOICEVOX）");
+    const r = await fetch("/api/audio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ forceRebuild }),
+    });
     // 進捗を逐次ストリーム受信（[N/total] 話者: … 行を最新で表示）
     const reader = r.body.getReader();
     const decoder = new TextDecoder();

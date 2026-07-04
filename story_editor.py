@@ -1210,6 +1210,15 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             # VOICEVOX で音声生成（make_story_audio.py）。進捗をストリーミングで逐次返す。
             # make_story_audio は [N/total] 話者: ... をターン毎に出力する。-u で即時flush。
             # 末尾に "__DONE__ ok" / "__DONE__ err..." のセンチネル行を送って結果を伝える。
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length else b""
+            force_rebuild = False
+            if body:
+                try:
+                    force_rebuild = bool(json.loads(body.decode("utf-8")).get("forceRebuild"))
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Cache-Control", "no-cache")
@@ -1225,10 +1234,15 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     return False
 
             try:
+                env = os.environ.copy()
+                if force_rebuild:
+                    # 辞書(読み替え/漢字読み)更新がキャッシュに反映されないケースの回避策。
+                    # 通常は不要（生成が遅くなる）。make_story_audio.py側でキャッシュ全削除する。
+                    env["STORY_AUDIO_FORCE_REBUILD"] = "1"
                 proc = subprocess.Popen(
                     [sys.executable, "-u", "make_story_audio.py", "story-01"],
                     cwd=ROOT_DIR, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, text=True, bufsize=1,
+                    stderr=subprocess.STDOUT, text=True, bufsize=1, env=env,
                 )
                 for line in proc.stdout:
                     if not emit(line):
