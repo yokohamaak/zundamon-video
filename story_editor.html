@@ -7316,6 +7316,11 @@ async function saveMobs() {
       mobsMap = entries;
       renderMobsSection();
       if (window.storyPlayer && playerReady) window.storyPlayer.reloadMobs();
+      // シーン編集タブが開き済みなら、モブ一覧(モブ配置)を最新化するためiframeを再読込。
+      const sceneFrame = document.getElementById("sceneFrame");
+      if (sceneFrame && sceneFrame.getAttribute("src")) {
+        sceneFrame.contentWindow?.location.reload();
+      }
       statusEl.style.color = "var(--green)";
       statusEl.textContent = "保存しました";
       setTimeout(() => { statusEl.textContent = ""; }, 2500);

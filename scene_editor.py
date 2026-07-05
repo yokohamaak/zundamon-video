@@ -56,11 +56,25 @@ def _sync_assets_to_public():
             except OSError:
                 pass
 
-# モブ一覧（StoryVideo.tsx の MOBS 登録と二重管理。MVPのためハードコード）
-MOBS_LIST = [
-    {"id": "営業", "image": "mobs/mob_normal.png"},
-    {"id": "部長", "image": "mobs/manager_normal.png"},
-]
+MOBS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "mobs.json")
+
+
+def _list_mobs():
+    """モブ管理画面の保存先 mobs.json からモブ一覧を作る。
+    サムネイル/ステージ表示には normal.closed(口閉じ通常)を代表画像として使う。"""
+    if not os.path.exists(MOBS_JSON):
+        return []
+    try:
+        with open(MOBS_JSON, encoding="utf-8") as f:
+            mobs = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+    out = []
+    for mob_id, cfg in mobs.items():
+        images = (cfg or {}).get("images") or {}
+        image = (images.get("normal") or {}).get("closed") or ""
+        out.append({"id": mob_id, "image": image})
+    return out
 
 _CT = {
     ".png": "image/png",
@@ -120,7 +134,7 @@ def _list_assets():
                 if os.path.isdir(os.path.join(AVATARS_DIR, entry)):
                     characters.append(entry)
 
-    return {"backgrounds": backgrounds, "characters": characters, "mobs": MOBS_LIST}
+    return {"backgrounds": backgrounds, "characters": characters, "mobs": _list_mobs()}
 
 
 def _safe_path(base_dir, relative):
