@@ -1066,8 +1066,9 @@
           <div class="field-row">
             <label class="field-label">表情</label>
             <select class="field-select" id="fExpression">
-              <option value="">(なし)</option>
+              <option value="">(引き継ぎ＝直前の自分の表情)</option>
             </select>
+            <div class="field-help">未指定は真顔に戻らず、そのキャラが最後に使った表情を引き継ぎます。真顔に戻すには normal を指定。</div>
           </div>
           <div class="field-row">
             <label class="field-label">ポーズ</label>
@@ -3795,7 +3796,7 @@ function _buildExpressionOptions(prevValue) {
   const keep = prevValue !== null ? prevValue : sel.value;
   sel.innerHTML = "";
   const none = document.createElement("option");
-  none.value = ""; none.textContent = "(なし)";
+  none.value = ""; none.textContent = "(引き継ぎ＝直前の自分の表情)";
   sel.appendChild(none);
   for (const ex of sortedStrings(meta.expressions)) {
     const o = document.createElement("option");

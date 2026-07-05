@@ -2393,6 +2393,22 @@ function hasBubbleText(turn: StoryTurn | null | undefined): boolean {
   return !!turn?.text?.trim();
 }
 
+// キャラの「直前の表情」: 現時刻以前でそのキャラが最後に expression 指定付きで話した表情。
+// 表情未指定のターンは真顔に戻さず直前の自分の表情を引き継ぐ
+// （真顔に戻したいときは明示的に normal を指定する）。ZunMeet タイルも同じ扱い。
+function lastExpressionOf(
+  script: StoryTurn[],
+  charId: string,
+  t: number
+): string | undefined {
+  let last: string | undefined;
+  for (const tn of script) {
+    if ((tn.start ?? 0) > t) break;
+    if (!isNarrationTurn(tn) && tn.speaker === charId && tn.expression) last = tn.expression;
+  }
+  return last;
+}
+
 function canContinueBubble(prevTurn: StoryTurn | null, activeTurn: StoryTurn): boolean {
   return !!(
     prevTurn &&
@@ -3089,13 +3105,15 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const want: "left" | "right" =
       active.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
     const flip = want === "right";
+    // 表情未指定は直前の自分の表情を引き継ぐ（lastExpressionOf）。それも無ければ normal。
     // 未知の表情キーは "normal" にフォールバック（組み込み5種のモーションを維持）。
-    const resolvedExpr = active.expression ?? "normal";
+    const resolvedExpr =
+      active.expression ?? lastExpressionOf(script, charId, t) ?? "normal";
     const emotion = EXPRESSION_TO_EMOTION[resolvedExpr] ?? EXPRESSION_TO_EMOTION["normal"];
 
     // expressions.json が渡されていれば該当表情の ExpressionCfg を解決する。
     // 未知キーは "normal" にフォールバック（クラッシュ防止）。
-    const exprKey = active.expression ?? "normal";
+    const exprKey = resolvedExpr;
     const charKey = cdef.avatar; // "zundamon" / "metan"
     const charExprs = expressions?.[charKey];
     const baseExpressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
@@ -3215,7 +3233,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         }}
       >
         <img
-          src={staticFile(mobImage(mobId, active.expression, mouthOpen))}
+          src={staticFile(mobImage(
+            mobId,
+            active.expression ?? lastExpressionOf(script, mobId, t),
+            mouthOpen
+          ))}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
@@ -3414,8 +3436,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const dispW = opts.tileW * VC_FEED_AVATAR_FRAC;
     if (isKnownChar(speaker)) {
       const cdef = CHARACTERS[speaker];
-      // 話者は現在ターンの表情/ポーズ/リップシンク、非話者は normal で待機。
-      const exprKey = isSpeaking ? active.expression ?? "normal" : "normal";
+      // 話者は現在ターンの表情/ポーズ/リップシンク。表情未指定・非話者とも
+      // 「自分が最後に話したときの表情」を引き継ぐ（メイン画面の会話と同じ挙動）。
+      const exprKey =
+        (isSpeaking ? active.expression : undefined) ??
+        lastExpressionOf(script, speaker, t) ??
+        "normal";
       const emotion = EXPRESSION_TO_EMOTION[exprKey] ?? EXPRESSION_TO_EMOTION["normal"];
       const charExprs = expressions?.[cdef.avatar];
       const expressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
@@ -3473,7 +3499,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       const mouthOpen = isSpeaking && !active.noLipSync && speakerAmp >= MOUTH_HALF;
       return (
         <img
-          src={staticFile(mobImage(speaker, isSpeaking ? active.expression : undefined, mouthOpen))}
+          src={staticFile(mobImage(
+            speaker,
+            (isSpeaking ? active.expression : undefined) ?? lastExpressionOf(script, speaker, t),
+            mouthOpen
+          ))}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
@@ -3519,7 +3549,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       const want: "left" | "right" =
         nextActive.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
       const flip = want === "right";
-      const exprKey = nextActive.expression ?? "normal";
+      // 次ターンの入場プレビューも表情未指定なら直前の自分の表情を引き継ぐ。
+      const exprKey =
+        nextActive.expression ??
+        lastExpressionOf(script, charId, nextActive.start ?? t) ??
+        "normal";
       const charKey = cdef.avatar;
       const charExprs = expressions?.[charKey];
       const baseExpressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
