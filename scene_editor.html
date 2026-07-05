@@ -326,6 +326,7 @@
   <h1>シーンエディタ</h1>
   <select class="scene-select" id="sceneSelect"></select>
   <button class="btn btn-secondary" id="btnAddScene">＋ シーン追加</button>
+  <button class="btn btn-danger" id="btnDeleteScene">シーン削除</button>
   <button class="btn btn-primary" id="btnSave">保存</button>
   <span class="status" id="statusMsg"></span>
 </div>
@@ -1145,6 +1146,8 @@ function setupEvents() {
 
   document.getElementById('btnAddScene').addEventListener('click', addScene);
 
+  document.getElementById('btnDeleteScene').addEventListener('click', deleteScene);
+
   document.getElementById('btnAddAnchor').addEventListener('click', addAnchor);
 
   document.getElementById('mobScaleSlider').addEventListener('input', e => {
@@ -1253,6 +1256,35 @@ function addScene() {
   opt.textContent = `${id} (${id})`;
   sel.appendChild(opt);
   selectScene(id);
+}
+
+// ============================================================
+// シーン削除
+// ============================================================
+function deleteScene() {
+  const sc = currentScene();
+  if (!sc || !currentSceneId) return;
+  const ids = Object.keys(scenesData.scenes || {});
+  if (ids.length <= 1) {
+    alert('最後のシーンは削除できません（最低1シーン必要です）');
+    return;
+  }
+  const label = sc.label || currentSceneId;
+  const ok = confirm(
+    `シーン「${label} (${currentSceneId})」を削除しますか？\n\n` +
+    '※ 台本でこのシーンを使っているターンがあると、プレビュー/書き出しが壊れます。\n' +
+    '※ 「保存」を押すまでファイルには反映されません。'
+  );
+  if (!ok) return;
+  const deletedId = currentSceneId;
+  delete scenesData.scenes[deletedId];
+  currentSceneId = null;
+  populateSceneSelect();
+  const nextId = sortedSceneIds()[0];
+  if (nextId) selectScene(nextId);
+  const statusEl = document.getElementById('statusMsg');
+  statusEl.className = 'status';
+  statusEl.textContent = `「${deletedId}」を削除しました（保存で確定）`;
 }
 
 // ============================================================
