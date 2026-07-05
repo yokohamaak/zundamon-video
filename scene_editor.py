@@ -176,6 +176,9 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
             body = f.read()
         self.send_response(200)
         self.send_header("Content-Type", ct)
+        # 同名ファイル上書き(モブ画像等)でURLが変わらないため、キャッシュ禁止にしないと
+        # 差し替え後も古い画像が表示され続ける。
+        self.send_header("Cache-Control", "no-store, must-revalidate")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

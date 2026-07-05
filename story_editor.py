@@ -822,6 +822,9 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             body = f.read()
         self.send_response(200)
         self.send_header("Content-Type", ct)
+        # 同名ファイル上書き(モブ画像等)でURLが変わらないため、キャッシュ禁止にしないと
+        # 差し替え後も古い画像が表示され続ける。
+        self.send_header("Cache-Control", "no-store, must-revalidate")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -897,7 +900,9 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
         self.send_response(206 if is_partial else 200)
         self.send_header("Content-Type", content_type)
         self.send_header("Accept-Ranges", "bytes")
-        if no_cache:
+        # 画像は常にキャッシュ禁止。モブ画像等は同名ファイル上書きでURLが変わらないため、
+        # キャッシュされると「アップロード→保存後に古い画像へ戻って見える」バグになる。
+        if no_cache or content_type.startswith("image/"):
             self.send_header("Cache-Control", "no-store, must-revalidate")
         self.send_header("Content-Length", str(len(body)))
         if is_partial:
