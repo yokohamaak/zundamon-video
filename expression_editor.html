@@ -734,6 +734,50 @@ function buildSlotPanel() {
     section.appendChild(grid);
     panel.appendChild(section);
   }
+
+  // ── 聞き役時の表情（holdAs・引き継ぎ先） ──
+  // 話し終えて聞き役に回ったとき、この表情の代わりに表示する表情を指定できる。
+  {
+    const section = document.createElement("div");
+    section.className = "slot-section";
+    const title = document.createElement("div");
+    title.className = "slot-title";
+    title.textContent = "聞き役時の表情（引き継ぎ先）";
+    section.appendChild(title);
+
+    const help = document.createElement("div");
+    help.style.cssText = "font-size:11px;color:var(--text2);margin:4px 0 6px;line-height:1.5";
+    help.textContent = "この表情で話し終えて聞き役に回ったときに表示する表情。既定は surprise/panic→normal、他はそのまま保持。ZunMeetの非話者タイルにも効く。";
+    section.appendChild(help);
+
+    const sel = document.createElement("select");
+    sel.style.cssText = "width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:5px 8px;font-size:13px";
+    const defOpt = document.createElement("option");
+    defOpt.value = "";
+    defOpt.textContent = (currentExpr === "surprise" || currentExpr === "panic")
+      ? "(既定: normal に戻す)"
+      : "(既定: そのまま保持)";
+    sel.appendChild(defOpt);
+    for (const ex of expressionList) {
+      const o = document.createElement("option");
+      o.value = ex;
+      o.textContent = ex + (ex === currentExpr ? "（そのまま保持）" : "");
+      sel.appendChild(o);
+    }
+    sel.value = cfg.holdAs || "";
+    sel.addEventListener("change", () => {
+      if (!expressions[currentChar]) expressions[currentChar] = {};
+      if (!expressions[currentChar][currentExpr]) expressions[currentChar][currentExpr] = {};
+      if (sel.value) {
+        expressions[currentChar][currentExpr].holdAs = sel.value;
+      } else {
+        delete expressions[currentChar][currentExpr].holdAs;
+      }
+      markDirty();
+    });
+    section.appendChild(sel);
+    panel.appendChild(section);
+  }
 }
 
 // ============================================================

@@ -2409,6 +2409,18 @@ function lastExpressionOf(
   return last;
 }
 
+// 聞き役(非話者)になったときに表示する表情キー。
+// expressions.json の holdAs(表情ごとの引き継ぎ先・表情エディタで設定)を優先し、
+// 未設定なら従来既定＝surprise/panic は一瞬の反応なので normal、他はそのまま保持。
+function holdExpressionKey(
+  exprKey: string,
+  charExprs: Record<string, ExpressionCfg> | undefined
+): string {
+  const holdAs = charExprs?.[exprKey]?.holdAs;
+  if (holdAs) return holdAs;
+  return exprKey === "surprise" || exprKey === "panic" ? "normal" : exprKey;
+}
+
 function canContinueBubble(prevTurn: StoryTurn | null, activeTurn: StoryTurn): boolean {
   return !!(
     prevTurn &&
@@ -3124,15 +3136,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         : baseExpressionCfg;
 
     // 非話者(聞き役)の表情。story.idleFace==="hold" のとき「現時刻以前で自分が最後に
-    // 話したターンの表情」を保持する（surprise/panic は一瞬の反応なので normal へ）。
+    // 話したターンの表情」を保持する。引き継ぎ先は表情ごとの holdAs 設定
+    // (無ければ surprise/panic→normal、他はそのまま)で決まる。
     // 既定(normal/未指定)は常に normal(真顔)。
     let idleExprKey = "normal";
     if (story.idleFace === "hold") {
-      for (const tn of script) {
-        if (tn.start > t) break;
-        if (!isNarrationTurn(tn) && tn.speaker === charId && tn.expression) idleExprKey = tn.expression;
-      }
-      if (idleExprKey === "surprise" || idleExprKey === "panic") idleExprKey = "normal";
+      idleExprKey = lastExpressionOf(script, charId, t) ?? "normal";
+      idleExprKey = holdExpressionKey(idleExprKey, charExprs);
     }
     const idleCfg = charExprs?.[idleExprKey] ?? charExprs?.["normal"] ?? null;
     const idleEmotion = EXPRESSION_TO_EMOTION[idleExprKey] ?? EXPRESSION_TO_EMOTION["normal"];
@@ -3438,12 +3448,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       const cdef = CHARACTERS[speaker];
       // 話者は現在ターンの表情/ポーズ/リップシンク。表情未指定・非話者とも
       // 「自分が最後に話したときの表情」を引き継ぐ（メイン画面の会話と同じ挙動）。
-      const exprKey =
-        (isSpeaking ? active.expression : undefined) ??
-        lastExpressionOf(script, speaker, t) ??
-        "normal";
-      const emotion = EXPRESSION_TO_EMOTION[exprKey] ?? EXPRESSION_TO_EMOTION["normal"];
+      // 非話者は表情ごとの holdAs(引き継ぎ先)設定を適用する。
       const charExprs = expressions?.[cdef.avatar];
+      const lastExpr = lastExpressionOf(script, speaker, t) ?? "normal";
+      const exprKey = isSpeaking
+        ? active.expression ?? lastExpr
+        : holdExpressionKey(lastExpr, charExprs);
+      const emotion = EXPRESSION_TO_EMOTION[exprKey] ?? EXPRESSION_TO_EMOTION["normal"];
       const expressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
       const poseCfg = isSpeaking && active.pose ? poses?.[cdef.avatar]?.[active.pose] ?? null : null;
       const k = dispW / AVATAR_BOX;
