@@ -240,12 +240,15 @@ export type SceneDef = {
   camera?: "static" | "slow-zoom";
   soloZoom?: boolean;
   soloZoomScale?: number;
-  soloZoomCy?: number;
-  // 話者プッシュイン(emphasis)の調整。focusZoom=現在倍率への加算量、focusCy=縦の注視点。
-  // 1人時ズームと重なると soloZoomScale+focusZoom まで寄るため、顔がはみ出るシーンでは
-  // focusZoom を下げる/focusCy を下げる(上に寄せる)ことで回避する。
+  soloZoomCy?: number; // 廃止(旧・縦の絶対注視点)。soloZoomDy に置き換え。読み込みはしない。
+  // ズームの縦注視点は「キャラの顔位置の逆算値(faceCyOf)＋オフセット」で決まる。
+  // *Dy はその顔位置からのずらし量（正=下に振って胴まで見せる / 0=顔ど真ん中）。
+  soloZoomDy?: number; // 1人時ズーム 顔からの縦オフセット（既定 0.08）
+  // 話者プッシュイン(emphasis)の調整。focusZoom=現在倍率への加算量。
+  // 1人時ズームと重なると soloZoomScale+focusZoom まで寄る。
   focusZoom?: number;
-  focusCy?: number;
+  focusCy?: number; // 廃止(旧・縦の絶対注視点)。focusDy に置き換え。読み込みはしない。
+  focusDy?: number; // プッシュイン 顔からの縦オフセット（既定 0.04）
   scale?: number; // 立ち絵の拡大率（既定 1.9）
   anchors: Record<string, Anchor>;
   // どのキャラをどのアンカーに置くか（charId→アンカー名）。
@@ -2487,6 +2490,28 @@ function bubbleMetrics(text: string, stacked: boolean, maxWidth: number) {
 // 仮想カメラの目標（s=ズーム / cx,cy=注視点・ステージ正規化座標）。
 type Cam = { s: number; cx: number; cy: number };
 
+// 立ち絵ボックス内での「顔の中心」のおおよその高さ比（上端=0）。
+// ズームの縦注視点はシーン固定値ではなく、この比率から実際の描画位置を逆算して顔を狙う。
+const FACE_RATIO = { bust: 0.3, full: 0.12 } as const;
+
+// キャラの顔中心のy（ステージ正規化座標）。
+// 立ち絵はボックス中心=アンカーに translate(-50%,-50%) で置かれ avScale 倍されるため、
+// 顔y = アンカーy − (0.5 − 顔比率) × ボックス高 × avScale ÷ ステージ高(1080)。
+// figure(bust/full)・キャラ別の全身キャンバス比・シーンのscaleを全て織り込む＝WYSIWYG。
+function faceCyOf(
+  charId: string,
+  anchorOf: Record<string, string>,
+  sceneDef: SceneDef
+): number {
+  const anchor = sceneDef.anchors[anchorOf[charId] ?? "center"] ?? { x: 0.5, y: 0.5 };
+  const isFull = (sceneDef.figure ?? "bust") === "full";
+  const avatar = CHARACTERS[charId]?.avatar ?? charId;
+  const boxH = isFull ? fullBoxSize(avatar).h : AVATAR_BOX;
+  const avScale = sceneDef.scale ?? 1.9;
+  const ratio = isFull ? FACE_RATIO.full : FACE_RATIO.bust;
+  return clamp(anchor.y - (0.5 - ratio) * ((boxH * avScale) / 1080), 0, 1);
+}
+
 function targetCam(
   chars: string[],
   anchorOf: Record<string, string>,
@@ -2499,10 +2524,14 @@ function targetCam(
       return { s: 1.0, cx: chars[0] ? ax(chars[0]) : 0.5, cy: 0.5 };
     }
     const soloZoomScale = sceneDef.soloZoomScale ?? 1.4;
-    const soloZoomCy = sceneDef.soloZoomCy ?? 0.58;
-    // 単独：その人に寄る（背景もアップ）。cy を下げ気味にして胴まで見せ、
-    // 顔を画面上側に置く＝足元の吹き出しスペースを確保する。
-    return { s: soloZoomScale, cx: chars[0] ? ax(chars[0]) : 0.5, cy: soloZoomCy };
+    // 単独：その人の「顔」に寄る。縦は顔位置の逆算値＋オフセット(soloZoomDy)。
+    // オフセットを正にすると注視点が下がる＝顔が画面上側に来て胴まで見え、
+    // 足元の吹き出しスペースが確保される。
+    const dy = sceneDef.soloZoomDy ?? 0.08;
+    const cy = chars[0]
+      ? clamp(faceCyOf(chars[0], anchorOf, sceneDef) + dy, 0, 1)
+      : 0.5;
+    return { s: soloZoomScale, cx: chars[0] ? ax(chars[0]) : 0.5, cy };
   }
   // 複数：全員が収まる引き。
   const xs = chars.map(ax);
@@ -2829,7 +2858,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const focusTf = toTf({
       s: tf.s + (sceneDef.focusZoom ?? 0.3),
       cx: speakerAnchor.x,
-      cy: sceneDef.focusCy ?? 0.46,
+      // 縦は話者の顔位置＋オフセット(focusDy)。プッシュインは寄りが強いので既定は顔寄りめ。
+      cy: clamp(faceCyOf(active.speaker, anchorOf, sceneDef) + (sceneDef.focusDy ?? 0.04), 0, 1),
     });
     // emphasis を立てた時点から 0.5s でイーズインし、その後は話者交代まで維持する。
     const focusK = easeInOutCubic(clamp((t - focusStart) / 0.5, 0, 1));

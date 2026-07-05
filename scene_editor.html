@@ -388,11 +388,12 @@
         </div>
       </div>
       <div class="field-row">
-        <label class="field-label">1人時の縦位置</label>
+        <label class="field-label">1人時ズーム 顔からの縦オフセット</label>
         <div class="slider-row">
-          <input type="range" id="soloZoomCySlider" min="0.45" max="0.7" step="0.01" value="0.58">
-          <span class="slider-val" id="soloZoomCyVal">0.58</span>
+          <input type="range" id="soloZoomDySlider" min="-0.10" max="0.30" step="0.01" value="0.08">
+          <span class="slider-val" id="soloZoomDyVal">0.08</span>
         </div>
+        <div class="slider-hint">ズームの縦は顔位置を自動計算して狙う。0=顔ど真ん中、＋で下に振って胴まで見せる（顔は画面上側に寄る）。</div>
       </div>
       <div class="field-row">
         <label class="field-label">話者プッシュインの強さ（emphasis時の加算倍率）</label>
@@ -402,12 +403,12 @@
         </div>
       </div>
       <div class="field-row">
-        <label class="field-label">話者プッシュインの縦位置</label>
+        <label class="field-label">プッシュイン 顔からの縦オフセット</label>
         <div class="slider-row">
-          <input type="range" id="focusCySlider" min="0.3" max="0.7" step="0.01" value="0.46">
-          <span class="slider-val" id="focusCyVal">0.46</span>
+          <input type="range" id="focusDySlider" min="-0.10" max="0.30" step="0.01" value="0.04">
+          <span class="slider-val" id="focusDyVal">0.04</span>
         </div>
-        <div class="slider-hint">小さい値ほど上(顔寄り)を映す。1人時ズームと重なると「1人時ズーム倍率＋強さ」まで寄るため、顔がはみ出る場合は強さか縦位置を下げる。</div>
+        <div class="slider-hint">プッシュインも話者の顔位置を自動で狙う。1人時ズームと重なると「1人時ズーム倍率＋強さ」まで寄る。</div>
       </div>
       <div class="field-row">
         <label class="toggle-row">
@@ -649,20 +650,38 @@ function setupCameraSettingEvents() {
 // ============================================================
 // 1人時ズームの仮想カメラ（StoryVideo.targetCam / toTf と同式＝WYSIWYG）
 // ============================================================
+// 立ち絵ボックス内での「顔の中心」のおおよその高さ比（StoryVideo.FACE_RATIO と同値）。
+const FACE_RATIO = { bust: 0.30, full: 0.12 };
+
+// キャラの顔中心のy（ステージ正規化座標）。StoryVideo.faceCyOf と同式＝WYSIWYG。
+// 顔y = アンカーy − (0.5 − 顔比率) × ボックス高 × 立ち絵scale ÷ 1080
+function faceCyOf(charId, sc) {
+  const anchorName = (sc.cast || {})[charId];
+  const anchor = (anchorName && sc.anchors?.[anchorName]) ? sc.anchors[anchorName] : { x: 0.5, y: 0.5 };
+  const isFull = (sc.figure ?? 'bust') === 'full';
+  const boxH = isFull ? fullBoxSize(charId).h : BUST_H;
+  const avScale = sc.scale != null ? sc.scale : 1.9;
+  const ratio = isFull ? FACE_RATIO.full : FACE_RATIO.bust;
+  const cy = anchor.y - (0.5 - ratio) * (boxH * avScale) / STAGE_H;
+  return Math.max(0, Math.min(1, cy));
+}
+
 function soloCamTf() {
   const sc = currentScene();
   if (!soloPreview || !sc) return { tx: 0, ty: 0, s: 1 };
   const focusOn = document.getElementById('focusPreviewToggle').checked;
   const soloOn = sc.soloZoom !== false; // OFFシーンは1人時ズームなし
+  const ch = document.getElementById('soloPreviewChar').value;
+  const face = faceCyOf(ch, sc);
   let s = soloOn ? (sc.soloZoomScale != null ? sc.soloZoomScale : 1.4) : 1.0;
-  let cy = soloOn ? (sc.soloZoomCy != null ? sc.soloZoomCy : 0.58) : 0.5;
+  let cy = soloOn ? face + (sc.soloZoomDy != null ? sc.soloZoomDy : 0.08) : 0.5;
   if (focusOn) {
     // 話者プッシュイン(emphasis)を重ねた状態＝StoryVideoのfocusTfと同式
     s = s + (sc.focusZoom != null ? sc.focusZoom : 0.3);
-    cy = sc.focusCy != null ? sc.focusCy : 0.46;
+    cy = face + (sc.focusDy != null ? sc.focusDy : 0.04);
   }
   if (s <= 1.0) return { tx: 0, ty: 0, s: 1 };
-  const ch = document.getElementById('soloPreviewChar').value;
+  cy = Math.max(0, Math.min(1, cy));
   const anchorName = (sc.cast || {})[ch];
   const cx = (anchorName && sc.anchors?.[anchorName]) ? sc.anchors[anchorName].x : 0.5;
   const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -721,15 +740,15 @@ function selectScene(id) {
   const soloZoomScale = sc.soloZoomScale != null ? sc.soloZoomScale : 1.4;
   document.getElementById('soloZoomScaleSlider').value = soloZoomScale;
   document.getElementById('soloZoomScaleVal').textContent = soloZoomScale.toFixed(2);
-  const soloZoomCy = sc.soloZoomCy != null ? sc.soloZoomCy : 0.58;
-  document.getElementById('soloZoomCySlider').value = soloZoomCy;
-  document.getElementById('soloZoomCyVal').textContent = soloZoomCy.toFixed(2);
+  const soloZoomDy = sc.soloZoomDy != null ? sc.soloZoomDy : 0.08;
+  document.getElementById('soloZoomDySlider').value = soloZoomDy;
+  document.getElementById('soloZoomDyVal').textContent = soloZoomDy.toFixed(2);
   const focusZoom = sc.focusZoom != null ? sc.focusZoom : 0.3;
   document.getElementById('focusZoomSlider').value = focusZoom;
   document.getElementById('focusZoomVal').textContent = focusZoom.toFixed(2);
-  const focusCy = sc.focusCy != null ? sc.focusCy : 0.46;
-  document.getElementById('focusCySlider').value = focusCy;
-  document.getElementById('focusCyVal').textContent = focusCy.toFixed(2);
+  const focusDy = sc.focusDy != null ? sc.focusDy : 0.04;
+  document.getElementById('focusDySlider').value = focusDy;
+  document.getElementById('focusDyVal').textContent = focusDy.toFixed(2);
   const scale = sc.scale != null ? sc.scale : 1.9;
   document.getElementById('scaleSlider').value = scale;
   document.getElementById('scaleVal').textContent = scale.toFixed(2);
@@ -1230,7 +1249,7 @@ function setupEvents() {
     const v = parseFloat(e.target.value);
     document.getElementById('scaleVal').textContent = v.toFixed(2);
     const sc = currentScene();
-    if (sc) { sc.scale = v; renderPreview(); }
+    if (sc) { sc.scale = v; applyStageTransform(); renderPreview(); } // 顔位置はscale依存のためカメラも更新
   });
 
   document.getElementById('bgBlurSlider').addEventListener('input', e => {
@@ -1287,11 +1306,11 @@ function setupEvents() {
     if (sc) { sc.soloZoomScale = v; applyStageTransform(); }
   });
 
-  document.getElementById('soloZoomCySlider').addEventListener('input', e => {
+  document.getElementById('soloZoomDySlider').addEventListener('input', e => {
     const v = parseFloat(e.target.value);
-    document.getElementById('soloZoomCyVal').textContent = v.toFixed(2);
+    document.getElementById('soloZoomDyVal').textContent = v.toFixed(2);
     const sc = currentScene();
-    if (sc) { sc.soloZoomCy = v; applyStageTransform(); }
+    if (sc) { sc.soloZoomDy = v; applyStageTransform(); }
   });
 
   document.getElementById('soloPreviewToggle').addEventListener('change', e => {
@@ -1311,11 +1330,11 @@ function setupEvents() {
     if (sc) { sc.focusZoom = v; applyStageTransform(); }
   });
 
-  document.getElementById('focusCySlider').addEventListener('input', e => {
+  document.getElementById('focusDySlider').addEventListener('input', e => {
     const v = parseFloat(e.target.value);
-    document.getElementById('focusCyVal').textContent = v.toFixed(2);
+    document.getElementById('focusDyVal').textContent = v.toFixed(2);
     const sc = currentScene();
-    if (sc) { sc.focusCy = v; applyStageTransform(); }
+    if (sc) { sc.focusDy = v; applyStageTransform(); }
   });
 
   document.getElementById('btnSave').addEventListener('click', saveScenes);
@@ -1415,7 +1434,7 @@ function addScene() {
     camera: 'static',
     soloZoom: true,
     soloZoomScale: 1.4,
-    soloZoomCy: 0.58,
+    soloZoomDy: 0.08,
     scale: 1.1,
     bgBlur: 8,
     cast: {},
