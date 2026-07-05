@@ -395,11 +395,30 @@
         </div>
       </div>
       <div class="field-row">
+        <label class="field-label">話者プッシュインの強さ（emphasis時の加算倍率）</label>
+        <div class="slider-row">
+          <input type="range" id="focusZoomSlider" min="0" max="0.6" step="0.05" value="0.3">
+          <span class="slider-val" id="focusZoomVal">0.30</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">話者プッシュインの縦位置</label>
+        <div class="slider-row">
+          <input type="range" id="focusCySlider" min="0.3" max="0.7" step="0.01" value="0.46">
+          <span class="slider-val" id="focusCyVal">0.46</span>
+        </div>
+        <div class="slider-hint">小さい値ほど上(顔寄り)を映す。1人時ズームと重なると「1人時ズーム倍率＋強さ」まで寄るため、顔がはみ出る場合は強さか縦位置を下げる。</div>
+      </div>
+      <div class="field-row">
         <label class="toggle-row">
           <input type="checkbox" id="soloPreviewToggle">
           <span>1人時ズームをプレビュー</span>
         </label>
         <select class="field-select" id="soloPreviewChar" style="display:none;margin-top:4px"></select>
+        <label class="toggle-row" style="margin-top:6px">
+          <input type="checkbox" id="focusPreviewToggle">
+          <span>＋話者プッシュインも重ねる</span>
+        </label>
       </div>
     </div>
 
@@ -569,9 +588,16 @@ function resizePreview() {
 function soloCamTf() {
   const sc = currentScene();
   if (!soloPreview || !sc) return { tx: 0, ty: 0, s: 1 };
-  if (sc.soloZoom === false) return { tx: 0, ty: 0, s: 1 }; // OFFシーンは寄らない
-  const s = sc.soloZoomScale != null ? sc.soloZoomScale : 1.4;
-  const cy = sc.soloZoomCy != null ? sc.soloZoomCy : 0.58;
+  const focusOn = document.getElementById('focusPreviewToggle').checked;
+  const soloOn = sc.soloZoom !== false; // OFFシーンは1人時ズームなし
+  let s = soloOn ? (sc.soloZoomScale != null ? sc.soloZoomScale : 1.4) : 1.0;
+  let cy = soloOn ? (sc.soloZoomCy != null ? sc.soloZoomCy : 0.58) : 0.5;
+  if (focusOn) {
+    // 話者プッシュイン(emphasis)を重ねた状態＝StoryVideoのfocusTfと同式
+    s = s + (sc.focusZoom != null ? sc.focusZoom : 0.3);
+    cy = sc.focusCy != null ? sc.focusCy : 0.46;
+  }
+  if (s <= 1.0) return { tx: 0, ty: 0, s: 1 };
   const ch = document.getElementById('soloPreviewChar').value;
   const anchorName = (sc.cast || {})[ch];
   const cx = (anchorName && sc.anchors?.[anchorName]) ? sc.anchors[anchorName].x : 0.5;
@@ -634,6 +660,12 @@ function selectScene(id) {
   const soloZoomCy = sc.soloZoomCy != null ? sc.soloZoomCy : 0.58;
   document.getElementById('soloZoomCySlider').value = soloZoomCy;
   document.getElementById('soloZoomCyVal').textContent = soloZoomCy.toFixed(2);
+  const focusZoom = sc.focusZoom != null ? sc.focusZoom : 0.3;
+  document.getElementById('focusZoomSlider').value = focusZoom;
+  document.getElementById('focusZoomVal').textContent = focusZoom.toFixed(2);
+  const focusCy = sc.focusCy != null ? sc.focusCy : 0.46;
+  document.getElementById('focusCySlider').value = focusCy;
+  document.getElementById('focusCyVal').textContent = focusCy.toFixed(2);
   const scale = sc.scale != null ? sc.scale : 1.9;
   document.getElementById('scaleSlider').value = scale;
   document.getElementById('scaleVal').textContent = scale.toFixed(2);
@@ -1204,6 +1236,22 @@ function setupEvents() {
   });
 
   document.getElementById('soloPreviewChar').addEventListener('change', applyStageTransform);
+
+  document.getElementById('focusPreviewToggle').addEventListener('change', applyStageTransform);
+
+  document.getElementById('focusZoomSlider').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    document.getElementById('focusZoomVal').textContent = v.toFixed(2);
+    const sc = currentScene();
+    if (sc) { sc.focusZoom = v; applyStageTransform(); }
+  });
+
+  document.getElementById('focusCySlider').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    document.getElementById('focusCyVal').textContent = v.toFixed(2);
+    const sc = currentScene();
+    if (sc) { sc.focusCy = v; applyStageTransform(); }
+  });
 
   document.getElementById('btnSave').addEventListener('click', saveScenes);
 

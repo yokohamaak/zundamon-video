@@ -241,6 +241,11 @@ export type SceneDef = {
   soloZoom?: boolean;
   soloZoomScale?: number;
   soloZoomCy?: number;
+  // 話者プッシュイン(emphasis)の調整。focusZoom=現在倍率への加算量、focusCy=縦の注視点。
+  // 1人時ズームと重なると soloZoomScale+focusZoom まで寄るため、顔がはみ出るシーンでは
+  // focusZoom を下げる/focusCy を下げる(上に寄せる)ことで回避する。
+  focusZoom?: number;
+  focusCy?: number;
   scale?: number; // 立ち絵の拡大率（既定 1.9）
   anchors: Record<string, Anchor>;
   // どのキャラをどのアンカーに置くか（charId→アンカー名）。
@@ -2811,7 +2816,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   if (focusStart != null) {
     const anchorName = anchorOf[active.speaker] ?? "center";
     const speakerAnchor = sceneDef.anchors[anchorName] ?? { x: 0.5 };
-    const focusTf = toTf({ s: tf.s + 0.3, cx: speakerAnchor.x, cy: 0.46 });
+    const focusTf = toTf({
+      s: tf.s + (sceneDef.focusZoom ?? 0.3),
+      cx: speakerAnchor.x,
+      cy: sceneDef.focusCy ?? 0.46,
+    });
     // emphasis を立てた時点から 0.5s でイーズインし、その後は話者交代まで維持する。
     const focusK = easeInOutCubic(clamp((t - focusStart) / 0.5, 0, 1));
     focusBubbleK = focusK;
