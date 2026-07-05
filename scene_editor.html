@@ -394,6 +394,13 @@
           <span class="slider-val" id="soloZoomCyVal">0.58</span>
         </div>
       </div>
+      <div class="field-row">
+        <label class="toggle-row">
+          <input type="checkbox" id="soloPreviewToggle">
+          <span>1人時ズームをプレビュー</span>
+        </label>
+        <select class="field-select" id="soloPreviewChar" style="display:none;margin-top:4px"></select>
+      </div>
     </div>
 
     <div class="side-section">
@@ -485,6 +492,7 @@ let draggingMob = null;      // モブD&D: { mobId, el }
 let selectedMobId = null;    // スケールスライダー対象モブID
 let showFront = true;
 let manifestData = null;     // avatars/manifest.json キャッシュ
+let soloPreview = false;     // 1人時ズームのプレビュー表示中か
 
 function compareUiText(a, b) {
   return String(a || '').localeCompare(String(b || ''), 'ja', { numeric: true, sensitivity: 'base' });
@@ -551,8 +559,49 @@ function resizePreview() {
   const ph = Math.round(STAGE_H * stageScale);
   wrap.style.width = pw + 'px';
   wrap.style.height = ph + 'px';
-  stage.style.transform = `scale(${stageScale})`;
+  applyStageTransform();
   renderPreview();
+}
+
+// ============================================================
+// 1人時ズームの仮想カメラ（StoryVideo.targetCam / toTf と同式＝WYSIWYG）
+// ============================================================
+function soloCamTf() {
+  const sc = currentScene();
+  if (!soloPreview || !sc) return { tx: 0, ty: 0, s: 1 };
+  if (sc.soloZoom === false) return { tx: 0, ty: 0, s: 1 }; // OFFシーンは寄らない
+  const s = sc.soloZoomScale != null ? sc.soloZoomScale : 1.4;
+  const cy = sc.soloZoomCy != null ? sc.soloZoomCy : 0.58;
+  const ch = document.getElementById('soloPreviewChar').value;
+  const anchorName = (sc.cast || {})[ch];
+  const cx = (anchorName && sc.anchors?.[anchorName]) ? sc.anchors[anchorName].x : 0.5;
+  const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  return {
+    tx: clampN(STAGE_W / 2 - cx * STAGE_W * s, STAGE_W * (1 - s), 0),
+    ty: clampN(STAGE_H / 2 - cy * STAGE_H * s, STAGE_H * (1 - s), 0),
+    s,
+  };
+}
+
+function applyStageTransform() {
+  const stage = document.getElementById('stage');
+  const tf = soloCamTf();
+  stage.style.transform = `scale(${stageScale}) translate(${tf.tx}px, ${tf.ty}px) scale(${tf.s})`;
+}
+
+function populateSoloPreviewChar() {
+  const sel = document.getElementById('soloPreviewChar');
+  const sc = currentScene();
+  const prev = sel.value;
+  sel.innerHTML = '';
+  const cast = sc?.cast || {};
+  for (const ch of sortedStrings(Object.keys(cast))) {
+    const opt = document.createElement('option');
+    opt.value = ch;
+    opt.textContent = `${ch} に寄る (${cast[ch]})`;
+    sel.appendChild(opt);
+  }
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
 }
 
 // ============================================================
@@ -599,6 +648,8 @@ function selectScene(id) {
   buildCastRows();
   buildAnchorList();
   buildMobList();
+  populateSoloPreviewChar();
+  applyStageTransform();
   renderPreview();
 }
 
@@ -1016,8 +1067,10 @@ function setupDrag() {
   window.addEventListener('mousemove', e => {
     const wrap = document.getElementById('previewWrap');
     const rect = wrap.getBoundingClientRect();
-    const sx = (e.clientX - rect.left) / stageScale;
-    const sy = (e.clientY - rect.top) / stageScale;
+    // 1人時ズームプレビュー中は仮想カメラの逆変換でステージ座標へ戻す
+    const tf = soloCamTf();
+    const sx = ((e.clientX - rect.left) / stageScale - tf.tx) / tf.s;
+    const sy = ((e.clientY - rect.top) / stageScale - tf.ty) / tf.s;
 
     if (draggingMob) {
       // モブのx,y を更新（bottom-center 基準なのでそのままステージ正規化座標）
@@ -1049,6 +1102,7 @@ function setupDrag() {
       sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
       sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
       updateAnchorList(dragging.name, sc.anchors[dragging.name].x, sc.anchors[dragging.name].y);
+      applyStageTransform(); // ズームプレビュー中は注視点(アンカーx)の変化にカメラも追従
       renderPreview();
     }
   });
@@ -1126,21 +1180,30 @@ function setupEvents() {
     const sc = currentScene();
     if (!sc) return;
     sc.soloZoom = e.target.value !== '0';
+    applyStageTransform();
   });
 
   document.getElementById('soloZoomScaleSlider').addEventListener('input', e => {
     const v = parseFloat(e.target.value);
     document.getElementById('soloZoomScaleVal').textContent = v.toFixed(2);
     const sc = currentScene();
-    if (sc) sc.soloZoomScale = v;
+    if (sc) { sc.soloZoomScale = v; applyStageTransform(); }
   });
 
   document.getElementById('soloZoomCySlider').addEventListener('input', e => {
     const v = parseFloat(e.target.value);
     document.getElementById('soloZoomCyVal').textContent = v.toFixed(2);
     const sc = currentScene();
-    if (sc) sc.soloZoomCy = v;
+    if (sc) { sc.soloZoomCy = v; applyStageTransform(); }
   });
+
+  document.getElementById('soloPreviewToggle').addEventListener('change', e => {
+    soloPreview = e.target.checked;
+    document.getElementById('soloPreviewChar').style.display = soloPreview ? '' : 'none';
+    applyStageTransform();
+  });
+
+  document.getElementById('soloPreviewChar').addEventListener('change', applyStageTransform);
 
   document.getElementById('btnSave').addEventListener('click', saveScenes);
 
