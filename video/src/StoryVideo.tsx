@@ -261,7 +261,16 @@ export type SceneDef = {
   mobs?: Record<string, { x: number; y: number; scale?: number; hidden?: boolean }>;
 };
 
-export type SceneLibrary = { scenes: Record<string, SceneDef> };
+// カメラ共通設定（全シーン共通・story-scenes.json トップレベルの camera）。
+// cameraEffect(pull-out/pan/tilt) と slow-zoom の量を調整する。未設定は従来の固定値。
+export type CameraSettings = {
+  pullOut?: number; // pull-out で引く倍率（既定 0.12）
+  panMax?: number; // pan-left/right の最大移動量（画面幅比・既定 0.08）
+  tiltDeg?: number; // tilt-left/right の回転角（度・既定 2.4）
+  slowZoomDrift?: number; // slow-zoom シーンの区間ドリフト量（既定 0.05 = 1.00→1.05倍）
+};
+
+export type SceneLibrary = { scenes: Record<string, SceneDef>; camera?: CameraSettings };
 
 export type CharDef = {
   avatar: string; // パーツ立ち絵フォルダ名
@@ -2793,11 +2802,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // ★ドリフトはステージ全体に毎フレーム違う scale を掛ける＝全画面再ラスタライズが毎フレーム走る。
   //   Studioプレビューだとこれが重く再生が詰まる（音切れ/リップシンク停止の主因）。
   //   最終renderでだけ効かせ、プレビューでは無効にして軽くする。
+  const camCfg = scenes.camera || {};
   let driftS = 1.0;
   if (sceneDef.camera !== "static" && getRemotionEnvironment().isRendering) {
     const segDur = Math.max(seg.end - seg.start, 0.001);
     const p = clamp((t - seg.start) / segDur, 0, 1);
-    driftS = 1 + 0.05 * p;
+    driftS = 1 + (camCfg.slowZoomDrift ?? 0.05) * p;
   }
 
   // 人数変化の寄り↔引き：キーフレーム(Tprev/Tcur)それぞれをクランプ済み変換にしてから補間。
@@ -2840,7 +2850,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const baseTf = tf;
     if (cameraEffectRange.effect === "pull-out") {
       const effectCam = toTf({
-        s: Math.max(1, baseTf.s - 0.12),
+        s: Math.max(1, baseTf.s - (camCfg.pullOut ?? 0.12)),
         cx: Tcur.cx,
         cy: Tcur.cy,
       });
@@ -2852,7 +2862,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     } else if (cameraEffectRange.effect === "pan-left" || cameraEffectRange.effect === "pan-right") {
       const dir = cameraEffectRange.effect === "pan-left" ? -1 : 1;
       const panRoom = Math.max(0, -width * (1 - baseTf.s));
-      const panAmount = Math.min(panRoom * 0.22, width * 0.08) * dir;
+      const panAmount = Math.min(panRoom * 0.22, width * (camCfg.panMax ?? 0.08)) * dir;
       const targetTx = clamp(baseTf.tx + panAmount, width * (1 - baseTf.s), 0);
       tf = {
         tx: lerp(baseTf.tx, targetTx, effectK),
@@ -2861,7 +2871,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       };
     } else if (cameraEffectRange.effect === "tilt-left" || cameraEffectRange.effect === "tilt-right") {
       const dir = cameraEffectRange.effect === "tilt-left" ? -1 : 1;
-      stageRotateDeg = 2.4 * dir * effectK;
+      stageRotateDeg = (camCfg.tiltDeg ?? 2.4) * dir * effectK;
       const targetS = Math.max(baseTf.s, 1.04);
       tf = {
         tx: baseTf.tx,

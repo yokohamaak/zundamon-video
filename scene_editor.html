@@ -423,6 +423,39 @@
     </div>
 
     <div class="side-section">
+      <div class="section-title">カメラ共通設定（全シーン共通）</div>
+      <div class="field-row">
+        <label class="field-label">pull-out の引き量</label>
+        <div class="slider-row">
+          <input type="range" id="camPullOutSlider" min="0" max="0.3" step="0.01" value="0.12">
+          <span class="slider-val" id="camPullOutVal">0.12</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">pan の最大移動量（画面幅比）</label>
+        <div class="slider-row">
+          <input type="range" id="camPanMaxSlider" min="0" max="0.15" step="0.01" value="0.08">
+          <span class="slider-val" id="camPanMaxVal">0.08</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">tilt の回転角（度）</label>
+        <div class="slider-row">
+          <input type="range" id="camTiltDegSlider" min="0" max="6" step="0.1" value="2.4">
+          <span class="slider-val" id="camTiltDegVal">2.4</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">slow-zoom のドリフト量</label>
+        <div class="slider-row">
+          <input type="range" id="camDriftSlider" min="0" max="0.15" step="0.01" value="0.05">
+          <span class="slider-val" id="camDriftVal">0.05</span>
+        </div>
+      </div>
+      <div class="slider-hint">カメラ演出(cameraEffect)とslow-zoomの効き量。全シーン共通で、「保存」で story-scenes.json に書き込まれる。slow-zoomは最終書き出し時のみ有効。</div>
+    </div>
+
+    <div class="side-section">
       <div class="section-title">立ち絵スケール</div>
       <div class="slider-row">
         <input type="range" id="scaleSlider" min="0.8" max="2.5" step="0.05" value="1.9">
@@ -537,6 +570,7 @@ async function init() {
   await Promise.all([fetchScenes(), fetchAssets(), fetchManifest()]);
   populateSceneSelect();
   populateBgSelects();
+  loadCameraSettings();
   setupEvents();
   resizePreview();
   window.addEventListener('resize', resizePreview);
@@ -580,6 +614,36 @@ function resizePreview() {
   wrap.style.height = ph + 'px';
   applyStageTransform();
   renderPreview();
+}
+
+// ============================================================
+// カメラ共通設定（story-scenes.json トップレベル camera・全シーン共通）
+// ============================================================
+const CAMERA_SPECS = [
+  { key: 'pullOut', slider: 'camPullOutSlider', val: 'camPullOutVal', def: 0.12, digits: 2 },
+  { key: 'panMax', slider: 'camPanMaxSlider', val: 'camPanMaxVal', def: 0.08, digits: 2 },
+  { key: 'tiltDeg', slider: 'camTiltDegSlider', val: 'camTiltDegVal', def: 2.4, digits: 1 },
+  { key: 'slowZoomDrift', slider: 'camDriftSlider', val: 'camDriftVal', def: 0.05, digits: 2 },
+];
+
+function loadCameraSettings() {
+  const cam = scenesData.camera || {};
+  for (const spec of CAMERA_SPECS) {
+    const v = cam[spec.key] != null ? cam[spec.key] : spec.def;
+    document.getElementById(spec.slider).value = v;
+    document.getElementById(spec.val).textContent = v.toFixed(spec.digits);
+  }
+}
+
+function setupCameraSettingEvents() {
+  for (const spec of CAMERA_SPECS) {
+    document.getElementById(spec.slider).addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      document.getElementById(spec.val).textContent = v.toFixed(spec.digits);
+      if (!scenesData.camera) scenesData.camera = {};
+      scenesData.camera[spec.key] = v;
+    });
+  }
 }
 
 // ============================================================
@@ -1156,6 +1220,7 @@ function setupDrag() {
 // ============================================================
 function setupEvents() {
   setupDrag();
+  setupCameraSettingEvents();
 
   document.getElementById('sceneSelect').addEventListener('change', e => {
     selectScene(e.target.value);
