@@ -1477,6 +1477,7 @@ let _lastTimelineDrawAt = 0;
 const _TIMELINE_DRAW_INTERVAL_MS = 80; // スマホ負荷対策: 12fps程度で十分
 const GEN_SETTINGS_KEY = "storyEditorGenSettingsV1";
 const EFFECT_SETTING_SPECS = [
+  { group: "entrance", label: "登場退場 速度", key: "duration", min: 0.15, max: 1.2, step: 0.05, defaultValue: 0.5, digits: 2, unit: "秒" },
   { group: "zoomPunch", label: "ズームパンチ 拡大率", key: "scale", min: 1.02, max: 1.4, step: 0.01, defaultValue: 1.14, digits: 2 },
   { group: "zoomPunch", label: "ズームパンチ 時間", key: "duration", min: 0.08, max: 0.5, step: 0.01, defaultValue: 0.18, digits: 2, unit: "秒" },
   { group: "zoomPunch", label: "ズームパンチ 枠の強さ", key: "borderStrength", min: 0, max: 2, step: 0.05, defaultValue: 1, digits: 2 },

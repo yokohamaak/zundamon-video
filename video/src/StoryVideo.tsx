@@ -190,6 +190,8 @@ export type StoryOverlay = {
 };
 
 export type StoryEffectSettings = {
+  // 登場/退場スライドにかける秒数（キャラ・モブ共通）。
+  entrance?: { duration?: number };
   zoomPunch?: { scale?: number; duration?: number; borderStrength?: number };
   quoteFreeze?: { fadeIn?: number; fadeOutStart?: number; fadeOutDuration?: number; backdropOpacity?: number };
   stampRain?: { count?: number; fallDuration?: number; stagger?: number; spread?: number };
@@ -201,6 +203,7 @@ export type StoryEffectSettings = {
 };
 
 type ResolvedEffectSettings = {
+  entrance: { duration: number };
   zoomPunch: { scale: number; duration: number; borderStrength: number };
   quoteFreeze: { fadeIn: number; fadeOutStart: number; fadeOutDuration: number; backdropOpacity: number };
   stampRain: { count: number; fallDuration: number; stagger: number; spread: number };
@@ -588,7 +591,7 @@ function resolveAnchorMapAt(
   return map;
 }
 
-// 手動配置(turn.manualPos)の遷移にかける秒数。SLIDE_DUR/TRANS と同系統の定数。
+// 手動配置(turn.manualPos)の遷移にかける秒数。登場退場のslideDur/カメラのTRANSと同系統の定数。
 const MANUAL_POS_TRANS = 0.6;
 
 type PosWaypoint = { time: number; x: number; y: number };
@@ -743,8 +746,6 @@ function exitDirsFor(seg: Segment, isTarget: (id: string) => boolean): Record<st
   return d;
 }
 
-// スライドイン/アウトにかける秒数。
-const SLIDE_DUR = 0.5;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
@@ -759,6 +760,7 @@ const easeOutBack = (x: number) => {
 
 const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
 const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
+  entrance: { duration: 0.5 },
   zoomPunch: { scale: 1.14, duration: 0.18, borderStrength: 1 },
   quoteFreeze: { fadeIn: 0.14, fadeOutStart: 0.72, fadeOutDuration: 0.18, backdropOpacity: 0.22 },
   stampRain: { count: 8, fallDuration: 0.46, stagger: 0.05, spread: 1 },
@@ -771,6 +773,7 @@ const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
 
 function resolveEffectSettings(settings?: StoryEffectSettings): ResolvedEffectSettings {
   return {
+    entrance: { ...DEFAULT_EFFECT_SETTINGS.entrance, ...(settings?.entrance || {}) },
     zoomPunch: { ...DEFAULT_EFFECT_SETTINGS.zoomPunch, ...(settings?.zoomPunch || {}) },
     quoteFreeze: { ...DEFAULT_EFFECT_SETTINGS.quoteFreeze, ...(settings?.quoteFreeze || {}) },
     stampRain: { ...DEFAULT_EFFECT_SETTINGS.stampRain, ...(settings?.stampRain || {}) },
@@ -786,6 +789,7 @@ function mergeEffectSettings(
 ): StoryEffectSettings | undefined {
   if (!base && !override) return undefined;
   return {
+    entrance: { ...(base?.entrance || {}), ...(override?.entrance || {}) },
     zoomPunch: { ...(base?.zoomPunch || {}), ...(override?.zoomPunch || {}) },
     quoteFreeze: { ...(base?.quoteFreeze || {}), ...(override?.quoteFreeze || {}) },
     stampRain: { ...(base?.stampRain || {}), ...(override?.stampRain || {}) },
@@ -2913,6 +2917,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const isFlashbackBoundaryStart = (at: number | undefined) =>
     at !== undefined && flashbackBoundaryStarts.has(at);
 
+  // 登場/退場スライドにかける秒数（演出共通設定 > entrance.duration で調整可能）。
+  const slideDur = resolveEffectSettings(story.effectSettings).entrance.duration;
+
   // ── 立ち位置は区間中ずっと固定（後から登場する人ぶんも最初から確保） ──
   const roster = segmentRoster(seg);
   const anchorOfAt = (tb: number) => resolveAnchorMapAt(seg, roster, sceneDef, tb);
@@ -2937,7 +2944,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         effectiveExitAt(c) === undefined ||
         ((exitDir[c] === "instant" || isFlashbackBoundaryStart(effectiveExitAt(c)))
           ? t <= effectiveExitAt(c)! + 1e-6
-          : t < effectiveExitAt(c)! + SLIDE_DUR)
+          : t < effectiveExitAt(c)! + slideDur)
       )
   );
 
@@ -2963,7 +2970,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         mobEffectiveExitAt(id) === undefined ||
         (mobExitDir[id] === "instant"
           ? t <= mobEffectiveExitAt(id)! + 1e-6
-          : t < mobEffectiveExitAt(id)! + SLIDE_DUR)
+          : t < mobEffectiveExitAt(id)! + slideDur)
       )
   );
 
@@ -3306,18 +3313,18 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const entersInstantly = enterDir === "instant" || isFlashbackBoundaryStart(entered);
     let slideOffsetPx = 0;
     if ((!isInitial || enterDir !== undefined) && !entersInstantly) {
-      const sp = clamp((t - entered) / SLIDE_DUR, 0, 1); // 0.5秒で着地
+      const sp = clamp((t - entered) / slideDur, 0, 1); // slideDur秒で着地
       const e = easeOutCubic(sp);
       // 登場方向：明示指定があればそちら、無ければ自分の居る側（近い画面端）から。
       const fromXNorm =
         enterDir === "right" ? 1.35 : enterDir === "left" ? -0.35 : anchor.x < 0.5 ? -0.35 : 1.35;
       slideOffsetPx = (1 - e) * (fromXNorm - anchor.x) * width;
     }
-    // 退場：exit 時刻になったら自分の側へスライドアウト（0.5秒で画面外へ）。
+    // 退場：exit 時刻になったら自分の側へスライドアウト（slideDur秒で画面外へ）。
     const leaving = effectiveExitAt(charId);
     const exitsInstantly = exitDir[charId] === "instant" || isFlashbackBoundaryStart(leaving);
     if (leaving !== undefined && t >= leaving && !exitsInstantly) {
-      const sp = clamp((t - leaving) / SLIDE_DUR, 0, 1);
+      const sp = clamp((t - leaving) / slideDur, 0, 1);
       const e = easeInOutCubic(sp);
       // 退場方向：明示指定があればそちら、無ければ自分の居る側（近い端）へ。
       const dir = exitDir[charId];
@@ -3387,14 +3394,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const entersInstantly = enterDir === "instant";
     let slideOffsetPx = 0;
     if ((!isInitial || enterDir !== undefined) && !entersInstantly) {
-      const sp = clamp((t - entranceAt) / SLIDE_DUR, 0, 1);
+      const sp = clamp((t - entranceAt) / slideDur, 0, 1);
       const e = easeOutCubic(sp);
       const fromXNorm = enterDir === "right" ? 1.35 : enterDir === "left" ? -0.35 : a.x < 0.5 ? -0.35 : 1.35;
       slideOffsetPx = (1 - e) * (fromXNorm - a.x) * width;
     }
     const exitsInstantly = exitDirVal === "instant";
     if (exitAt !== undefined && t >= exitAt && !exitsInstantly) {
-      const sp = clamp((t - exitAt) / SLIDE_DUR, 0, 1);
+      const sp = clamp((t - exitAt) / slideDur, 0, 1);
       const e = easeInOutCubic(sp);
       const toXNorm = exitDirVal === "right" ? 1.35 : exitDirVal === "left" ? -0.35 : a.x < 0.5 ? -0.35 : 1.35;
       slideOffsetPx = e * (toXNorm - a.x) * width;
