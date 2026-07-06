@@ -257,6 +257,7 @@ const POSES = [
   ["listening", "聞き耳"],
   ["sneak", "こそこそ"],
   ["wobble", "ぐらぐら"],
+  ["point", "指差し"],
 ];
 const POSE_LABELS = Object.fromEntries(POSES);
 const FACE_ORDER = ["normal", "happy", "surprise", "trouble", "panic"];
@@ -518,6 +519,10 @@ function animatePreview(time) {
     translateY -= Math.abs(Math.cos(motionTime * Math.PI * 2 * 1.4)) * 2.5 * motionStrength;
     rotate += Math.sin(motionTime * Math.PI * 2 * 2.6) * 4.6 * motionStrength;
     scale *= 1 + Math.sin(motionTime * Math.PI * 2 * 1.9) * 0.012 * motionStrength;
+  } else if (p === "point") {
+    translateY -= 6 * motionStrength + Math.sin(motionTime * Math.PI * 2 * 0.5) * 3 * motionStrength;
+    rotate += flip * 1.5 * motionStrength;
+    scale *= 1 + 0.01 * motionStrength;
   }
 
   wrap.style.transform = "translateX(-50%)";
