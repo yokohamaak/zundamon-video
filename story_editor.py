@@ -29,6 +29,7 @@ import scene_editor as scene_editor_module
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
 from tts_voicevox import sync_kanji_readings_to_voicevox  # noqa: E402
+import make_story_audio  # noqa: E402  台本取り込み時の話者検証で使う（音声生成と同じ判定基準）
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
@@ -730,10 +731,18 @@ def _import_script_text(raw):
 
     existing_scenes = set(_load_scenes_keys())
     existing_expr = set(_load_expression_keys())
+    # 音声生成(make_story_audio.py)が実際に参照する話者集合と同じ基準で検証する。
+    # ここが食い違うと「取り込みは成功したのに数十秒後の音声生成でだけ失敗する」
+    # 分かりにくい不具合になる。
+    # speaker/narrationVoice は実際に声が合成される値（voice_profiles.json + モブの音声設定）、
+    # enter/exit は声を持たない登場だけのモブも指定できるため、既知キャラ+モブ名で判定する。
+    known_voices = set(make_story_audio.load_voice_profiles().keys())
+    known_actors = {"zundamon", "metan"} | set(_load_mobs().keys())
     new_fields = {}    # フィールド名 -> [turn番号...]
     new_scenes = {}    # scene名 -> [turn番号...]
     new_expr = {}      # 表情名 -> [turn番号...]
     new_inserts = {}   # kind -> [turn番号...]
+    new_speakers = {}  # 話者名 -> [turn番号...]
 
     for i, turn in enumerate(data["script"]):
         if not isinstance(turn, dict):
@@ -757,6 +766,12 @@ def _import_script_text(raw):
             kind = ins.get("kind")
             if kind and kind not in _KNOWN_INSERT_KINDS:
                 new_inserts.setdefault(kind, []).append(n)
+        voice_name = turn.get("narrationVoice") or turn.get("speaker")
+        if isinstance(voice_name, str) and voice_name and voice_name not in known_voices:
+            new_speakers.setdefault(voice_name, []).append(n)
+        for name in (turn.get("enter") or []) + (turn.get("exit") or []):
+            if isinstance(name, str) and name and name not in known_actors:
+                new_speakers.setdefault(name, []).append(n)
 
     proposals = data.get("_proposals") if isinstance(data.get("_proposals"), list) else []
     data.pop("audio", None)
@@ -770,6 +785,7 @@ def _import_script_text(raw):
         "newScenes": new_scenes,
         "newExpr": new_expr,
         "newInserts": new_inserts,
+        "newSpeakers": new_speakers,
         "proposals": proposals,
     }
     return True, "ok", {"turns": len(data["script"]), "report": report}

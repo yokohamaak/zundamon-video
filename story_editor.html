@@ -6206,6 +6206,7 @@ function showImportReport(turns, report) {
     Object.keys(report.newFields || {}).length > 0 ||
     Object.keys(report.newExpr || {}).length > 0 ||
     Object.keys(report.newInserts || {}).length > 0 ||
+    Object.keys(report.newSpeakers || {}).length > 0 ||
     (report.proposals || []).length > 0
   );
 
@@ -6251,6 +6252,12 @@ function showImportReport(turns, report) {
     const newInserts = report.newInserts || {};
     for (const [name, turns_] of Object.entries(newInserts)) {
       addItem("未対応インサート: " + name + "（turn " + turns_.join(", ") + "）", true);
+    }
+
+    // 未登録の話者（音声未設定のため後の音声生成で失敗する）
+    const newSpeakers = report.newSpeakers || {};
+    for (const [name, turns_] of Object.entries(newSpeakers)) {
+      addItem("未登録の話者: " + name + "（turn " + turns_.join(", ") + "）  音声未設定のため音声生成に失敗します。既存の話者名に修正するか、声プリセット/モブとして登録してください", true);
     }
 
     wrap.appendChild(warnBox);
@@ -6725,7 +6732,11 @@ function setupEvents() {
         showImportReport(result.turns, result.report || null);
         markAudioDirty();
         setStatus("dirty", "台本を取り込みました（音声生成が必要）");
-        if (confirm("台本を取り込みました。続けて音声生成しますか？")) {
+        const unknownSpeakers = Object.keys((result.report || {}).newSpeakers || {});
+        if (unknownSpeakers.length) {
+          // 未登録話者があるまま音声生成しても必ず失敗するため、自動生成には進まず先に修正を促す。
+          alert("未登録の話者があります（" + unknownSpeakers.join("、") + "）。修正してから音声生成してください。");
+        } else if (confirm("台本を取り込みました。続けて音声生成しますか？")) {
           statusEl.style.color = "var(--text2)";
           statusEl.textContent = "音声生成中...";
           await generateAudio(false);
