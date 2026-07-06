@@ -197,8 +197,8 @@ export type StoryOverlay = {
 export type StoryEffectSettings = {
   // 登場/退場スライドにかける秒数（キャラ・モブ共通）。
   entrance?: { duration?: number };
-  // 話者プッシュイン(emphasis)が寄りきるまでの秒数。
-  emphasis?: { duration?: number };
+  // 話者プッシュイン(emphasis)が寄りきるまでの秒数(duration)・追加ズーム倍率(scale)。
+  emphasis?: { duration?: number; scale?: number };
   zoomPunch?: { scale?: number; duration?: number; borderStrength?: number };
   quoteFreeze?: { fadeIn?: number; fadeOutStart?: number; fadeOutDuration?: number; backdropOpacity?: number };
   stampRain?: { count?: number; fallDuration?: number; stagger?: number; spread?: number };
@@ -211,7 +211,7 @@ export type StoryEffectSettings = {
 
 type ResolvedEffectSettings = {
   entrance: { duration: number };
-  emphasis: { duration: number };
+  emphasis: { duration: number; scale: number };
   zoomPunch: { scale: number; duration: number; borderStrength: number };
   quoteFreeze: { fadeIn: number; fadeOutStart: number; fadeOutDuration: number; backdropOpacity: number };
   stampRain: { count: number; fallDuration: number; stagger: number; spread: number };
@@ -820,7 +820,7 @@ const easeOutBack = (x: number) => {
 const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
 const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
   entrance: { duration: 0.5 },
-  emphasis: { duration: 0.5 },
+  emphasis: { duration: 0.5, scale: 0.3 },
   zoomPunch: { scale: 1.14, duration: 0.18, borderStrength: 1 },
   quoteFreeze: { fadeIn: 0.14, fadeOutStart: 0.72, fadeOutDuration: 0.18, backdropOpacity: 0.22 },
   stampRain: { count: 8, fallDuration: 0.46, stagger: 0.05, spread: 1 },
@@ -3160,16 +3160,21 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const autoFocusCy = clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.04), 0, 1);
     // turn.zoomTarget があれば寄り位置を手動指定値で上書きする（無ければ自動計算のまま）。
     const manualFocus = resolveZoomTargetAt(seg, t, () => ({ x: autoFocusCx, y: autoFocusCy }));
+    const emphasisCfg = resolveEffectSettings(
+      mergeEffectSettings(story.effectSettings, active.effectSettings)
+    ).emphasis;
+    // 追加ズーム倍率は演出共通設定/この行の上書きを優先し、どちらも無ければ従来通りシーン設定
+    // (sceneDef.focusZoom、シーン編集で設定)にフォールバックする。
+    const emphasisScaleOverridden =
+      story.effectSettings?.emphasis?.scale != null || active.effectSettings?.emphasis?.scale != null;
+    const emphasisScale = emphasisScaleOverridden ? emphasisCfg.scale : (sceneDef.focusZoom ?? emphasisCfg.scale);
     const focusTf = toTf({
-      s: tf.s + (sceneDef.focusZoom ?? 0.3),
+      s: tf.s + emphasisScale,
       cx: manualFocus?.x ?? autoFocusCx,
       cy: manualFocus?.y ?? autoFocusCy,
     });
     // emphasis を立てた時点からemphasis.duration秒でイーズインし、その後は話者交代まで維持する。
-    const emphasisDur = resolveEffectSettings(
-      mergeEffectSettings(story.effectSettings, active.effectSettings)
-    ).emphasis.duration;
-    const focusK = easeInOutCubic(clamp((t - focusStart) / Math.max(emphasisDur, 0.05), 0, 1));
+    const focusK = easeInOutCubic(clamp((t - focusStart) / Math.max(emphasisCfg.duration, 0.05), 0, 1));
     focusBubbleK = focusK;
     tf = {
       tx: lerp(tf.tx, focusTf.tx, focusK),

@@ -98,21 +98,6 @@ function hash(s: string): number {
   return Math.abs(h);
 }
 
-function fallbackPose(emotion: Emotion): NonNullable<ExpressionCfg["pose"]> {
-  switch (emotion) {
-    case "happy":
-      return "cheer";
-    case "surprise":
-      return "recoil";
-    case "sad":
-      return "droop";
-    case "panic":
-      return "flustered";
-    default:
-      return "idle";
-  }
-}
-
 export const Avatar: React.FC<{
   // パーツ立ち絵のフォルダ名。nullなら従来の単一画像フォールバック。
   dir: string | null;
@@ -223,7 +208,8 @@ export const Avatar: React.FC<{
     rotate += Math.sin(motionTime * Math.PI * 2 * 3.5) * 0.9;
   }
 
-  const pose = poseName ?? expressionCfg?.pose ?? fallbackPose(emotion);
+  // 表情とポーズは連動しない。turn.poseの明示指定が無ければ常にidle。
+  const pose = poseName ?? "idle";
   const poseStrengthBase = (expressive ? 1 : 0.65) * motionStrength;
   const facingSign = flip ? -1 : 1;
   if (pose === "cheer") {
@@ -480,7 +466,8 @@ export const Avatar: React.FC<{
     surprised || pose === "cheer" || pose === "proud" || pose === "step_in"
       ? "arm_raise"
       : "arm_normal";
-  const requestedArm = poseArmStem ?? expressionCfg?.arm ?? autoArmStem;
+  // 表情とポーズは連動しない。腕もturn.pose由来(poseArmStem)のみで、表情由来のarmは見ない。
+  const requestedArm = poseArmStem ?? autoArmStem;
   let armStem = autoArmStem;
   if (requestedArm === "raise") armStem = "arm_raise";
   else if (requestedArm === "normal") armStem = "arm_normal";
