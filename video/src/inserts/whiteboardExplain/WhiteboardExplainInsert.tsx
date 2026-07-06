@@ -195,6 +195,7 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
   durationInFrames,
   width,
   height,
+  characterSlot,
 }) => {
   const [bgImageFailed, setBgImageFailed] = useState(false);
   const [boardImageFailed, setBoardImageFailed] = useState(false);
@@ -362,7 +363,22 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
         <div style={{ position: 'absolute', left: layout.conclusion.width * 0.25, bottom: 28, width: layout.conclusion.width * 0.48, height: 18, background: normalized.style.markerColor, opacity: 0.75, borderRadius: 20, zIndex: -1 }} />
       </div>
 
-      {characterImage && !characterImageFailed ? (
+      {characterSlot ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: layout.character.x,
+            top: layout.character.y,
+            width: layout.character.width,
+            height: layout.character.height,
+            opacity: charVisibility.opacity,
+            transform: `translateY(${(1 - charVisibility.opacity) * 18}px) scale(${charVisibility.scale})`,
+            transformOrigin: 'bottom center',
+          }}
+        >
+          {characterSlot}
+        </div>
+      ) : characterImage && !characterImageFailed ? (
         <Img
           src={characterImage}
           style={{

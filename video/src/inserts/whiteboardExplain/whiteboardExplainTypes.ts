@@ -100,4 +100,10 @@ export type WhiteboardExplainInsertProps = {
   width?: number;
   /** Height. Defaults to 1080. */
   height?: number;
+  /**
+   * Optional override for the character visual, positioned/animated at layout.character.
+   * When provided, this is rendered instead of the built-in image/placeholder
+   * (used by run-story to render the project's own Avatar component here).
+   */
+  characterSlot?: import('react').ReactNode;
 };

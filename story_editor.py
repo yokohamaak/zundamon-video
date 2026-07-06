@@ -653,10 +653,10 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '{"heading":"...","bullets":["...","...","..."],"icon":"confused"},'
         '{"heading":"...","bullets":["...","...","..."],"icon":"scribble"},'
         '{"heading":"...","bullets":["...","...","..."],"icon":"checklist"}],'
-        '"conclusion":"...","character":{"pose":"pointing","expression":"smile"},"animation":{"mode":"step"}}'
+        '"conclusion":"...","character":{"pose":"proud","expression":"happy"},"animation":{"mode":"step"}}'
         ' … めたんがホワイトボードで3項目にまとめて解説するインサート（セリフ無しのまとめスライド向け）。'
         ' icon は none/confused/scribble/checklist/memo/conversation/warning/idea/table。'
-        ' pose は explain/pointing/confident/thinking、expression は normal/smile/serious/surprised/troubled。'
+        ' character.pose/expression は通常ターンの pose/expression と同じ値が使える（省略可・省略時は自動）。'
         ' animation.mode は step(推奨)/all/none。sectionsは3件固定、bulletsは各3件まで',
         "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
         "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat / ZunMeet=videocall。",

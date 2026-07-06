@@ -12,7 +12,7 @@ import { useWindowedAudioData } from "@remotion/media-utils";
 import { Avatar, MOUTH_HALF } from "./Avatar";
 import type { ExpressionCfg } from "./Avatar";
 import type { Emotion, Gender } from "./types";
-import { WhiteboardExplainInsert } from "./inserts/whiteboardExplain";
+import { WhiteboardExplainInsert, getWhiteboardExplainLayout } from "./inserts/whiteboardExplain";
 import type { WhiteboardExplainInsertConfig } from "./inserts/whiteboardExplain";
 
 // ─── PC画面インサート型定義 ──────────────────────────────────
@@ -2347,6 +2347,7 @@ const InsertOverlay: React.FC<{
   transform?: string;
   activeSpeaker?: string;
   durationInFrames?: number;
+  whiteboardCharacterSlot?: React.ReactNode;
   renderVideoCallFeed?: (
     participant: VideoCallParticipant,
     opts: { large: boolean; tileW: number }
@@ -2358,6 +2359,7 @@ const InsertOverlay: React.FC<{
   transform,
   activeSpeaker,
   durationInFrames,
+  whiteboardCharacterSlot,
   renderVideoCallFeed,
 }) => {
   // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
@@ -2404,7 +2406,7 @@ const InsertOverlay: React.FC<{
         {insert.kind === "mailer" && <InsertMailer insert={insert} />}
         {insert.kind === "videocall" && <InsertVideoCall insert={insert} activeSpeaker={activeSpeaker} renderFeed={renderVideoCallFeed} />}
         {insert.kind === "whiteboard_explain" && (
-          <WhiteboardExplainInsert config={insert} durationInFrames={durationInFrames} />
+          <WhiteboardExplainInsert config={insert} durationInFrames={durationInFrames} characterSlot={whiteboardCharacterSlot} />
         )}
       </AbsoluteFill>
     </AbsoluteFill>
@@ -3512,6 +3514,52 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
 
+  // whiteboard_explain インサートの立ち絵。通常ターンと同じ表情(expressions.json)・
+  // ポーズ(poses.json)を使い、独自の画像パス方式(public/characters/...)は使わない。
+  const renderWhiteboardCharacterSlot = (insert: Extract<StoryInsert, { kind: "whiteboard_explain" }>) => {
+    const charKey = insert.character?.name && CHARACTERS[insert.character.name] ? insert.character.name : "metan";
+    const cdef = CHARACTERS[charKey];
+    if (!cdef) return null;
+    const exprKey = insert.character?.expression || "normal";
+    const emotion = EXPRESSION_TO_EMOTION[exprKey] ?? EXPRESSION_TO_EMOTION["normal"];
+    const charExprs = expressions?.[charKey];
+    const expressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
+    const poseNameRaw = insert.character?.pose || undefined;
+    const poseCfg = poseNameRaw ? poses?.[charKey]?.[poseNameRaw] ?? null : null;
+    const wbLayout = getWhiteboardExplainLayout(width, height);
+    const scale = wbLayout.character.width / AVATAR_BOX;
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: 0,
+          transform: `translateX(-50%) scale(${scale})`,
+          transformOrigin: "bottom center",
+        }}
+      >
+        <Avatar
+          dir={cdef.avatar}
+          manifest={manifest?.[cdef.avatar]}
+          fallbackGender={cdef.gender}
+          active={false}
+          activatedAtFrame={0}
+          amplitude={0}
+          emotion={emotion}
+          emotionAtFrame={0}
+          expressive={!!cdef.expressive}
+          flip={false}
+          popScale={false}
+          expressionCfg={expressionCfg}
+          poseName={poseNameRaw as ExpressionCfg["pose"]}
+          poseArmStem={poseCfg?.arm ?? null}
+          poseSpeed={poseCfg?.speed ?? null}
+          poseStrength={poseCfg?.strength ?? null}
+        />
+      </div>
+    );
+  };
+
   // モブ（1枚絵）描画：「登場〜退場」の区間だけ立たせる（登場でフェードイン、退場でフェードアウト）。
   // 同じモブの発言が連続しても、明示的に退場していない限りフェードインし直さない。
   // 発話中（このモブが現在の話者の間）だけ speakerAmp（実音声RMS）に応じて口パクする。
@@ -4154,6 +4202,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           transform={insertShakeTransform}
           activeSpeaker={active.speaker}
           durationInFrames={Math.round((dispEnd - active.start) * fps)}
+          whiteboardCharacterSlot={
+            activeInsert.kind === "whiteboard_explain" ? renderWhiteboardCharacterSlot(activeInsert) : undefined
+          }
           renderVideoCallFeed={renderVideoCallFeed}
         />
       ) : null}

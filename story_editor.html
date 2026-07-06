@@ -4161,6 +4161,11 @@ function buildExpressionSelect() {
   _buildExpressionOptions(null);
 }
 
+const POSE_KEYS = [
+  "idle", "cheer", "recoil", "lean", "droop", "flustered",
+  "proud", "step_in", "step_back", "listening", "sneak", "wobble",
+];
+
 function poseLabel(pose) {
   const labels = {
     idle: "通常",
@@ -4182,20 +4187,7 @@ function poseLabel(pose) {
 function buildPoseSelect() {
   const sel = document.getElementById("fPose");
   const keep = sel.value;
-  const poses = [
-    ["idle", poseLabel("idle")],
-    ["cheer", poseLabel("cheer")],
-    ["recoil", poseLabel("recoil")],
-    ["lean", poseLabel("lean")],
-    ["droop", poseLabel("droop")],
-    ["flustered", poseLabel("flustered")],
-    ["proud", poseLabel("proud")],
-    ["step_in", poseLabel("step_in")],
-    ["step_back", poseLabel("step_back")],
-    ["listening", poseLabel("listening")],
-    ["sneak", poseLabel("sneak")],
-    ["wobble", poseLabel("wobble")],
-  ];
+  const poses = POSE_KEYS.map((pose) => [pose, poseLabel(pose)]);
   sel.innerHTML = "";
   const auto = document.createElement("option");
   auto.value = "";
@@ -5052,10 +5044,14 @@ function renderInsertFields(insert) {
       { value: "idea", label: "idea（ひらめき）" },
       { value: "table", label: "table（表）" },
     ];
-    const POSE_OPTIONS = ["explain", "pointing", "confident", "thinking"]
-      .map((v) => ({ value: v, label: v }));
-    const EXPRESSION_OPTIONS = ["normal", "smile", "serious", "surprised", "troubled"]
-      .map((v) => ({ value: v, label: v }));
+    const POSE_OPTIONS = [
+      { value: "", label: "自動（通常）" },
+      ...POSE_KEYS.map((v) => ({ value: v, label: poseLabel(v) })),
+    ];
+    const EXPRESSION_OPTIONS = [
+      { value: "", label: "自動（真顔）" },
+      ...sortedStrings(meta.expressions).map((v) => ({ value: v, label: v })),
+    ];
     const ANIMATION_OPTIONS = [
       { value: "step", label: "step（1項目ずつ表示・推奨）" },
       { value: "all", label: "all（最初から全部表示）" },
@@ -5079,14 +5075,14 @@ function renderInsertFields(insert) {
     }
     container.appendChild(makeTextareaField("conclusion（結論・40文字以内推奨）", "fWConclusion", insert.conclusion || ""));
     const character = insert.character || {};
-    container.appendChild(makeSelectField("character.pose", "fWCharPose", POSE_OPTIONS, character.pose || "pointing"));
-    container.appendChild(makeSelectField("character.expression", "fWCharExpression", EXPRESSION_OPTIONS, character.expression || "smile"));
+    container.appendChild(makeSelectField("character.pose（他のターンと同じポーズ）", "fWCharPose", POSE_OPTIONS, character.pose || ""));
+    container.appendChild(makeSelectField("character.expression（他のターンと同じ表情）", "fWCharExpression", EXPRESSION_OPTIONS, character.expression || ""));
     const animation = insert.animation || {};
     container.appendChild(makeSelectField("animation.mode", "fWAnimationMode", ANIMATION_OPTIONS, animation.mode || "step"));
     const hint = document.createElement("div");
     hint.className = "field-hint";
     hint.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
-    hint.textContent = "めたん立ち絵は public/characters/metan/{pose}_{expression}.png を参照します。素材が無い場合は仮表示になります。ホワイトボード画像等の背景素材は別途 public/ に配置してください。";
+    hint.textContent = "立ち絵は既存のめたん立ち絵（表情・ポーズ）で描画されます。ホワイトボード画像は video/assets/background/ に置いて video/public/background/xxx.png として参照してください（起動時に自動同期）。";
     container.appendChild(hint);
   }
 }
@@ -6021,10 +6017,9 @@ function collectInsert() {
     ins.conclusion = conclusion ? conclusion.value : "";
     const charPose = document.getElementById("fWCharPose");
     const charExpression = document.getElementById("fWCharExpression");
-    ins.character = {
-      pose: charPose ? charPose.value : "pointing",
-      expression: charExpression ? charExpression.value : "smile",
-    };
+    ins.character = {};
+    if (charPose && charPose.value) ins.character.pose = charPose.value;
+    if (charExpression && charExpression.value) ins.character.expression = charExpression.value;
     const animationMode = document.getElementById("fWAnimationMode");
     ins.animation = { mode: animationMode ? animationMode.value : "step" };
   }
@@ -7156,7 +7151,7 @@ function buildDefaultInsert(kind, prev) {
         { heading: "解決", bullets: ["メモ化", "一覧化", "共有する"], icon: "checklist" },
       ],
       conclusion: "つまり：見える形にするのが大事！",
-      character: { pose: "pointing", expression: "smile" },
+      character: { pose: "proud", expression: "happy" },
       animation: { mode: "step" },
     };
   }
