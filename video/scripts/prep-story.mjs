@@ -6,7 +6,7 @@
 //   - background（シーン背景）
 //   - fonts（日本語フォント）
 // story-scenes.json は public/ に直接置く運用（git追跡済み）。
-import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
 import { resolve, parse as parsePath } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -14,12 +14,16 @@ const pubDir = resolve(root, "public");
 mkdirSync(pubDir, { recursive: true });
 
 // 単純なディレクトリ単位コピー（拡張子フィルタ）。
-for (const [sub, exts, label] of [
-  ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts"],
-  ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image"],
-  ["mobs", [".png", ".webp"], "mob image"],
-  ["bgm", [".mp3", ".wav", ".m4a"], "BGM"],
-  ["se", [".mp3", ".wav", ".m4a"], "SE"],
+// mirror=true の種類は、assetsに無いファイルをpublic側からも削除する
+// （プルダウン一覧はpublicを見るため、assets側で削除したのにpublicへ残り続けて
+// 「消したはずのBGM/SEが選択肢に残る」事故になっていた）。
+// fontsは配布物を直接publicに置く運用もあるため対象外。
+for (const [sub, exts, label, mirror] of [
+  ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts", false],
+  ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image", true],
+  ["mobs", [".png", ".webp"], "mob image", true],
+  ["bgm", [".mp3", ".wav", ".m4a"], "BGM", true],
+  ["se", [".mp3", ".wav", ".m4a"], "SE", true],
 ]) {
   const s = resolve(root, "assets", sub);
   const d = resolve(pubDir, sub);
@@ -31,6 +35,12 @@ for (const [sub, exts, label] of [
   const files = readdirSync(s).filter((f) => exts.some((e) => f.toLowerCase().endsWith(e)));
   for (const f of files) copyFileSync(resolve(s, f), resolve(d, f));
   console.log(`[prep-story] copied ${files.length} ${label}`);
+  if (mirror) {
+    const keep = new Set(files);
+    const stale = readdirSync(d).filter((f) => exts.some((e) => f.toLowerCase().endsWith(e)) && !keep.has(f));
+    for (const f of stale) unlinkSync(resolve(d, f));
+    if (stale.length) console.log(`[prep-story] removed ${stale.length} stale ${label} (assetsに存在しないため)`);
+  }
 }
 
 // StoryVideo の回想グレイン用ノイズ画像（assets直下 → public直下）。
