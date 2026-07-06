@@ -4164,6 +4164,7 @@ function buildExpressionSelect() {
 const POSE_KEYS = [
   "idle", "cheer", "recoil", "lean", "droop", "flustered",
   "proud", "step_in", "step_back", "listening", "sneak", "wobble",
+  "point",
 ];
 
 function poseLabel(pose) {
@@ -4180,6 +4181,7 @@ function poseLabel(pose) {
     listening: "聞き耳",
     sneak: "こそこそ",
     wobble: "ぐらぐら",
+    point: "指差し",
   };
   return labels[pose] || pose || "";
 }

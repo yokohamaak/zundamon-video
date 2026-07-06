@@ -26,6 +26,7 @@ CHARS = ["zundamon", "metan"]
 POSES = [
     "idle", "cheer", "recoil", "lean", "droop", "flustered",
     "proud", "step_in", "step_back", "listening", "sneak", "wobble",
+    "point",
 ]
 
 POSE_LABELS = {
@@ -41,6 +42,7 @@ POSE_LABELS = {
     "listening": "聞き耳",
     "sneak": "こそこそ",
     "wobble": "ぐらぐら",
+    "point": "指差し",
 }
 
 ARM_LABELS = {
@@ -96,6 +98,7 @@ def _default_poses():
             "listening": {"arm": "arm_think", "speed": 1.0, "strength": 1.0},
             "sneak": {"arm": "arm_whisper", "speed": 1.0, "strength": 1.0},
             "wobble": {"arm": "arm_suffering", "speed": 1.0, "strength": 1.0},
+            "point": {"arm": "arm_point", "speed": 1.0, "strength": 1.0},
         },
         "metan": {
             "idle": {"arm": "arm_normal", "speed": 1.0, "strength": 1.0},
@@ -110,6 +113,7 @@ def _default_poses():
             "listening": {"arm": "arm_hush", "speed": 1.0, "strength": 1.0},
             "sneak": {"arm": "arm_hush", "speed": 1.0, "strength": 1.0},
             "wobble": {"arm": "arm_manju", "speed": 1.0, "strength": 1.0},
+            "point": {"arm": "arm_point", "speed": 1.0, "strength": 1.0},
         },
     }
 

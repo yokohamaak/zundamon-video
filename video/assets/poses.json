@@ -17,8 +17,8 @@
     },
     "lean": {
       "arm": "arm_think",
-      "speed": 1,
-      "strength": 1
+      "speed": 0.4,
+      "strength": 0.5
     },
     "droop": {
       "arm": "arm_waist",
@@ -59,6 +59,11 @@
       "arm": "arm_suffering",
       "speed": 0.7,
       "strength": 0.6
+    },
+    "point": {
+      "arm": "arm_point",
+      "speed": 1,
+      "strength": 1
     }
   },
   "metan": {
@@ -121,6 +126,11 @@
       "arm": "arm_hold",
       "speed": 0.4,
       "strength": 0.4
+    },
+    "point": {
+      "arm": "arm_point",
+      "speed": 1,
+      "strength": 1
     }
   }
 }

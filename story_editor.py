@@ -606,7 +606,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         #   詳細手順: docs/new-effect-checklist.md
         "━━━ 使える演出（任意。付けると良くなる）━━━",
         '- "transition": "cut" / "fade-black" / "fade-white" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" … シーンが切り替わる最初の行だけに付ける場面転換',
-        '- "pose": "idle" / "cheer" / "recoil" / "lean" / "droop" / "flustered" / "proud" / "step_in" / "step_back" / "listening" / "sneak" / "wobble" … その行の話者ポーズ',
+        '- "pose": "idle" / "cheer" / "recoil" / "lean" / "droop" / "flustered" / "proud" / "step_in" / "step_back" / "listening" / "sneak" / "wobble" / "point" … その行の話者ポーズ',
         '- "emphasis": true … 話者にズームイン（強調したい一言で）',
         '- "shake": true … 画面を揺らす（衝撃・驚き）',
         '- "cameraEffect": "pull-out" / "pan-left" / "pan-right" / "tilt-left" / "tilt-right" … その行だけカメラに追加の動きを付ける',

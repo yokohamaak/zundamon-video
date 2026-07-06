@@ -55,6 +55,7 @@ export type ExpressionCfg = {
     | "listening"
     | "sneak"
     | "wobble"
+    | "point"
     | null;
   // 腕差分があるキャラ用。arm_normal / arm_raise / arm_whisper などのstem名。
   // 旧データ互換のため "normal" / "raise" も受け付ける。
@@ -268,6 +269,11 @@ export const Avatar: React.FC<{
     translateY -= Math.abs(Math.cos(motionTime * Math.PI * 2 * 1.4)) * 2.5 * poseStrengthBase;
     rotate += Math.sin(motionTime * Math.PI * 2 * 2.6) * 4.6 * poseStrengthBase;
     scale *= 1 + Math.sin(motionTime * Math.PI * 2 * 1.9) * 0.012 * poseStrengthBase;
+  } else if (pose === "point") {
+    // 腕を挙げて何かを指す（ホワイトボード解説向け）。ごく小さく上下に揺れるだけの控えめな動き。
+    translateY -= 6 * poseStrengthBase + Math.sin(motionTime * Math.PI * 2 * 0.5) * 3 * poseStrengthBase;
+    rotate += facingSign * 1.5 * poseStrengthBase;
+    scale *= 1 + 0.01 * poseStrengthBase;
   }
 
   // 発話者だけ柔らかい影で手前に浮かせる（区別は透明化ではなくポップ＋影で表現）。
@@ -463,7 +469,7 @@ export const Avatar: React.FC<{
   //    驚き中は arm_raise（手を上げる）。口パク・まばたきは継続したまま腕だけ替わる。
   //    腕レイヤーが無いキャラ(例:めたん)は base に腕が含まれる前提で何もしない。
   const autoArmStem =
-    surprised || pose === "cheer" || pose === "proud" || pose === "step_in"
+    surprised || pose === "cheer" || pose === "proud" || pose === "step_in" || pose === "point"
       ? "arm_raise"
       : "arm_normal";
   // 表情とポーズは連動しない。腕もturn.pose由来(poseArmStem)のみで、表情由来のarmは見ない。
