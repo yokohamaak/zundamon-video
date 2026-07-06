@@ -2728,7 +2728,10 @@ function bubbleMetrics(text: string, stacked: boolean, maxWidth: number) {
       maxLineWidth = Math.max(maxLineWidth, lineDisplayWidth(fontSize, wrapped));
     }
   }
-  const width = Math.max(120, maxLineWidth + 66);
+  // +12px は幅見積もりの誤差マージン。ここが無いと、見積もり値ぴったりの箱幅に対して
+  // 実際のフォント描画がわずかに上回った時、white-space:preでも欠けて見えることがある
+  // （改行はしない代わりに、箱の右端がほんの数px窮屈になる分はここで吸収する）。
+  const width = Math.max(120, maxLineWidth + 66 + 12);
   return { fontSize, width, text: lines.join("\n") };
 }
 
@@ -3582,8 +3585,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     fontFamily: "sans-serif",
     boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
     textAlign: align,
-    // "pre-line": 折り返し済みテキストの\nを改行として反映しつつ、それ以外の連続空白は詰める。
-    whiteSpace: "pre-line",
+    // "pre": bubbleMetricsで決めた\nだけを改行として反映する。
+    // "pre-line"だとブラウザ自身が実測フォント幅で追加の自動折り返しをしてしまい、
+    // 見積もり誤差ぶんだけ想定外の位置(1文字だけの孤立行など)で割れることがあった。
+    whiteSpace: "pre",
   });
   const bubbleGroupPlacement = (speaker: string, groupWidth: number) => {
     const a = isMob(speaker)
