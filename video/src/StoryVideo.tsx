@@ -2670,15 +2670,61 @@ function bubbleSide(x: number, width: number): "left" | "right" {
 // 文字ごとに半角/全角を判定して幅を積み上げることで、実際の見た目に近い箱幅にする。
 const HALF_WIDTH_CHAR_RE = /[ -ÿ｡-ￜ￨-￮]/;
 
+function charDisplayWidth(fontSize: number, ch: string): number {
+  return fontSize * (HALF_WIDTH_CHAR_RE.test(ch) ? 0.56 : 0.98);
+}
+
+function lineDisplayWidth(fontSize: number, line: string): number {
+  let w = 0;
+  for (const ch of line) w += charDisplayWidth(fontSize, ch);
+  return w;
+}
+
+// maxTextWidth(パディング抜きの文字表示幅)に収まるよう、1つの行を複数行へ折り返す。
+// 読点等での賢い改行はせず、幅超過の直前で単純に区切る（実装/検証コストを抑えるため）。
+function wrapLineToWidth(line: string, fontSize: number, maxTextWidth: number): string[] {
+  const out: string[] = [];
+  let current = "";
+  let currentWidth = 0;
+  for (const ch of line) {
+    const chWidth = charDisplayWidth(fontSize, ch);
+    if (current && currentWidth + chWidth > maxTextWidth) {
+      out.push(current);
+      current = ch;
+      currentWidth = chWidth;
+    } else {
+      current += ch;
+      currentWidth += chWidth;
+    }
+  }
+  out.push(current);
+  return out;
+}
+
+// 吹き出しの幅・折り返し済みテキストを見積もる。
+// 既存の改行(\n)は本来この関数に届く前に別バブルへ分割されている想定だが、
+// disableAutoBubbleSplit等ですり抜けてきた場合に備え、\n は行区切りとして尊重する。
+// 各行がmaxWidth(パディング66px込み)に収まらない場合のみ、その行だけ複数行へ折り返す。
 function bubbleMetrics(text: string, stacked: boolean, maxWidth: number) {
   const fontSize = bubbleFontSize(text, stacked);
-  const chars = String(text || "").replace(/\s+/g, "");
-  let estTextWidth = 0;
-  for (const ch of chars) {
-    estTextWidth += fontSize * (HALF_WIDTH_CHAR_RE.test(ch) ? 0.56 : 0.98);
+  const paragraphs = String(text || "").split("\n").map((p) => p.replace(/\s+/g, ""));
+  const budget = Math.max(40, maxWidth - 66);
+  const lines: string[] = [];
+  let maxLineWidth = 0;
+  for (const para of paragraphs) {
+    const paraWidth = lineDisplayWidth(fontSize, para);
+    if (paraWidth <= budget) {
+      lines.push(para);
+      maxLineWidth = Math.max(maxLineWidth, paraWidth);
+      continue;
+    }
+    for (const wrapped of wrapLineToWidth(para, fontSize, budget)) {
+      lines.push(wrapped);
+      maxLineWidth = Math.max(maxLineWidth, lineDisplayWidth(fontSize, wrapped));
+    }
   }
-  const width = Math.max(120, estTextWidth + 66);
-  return { fontSize, width };
+  const width = Math.max(120, maxLineWidth + 66);
+  return { fontSize, width, text: lines.join("\n") };
 }
 
 // 仮想カメラの目標（s=ズーム / cx,cy=注視点・ステージ正規化座標）。
@@ -3531,7 +3577,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     fontFamily: "sans-serif",
     boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
     textAlign: align,
-    whiteSpace: "nowrap",
+    // "pre-line": 折り返し済みテキストの\nを改行として反映しつつ、それ以外の連続空白は詰める。
+    whiteSpace: "pre-line",
   });
   const bubbleGroupPlacement = (speaker: string, groupWidth: number) => {
     const a = isMob(speaker)
@@ -3569,7 +3616,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           ...bubbleBoxStyle(color, text, stacked, side, metrics.width),
         }}
       >
-        {text}
+        {metrics.text}
       </div>
     );
   };
@@ -3609,7 +3656,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
               visibility: idx < visibleCount ? "visible" : "hidden",
             }}
           >
-            {text}
+            {metrics[idx].text}
           </div>
         ))}
       </div>
