@@ -811,6 +811,7 @@
         <button class="menu-item" id="tabGen" data-view="gen">台本生成</button>
         <button class="menu-item" id="tabAudio" data-view="audio">音（BGM/SE）</button>
         <button class="menu-item" id="tabMobs" data-view="mobs">モブキャラ</button>
+        <button class="menu-item" id="tabEffects" data-view="effects">演出共通設定</button>
         <div class="menu-sep"></div>
         <button class="menu-item" id="btnExport" title="編集中の台本をJSONに書き出す（別ストーリーへ切替/再開用）">⬇ エクスポート</button>
         <button class="menu-item" id="btnImport" title="JSONから台本を読み込む（現在の編集内容は置き換わる）">⬆ インポート</button>
@@ -1221,9 +1222,6 @@
           <div class="section-divider">SE（任意）</div>
           <div id="fSeList" style="margin-bottom:4px;"></div>
           <button class="insert-add-btn" id="btnAddSe" style="margin-bottom:8px;">＋ SE追加</button>
-
-          <div class="section-divider">演出共通</div>
-          <div id="fEffectSettings"></div>
         </div>
 
         <!-- インサートタブ -->
@@ -1361,6 +1359,13 @@
       <button class="btn btn-primary btn-sm" id="btnSaveMobs">モブキャラを保存</button>
       <span id="mobsStatus" style="font-size:12px;"></span>
     </div>
+  </div>
+</div>
+
+<!-- 演出共通設定（動画全体に効くデフォルト値。行ごとの上書きは詳細パネルの「この行だけ上書き」） -->
+<div id="viewEffects" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
+  <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
+    <div id="fEffectSettings"></div>
   </div>
 </div>
 
@@ -4679,7 +4684,6 @@ function renderDetail() {
 
   // ── 手動SE ──
   renderManualSe();
-  renderEffectSettingsEditor();
 
   // ── インサートタブ ──
   const kind = turn.insert ? turn.insert.kind : "";
@@ -6311,6 +6315,7 @@ function setupTabs() {
   const tGen = document.getElementById("tabGen");
   const tAudio = document.getElementById("tabAudio");
   const tMobs = document.getElementById("tabMobs");
+  const tEffects = document.getElementById("tabEffects");
   const vScript = document.getElementById("viewScript");
   const vScene = document.getElementById("viewScene");
   const vExpr = document.getElementById("viewExpr");
@@ -6318,17 +6323,18 @@ function setupTabs() {
   const vGen = document.getElementById("viewGen");
   const vAudio = document.getElementById("viewAudio");
   const vMobs = document.getElementById("viewMobs");
+  const vEffects = document.getElementById("viewEffects");
   const sceneFrame = document.getElementById("sceneFrame");
   const exprFrame = document.getElementById("exprFrame");
   const poseFrame = document.getElementById("poseFrame");
 
   function activateTab(active) {
     // タブボタンのactive切替
-    [tScript, tScene, tExpr, tPose, tGen, tAudio, tMobs].forEach(t => t.classList.toggle("active", t === active));
+    [tScript, tScene, tExpr, tPose, tGen, tAudio, tMobs, tEffects].forEach(t => t.classList.toggle("active", t === active));
     // メニュー内の画面が選ばれていればメニューボタンを強調。
     const mb = document.getElementById("menuBtn");
     if (mb) mb.classList.toggle("has-active", active !== tScript);
-    // ビューの表示/非表示（viewGen/viewAudio/viewMobs は flex なので空文字では flex で表示する）
+    // ビューの表示/非表示（viewGen/viewAudio/viewMobs/viewEffects は flex なので空文字では flex で表示する）
     vScript.style.display = active === tScript ? "" : "none";
     vScene.style.display = active === tScene ? "" : "none";
     vExpr.style.display = active === tExpr ? "" : "none";
@@ -6336,6 +6342,7 @@ function setupTabs() {
     vGen.style.display = active === tGen ? "flex" : "none";
     vAudio.style.display = active === tAudio ? "flex" : "none";
     vMobs.style.display = active === tMobs ? "flex" : "none";
+    vEffects.style.display = active === tEffects ? "flex" : "none";
   }
 
   tScript.addEventListener("click", () => {
@@ -6374,6 +6381,10 @@ function setupTabs() {
   tMobs.addEventListener("click", () => {
     activateTab(tMobs);
     loadMobsPanel();
+  });
+  tEffects.addEventListener("click", () => {
+    activateTab(tEffects);
+    renderEffectSettingsEditor();
   });
 }
 
