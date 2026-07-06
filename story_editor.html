@@ -6537,7 +6537,11 @@ function setupEvents() {
     if (f) importStoryFromFile(f);
     e.target.value = ""; // 同じファイルを再選択できるようリセット
   });
-  document.getElementById("btnAudio").addEventListener("click", generateAudio);
+  document.getElementById("btnAudio").addEventListener("click", () => {
+    // キャッシュを使う通常生成は確認ダイアログ不要。キャッシュ無視(時間がかかる)の時だけ確認する。
+    const forceRebuild = !!document.getElementById("chkForceRebuild")?.checked;
+    generateAudio(forceRebuild);
+  });
   document.getElementById("btnExportVideo").addEventListener("click", exportVideo);
   document.getElementById("btnAdd").addEventListener("click", () => addTurnAfter(false));
   document.getElementById("btnAddInherit").addEventListener("click", () => addTurnAfter(true));
