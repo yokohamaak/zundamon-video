@@ -106,4 +106,10 @@ export type WhiteboardExplainInsertProps = {
    * (used by run-story to render the project's own Avatar component here).
    */
   characterSlot?: import('react').ReactNode;
+  /**
+   * Per-turn override of which of the 3 sections are shown (index 0..2).
+   * Omitted/undefined index defaults to visible. Lets a multi-turn narration
+   * reveal one section per turn instead of all 3 within a single turn.
+   */
+  visibleSections?: [boolean, boolean, boolean];
 };

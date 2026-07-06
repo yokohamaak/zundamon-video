@@ -196,6 +196,7 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
   width,
   height,
   characterSlot,
+  visibleSections,
 }) => {
   const [bgImageFailed, setBgImageFailed] = useState(false);
   const [boardImageFailed, setBoardImageFailed] = useState(false);
@@ -294,13 +295,14 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
         const visibility = showAt(key);
         const rect = layout.sections[index];
         const iconImage = resolveIconImage(normalized, section.icon);
+        const sectionHidden = visibleSections?.[index] === false;
         return (
           <div
             key={index}
             style={{
               position: 'absolute',
               inset: 0,
-              opacity: visibility.opacity,
+              opacity: sectionHidden ? 0 : visibility.opacity,
               transform: `scale(${visibility.scale})`,
               transformOrigin: `${rect.x}px ${rect.y}px`,
             }}

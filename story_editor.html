@@ -5074,7 +5074,22 @@ function renderInsertFields(insert) {
         container.appendChild(makeField(`bullet ${b + 1}（16文字以内推奨）`, "text", `fWSecBullet${i}_${b}`, bullets[b] || ""));
       }
       container.appendChild(makeSelectField("icon", `fWSecIcon${i}`, ICON_OPTIONS, sec.icon || "none"));
+      const visibleRow = document.createElement("label");
+      visibleRow.className = "toggle-row";
+      const visibleCb = document.createElement("input");
+      visibleCb.type = "checkbox";
+      visibleCb.id = `fWSecVisible${i}`;
+      visibleCb.checked = insert.visibleSections ? insert.visibleSections[i] !== false : true;
+      visibleCb.addEventListener("change", collectInsert);
+      visibleRow.appendChild(visibleCb);
+      visibleRow.appendChild(document.createTextNode("このターンで表示する"));
+      container.appendChild(visibleRow);
     }
+    const visibleHint = document.createElement("div");
+    visibleHint.className = "field-hint";
+    visibleHint.style.cssText = "font-size:12px; opacity:0.75; padding:0 2px 8px;";
+    visibleHint.textContent = "複数ターンに分けて1項目ずつ表示したい時は、そのターンで見せたい項目だけチェックを残す。";
+    container.appendChild(visibleHint);
     container.appendChild(makeTextareaField("conclusion（結論・40文字以内推奨）", "fWConclusion", insert.conclusion || ""));
     const character = insert.character || {};
     container.appendChild(makeSelectField("character.pose（他のターンと同じポーズ）", "fWCharPose", POSE_OPTIONS, character.pose || ""));
@@ -6014,6 +6029,10 @@ function collectInsert() {
         bullets,
         icon: icon ? icon.value : "none",
       };
+    });
+    ins.visibleSections = [0, 1, 2].map((i) => {
+      const cb = document.getElementById(`fWSecVisible${i}`);
+      return cb ? cb.checked : true;
     });
     const conclusion = document.getElementById("fWConclusion");
     ins.conclusion = conclusion ? conclusion.value : "";
@@ -7153,6 +7172,7 @@ function buildDefaultInsert(kind, prev) {
         { heading: "解決", bullets: ["メモ化", "一覧化", "共有する"], icon: "checklist" },
       ],
       conclusion: "つまり：見える形にするのが大事！",
+      visibleSections: [true, true, true],
       character: { pose: "proud", expression: "happy" },
       animation: { mode: "step" },
     };

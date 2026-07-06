@@ -42,7 +42,7 @@ export type StoryInsert =
       muted?: boolean;
     }>;
   }
-  | ({ kind: "whiteboard_explain" } & WhiteboardExplainInsertConfig);
+  | ({ kind: "whiteboard_explain"; visibleSections?: [boolean, boolean, boolean] } & WhiteboardExplainInsertConfig);
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
@@ -2407,7 +2407,12 @@ const InsertOverlay: React.FC<{
         {insert.kind === "mailer" && <InsertMailer insert={insert} />}
         {insert.kind === "videocall" && <InsertVideoCall insert={insert} activeSpeaker={activeSpeaker} renderFeed={renderVideoCallFeed} />}
         {insert.kind === "whiteboard_explain" && (
-          <WhiteboardExplainInsert config={insert} durationInFrames={durationInFrames} characterSlot={whiteboardCharacterSlot} />
+          <WhiteboardExplainInsert
+            config={insert}
+            durationInFrames={durationInFrames}
+            characterSlot={whiteboardCharacterSlot}
+            visibleSections={insert.visibleSections}
+          />
         )}
       </AbsoluteFill>
     </AbsoluteFill>
