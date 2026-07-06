@@ -1309,13 +1309,23 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     cwd=ROOT_DIR, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT, text=True, bufsize=1, env=env,
                 )
+                tail_lines = []
                 for line in proc.stdout:
+                    tail_lines.append(line)
+                    if len(tail_lines) > 20:
+                        tail_lines.pop(0)
                     if not emit(line):
                         proc.kill()
                         break
                 proc.wait()
-                emit("__DONE__ ok\n" if proc.returncode == 0
-                     else "__DONE__ err 音声生成に失敗（VOICEVOX起動を確認）\n")
+                if proc.returncode == 0:
+                    emit("__DONE__ ok\n")
+                else:
+                    # 原因はVOICEVOX未起動とは限らない(話者プロファイル不足等の例外も同じ非0終了になる)ため、
+                    # 決め打ちメッセージにせず実際の最終出力行(Pythonの例外メッセージ等)をそのまま伝える。
+                    detail = "".join(tail_lines).strip().splitlines()
+                    reason = detail[-1].strip() if detail else "音声生成に失敗（VOICEVOX起動を確認）"
+                    emit("__DONE__ err " + reason + "\n")
             except Exception as e:
                 emit("__DONE__ err " + str(e) + "\n")
         elif path == "/api/export":
