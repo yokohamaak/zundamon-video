@@ -94,6 +94,19 @@
       "lowpass": 7200
     }
   },
+  "音声なし": {
+    "engine": "voicevox",
+    "speaker": 3
+  },
+  "弱々モブ": {
+    "engine": "voicevox",
+    "speaker": 73,
+    "params": {
+      "speedScale": 0.95,
+      "volumeScale": 0.85,
+      "intonationScale": 0.3
+    }
+  },
   "troublemaker_female_creepy": {
     "engine": "voicevox",
     "speaker": 8,

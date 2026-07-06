@@ -107,8 +107,11 @@ export type StoryTurn = {
     | "listening"
     | "sneak"
     | "wobble";
+  // 登場するキャラ/モブ。このターンの頭からスライドインして以後表示される。
   enter?: string[];
-  enterMode?: "instant";
+  // 登場方向（"left"/"right"）または即時登場（"instant"）。省略時は自分の居る側（近い画面端）から。
+  // exitDirと対称の仕様（キャラ・モブ共通）。
+  enterDir?: "left" | "right" | "instant";
   speakerAnchor?: string;
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
@@ -153,6 +156,10 @@ export type StoryTurn = {
   disableAutoBubbleSplit?: boolean;
   noLipSync?: boolean;
   sentences?: StorySentence[];
+  // ターン単位の自由配置(キャラ・モブ共通)。key=charId(zundamon等)またはmobId(営業等)。
+  // 値がオブジェクト: この時刻からその座標に手動配置(登場中ずっと固定、次の指定 or 退場まで有効)。
+  // 値がnull: この時刻から自動配置(名前付きアンカー/シーン既定)に戻す(手動配置の解除)。
+  manualPos?: Record<string, { x: number; y: number } | null>;
 };
 
 export type StoryOverlayAnchor = {
@@ -581,6 +588,97 @@ function resolveAnchorMapAt(
   return map;
 }
 
+// 手動配置(turn.manualPos)の遷移にかける秒数。SLIDE_DUR/TRANS と同系統の定数。
+const MANUAL_POS_TRANS = 0.6;
+
+type PosWaypoint = { time: number; x: number; y: number };
+
+// segment内で、対象id(charId/mobId)のmanualPosウェイポイント列を時刻順に返す。
+// manualPos[id]===null は「その時刻から自動配置に戻す」境界で、以降のウェイポイントには影響しない
+// （そこで一旦区切り、nullより後に指定があればそこから新たな手動配置として扱う）。
+function manualPosWaypoints(seg: Segment, id: string): PosWaypoint[] {
+  const points: PosWaypoint[] = [];
+  for (const turn of seg.turns) {
+    const entry = turn.manualPos?.[id];
+    if (entry === undefined) continue;
+    if (entry === null) {
+      points.length = 0; // 解除：これより前のウェイポイントは以後の解決に使わない
+      continue;
+    }
+    points.push({ time: turn.start, x: entry.x, y: entry.y });
+  }
+  return points;
+}
+
+// 時刻tにおける手動配置座標。直近のウェイポイントへ、開始から MANUAL_POS_TRANS 秒かけて
+// easeInOutCubicでなめらかに遷移し、以降は固定。ウェイポイントが無ければundefined(自動フォールバック)。
+// fallbackAt: 手動配置区間より前の時刻・初回遷移時の「自動計算座標」を得るための関数
+// （最初のウェイポイントへ移動する際の遷移元として使う）。
+function resolveManualPosAt(
+  seg: Segment,
+  id: string,
+  t: number,
+  fallbackAt: () => { x: number; y: number }
+): { x: number; y: number } | undefined {
+  const points = manualPosWaypoints(seg, id);
+  if (points.length === 0) return undefined;
+  let idx = -1;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].time <= t + 1e-6) idx = i; else break;
+  }
+  if (idx < 0) return undefined; // 最初のウェイポイントより前＝まだ自動配置
+  const cur = points[idx];
+  const from = idx > 0 ? points[idx - 1] : fallbackAt();
+  const k = easeInOutCubic(clamp((t - cur.time) / MANUAL_POS_TRANS, 0, 1));
+  return { x: lerp(from.x, cur.x, k), y: lerp(from.y, cur.y, k) };
+}
+
+// 既知キャラの実座標。turn.manualPos があればそれ（遷移込み）を優先し、無ければ
+// 名前付きアンカー(sceneDef.anchors[anchorOf[charId]])にフォールバックする。
+// カメラ/顔位置/描画位置/吹き出し位置など、アンカー参照箇所すべてがこの関数経由になるよう統一する。
+// アンカー(ボックス中心)⇔顔位置の変換オフセット。faceCyOf と同じ式の逆算。
+// 手動配置はドラッグ操作の直感に合わせて「顔の位置」を指定してもらうため、
+// 保存/補間はfaceY基準で行い、実際の描画基準点(ボックス中心)へはここで変換する。
+function charFaceOffset(charId: string, sceneDef: SceneDef): number {
+  const isFull = (sceneDef.figure ?? "bust") === "full";
+  const avatar = CHARACTERS[charId]?.avatar ?? charId;
+  const boxH = isFull ? fullBoxSize(avatar).h : AVATAR_BOX;
+  const avScale = sceneDef.scale ?? 1.9;
+  const ratio = isFull ? FACE_RATIO.full : FACE_RATIO.bust;
+  return (0.5 - ratio) * ((boxH * avScale) / 1080);
+}
+
+function resolveCharXY(
+  charId: string,
+  anchorOf: Record<string, string>,
+  sceneDef: SceneDef,
+  seg: Segment,
+  tb: number,
+  fallbackAnchor: { x: number; y: number } = { x: 0.5, y: 0.5 }
+): { x: number; y: number } {
+  const auto = sceneDef.anchors[anchorOf[charId] ?? "center"] ?? fallbackAnchor;
+  const faceOffset = charFaceOffset(charId, sceneDef);
+  const autoFace = { x: auto.x, y: auto.y - faceOffset };
+  const manualFace = resolveManualPosAt(seg, charId, tb, () => autoFace);
+  if (!manualFace) return auto;
+  return { x: manualFace.x, y: manualFace.y + faceOffset };
+}
+
+// モブの実座標。turn.manualPos があればそれ（遷移込み）を優先し、無ければ従来通り
+// シーン個別配置(sceneDef.mobs) → モブ既定(mobs.json) → シーン共通既定の順でフォールバックする。
+function resolveMobXY(
+  mobId: string,
+  seg: Segment,
+  tb: number,
+  sceneDef: SceneDef,
+  fallbackAnchor: { x: number; y: number } = { x: 0.5, y: 1.0 }
+): { x: number; y: number } {
+  const m = MOBS[mobId];
+  const place = sceneDef.mobs?.[mobId];
+  const auto = place ?? m?.anchor ?? sceneDef.mobAnchor ?? fallbackAnchor;
+  return resolveManualPosAt(seg, mobId, tb, () => auto) ?? auto;
+}
+
 // segment 全体で登場する全キャラ（登場順）。立ち位置を区間中ずっと固定するため最終集合で決める。
 // モブ（CHARACTERS 未定義）はレイアウトから除外する。
 function segmentRoster(seg: Segment): string[] {
@@ -596,48 +694,50 @@ function segmentRoster(seg: Segment): string[] {
   return order;
 }
 
-// 各キャラが segment 内で初めて画面に出る時刻（秒）。
-// モブ（CHARACTERS 未定義）は除外（アバターを持たないのでレイアウト計算に不要）。
-function entranceTimes(seg: Segment): Record<string, number> {
+// 対象(isTarget)が segment 内で初めて画面に出る時刻（秒）。
+// isKnownChar を渡せばキャラ用、isMob を渡せばモブ用として同じロジックを再利用できる
+// （以前はキャラ用/モブ用で別々の実装だったため、片方だけ機能を足し忘れる事故があった）。
+function entranceTimesFor(seg: Segment, isTarget: (id: string) => boolean): Record<string, number> {
   const e: Record<string, number> = {};
   for (const turn of seg.turns) {
     for (const c of turn.enter ?? []) {
-      if (isKnownChar(c) && !(c in e)) e[c] = turn.start;
+      if (isTarget(c) && !(c in e)) e[c] = turn.start;
     }
-    if (!isNarrationTurn(turn) && isKnownChar(turn.speaker) && !(turn.speaker in e)) e[turn.speaker] = turn.start;
+    if (!isNarrationTurn(turn) && isTarget(turn.speaker) && !(turn.speaker in e)) e[turn.speaker] = turn.start;
   }
   return e;
 }
 
-function instantEnterChars(seg: Segment): Record<string, true> {
-  const out: Record<string, true> = {};
+// 各対象の登場方向（turn.enterDir）。省略時は undefined（＝自分の居る側から）。
+function enterDirsFor(seg: Segment, isTarget: (id: string) => boolean): Record<string, "left" | "right" | "instant"> {
+  const d: Record<string, "left" | "right" | "instant"> = {};
   for (const turn of seg.turns) {
-    if (turn.enterMode !== "instant") continue;
+    if (!turn.enterDir) continue;
     for (const c of turn.enter ?? []) {
-      if (isKnownChar(c)) out[c] = true;
+      if (isTarget(c)) d[c] = turn.enterDir;
     }
   }
-  return out;
+  return d;
 }
 
-// 各キャラの退場時刻（秒）。turn.exit で指定されたキャラは、そのターンの end で退場する。
-function exitTimes(seg: Segment): Record<string, number> {
+// 各対象の退場時刻（秒）。turn.exit で指定された対象は、そのターンの end で退場する。
+function exitTimesFor(seg: Segment, isTarget: (id: string) => boolean): Record<string, number> {
   const e: Record<string, number> = {};
   for (const turn of seg.turns) {
     for (const c of turn.exit ?? []) {
-      if (isKnownChar(c)) e[c] = turn.end;
+      if (isTarget(c)) e[c] = turn.end;
     }
   }
   return e;
 }
 
-// 各キャラの退場方向（turn.exitDir）。省略時は undefined（＝自分の居る側へ）。
-function exitDirs(seg: Segment): Record<string, "left" | "right" | "instant"> {
+// 各対象の退場方向（turn.exitDir）。省略時は undefined（＝自分の居る側へ）。
+function exitDirsFor(seg: Segment, isTarget: (id: string) => boolean): Record<string, "left" | "right" | "instant"> {
   const d: Record<string, "left" | "right" | "instant"> = {};
   for (const turn of seg.turns) {
     if (!turn.exitDir) continue;
     for (const c of turn.exit ?? []) {
-      if (isKnownChar(c)) d[c] = turn.exitDir;
+      if (isTarget(c)) d[c] = turn.exitDir;
     }
   }
   return d;
@@ -2507,10 +2607,18 @@ function bubbleSide(x: number, width: number): "left" | "right" {
   return "left";
 }
 
+// 半角(英数・半角カナ等)は全角の半分程度の見た目幅しかないため、全文字を全角扱いで
+// 見積もると半角文字混じりのセリフで箱が実際の描画幅より広くなり、余白(隙間)が生まれる。
+// 文字ごとに半角/全角を判定して幅を積み上げることで、実際の見た目に近い箱幅にする。
+const HALF_WIDTH_CHAR_RE = /[ -ÿ｡-ￜ￨-￮]/;
+
 function bubbleMetrics(text: string, stacked: boolean, maxWidth: number) {
   const fontSize = bubbleFontSize(text, stacked);
-  const chars = String(text || "").replace(/\s+/g, "").length;
-  const estTextWidth = chars * fontSize * 0.98;
+  const chars = String(text || "").replace(/\s+/g, "");
+  let estTextWidth = 0;
+  for (const ch of chars) {
+    estTextWidth += fontSize * (HALF_WIDTH_CHAR_RE.test(ch) ? 0.56 : 0.98);
+  }
   const width = Math.max(120, estTextWidth + 66);
   return { fontSize, width };
 }
@@ -2529,9 +2637,11 @@ const FACE_RATIO = { bust: 0.3, full: 0.12 } as const;
 function faceCyOf(
   charId: string,
   anchorOf: Record<string, string>,
-  sceneDef: SceneDef
+  sceneDef: SceneDef,
+  seg: Segment,
+  tb: number
 ): number {
-  const anchor = sceneDef.anchors[anchorOf[charId] ?? "center"] ?? { x: 0.5, y: 0.5 };
+  const anchor = resolveCharXY(charId, anchorOf, sceneDef, seg, tb);
   const isFull = (sceneDef.figure ?? "bust") === "full";
   const avatar = CHARACTERS[charId]?.avatar ?? charId;
   const boxH = isFull ? fullBoxSize(avatar).h : AVATAR_BOX;
@@ -2543,10 +2653,11 @@ function faceCyOf(
 function targetCam(
   chars: string[],
   anchorOf: Record<string, string>,
-  sceneDef: SceneDef
+  sceneDef: SceneDef,
+  seg: Segment,
+  tb: number
 ): Cam {
-  const ax = (c: string) =>
-    (sceneDef.anchors[anchorOf[c] ?? "center"] ?? { x: 0.5 }).x;
+  const ax = (c: string) => resolveCharXY(c, anchorOf, sceneDef, seg, tb).x;
   if (chars.length <= 1) {
     if (sceneDef.soloZoom === false) {
       return { s: 1.0, cx: chars[0] ? ax(chars[0]) : 0.5, cy: 0.5 };
@@ -2557,7 +2668,7 @@ function targetCam(
     // 足元の吹き出しスペースが確保される。
     const dy = sceneDef.soloZoomDy ?? 0.08;
     const cy = chars[0]
-      ? clamp(faceCyOf(chars[0], anchorOf, sceneDef) + dy, 0, 1)
+      ? clamp(faceCyOf(chars[0], anchorOf, sceneDef, seg, tb) + dy, 0, 1)
       : 0.5;
     return { s: soloZoomScale, cx: chars[0] ? ax(chars[0]) : 0.5, cy };
   }
@@ -2748,8 +2859,16 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const script = story.script;
   const segments = buildSegments(script);
   const active = activeTurnAt(script, t);
-  const activeProgress = clamp((t - active.start) / Math.max(active.end - active.start, 0.001), 0, 1);
   const activeIdx = script.findIndex((x) => x.id === active.id);
+  // セリフ無しターン(SE/演出だけの間)は音声尺が0で active.end===active.start になりうる。
+  // その場合、activeTurnAtは次ターンの開始まで居座り続ける(=画面には数秒映る)のに、
+  // ここを active.end-active.start で割ると即座に progress=1 まで到達してしまい、
+  // typingFlood等の演出フェードが1フレームで終わって実質見えなくなっていた。
+  // インサートの実効終端(dispEnd)と同じ考え方で、次ターンの開始を実効終端として使う。
+  const nextTurnForProgress = activeIdx >= 0 && activeIdx < script.length - 1 ? script[activeIdx + 1] : null;
+  const activeEffectiveEnd =
+    active.end > active.start ? active.end : (nextTurnForProgress?.start ?? active.end);
+  const activeProgress = clamp((t - active.start) / Math.max(activeEffectiveEnd - active.start, 0.001), 0, 1);
   const seg =
     segments.find((s) => s.turns.some((x) => x.id === active.id)) ??
     segments[0];
@@ -2798,10 +2917,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const roster = segmentRoster(seg);
   const anchorOfAt = (tb: number) => resolveAnchorMapAt(seg, roster, sceneDef, tb);
   const anchorOf = anchorOfAt(t);
-  const entrance = entranceTimes(seg);
-  const instantEnter = instantEnterChars(seg);
-  const exit = exitTimes(seg);
-  const exitDir = exitDirs(seg);
+  const entrance = entranceTimesFor(seg, isKnownChar);
+  const enterDirs = enterDirsFor(seg, isKnownChar);
+  const exit = exitTimesFor(seg, isKnownChar);
+  const exitDir = exitDirsFor(seg, isKnownChar);
   const effectiveExitAt = (charId: string) => {
     const leaving = exit[charId];
     if (leaving === undefined) return undefined;
@@ -2822,6 +2941,32 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       )
   );
 
+  // モブ側も同じ「登場〜退場」の考え方・同じスライド演出で表示区間を判定する
+  // （アバターと違い立ち位置はモブ固有のanchor固定なのでレイアウト/カメラのrosterには混ぜない）。
+  // これにより、退場を明示しない限り同じモブの発言が連続してもスライドインし直さない。
+  const mobEntrance = entranceTimesFor(seg, isMob);
+  const mobEnterDirs = enterDirsFor(seg, isMob);
+  const mobExit = exitTimesFor(seg, isMob);
+  const mobExitDir = exitDirsFor(seg, isMob);
+  const mobEffectiveExitAt = (mobId: string) => {
+    const leaving = mobExit[mobId];
+    if (leaving === undefined) return undefined;
+    if (mobExitDir[mobId] === "instant" && nextSeg) {
+      return Math.max(leaving, nextSeg.start);
+    }
+    return leaving;
+  };
+  const presentMobs = Object.keys(mobEntrance).filter(
+    (id) =>
+      mobEntrance[id] <= t + 1e-6 &&
+      (
+        mobEffectiveExitAt(id) === undefined ||
+        (mobExitDir[id] === "instant"
+          ? t <= mobEffectiveExitAt(id)! + 1e-6
+          : t < mobEffectiveExitAt(id)! + SLIDE_DUR)
+      )
+  );
+
   // ── 仮想カメラ：登場/退場のたびに「寄り↔引き」を滑らかに遷移（カットしない） ──
   const TRANS = 0.8; // 遷移にかける秒数
   // 境界時刻＝登場時刻＋退場時刻（退場で人数が減ればカメラも寄りへ遷移する）。
@@ -2838,8 +2983,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     roster.filter(
       (c) => entrance[c] <= tb + 1e-6 && (effectiveExitAt(c) === undefined || tb <= effectiveExitAt(c)! + 1e-6)
     );
-  const Tcur = targetCam(presentAt(times[idx]), anchorOfAt(times[idx]), sceneDef);
-  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOfAt(times[idx - 1]), sceneDef) : Tcur;
+  const Tcur = targetCam(presentAt(times[idx]), anchorOfAt(times[idx]), sceneDef, seg, times[idx]);
+  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOfAt(times[idx - 1]), sceneDef, seg, times[idx - 1]) : Tcur;
   const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
   // cam(s,cx,cy) → クランプ済みステージ変換(tx,ty,s)。
   // ★「補間してからクランプ」ではなく「クランプ済み変換同士を補間」する。
@@ -2881,13 +3026,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const focusStart = activeIdx >= 0 ? resolveSpeakerFocusStart(script, activeIdx) : null;
   let focusBubbleK = 0;
   if (focusStart != null) {
-    const anchorName = anchorOf[active.speaker] ?? "center";
-    const speakerAnchor = sceneDef.anchors[anchorName] ?? { x: 0.5 };
+    const speakerAnchor = resolveCharXY(active.speaker, anchorOf, sceneDef, seg, t);
     const focusTf = toTf({
       s: tf.s + (sceneDef.focusZoom ?? 0.3),
       cx: speakerAnchor.x,
       // 縦は話者の顔位置＋オフセット(focusDy)。プッシュインは寄りが強いので既定は顔寄りめ。
-      cy: clamp(faceCyOf(active.speaker, anchorOf, sceneDef) + (sceneDef.focusDy ?? 0.04), 0, 1),
+      cy: clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.04), 0, 1),
     });
     // emphasis を立てた時点から 0.5s でイーズインし、その後は話者交代まで維持する。
     const focusK = easeInOutCubic(clamp((t - focusStart) / 0.5, 0, 1));
@@ -3107,8 +3251,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const renderAvatar = (charId: string) => {
     const cdef = CHARACTERS[charId];
     if (!cdef) return null;
-    const anchorName = anchorOf[charId] ?? "center";
-    const anchor = sceneDef.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
+    const anchor = resolveCharXY(charId, anchorOf, sceneDef, seg, t, { x: 0.5, y: 1.02 });
     const isSpeaker = !isNarrationTurn(active) && charId === active.speaker;
     const lipsyncEnabled = isSpeaker && !active.noLipSync;
     // 向き: 台本の face 指定 > x座標からの自動（中央を向く）。
@@ -3157,12 +3300,15 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     // 途中で登場するキャラ（区間の頭からいる人ではない）は、自分の側からスライドイン。
     const entered = entrance[charId] ?? seg.start;
     const isInitial = entered <= seg.start + 1e-6;
-    const entersInstantly = !!instantEnter[charId] || isFlashbackBoundaryStart(entered);
+    const enterDir = enterDirs[charId];
+    const entersInstantly = enterDir === "instant" || isFlashbackBoundaryStart(entered);
     let slideOffsetPx = 0;
     if (!isInitial && !entersInstantly) {
       const sp = clamp((t - entered) / SLIDE_DUR, 0, 1); // 0.5秒で着地
       const e = easeOutCubic(sp);
-      const fromXNorm = anchor.x < 0.5 ? -0.35 : 1.35; // 画面外（自分側）から
+      // 登場方向：明示指定があればそちら、無ければ自分の居る側（近い画面端）から。
+      const fromXNorm =
+        enterDir === "right" ? 1.35 : enterDir === "left" ? -0.35 : anchor.x < 0.5 ? -0.35 : 1.35;
       slideOffsetPx = (1 - e) * (fromXNorm - anchor.x) * width;
     }
     // 退場：exit 時刻になったら自分の側へスライドアウト（0.5秒で画面外へ）。
@@ -3216,36 +3362,57 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
 
-  // モブ（1枚絵）描画：話者がモブのとき、その間だけ立たせる（フェードイン）。
-  // 発話中は speakerAmp（実音声RMS）に応じて口の開閉画像を切り替える（口パク）。
+  // モブ（1枚絵）描画：「登場〜退場」の区間だけ立たせる（登場でフェードイン、退場でフェードアウト）。
+  // 同じモブの発言が連続しても、明示的に退場していない限りフェードインし直さない。
+  // 発話中（このモブが現在の話者の間）だけ speakerAmp（実音声RMS）に応じて口パクする。
   // 画像が無ければ onError で非表示にし、render を壊さない（素材未配置でも安全）。
   const renderMob = (mobId: string) => {
     const m = MOBS[mobId];
     if (!m) return null;
-    // 配置はシーンデータ(scene.mobs[mob])優先 → MobDef既定 → シーン既定。
+    // 配置はturn.manualPos(手動配置)優先 → シーンデータ(scene.mobs[mob]) → MobDef既定 → シーン既定。
     const place = sceneDef.mobs?.[mobId];
     if (place?.hidden) return null; // 立ち絵を非表示（チャット/音声のみ登場）
-    const a = place ?? m.anchor ?? sceneDef.mobAnchor ?? { x: 0.5, y: 1.0 };
+    const a = resolveMobXY(mobId, seg, t, sceneDef);
     const sc = place?.scale ?? m.scale ?? 1;
     const h = (sceneDef.mobHeight ?? 760) * sc;
-    const inP = clamp((t - active.start) / 0.3, 0, 1); // 話し始めでフェードイン
-    const mouthOpen = !active.noLipSync && speakerAmp >= MOUTH_HALF;
+    const isSpeakingNow = !isNarrationTurn(active) && active.speaker === mobId;
+    const entranceAt = mobEntrance[mobId] ?? active.start;
+    const exitAt = mobExit[mobId];
+    // アバターと同じ「登場〜退場」のスライド演出（フェードではなく画面端からの出入り）。
+    const enterDir = mobEnterDirs[mobId];
+    const exitDirVal = mobExitDir[mobId];
+    const isInitial = entranceAt <= seg.start + 1e-6;
+    const entersInstantly = enterDir === "instant";
+    let slideOffsetPx = 0;
+    if (!isInitial && !entersInstantly) {
+      const sp = clamp((t - entranceAt) / SLIDE_DUR, 0, 1);
+      const e = easeOutCubic(sp);
+      const fromXNorm = enterDir === "right" ? 1.35 : enterDir === "left" ? -0.35 : a.x < 0.5 ? -0.35 : 1.35;
+      slideOffsetPx = (1 - e) * (fromXNorm - a.x) * width;
+    }
+    const exitsInstantly = exitDirVal === "instant";
+    if (exitAt !== undefined && t >= exitAt && !exitsInstantly) {
+      const sp = clamp((t - exitAt) / SLIDE_DUR, 0, 1);
+      const e = easeInOutCubic(sp);
+      const toXNorm = exitDirVal === "right" ? 1.35 : exitDirVal === "left" ? -0.35 : a.x < 0.5 ? -0.35 : 1.35;
+      slideOffsetPx = e * (toXNorm - a.x) * width;
+    }
+    const mouthOpen = isSpeakingNow && !active.noLipSync && speakerAmp >= MOUTH_HALF;
     return (
       <div
         key={`mob-${mobId}`}
         style={{
           position: "absolute",
-          left: a.x * width,
+          left: a.x * width + slideOffsetPx,
           top: a.y * height,
           transform: `translate(-50%, -100%) scaleX(${m.flip ? -1 : 1})`,
           transformOrigin: "bottom center",
-          opacity: inP,
         }}
       >
         <img
           src={staticFile(mobImage(
             mobId,
-            active.expression ?? lastExpressionOf(script, mobId, t),
+            (isSpeakingNow ? active.expression : undefined) ?? lastExpressionOf(script, mobId, t),
             mouthOpen
           ))}
           onError={(e) => {
@@ -3293,8 +3460,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     whiteSpace: "nowrap",
   });
   const bubbleGroupPlacement = (speaker: string, groupWidth: number) => {
-    const aName = anchorOf[speaker] ?? "center";
-    const a = sceneDef.anchors[aName] ?? { x: 0.5, y: 1.02 };
+    const a = isMob(speaker)
+      ? resolveMobXY(speaker, seg, t, sceneDef, { x: 0.5, y: 1.02 })
+      : resolveCharXY(speaker, anchorOf, sceneDef, seg, t, { x: 0.5, y: 1.02 });
     const finalSx = stx + a.x * width * Tcur.s;
     const currentSx = tf.tx + a.x * width * tf.s;
     const baseSx = lerp(finalSx, currentSx, followK);
@@ -3546,7 +3714,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     if (!nextActive) return null;
     const nextRoster = segmentRoster(nextSeg);
     const nextAnchorOf = resolveAnchorMapAt(nextSeg, nextRoster, nextSceneDef, nextSeg.start);
-    const nextEntrance = entranceTimes(nextSeg);
+    const nextEntrance = entranceTimesFor(nextSeg, isKnownChar);
     const nextPresent = nextRoster.filter(
       (c) => (nextEntrance[c] ?? nextSeg.start) <= nextSeg.start + 1e-6
     );
@@ -3554,8 +3722,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     return nextPresent.map((charId) => {
       const cdef = CHARACTERS[charId];
       if (!cdef) return null;
-      const anchorName = nextAnchorOf[charId] ?? "center";
-      const anchor = nextSceneDef!.anchors[anchorName] ?? { x: 0.5, y: 1.02 };
+      const anchor = resolveCharXY(charId, nextAnchorOf, nextSceneDef!, nextSeg!, nextSeg!.start, { x: 0.5, y: 1.02 });
       const isSpeaker = !isNarrationTurn(nextActive) && charId === nextActive.speaker;
       const want: "left" | "right" =
         nextActive.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
@@ -3787,8 +3954,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         {/* キャラ（back と front の間） */}
         {presentNow.map(renderAvatar)}
 
-        {/* モブ（話者がモブのとき1枚絵を立たせる。素材未配置なら自動で非表示） */}
-        {!isNarrationTurn(active) && isMob(active.speaker) ? renderMob(active.speaker) : null}
+        {/* モブ（登場〜退場の区間だけ1枚絵を立たせる。素材未配置なら自動で非表示） */}
+        {presentMobs.map(renderMob)}
 
         {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
         {sceneDef.front ? (

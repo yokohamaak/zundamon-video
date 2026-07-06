@@ -13,6 +13,12 @@ from tts_voicevox import synthesize_dialogue  # noqa: E402
 
 VOICE_PROFILES_PATH = os.path.join(ROOT, "config", "voice_profiles.json")
 VIDEO_PUBLIC_DIR = os.path.join(ROOT, "video", "public")
+MOBS_JSON_PATH = os.path.join(VIDEO_PUBLIC_DIR, "mobs.json")
+
+# この名前を話者に選ぶと、吹き出しは通常どおり表示されつつVOICEVOX音声は合成しない
+# （SEだけ鳴らしたい時用）。build_script_turns()でこの話者の本文を強制的に空にして実現するため、
+# ここに紐づくVOICEVOX話者IDは実際には使われない（ダミーでよい）。
+SILENT_SPEAKER_NAME = "音声なし"
 
 DEFAULT_VOICE_PROFILES = {
     "zundamon": {"engine": "voicevox", "speaker": 3, "params": {"intonationScale": 1.3}},
@@ -20,6 +26,7 @@ DEFAULT_VOICE_PROFILES = {
     "営業": {"engine": "voicevox", "speaker": 11},
     "部長": {"engine": "voicevox", "speaker": 13},
     "AI": {"engine": "voicevox", "speaker": 8, "params": {"intonationScale": 0.18}},
+    SILENT_SPEAKER_NAME: {"engine": "voicevox", "speaker": 3},
     "棒読み男": {
         "engine": "voicevox",
         "speaker": 11,
@@ -103,7 +110,25 @@ def load_voice_profiles(path=VOICE_PROFILES_PATH):
                 **(profile.get("fx") or {}),
             }
         profiles[name] = merged
+    for name, voice in _load_mob_voices().items():
+        if profiles.get(name, {}).get("engine") == "voicevox":
+            continue  # config/voice_profiles.json の明示設定を優先
+        profiles[name] = {"engine": "voicevox", "speaker": voice["speaker"], "params": voice.get("params", {})}
     return profiles
+
+
+def _load_mob_voices():
+    """mobs.json に登録された「音声」設定（モブ管理画面で選択したもの）を読む。"""
+    if not os.path.exists(MOBS_JSON_PATH):
+        return {}
+    with open(MOBS_JSON_PATH, encoding="utf-8") as f:
+        mobs = json.load(f) or {}
+    voices = {}
+    for name, d in mobs.items():
+        voice = (d or {}).get("voice")
+        if isinstance(voice, dict) and isinstance(voice.get("speaker"), int):
+            voices[name] = voice
+    return voices
 
 
 def build_tts_config(voice_profiles, on_progress=None):
@@ -129,16 +154,25 @@ def normalize_spoken_text(text):
 
 def build_script_turns(data, voice_profiles):
     insert_hold = 2.5
+    silent_read_rate = 0.12  # 音声なし話者の表示時間を文字数から見積もる目安秒数/字
     script = []
     for t in data["script"]:
         pause = t.get("pause")
-        if t.get("insert") and not (t.get("text") or "").strip() and not pause:
-            pause = insert_hold
         narration_voice = t.get("narrationVoice")
         speaker = narration_voice or t["speaker"]
+        bubble_text = (t.get("text") or "").strip()
+        is_silent = speaker == SILENT_SPEAKER_NAME
+        if t.get("insert") and not bubble_text and not pause:
+            pause = insert_hold
+        elif is_silent and bubble_text and not pause:
+            # 音声を合成しない分、セリフの長さに応じた最低表示時間を確保する
+            # （吹き出しは表示するが、対応する音声が無いため尺の根拠がpauseしかない）。
+            pause = max(insert_hold, len(bubble_text) * silent_read_rate)
         if speaker not in voice_profiles:
             raise KeyError(f"話者プロファイルがありません: {speaker}")
-        item = {"speaker": speaker, "text": normalize_spoken_text(t.get("text", ""))}
+        # 音声なし話者は、吹き出し用の本文があっても合成には送らない（SEのみ鳴らす）。
+        tts_text = "" if is_silent else t.get("text", "")
+        item = {"speaker": speaker, "text": normalize_spoken_text(tts_text)}
         if pause:
             item["pause"] = pause
         if isinstance(t.get("voice"), dict) and t["voice"]:

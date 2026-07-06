@@ -19,6 +19,8 @@ import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
+from urllib.request import urlopen
+from urllib.error import URLError
 
 import expression_editor as expression_editor_module
 import pose_editor as pose_editor_module
@@ -101,6 +103,12 @@ def _save_mobs(data):
         for state, pair in d["images"].items():
             if not isinstance(pair, dict) or not pair.get("closed") or not pair.get("open"):
                 raise ValueError(f"{name}/{state} の画像(closed/open)が不正です")
+        voice = d.get("voice")
+        if voice is not None:
+            if not isinstance(voice, dict) or not isinstance(voice.get("speaker"), int):
+                raise ValueError(f"{name} の音声設定(speaker)が不正です")
+            if "params" in voice and not isinstance(voice["params"], dict):
+                raise ValueError(f"{name} の音声パラメータ(params)が不正です")
     with open(MOBS_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write("\n")
@@ -109,7 +117,7 @@ def _save_mobs(data):
 # 話者一覧（zundamon/metan は StoryVideo.tsx の CHARACTERS 側でハードコード。
 # モブは mobs.json から動的に取得し、新規追加が即座に選択肢へ反映されるようにする）
 BASE_SPEAKERS = [
-    "zundamon", "metan", "AI",
+    "zundamon", "metan", "AI", "音声なし",
     "troublemaker_male_normal", "troublemaker_male_creepy",
     "troublemaker_female_normal", "troublemaker_female_creepy",
 ]
@@ -120,11 +128,30 @@ BASE_SPEAKER_ICONS = {
     "zundamon": "avatars/zundamon/icon.png",
     "metan": "avatars/metan/icon.png",
     "AI": None,
+    "音声なし": None,
     "troublemaker_male_normal": None,
     "troublemaker_male_creepy": None,
     "troublemaker_female_normal": None,
     "troublemaker_female_creepy": None,
 }
+
+
+VOICEVOX_URL = os.environ.get("VOICEVOX_URL") or "http://localhost:50021"
+
+
+def _load_voicevox_speakers(timeout=3):
+    """起動中のVOICEVOXエンジンからスタイル一覧を取得（未起動なら空リスト）。"""
+    try:
+        with urlopen(f"{VOICEVOX_URL}/speakers", timeout=timeout) as resp:
+            data = json.load(resp)
+    except (URLError, TimeoutError, OSError, json.JSONDecodeError):
+        return []
+    styles = []
+    for speaker in data or []:
+        for style in speaker.get("styles", []):
+            styles.append({"id": style["id"], "label": f"{speaker['name']}（{style['name']}）"})
+    styles.sort(key=lambda s: s["id"])
+    return styles
 
 
 def _current_speakers_and_icons():
@@ -581,9 +608,10 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "continueBubble": true … 直前の同話者セリフを上段に残して2段吹き出しにする',
         '- "disableAutoBubbleSplit": true … 句点や ! ? があってもこの行だけ吹き出し自動分割を止める',
         '- "speakerAnchor": "left" … その行の話者を指定アンカー位置へ立たせる。以後そのシーン中はその位置を使う',
-        '- "enter": ["metan"] … そのターンでキャラを登場させる',
-        '- "enter": ["metan"], "enterMode": "instant" … スライドなしで即時登場させる（回想の切り替え向け）',
-        '- "exit": ["metan"], "exitDir": "right" … キャラを右へスライド退場させる',
+        '- "enter": ["metan"] … そのターンでキャラ/モブを登場させる（自分の居る側からスライドイン）',
+        '- "enter": ["metan"], "enterDir": "left" … 左からスライド登場させる（"right"も可）',
+        '- "enter": ["metan"], "enterDir": "instant" … スライドなしで即時登場させる（回想の切り替え向け）',
+        '- "exit": ["metan"], "exitDir": "right" … キャラ/モブを右へスライド退場させる',
         '- "exit": ["metan"], "exitDir": "instant" … シーン境界まで立たせたまま即時退場させる',
         '- "face": {"zundamon":"left"} … 向きの明示（通常は不要）',
         '- "se": [{"file":"se/alarm.mp3","at":0.0,"volume":0.9}] … この行だけ鳴らす手動SE',
@@ -663,12 +691,12 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
-    "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterMode", "face",
+    "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterDir", "face",
     "emphasis", "shake", "cameraEffect", "flashback", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
     "impactText", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
-    "irisOut", "effectSettings", "audioFx", "chorus", "closing",
+    "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall"}
 
@@ -1090,6 +1118,9 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 self._send_json(_load_mobs())
             except Exception as e:
                 self._send_error_json(500, str(e))
+
+        elif path == "/api/voicevox/speakers":
+            self._send_json(_load_voicevox_speakers())
 
         elif path.startswith("/img/"):
             rel = path[len("/img/"):]

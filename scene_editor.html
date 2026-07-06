@@ -1188,13 +1188,17 @@ function setupDrag() {
     const sy = ((e.clientY - rect.top) / stageScale - tf.ty) / tf.s;
 
     if (draggingMob) {
-      // モブのx,y を更新（bottom-center 基準なのでそのままステージ正規化座標）
-      const nx = Math.max(0, Math.min(1, sx / STAGE_W));
-      const ny = Math.max(0, Math.min(1, sy / STAGE_H));
+      // モブの座標データは bottom-center 基準（StoryVideo と同じ）だが、
+      // ドラッグ操作としては画像の縦中央あたりを掴んだ感覚にしたいので、
+      // マウス位置に画像高さの半分を足してから bottom-center 座標として保存する。
       const sc = currentScene();
       if (!sc) return;
       if (!sc.mobs) sc.mobs = {};
       const prev = sc.mobs[draggingMob.mobId] ?? { x: 0.5, y: 0.98, scale: 0.85 };
+      const mh = MOB_BASE_H * prev.scale;
+      // 0-1にクランプしない：足元や体の一部を画面外にはみ出させる配置をあえて許可する。
+      const nx = sx / STAGE_W;
+      const ny = (sy + mh / 2) / STAGE_H;
       const updated = {
         x: Math.round(nx * 1000) / 1000,
         y: Math.round(ny * 1000) / 1000,

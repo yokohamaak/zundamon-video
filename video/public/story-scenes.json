@@ -34,9 +34,9 @@
       },
       "mobs": {
         "営業": {
-          "x": 0.842,
-          "y": 0.444,
-          "scale": 0.6,
+          "x": 0.214,
+          "y": 1,
+          "scale": 1.5,
           "hidden": true
         },
         "部長": {
@@ -44,6 +44,16 @@
           "y": 0.426,
           "scale": 0.62,
           "hidden": true
+        },
+        "同僚": {
+          "x": 0.411,
+          "y": 0.881,
+          "scale": 1.25
+        },
+        "弱い同僚": {
+          "x": 0.405,
+          "y": 0.952,
+          "scale": 1.35
         }
       },
       "soloZoomCy": 0.45,
@@ -178,16 +188,18 @@
           "scale": 0.85,
           "hidden": true
         }
-      }
+      },
+      "soloZoomCy": 0.48,
+      "soloZoomScale": 1.25
     },
     "rooftop": {
       "label": "屋上（夕方）",
       "bg": "background/rooftop.png",
       "front": null,
       "shot": "duo",
-      "camera": "slow-zoom",
+      "camera": "static",
       "figure": "full",
-      "scale": 1.3,
+      "scale": 1.5,
       "bgBlur": 0,
       "cast": {
         "zundamon": "right",
@@ -199,12 +211,12 @@
           "y": 0.96
         },
         "left": {
-          "x": 0.3,
-          "y": 0.596
+          "x": 0.303,
+          "y": 0.658
         },
         "right": {
-          "x": 0.743,
-          "y": 0.635
+          "x": 0.687,
+          "y": 0.705
         }
       },
       "mobs": {
@@ -263,48 +275,6 @@
       },
       "figure": "full"
     },
-    "rooftop_blur": {
-      "label": "屋上 ぼやけ",
-      "bg": "background/rooftop.png",
-      "front": null,
-      "figure": "full",
-      "shot": "duo",
-      "camera": "static",
-      "scale": 1.25,
-      "bgBlur": 10,
-      "cast": {
-        "metan": "left",
-        "zundamon": "right"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.279,
-          "y": 0.588
-        },
-        "right": {
-          "x": 0.74,
-          "y": 0.665
-        }
-      }
-    },
     "izakaya": {
       "label": "居酒屋",
       "bg": "background/izakaya.png",
@@ -313,8 +283,8 @@
       "shot": "duo",
       "camera": "static",
       "soloZoom": true,
-      "soloZoomScale": 1.4,
-      "soloZoomCy": 0.58,
+      "soloZoomScale": 1.25,
+      "soloZoomCy": 0.47,
       "scale": 1.5,
       "bgBlur": 3,
       "cast": {
@@ -401,7 +371,7 @@
       "figure": "full",
       "shot": "duo",
       "camera": "static",
-      "soloZoom": true,
+      "soloZoom": false,
       "soloZoomScale": 1.4,
       "soloZoomCy": 0.58,
       "scale": 1.5,
@@ -445,10 +415,10 @@
       "figure": "full",
       "shot": "duo",
       "camera": "static",
-      "soloZoom": true,
+      "soloZoom": false,
       "soloZoomScale": 1.4,
       "soloZoomCy": 0.47,
-      "scale": 1.55,
+      "scale": 1.35,
       "bgBlur": 2,
       "cast": {
         "metan": "left",
@@ -568,6 +538,136 @@
         "right": {
           "x": 0.68,
           "y": 0.68
+        }
+      }
+    },
+    "vendor_office": {
+      "label": "ベンダー会議室",
+      "bg": "background/ベンダー会議室.png",
+      "front": null,
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomCy": 0.58,
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {},
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "roottop-hiru": {
+      "label": "屋上（昼）",
+      "bg": "background/roottop_hiru.png",
+      "front": null,
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.2,
+      "soloZoomCy": 0.58,
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.383,
+          "y": 1,
+          "scale": 1.3
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.67,
+          "y": 0.561
+        }
+      }
+    },
+    "office_copy": {
+      "label": "office_copy",
+      "bg": "background/copy.png",
+      "front": null,
+      "figure": "full",
+      "shot": "duo",
+      "camera": "static",
+      "soloZoom": true,
+      "soloZoomScale": 1.4,
+      "soloZoomDy": 0.08,
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "left",
+        "metan": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.771,
+          "y": 1,
+          "scale": 1.4,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.324,
+          "y": 0.511
+        },
+        "right": {
+          "x": 0.698,
+          "y": 0.545
         }
       }
     }

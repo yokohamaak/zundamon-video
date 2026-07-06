@@ -2,7 +2,7 @@
   "expression": {
     "surprise": {
       "file": "se/surprise.mp3",
-      "volume": 0.8,
+      "volume": 0.5,
       "enabled": true
     },
     "panic": {
@@ -40,27 +40,27 @@
   },
   "insert": {
     "warning": {
-      "file": "se/ZunMonitorAlert.wav",
+      "file": "se/警告音2.mp3",
       "volume": 0.7,
       "enabled": true
     },
     "ok": {
-      "file": "se/ZunMonitorOK.wav",
+      "file": "se/決定ボタンを押す5.mp3",
       "volume": 0.7,
       "enabled": true
     },
     "chat": {
-      "file": "se/ZunAI.wav",
+      "file": "se/決定ボタンを押す40.mp3",
       "volume": 0.7,
       "enabled": true
     },
     "teamchat": {
-      "file": "se/ZunChat.wav",
+      "file": "se/決定ボタンを押す3.mp3",
       "volume": 0.7,
       "enabled": true
     },
     "mailer": {
-      "file": "se/ZunMail.wav",
+      "file": "se/説明ウインドウが開く.mp3",
       "volume": 0.7,
       "enabled": true
     }

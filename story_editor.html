@@ -192,6 +192,13 @@
   }
   .turn-row:hover { background: var(--surface2); }
   .turn-row.selected { background: rgba(91,141,238,.18); border-left: 3px solid var(--accent); padding-left: 7px; }
+  .turn-row.multi-selected { outline: 2px solid var(--green); outline-offset: -2px; }
+  .bulk-edit-bar {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+    background: rgba(74,222,128,.08); font-size: 12px;
+  }
+  .bulk-edit-bar #bulkSceneCount { color: var(--green); font-weight: 700; white-space: nowrap; }
   .turn-icon {
     width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
     object-fit: cover; background: var(--surface2);
@@ -315,6 +322,29 @@
     border: 2px solid var(--accent);
     cursor: nwse-resize;
     pointer-events: auto;
+  }
+  .placement-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(74,222,128,.85);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(8,10,15,.85), 0 6px 16px rgba(0,0,0,.35);
+    pointer-events: auto;
+    cursor: move;
+    user-select: none;
+    z-index: 31;
+  }
+  .placement-marker-label {
+    position: absolute;
+    left: 50%; top: -22px;
+    transform: translateX(-50%);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(8,10,15,.85);
+    color: #fff;
+    font-size: 11px;
+    white-space: nowrap;
   }
   .overlay-modal-backdrop {
     position: fixed;
@@ -817,6 +847,12 @@
       <button class="btn btn-secondary btn-sm" id="btnDown" title="下へ">↓</button>
       <span class="turn-count" id="turnCount">全 0 ターン</span>
     </div>
+    <div class="bulk-edit-bar" id="bulkSceneBar" style="display:none;" title="Shift/Ctrl(⌘)クリックで複数のターンを選択できます">
+      <span id="bulkSceneCount"></span>
+      <select class="field-select" id="bulkSceneSelect" style="width:auto; flex:1;"></select>
+      <button class="btn btn-primary btn-sm" id="btnBulkSceneApply">シーンを一括適用</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkSceneClear">選択解除</button>
+    </div>
     <div class="script-list" id="scriptList"></div>
   </div>
 
@@ -841,6 +877,7 @@
         <div class="preview-player-wrap" id="playerWrap">
           <div id="playerMount" style="position:absolute; inset:0;"></div>
           <div class="overlay-edit-layer" id="overlayEditLayer"></div>
+          <div class="overlay-edit-layer" id="placementEditLayer"></div>
         </div>
       </div>
     </div>
@@ -992,6 +1029,7 @@
       <div class="tabs">
         <button class="tab-btn active" data-tab="basic">基本</button>
         <button class="tab-btn" data-tab="insert">インサート</button>
+        <button class="tab-btn" data-tab="placement">配置</button>
       </div>
       <div class="tab-content">
         <!-- 基本タブ -->
@@ -1081,9 +1119,11 @@
             <label class="field-label">このセリフで登場</label>
             <div class="multi-select-wrap" id="fEnter"></div>
             <div class="exit-dir-row">
-              登場方法:
-              <select class="field-select" id="fEnterMode" style="width:auto;padding:2px 6px;font-size:12px">
-                <option value="">(通常)</option>
+              登場方向:
+              <select class="field-select" id="fEnterDir" style="width:auto;padding:2px 6px;font-size:12px">
+                <option value="">(自動)</option>
+                <option value="left">left</option>
+                <option value="right">right</option>
                 <option value="instant">即時登場</option>
               </select>
             </div>
@@ -1202,6 +1242,16 @@
           </div>
           <!-- 種別に応じた入力欄 -->
           <div id="insertFields"></div>
+        </div>
+
+        <!-- 配置タブ -->
+        <div class="tab-panel" id="tabPlacement">
+          <div class="field-help" style="margin-bottom:10px;">
+            このターンで登場中(またはこのターンから登場する)キャラ/モブを手動配置できます。
+            「手動配置」をONにするとプレビュー上にマーカーが出るので、ドラッグで位置を指定してください。
+            退場するまでその位置に固定され、別のターンで配置し直すとなめらかに移動します。
+          </div>
+          <div id="placementList" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
       </div>
     </div>
@@ -1405,7 +1455,15 @@
 let storyData = null;    // story-01.json 全体 { title, audio, script, ... }
 let meta = null;         // /api/meta { speakers, speakerIcons, scenes, expressions, insertKinds }
 let sceneDefs = null;    // /api/scene/scenes 全体 { scenes: { key: { anchors, ... } } }
-let selectedIdx = -1;    // 選択中ターンのインデックス
+let selectedIdx = -1;    // 選択中(＝詳細フォームの編集対象)ターンのインデックス
+// 再生中に一覧のハイライトだけを追従させるための表示専用インデックス。
+// selectedIdxとは別に持つ：ここをselectedIdxと共有すると、再生で自動的に進んだ
+// 別ターンへ、画面表示中の古いフォーム値が誤って書き込まれる（セリフが化ける事故）。
+let playbackFollowIdx = -1;
+// 一括編集(シーン等をまとめて変更)用の複数選択状態。selectedIdx(詳細フォームの編集対象)
+// とは別に持つ：既存の単一選択の仕組みには手を入れず、並行して複数選択を扱う。
+let selectedIndices = new Set();
+let selectionAnchorIdx = -1; // shift-click範囲選択の起点
 let isDirty = false;     // 未保存変更フラグ
 let playerReady = false; // Remotion Player が mount 済みか
 let updateTimer = null;  // updateStory debounce タイマー
@@ -1972,6 +2030,7 @@ async function init() {
       fetch("/api/scene/scenes"),
     ]);
     storyData = await storyRes.json();
+    clearMultiSelection();
     meta = await metaRes.json();
     sceneDefs = await sceneRes.json();
     normalizeStoryTransitions(storyData);
@@ -2020,6 +2079,7 @@ function sizePlayerWrap() {
   wrap.style.width = Math.max(0, Math.floor(w)) + "px";
   wrap.style.height = Math.max(0, Math.floor(h)) + "px";
   renderOverlayEditLayer();
+  if (typeof renderPlacementEditLayer === "function") renderPlacementEditLayer();
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 window.addEventListener("resize", sizePlayerWrap);
@@ -3313,6 +3373,218 @@ function setupScriptTimeline() {
   window.addEventListener("resize", drawScriptTimeline);
 }
 
+// ============================================================
+// 配置タブ（キャラ/モブのターン単位手動配置・D&D）
+// ============================================================
+// video/src/StoryVideo.tsx の CHARACTERS 側でハードコードされている「立ち絵を持つキャラ」一覧
+// （story_editor.py の BASE_SPEAKERS 定義コメントにも同じ前提が書かれている）。
+const KNOWN_CHARS = ["zundamon", "metan"];
+let _placementDrag = null; // { id, startX, startY, origX, origY }
+
+// 以下、video/src/StoryVideo.tsx の AVATAR_BOX/FULL_CANVAS/FACE_RATIO/faceCyOf と同じ値・式
+// （アンカー=ボックス中心 と 顔位置 の変換用）。手動配置はドラッグの直感に合わせて
+// 「顔の位置」を指定・保存する仕様にしているため、自動配置(アンカー)から初期値を作る時だけ
+// ここでボックス中心→顔位置へ変換する。マーカー表示自体は保存値(=顔位置)をそのまま使う。
+const AVATAR_BOX_JS = 445;
+const FULL_CANVAS_JS = { zundamon: { w: 783, h: 1473 }, metan: { w: 858, h: 1769 } };
+const FACE_RATIO_JS = { bust: 0.3, full: 0.12 };
+function fullBoxHeightJS(charId) {
+  const c = FULL_CANVAS_JS[charId];
+  if (!c) return Math.round(AVATAR_BOX_JS * 1.8);
+  return Math.round(AVATAR_BOX_JS * (c.h / c.w));
+}
+function charFaceOffsetJS(charId, sceneDef) {
+  const isFull = (sceneDef && sceneDef.figure || "bust") === "full";
+  const boxH = isFull ? fullBoxHeightJS(charId) : AVATAR_BOX_JS;
+  const avScale = (sceneDef && sceneDef.scale) ?? 1.9;
+  const ratio = isFull ? FACE_RATIO_JS.full : FACE_RATIO_JS.bust;
+  return (0.5 - ratio) * ((boxH * avScale) / 1080);
+}
+
+// 選択中ターン(idx)が含まれる「同一sceneが連続する区間」の[開始,終了]絶対インデックスを返す
+// （video/src/StoryVideo.tsx の buildSegments と同じ隣接比較でグルーピング）。
+function sceneRangeAt(script, idx) {
+  const scene = script[idx].scene;
+  let start = idx;
+  while (start > 0 && script[start - 1].scene === scene) start--;
+  let end = idx;
+  while (end < script.length - 1 && script[end + 1].scene === scene) end++;
+  return { start, end };
+}
+
+// idx時点で画面に登場中(または turn.enter でこのターンから登場する)の
+// known char / mob の id 一覧。手動配置チェックボックスの対象になる。
+function presentActorsAt(script, idx) {
+  if (!script || idx < 0 || idx >= script.length) return [];
+  const { start } = sceneRangeAt(script, idx);
+  const isPlaceable = (id) => KNOWN_CHARS.includes(id) || (mobsMap && Object.prototype.hasOwnProperty.call(mobsMap, id));
+  const entered = new Set();
+  const exitedBefore = new Set();
+  for (let i = start; i <= idx; i++) {
+    const turn = script[i];
+    for (const c of turn.enter || []) {
+      if (isPlaceable(c)) entered.add(c);
+    }
+    if (!turn.narrationVoice && isPlaceable(turn.speaker)) entered.add(turn.speaker);
+    if (i < idx) {
+      for (const c of turn.exit || []) {
+        if (isPlaceable(c)) exitedBefore.add(c);
+      }
+    }
+  }
+  return [...entered].filter((id) => !exitedBefore.has(id));
+}
+
+// 登場キャラをanchor名へ割り当てる（video/src/StoryVideo.tsx の assignAnchors と同じ規則）。
+function assignAnchorsJS(chars) {
+  const map = {};
+  if (chars.length <= 1) {
+    if (chars[0]) map[chars[0]] = "center";
+  } else if (chars.length === 2) {
+    map[chars[0]] = "left";
+    map[chars[1]] = "right";
+  } else {
+    const names = ["left", "center", "right"];
+    chars.slice(0, 3).forEach((c, i) => { map[c] = names[i]; });
+  }
+  return map;
+}
+
+// idx時点でのidの実座標(ドラッグ開始位置用のスナップショット。アニメーション補間はしない)。
+// 優先順位: このターンまでの manualPos 直近指定 > 自動配置(名前付きアンカー/モブ既定)。
+function resolveActorXYAt(script, idx, id) {
+  const { start, end } = sceneRangeAt(script, idx);
+  // 直近の manualPos 指定（このターンまでの範囲でnullなら未配置扱いに戻す）。
+  let manual = null;
+  for (let i = start; i <= idx; i++) {
+    const entry = script[i].manualPos && script[i].manualPos[id];
+    if (entry === undefined) continue;
+    manual = entry; // null(解除) か {x,y} で上書き
+  }
+  if (manual) return { x: manual.x, y: manual.y };
+
+  if (KNOWN_CHARS.includes(id)) {
+    const scene = script[idx].scene;
+    const sceneDef = sceneDefs?.scenes?.[scene];
+    // ロスターはsegment全体(start..end)で見た登場順（立ち位置を区間中固定するため）。
+    const roster = [];
+    for (let i = start; i <= end; i++) {
+      const turn = script[i];
+      for (const c of turn.enter || []) {
+        if (KNOWN_CHARS.includes(c) && !roster.includes(c)) roster.push(c);
+      }
+      if (!turn.narrationVoice && KNOWN_CHARS.includes(turn.speaker) && !roster.includes(turn.speaker)) {
+        roster.push(turn.speaker);
+      }
+    }
+    const anchorMap = { ...assignAnchorsJS(roster), ...(sceneDef?.cast || {}) };
+    for (let i = start; i <= idx; i++) {
+      const turn = script[i];
+      if (!turn.narrationVoice && turn.speaker === id && turn.speakerAnchor) {
+        anchorMap[id] = turn.speakerAnchor;
+      }
+    }
+    const anchorName = anchorMap[id] || "center";
+    const anchorXY = sceneDef?.anchors?.[anchorName] || { x: 0.5, y: 0.5 };
+    // アンカーはボックス中心。手動配置は顔位置で保存/表示するのでここで変換する。
+    return { x: anchorXY.x, y: anchorXY.y - charFaceOffsetJS(id, sceneDef) };
+  }
+
+  // モブ: シーン個別配置 → モブ既定(mobs.json) → シーン共通既定。
+  const scene = script[idx].scene;
+  const sceneDef = sceneDefs?.scenes?.[scene];
+  const place = sceneDef?.mobs?.[id];
+  if (place) return { x: place.x, y: place.y };
+  const mobDef = mobsMap && mobsMap[id];
+  if (mobDef?.anchor) return mobDef.anchor;
+  if (sceneDef?.mobAnchor) return sceneDef.mobAnchor;
+  return { x: 0.5, y: 1.0 };
+}
+
+function isTurnActorManuallyPlaced(turn, id) {
+  return !!(turn.manualPos && turn.manualPos[id]);
+}
+
+function renderPlacementPanel() {
+  const container = document.getElementById("placementList");
+  if (!container) return;
+  container.innerHTML = "";
+  if (selectedIdx < 0 || !storyData) return;
+  const turn = storyData.script[selectedIdx];
+  // モブ判定にmobsMapを使うため、未取得なら読み込んでから作り直す。
+  if (!mobsLoaded) {
+    loadMobsPanel().then(() => { if (selectedIdx >= 0) renderPlacementPanel(); });
+  }
+  const actors = presentActorsAt(storyData.script, selectedIdx);
+  if (actors.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">このターンに登場中のキャラ/モブがいません</div>";
+    renderPlacementEditLayer();
+    return;
+  }
+  for (const id of actors) {
+    const row = document.createElement("label");
+    row.className = "toggle-row";
+    row.style.cssText = "justify-content:space-between; padding:4px 0;";
+    const left = document.createElement("span");
+    left.textContent = (KNOWN_CHARS.includes(id) ? "🧍 " : "👤 ") + id;
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = isTurnActorManuallyPlaced(turn, id);
+    cb.addEventListener("change", () => {
+      if (!turn.manualPos) turn.manualPos = {};
+      if (cb.checked) {
+        const xy = resolveActorXYAt(storyData.script, selectedIdx, id);
+        turn.manualPos[id] = { x: xy.x, y: xy.y };
+      } else {
+        turn.manualPos[id] = null; // 以降このidを自動配置へ戻す
+      }
+      markDirty();
+      notifyPlayerUpdate();
+      renderPlacementEditLayer();
+    });
+    row.appendChild(cb);
+    row.appendChild(left);
+    container.appendChild(row);
+  }
+  renderPlacementEditLayer();
+}
+
+function renderPlacementEditLayer() {
+  const layer = document.getElementById("placementEditLayer");
+  const wrap = document.getElementById("playerWrap");
+  if (!layer || !wrap) return;
+  layer.innerHTML = "";
+  // 配置タブが選択されていない時は表示しない。
+  const tabBtn = document.querySelector('.tab-btn[data-tab="placement"]');
+  if (!tabBtn || !tabBtn.classList.contains("active")) return;
+  if (selectedIdx < 0 || !storyData) return;
+  const turn = storyData.script[selectedIdx];
+  const rect = wrap.getBoundingClientRect();
+  const actors = presentActorsAt(storyData.script, selectedIdx).filter((id) => isTurnActorManuallyPlaced(turn, id));
+  for (const id of actors) {
+    const xy = resolveActorXYAt(storyData.script, selectedIdx, id);
+    const marker = document.createElement("div");
+    marker.className = "placement-marker";
+    marker.style.left = (xy.x * rect.width) + "px";
+    marker.style.top = (xy.y * rect.height) + "px";
+    marker.dataset.id = id;
+    const label = document.createElement("div");
+    label.className = "placement-marker-label";
+    label.textContent = id;
+    marker.appendChild(label);
+    marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, id));
+    layer.appendChild(marker);
+  }
+}
+
+function beginPlacementDrag(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (selectedIdx < 0) return;
+  const xy = resolveActorXYAt(storyData.script, selectedIdx, id);
+  _placementDrag = { id, startX: e.clientX, startY: e.clientY, origX: xy.x, origY: xy.y };
+}
+
 function renderOverlayEditLayer() {
   const layer = document.getElementById("overlayEditLayer");
   const wrap = document.getElementById("playerWrap");
@@ -3651,6 +3923,7 @@ function seekPlayer(idx) {
 function notifyPlayerUpdate() {
   if (!playerReady || !window.storyPlayer) return;
   renderOverlayEditLayer();
+  renderPlacementEditLayer();
   if (updateTimer) clearTimeout(updateTimer);
   updateTimer = setTimeout(() => {
     if (window.storyPlayer && storyData) {
@@ -3681,10 +3954,9 @@ function buildSpeakerSelect() {
   }
 }
 
-function buildSceneSelect() {
-  // シーンは scene_editor で登録済みのものから選ぶ（ドロップダウン）。
-  // 自由入力にはしない（新規シーンは scene_editor で作ってから選ぶ運用）。
-  const sel = document.getElementById("fScene");
+// シーンは scene_editor で登録済みのものから選ぶ（ドロップダウン）。
+// 自由入力にはしない（新規シーンは scene_editor で作ってから選ぶ運用）。
+function populateSceneOptions(sel) {
   sel.innerHTML = "";
   // 先頭に「暗転（黒）」= scene 未設定。
   const blackOpt = document.createElement("option");
@@ -3697,6 +3969,12 @@ function buildSceneSelect() {
     o.value = sc; o.textContent = label;
     sel.appendChild(o);
   }
+}
+
+function buildSceneSelect() {
+  populateSceneOptions(document.getElementById("fScene"));
+  const bulkSel = document.getElementById("bulkSceneSelect");
+  if (bulkSel) populateSceneOptions(bulkSel);
 }
 
 // turn.scene を select にセット。未登録値（AI由来/旧データ）は消さず「(未登録)」で保持表示。
@@ -3831,15 +4109,49 @@ function buildMultiSelect(containerId, speakers) {
 // ============================================================
 // 台本一覧レンダリング
 // ============================================================
-function updateTurnCount() {
+function updateTurnCount(displayIdx) {
   const countEl = document.getElementById("turnCount");
   const total = storyData && Array.isArray(storyData.script) ? storyData.script.length : 0;
   if (!countEl) return;
-  if (selectedIdx >= 0 && selectedIdx < total) {
-    countEl.textContent = `${selectedIdx + 1} / ${total} ターン`;
+  const idx = typeof displayIdx === "number" ? displayIdx : selectedIdx;
+  if (idx >= 0 && idx < total) {
+    countEl.textContent = `${idx + 1} / ${total} ターン`;
   } else {
     countEl.textContent = `全 ${total} ターン`;
   }
+}
+
+// 台本の並び・件数が変わる操作(追加/削除/移動/再読込)の前に呼ぶ。
+// selectedIndicesはインデックスの集合なので、並びが変わると別ターンを指してしまう。
+function clearMultiSelection() {
+  selectedIndices = new Set();
+  selectionAnchorIdx = -1;
+  updateBulkSceneBar();
+}
+
+function updateBulkSceneBar() {
+  const bar = document.getElementById("bulkSceneBar");
+  if (!bar) return;
+  const n = selectedIndices.size;
+  if (n > 1) {
+    bar.style.display = "flex";
+    document.getElementById("bulkSceneCount").textContent = `${n}件選択中`;
+  } else {
+    bar.style.display = "none";
+  }
+}
+
+function applyBulkScene() {
+  if (selectedIndices.size < 2 || !storyData) return;
+  const scene = document.getElementById("bulkSceneSelect").value;
+  for (const idx of selectedIndices) {
+    if (storyData.script[idx]) storyData.script[idx].scene = scene;
+  }
+  markDirty();
+  markAudioDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
 }
 
 function renderList() {
@@ -3863,7 +4175,7 @@ function renderList() {
 
     // ターン行
     const row = document.createElement("div");
-    row.className = "turn-row" + (i === selectedIdx ? " selected" : "");
+    row.className = "turn-row" + (i === selectedIdx ? " selected" : "") + (selectedIndices.has(i) ? " multi-selected" : "");
     row.dataset.idx = i;
 
     // アイコン
@@ -3920,7 +4232,27 @@ function renderList() {
     if (badges.children.length > 0) body.appendChild(badges);
     row.appendChild(body);
 
-    row.addEventListener("click", () => selectTurn(i));
+    row.addEventListener("click", (e) => {
+      if (e.shiftKey && selectionAnchorIdx >= 0) {
+        // 範囲選択：起点〜クリック行までをまとめて選択し直す。
+        const lo = Math.min(selectionAnchorIdx, i);
+        const hi = Math.max(selectionAnchorIdx, i);
+        selectedIndices = new Set();
+        for (let k = lo; k <= hi; k++) selectedIndices.add(k);
+      } else if (e.ctrlKey || e.metaKey) {
+        // 追加/解除：既存の選択に対してこの行だけをトグル。
+        if (selectedIndices.size === 0) selectedIndices.add(selectedIdx >= 0 ? selectedIdx : i);
+        if (selectedIndices.has(i)) selectedIndices.delete(i); else selectedIndices.add(i);
+        selectionAnchorIdx = i;
+      } else {
+        // 通常クリック：単一選択に戻す。
+        selectedIndices = new Set([i]);
+        selectionAnchorIdx = i;
+      }
+      selectTurn(i);
+      renderList();
+      updateBulkSceneBar();
+    });
     container.appendChild(row);
   }
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
@@ -3956,12 +4288,15 @@ function keepSelectedTurnRowVisible(idx) {
 }
 
 function followPlaybackTurn(idx) {
-  const prevIdx = selectedIdx;
-  selectedIdx = idx;
-  updateTurnCount();
+  const prevIdx = playbackFollowIdx >= 0 ? playbackFollowIdx : selectedIdx;
+  playbackFollowIdx = idx;
+  updateTurnCount(idx);
   // 再生中は一覧全体の再構築や詳細フォーム更新を避ける。
   // ターン境界の大きいDOM更新がスマホで音声詰まりを起こしやすいため、
   // 選択行ハイライトだけを最小限更新する。
+  // ここで selectedIdx 自体は変更しない：変更すると、詳細フォームに表示中の
+  // （再生で進んだ）別ターンへ、画面上の古いフォーム値が誤って書き込まれてしまう
+  // （演出編集中に別行のセリフが化ける事故の原因だった）。
   if (!updateSelectedTurnRow(prevIdx, idx, false)) {
     renderList();
     return;
@@ -4140,8 +4475,11 @@ function fallbackIcon(speaker) {
 // ターン選択
 // ============================================================
 function selectTurn(idx, doSeek = true) {
-  const prevIdx = selectedIdx;
+  // ハイライトが再生追従(playbackFollowIdx)でselectedIdxからズレている場合も
+  // 確実に旧ハイライトを消せるよう、実際に光っている方を prevIdx として使う。
+  const prevIdx = playbackFollowIdx >= 0 ? playbackFollowIdx : selectedIdx;
   selectedIdx = idx;
+  playbackFollowIdx = idx;
   updateTurnCount();
   _selectedOverlayId = null;
   _selectedBgmIdx = -1;
@@ -4336,7 +4674,7 @@ function renderDetail() {
   // enter / exit（チェックボックス群）
   setMultiSelect("fEnter", turn.enter || []);
   setMultiSelect("fExit", turn.exit || []);
-  setField("fEnterMode", "select", turn.enterMode || "");
+  setField("fEnterDir", "select", turn.enterDir || "");
   setField("fExitDir", "select", turn.exitDir || "");
 
   // ── 手動SE ──
@@ -4347,6 +4685,9 @@ function renderDetail() {
   const kind = turn.insert ? turn.insert.kind : "";
   document.getElementById("fInsertKind").value = kind;
   renderInsertFields(turn.insert || null);
+
+  // ── 配置タブ ──
+  renderPlacementPanel();
 }
 
 function setField(id, type, value) {
@@ -5330,8 +5671,8 @@ function collectBasic() {
   const enter = getMultiSelect("fEnter");
   if (enter.length > 0) turn.enter = enter; else delete turn.enter;
 
-  const enterMode = document.getElementById("fEnterMode").value;
-  if (enterMode) turn.enterMode = enterMode; else delete turn.enterMode;
+  const enterDir = document.getElementById("fEnterDir").value;
+  if (enterDir) turn.enterDir = enterDir; else delete turn.enterDir;
 
   const exit = getMultiSelect("fExit");
   if (exit.length > 0) turn.exit = exit; else delete turn.exit;
@@ -5461,6 +5802,7 @@ function collectInsert() {
 // ターン操作（追加・削除・移動）
 // ============================================================
 function addTurnAfter(inheritScene = false) {
+  clearMultiSelection();
   const script = storyData.script;
   const refTurn = selectedIdx >= 0 && selectedIdx < script.length
     ? script[selectedIdx] : null;
@@ -5476,8 +5818,10 @@ function addTurnAfter(inheritScene = false) {
     delete newTurn.sentences;
     delete newTurn.transition;
     delete newTurn.enter;
+    delete newTurn.enterDir;
     delete newTurn.exit;
     delete newTurn.exitDir;
+    delete newTurn.manualPos;
   } else {
     // 既定は暗転(黒) scene=""の空ターン。
     newTurn = {
@@ -5507,6 +5851,7 @@ function deleteTurn() {
   if (selectedIdx < 0) return;
   const script = storyData.script;
   if (!confirm("ターンを削除しますか？")) return;
+  clearMultiSelection();
   script.splice(selectedIdx, 1);
   if (selectedIdx >= script.length) selectedIdx = script.length - 1;
   markDirty();
@@ -5519,6 +5864,7 @@ function deleteTurn() {
 
 function moveUp() {
   if (selectedIdx <= 0) return;
+  clearMultiSelection();
   const script = storyData.script;
   const tmp = script[selectedIdx - 1];
   script[selectedIdx - 1] = script[selectedIdx];
@@ -5534,6 +5880,7 @@ function moveUp() {
 function moveDown() {
   const script = storyData.script;
   if (selectedIdx < 0 || selectedIdx >= script.length - 1) return;
+  clearMultiSelection();
   const tmp = script[selectedIdx + 1];
   script[selectedIdx + 1] = script[selectedIdx];
   script[selectedIdx] = tmp;
@@ -5585,6 +5932,7 @@ function importStoryFromFile(file) {
           throw new Error("turn[" + i + "] に speaker/text/scene(文字列) が必要です");
       }
       storyData = data;
+      clearMultiSelection();
       normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
       _selectedOverlayId = null;
@@ -5691,6 +6039,7 @@ async function generateAudio(confirmFirst = true) {
     if (ok) {
       const sres = await fetch("/api/story"); // 実尺/audioが入ったstoryを再読込
       storyData = await sres.json();
+      clearMultiSelection();
       normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
       _selectedOverlayId = null;
@@ -6101,6 +6450,8 @@ function setupEvents() {
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
+  document.getElementById("btnBulkSceneApply").addEventListener("click", applyBulkScene);
+  document.getElementById("btnBulkSceneClear").addEventListener("click", () => { clearMultiSelection(); renderList(); });
   document.getElementById("btnAddOverlay").addEventListener("click", async () => {
     await ensureOverlayAssets();
     createOverlayAtPlayhead();
@@ -6150,6 +6501,31 @@ function setupEvents() {
     notifyPlayerUpdate();
   });
 
+  window.addEventListener("mousemove", (e) => {
+    if (!_placementDrag) return;
+    e.preventDefault();
+    const wrap = document.getElementById("playerWrap");
+    if (!wrap || selectedIdx < 0) return;
+    const rect = wrap.getBoundingClientRect();
+    const dx = (e.clientX - _placementDrag.startX) / Math.max(1, rect.width);
+    const dy = (e.clientY - _placementDrag.startY) / Math.max(1, rect.height);
+    const turn = storyData.script[selectedIdx];
+    if (!turn.manualPos) turn.manualPos = {};
+    turn.manualPos[_placementDrag.id] = {
+      x: Math.max(0, Math.min(1, _placementDrag.origX + dx)),
+      y: Math.max(0, Math.min(1, _placementDrag.origY + dy)),
+    };
+    markDirty();
+    notifyPlayerUpdate();
+    renderPlacementEditLayer();
+  });
+  window.addEventListener("mouseup", () => {
+    if (!_placementDrag) return;
+    _placementDrag = null;
+    renderPlacementEditLayer();
+    notifyPlayerUpdate();
+  });
+
   // タブ切替
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -6157,6 +6533,7 @@ function setupEvents() {
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById("tab" + capitalize(btn.dataset.tab)).classList.add("active");
+      renderPlacementEditLayer();
     });
   });
 
@@ -6164,7 +6541,7 @@ function setupEvents() {
   const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose",
                     "fSpeakerAnchor", "fEmphasis", "fShake", "fFlashback", "fCameraEffect", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
                     "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
-                    "fPause", "fVoicePreset", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
+                    "fPause", "fVoicePreset", "fEnterDir", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
   for (const id of basicIds) {
     const el = document.getElementById(id);
     if (!el) continue;
@@ -6321,6 +6698,7 @@ function setupEvents() {
         try {
           const sRes = await fetch("/api/story");
           storyData = await sRes.json();
+          clearMultiSelection();
           normalizeStoryTransitions(storyData);
           normalizeStoryVoicePresets(storyData);
           document.getElementById("storyTitle").value = storyData.title || "";
@@ -7086,11 +7464,24 @@ async function saveKanjiReadings() {
 // ============================================================
 let mobsMap = {};
 let mobsLoaded = false;
+let voicevoxSpeakers = [];
+let voicevoxSpeakersLoaded = false;
+
+async function loadVoicevoxSpeakers() {
+  if (voicevoxSpeakersLoaded) return;
+  try {
+    const res = await fetch("/api/voicevox/speakers");
+    voicevoxSpeakers = await res.json();
+  } catch (e) {
+    voicevoxSpeakers = [];
+  }
+  voicevoxSpeakersLoaded = true;
+}
 
 async function loadMobsPanel() {
   if (mobsLoaded) return;
   try {
-    const res = await fetch("/api/mobs");
+    const [res] = await Promise.all([fetch("/api/mobs"), loadVoicevoxSpeakers()]);
     mobsMap = await res.json();
     mobsLoaded = true;
     renderMobsSection();
@@ -7257,6 +7648,50 @@ function makeMobCard(name, def) {
 
   card.appendChild(head);
 
+  const voiceTitle = document.createElement("div");
+  voiceTitle.textContent = "音声（VOICEVOX）";
+  voiceTitle.style.cssText = "font-size:12px; font-weight:700; color:var(--text2); margin-top:4px;";
+  card.appendChild(voiceTitle);
+
+  const voiceRow = document.createElement("div");
+  voiceRow.style.cssText = "display:flex; align-items:center; gap:8px; flex-wrap:wrap;";
+
+  const voiceSel = document.createElement("select");
+  voiceSel.className = "field-select mob-voice-speaker";
+  voiceSel.style.cssText = "width:260px;";
+
+  const noneOpt = document.createElement("option");
+  noneOpt.value = "";
+  noneOpt.textContent = "未設定（config/voice_profiles.jsonの設定を使用）";
+  voiceSel.appendChild(noneOpt);
+
+  const currentSpeakerId = def.voice?.speaker;
+  let matched = false;
+  for (const s of voicevoxSpeakers) {
+    const o = document.createElement("option");
+    o.value = String(s.id);
+    o.textContent = `${s.label}（ID:${s.id}）`;
+    if (currentSpeakerId != null && s.id === currentSpeakerId) { o.selected = true; matched = true; }
+    voiceSel.appendChild(o);
+  }
+  if (currentSpeakerId != null && !matched) {
+    const o = document.createElement("option");
+    o.value = String(currentSpeakerId);
+    o.textContent = `ID:${currentSpeakerId}（一覧に見つかりません）`;
+    o.selected = true;
+    voiceSel.appendChild(o);
+  }
+  voiceRow.appendChild(voiceSel);
+
+  if (voicevoxSpeakers.length === 0) {
+    const hint = document.createElement("span");
+    hint.style.cssText = "font-size:11px; color:var(--text2);";
+    hint.textContent = "VOICEVOXエンジン未起動のため一覧を取得できません（起動してからこのタブを開き直してください）";
+    voiceRow.appendChild(hint);
+  }
+
+  card.appendChild(voiceRow);
+
   const normalTitle = document.createElement("div");
   normalTitle.textContent = "通常表情";
   normalTitle.style.cssText = "font-size:12px; font-weight:700; color:var(--text2); margin-top:4px;";
@@ -7306,6 +7741,10 @@ async function saveMobs() {
       }
       if (!images.normal) continue; // 通常表情の画像が無いモブは保存しない
       entries[name] = { scale, anchor: { x: ax, y: ay }, images };
+      const voiceSpeakerRaw = card.querySelector(".mob-voice-speaker").value;
+      if (voiceSpeakerRaw !== "") {
+        entries[name].voice = { speaker: parseInt(voiceSpeakerRaw, 10) };
+      }
     }
     const r = await fetch("/api/mobs", {
       method: "POST",

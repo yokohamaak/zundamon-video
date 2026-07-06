@@ -112,9 +112,10 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
       controls
       showPlaybackRateControl={[0.5, 0.75, 1, 1.25, 1.5, 2]}
       initiallyMuted={false}
-      // モバイルでは共有 audio tag を増やしすぎると、主音声が頭に戻る不安定さが出やすい。
-      // このプレビューで実際に同時再生されるのは voice + BGM(最大2) + 数個のSE なので 8 で足りる。
-      numberOfSharedAudioTags={8}
+      // モバイルでは共有 audio tag を増やしすぎると、主音声が頭に戻る不安定さが出やすいため
+      // 必要以上には増やさない。演出(SE)を密集させると voice + BGM(最大2) + 数個のSE で
+      // 8を超えることがあるため、実運用で余裕を持たせて12にしている。
+      numberOfSharedAudioTags={12}
       acknowledgeRemotionLicense
       style={{ width: "100%", height: "100%", background: "#080a0f" }}
       renderLoading={() => (
