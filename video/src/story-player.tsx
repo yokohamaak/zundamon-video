@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { StoryVideo } from "./StoryVideo";
 import type { StoryScript, SceneLibrary, ExpressionsMap, PosesMap, SeMap, MobsMap } from "./StoryVideo";
+import "./fonts"; // プレビューでも書き出しと同じ同梱フォントを使う（Yusei Magic等の豆腐防止）
 
 const FPS = 30;
 const WIDTH = 1920;
