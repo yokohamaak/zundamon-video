@@ -350,7 +350,7 @@ const isMob = (id: string): boolean => id in MOBS;
 // セリフ文字がインサートUI内に表示される種別（吹き出しを抑制する）。
 // videocall はUI内にセリフが出ないため対象外＝通常の吹き出しを通話画面の手前に出す。
 function isInsertLineKind(insert: StoryInsert | null | undefined): boolean {
-  return !!insert && (insert.kind === "teamchat" || insert.kind === "chat");
+  return !!insert && (insert.kind === "teamchat" || insert.kind === "chat" || insert.kind === "whiteboard_explain");
 }
 
 function mergeVideoCallInsert(
@@ -3529,6 +3529,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const poseCfg = poseNameRaw ? poses?.[charKey]?.[poseNameRaw] ?? null : null;
     const wbLayout = getWhiteboardExplainLayout(width, height);
     const scale = wbLayout.character.width / AVATAR_BOX;
+    // このインサートのキャラが実際のターン話者と一致する時だけ、通常のセリフ同様にリップシンクする。
+    const isSpeaker = charKey === active.speaker;
+    const lipsyncEnabled = isSpeaker && !active.noLipSync;
     return (
       <div
         style={{
@@ -3543,11 +3546,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           dir={cdef.avatar}
           manifest={manifest?.[cdef.avatar]}
           fallbackGender={cdef.gender}
-          active={false}
-          activatedAtFrame={0}
-          amplitude={0}
+          active={isSpeaker}
+          activatedAtFrame={Math.round(active.start * fps)}
+          amplitude={lipsyncEnabled ? speakerAmp : 0}
           emotion={emotion}
-          emotionAtFrame={0}
+          emotionAtFrame={Math.round(active.start * fps)}
           expressive={!!cdef.expressive}
           flip={false}
           popScale={false}

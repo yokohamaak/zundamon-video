@@ -654,11 +654,13 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '{"heading":"...","bullets":["...","...","..."],"icon":"scribble"},'
         '{"heading":"...","bullets":["...","...","..."],"icon":"checklist"}],'
         '"conclusion":"...","character":{"pose":"proud","expression":"happy"},"animation":{"mode":"step"}}'
-        ' … めたんがホワイトボードで3項目にまとめて解説するインサート（セリフ無しのまとめスライド向け）。'
+        ' … めたんがホワイトボードで3項目にまとめて解説するインサート。'
+        ' このターンの speaker/text は通常通り扱われ(TTSも通常生成)、吹き出しだけ出ない'
+        ' （chat/teamchatと同じ扱い）。speaker が character.name(既定metan)と一致する間だけ立ち絵がリップシンクする。'
         ' icon は none/confused/scribble/checklist/memo/conversation/warning/idea/table。'
         ' character.pose/expression は通常ターンの pose/expression と同じ値が使える（省略可・省略時は自動）。'
         ' animation.mode は step(推奨)/all/none。sectionsは3件固定、bulletsは各3件まで',
-        "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
+        "※ チャット系インサート・whiteboard_explain中は、そのターンの内容をチャット内/ホワイトボード内に書く。",
         "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat / ZunMeet=videocall。",
         '※ どのkindも共通で "width"(パネル幅倍率) / "bg"(パネル自体の背景色) / "backdropBg"(画面全体の背景色)'
         ' / "backdropImage"(画面全体の背景画像) を上書きできるが、通常は既定のままでよい。',

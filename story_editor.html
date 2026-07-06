@@ -5084,7 +5084,7 @@ function renderInsertFields(insert) {
     const hint = document.createElement("div");
     hint.className = "field-hint";
     hint.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
-    hint.textContent = "立ち絵は既存のめたん立ち絵（表情・ポーズ）で描画されます。ホワイトボード画像は video/assets/background/ に置いて video/public/background/xxx.png として参照してください（起動時に自動同期）。";
+    hint.textContent = "立ち絵は既存のめたん立ち絵（表情・ポーズ）で描画されます。ホワイトボード画像は video/assets/background/ に置いて video/public/background/xxx.png として参照してください（起動時に自動同期）。このターンのセリフ(speaker/text)は通常通り音声生成され、話者がcharacter名と一致する間リップシンクします（吹き出しだけ非表示）。";
     container.appendChild(hint);
   }
 }
