@@ -160,6 +160,9 @@ export type StoryTurn = {
   // 値がオブジェクト: この時刻からその座標に手動配置(登場中ずっと固定、次の指定 or 退場まで有効)。
   // 値がnull: この時刻から自動配置(名前付きアンカー/シーン既定)に戻す(手動配置の解除)。
   manualPos?: Record<string, { x: number; y: number } | null>;
+  // ソロズーム/話者プッシュインが寄る先の手動指定。値がオブジェクト: この時刻からその座標へ
+  // （区間内で次の指定 or nullまで有効）。値がnull: 自動計算（顔位置+シーン既定オフセット）に戻す。
+  zoomTarget?: { x: number; y: number } | null;
 };
 
 export type StoryOverlayAnchor = {
@@ -634,6 +637,57 @@ function resolveManualPosAt(
   const from = idx > 0 ? points[idx - 1] : fallbackAt();
   const k = easeInOutCubic(clamp((t - cur.time) / MANUAL_POS_TRANS, 0, 1));
   return { x: lerp(from.x, cur.x, k), y: lerp(from.y, cur.y, k) };
+}
+
+// segment内で、ズーム寄り位置(turn.zoomTarget)のウェイポイント列を時刻順に返す。
+// manualPosWaypointsと同じ規約（zoomTarget===nullは解除の境界）。
+function zoomTargetWaypoints(seg: Segment): PosWaypoint[] {
+  const points: PosWaypoint[] = [];
+  for (const turn of seg.turns) {
+    const entry = turn.zoomTarget;
+    if (entry === undefined) continue;
+    if (entry === null) {
+      points.length = 0;
+      continue;
+    }
+    points.push({ time: turn.start, x: entry.x, y: entry.y });
+  }
+  return points;
+}
+
+// 時刻tにおける手動ズーム位置。resolveManualPosAtと同じ遷移方式・規約
+// （ウェイポイントが無ければundefined＝ソロズーム/話者プッシュインの自動計算にフォールバック）。
+function resolveZoomTargetAt(
+  seg: Segment,
+  t: number,
+  fallbackAt: () => { x: number; y: number }
+): { x: number; y: number } | undefined {
+  const points = zoomTargetWaypoints(seg);
+  if (points.length === 0) return undefined;
+  let idx = -1;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].time <= t + 1e-6) idx = i; else break;
+  }
+  if (idx < 0) return undefined;
+  const cur = points[idx];
+  const from = idx > 0 ? points[idx - 1] : fallbackAt();
+  const k = easeInOutCubic(clamp((t - cur.time) / MANUAL_POS_TRANS, 0, 1));
+  return { x: lerp(from.x, cur.x, k), y: lerp(from.y, cur.y, k) };
+}
+
+// 時刻tb時点で有効な手動ズーム位置（遷移なしの生値）。
+// ソロズームのカメラキーフレーム(targetCamのtimes[])はentrance/exit時刻のスナップショットで
+// 評価されるため、resolveZoomTargetAtの自前easingはここでは使えない
+// （tb=キーフレーム時刻がちょうどwaypoint時刻と一致し、常にk=0＝未遷移になってしまう）。
+// 代わりにzoomTargetのwaypoint時刻もキーフレームに含め、既存のTprev/Tcur crossfade(TRANS)で
+// 遷移を表現する。emphasis側は毎フレーム呼ばれるため resolveZoomTargetAt(遷移あり)を使う。
+function zoomTargetValueAt(seg: Segment, tb: number): { x: number; y: number } | undefined {
+  const points = zoomTargetWaypoints(seg);
+  let result: { x: number; y: number } | undefined;
+  for (const p of points) {
+    if (p.time <= tb + 1e-6) result = { x: p.x, y: p.y };
+  }
+  return result;
 }
 
 // 既知キャラの実座標。turn.manualPos があればそれ（遷移込み）を優先し、無ければ
@@ -2671,10 +2725,15 @@ function targetCam(
     // オフセットを正にすると注視点が下がる＝顔が画面上側に来て胴まで見え、
     // 足元の吹き出しスペースが確保される。
     const dy = sceneDef.soloZoomDy ?? 0.08;
-    const cy = chars[0]
+    const autoCx = chars[0] ? ax(chars[0]) : 0.5;
+    const autoCy = chars[0]
       ? clamp(faceCyOf(chars[0], anchorOf, sceneDef, seg, tb) + dy, 0, 1)
       : 0.5;
-    return { s: soloZoomScale, cx: chars[0] ? ax(chars[0]) : 0.5, cy };
+    // turn.zoomTarget があれば寄り位置を手動指定値で上書きする（無ければ自動計算のまま）。
+    // ここはカメラキーフレーム(tb=times[idx]のスナップショット)なので遷移なしの生値を使う
+    // （遷移は呼び出し元のTprev/Tcur crossfadeが担う。zoomTargetValueAtのコメント参照）。
+    const manual = zoomTargetValueAt(seg, tb);
+    return { s: soloZoomScale, cx: manual?.x ?? autoCx, cy: manual?.y ?? autoCy };
   }
   // 複数：全員が収まる引き。
   const xs = chars.map(ax);
@@ -2976,11 +3035,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   // ── 仮想カメラ：登場/退場のたびに「寄り↔引き」を滑らかに遷移（カットしない） ──
   const TRANS = 0.8; // 遷移にかける秒数
-  // 境界時刻＝登場時刻＋退場時刻（退場で人数が減ればカメラも寄りへ遷移する）。
+  // 境界時刻＝登場時刻＋退場時刻（退場で人数が減ればカメラも寄りへ遷移する）＋
+  // ズーム位置(zoomTarget)の変更時刻（ソロズームの寄り先が変わった時も同じcrossfadeで遷移させる）。
   const times = [
     ...new Set([
       ...roster.map((c) => entrance[c]),
       ...roster.map((c) => effectiveExitAt(c)).filter((v): v is number => typeof v === "number"),
+      ...zoomTargetWaypoints(seg).map((w) => w.time),
     ]),
   ].sort((a, b) => a - b);
   let idx = 0;
@@ -3034,11 +3095,15 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   let focusBubbleK = 0;
   if (focusStart != null) {
     const speakerAnchor = resolveCharXY(active.speaker, anchorOf, sceneDef, seg, t);
+    const autoFocusCx = speakerAnchor.x;
+    // 縦は話者の顔位置＋オフセット(focusDy)。プッシュインは寄りが強いので既定は顔寄りめ。
+    const autoFocusCy = clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.04), 0, 1);
+    // turn.zoomTarget があれば寄り位置を手動指定値で上書きする（無ければ自動計算のまま）。
+    const manualFocus = resolveZoomTargetAt(seg, t, () => ({ x: autoFocusCx, y: autoFocusCy }));
     const focusTf = toTf({
       s: tf.s + (sceneDef.focusZoom ?? 0.3),
-      cx: speakerAnchor.x,
-      // 縦は話者の顔位置＋オフセット(focusDy)。プッシュインは寄りが強いので既定は顔寄りめ。
-      cy: clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.04), 0, 1),
+      cx: manualFocus?.x ?? autoFocusCx,
+      cy: manualFocus?.y ?? autoFocusCy,
     });
     // emphasis を立てた時点から 0.5s でイーズインし、その後は話者交代まで維持する。
     const focusK = easeInOutCubic(clamp((t - focusStart) / 0.5, 0, 1));

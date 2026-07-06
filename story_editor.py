@@ -697,7 +697,7 @@ _KNOWN_TURN_FIELDS = {
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "continueBubble", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
     "impactText", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
-    "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos",
+    "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos", "zoomTarget",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall"}
 
