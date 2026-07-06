@@ -173,7 +173,7 @@ def _current_speakers_and_icons():
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
 # 組み込み5種（先頭順序固定用）
 BUILTIN_EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
-INSERT_KINDS = ["warning", "ok", "chat", "teamchat", "mailer", "videocall"]
+INSERT_KINDS = ["warning", "ok", "chat", "teamchat", "mailer", "videocall", "whiteboard_explain"]
 
 _CT = {
     ".png": "image/png",
@@ -649,6 +649,15 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         ' bgStyle は office / meeting_room / home / ai / green。話者のタイルが自動で大きく表示される。'
         ' 参加者ごとに bgImage で用意済みの背景画像(例: "background/ベンダー会議室.png")を bgStyle の代わりに指定してもよい',
         '- {"kind":"videocall","end":true} … 進行中のZunMeet通話をこのターンで終了して通常画面に戻す',
+        '- {"kind":"whiteboard_explain","title":"めたんの解説コーナー","theme":"...","sections":['
+        '{"heading":"...","bullets":["...","...","..."],"icon":"confused"},'
+        '{"heading":"...","bullets":["...","...","..."],"icon":"scribble"},'
+        '{"heading":"...","bullets":["...","...","..."],"icon":"checklist"}],'
+        '"conclusion":"...","character":{"pose":"pointing","expression":"smile"},"animation":{"mode":"step"}}'
+        ' … めたんがホワイトボードで3項目にまとめて解説するインサート（セリフ無しのまとめスライド向け）。'
+        ' icon は none/confused/scribble/checklist/memo/conversation/warning/idea/table。'
+        ' pose は explain/pointing/confident/thinking、expression は normal/smile/serious/surprised/troubled。'
+        ' animation.mode は step(推奨)/all/none。sectionsは3件固定、bulletsは各3件まで',
         "※ チャット系インサート中は、そのターンの内容をチャット内に書く。",
         "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat / ZunMeet=videocall。",
         '※ どのkindも共通で "width"(パネル幅倍率) / "bg"(パネル自体の背景色) / "backdropBg"(画面全体の背景色)'
@@ -711,7 +720,7 @@ _KNOWN_TURN_FIELDS = {
     "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos", "zoomTarget",
     "sparklePos",
 }
-_KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall"}
+_KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall", "whiteboard_explain"}
 
 
 def _import_script_text(raw):

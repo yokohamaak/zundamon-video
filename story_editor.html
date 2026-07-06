@@ -1249,6 +1249,7 @@
               <option value="teamchat">ZunChat（チームチャット）</option>
               <option value="mailer">ZunMail（メール）</option>
               <option value="videocall">ZunMeet（ビデオ会議）</option>
+              <option value="whiteboard_explain">ホワイトボード解説</option>
             </select>
           </div>
           <!-- 種別に応じた入力欄 -->
@@ -4877,21 +4878,23 @@ function renderInsertFields(insert) {
 
   if (!kind) return;
 
-  const effectiveVideoCall = kind === "videocall" ? resolveEffectiveVideoCallInsert(selectedIdx) : null;
-  const widthSource = kind === "videocall"
-    ? { width: (typeof insert.width === "number" ? insert.width : effectiveVideoCall && effectiveVideoCall.width) }
-    : insert;
-  container.appendChild(makeInsertWidthField(widthSource, kind === "videocall" && effectiveVideoCall && typeof insert.width !== "number"));
+  if (kind !== "whiteboard_explain") {
+    const effectiveVideoCall = kind === "videocall" ? resolveEffectiveVideoCallInsert(selectedIdx) : null;
+    const widthSource = kind === "videocall"
+      ? { width: (typeof insert.width === "number" ? insert.width : effectiveVideoCall && effectiveVideoCall.width) }
+      : insert;
+    container.appendChild(makeInsertWidthField(widthSource, kind === "videocall" && effectiveVideoCall && typeof insert.width !== "number"));
 
-  const INSERT_DEFAULT_BG = {
-    warning: "#1a1d24", chat: "#181c24", ok: "#141e18", teamchat: "#f6f8fc", mailer: "#f6f8fc",
-  };
-  const INSERT_DEFAULT_BACKDROP_BG = { mailer: "#e8eaf0" };
-  if (kind !== "videocall") {
-    container.appendChild(makeInsertFontScaleField(insert));
-    container.appendChild(makeInsertBgField(insert, INSERT_DEFAULT_BG[kind] || "#1a1d24"));
-    container.appendChild(makeInsertBackdropBgField(insert, INSERT_DEFAULT_BACKDROP_BG[kind] || "#11151c"));
-    container.appendChild(makeInsertBackdropImageField(insert));
+    const INSERT_DEFAULT_BG = {
+      warning: "#1a1d24", chat: "#181c24", ok: "#141e18", teamchat: "#f6f8fc", mailer: "#f6f8fc",
+    };
+    const INSERT_DEFAULT_BACKDROP_BG = { mailer: "#e8eaf0" };
+    if (kind !== "videocall") {
+      container.appendChild(makeInsertFontScaleField(insert));
+      container.appendChild(makeInsertBgField(insert, INSERT_DEFAULT_BG[kind] || "#1a1d24"));
+      container.appendChild(makeInsertBackdropBgField(insert, INSERT_DEFAULT_BACKDROP_BG[kind] || "#11151c"));
+      container.appendChild(makeInsertBackdropImageField(insert));
+    }
   }
 
   if (kind === "warning") {
@@ -5037,6 +5040,54 @@ function renderInsertFields(insert) {
         }));
       }
     }
+  } else if (kind === "whiteboard_explain") {
+    const ICON_OPTIONS = [
+      { value: "none", label: "none（なし）" },
+      { value: "confused", label: "confused（困り）" },
+      { value: "scribble", label: "scribble（走り書き）" },
+      { value: "checklist", label: "checklist（チェックリスト）" },
+      { value: "memo", label: "memo（メモ）" },
+      { value: "conversation", label: "conversation（会話）" },
+      { value: "warning", label: "warning（警告）" },
+      { value: "idea", label: "idea（ひらめき）" },
+      { value: "table", label: "table（表）" },
+    ];
+    const POSE_OPTIONS = ["explain", "pointing", "confident", "thinking"]
+      .map((v) => ({ value: v, label: v }));
+    const EXPRESSION_OPTIONS = ["normal", "smile", "serious", "surprised", "troubled"]
+      .map((v) => ({ value: v, label: v }));
+    const ANIMATION_OPTIONS = [
+      { value: "step", label: "step（1項目ずつ表示・推奨）" },
+      { value: "all", label: "all（最初から全部表示）" },
+      { value: "none", label: "none（アニメーション無し）" },
+    ];
+    container.appendChild(makeField("title（タイトル・18文字以内推奨）", "text", "fWTitle", insert.title || ""));
+    container.appendChild(makeField("theme（テーマ・30文字以内推奨）", "text", "fWTheme", insert.theme || ""));
+    const sections = insert.sections || [];
+    for (let i = 0; i < 3; i++) {
+      const sec = sections[i] || {};
+      const section = document.createElement("div");
+      section.className = "section-divider";
+      section.textContent = `項目${i + 1}（sections[${i}]）`;
+      container.appendChild(section);
+      container.appendChild(makeField("heading（見出し・14文字以内推奨）", "text", `fWSecHeading${i}`, sec.heading || ""));
+      const bullets = sec.bullets || [];
+      for (let b = 0; b < 3; b++) {
+        container.appendChild(makeField(`bullet ${b + 1}（16文字以内推奨）`, "text", `fWSecBullet${i}_${b}`, bullets[b] || ""));
+      }
+      container.appendChild(makeSelectField("icon", `fWSecIcon${i}`, ICON_OPTIONS, sec.icon || "none"));
+    }
+    container.appendChild(makeTextareaField("conclusion（結論・40文字以内推奨）", "fWConclusion", insert.conclusion || ""));
+    const character = insert.character || {};
+    container.appendChild(makeSelectField("character.pose", "fWCharPose", POSE_OPTIONS, character.pose || "pointing"));
+    container.appendChild(makeSelectField("character.expression", "fWCharExpression", EXPRESSION_OPTIONS, character.expression || "smile"));
+    const animation = insert.animation || {};
+    container.appendChild(makeSelectField("animation.mode", "fWAnimationMode", ANIMATION_OPTIONS, animation.mode || "step"));
+    const hint = document.createElement("div");
+    hint.className = "field-hint";
+    hint.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
+    hint.textContent = "めたん立ち絵は public/characters/metan/{pose}_{expression}.png を参照します。素材が無い場合は仮表示になります。ホワイトボード画像等の背景素材は別途 public/ に配置してください。";
+    container.appendChild(hint);
   }
 }
 
@@ -5059,6 +5110,24 @@ function makeField(labelText, inputType, id, value, placeholder) {
   if (placeholder) inp.placeholder = placeholder;
   inp.addEventListener("change", collectInsert);
   wrap.appendChild(lbl); wrap.appendChild(inp);
+  return wrap;
+}
+
+function makeSelectField(labelText, id, options, value) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label"; lbl.textContent = labelText;
+  const sel = document.createElement("select");
+  sel.className = "field-select"; sel.id = id;
+  options.forEach(({ value: v, label }) => {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = label;
+    sel.appendChild(o);
+  });
+  sel.value = value;
+  sel.addEventListener("change", collectInsert);
+  wrap.appendChild(lbl); wrap.appendChild(sel);
   return wrap;
 }
 
@@ -5930,6 +5999,34 @@ function collectInsert() {
       const parts = getVideoCallParticipants();
       if (parts.length) ins.participants = parts;
     }
+  } else if (kind === "whiteboard_explain") {
+    const title = document.getElementById("fWTitle");
+    ins.title = title ? title.value : "";
+    const theme = document.getElementById("fWTheme");
+    ins.theme = theme ? theme.value : "";
+    ins.sections = [0, 1, 2].map((i) => {
+      const heading = document.getElementById(`fWSecHeading${i}`);
+      const icon = document.getElementById(`fWSecIcon${i}`);
+      const bullets = [0, 1, 2]
+        .map((b) => document.getElementById(`fWSecBullet${i}_${b}`))
+        .map((el) => (el ? el.value : ""))
+        .filter((v) => v.trim() !== "");
+      return {
+        heading: heading ? heading.value : "",
+        bullets,
+        icon: icon ? icon.value : "none",
+      };
+    });
+    const conclusion = document.getElementById("fWConclusion");
+    ins.conclusion = conclusion ? conclusion.value : "";
+    const charPose = document.getElementById("fWCharPose");
+    const charExpression = document.getElementById("fWCharExpression");
+    ins.character = {
+      pose: charPose ? charPose.value : "pointing",
+      expression: charExpression ? charExpression.value : "smile",
+    };
+    const animationMode = document.getElementById("fWAnimationMode");
+    ins.animation = { mode: animationMode ? animationMode.value : "step" };
   }
 
   turn.insert = ins;
@@ -7046,6 +7143,21 @@ function buildDefaultInsert(kind, prev) {
         { speaker: "zundamon", bgStyle: "office" },
         { speaker: "metan", bgStyle: "meeting_room" },
       ],
+    };
+  } else if (kind === "whiteboard_explain") {
+    if (prev && prev.kind === kind) return prev;
+    return {
+      kind: "whiteboard_explain",
+      title: "めたんの解説コーナー",
+      theme: "ここで一回整理するわね",
+      sections: [
+        { heading: "原因", bullets: ["状況を整理", "見えにくい点", "残らない仕事"], icon: "confused" },
+        { heading: "問題", bullets: ["評価されにくい", "伝わりにくい", "成果にならない"], icon: "scribble" },
+        { heading: "解決", bullets: ["メモ化", "一覧化", "共有する"], icon: "checklist" },
+      ],
+      conclusion: "つまり：見える形にするのが大事！",
+      character: { pose: "pointing", expression: "smile" },
+      animation: { mode: "step" },
     };
   }
   return { kind, width: (prev && typeof prev.width === "number") ? prev.width : undefined };

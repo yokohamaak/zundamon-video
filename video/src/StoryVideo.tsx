@@ -12,6 +12,8 @@ import { useWindowedAudioData } from "@remotion/media-utils";
 import { Avatar, MOUTH_HALF } from "./Avatar";
 import type { ExpressionCfg } from "./Avatar";
 import type { Emotion, Gender } from "./types";
+import { WhiteboardExplainInsert } from "./inserts/whiteboardExplain";
+import type { WhiteboardExplainInsertConfig } from "./inserts/whiteboardExplain";
 
 // ─── PC画面インサート型定義 ──────────────────────────────────
 export type StoryInsert =
@@ -39,7 +41,8 @@ export type StoryInsert =
       cameraOff?: boolean;
       muted?: boolean;
     }>;
-  };
+  }
+  | ({ kind: "whiteboard_explain" } & WhiteboardExplainInsertConfig);
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
@@ -1198,11 +1201,11 @@ function insertBg(insert: { bg?: string } | null | undefined, fallback: string):
 
 // インサート周り（パネルの外側全画面）の背景色/画像。videocallには無い。
 function insertBackdropBg(insert: StoryInsert | null | undefined, fallback: string): string {
-  if (!insert || insert.kind === "videocall") return fallback;
+  if (!insert || insert.kind === "videocall" || insert.kind === "whiteboard_explain") return fallback;
   return insert.backdropBg || fallback;
 }
 function insertBackdropImage(insert: StoryInsert | null | undefined): string | undefined {
-  if (!insert || insert.kind === "videocall") return undefined;
+  if (!insert || insert.kind === "videocall" || insert.kind === "whiteboard_explain") return undefined;
   return insert.backdropImage || undefined;
 }
 
@@ -2343,6 +2346,7 @@ const InsertOverlay: React.FC<{
   opacity: number;
   transform?: string;
   activeSpeaker?: string;
+  durationInFrames?: number;
   renderVideoCallFeed?: (
     participant: VideoCallParticipant,
     opts: { large: boolean; tileW: number }
@@ -2353,6 +2357,7 @@ const InsertOverlay: React.FC<{
   opacity,
   transform,
   activeSpeaker,
+  durationInFrames,
   renderVideoCallFeed,
 }) => {
   // mailer だけライトテーマ（白背景）。それ以外はダーク背景。
@@ -2398,6 +2403,9 @@ const InsertOverlay: React.FC<{
         {insert.kind === "teamchat" && <InsertTeamChat insert={insert} />}
         {insert.kind === "mailer" && <InsertMailer insert={insert} />}
         {insert.kind === "videocall" && <InsertVideoCall insert={insert} activeSpeaker={activeSpeaker} renderFeed={renderVideoCallFeed} />}
+        {insert.kind === "whiteboard_explain" && (
+          <WhiteboardExplainInsert config={insert} durationInFrames={durationInFrames} />
+        )}
       </AbsoluteFill>
     </AbsoluteFill>
   );
@@ -4034,10 +4042,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const nextHasInsert = !!(nextTurn2 && effectiveInsertAt(script, activeIdx + 1));
   let insertOpacity = 0;     // パネル本体（in/out両方フェード）
   let insertBgOpacity = 0;   // 背景＝シーン隠し
+  // このインサートが画面に出ている終端＝次ターンの開始(無ければ自分のend)。
+  // 空セリフのインサート(end==start)でも次ターンまで表示されるよう実効終端を使う。
+  const dispEnd = nextTurn2 ? nextTurn2.start : active.end;
   if (activeInsert) {
-    // このインサートが画面に出ている終端＝次ターンの開始(無ければ自分のend)。
-    // 空セリフのインサート(end==start)でも次ターンまで表示されるよう実効終端を使う。
-    const dispEnd = nextTurn2 ? nextTurn2.start : active.end;
     // フェードイン: 直前がインサート/冒頭なら即1。背景はそもそもフェードインしない(即カバー)。
     const fadeIn = (prevHasInsert || activeIdx === 0)
       ? 1
@@ -4145,6 +4153,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           opacity={insertOpacity}
           transform={insertShakeTransform}
           activeSpeaker={active.speaker}
+          durationInFrames={Math.round((dispEnd - active.start) * fps)}
           renderVideoCallFeed={renderVideoCallFeed}
         />
       ) : null}
