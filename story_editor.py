@@ -698,6 +698,7 @@ _KNOWN_TURN_FIELDS = {
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
     "impactText", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
     "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos", "zoomTarget",
+    "sparklePos",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall"}
 

@@ -137,6 +137,8 @@ export type StoryTurn = {
   stampRain?: string;
   typingFlood?: boolean;
   sparkleBurst?: boolean;
+  // キラッ(sparkleBurst)の中心位置。未指定なら既定値(画面中央よりやや上)。
+  sparklePos?: { x: number; y: number } | null;
   irisOut?: boolean;
   effectSettings?: StoryEffectSettings;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
@@ -1078,11 +1080,14 @@ const ExtraEffectsLayer: React.FC<{
   if (active.sparkleBurst) {
     const opacity = clamp(Math.min(progress / 0.14, 1 - Math.max(0, progress - 0.68) / 0.2), 0, 1);
     const sparkCount = Math.max(4, Math.min(20, Math.round(sparkleBurstCfg.count)));
+    // 中心位置。turn.sparklePos があればそれを使い、無ければ既定(画面中央よりやや上)。
+    const originX = active.sparklePos?.x ?? 0.5;
+    const originY = active.sparklePos?.y ?? 0.45;
     const sparks = Array.from({ length: sparkCount }, (_, i) => {
       const angle = (Math.PI * 2 * i) / sparkCount;
       const dist = lerp(40, sparkleBurstCfg.spread, easeOutCubic(clamp(progress / Math.max(sparkleBurstCfg.duration, 0.05), 0, 1)));
-      const x = width * 0.5 + Math.cos(angle) * dist;
-      const y = height * 0.45 + Math.sin(angle) * dist * 0.72;
+      const x = width * originX + Math.cos(angle) * dist;
+      const y = height * originY + Math.sin(angle) * dist * 0.72;
       const scale = 0.7 + (i % 4) * 0.18;
       return (
         <div

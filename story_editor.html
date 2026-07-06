@@ -350,6 +350,15 @@
     background: rgba(251,191,36,.9);
     width: 22px; height: 22px;
   }
+  .placement-marker-sparkle {
+    background: rgba(56,189,248,.9);
+    width: 22px; height: 22px;
+  }
+  .placement-marker-telop {
+    background: rgba(244,63,94,.9);
+    width: 22px; height: 22px;
+    border-radius: 6px;
+  }
   .overlay-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -3390,8 +3399,10 @@ function setupScriptTimeline() {
 // （story_editor.py の BASE_SPEAKERS 定義コメントにも同じ前提が書かれている）。
 const KNOWN_CHARS = ["zundamon", "metan"];
 let _placementDrag = null; // { id, startX, startY, origX, origY }
-// 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値（ズーム位置用）。
+// 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
 const ZOOM_TARGET_ID = "__zoomTarget__";
+const SPARKLE_POS_ID = "__sparklePos__";
+const TELOP_POS_ID = "__telopPos__";
 
 // 以下、video/src/StoryVideo.tsx の AVATAR_BOX/FULL_CANVAS/FACE_RATIO/faceCyOf と同じ値・式
 // （アンカー=ボックス中心 と 顔位置 の変換用）。手動配置はドラッグの直感に合わせて
@@ -3544,6 +3555,33 @@ function resolveAutoZoomXYAt(script, idx) {
   return { x: 0.5, y: 0.5 };
 }
 
+// 配置タブの「チェックで単一座標をON/OFF」共通行。ズーム位置・キラッ位置・テロップ位置で共有する。
+// opts: { icon, label, isChecked, getAuto, onSet({x,y}), onClear }
+function makePositionToggleRow(opts) {
+  const row = document.createElement("label");
+  row.className = "toggle-row";
+  row.style.cssText = "justify-content:space-between; padding:4px 0; border-top:1px solid var(--border); margin-top:6px; padding-top:10px;";
+  const left = document.createElement("span");
+  left.textContent = opts.icon + " " + opts.label;
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = opts.isChecked();
+  cb.addEventListener("change", () => {
+    if (cb.checked) {
+      const xy = opts.getAuto();
+      opts.onSet({ x: xy.x, y: xy.y });
+    } else {
+      opts.onClear();
+    }
+    markDirty();
+    notifyPlayerUpdate();
+    renderPlacementEditLayer();
+  });
+  row.appendChild(cb);
+  row.appendChild(left);
+  return row;
+}
+
 function renderPlacementPanel() {
   const container = document.getElementById("placementList");
   if (!container) return;
@@ -3588,30 +3626,58 @@ function renderPlacementPanel() {
   }
 
   // ズーム位置（ソロズーム/話者プッシュインの寄り先を手動指定）。登場者の有無に関係なく常に出す。
-  const zoomRow = document.createElement("label");
-  zoomRow.className = "toggle-row";
-  zoomRow.style.cssText = "justify-content:space-between; padding:4px 0; border-top:1px solid var(--border); margin-top:6px; padding-top:10px;";
-  const zoomLeft = document.createElement("span");
-  zoomLeft.textContent = "🎯 ズーム位置";
-  const zoomCb = document.createElement("input");
-  zoomCb.type = "checkbox";
-  zoomCb.checked = turn.zoomTarget != null;
-  zoomCb.addEventListener("change", () => {
-    if (zoomCb.checked) {
-      const xy = resolveAutoZoomXYAt(storyData.script, selectedIdx);
-      turn.zoomTarget = { x: xy.x, y: xy.y };
-    } else {
-      turn.zoomTarget = null; // 以降このターンから自動計算へ戻す
-    }
-    markDirty();
-    notifyPlayerUpdate();
-    renderPlacementEditLayer();
-  });
-  zoomRow.appendChild(zoomCb);
-  zoomRow.appendChild(zoomLeft);
-  container.appendChild(zoomRow);
+  container.appendChild(makePositionToggleRow({
+    icon: "🎯",
+    label: "ズーム位置",
+    isChecked: () => turn.zoomTarget != null,
+    getAuto: () => resolveAutoZoomXYAt(storyData.script, selectedIdx),
+    onSet: (xy) => { turn.zoomTarget = xy; },
+    onClear: () => { turn.zoomTarget = null; },
+  }));
+
+  // キラッ位置（sparkleBurstが有効な行だけ出す。効果が無いターンでは意味が無いため）。
+  if (turn.sparkleBurst) {
+    container.appendChild(makePositionToggleRow({
+      icon: "🎇",
+      label: "キラッ位置",
+      isChecked: () => turn.sparklePos != null,
+      getAuto: () => ({ x: 0.5, y: 0.45 }),
+      onSet: (xy) => { turn.sparklePos = xy; },
+      onClear: () => { turn.sparklePos = null; },
+    }));
+  }
+
+  // テロップ位置（telopが設定されている行だけ出す。既存のtelopX/telopY数値欄と同じ値を使う）。
+  if (turn.telop) {
+    container.appendChild(makePositionToggleRow({
+      icon: "🏷️",
+      label: "テロップ位置",
+      isChecked: () => typeof turn.telopX === "number" || typeof turn.telopY === "number",
+      getAuto: () => ({
+        x: typeof turn.telopX === "number" ? turn.telopX : 0.045,
+        y: typeof turn.telopY === "number" ? turn.telopY : 0.06,
+      }),
+      onSet: (xy) => { turn.telopX = xy.x; turn.telopY = xy.y; },
+      onClear: () => { delete turn.telopX; delete turn.telopY; },
+    }));
+  }
 
   renderPlacementEditLayer();
+}
+
+// 配置プレビューのドラッグ可能マーカーを1つ追加する共通処理。
+function addPlacementMarker(layer, rect, xy, id, label, extraClass) {
+  const marker = document.createElement("div");
+  marker.className = "placement-marker" + (extraClass ? " " + extraClass : "");
+  marker.style.left = (xy.x * rect.width) + "px";
+  marker.style.top = (xy.y * rect.height) + "px";
+  marker.dataset.id = id;
+  const labelEl = document.createElement("div");
+  labelEl.className = "placement-marker-label";
+  labelEl.textContent = label;
+  marker.appendChild(labelEl);
+  marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, id));
+  layer.appendChild(marker);
 }
 
 function renderPlacementEditLayer() {
@@ -3627,31 +3693,17 @@ function renderPlacementEditLayer() {
   const rect = wrap.getBoundingClientRect();
   const actors = presentActorsAt(storyData.script, selectedIdx).filter((id) => isTurnActorManuallyPlaced(turn, id));
   for (const id of actors) {
-    const xy = resolveActorXYAt(storyData.script, selectedIdx, id);
-    const marker = document.createElement("div");
-    marker.className = "placement-marker";
-    marker.style.left = (xy.x * rect.width) + "px";
-    marker.style.top = (xy.y * rect.height) + "px";
-    marker.dataset.id = id;
-    const label = document.createElement("div");
-    label.className = "placement-marker-label";
-    label.textContent = id;
-    marker.appendChild(label);
-    marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, id));
-    layer.appendChild(marker);
+    addPlacementMarker(layer, rect, resolveActorXYAt(storyData.script, selectedIdx, id), id, id);
   }
   if (turn.zoomTarget) {
-    const marker = document.createElement("div");
-    marker.className = "placement-marker placement-marker-zoom";
-    marker.style.left = (turn.zoomTarget.x * rect.width) + "px";
-    marker.style.top = (turn.zoomTarget.y * rect.height) + "px";
-    marker.dataset.id = ZOOM_TARGET_ID;
-    const label = document.createElement("div");
-    label.className = "placement-marker-label";
-    label.textContent = "ズーム";
-    marker.appendChild(label);
-    marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, ZOOM_TARGET_ID));
-    layer.appendChild(marker);
+    addPlacementMarker(layer, rect, turn.zoomTarget, ZOOM_TARGET_ID, "ズーム", "placement-marker-zoom");
+  }
+  if (turn.sparklePos) {
+    addPlacementMarker(layer, rect, turn.sparklePos, SPARKLE_POS_ID, "キラッ", "placement-marker-sparkle");
+  }
+  if (typeof turn.telopX === "number" || typeof turn.telopY === "number") {
+    const xy = { x: turn.telopX ?? 0.045, y: turn.telopY ?? 0.06 };
+    addPlacementMarker(layer, rect, xy, TELOP_POS_ID, "テロップ", "placement-marker-telop");
   }
 }
 
@@ -3659,9 +3711,17 @@ function beginPlacementDrag(e, id) {
   e.preventDefault();
   e.stopPropagation();
   if (selectedIdx < 0) return;
-  const xy = id === ZOOM_TARGET_ID
-    ? (storyData.script[selectedIdx].zoomTarget || resolveAutoZoomXYAt(storyData.script, selectedIdx))
-    : resolveActorXYAt(storyData.script, selectedIdx, id);
+  const turn = storyData.script[selectedIdx];
+  let xy;
+  if (id === ZOOM_TARGET_ID) {
+    xy = turn.zoomTarget || resolveAutoZoomXYAt(storyData.script, selectedIdx);
+  } else if (id === SPARKLE_POS_ID) {
+    xy = turn.sparklePos || { x: 0.5, y: 0.45 };
+  } else if (id === TELOP_POS_ID) {
+    xy = { x: typeof turn.telopX === "number" ? turn.telopX : 0.045, y: typeof turn.telopY === "number" ? turn.telopY : 0.06 };
+  } else {
+    xy = resolveActorXYAt(storyData.script, selectedIdx, id);
+  }
   _placementDrag = { id, startX: e.clientX, startY: e.clientY, origX: xy.x, origY: xy.y };
 }
 
@@ -5902,6 +5962,7 @@ function addTurnAfter(inheritScene = false) {
     delete newTurn.exitDir;
     delete newTurn.manualPos;
     delete newTurn.zoomTarget;
+    delete newTurn.sparklePos;
   } else {
     // 既定は暗転(黒) scene=""の空ターン。
     newTurn = {
@@ -6612,6 +6673,11 @@ function setupEvents() {
     const ny = Math.max(0, Math.min(1, _placementDrag.origY + dy));
     if (_placementDrag.id === ZOOM_TARGET_ID) {
       turn.zoomTarget = { x: nx, y: ny };
+    } else if (_placementDrag.id === SPARKLE_POS_ID) {
+      turn.sparklePos = { x: nx, y: ny };
+    } else if (_placementDrag.id === TELOP_POS_ID) {
+      turn.telopX = nx;
+      turn.telopY = ny;
     } else {
       if (!turn.manualPos) turn.manualPos = {};
       turn.manualPos[_placementDrag.id] = { x: nx, y: ny };
