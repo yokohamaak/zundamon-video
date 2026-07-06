@@ -3830,6 +3830,10 @@ function initPlayer() {
     // すでに story-player.js が読み込み済み
     onPlayerApiReady();
   } else {
+    // story-player.js のモジュール評価時点(import "./fonts" 等)で staticFile() が呼ばれるため、
+    // mount()内のpatchStaticFilePrefix()より前に、スクリプト読込前のここで設定しておく必要がある
+    // （でないとフォント等が staticBase 未設定のまま "/xxx" に解決され404になる）。
+    window.remotion_staticBase = "/preview-assets";
     window.addEventListener("story-player-ready", onPlayerApiReady, { once: true });
     // story-player.js を動的に読み込む
     const script = document.createElement("script");
