@@ -160,9 +160,13 @@ def _current_speakers_and_icons():
     speakers = list(BASE_SPEAKERS)
     icons = dict(BASE_SPEAKER_ICONS)
     for name, d in mobs.items():
-        speakers.append(name)
         normal = (d.get("images") or {}).get("normal") or {}
-        icons[name] = normal.get("closed")
+        closed = normal.get("closed")
+        # 画像ファイルが実在しないモブは選択肢に出さない（削除・リネーム後の幽霊エントリ防止）。
+        if not closed or not os.path.isfile(os.path.join(VIDEO_PUBLIC_DIR, closed)):
+            continue
+        speakers.append(name)
+        icons[name] = closed
     return speakers, icons
 
 # 組み込み5種（フォールバック用・expressions.json が読めない場合に使用）
@@ -277,13 +281,20 @@ def _save_base64_image(dest_dir, filename, data_url):
 
 
 def _load_scenes_keys():
-    """story-scenes.json の scenes キー一覧を返す。読み込み失敗時は空リスト。"""
+    """story-scenes.json の scenes キー一覧を返す。
+    bg画像が実在しないシーンは選択肢に出さない（削除・リネーム後の幽霊エントリ防止）。
+    読み込み失敗時は空リスト。"""
     if not os.path.exists(SCENES_JSON):
         return []
     try:
         with open(SCENES_JSON, encoding="utf-8") as f:
             d = json.load(f)
-        return list(d.get("scenes", {}).keys())
+        keys = []
+        for key, scene in (d.get("scenes") or {}).items():
+            bg = scene.get("bg") if isinstance(scene, dict) else None
+            if isinstance(bg, str) and os.path.isfile(os.path.join(VIDEO_PUBLIC_DIR, bg)):
+                keys.append(key)
+        return keys
     except Exception:
         return []
 

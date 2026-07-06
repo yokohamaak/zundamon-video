@@ -16,4 +16,9 @@
 
 ## 未対応の既知バグ・改善候補
 
-（現時点で無し）
+- 表情選択(`fExpression`)・ポーズ選択(`fPose`)は、シーン/話者と違いファイル実在チェックをしていない。
+  表情はキャラごとにパーツ画像(brow/cheek/eye/mouth等)の組み合わせなので単純な1ファイルチェックでは
+  済まず、かつ現在の実装はキャラ非依存の単一グローバル一覧(`_buildExpressionOptions`/`buildPoseSelect`)
+  のため、ターン選択中の話者に応じて選択肢を絞り込む作りへの変更も必要。対応する場合は
+  expression_editor.py/pose_editor.pyの`_build_catalog()`(スロット単位でos.path.isfileチェック済み)を
+  流用する方針で検討する。
