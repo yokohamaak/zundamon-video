@@ -246,7 +246,6 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
         <>
           <div style={{ position: 'absolute', inset: 0, background: normalized.style.backgroundColor, opacity: bgVisibility.opacity }} />
           <div style={{ position: 'absolute', left: 0, top: 0, width: actualWidth * 0.16, height: actualHeight, background: 'rgba(255,255,255,0.35)' }} />
-          <div style={{ position: 'absolute', right: actualWidth * 0.04, top: actualHeight * 0.14, width: actualWidth * 0.13, height: actualHeight * 0.7, background: 'rgba(120,90,60,0.12)', borderRadius: 12 }} />
         </>
       )}
 
