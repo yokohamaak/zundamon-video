@@ -197,6 +197,8 @@ export type StoryOverlay = {
 export type StoryEffectSettings = {
   // 登場/退場スライドにかける秒数（キャラ・モブ共通）。
   entrance?: { duration?: number };
+  // 話者プッシュイン(emphasis)が寄りきるまでの秒数。
+  emphasis?: { duration?: number };
   zoomPunch?: { scale?: number; duration?: number; borderStrength?: number };
   quoteFreeze?: { fadeIn?: number; fadeOutStart?: number; fadeOutDuration?: number; backdropOpacity?: number };
   stampRain?: { count?: number; fallDuration?: number; stagger?: number; spread?: number };
@@ -209,6 +211,7 @@ export type StoryEffectSettings = {
 
 type ResolvedEffectSettings = {
   entrance: { duration: number };
+  emphasis: { duration: number };
   zoomPunch: { scale: number; duration: number; borderStrength: number };
   quoteFreeze: { fadeIn: number; fadeOutStart: number; fadeOutDuration: number; backdropOpacity: number };
   stampRain: { count: number; fallDuration: number; stagger: number; spread: number };
@@ -817,6 +820,7 @@ const easeOutBack = (x: number) => {
 const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
 const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
   entrance: { duration: 0.5 },
+  emphasis: { duration: 0.5 },
   zoomPunch: { scale: 1.14, duration: 0.18, borderStrength: 1 },
   quoteFreeze: { fadeIn: 0.14, fadeOutStart: 0.72, fadeOutDuration: 0.18, backdropOpacity: 0.22 },
   stampRain: { count: 8, fallDuration: 0.46, stagger: 0.05, spread: 1 },
@@ -830,6 +834,7 @@ const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
 function resolveEffectSettings(settings?: StoryEffectSettings): ResolvedEffectSettings {
   return {
     entrance: { ...DEFAULT_EFFECT_SETTINGS.entrance, ...(settings?.entrance || {}) },
+    emphasis: { ...DEFAULT_EFFECT_SETTINGS.emphasis, ...(settings?.emphasis || {}) },
     zoomPunch: { ...DEFAULT_EFFECT_SETTINGS.zoomPunch, ...(settings?.zoomPunch || {}) },
     quoteFreeze: { ...DEFAULT_EFFECT_SETTINGS.quoteFreeze, ...(settings?.quoteFreeze || {}) },
     stampRain: { ...DEFAULT_EFFECT_SETTINGS.stampRain, ...(settings?.stampRain || {}) },
@@ -846,6 +851,7 @@ function mergeEffectSettings(
   if (!base && !override) return undefined;
   return {
     entrance: { ...(base?.entrance || {}), ...(override?.entrance || {}) },
+    emphasis: { ...(base?.emphasis || {}), ...(override?.emphasis || {}) },
     zoomPunch: { ...(base?.zoomPunch || {}), ...(override?.zoomPunch || {}) },
     quoteFreeze: { ...(base?.quoteFreeze || {}), ...(override?.quoteFreeze || {}) },
     stampRain: { ...(base?.stampRain || {}), ...(override?.stampRain || {}) },
@@ -3159,8 +3165,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       cx: manualFocus?.x ?? autoFocusCx,
       cy: manualFocus?.y ?? autoFocusCy,
     });
-    // emphasis を立てた時点から 0.5s でイーズインし、その後は話者交代まで維持する。
-    const focusK = easeInOutCubic(clamp((t - focusStart) / 0.5, 0, 1));
+    // emphasis を立てた時点からemphasis.duration秒でイーズインし、その後は話者交代まで維持する。
+    const emphasisDur = resolveEffectSettings(
+      mergeEffectSettings(story.effectSettings, active.effectSettings)
+    ).emphasis.duration;
+    const focusK = easeInOutCubic(clamp((t - focusStart) / Math.max(emphasisDur, 0.05), 0, 1));
     focusBubbleK = focusK;
     tf = {
       tx: lerp(tf.tx, focusTf.tx, focusK),
