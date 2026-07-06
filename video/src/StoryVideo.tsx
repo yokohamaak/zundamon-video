@@ -3298,12 +3298,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const box = isFull ? fullBoxSize(cdef.avatar) : { w: AVATAR_BOX, h: AVATAR_BOX };
 
     // 途中で登場するキャラ（区間の頭からいる人ではない）は、自分の側からスライドイン。
+    // 区間の頭からいる場合でも、enterDir が明示指定されていればその方向からスライドインさせる
+    // （指定が無ければ従来通り最初から画面にいる扱い）。
     const entered = entrance[charId] ?? seg.start;
     const isInitial = entered <= seg.start + 1e-6;
     const enterDir = enterDirs[charId];
     const entersInstantly = enterDir === "instant" || isFlashbackBoundaryStart(entered);
     let slideOffsetPx = 0;
-    if (!isInitial && !entersInstantly) {
+    if ((!isInitial || enterDir !== undefined) && !entersInstantly) {
       const sp = clamp((t - entered) / SLIDE_DUR, 0, 1); // 0.5秒で着地
       const e = easeOutCubic(sp);
       // 登場方向：明示指定があればそちら、無ければ自分の居る側（近い画面端）から。
@@ -3384,7 +3386,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const isInitial = entranceAt <= seg.start + 1e-6;
     const entersInstantly = enterDir === "instant";
     let slideOffsetPx = 0;
-    if (!isInitial && !entersInstantly) {
+    if ((!isInitial || enterDir !== undefined) && !entersInstantly) {
       const sp = clamp((t - entranceAt) / SLIDE_DUR, 0, 1);
       const e = easeOutCubic(sp);
       const fromXNorm = enterDir === "right" ? 1.35 : enterDir === "left" ? -0.35 : a.x < 0.5 ? -0.35 : 1.35;
