@@ -1,11 +1,10 @@
 {
-  "_note": "Phase1のシーンライブラリ(仮)。背景は既存画像を流用したプレースホルダ。anchorは正規化座標(0..1, yは足元位置)。frontを指定すると back→キャラ→front の重ね(layered)。shot/cameraはライブラリ既定。docs/next-animation-editor-spec.md §4.2/§4.5。",
+  "_note": "Phase1のシーンライブラリ(仮)。背景は既存画像を流用したプレースホルダ。anchorは正規化座標(0..1, yは足元位置)。frontを指定すると back→キャラ→front の重ね(layered)。cameraはライブラリ既定。docs/next-animation-editor-spec.md §4.2/§4.5。",
   "scenes": {
     "office": {
       "label": "オフィス",
       "bg": "background/office_bg.png",
       "front": "background/office_fg.png",
-      "shot": "duo",
       "camera": "static",
       "figure": "full",
       "scale": 1.2,
@@ -20,12 +19,12 @@
           "y": 0.748
         },
         "left": {
-          "x": 0.415,
-          "y": 0.53
+          "x": 0.422,
+          "y": 0.551
         },
         "right": {
-          "x": 0.717,
-          "y": 0.586
+          "x": 0.719,
+          "y": 0.604
         }
       },
       "mobAnchor": {
@@ -57,15 +56,16 @@
           "hidden": true
         }
       },
-      "soloZoomCy": 0.45,
-      "soloZoomScale": 1.2,
-      "soloZoom": false
+      "cameraFrame": {
+        "cx": 0.5430222602739725,
+        "cy": 0.480736301369863,
+        "width": 0.7354452054794518
+      }
     },
     "meeting_room": {
       "label": "会議室",
       "bg": "background/会議室bg.png",
       "front": "background/会議室fg.png",
-      "shot": "duo",
       "camera": "static",
       "figure": "full",
       "scale": 0.95,
@@ -80,8 +80,8 @@
           "y": 0.63
         },
         "left": {
-          "x": 0.829,
-          "y": 0.641
+          "x": 0.389,
+          "y": 0.523
         },
         "right": {
           "x": 0.601,
@@ -112,15 +112,16 @@
           "hidden": true
         }
       },
-      "soloZoomCy": 0.48,
-      "soloZoomScale": 1.14,
-      "soloZoom": false
+      "cameraFrame": {
+        "cx": 0.4747431506849315,
+        "cy": 0.41395547945205474,
+        "width": 0.6258561643835616
+      }
     },
     "home": {
       "label": "自宅",
       "bg": "background/room.png",
       "front": null,
-      "shot": "solo",
       "camera": "static",
       "figure": "full",
       "scale": 1.1,
@@ -167,7 +168,6 @@
       "label": "サーバールーム",
       "bg": "background/server_room.png",
       "front": null,
-      "shot": "duo",
       "camera": "slow-zoom",
       "figure": "full",
       "scale": 1.35,
@@ -209,15 +209,12 @@
           "scale": 0.85,
           "hidden": true
         }
-      },
-      "soloZoomCy": 0.48,
-      "soloZoomScale": 1.25
+      }
     },
     "rooftop": {
       "label": "屋上（夕方）",
       "bg": "background/rooftop.png",
       "front": null,
-      "shot": "duo",
       "camera": "static",
       "figure": "full",
       "scale": 1.5,
@@ -265,7 +262,6 @@
       "label": "自宅夜",
       "bg": "background/room_night.png",
       "front": null,
-      "shot": "solo",
       "camera": "static",
       "scale": 1.1,
       "bgBlur": 0,
@@ -313,11 +309,7 @@
       "bg": "background/izakaya.png",
       "front": "background/izakaya_fg.png",
       "figure": "full",
-      "shot": "duo",
       "camera": "static",
-      "soloZoom": true,
-      "soloZoomScale": 1.25,
-      "soloZoomCy": 0.47,
       "scale": 1.5,
       "bgBlur": 3,
       "cast": {
@@ -364,11 +356,7 @@
       "bg": "background/park_yoru.png",
       "front": null,
       "figure": "full",
-      "shot": "duo",
       "camera": "static",
-      "soloZoom": true,
-      "soloZoomScale": 1.4,
-      "soloZoomCy": 0.58,
       "scale": 1.5,
       "bgBlur": 2,
       "cast": {
@@ -414,11 +402,7 @@
       "bg": "background/park_hiru.png",
       "front": null,
       "figure": "full",
-      "shot": "duo",
       "camera": "static",
-      "soloZoom": false,
-      "soloZoomScale": 1.4,
-      "soloZoomCy": 0.58,
       "scale": 1.5,
       "bgBlur": 2,
       "cast": {
@@ -464,11 +448,7 @@
       "bg": "background/kyutoshitsu.png",
       "front": null,
       "figure": "full",
-      "shot": "duo",
       "camera": "static",
-      "soloZoom": false,
-      "soloZoomScale": 1.4,
-      "soloZoomCy": 0.47,
       "scale": 1.35,
       "bgBlur": 2,
       "cast": {
@@ -515,11 +495,7 @@
       "bg": "background/train_hiru.png",
       "front": null,
       "figure": "full",
-      "shot": "solo",
       "camera": "static",
-      "soloZoom": true,
-      "soloZoomScale": 1.25,
-      "soloZoomCy": 0.46,
       "scale": 1.85,
       "bgBlur": 3,
       "cast": {
@@ -565,11 +541,7 @@
       "bg": "background/train_yoru.png",
       "front": null,
       "figure": "full",
-      "shot": "solo",
       "camera": "static",
-      "soloZoom": true,
-      "soloZoomScale": 1.25,
-      "soloZoomCy": 0.46,
       "scale": 1.85,
       "bgBlur": 3,
       "cast": {
@@ -615,11 +587,7 @@
       "bg": "background/ベンダー会議室.png",
       "front": null,
       "figure": "full",
-      "shot": "duo",
       "camera": "static",
-      "soloZoom": true,
-      "soloZoomScale": 1.4,
-      "soloZoomCy": 0.58,
       "scale": 1.1,
       "bgBlur": 0,
       "cast": {},
@@ -662,11 +630,7 @@
       "bg": "background/roottop_hiru.png",
       "front": null,
       "figure": "full",
-      "shot": "duo",
       "camera": "static",
-      "soloZoom": true,
-      "soloZoomScale": 1.2,
-      "soloZoomCy": 0.58,
       "scale": 1.1,
       "bgBlur": 0,
       "cast": {
@@ -712,11 +676,7 @@
       "bg": "background/copy.png",
       "front": null,
       "figure": "full",
-      "shot": "duo",
       "camera": "static",
-      "soloZoom": true,
-      "soloZoomScale": 1.4,
-      "soloZoomDy": 0.08,
       "scale": 1.1,
       "bgBlur": 0,
       "cast": {

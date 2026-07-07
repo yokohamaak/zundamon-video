@@ -882,6 +882,10 @@
         <option value="3">300%</option>
         <option value="4">400%</option>
       </select>
+      <label class="toggle-row" style="font-size:12px; gap:4px; margin-left:8px;">
+        <input type="checkbox" id="previewAutoFrameToggle">
+        <span>自動寄せ</span>
+      </label>
       <span class="preview-status" id="playerStatus" style="margin-left:8px;">story-player.js を読み込み中...</span>
       <button class="btn btn-secondary btn-sm" id="btnAddOverlay" style="margin-left:auto; font-size:12px; padding:2px 8px;">＋画像Overlay</button>
       <button class="btn btn-secondary btn-sm" id="btnAddTextOverlay" style="font-size:12px; padding:2px 8px;">＋字幕</button>
@@ -1159,10 +1163,6 @@
           <div class="section-divider">演出</div>
           <div class="fx-grid" style="margin-bottom:10px">
             <label class="toggle-row">
-              <input type="checkbox" id="fEmphasis">
-              <span>ズーム</span>
-            </label>
-            <label class="toggle-row">
               <input type="checkbox" id="fShake">
               <span>シェイク</span>
             </label>
@@ -1171,18 +1171,27 @@
               <span>回想</span>
             </label>
           </div>
-          <div class="field-help" id="fEmphasisHelp">チェックした行から話者寄りを開始します。</div>
           <div class="field-row">
             <label class="field-label">カメラ効果</label>
-            <select class="field-select" id="fCameraEffect">
-              <option value="">なし</option>
-              <option value="pull-out">引き</option>
-              <option value="pan-left">左パン</option>
-              <option value="pan-right">右パン</option>
-              <option value="tilt-left">左傾き</option>
-              <option value="tilt-right">右傾き</option>
-            </select>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <select class="field-select" id="fCameraEffectZoom" style="width:auto; min-width:120px;">
+                <option value="">ズーム: なし</option>
+                <option value="in">ズーム: 寄る</option>
+                <option value="out">ズーム: 引く</option>
+              </select>
+              <select class="field-select" id="fCameraEffectPan" style="width:auto; min-width:120px;">
+                <option value="">パン: なし</option>
+                <option value="left">パン: 左</option>
+                <option value="right">パン: 右</option>
+              </select>
+              <select class="field-select" id="fCameraEffectTilt" style="width:auto; min-width:120px;">
+                <option value="">傾き: なし</option>
+                <option value="left">傾き: 左</option>
+                <option value="right">傾き: 右</option>
+              </select>
+            </div>
             <div class="field-help" id="fCameraEffectHelp">この行の間だけ追加でカメラを動かします。</div>
+            <div id="fCameraEffectSettings" style="margin-top:10px;"></div>
           </div>
           <div class="field-row">
             <label class="field-label">テロップ</label>
@@ -1262,6 +1271,8 @@
             このターンで登場中(またはこのターンから登場する)キャラ/モブを手動配置できます。
             「手動配置」をONにするとプレビュー上にマーカーが出るので、ドラッグで位置を指定してください。
             退場するまでその位置に固定され、別のターンで配置し直すとなめらかに移動します。
+            「フォーカス位置」をONにすると、このターンのズーム演出が狙う位置を手動で指定できます。
+            「仮想カメラ中心」をONにすると、16:9の枠そのものの中心点を手動で指定できます。
           </div>
           <div id="placementList" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
@@ -1514,6 +1525,14 @@ const EFFECT_SETTING_SPECS = [
   { group: "irisOut", label: "アイリスアウト 初期半径", key: "startRadius", min: 0.15, max: 1.3, step: 0.02, defaultValue: 1.05, digits: 2 },
   { group: "irisOut", label: "アイリスアウト 閉じ始め", key: "closeStart", min: 0, max: 8, step: 0.05, defaultValue: 1.7, digits: 2, unit: "秒" },
   { group: "irisOut", label: "アイリスアウト 閉じ終わり", key: "closeEnd", min: 0, max: 8, step: 0.05, defaultValue: 2.0, digits: 2, unit: "秒" },
+];
+const CAMERA_EFFECT_SETTING_SPECS = [
+  { group: "zoom", label: "ズーム量", key: "amount", min: 0, max: 0.6, step: 0.01, defaultValue: 0.12, digits: 2, commonKey: "zoomAmount", legacyKey: "pullOut" },
+  { group: "zoom", label: "ズーム時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "zoomDuration" },
+  { group: "pan", label: "パン量", key: "amount", min: 0, max: 0.2, step: 0.01, defaultValue: 0.08, digits: 2, commonKey: "panAmount", legacyKey: "panMax" },
+  { group: "pan", label: "パン時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "panDuration" },
+  { group: "tilt", label: "傾き角度", key: "angle", min: 0, max: 6, step: 0.1, defaultValue: 2.4, digits: 1, unit: "度", commonKey: "tiltAngle", legacyKey: "tiltDeg" },
+  { group: "tilt", label: "傾き時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "tiltDuration" },
 ];
 // 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
 const IRIS_OUT_DEFAULT_COLOR = "#000000";
@@ -2033,12 +2052,205 @@ function displaySpeakerLabel(turn) {
 
 function cameraEffectLabel(effect) {
   switch (effect) {
+    case "in": return "寄る";
+    case "out": return "引く";
     case "pull-out": return "引き";
     case "pan-left": return "左パン";
     case "pan-right": return "右パン";
     case "tilt-left": return "左傾き";
     case "tilt-right": return "右傾き";
     default: return effect || "";
+  }
+}
+
+function normalizeCameraEffects(turn) {
+  const fx = {};
+  const src = turn && turn.cameraEffects;
+  if (src && (src.zoom === "in" || src.zoom === "out")) fx.zoom = src.zoom;
+  if (src && (src.pan === "left" || src.pan === "right")) fx.pan = src.pan;
+  if (src && (src.tilt === "left" || src.tilt === "right")) fx.tilt = src.tilt;
+  if (!turn || !turn.cameraEffect) return fx;
+  switch (turn.cameraEffect) {
+    case "pull-out": fx.zoom = "out"; break;
+    case "pan-left": fx.pan = "left"; break;
+    case "pan-right": fx.pan = "right"; break;
+    case "tilt-left": fx.tilt = "left"; break;
+    case "tilt-right": fx.tilt = "right"; break;
+  }
+  return fx;
+}
+
+function cameraEffectsSummary(turn) {
+  const fx = normalizeCameraEffects(turn);
+  const labels = [];
+  if (fx.zoom) labels.push("ズーム:" + cameraEffectLabel(fx.zoom));
+  if (fx.pan) labels.push("パン:" + cameraEffectLabel(fx.pan));
+  if (fx.tilt) labels.push("傾き:" + cameraEffectLabel(fx.tilt));
+  return labels;
+}
+
+function sceneCameraSettingValue(spec) {
+  const cam = sceneDefs && sceneDefs.camera ? sceneDefs.camera : {};
+  const direct = cam && cam[spec.commonKey];
+  if (Number.isFinite(direct)) return direct;
+  const legacy = spec.legacyKey ? cam && cam[spec.legacyKey] : undefined;
+  if (Number.isFinite(legacy)) return legacy;
+  return spec.defaultValue;
+}
+
+function ensureTurnCameraEffectSettings(turn) {
+  if (!turn) return {};
+  if (!turn.cameraEffectSettings || typeof turn.cameraEffectSettings !== "object") {
+    turn.cameraEffectSettings = {};
+  }
+  return turn.cameraEffectSettings;
+}
+
+function getTurnCameraEffectSettingRaw(turn, spec) {
+  const settings = turn && turn.cameraEffectSettings;
+  const group = settings && settings[spec.group];
+  const raw = group && group[spec.key];
+  return Number.isFinite(raw) ? raw : null;
+}
+
+function getTurnCameraEffectSettingEffective(turn, spec) {
+  const raw = getTurnCameraEffectSettingRaw(turn, spec);
+  return raw != null ? raw : sceneCameraSettingValue(spec);
+}
+
+function setTurnCameraEffectSettingValue(turn, spec, value) {
+  if (!turn) return;
+  const settings = ensureTurnCameraEffectSettings(turn);
+  if (!settings[spec.group] || typeof settings[spec.group] !== "object") settings[spec.group] = {};
+  settings[spec.group][spec.key] = Math.max(spec.min, Math.min(spec.max, value));
+}
+
+function clearTurnCameraEffectSettingGroup(turn, group) {
+  if (!turn || !turn.cameraEffectSettings || !turn.cameraEffectSettings[group]) return;
+  delete turn.cameraEffectSettings[group];
+  if (!Object.keys(turn.cameraEffectSettings).length) delete turn.cameraEffectSettings;
+}
+
+function activeCameraEffectGroups(turn) {
+  const fx = normalizeCameraEffects(turn);
+  const groups = [];
+  if (fx.zoom) groups.push("zoom");
+  if (fx.pan) groups.push("pan");
+  if (fx.tilt) groups.push("tilt");
+  return groups;
+}
+
+function cameraEffectGroupSummary(turn, group) {
+  const specs = CAMERA_EFFECT_SETTING_SPECS.filter((spec) => spec.group === group);
+  const values = specs.map((spec) => formatEffectSettingValue(spec, getTurnCameraEffectSettingEffective(turn, spec)));
+  const overridden = specs.some((spec) => getTurnCameraEffectSettingRaw(turn, spec) != null);
+  return overridden
+    ? `ターン個別設定（${values.join(" / ")}）`
+    : `共通値を使用中（${values.join(" / ")}）`;
+}
+
+function makeCameraEffectTurnSettingControl(turn, spec) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = spec.label;
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%; flex-wrap:wrap;";
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.className = "field-input";
+  slider.min = String(spec.min);
+  slider.max = String(spec.max);
+  slider.step = String(spec.step);
+  slider.value = String(getTurnCameraEffectSettingEffective(turn, spec));
+  slider.style.cssText = "flex:1 1 220px; min-width:180px; accent-color:var(--accent);";
+  const num = document.createElement("input");
+  num.type = "number";
+  num.className = "field-input";
+  num.min = String(spec.min);
+  num.max = String(spec.max);
+  num.step = String(spec.step);
+  num.value = String(getTurnCameraEffectSettingEffective(turn, spec));
+  num.style.cssText = "width:92px; flex-shrink:0;";
+  const disp = document.createElement("span");
+  disp.style.cssText = "font-size:12px; color:var(--text2); min-width:64px;";
+  const syncOnly = (value) => {
+    const numVal = Math.max(spec.min, Math.min(spec.max, parseFloat(value)));
+    slider.value = String(numVal);
+    num.value = String(numVal);
+    disp.textContent = formatEffectSettingValue(spec, numVal);
+  };
+  const commit = (value) => {
+    const numVal = Math.max(spec.min, Math.min(spec.max, parseFloat(value)));
+    setTurnCameraEffectSettingValue(turn, spec, numVal);
+    markDirty();
+    renderCameraEffectSettings(turn);
+    notifyPlayerUpdate();
+  };
+  syncOnly(slider.value);
+  slider.addEventListener("input", () => syncOnly(slider.value));
+  num.addEventListener("input", () => syncOnly(num.value || String(sceneCameraSettingValue(spec))));
+  slider.addEventListener("change", () => commit(slider.value));
+  num.addEventListener("change", () => commit(num.value || String(sceneCameraSettingValue(spec))));
+  const makeStepBtn = (delta, label) => {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-secondary btn-sm";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      const next = Math.max(spec.min, Math.min(spec.max, getTurnCameraEffectSettingEffective(turn, spec) + delta));
+      commit(String(next));
+    });
+    return btn;
+  };
+  body.appendChild(slider);
+  body.appendChild(makeStepBtn(-spec.step, "−"));
+  body.appendChild(num);
+  body.appendChild(makeStepBtn(spec.step, "＋"));
+  body.appendChild(disp);
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
+}
+
+function renderCameraEffectSettings(turn) {
+  const container = document.getElementById("fCameraEffectSettings");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!turn) return;
+  const groups = activeCameraEffectGroups(turn);
+  if (!groups.length) return;
+  for (const group of groups) {
+    const box = document.createElement("div");
+    box.style.cssText = "border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-top:8px; background:rgba(255,255,255,0.02);";
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;";
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("div");
+    title.style.cssText = "font-size:12px; font-weight:700; color:var(--text);";
+    title.textContent = group === "zoom" ? "ズーム" : group === "pan" ? "パン" : "傾き";
+    const state = document.createElement("div");
+    state.style.cssText = "font-size:11px; color:var(--text2); margin-top:3px;";
+    state.textContent = cameraEffectGroupSummary(turn, group);
+    titleWrap.appendChild(title);
+    titleWrap.appendChild(state);
+    const reset = document.createElement("button");
+    reset.className = "btn btn-secondary btn-sm";
+    reset.textContent = "共通値に戻す";
+    reset.addEventListener("click", () => {
+      clearTurnCameraEffectSettingGroup(turn, group);
+      markDirty();
+      renderCameraEffectSettings(turn);
+      notifyPlayerUpdate();
+    });
+    header.appendChild(titleWrap);
+    header.appendChild(reset);
+    box.appendChild(header);
+    for (const spec of CAMERA_EFFECT_SETTING_SPECS) {
+      if (spec.group !== group) continue;
+      box.appendChild(makeCameraEffectTurnSettingControl(turn, spec));
+    }
+    container.appendChild(box);
   }
 }
 
@@ -3392,6 +3604,7 @@ function setupScriptTimeline() {
     _playheadTime = ((e.detail && e.detail.frame) || 0) / 30;
     scheduleTimelineDraw();
     renderOverlayEditLayer();
+    renderPlacementEditLayer();
   });
   window.addEventListener("resize", drawScriptTimeline);
 }
@@ -3402,9 +3615,10 @@ function setupScriptTimeline() {
 // video/src/StoryVideo.tsx の CHARACTERS 側でハードコードされている「立ち絵を持つキャラ」一覧
 // （story_editor.py の BASE_SPEAKERS 定義コメントにも同じ前提が書かれている）。
 const KNOWN_CHARS = ["zundamon", "metan"];
-let _placementDrag = null; // { id, startX, startY, origX, origY }
+let _placementDrag = null; // { id, startX, startY, origX, origY, origScreenX, origScreenY, pointerLock, dragTf, draftStage }
 // 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
 const ZOOM_TARGET_ID = "__zoomTarget__";
+const CAMERA_CENTER_ID = "__cameraCenter__";
 const SPARKLE_POS_ID = "__sparklePos__";
 const TELOP_POS_ID = "__telopPos__";
 
@@ -3426,6 +3640,18 @@ function charFaceOffsetJS(charId, sceneDef) {
   const avScale = (sceneDef && sceneDef.scale) ?? 1.9;
   const ratio = isFull ? FACE_RATIO_JS.full : FACE_RATIO_JS.bust;
   return (0.5 - ratio) * ((boxH * avScale) / 1080);
+}
+
+function clampJS(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function normalizedCameraFrameJS(sceneDef) {
+  const src = sceneDef && sceneDef.cameraFrame || {};
+  const width = clampJS(typeof src.width === "number" ? src.width : 1, 0.35, 1);
+  const cx = clampJS(typeof src.cx === "number" ? src.cx : 0.5, width / 2, 1 - width / 2);
+  const cy = clampJS(typeof src.cy === "number" ? src.cy : 0.5, width / 2, 1 - width / 2);
+  return { cx, cy, width };
 }
 
 // 選択中ターン(idx)が含まれる「同一sceneが連続する区間」の[開始,終了]絶対インデックスを返す
@@ -3539,8 +3765,8 @@ function isTurnActorManuallyPlaced(turn, id) {
 }
 
 // idx時点で「ズームが自動で寄る位置」(顔基準)。手動指定(zoomTarget)が無い場合の初期値・プレビュー用。
-// video/src/StoryVideo.tsx の targetCam(ソロ分岐)・話者プッシュインの計算をミラーする。
-// 優先順位: emphasis中(話者プッシュイン) > ソロシーン(登場中の既知キャラが1人) > 中央(0.5,0.5)。
+// video/src/StoryVideo.tsx の話者プッシュイン計算をミラーする。
+// 優先順位: emphasis中(話者プッシュイン) > 中央(0.5,0.5)。
 function resolveAutoZoomXYAt(script, idx) {
   const turn = script[idx];
   const sceneDef = sceneDefs?.scenes?.[turn.scene];
@@ -3549,17 +3775,116 @@ function resolveAutoZoomXYAt(script, idx) {
     const dy = (sceneDef && sceneDef.focusDy) ?? 0.04;
     return { x: xy.x, y: Math.max(0, Math.min(1, xy.y + dy)) };
   }
-  const { start, end } = sceneRangeAt(script, idx);
-  const roster = sceneKnownCharRosterAt(script, start, end);
-  if (roster.length === 1) {
-    const xy = resolveActorXYAt(script, idx, roster[0]);
-    const dy = (sceneDef && sceneDef.soloZoomDy) ?? 0.08;
-    return { x: xy.x, y: Math.max(0, Math.min(1, xy.y + dy)) };
+  return { x: 0.5, y: 0.5 };
+}
+
+function resolveAutoCameraCenterAt(script, idx) {
+  const turn = script[idx];
+  const sceneDef = sceneDefs?.scenes?.[turn.scene];
+  const frame = sceneDef?.cameraFrame;
+  if (frame && typeof frame.cx === "number" && typeof frame.cy === "number") {
+    return { x: frame.cx, y: frame.cy };
   }
   return { x: 0.5, y: 0.5 };
 }
 
-// 配置タブの「チェックで単一座標をON/OFF」共通行。ズーム位置・キラッ位置・テロップ位置で共有する。
+function resolvePlacementPointAt(script, idx, key) {
+  if (!script || idx < 0 || idx >= script.length) return undefined;
+  const { start } = sceneRangeAt(script, idx);
+  let result = undefined;
+  for (let i = start; i <= idx; i++) {
+    const entry = script[i] && script[i][key];
+    if (entry === undefined) continue;
+    result = entry;
+  }
+  return result && typeof result.x === "number" && typeof result.y === "number" ? result : undefined;
+}
+
+function placementPreviewTime(script, idx) {
+  const turn = script && script[idx];
+  if (!turn) return 0;
+  const start = typeof turn.start === "number" ? turn.start : 0;
+  const next = idx < script.length - 1 ? script[idx + 1] : null;
+  const end = (typeof turn.end === "number" && turn.end > start)
+    ? turn.end
+    : (typeof next?.start === "number" ? next.start : start + (1 / 30));
+  if (_playheadTime >= start - 1e-6 && _playheadTime <= end + 1e-6) return _playheadTime;
+  return start;
+}
+
+function placementPreviewTf(rect) {
+  const script = currentScriptForTiming();
+  if (!script || selectedIdx < 0 || selectedIdx >= script.length || !rect) {
+    return { tx: 0, ty: 0, s: 1 };
+  }
+  const turn = script[selectedIdx];
+  const sceneDef = sceneDefs?.scenes?.[turn.scene];
+  if (!sceneDef) return { tx: 0, ty: 0, s: 1 };
+  const frame = normalizedCameraFrameJS(sceneDef);
+  const baseScale = 1 / frame.width;
+  const autoFrame = !!document.getElementById("previewAutoFrameToggle")?.checked;
+  const toTf = (cam) => {
+    const s = cam.s;
+    return {
+      tx: clampJS(rect.width / 2 - cam.cx * rect.width * s, rect.width * (1 - s), 0),
+      ty: clampJS(rect.height / 2 - cam.cy * rect.height * s, rect.height * (1 - s), 0),
+      s,
+    };
+  };
+
+  let baseCam;
+  const manualCenter = resolvePlacementPointAt(script, selectedIdx, "cameraCenter");
+  if (manualCenter) {
+    baseCam = { s: baseScale, cx: manualCenter.x, cy: manualCenter.y };
+  } else {
+    const presentChars = presentActorsAt(script, selectedIdx).filter((id) => KNOWN_CHARS.includes(id));
+    if (!autoFrame || presentChars.length === 0) {
+      baseCam = { s: baseScale, cx: frame.cx, cy: frame.cy };
+    } else if (presentChars.length === 1) {
+      const xy = resolveActorXYAt(script, selectedIdx, presentChars[0]);
+      baseCam = { s: baseScale, cx: xy.x, cy: frame.cy };
+    } else {
+      const xs = presentChars.map((id) => resolveActorXYAt(script, selectedIdx, id).x);
+      baseCam = { s: baseScale, cx: (Math.min(...xs) + Math.max(...xs)) / 2, cy: frame.cy };
+    }
+  }
+
+  const emphasisInfo = getEmphasisCarryInfo(script, selectedIdx);
+  if (!emphasisInfo.active || turn.narrationVoice || !KNOWN_CHARS.includes(turn.speaker)) {
+    return toTf(baseCam);
+  }
+  const speakerXY = resolveActorXYAt(script, selectedIdx, turn.speaker);
+  const autoFocus = {
+    x: speakerXY.x,
+    y: clampJS(speakerXY.y + ((sceneDef && sceneDef.focusDy) ?? 0.04), 0, 1),
+  };
+  const manualFocus = resolvePlacementPointAt(script, selectedIdx, "zoomTarget");
+  return toTf({
+    s: baseCam.s + ((sceneDef && sceneDef.focusZoom) ?? 0.3),
+    cx: manualFocus?.x ?? autoFocus.x,
+    cy: manualFocus?.y ?? autoFocus.y,
+  });
+}
+
+function placementStageToScreen(rect, xy) {
+  const tf = placementPreviewTf(rect);
+  return {
+    x: xy.x * rect.width * tf.s + tf.tx,
+    y: xy.y * rect.height * tf.s + tf.ty,
+  };
+}
+
+function placementScreenToStage(rect, sx, sy, tfOverride) {
+  const tf = tfOverride || placementPreviewTf(rect);
+  const denomX = Math.max(1e-6, rect.width * tf.s);
+  const denomY = Math.max(1e-6, rect.height * tf.s);
+  return {
+    x: clampJS((sx - tf.tx) / denomX, 0, 1),
+    y: clampJS((sy - tf.ty) / denomY, 0, 1),
+  };
+}
+
+// 配置タブの「チェックで単一座標をON/OFF」共通行。フォーカス位置・仮想カメラ中心・キラッ位置・テロップ位置で共有する。
 // opts: { icon, label, isChecked, getAuto, onSet({x,y}), onClear }
 function makePositionToggleRow(opts) {
   const row = document.createElement("label");
@@ -3629,14 +3954,24 @@ function renderPlacementPanel() {
     container.appendChild(row);
   }
 
-  // ズーム位置（ソロズーム/話者プッシュインの寄り先を手動指定）。登場者の有無に関係なく常に出す。
+  // フォーカス位置（ズーム演出の寄り先を手動指定）。登場者の有無に関係なく常に出す。
   container.appendChild(makePositionToggleRow({
     icon: "🎯",
-    label: "ズーム位置",
+    label: "フォーカス位置",
     isChecked: () => turn.zoomTarget != null,
     getAuto: () => resolveAutoZoomXYAt(storyData.script, selectedIdx),
     onSet: (xy) => { turn.zoomTarget = xy; },
     onClear: () => { turn.zoomTarget = null; },
+  }));
+
+  // 仮想カメラ中心（16:9枠の中心点）。明示した時だけシーン既定のcameraFrame中心を上書きする。
+  container.appendChild(makePositionToggleRow({
+    icon: "📷",
+    label: "仮想カメラ中心",
+    isChecked: () => turn.cameraCenter != null,
+    getAuto: () => resolveAutoCameraCenterAt(storyData.script, selectedIdx),
+    onSet: (xy) => { turn.cameraCenter = xy; },
+    onClear: () => { turn.cameraCenter = null; },
   }));
 
   // キラッ位置（sparkleBurstが有効な行だけ出す。効果が無いターンでは意味が無いため）。
@@ -3671,10 +4006,11 @@ function renderPlacementPanel() {
 
 // 配置プレビューのドラッグ可能マーカーを1つ追加する共通処理。
 function addPlacementMarker(layer, rect, xy, id, label, extraClass) {
+  const screen = placementStageToScreen(rect, xy);
   const marker = document.createElement("div");
   marker.className = "placement-marker" + (extraClass ? " " + extraClass : "");
-  marker.style.left = (xy.x * rect.width) + "px";
-  marker.style.top = (xy.y * rect.height) + "px";
+  marker.style.left = screen.x + "px";
+  marker.style.top = screen.y + "px";
   marker.dataset.id = id;
   const labelEl = document.createElement("div");
   labelEl.className = "placement-marker-label";
@@ -3682,6 +4018,13 @@ function addPlacementMarker(layer, rect, xy, id, label, extraClass) {
   marker.appendChild(labelEl);
   marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, id));
   layer.appendChild(marker);
+}
+
+function placementDraftValue(id, fallback) {
+  if (_placementDrag && _placementDrag.id === id && _placementDrag.draftStage) {
+    return _placementDrag.draftStage;
+  }
+  return fallback;
 }
 
 function renderPlacementEditLayer() {
@@ -3697,16 +4040,19 @@ function renderPlacementEditLayer() {
   const rect = wrap.getBoundingClientRect();
   const actors = presentActorsAt(storyData.script, selectedIdx).filter((id) => isTurnActorManuallyPlaced(turn, id));
   for (const id of actors) {
-    addPlacementMarker(layer, rect, resolveActorXYAt(storyData.script, selectedIdx, id), id, id);
+    addPlacementMarker(layer, rect, placementDraftValue(id, resolveActorXYAt(storyData.script, selectedIdx, id)), id, id);
   }
   if (turn.zoomTarget) {
-    addPlacementMarker(layer, rect, turn.zoomTarget, ZOOM_TARGET_ID, "ズーム", "placement-marker-zoom");
+    addPlacementMarker(layer, rect, placementDraftValue(ZOOM_TARGET_ID, turn.zoomTarget), ZOOM_TARGET_ID, "フォーカス", "placement-marker-zoom");
+  }
+  if (turn.cameraCenter) {
+    addPlacementMarker(layer, rect, placementDraftValue(CAMERA_CENTER_ID, turn.cameraCenter), CAMERA_CENTER_ID, "カメラ", "placement-marker-zoom");
   }
   if (turn.sparklePos) {
-    addPlacementMarker(layer, rect, turn.sparklePos, SPARKLE_POS_ID, "キラッ", "placement-marker-sparkle");
+    addPlacementMarker(layer, rect, placementDraftValue(SPARKLE_POS_ID, turn.sparklePos), SPARKLE_POS_ID, "キラッ", "placement-marker-sparkle");
   }
   if (typeof turn.telopX === "number" || typeof turn.telopY === "number") {
-    const xy = { x: turn.telopX ?? 0.045, y: turn.telopY ?? 0.06 };
+    const xy = placementDraftValue(TELOP_POS_ID, { x: turn.telopX ?? 0.045, y: turn.telopY ?? 0.06 });
     addPlacementMarker(layer, rect, xy, TELOP_POS_ID, "テロップ", "placement-marker-telop");
   }
 }
@@ -3716,9 +4062,13 @@ function beginPlacementDrag(e, id) {
   e.stopPropagation();
   if (selectedIdx < 0) return;
   const turn = storyData.script[selectedIdx];
+  const wrap = document.getElementById("playerWrap");
+  const rect = wrap ? wrap.getBoundingClientRect() : null;
   let xy;
   if (id === ZOOM_TARGET_ID) {
-    xy = turn.zoomTarget || resolveAutoZoomXYAt(storyData.script, selectedIdx);
+    xy = resolvePlacementPointAt(storyData.script, selectedIdx, "zoomTarget") || resolveAutoZoomXYAt(storyData.script, selectedIdx);
+  } else if (id === CAMERA_CENTER_ID) {
+    xy = resolvePlacementPointAt(storyData.script, selectedIdx, "cameraCenter") || resolveAutoCameraCenterAt(storyData.script, selectedIdx);
   } else if (id === SPARKLE_POS_ID) {
     xy = turn.sparklePos || { x: 0.5, y: 0.45 };
   } else if (id === TELOP_POS_ID) {
@@ -3726,7 +4076,27 @@ function beginPlacementDrag(e, id) {
   } else {
     xy = resolveActorXYAt(storyData.script, selectedIdx, id);
   }
-  _placementDrag = { id, startX: e.clientX, startY: e.clientY, origX: xy.x, origY: xy.y };
+  const dragTf = rect ? placementPreviewTf(rect) : { tx: 0, ty: 0, s: 1 };
+  const screen = rect
+    ? {
+        x: xy.x * rect.width * dragTf.s + dragTf.tx,
+        y: xy.y * rect.height * dragTf.s + dragTf.ty,
+      }
+    : { x: xy.x, y: xy.y };
+  _placementDrag = {
+    id,
+    startX: e.clientX,
+    startY: e.clientY,
+    origX: xy.x,
+    origY: xy.y,
+    origScreenX: screen.x,
+    origScreenY: screen.y,
+    // 点指定系は「マーカーを掴んだ位置」ではなく「カーソル位置そのもの」を保存した方が直感的。
+    pointerLock: id === ZOOM_TARGET_ID || id === CAMERA_CENTER_ID,
+    // cameraCenter自身がカメラ変換を変えるため、D&D中の逆変換は開始時の見た目に固定する。
+    dragTf,
+    draftStage: xy,
+  };
 }
 
 function renderOverlayEditLayer() {
@@ -4052,7 +4422,11 @@ function renderTimelineTransitionOverlay() {
 
 // Player へ渡すプレビュー用 story（仮尺込み）。
 function buildPreviewStory() {
-  return { ...storyData, script: withProvisionalTimings(storyData.script) };
+  return {
+    ...storyData,
+    previewCameraAutoFrame: !!document.getElementById("previewAutoFrameToggle")?.checked,
+    script: withProvisionalTimings(storyData.script)
+  };
 }
 
 function seekPlayer(idx) {
@@ -4344,7 +4718,9 @@ function renderList() {
     else if (emphasisInfo.stop) badges.appendChild(makeBadge("ズーム終了", "warn"));
     if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
-    if (turn.cameraEffect) badges.appendChild(makeBadge("カメラ:" + cameraEffectLabel(turn.cameraEffect), "fx"));
+    for (const label of cameraEffectsSummary(turn)) {
+      badges.appendChild(makeBadge("カメラ:" + label, "fx"));
+    }
     if (turn.impactText) badges.appendChild(makeBadge("衝撃文字", "fx"));
     if (turn.zoomPunch) badges.appendChild(makeBadge("ズームパンチ", "fx"));
     if (turn.quoteFreeze) badges.appendChild(makeBadge("引用止め", "fx"));
@@ -4674,12 +5050,13 @@ function renderDetail() {
   buildSpeakerAnchorSelect(turn.scene, turn.speakerAnchor || "");
   setField("fExpression", "select", turn.expression || "");
   setField("fPose", "select", turn.pose || "");
-  const emphasisInfo = getEmphasisCarryInfo(storyData.script, selectedIdx);
-  const emphasisEl = document.getElementById("fEmphasis");
-  emphasisEl.checked = emphasisInfo.active;
   document.getElementById("fShake").checked = !!turn.shake;
   document.getElementById("fFlashback").checked = !!turn.flashback;
-  setField("fCameraEffect", "select", turn.cameraEffect || "");
+  const cameraFx = normalizeCameraEffects(turn);
+  setField("fCameraEffectZoom", "select", cameraFx.zoom || "");
+  setField("fCameraEffectPan", "select", cameraFx.pan || "");
+  setField("fCameraEffectTilt", "select", cameraFx.tilt || "");
+  renderCameraEffectSettings(turn);
   document.getElementById("fTelop").value = turn.telop || "";
   document.getElementById("fTelopX").value = turn.telopX != null ? turn.telopX : "";
   document.getElementById("fTelopY").value = turn.telopY != null ? turn.telopY : "";
@@ -4700,7 +5077,6 @@ function renderDetail() {
   const voicePresetHelp = document.getElementById("fVoicePresetHelp");
   const noLipSyncHelp = document.getElementById("fNoLipSyncHelp");
   const narrationHelp = document.getElementById("fNarrationHelp");
-  const emphasisHelp = document.getElementById("fEmphasisHelp");
   const cameraEffectHelp = document.getElementById("fCameraEffectHelp");
   if (narrationHelp) {
     narrationHelp.className = "field-help" + (isNarrationTurnData(turn) ? " warn" : "");
@@ -4708,37 +5084,14 @@ function renderDetail() {
       ? `この行はナレーション扱いです。音声は話者 ${turn.speaker} を使い、吹き出し・立ち絵・話者寄り演出は出ません。`
       : "オンの時は吹き出し・立ち絵・話者寄り演出なしで、この音声だけを使います。";
   }
-  if (emphasisHelp) {
-    if (isNarrationTurnData(turn)) {
-      emphasisHelp.className = "field-help";
-      emphasisHelp.textContent = "ナレーション行ではズーム演出は出ません。";
-    } else if (emphasisInfo.explicit) {
-      emphasisHelp.className = "field-help warn";
-      emphasisHelp.textContent = "この行でズームを開始します。同じ話者が続く間は次の行にも継続します。";
-    } else if (emphasisInfo.inherited) {
-      emphasisHelp.className = "field-help warn";
-      emphasisHelp.textContent = `この行は turn ${emphasisInfo.startIdx + 1} のズームが継続中です。話者が切り替わるまで有効です。`;
-    } else if (emphasisInfo.stop) {
-      emphasisHelp.className = "field-help warn";
-      emphasisHelp.textContent = "この行ではズームを止めています。前のセリフまでで寄り演出が終わります。";
-    } else {
-      emphasisHelp.className = "field-help";
-      emphasisHelp.textContent = "チェックした行から話者寄りを開始します。";
-    }
-  }
   if (cameraEffectHelp) {
+    const fxLabels = cameraEffectsSummary(turn);
     if (isNarrationTurnData(turn)) {
       cameraEffectHelp.className = "field-help";
       cameraEffectHelp.textContent = "ナレーション行ではカメラ効果は出ません。";
-    } else if (turn.cameraEffect === "pull-out") {
+    } else if (fxLabels.length > 0) {
       cameraEffectHelp.className = "field-help warn";
-      cameraEffectHelp.textContent = "この行の間だけ少し引いて、距離を取った見せ方にします。";
-    } else if (turn.cameraEffect === "pan-left" || turn.cameraEffect === "pan-right") {
-      cameraEffectHelp.className = "field-help warn";
-      cameraEffectHelp.textContent = `この行の間だけ${cameraEffectLabel(turn.cameraEffect)}で視線を流します。`;
-    } else if (turn.cameraEffect === "tilt-left" || turn.cameraEffect === "tilt-right") {
-      cameraEffectHelp.className = "field-help warn";
-      cameraEffectHelp.textContent = `この行の間だけ${cameraEffectLabel(turn.cameraEffect)}で空気を少し崩します。`;
+      cameraEffectHelp.textContent = `この行の間だけ ${fxLabels.join(" / ")} を重ねます。`;
     } else {
       cameraEffectHelp.className = "field-help";
       cameraEffectHelp.textContent = "この行の間だけ追加でカメラを動かします。";
@@ -5932,18 +6285,20 @@ function collectBasic() {
   if (pose) turn.pose = pose;
   else delete turn.pose;
 
-  const emphasisEl = document.getElementById("fEmphasis");
-  const emphasisChecked = emphasisEl.checked;
-  const incomingEmphasis = getEmphasisIncomingInfo(storyData.script, selectedIdx);
-  if (emphasisChecked) {
-    turn.emphasis = true;
-  } else {
-    if (incomingEmphasis.active) turn.emphasis = false;
-    else delete turn.emphasis;
+  const cameraEffects = {};
+  const cameraZoom = document.getElementById("fCameraEffectZoom").value;
+  const cameraPan = document.getElementById("fCameraEffectPan").value;
+  const cameraTilt = document.getElementById("fCameraEffectTilt").value;
+  if (cameraZoom) cameraEffects.zoom = cameraZoom;
+  if (cameraPan) cameraEffects.pan = cameraPan;
+  if (cameraTilt) cameraEffects.tilt = cameraTilt;
+  if (Object.keys(cameraEffects).length > 0) turn.cameraEffects = cameraEffects;
+  else {
+    delete turn.cameraEffects;
+    delete turn.cameraEffectSettings;
   }
-  const cameraEffect = document.getElementById("fCameraEffect").value;
-  if (cameraEffect) turn.cameraEffect = cameraEffect;
-  else delete turn.cameraEffect;
+  delete turn.cameraEffect;
+  renderCameraEffectSettings(turn);
   turn.shake = document.getElementById("fShake").checked || undefined;
   if (!turn.shake) delete turn.shake;
   turn.flashback = document.getElementById("fFlashback").checked || undefined;
@@ -6261,6 +6616,7 @@ function addTurnAfter(inheritScene = false) {
     delete newTurn.exitDir;
     delete newTurn.manualPos;
     delete newTurn.zoomTarget;
+    delete newTurn.cameraCenter;
     delete newTurn.sparklePos;
   } else {
     // 既定は暗転(黒) scene=""の空ターン。
@@ -6965,28 +7321,41 @@ function setupEvents() {
     const wrap = document.getElementById("playerWrap");
     if (!wrap || selectedIdx < 0) return;
     const rect = wrap.getBoundingClientRect();
-    const dx = (e.clientX - _placementDrag.startX) / Math.max(1, rect.width);
-    const dy = (e.clientY - _placementDrag.startY) / Math.max(1, rect.height);
     const turn = storyData.script[selectedIdx];
-    const nx = Math.max(0, Math.min(1, _placementDrag.origX + dx));
-    const ny = Math.max(0, Math.min(1, _placementDrag.origY + dy));
-    if (_placementDrag.id === ZOOM_TARGET_ID) {
-      turn.zoomTarget = { x: nx, y: ny };
-    } else if (_placementDrag.id === SPARKLE_POS_ID) {
-      turn.sparklePos = { x: nx, y: ny };
-    } else if (_placementDrag.id === TELOP_POS_ID) {
-      turn.telopX = nx;
-      turn.telopY = ny;
+    const dragTf = _placementDrag.dragTf || placementPreviewTf(rect);
+    let stage;
+    if (_placementDrag.pointerLock) {
+      stage = placementScreenToStage(rect, e.clientX - rect.left, e.clientY - rect.top, dragTf);
     } else {
-      if (!turn.manualPos) turn.manualPos = {};
-      turn.manualPos[_placementDrag.id] = { x: nx, y: ny };
+      const sx = _placementDrag.origScreenX + (e.clientX - _placementDrag.startX);
+      const sy = _placementDrag.origScreenY + (e.clientY - _placementDrag.startY);
+      stage = placementScreenToStage(rect, sx, sy, dragTf);
     }
-    markDirty();
-    notifyPlayerUpdate();
+    _placementDrag.draftStage = { x: stage.x, y: stage.y };
     renderPlacementEditLayer();
   });
   window.addEventListener("mouseup", () => {
     if (!_placementDrag) return;
+    if (selectedIdx >= 0 && storyData) {
+      const turn = storyData.script[selectedIdx];
+      const stage = _placementDrag.draftStage;
+      if (stage) {
+        if (_placementDrag.id === ZOOM_TARGET_ID) {
+          turn.zoomTarget = { x: stage.x, y: stage.y };
+        } else if (_placementDrag.id === CAMERA_CENTER_ID) {
+          turn.cameraCenter = { x: stage.x, y: stage.y };
+        } else if (_placementDrag.id === SPARKLE_POS_ID) {
+          turn.sparklePos = { x: stage.x, y: stage.y };
+        } else if (_placementDrag.id === TELOP_POS_ID) {
+          turn.telopX = stage.x;
+          turn.telopY = stage.y;
+        } else {
+          if (!turn.manualPos) turn.manualPos = {};
+          turn.manualPos[_placementDrag.id] = { x: stage.x, y: stage.y };
+        }
+        markDirty();
+      }
+    }
     _placementDrag = null;
     renderPlacementEditLayer();
     notifyPlayerUpdate();
@@ -7005,7 +7374,7 @@ function setupEvents() {
 
   // 基本タブ: 変更をリアルタイム収集
   const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose",
-                    "fSpeakerAnchor", "fEmphasis", "fShake", "fFlashback", "fCameraEffect", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
+                    "fSpeakerAnchor", "fShake", "fFlashback", "fCameraEffectZoom", "fCameraEffectPan", "fCameraEffectTilt", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
                     "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
                     "fPause", "fVoicePreset", "fEnterDir", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
   for (const id of basicIds) {
@@ -7067,6 +7436,7 @@ function setupEvents() {
 
   // プレビューのズーム倍率
   document.getElementById("previewZoom").addEventListener("change", sizePlayerWrap);
+  document.getElementById("previewAutoFrameToggle").addEventListener("change", notifyPlayerUpdate);
 
   // タイムラインの横ズーム
   document.getElementById("timelineZoom").addEventListener("change", drawScriptTimeline);

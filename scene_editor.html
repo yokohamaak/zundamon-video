@@ -74,6 +74,77 @@
     background-size: cover; background-position: center;
     pointer-events: none;
   }
+  .camera-frame {
+    position: absolute;
+    border: 2px solid rgba(251, 191, 36, 0.95);
+    background: rgba(251, 191, 36, 0.06);
+    box-shadow: 0 0 0 9999px rgba(8, 10, 15, 0.46);
+    cursor: move;
+    z-index: 80;
+  }
+  .camera-frame::before {
+    content: "16:9";
+    position: absolute;
+    top: -24px;
+    left: 0;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.95);
+    color: #111318;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .camera-frame-handle {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 2px solid rgba(17, 19, 24, 0.95);
+    background:
+      linear-gradient(135deg, transparent 0 38%, rgba(17, 19, 24, 0.18) 38% 100%),
+      #fbbf24;
+    cursor: nwse-resize;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+    z-index: 130;
+  }
+  .camera-frame-handle::before,
+  .camera-frame-handle::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    border-radius: 999px;
+    background: rgba(17, 19, 24, 0.92);
+  }
+  .camera-frame-handle::before {
+    width: 14px;
+    height: 3px;
+    transform: rotate(-45deg);
+    transform-origin: right center;
+  }
+  .camera-frame-handle::after {
+    width: 9px;
+    height: 3px;
+    right: 11px;
+    bottom: 13px;
+    transform: rotate(-45deg);
+    transform-origin: right center;
+  }
+  .camera-frame-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.9);
+    background: rgba(251, 191, 36, 0.85);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
   .char-container {
     position: absolute;
     /* bottom-centerをanchorに合わせる: left=ax*1920, top=ay*1080, transform=translate(-50%,-100%) */
@@ -100,7 +171,7 @@
     background: rgba(91,141,238,.9);
     border: 2px solid #fff;
     transform: translate(-50%, -50%);
-    cursor: grab; z-index: 100;
+    cursor: grab; z-index: 140;
     transition: transform .1s;
   }
   .anchor-dot:hover { transform: translate(-50%,-50%) scale(1.4); }
@@ -112,7 +183,7 @@
     padding: 1px 4px; border-radius: 3px;
     transform: translate(-50%, 10px);
     pointer-events: none; white-space: nowrap;
-    z-index: 101;
+    z-index: 141;
   }
   .preview-info {
     margin-top: 8px; font-size: 11px; color: var(--text2);
@@ -336,11 +407,15 @@
     <div class="preview-wrap" id="previewWrap">
       <div class="stage" id="stage">
         <div class="stage-bg" id="stageBg"></div>
+        <div class="camera-frame" id="cameraFrameBox">
+          <div class="camera-frame-center"></div>
+          <div class="camera-frame-handle" id="cameraFrameHandle"></div>
+        </div>
         <!-- キャラはJSで動的生成 -->
         <div class="stage-front" id="stageFront" style="display:none"></div>
       </div>
     </div>
-    <div class="preview-info" id="previewInfo">アンカー点をドラッグして位置を調整</div>
+    <div class="preview-info" id="previewInfo">黄色の16:9枠をドラッグで移動、右下ハンドルでサイズ変更。アンカーは枠内の相対位置です。</div>
   </div>
 
   <div class="side">
@@ -359,14 +434,6 @@
         <select class="field-select" id="fFront"></select>
       </div>
       <div class="field-row">
-        <label class="field-label">ショット</label>
-        <select class="field-select" id="fShot">
-          <option value="duo">duo（2人）</option>
-          <option value="solo">solo（1人寄り）</option>
-          <option value="split">split（分割）</option>
-        </select>
-      </div>
-      <div class="field-row">
         <label class="field-label">カメラ</label>
         <select class="field-select" id="fCamera">
           <option value="static">static（固定）</option>
@@ -374,51 +441,28 @@
         </select>
       </div>
       <div class="field-row">
-        <label class="field-label">1人時ズーム</label>
-        <select class="field-select" id="fSoloZoom">
-          <option value="1">ON（1人のとき寄る）</option>
-          <option value="0">OFF（引きのまま）</option>
-        </select>
-      </div>
-      <div class="field-row">
-        <label class="field-label">1人時ズーム倍率</label>
-        <div class="slider-row">
-          <input type="range" id="soloZoomScaleSlider" min="1.0" max="1.8" step="0.05" value="1.4">
-          <span class="slider-val" id="soloZoomScaleVal">1.40</span>
-        </div>
-      </div>
-      <div class="field-row">
-        <label class="field-label">1人時ズーム 顔からの縦オフセット</label>
-        <div class="slider-row">
-          <input type="range" id="soloZoomDySlider" min="-0.10" max="0.30" step="0.01" value="0.08">
-          <span class="slider-val" id="soloZoomDyVal">0.08</span>
-        </div>
-        <div class="slider-hint">ズームの縦は顔位置を自動計算して狙う。0=顔ど真ん中、＋で下に振って胴まで見せる（顔は画面上側に寄る）。</div>
-      </div>
-      <div class="field-row">
-        <label class="field-label">話者プッシュインの強さ（emphasis時の加算倍率）</label>
+        <label class="field-label">ズームの強さ（emphasis時の加算倍率）</label>
         <div class="slider-row">
           <input type="range" id="focusZoomSlider" min="0" max="0.6" step="0.05" value="0.3">
           <span class="slider-val" id="focusZoomVal">0.30</span>
         </div>
       </div>
       <div class="field-row">
-        <label class="field-label">プッシュイン 顔からの縦オフセット</label>
+        <label class="field-label">ズーム 顔からの縦オフセット</label>
         <div class="slider-row">
           <input type="range" id="focusDySlider" min="-0.10" max="0.30" step="0.01" value="0.04">
           <span class="slider-val" id="focusDyVal">0.04</span>
         </div>
-        <div class="slider-hint">プッシュインも話者の顔位置を自動で狙う。1人時ズームと重なると「1人時ズーム倍率＋強さ」まで寄る。</div>
+        <div class="slider-hint">ズームも話者の顔位置を自動で狙う。＋で少し下に振って胴まで見せる。</div>
       </div>
       <div class="field-row">
         <label class="toggle-row">
-          <input type="checkbox" id="soloPreviewToggle">
-          <span>1人時ズームをプレビュー</span>
+          <input type="checkbox" id="cameraPreviewToggle" checked>
+          <span>デフォルトカメラ枠をプレビュー</span>
         </label>
-        <select class="field-select" id="soloPreviewChar" style="display:none;margin-top:4px"></select>
         <label class="toggle-row" style="margin-top:6px">
           <input type="checkbox" id="focusPreviewToggle">
-          <span>＋話者プッシュインも重ねる</span>
+          <span>＋ズームも重ねる</span>
         </label>
       </div>
     </div>
@@ -426,24 +470,45 @@
     <div class="side-section">
       <div class="section-title">カメラ共通設定（全シーン共通）</div>
       <div class="field-row">
-        <label class="field-label">pull-out の引き量</label>
+        <label class="field-label">ズーム量</label>
         <div class="slider-row">
-          <input type="range" id="camPullOutSlider" min="0" max="0.3" step="0.01" value="0.12">
-          <span class="slider-val" id="camPullOutVal">0.12</span>
+          <input type="range" id="camZoomAmountSlider" min="0" max="0.6" step="0.01" value="0.12">
+          <span class="slider-val" id="camZoomAmountVal">0.12</span>
         </div>
       </div>
       <div class="field-row">
-        <label class="field-label">pan の最大移動量（画面幅比）</label>
+        <label class="field-label">ズーム時間</label>
         <div class="slider-row">
-          <input type="range" id="camPanMaxSlider" min="0" max="0.15" step="0.01" value="0.08">
-          <span class="slider-val" id="camPanMaxVal">0.08</span>
+          <input type="range" id="camZoomDurationSlider" min="0.1" max="1.2" step="0.05" value="0.4">
+          <span class="slider-val" id="camZoomDurationVal">0.40</span>
         </div>
       </div>
       <div class="field-row">
-        <label class="field-label">tilt の回転角（度）</label>
+        <label class="field-label">パン量</label>
         <div class="slider-row">
-          <input type="range" id="camTiltDegSlider" min="0" max="6" step="0.1" value="2.4">
-          <span class="slider-val" id="camTiltDegVal">2.4</span>
+          <input type="range" id="camPanAmountSlider" min="0" max="0.2" step="0.01" value="0.08">
+          <span class="slider-val" id="camPanAmountVal">0.08</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">パン時間</label>
+        <div class="slider-row">
+          <input type="range" id="camPanDurationSlider" min="0.1" max="1.2" step="0.05" value="0.4">
+          <span class="slider-val" id="camPanDurationVal">0.40</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">傾き角度</label>
+        <div class="slider-row">
+          <input type="range" id="camTiltAngleSlider" min="0" max="6" step="0.1" value="2.4">
+          <span class="slider-val" id="camTiltAngleVal">2.4</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">傾き時間</label>
+        <div class="slider-row">
+          <input type="range" id="camTiltDurationSlider" min="0.1" max="1.2" step="0.05" value="0.4">
+          <span class="slider-val" id="camTiltDurationVal">0.40</span>
         </div>
       </div>
       <div class="field-row">
@@ -453,7 +518,7 @@
           <span class="slider-val" id="camDriftVal">0.05</span>
         </div>
       </div>
-      <div class="slider-hint">カメラ演出(cameraEffect)とslow-zoomの効き量。全シーン共通で、「保存」で story-scenes.json に書き込まれる。slow-zoomは最終書き出し時のみ有効。</div>
+      <div class="slider-hint">カメラ演出(cameraEffects)とslow-zoomの効き量。全シーン共通で、「保存」で story-scenes.json に書き込まれる。slow-zoomは最終書き出し時のみ有効。</div>
     </div>
 
     <div class="side-section">
@@ -479,6 +544,12 @@
         <input type="checkbox" id="frontToggle" checked>
         <span>前景オーバーレイを表示</span>
       </label>
+    </div>
+
+    <div class="side-section">
+      <div class="section-title">デフォルトカメラ枠</div>
+      <div class="field-label" id="cameraFrameInfo">center(0.500, 0.500) / width 1.000</div>
+      <div class="slider-hint">背景全体に対する既定の16:9カメラ領域です。枠内が通常表示範囲になり、既存のパン・ズームはこの枠を基準に効きます。</div>
     </div>
 
     <div class="side-section">
@@ -532,6 +603,8 @@ function fullBoxSize(charId) {
 
 // モブ高さ基準（StoryVideo の 760*scale と一致・WYSIWYG）
 const MOB_BASE_H = 760;
+const CAMERA_FRAME_MIN = 0.35;
+const CAMERA_FRAME_MAX = 1.0;
 
 // ============================================================
 // 状態
@@ -545,7 +618,7 @@ let draggingMob = null;      // モブD&D: { mobId, el }
 let selectedMobId = null;    // スケールスライダー対象モブID
 let showFront = true;
 let manifestData = null;     // avatars/manifest.json キャッシュ
-let soloPreview = false;     // 1人時ズームのプレビュー表示中か
+let draggingFrame = null;    // カメラ枠D&D: { mode:'move'|'resize', offsetX?, offsetY?, left?, top? }
 
 function compareUiText(a, b) {
   return String(a || '').localeCompare(String(b || ''), 'ja', { numeric: true, sensitivity: 'base' });
@@ -562,6 +635,58 @@ function sortedSceneIds() {
     const byLabel = compareUiText(sa?.label || a, sb?.label || b);
     return byLabel || compareUiText(a, b);
   });
+}
+
+function clampN(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function normalizedCameraFrame(sc) {
+  const src = sc?.cameraFrame || {};
+  const width = clampN(
+    typeof src.width === 'number' ? src.width : 1,
+    CAMERA_FRAME_MIN,
+    CAMERA_FRAME_MAX
+  );
+  const cx = clampN(
+    typeof src.cx === 'number' ? src.cx : 0.5,
+    width / 2,
+    1 - width / 2
+  );
+  const cy = clampN(
+    typeof src.cy === 'number' ? src.cy : 0.5,
+    width / 2,
+    1 - width / 2
+  );
+  return { cx, cy, width, x: cx - width / 2, y: cy - width / 2, h: width };
+}
+
+function ensureCameraFrame(sc) {
+  if (!sc.cameraFrame) sc.cameraFrame = { cx: 0.5, cy: 0.5, width: 1 };
+  const norm = normalizedCameraFrame(sc);
+  sc.cameraFrame.cx = norm.cx;
+  sc.cameraFrame.cy = norm.cy;
+  sc.cameraFrame.width = norm.width;
+  return sc.cameraFrame;
+}
+
+function cameraFramePx(sc) {
+  const norm = normalizedCameraFrame(sc);
+  return {
+    ...norm,
+    px: norm.x * STAGE_W,
+    py: norm.y * STAGE_H,
+    pw: norm.width * STAGE_W,
+    ph: norm.width * STAGE_H,
+  };
+}
+
+function updateCameraFrameInfo() {
+  const sc = currentScene();
+  const el = document.getElementById('cameraFrameInfo');
+  if (!el || !sc) return;
+  const frame = normalizedCameraFrame(sc);
+  el.textContent = `center(${frame.cx.toFixed(3)}, ${frame.cy.toFixed(3)}) / width ${frame.width.toFixed(3)}`;
 }
 
 // ============================================================
@@ -621,16 +746,20 @@ function resizePreview() {
 // カメラ共通設定（story-scenes.json トップレベル camera・全シーン共通）
 // ============================================================
 const CAMERA_SPECS = [
-  { key: 'pullOut', slider: 'camPullOutSlider', val: 'camPullOutVal', def: 0.12, digits: 2 },
-  { key: 'panMax', slider: 'camPanMaxSlider', val: 'camPanMaxVal', def: 0.08, digits: 2 },
-  { key: 'tiltDeg', slider: 'camTiltDegSlider', val: 'camTiltDegVal', def: 2.4, digits: 1 },
+  { key: 'zoomAmount', legacyKey: 'pullOut', slider: 'camZoomAmountSlider', val: 'camZoomAmountVal', def: 0.12, digits: 2 },
+  { key: 'zoomDuration', slider: 'camZoomDurationSlider', val: 'camZoomDurationVal', def: 0.4, digits: 2 },
+  { key: 'panAmount', legacyKey: 'panMax', slider: 'camPanAmountSlider', val: 'camPanAmountVal', def: 0.08, digits: 2 },
+  { key: 'panDuration', slider: 'camPanDurationSlider', val: 'camPanDurationVal', def: 0.4, digits: 2 },
+  { key: 'tiltAngle', legacyKey: 'tiltDeg', slider: 'camTiltAngleSlider', val: 'camTiltAngleVal', def: 2.4, digits: 1 },
+  { key: 'tiltDuration', slider: 'camTiltDurationSlider', val: 'camTiltDurationVal', def: 0.4, digits: 2 },
   { key: 'slowZoomDrift', slider: 'camDriftSlider', val: 'camDriftVal', def: 0.05, digits: 2 },
 ];
 
 function loadCameraSettings() {
   const cam = scenesData.camera || {};
   for (const spec of CAMERA_SPECS) {
-    const v = cam[spec.key] != null ? cam[spec.key] : spec.def;
+    const legacy = spec.legacyKey ? cam[spec.legacyKey] : undefined;
+    const v = cam[spec.key] != null ? cam[spec.key] : (legacy != null ? legacy : spec.def);
     document.getElementById(spec.slider).value = v;
     document.getElementById(spec.val).textContent = v.toFixed(spec.digits);
   }
@@ -643,12 +772,13 @@ function setupCameraSettingEvents() {
       document.getElementById(spec.val).textContent = v.toFixed(spec.digits);
       if (!scenesData.camera) scenesData.camera = {};
       scenesData.camera[spec.key] = v;
+      if (spec.legacyKey) delete scenesData.camera[spec.legacyKey];
     });
   }
 }
 
 // ============================================================
-// 1人時ズームの仮想カメラ（StoryVideo.targetCam / toTf と同式＝WYSIWYG）
+// シーン/話者プッシュインの仮想カメラ（StoryVideo.targetCam / toTf と同式＝WYSIWYG）
 // ============================================================
 // 立ち絵ボックス内での「顔の中心」のおおよその高さ比（StoryVideo.FACE_RATIO と同値）。
 const FACE_RATIO = { bust: 0.30, full: 0.12 };
@@ -666,25 +796,32 @@ function faceCyOf(charId, sc) {
   return Math.max(0, Math.min(1, cy));
 }
 
-function soloCamTf() {
+function previewBaseCamTf(sc) {
+  const frame = normalizedCameraFrame(sc);
+  const s = 1 / frame.width;
+  return {
+    tx: clampN(STAGE_W / 2 - frame.cx * STAGE_W * s, STAGE_W * (1 - s), 0),
+    ty: clampN(STAGE_H / 2 - frame.cy * STAGE_H * s, STAGE_H * (1 - s), 0),
+    s,
+  };
+}
+
+function currentPreviewTf() {
   const sc = currentScene();
-  if (!soloPreview || !sc) return { tx: 0, ty: 0, s: 1 };
-  const focusOn = document.getElementById('focusPreviewToggle').checked;
-  const soloOn = sc.soloZoom !== false; // OFFシーンは1人時ズームなし
-  const ch = document.getElementById('soloPreviewChar').value;
+  if (!sc) return { tx: 0, ty: 0, s: 1 };
+  const previewBase = document.getElementById('cameraPreviewToggle').checked;
+  if (!previewBase) return { tx: 0, ty: 0, s: 1 };
+  const base = previewBaseCamTf(sc);
+  if (!document.getElementById('focusPreviewToggle').checked) return base;
+  const ch = sortedStrings(Object.keys(sc.cast || {}))[0];
+  if (!ch) return base;
   const face = faceCyOf(ch, sc);
-  let s = soloOn ? (sc.soloZoomScale != null ? sc.soloZoomScale : 1.4) : 1.0;
-  let cy = soloOn ? face + (sc.soloZoomDy != null ? sc.soloZoomDy : 0.08) : 0.5;
-  if (focusOn) {
-    // 話者プッシュイン(emphasis)を重ねた状態＝StoryVideoのfocusTfと同式
-    s = s + (sc.focusZoom != null ? sc.focusZoom : 0.3);
-    cy = face + (sc.focusDy != null ? sc.focusDy : 0.04);
-  }
+  let s = base.s + (sc.focusZoom != null ? sc.focusZoom : 0.3);
+  let cy = face + (sc.focusDy != null ? sc.focusDy : 0.04);
   if (s <= 1.0) return { tx: 0, ty: 0, s: 1 };
   cy = Math.max(0, Math.min(1, cy));
   const anchorName = (sc.cast || {})[ch];
-  const cx = (anchorName && sc.anchors?.[anchorName]) ? sc.anchors[anchorName].x : 0.5;
-  const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const cx = (anchorName && sc.anchors?.[anchorName]) ? sc.anchors[anchorName].x : normalizedCameraFrame(sc).cx;
   return {
     tx: clampN(STAGE_W / 2 - cx * STAGE_W * s, STAGE_W * (1 - s), 0),
     ty: clampN(STAGE_H / 2 - cy * STAGE_H * s, STAGE_H * (1 - s), 0),
@@ -694,23 +831,8 @@ function soloCamTf() {
 
 function applyStageTransform() {
   const stage = document.getElementById('stage');
-  const tf = soloCamTf();
+  const tf = currentPreviewTf();
   stage.style.transform = `scale(${stageScale}) translate(${tf.tx}px, ${tf.ty}px) scale(${tf.s})`;
-}
-
-function populateSoloPreviewChar() {
-  const sel = document.getElementById('soloPreviewChar');
-  const sc = currentScene();
-  const prev = sel.value;
-  sel.innerHTML = '';
-  const cast = sc?.cast || {};
-  for (const ch of sortedStrings(Object.keys(cast))) {
-    const opt = document.createElement('option');
-    opt.value = ch;
-    opt.textContent = `${ch} に寄る (${cast[ch]})`;
-    sel.appendChild(opt);
-  }
-  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
 }
 
 // ============================================================
@@ -734,15 +856,7 @@ function selectScene(id) {
   const sc = currentScene();
   if (!sc) return;
   document.getElementById('fLabel').value = sc.label || '';
-  document.getElementById('fShot').value = sc.shot || 'duo';
   document.getElementById('fCamera').value = sc.camera || 'static';
-  document.getElementById('fSoloZoom').value = sc.soloZoom === false ? '0' : '1';
-  const soloZoomScale = sc.soloZoomScale != null ? sc.soloZoomScale : 1.4;
-  document.getElementById('soloZoomScaleSlider').value = soloZoomScale;
-  document.getElementById('soloZoomScaleVal').textContent = soloZoomScale.toFixed(2);
-  const soloZoomDy = sc.soloZoomDy != null ? sc.soloZoomDy : 0.08;
-  document.getElementById('soloZoomDySlider').value = soloZoomDy;
-  document.getElementById('soloZoomDyVal').textContent = soloZoomDy.toFixed(2);
   const focusZoom = sc.focusZoom != null ? sc.focusZoom : 0.3;
   document.getElementById('focusZoomSlider').value = focusZoom;
   document.getElementById('focusZoomVal').textContent = focusZoom.toFixed(2);
@@ -763,7 +877,7 @@ function selectScene(id) {
   buildCastRows();
   buildAnchorList();
   buildMobList();
-  populateSoloPreviewChar();
+  updateCameraFrameInfo();
   applyStageTransform();
   renderPreview();
 }
@@ -1004,6 +1118,13 @@ function renderPreview() {
   }
 
   const scale = sc.scale != null ? sc.scale : 1.9;
+  const frame = cameraFramePx(sc);
+  const frameBox = document.getElementById('cameraFrameBox');
+  frameBox.style.display = '';
+  frameBox.style.left = frame.px + 'px';
+  frameBox.style.top = frame.py + 'px';
+  frameBox.style.width = frame.pw + 'px';
+  frameBox.style.height = frame.ph + 'px';
   const cast = sc.cast || {};
   // アンカー名→charId の逆引き
   const anchorToChar = {};
@@ -1157,6 +1278,32 @@ function setupDrag() {
   const wrap = document.getElementById('previewWrap');
 
   wrap.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.camera-frame-handle');
+    if (handle) {
+      e.preventDefault();
+      const sc = currentScene();
+      if (!sc) return;
+      const frame = normalizedCameraFrame(sc);
+      draggingFrame = { mode: 'resize', left: frame.x, top: frame.y };
+      return;
+    }
+    const frameBox = e.target.closest('.camera-frame');
+    if (frameBox) {
+      e.preventDefault();
+      const sc = currentScene();
+      if (!sc) return;
+      const frame = normalizedCameraFrame(sc);
+      const rect = wrap.getBoundingClientRect();
+      const tf = currentPreviewTf();
+      const sx = ((e.clientX - rect.left) / stageScale - tf.tx) / tf.s;
+      const sy = ((e.clientY - rect.top) / stageScale - tf.ty) / tf.s;
+      draggingFrame = {
+        mode: 'move',
+        offsetX: sx / STAGE_W - frame.cx,
+        offsetY: sy / STAGE_H - frame.cy,
+      };
+      return;
+    }
     // モブ画像のドラッグ（アンカードットより先に判定）
     const mobEl = e.target.closest('.mob-image');
     if (mobEl) {
@@ -1182,10 +1329,31 @@ function setupDrag() {
   window.addEventListener('mousemove', e => {
     const wrap = document.getElementById('previewWrap');
     const rect = wrap.getBoundingClientRect();
-    // 1人時ズームプレビュー中は仮想カメラの逆変換でステージ座標へ戻す
-    const tf = soloCamTf();
+    // 仮想カメラプレビュー中は逆変換でステージ座標へ戻す
+    const tf = currentPreviewTf();
     const sx = ((e.clientX - rect.left) / stageScale - tf.tx) / tf.s;
     const sy = ((e.clientY - rect.top) / stageScale - tf.ty) / tf.s;
+
+    if (draggingFrame) {
+      const sc = currentScene();
+      if (!sc) return;
+      ensureCameraFrame(sc);
+      if (draggingFrame.mode === 'move') {
+        const width = sc.cameraFrame.width;
+        sc.cameraFrame.cx = clampN(sx / STAGE_W - draggingFrame.offsetX, width / 2, 1 - width / 2);
+        sc.cameraFrame.cy = clampN(sy / STAGE_H - draggingFrame.offsetY, width / 2, 1 - width / 2);
+      } else {
+        const maxWidth = Math.min(1 - draggingFrame.left, 1 - draggingFrame.top);
+        const nextWidth = Math.max((sx / STAGE_W) - draggingFrame.left, (sy / STAGE_H) - draggingFrame.top);
+        sc.cameraFrame.width = clampN(nextWidth, CAMERA_FRAME_MIN, Math.min(CAMERA_FRAME_MAX, maxWidth));
+        sc.cameraFrame.cx = draggingFrame.left + sc.cameraFrame.width / 2;
+        sc.cameraFrame.cy = draggingFrame.top + sc.cameraFrame.width / 2;
+      }
+      updateCameraFrameInfo();
+      applyStageTransform();
+      renderPreview();
+      return;
+    }
 
     if (draggingMob) {
       // モブの座標データは bottom-center 基準（StoryVideo と同じ）だが、
@@ -1213,11 +1381,10 @@ function setupDrag() {
     }
 
     if (dragging) {
-      // クランプ 0..1
-      const nx = Math.max(0, Math.min(1, sx / STAGE_W));
-      const ny = Math.max(0, Math.min(1, sy / STAGE_H));
       const sc = currentScene();
       if (!sc || !sc.anchors[dragging.name]) return;
+      const nx = Math.max(0, Math.min(1, sx / STAGE_W));
+      const ny = Math.max(0, Math.min(1, sy / STAGE_H));
       sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
       sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
       updateAnchorList(dragging.name, sc.anchors[dragging.name].x, sc.anchors[dragging.name].y);
@@ -1227,6 +1394,9 @@ function setupDrag() {
   });
 
   window.addEventListener('mouseup', () => {
+    if (draggingFrame) {
+      draggingFrame = null;
+    }
     if (draggingMob) {
       draggingMob = null;
       // renderPreview は mousemove 内で済んでいるので追加呼び出し不要
@@ -1286,44 +1456,12 @@ function setupEvents() {
     }
   });
 
-  document.getElementById('fShot').addEventListener('change', e => {
-    const sc = currentScene();
-    if (sc) sc.shot = e.target.value;
-  });
-
   document.getElementById('fCamera').addEventListener('change', e => {
     const sc = currentScene();
     if (sc) sc.camera = e.target.value;
   });
 
-  document.getElementById('fSoloZoom').addEventListener('change', e => {
-    const sc = currentScene();
-    if (!sc) return;
-    sc.soloZoom = e.target.value !== '0';
-    applyStageTransform();
-  });
-
-  document.getElementById('soloZoomScaleSlider').addEventListener('input', e => {
-    const v = parseFloat(e.target.value);
-    document.getElementById('soloZoomScaleVal').textContent = v.toFixed(2);
-    const sc = currentScene();
-    if (sc) { sc.soloZoomScale = v; applyStageTransform(); }
-  });
-
-  document.getElementById('soloZoomDySlider').addEventListener('input', e => {
-    const v = parseFloat(e.target.value);
-    document.getElementById('soloZoomDyVal').textContent = v.toFixed(2);
-    const sc = currentScene();
-    if (sc) { sc.soloZoomDy = v; applyStageTransform(); }
-  });
-
-  document.getElementById('soloPreviewToggle').addEventListener('change', e => {
-    soloPreview = e.target.checked;
-    document.getElementById('soloPreviewChar').style.display = soloPreview ? '' : 'none';
-    applyStageTransform();
-  });
-
-  document.getElementById('soloPreviewChar').addEventListener('change', applyStageTransform);
+  document.getElementById('cameraPreviewToggle').addEventListener('change', applyStageTransform);
 
   document.getElementById('focusPreviewToggle').addEventListener('change', applyStageTransform);
 
@@ -1434,11 +1572,8 @@ function addScene() {
     bg: bgs[0] || '',
     front: null,
     figure: 'full',
-    shot: 'duo',
     camera: 'static',
-    soloZoom: true,
-    soloZoomScale: 1.4,
-    soloZoomDy: 0.08,
+    cameraFrame: { cx: 0.5, cy: 0.5, width: 1 },
     scale: 1.1,
     bgBlur: 8,
     cast: {},
