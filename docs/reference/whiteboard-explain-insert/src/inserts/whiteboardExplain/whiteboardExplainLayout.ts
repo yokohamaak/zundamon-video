@@ -22,19 +22,15 @@ export const getWhiteboardExplainLayout = (width = 1920, height = 1080): Whitebo
   const base: WhiteboardExplainLayout = {
     scene: { x: 0, y: 0, width: 1920, height: 1080 },
     board: { x: 80, y: 38, width: 1450, height: 985 },
-    // 右下の解説役。v3で調整済みの位置を維持する。
-    // 髪が少し画面外にはみ出てもよいが、v4では追加移動しない。
-    character: { x: 1410, y: 205, width: 720, height: 870 },
+    character: { x: 1185, y: 205, width: 720, height: 870 },
     title: { x: 180, y: 80, width: 1030, height: 105 },
     theme: { x: 300, y: 205, width: 980, height: 72 },
     sections: [
-      // 3項目の間隔を均等にし、ホワイトボード幅をより広く使う。
-      { x: 165, y: 330, width: 430, height: 360 },
-      { x: 600, y: 330, width: 430, height: 360 },
-      { x: 1035, y: 330, width: 430, height: 360 },
+      { x: 180, y: 330, width: 400, height: 360 },
+      { x: 630, y: 330, width: 400, height: 360 },
+      { x: 1080, y: 330, width: 400, height: 360 },
     ],
-    // プレイヤーUIに被りにくいよう少し上げる。右端はキャラに被らない幅に抑える。
-    conclusion: { x: 245, y: 700, width: 1150, height: 200 },
+    conclusion: { x: 245, y: 760, width: 940, height: 165 },
   };
 
   const sx = width / 1920;

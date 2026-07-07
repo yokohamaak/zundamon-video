@@ -53,20 +53,22 @@
         "弱い同僚": {
           "x": 0.405,
           "y": 0.952,
-          "scale": 1.35
+          "scale": 1.35,
+          "hidden": true
         }
       },
       "soloZoomCy": 0.45,
-      "soloZoomScale": 1.2
+      "soloZoomScale": 1.2,
+      "soloZoom": false
     },
     "meeting_room": {
       "label": "会議室",
-      "bg": "background/office_bg.png",
-      "front": "background/office_fg.png",
+      "bg": "background/会議室bg.png",
+      "front": "background/会議室fg.png",
       "shot": "duo",
       "camera": "static",
       "figure": "full",
-      "scale": 1.08,
+      "scale": 0.95,
       "bgBlur": 0,
       "cast": {
         "metan": "left",
@@ -78,12 +80,12 @@
           "y": 0.63
         },
         "left": {
-          "x": 0.3,
-          "y": 0.6
+          "x": 0.829,
+          "y": 0.641
         },
         "right": {
-          "x": 0.74,
-          "y": 0.6
+          "x": 0.601,
+          "y": 0.566
         }
       },
       "mobAnchor": {
@@ -95,17 +97,24 @@
           "x": 0.18,
           "y": 0.66,
           "scale": 0.58,
-          "hidden": false
+          "hidden": true
         },
         "部長": {
           "x": 0.86,
           "y": 0.66,
           "scale": 0.62,
-          "hidden": false
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
         }
       },
       "soloZoomCy": 0.48,
-      "soloZoomScale": 1.14
+      "soloZoomScale": 1.14,
+      "soloZoom": false
     },
     "home": {
       "label": "自宅",
@@ -141,6 +150,12 @@
           "hidden": true
         },
         "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
           "x": 0.5,
           "y": 0.98,
           "scale": 0.85,
@@ -183,6 +198,12 @@
           "hidden": true
         },
         "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
           "x": 0.5,
           "y": 0.98,
           "scale": 0.85,
@@ -231,6 +252,12 @@
           "y": 0.98,
           "scale": 0.85,
           "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
         }
       }
     },
@@ -271,6 +298,12 @@
           "y": 0.98,
           "scale": 0.85,
           "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
         }
       },
       "figure": "full"
@@ -299,6 +332,12 @@
           "hidden": true
         },
         "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
           "x": 0.5,
           "y": 0.98,
           "scale": 0.85,
@@ -347,6 +386,12 @@
           "y": 0.98,
           "scale": 0.85,
           "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
         }
       },
       "anchors": {
@@ -387,6 +432,12 @@
           "hidden": true
         },
         "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
           "x": 0.5,
           "y": 0.98,
           "scale": 0.85,
@@ -436,6 +487,12 @@
           "y": 0.98,
           "scale": 0.85,
           "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
         }
       },
       "anchors": {
@@ -476,6 +533,12 @@
           "hidden": true
         },
         "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
           "x": 0.5,
           "y": 0.98,
           "scale": 0.85,
@@ -524,6 +587,12 @@
           "y": 0.98,
           "scale": 0.85,
           "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
         }
       },
       "anchors": {
@@ -566,6 +635,11 @@
           "y": 0.98,
           "scale": 0.85,
           "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85
         }
       },
       "anchors": {
@@ -602,9 +676,16 @@
         "営業": {
           "x": 0.383,
           "y": 1,
-          "scale": 1.3
+          "scale": 1.3,
+          "hidden": true
         },
         "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
           "x": 0.5,
           "y": 0.98,
           "scale": 0.85,
@@ -650,6 +731,12 @@
           "hidden": true
         },
         "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
           "x": 0.5,
           "y": 0.98,
           "scale": 0.85,

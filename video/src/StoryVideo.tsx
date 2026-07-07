@@ -13,7 +13,7 @@ import { Avatar, MOUTH_HALF } from "./Avatar";
 import type { ExpressionCfg } from "./Avatar";
 import type { Emotion, Gender } from "./types";
 import { WhiteboardExplainInsert, getWhiteboardExplainLayout } from "./inserts/whiteboardExplain";
-import type { WhiteboardExplainInsertConfig } from "./inserts/whiteboardExplain";
+import type { WhiteboardExplainInsertConfig, WhiteboardExplainPopTargets } from "./inserts/whiteboardExplain";
 
 // ─── PC画面インサート型定義 ──────────────────────────────────
 export type StoryInsert =
@@ -42,7 +42,7 @@ export type StoryInsert =
       muted?: boolean;
     }>;
   }
-  | ({ kind: "whiteboard_explain"; visibleSections?: [boolean, boolean, boolean] } & WhiteboardExplainInsertConfig);
+  | ({ kind: "whiteboard_explain"; visibleSections?: [boolean, boolean, boolean]; visibleArrows?: [boolean, boolean]; showConclusion?: boolean } & WhiteboardExplainInsertConfig);
 
 // リップシンクの音量ゲイン（波形RMS→amplitude 0..1）。DialogueVideo と同値。
 const LIPSYNC_GAIN = 5;
@@ -2348,6 +2348,8 @@ const InsertOverlay: React.FC<{
   transform?: string;
   activeSpeaker?: string;
   durationInFrames?: number;
+  localFrame?: number;
+  whiteboardPopTargets?: WhiteboardExplainPopTargets;
   whiteboardCharacterSlot?: React.ReactNode;
   renderVideoCallFeed?: (
     participant: VideoCallParticipant,
@@ -2360,6 +2362,8 @@ const InsertOverlay: React.FC<{
   transform,
   activeSpeaker,
   durationInFrames,
+  localFrame,
+  whiteboardPopTargets,
   whiteboardCharacterSlot,
   renderVideoCallFeed,
 }) => {
@@ -2410,8 +2414,12 @@ const InsertOverlay: React.FC<{
           <WhiteboardExplainInsert
             config={insert}
             durationInFrames={durationInFrames}
+            localFrame={localFrame}
             characterSlot={whiteboardCharacterSlot}
             visibleSections={insert.visibleSections}
+            visibleArrows={insert.visibleArrows}
+            showConclusion={insert.showConclusion}
+            popTargets={whiteboardPopTargets}
           />
         )}
       </AbsoluteFill>
@@ -3016,6 +3024,23 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const nextSeg = segments[segIndex + 1];
   const sceneDef = scenes.scenes[active.scene];
   const activeInsert = activeIdx >= 0 ? effectiveInsertAt(script, activeIdx) : null;
+  const whiteboardPopTargets = activeInsert?.kind === "whiteboard_explain"
+    ? (() => {
+      const prevInsert = activeIdx > 0 ? effectiveInsertAt(script, activeIdx - 1) : null;
+      const prevWhiteboard = prevInsert?.kind === "whiteboard_explain" ? prevInsert : null;
+      const currentSections = activeInsert.visibleSections ?? ([true, true, true] as [boolean, boolean, boolean]);
+      const previousSections = prevWhiteboard?.visibleSections ?? ([false, false, false] as [boolean, boolean, boolean]);
+      const currentArrows = activeInsert.visibleArrows ?? ([true, true] as [boolean, boolean]);
+      const previousArrows = prevWhiteboard?.visibleArrows ?? ([false, false] as [boolean, boolean]);
+      const currentConclusion = activeInsert.showConclusion ?? true;
+      const previousConclusion = prevWhiteboard?.showConclusion ?? false;
+      return {
+        sections: currentSections.map((visible, index) => visible && !previousSections[index]) as [boolean, boolean, boolean],
+        arrows: currentArrows.map((visible, index) => visible && !previousArrows[index]) as [boolean, boolean],
+        conclusion: currentConclusion && !previousConclusion,
+      };
+    })()
+    : undefined;
 
   // ── シーン未設定/未登録のフォールバック ──
   // scene 空("") = 暗転(真っ黒)。新規ターンの既定。音声/BGM/SE は継続させる。
@@ -4211,6 +4236,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           transform={insertShakeTransform}
           activeSpeaker={active.speaker}
           durationInFrames={Math.round((dispEnd - active.start) * fps)}
+          localFrame={Math.max(0, Math.round((t - active.start) * fps))}
+          whiteboardPopTargets={whiteboardPopTargets}
           whiteboardCharacterSlot={
             activeInsert.kind === "whiteboard_explain" ? renderWhiteboardCharacterSlot(activeInsert) : undefined
           }

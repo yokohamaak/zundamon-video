@@ -5041,8 +5041,20 @@ function renderInsertFields(insert) {
   } else if (kind === "whiteboard_explain") {
     const ICON_OPTIONS = [
       { value: "none", label: "none（なし）" },
-      { value: "confused", label: "confused（困り）" },
-      { value: "scribble", label: "scribble（走り書き）" },
+      { value: "cause", label: "cause（原因・虫眼鏡）" },
+      { value: "problem", label: "problem（問題点・バツ印）" },
+      { value: "solution", label: "solution（対策・工具）" },
+      { value: "process", label: "process（手順・流れ）" },
+      { value: "priority", label: "priority（優先度）" },
+      { value: "deadline", label: "deadline（期限・時計）" },
+      { value: "evidence", label: "evidence（証拠・確認）" },
+      { value: "data", label: "data（データ・グラフ）" },
+      { value: "share", label: "share（共有）" },
+      { value: "rule", label: "rule（ルール）" },
+      { value: "risk", label: "risk（リスク）" },
+      { value: "improvement", label: "improvement（改善）" },
+      { value: "confused", label: "confused（困惑・旧互換）" },
+      { value: "scribble", label: "scribble（混乱・旧互換）" },
       { value: "checklist", label: "checklist（チェックリスト）" },
       { value: "memo", label: "memo（メモ）" },
       { value: "conversation", label: "conversation（会話）" },
@@ -5065,6 +5077,12 @@ function renderInsertFields(insert) {
     ];
     container.appendChild(makeField("title（タイトル・18文字以内推奨）", "text", "fWTitle", insert.title || ""));
     container.appendChild(makeField("theme（テーマ・30文字以内推奨）", "text", "fWTheme", insert.theme || ""));
+    const wbStyle = insert.style || {};
+    container.appendChild(makeField("titleFontSize（タイトルサイズ・既定90）", "number", "fWTitleFontSize", wbStyle.titleFontSize ?? "", "90"));
+    container.appendChild(makeField("themeFontSize（テーマサイズ・既定65）", "number", "fWThemeFontSize", wbStyle.themeFontSize ?? "", "65"));
+    container.appendChild(makeField("sectionHeadingFontSize（項目見出しサイズ・既定50）", "number", "fWSectionHeadingFontSize", wbStyle.sectionHeadingFontSize ?? "", "50"));
+    container.appendChild(makeField("sectionBodyFontSize（箇条書きサイズ・既定42）", "number", "fWSectionBodyFontSize", wbStyle.sectionBodyFontSize ?? "", "42"));
+    container.appendChild(makeField("conclusionFontSize（結論文字サイズ・既定70）", "number", "fWConclusionFontSize", wbStyle.conclusionFontSize ?? "", "70"));
     const sections = insert.sections || [];
     for (let i = 0; i < 3; i++) {
       const sec = sections[i] || {};
@@ -5078,6 +5096,9 @@ function renderInsertFields(insert) {
         container.appendChild(makeField(`bullet ${b + 1}（16文字以内推奨）`, "text", `fWSecBullet${i}_${b}`, bullets[b] || ""));
       }
       container.appendChild(makeSelectField("icon", `fWSecIcon${i}`, ICON_OPTIONS, sec.icon || "none"));
+      container.appendChild(makeField("iconX（項目内X座標・既定は右寄せ）", "number", `fWSecIconX${i}`, sec.iconX ?? "", "272"));
+      container.appendChild(makeField("iconY（項目内Y座標・既定200）", "number", `fWSecIconY${i}`, sec.iconY ?? "", "200"));
+      container.appendChild(makeField("iconSize（アイコンサイズ・既定120）", "number", `fWSecIconSize${i}`, sec.iconSize ?? "", "120"));
       const visibleRow = document.createElement("label");
       visibleRow.className = "toggle-row";
       const visibleCb = document.createElement("input");
@@ -5094,12 +5115,105 @@ function renderInsertFields(insert) {
     visibleHint.style.cssText = "font-size:12px; opacity:0.75; padding:0 2px 8px;";
     visibleHint.textContent = "複数ターンに分けて1項目ずつ表示したい時は、そのターンで見せたい項目だけチェックを残す。";
     container.appendChild(visibleHint);
+    container.appendChild(makeSelectField(
+      "activeSection（今説明中の項目を薄くハイライト）",
+      "fWActiveSection",
+      [
+        { value: "", label: "なし" },
+        { value: "0", label: "①をハイライト" },
+        { value: "1", label: "②をハイライト" },
+        { value: "2", label: "③をハイライト" },
+      ],
+      typeof insert.activeSection === "number" ? String(insert.activeSection) : "",
+    ));
+
+    const arrowSection = document.createElement("div");
+    arrowSection.className = "section-divider";
+    arrowSection.textContent = "ターン別表示（矢印・結論）";
+    container.appendChild(arrowSection);
+    for (let i = 0; i < 2; i++) {
+      const arrowRow = document.createElement("label");
+      arrowRow.className = "toggle-row";
+      const arrowCb = document.createElement("input");
+      arrowCb.type = "checkbox";
+      arrowCb.id = `fWArrowVisible${i}`;
+      arrowCb.checked = insert.visibleArrows ? insert.visibleArrows[i] !== false : true;
+      arrowCb.addEventListener("change", collectInsert);
+      arrowRow.appendChild(arrowCb);
+      arrowRow.appendChild(document.createTextNode(i === 0 ? "矢印①→②を表示" : "矢印②→③を表示"));
+      container.appendChild(arrowRow);
+    }
+    const arrowLayoutSection = document.createElement("div");
+    arrowLayoutSection.className = "section-divider";
+    arrowLayoutSection.textContent = "矢印配置（1920x1080基準）";
+    container.appendChild(arrowLayoutSection);
+    for (let i = 0; i < 2; i++) {
+      const label = i === 0 ? "矢印①→②" : "矢印②→③";
+      const defaultX = i === 0 ? 540 : 975;
+      const defaultY = 450;
+      container.appendChild(makeField(`${label} X（既定${defaultX}）`, "number", `fWArrow${i}X`, wbStyle[`arrow${i}X`] ?? "", String(defaultX)));
+      container.appendChild(makeField(`${label} Y（既定${defaultY}）`, "number", `fWArrow${i}Y`, wbStyle[`arrow${i}Y`] ?? "", String(defaultY)));
+      container.appendChild(makeField(`${label} width（既定${i === 0 ? 56 : 60}）`, "number", `fWArrow${i}Width`, wbStyle[`arrow${i}Width`] ?? "", String(i === 0 ? 56 : 60)));
+      container.appendChild(makeField(`${label} height（既定54）`, "number", `fWArrow${i}Height`, wbStyle[`arrow${i}Height`] ?? "", "54"));
+      container.appendChild(makeField(`${label} stroke（既定9）`, "number", `fWArrow${i}StrokeWidth`, wbStyle[`arrow${i}StrokeWidth`] ?? "", "9"));
+    }
+    const conclusionVisibleRow = document.createElement("label");
+    conclusionVisibleRow.className = "toggle-row";
+    const conclusionVisibleCb = document.createElement("input");
+    conclusionVisibleCb.type = "checkbox";
+    conclusionVisibleCb.id = "fWConclusionVisible";
+    conclusionVisibleCb.checked = insert.showConclusion !== false;
+    conclusionVisibleCb.addEventListener("change", collectInsert);
+    conclusionVisibleRow.appendChild(conclusionVisibleCb);
+    conclusionVisibleRow.appendChild(document.createTextNode("結論ボックスを表示"));
+    container.appendChild(conclusionVisibleRow);
+    const conclusionArrowRow = document.createElement("label");
+    conclusionArrowRow.className = "toggle-row";
+    const conclusionArrowCb = document.createElement("input");
+    conclusionArrowCb.type = "checkbox";
+    conclusionArrowCb.id = "fWConclusionArrowVisible";
+    conclusionArrowCb.checked = insert.showConclusionArrow === true;
+    conclusionArrowCb.addEventListener("change", collectInsert);
+    conclusionArrowRow.appendChild(conclusionArrowCb);
+    conclusionArrowRow.appendChild(document.createTextNode("結論への斜め矢印を表示"));
+    container.appendChild(conclusionArrowRow);
+    const conclusionLayoutSection = document.createElement("div");
+    conclusionLayoutSection.className = "section-divider";
+    conclusionLayoutSection.textContent = "結論ボックス配置（1920x1080基準）";
+    container.appendChild(conclusionLayoutSection);
+    container.appendChild(makeField("conclusionBoxX（既定245）", "number", "fWConclusionBoxX", wbStyle.conclusionBoxX ?? "", "245"));
+    container.appendChild(makeField("conclusionBoxY（既定700）", "number", "fWConclusionBoxY", wbStyle.conclusionBoxY ?? "", "700"));
+    container.appendChild(makeField("conclusionBoxWidth（既定1150）", "number", "fWConclusionBoxWidth", wbStyle.conclusionBoxWidth ?? "", "1150"));
+    container.appendChild(makeField("conclusionBoxHeight（既定200）", "number", "fWConclusionBoxHeight", wbStyle.conclusionBoxHeight ?? "", "200"));
+
     container.appendChild(makeTextareaField("conclusion（結論・40文字以内推奨）", "fWConclusion", insert.conclusion || ""));
     const character = insert.character || {};
     container.appendChild(makeSelectField("character.pose（他のターンと同じポーズ）", "fWCharPose", POSE_OPTIONS, character.pose || ""));
     container.appendChild(makeSelectField("character.expression（他のターンと同じ表情）", "fWCharExpression", EXPRESSION_OPTIONS, character.expression || ""));
     const animation = insert.animation || {};
-    container.appendChild(makeSelectField("animation.mode", "fWAnimationMode", ANIMATION_OPTIONS, animation.mode || "step"));
+    container.appendChild(makeSelectField("animation.mode", "fWAnimationMode", ANIMATION_OPTIONS, animation.mode || "all"));
+    const animationSection = document.createElement("div");
+    animationSection.className = "section-divider";
+    animationSection.textContent = "表示アニメーション";
+    container.appendChild(animationSection);
+    [
+      ["fWSectionPop", "sectionPop", "項目をポップ表示"],
+      ["fWArrowPop", "arrowPop", "矢印をポップ表示"],
+      ["fWConclusionPop", "conclusionPop", "結論ボックスをポップ表示"],
+      ["fWUnderlineDraw", "underlineDraw", "下線を左から引く"],
+      ["fWConclusionImpact", "conclusionImpact", "結論ボックスを強めに出す"],
+    ].forEach(([id, key, label]) => {
+      const row = document.createElement("label");
+      row.className = "toggle-row";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = id;
+      cb.checked = animation[key] !== false;
+      cb.addEventListener("change", collectInsert);
+      row.appendChild(cb);
+      row.appendChild(document.createTextNode(label));
+      container.appendChild(row);
+    });
     const hint = document.createElement("div");
     hint.className = "field-hint";
     hint.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
@@ -6021,23 +6135,76 @@ function collectInsert() {
     ins.title = title ? title.value : "";
     const theme = document.getElementById("fWTheme");
     ins.theme = theme ? theme.value : "";
+    const prevWbStyle = (turn.insert && turn.insert.kind === "whiteboard_explain" && turn.insert.style) ? { ...turn.insert.style } : {};
+    const wbStyleOut = { ...prevWbStyle };
+    const readWbNumber = (id, key, min, max) => {
+      const el = document.getElementById(id);
+      if (el && el.value !== "") {
+        const n = parseFloat(el.value);
+        if (Number.isFinite(n)) wbStyleOut[key] = Math.max(min, Math.min(max, n));
+      } else {
+        delete wbStyleOut[key];
+      }
+    };
+    readWbNumber("fWTitleFontSize", "titleFontSize", 36, 100);
+    readWbNumber("fWThemeFontSize", "themeFontSize", 24, 72);
+    readWbNumber("fWSectionHeadingFontSize", "sectionHeadingFontSize", 20, 60);
+    readWbNumber("fWSectionBodyFontSize", "sectionBodyFontSize", 18, 56);
+    readWbNumber("fWConclusionFontSize", "conclusionFontSize", 24, 76);
+    readWbNumber("fWConclusionBoxX", "conclusionBoxX", 0, 1920);
+    readWbNumber("fWConclusionBoxY", "conclusionBoxY", 0, 1080);
+    readWbNumber("fWConclusionBoxWidth", "conclusionBoxWidth", 300, 1500);
+    readWbNumber("fWConclusionBoxHeight", "conclusionBoxHeight", 80, 320);
+    for (let i = 0; i < 2; i++) {
+      readWbNumber(`fWArrow${i}X`, `arrow${i}X`, -200, 1920);
+      readWbNumber(`fWArrow${i}Y`, `arrow${i}Y`, 0, 1080);
+      readWbNumber(`fWArrow${i}Width`, `arrow${i}Width`, 30, 260);
+      readWbNumber(`fWArrow${i}Height`, `arrow${i}Height`, 24, 120);
+      readWbNumber(`fWArrow${i}StrokeWidth`, `arrow${i}StrokeWidth`, 3, 24);
+    }
+    if (Object.keys(wbStyleOut).length) ins.style = wbStyleOut;
     ins.sections = [0, 1, 2].map((i) => {
       const heading = document.getElementById(`fWSecHeading${i}`);
       const icon = document.getElementById(`fWSecIcon${i}`);
+      const iconX = document.getElementById(`fWSecIconX${i}`);
+      const iconY = document.getElementById(`fWSecIconY${i}`);
+      const iconSize = document.getElementById(`fWSecIconSize${i}`);
       const bullets = [0, 1, 2]
         .map((b) => document.getElementById(`fWSecBullet${i}_${b}`))
         .map((el) => (el ? el.value : ""))
         .filter((v) => v.trim() !== "");
-      return {
+      const sectionOut = {
         heading: heading ? heading.value : "",
         bullets,
         icon: icon ? icon.value : "none",
       };
+      const applySectionNumber = (el, key, min, max) => {
+        if (!el || el.value === "") return;
+        const n = parseFloat(el.value);
+        if (Number.isFinite(n)) sectionOut[key] = Math.max(min, Math.min(max, n));
+      };
+      applySectionNumber(iconX, "iconX", -200, 700);
+      applySectionNumber(iconY, "iconY", -100, 420);
+      applySectionNumber(iconSize, "iconSize", 24, 220);
+      return sectionOut;
     });
     ins.visibleSections = [0, 1, 2].map((i) => {
       const cb = document.getElementById(`fWSecVisible${i}`);
       return cb ? cb.checked : true;
     });
+    const activeSection = document.getElementById("fWActiveSection");
+    if (activeSection && activeSection.value !== "") {
+      const n = parseInt(activeSection.value, 10);
+      if (Number.isFinite(n)) ins.activeSection = Math.max(0, Math.min(2, n));
+    }
+    ins.visibleArrows = [0, 1].map((i) => {
+      const cb = document.getElementById(`fWArrowVisible${i}`);
+      return cb ? cb.checked : true;
+    });
+    const conclusionVisible = document.getElementById("fWConclusionVisible");
+    ins.showConclusion = conclusionVisible ? conclusionVisible.checked : true;
+    const conclusionArrowVisible = document.getElementById("fWConclusionArrowVisible");
+    ins.showConclusionArrow = conclusionArrowVisible ? conclusionArrowVisible.checked : false;
     const conclusion = document.getElementById("fWConclusion");
     ins.conclusion = conclusion ? conclusion.value : "";
     const charPose = document.getElementById("fWCharPose");
@@ -6046,7 +6213,19 @@ function collectInsert() {
     if (charPose && charPose.value) ins.character.pose = charPose.value;
     if (charExpression && charExpression.value) ins.character.expression = charExpression.value;
     const animationMode = document.getElementById("fWAnimationMode");
-    ins.animation = { mode: animationMode ? animationMode.value : "step" };
+    const sectionPop = document.getElementById("fWSectionPop");
+    const arrowPop = document.getElementById("fWArrowPop");
+    const conclusionPop = document.getElementById("fWConclusionPop");
+    const underlineDraw = document.getElementById("fWUnderlineDraw");
+    const conclusionImpact = document.getElementById("fWConclusionImpact");
+    ins.animation = {
+      mode: animationMode ? animationMode.value : "all",
+      sectionPop: sectionPop ? sectionPop.checked : true,
+      arrowPop: arrowPop ? arrowPop.checked : true,
+      conclusionPop: conclusionPop ? conclusionPop.checked : true,
+      underlineDraw: underlineDraw ? underlineDraw.checked : true,
+      conclusionImpact: conclusionImpact ? conclusionImpact.checked : true,
+    };
   }
 
   turn.insert = ins;
@@ -7169,16 +7348,20 @@ function buildDefaultInsert(kind, prev) {
     return {
       kind: "whiteboard_explain",
       title: "めたんの解説コーナー",
-      theme: "ここで一回整理するわね",
+      theme: "今回の問題点と対策",
       sections: [
-        { heading: "原因", bullets: ["状況を整理", "見えにくい点", "残らない仕事"], icon: "confused" },
-        { heading: "問題", bullets: ["評価されにくい", "伝わりにくい", "成果にならない"], icon: "scribble" },
-        { heading: "解決", bullets: ["メモ化", "一覧化", "共有する"], icon: "checklist" },
+        { heading: "原因", bullets: ["状況を整理", "見えにくい点", "残らない仕事"], icon: "cause", iconY: 200 },
+        { heading: "問題点", bullets: ["評価されにくい", "伝わりにくい", "成果にならない"], icon: "problem", iconX: 345, iconY: 200 },
+        { heading: "対策", bullets: ["メモ化", "一覧化", "正しく共有する"], icon: "solution", iconY: 200 },
       ],
       conclusion: "つまり：見える形にするのが大事！",
       visibleSections: [true, true, true],
-      character: { pose: "proud", expression: "happy" },
-      animation: { mode: "step" },
+      visibleArrows: [true, true],
+      showConclusion: true,
+      showConclusionArrow: false,
+      style: { titleFontSize: 90, themeFontSize: 65, sectionHeadingFontSize: 50, sectionBodyFontSize: 42, conclusionFontSize: 70, conclusionBoxX: 245, conclusionBoxY: 700, conclusionBoxWidth: 1150, conclusionBoxHeight: 200, arrow0X: 540, arrow0Y: 450, arrow0Width: 56, arrow0Height: 54, arrow0StrokeWidth: 9, arrow1X: 975, arrow1Y: 450, arrow1Width: 60, arrow1Height: 54, arrow1StrokeWidth: 9 },
+      character: { pose: "point", expression: "happy" },
+      animation: { mode: "all", sectionPop: true, arrowPop: true, conclusionPop: true, underlineDraw: true, conclusionImpact: true },
     };
   }
   return { kind, width: (prev && typeof prev.width === "number") ? prev.width : undefined };

@@ -85,6 +85,30 @@
       "mouth_half": "ho",
       "mouth_open": "open",
       "fx": null
+    },
+    "angry": {
+      "brow": "angry",
+      "cheek": "hoppe_red",
+      "shadow": "kageri",
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "surprise",
+      "mouth_close": "close",
+      "mouth_half": "mufu",
+      "mouth_open": "naa",
+      "fx": []
+    },
+    "question": {
+      "brow": "up",
+      "cheek": "hoppe",
+      "shadow": null,
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "surprise",
+      "mouth_close": "nn",
+      "mouth_half": "nhe",
+      "mouth_open": "o",
+      "fx": null
     }
   },
   "metan": {
@@ -144,6 +168,28 @@
       "fx": "sweat"
     },
     "niyari": {
+      "brow": "futo_gokigen",
+      "cheek": "normal2",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "open",
+      "mouth_close": "close",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": null
+    },
+    "angry": {
+      "brow": "futo_gokigen",
+      "cheek": "normal2",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "open",
+      "mouth_close": "close",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": null
+    },
+    "question": {
       "brow": "futo_gokigen",
       "cheek": "normal2",
       "shadow": null,

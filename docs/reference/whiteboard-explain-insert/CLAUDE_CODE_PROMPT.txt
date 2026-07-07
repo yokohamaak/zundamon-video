@@ -1,0 +1,38 @@
+run-storyに whiteboard_explain という新しいインサート種別を追加したいです。
+
+添付ZIPの /Users/yokohamaak/ap/zundamon-video/docs/reference/whiteboard-explain-insert/src/inserts/whiteboardExplain/ をプロジェクトにコピーし、既存のインサート描画処理から呼び出せるようにしてください。
+
+設定画面側では、以下の config を編集できるようにしてください。
+
+- title
+- theme
+- sections[0..2].heading
+- sections[0..2].bullets[0..2]
+- sections[0..2].icon
+- conclusion
+- character.pose
+- character.expression
+- animation.mode
+
+保存される insert は以下の形式にしてください。
+
+{
+  type: "insert",
+  insertType: "whiteboard_explain",
+  duration: 420,
+  config: { ... }
+}
+
+描画側では以下のように呼んでください。
+
+<WhiteboardExplainInsert
+  config={insert.config}
+  durationInFrames={insert.duration}
+/>
+
+既存の insert registry がある場合は、whiteboard_explain に WhiteboardExplainInsert を登録してください。
+
+めたん立ち絵は public/characters/metan/{pose}_{expression}.png を参照する設計です。
+素材がない場合は仮表示されるので、まずは描画が動く状態を優先してください。
+
+詳しい組み込み手順は docs/WHITEBOARD_EXPLAIN_INSERT_組み込み手順.md にあります。
