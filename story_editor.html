@@ -1064,6 +1064,10 @@
           <div class="field-row">
             <label class="field-label">セリフ</label>
             <textarea class="field-textarea" id="fText"></textarea>
+            <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnSplitDialogue">セリフ分割</button>
+              <div class="field-help">Enterは同じ吹き出し内の改行です。吹き出しを分けたい時だけ使います。</div>
+            </div>
           </div>
           <div class="field-row">
             <label class="field-label">ポーズ秒 (pause)</label>
@@ -1153,6 +1157,11 @@
               <span>この行だけ無効</span>
             </label>
             <div class="field-help" id="fAutoBubbleSplitHelp">句点や ! ? による自動多段化を、この行だけ止めます。</div>
+          </div>
+          <div class="field-row" id="fBubbleMaxCharsRow">
+            <label class="field-label">最大文字数</label>
+            <input type="number" class="field-input" id="fBubbleMaxChars" min="1" max="99" step="1" placeholder="自動">
+            <div class="field-help" id="fBubbleMaxCharsHelp">未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。</div>
           </div>
 
           <div class="section-divider">キャラクター</div>
@@ -4997,27 +5006,20 @@ function syncSubtitleModeUi(turn) {
   const subtitleStyleRow = document.getElementById("fSubtitleStyleRow");
   const continueBubbleRow = document.getElementById("fContinueBubbleRow");
   const autoBubbleSplitRow = document.getElementById("fAutoBubbleSplitRow");
+  const bubbleMaxCharsRow = document.getElementById("fBubbleMaxCharsRow");
   const boxBorderField = document.getElementById("fSubtitleBoxBorderColorField");
   const boxBorderWidthField = document.getElementById("fSubtitleBoxBorderWidth");
   const boxBorderEnabled = !!document.getElementById("fSubtitleBoxBorder")?.checked;
   if (subtitleStyleRow) subtitleStyleRow.style.display = subtitleMode ? "" : "none";
   if (continueBubbleRow) continueBubbleRow.style.display = subtitleMode ? "none" : "";
   if (autoBubbleSplitRow) autoBubbleSplitRow.style.display = subtitleMode ? "none" : "";
+  if (bubbleMaxCharsRow) bubbleMaxCharsRow.style.display = subtitleMode ? "none" : "";
   if (boxBorderField) boxBorderField.style.opacity = boxBorderEnabled ? "1" : "0.5";
   if (boxBorderWidthField) boxBorderWidthField.disabled = !boxBorderEnabled;
 }
 
-function manualBubbleSplitTexts(text) {
-  return String(text || "")
-    .split(/\r?\n+/)
-    .map(s => s.trim())
-    .filter(Boolean);
-}
-
 function predictedAutoBubbleTexts(turn) {
   const text = String(turn && turn.text || "");
-  const manualSplits = manualBubbleSplitTexts(text);
-  if (manualSplits.length > 1) return manualSplits;
   return (text.match(AUTO_SENTENCE_RE) || []).map(s => s.trim()).filter(Boolean);
 }
 
@@ -5065,6 +5067,13 @@ function isContinueBubbleParent(script, idx) {
   return !!getContinueBubbleInfo(script, idx + 1).valid;
 }
 
+function bubbleLengthLimit(turn, autoInfo = null) {
+  const raw = Number(turn && turn.bubbleMaxChars);
+  if (Number.isFinite(raw) && raw > 0) return Math.round(raw);
+  const info = autoInfo || getAutoBubbleInfo(turn);
+  return (turn && (turn.continueBubble || info.active)) ? 20 : 24;
+}
+
 function bubbleLengthWarning(turn) {
   if (!turn || turn.insert || isNarrationTurnData(turn) || isSubtitleTurnData(turn)) return "";
   const autoInfo = getAutoBubbleInfo(turn);
@@ -5073,7 +5082,7 @@ function bubbleLengthWarning(turn) {
     .map(text => String(text || "").replace(/\s+/g, "").length)
     .filter(len => len > 0);
   if (!lengths.length) return "";
-  const limit = (turn.continueBubble || autoInfo.active) ? 20 : 24;
+  const limit = bubbleLengthLimit(turn, autoInfo);
   const longest = Math.max(...lengths);
   if (longest <= limit) return "";
   return autoInfo.active
@@ -5258,6 +5267,7 @@ function renderDetail() {
   document.getElementById("fSubtitleBoxBorderWidth").value = String(subtitleStyle.boxBorderWidth);
   setField("fContinueBubble", "select", turn.continueBubble ? "1" : "");
   document.getElementById("fAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
+  document.getElementById("fBubbleMaxChars").value = turn.bubbleMaxChars != null ? String(turn.bubbleMaxChars) : "";
   syncSubtitleModeUi(turn);
   const voicePresetHelp = document.getElementById("fVoicePresetHelp");
   const noLipSyncHelp = document.getElementById("fNoLipSyncHelp");
@@ -5266,6 +5276,7 @@ function renderDetail() {
   const cameraEffectHelp = document.getElementById("fCameraEffectHelp");
   const subtitleModeHelp = document.getElementById("fSubtitleModeHelp");
   const subtitleStyleHelp = document.getElementById("fSubtitleStyleHelp");
+  const bubbleMaxCharsHelp = document.getElementById("fBubbleMaxCharsHelp");
   if (narrationHelp) {
     narrationHelp.className = "field-help" + (isNarrationTurnData(turn) ? " warn" : "");
     narrationHelp.textContent = isNarrationTurnData(turn)
@@ -5396,6 +5407,23 @@ function renderDetail() {
         : (autoInfo.active
             ? `この行は現在 ${autoInfo.count}段の自動分割対象です。止めたい場合はチェックを入れてください。`
             : "句点や ! ? による自動多段化を、この行だけ止めます。");
+    }
+  }
+  if (bubbleMaxCharsHelp) {
+    const autoInfo = getAutoBubbleInfo(turn);
+    const limit = bubbleLengthLimit(turn, autoInfo);
+    if (isNarrationTurnData(turn)) {
+      bubbleMaxCharsHelp.className = "field-help";
+      bubbleMaxCharsHelp.textContent = "ナレーション行では吹き出し文字数の警告は使いません。";
+    } else if (isSubtitleTurnData(turn)) {
+      bubbleMaxCharsHelp.className = "field-help";
+      bubbleMaxCharsHelp.textContent = "字幕モードでは吹き出し文字数の警告は使いません。";
+    } else if (turn.bubbleMaxChars != null && turn.bubbleMaxChars !== "") {
+      bubbleMaxCharsHelp.className = "field-help warn";
+      bubbleMaxCharsHelp.textContent = `この行は ${limit} 文字を上限目安にしています。`;
+    } else {
+      bubbleMaxCharsHelp.className = "field-help";
+      bubbleMaxCharsHelp.textContent = `未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。現在の目安は ${limit} 文字です。`;
     }
   }
 
@@ -6640,6 +6668,14 @@ function collectBasic() {
   const autoBubbleSplitVal = document.getElementById("fAutoBubbleSplit").checked;
   if (autoBubbleSplitVal) turn.disableAutoBubbleSplit = true;
   else delete turn.disableAutoBubbleSplit;
+  const bubbleMaxCharsVal = document.getElementById("fBubbleMaxChars").value;
+  if (bubbleMaxCharsVal !== "") {
+    const bubbleMaxCharsNum = Number(bubbleMaxCharsVal);
+    if (Number.isFinite(bubbleMaxCharsNum)) turn.bubbleMaxChars = Math.max(1, Math.min(99, Math.round(bubbleMaxCharsNum)));
+    else delete turn.bubbleMaxChars;
+  } else {
+    delete turn.bubbleMaxChars;
+  }
   syncSubtitleModeUi(turn);
 
   // 本文を変えたら、古い音声生成結果の字幕断片(sentences)はプレビューに使わない。
@@ -6921,6 +6957,60 @@ function addTurnAfter(inheritScene = false) {
   //   先頭画面表示になる。反映後にrAFで尺確定を待ってシークする。）
   flushPlayerUpdate();
   requestAnimationFrame(() => seekPlayer(selectedIdx));
+}
+
+function splitDialogueAtCursor() {
+  if (selectedIdx < 0 || !storyData || !Array.isArray(storyData.script)) return;
+  const textEl = document.getElementById("fText");
+  if (!textEl) return;
+  collectBasic();
+  const script = storyData.script;
+  const turn = script[selectedIdx];
+  if (!turn) return;
+  const text = String(textEl.value || "");
+  const cursor = Math.max(0, Math.min(textEl.selectionStart ?? text.length, text.length));
+  const before = text.slice(0, cursor).replace(/[ \t]+$/g, "");
+  const after = text.slice(cursor).replace(/^[ \t]+/g, "");
+  if (!before.trim() || !after.trim()) {
+    alert("前後どちらにもセリフが残る位置で分割してください。");
+    return;
+  }
+
+  const newTurn = JSON.parse(JSON.stringify(turn));
+  newTurn.id = generateId(script);
+  newTurn.start = 0;
+  newTurn.end = 0;
+  newTurn.text = after;
+  delete newTurn.sentences;
+  delete newTurn.transition;
+  delete newTurn.enter;
+  delete newTurn.enterDir;
+  delete newTurn.exit;
+  delete newTurn.exitDir;
+  delete newTurn.manualPos;
+  delete newTurn.zoomTarget;
+  delete newTurn.cameraCenter;
+  delete newTurn.sparklePos;
+  if (!isSubtitleTurnData(turn)) newTurn.continueBubble = true;
+
+  turn.text = before;
+  delete turn.sentences;
+  const insertAt = selectedIdx + 1;
+  script.splice(insertAt, 0, newTurn);
+  markDirty();
+  markAudioDirty();
+  selectedIdx = insertAt;
+  renderList();
+  renderDetail();
+  flushPlayerUpdate();
+  requestAnimationFrame(() => {
+    seekPlayer(selectedIdx);
+    const nextTextEl = document.getElementById("fText");
+    if (nextTextEl) {
+      nextTextEl.focus();
+      nextTextEl.setSelectionRange(0, 0);
+    }
+  });
 }
 
 function deleteTurn() {
@@ -7542,6 +7632,7 @@ function setupEvents() {
   document.getElementById("btnExportVideo").addEventListener("click", exportVideo);
   document.getElementById("btnAdd").addEventListener("click", () => addTurnAfter(false));
   document.getElementById("btnAddInherit").addEventListener("click", () => addTurnAfter(true));
+  document.getElementById("btnSplitDialogue").addEventListener("click", splitDialogueAtCursor);
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
@@ -7658,7 +7749,7 @@ function setupEvents() {
                     "fSpeakerAnchor", "fShake", "fFlashback", "fCameraEffectZoom", "fCameraEffectPan", "fCameraEffectTilt", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
                     "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
                     "fPause", "fVoicePreset", "fHideCharacters", "fEnterDir", "fExitDir", "fSubtitleMode", "fSubtitleFontSize",
-                    "fSubtitleTextColorHex", "fSubtitleBoxBorder", "fSubtitleBoxBorderColorHex", "fSubtitleBoxBorderWidth", "fContinueBubble", "fAutoBubbleSplit"];
+                    "fSubtitleTextColorHex", "fSubtitleBoxBorder", "fSubtitleBoxBorderColorHex", "fSubtitleBoxBorderWidth", "fContinueBubble", "fAutoBubbleSplit", "fBubbleMaxChars"];
   for (const id of basicIds) {
     const el = document.getElementById(id);
     if (!el) continue;

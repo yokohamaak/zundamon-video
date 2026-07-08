@@ -715,7 +715,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         + (', "_proposals": [ ... ] }' if experimental else " }"),
         "- 各ターンの必須キー: speaker, text, scene。どのターンでも scene を省略しない。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
-        '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / speakerAnchor / manualPos / enter / enterDir / exit / exitDir'
+        '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / bubbleMaxChars / speakerAnchor / manualPos / enter / enterDir / exit / exitDir'
         ' / face / faceMode / clearFace / telopX / telopY / telopSize / se / insert / pose / transition / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood'
         ' / sparkleBurst / sparklePos / irisOut / effectSettings / cameraEffects / cameraEffectSettings / zoomTarget / cameraCenter も使ってよい。',
         '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
@@ -736,7 +736,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterDir", "face", "faceMode", "clearFace",
     "emphasis", "shake", "cameraEffect", "cameraEffects", "cameraEffectSettings", "flashback", "telop", "pause", "transition", "insert",
-    "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "subtitleMode", "subtitleStyle", "hideCharacters", "continueBubble", "speakerAnchor",
+    "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "subtitleMode", "subtitleStyle", "hideCharacters", "continueBubble", "bubbleMaxChars", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
     "impactText", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
     "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos", "zoomTarget", "cameraCenter",
