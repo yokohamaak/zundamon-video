@@ -2899,6 +2899,24 @@ function resolveCameraEffectRange(
   };
 }
 
+function resolveCameraEffectChainStart(
+  script: StoryTurn[],
+  activeIdx: number,
+  category: keyof CameraEffects,
+): number {
+  const activeTurn = script[activeIdx];
+  const activeEffect = normalizedCameraEffects(activeTurn)[category];
+  if (!activeTurn || !activeEffect || isNarrationTurn(activeTurn)) return activeIdx;
+  let startIdx = activeIdx;
+  for (let i = activeIdx - 1; i >= 0; i -= 1) {
+    const turn = script[i];
+    if (!turn || turn.scene !== activeTurn.scene || isNarrationTurn(turn)) break;
+    if (normalizedCameraEffects(turn)[category] !== activeEffect) break;
+    startIdx = i;
+  }
+  return startIdx;
+}
+
 function bubbleBottomOffset(turn: StoryTurn, hasNextContinue: boolean): number {
   if (hasNextContinue) return 112;
   return turn.continueBubble ? 12 : 36;
@@ -3448,25 +3466,46 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // 3. 単発カメラ効果（その行だけ付ける軽いズーム/パン/傾き）。
   let stageRotateDeg = 0;
   const zoomEffectRange = activeIdx >= 0 ? resolveCameraEffectRange(script, activeIdx, "zoom") : null;
-  if (zoomEffectRange) {
-    const effectDur = Math.max(cameraEffectTurnValue(active, camCfg, "zoom", "duration"), 0.001);
-    const effectK = easeInOutCubic(clamp((t - zoomEffectRange.start) / effectDur, 0, 1));
-    const baseTf = tf;
-    const manualZoomFocus = resolveZoomTargetAt(seg, t, () => ({ x: Tcur.cx, y: Tcur.cy }));
-    const zoomAmount = cameraEffectTurnValue(active, camCfg, "zoom", "amount");
-    const targetScale = zoomEffectRange.effect === "in"
-      ? baseTf.s + zoomAmount
-      : Math.max(1, baseTf.s - zoomAmount);
-    const effectCam = toTf({
-      s: targetScale,
-      cx: manualZoomFocus?.x ?? Tcur.cx,
-      cy: manualZoomFocus?.y ?? Tcur.cy,
-    });
-    tf = {
-      tx: lerp(baseTf.tx, effectCam.tx, effectK),
-      ty: lerp(baseTf.ty, effectCam.ty, effectK),
-      s: lerp(baseTf.s, effectCam.s, effectK),
-    };
+  if (zoomEffectRange && activeIdx >= 0) {
+    const chainStartIdx = resolveCameraEffectChainStart(script, activeIdx, "zoom");
+    let zoomTf = tf;
+    for (let i = chainStartIdx; i <= activeIdx; i += 1) {
+      const turn = script[i];
+      if (!turn) continue;
+      const effect = normalizedCameraEffects(turn).zoom;
+      if (!effect) continue;
+      const effectDur = Math.max(cameraEffectTurnValue(turn, camCfg, "zoom", "duration"), 0.001);
+      const effectK = i < activeIdx
+        ? 1
+        : easeInOutCubic(clamp((t - turn.start) / effectDur, 0, 1));
+      const anchorAtTurn = anchorOfAt(turn.start);
+      const defaultFocus = (() => {
+        if (!isNarrationTurn(turn) && isKnownChar(turn.speaker)) {
+          const speakerAnchor = resolveCharXY(turn.speaker, anchorAtTurn, sceneDef, seg, turn.start);
+          return {
+            x: speakerAnchor.x,
+            y: clamp(faceCyOf(turn.speaker, anchorAtTurn, sceneDef, seg, turn.start) + (sceneDef.focusDy ?? 0.04), 0, 1),
+          };
+        }
+        return { x: Tcur.cx, y: Tcur.cy };
+      })();
+      const zoomFocus = resolveZoomTargetAt(seg, turn.start, () => defaultFocus) ?? defaultFocus;
+      const zoomAmount = cameraEffectTurnValue(turn, camCfg, "zoom", "amount");
+      const targetScale = effect === "in"
+        ? zoomTf.s + zoomAmount
+        : Math.max(1, zoomTf.s - zoomAmount);
+      const effectCam = toTf({
+        s: targetScale,
+        cx: zoomFocus.x,
+        cy: zoomFocus.y,
+      });
+      zoomTf = {
+        tx: lerp(zoomTf.tx, effectCam.tx, effectK),
+        ty: lerp(zoomTf.ty, effectCam.ty, effectK),
+        s: lerp(zoomTf.s, effectCam.s, effectK),
+      };
+    }
+    tf = zoomTf;
   }
   const panEffectRange = activeIdx >= 0 ? resolveCameraEffectRange(script, activeIdx, "pan") : null;
   if (panEffectRange) {
