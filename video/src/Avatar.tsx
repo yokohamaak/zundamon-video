@@ -103,6 +103,9 @@ export const Avatar: React.FC<{
   // パーツ立ち絵のフォルダ名。nullなら従来の単一画像フォールバック。
   dir: string | null;
   manifest?: Manifest;
+  // 単一PNGで丸ごと差し替える向き差分。指定時はパーツ合成より優先する。
+  singleSrc?: string | null;
+  singleScale?: number;
   fallbackGender: Gender;
   active: boolean;
   activatedAtFrame: number;
@@ -135,6 +138,8 @@ export const Avatar: React.FC<{
 }> = ({
   dir,
   manifest,
+  singleSrc,
+  singleScale = 1,
   fallbackGender,
   active,
   activatedAtFrame,
@@ -312,6 +317,15 @@ export const Avatar: React.FC<{
       }}
     />
   );
+
+  if (singleSrc) {
+    return wrap(
+      layer(singleSrc, "single", {
+        transform: `scale(${singleScale})`,
+        transformOrigin: "center bottom",
+      })
+    );
+  }
 
   // ── フォールバック（パーツ未配置）：従来の口開け/閉じ2枚を音量で切替 ──
   if (!hasParts) {

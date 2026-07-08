@@ -28,7 +28,7 @@ MOBS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "mobs")
 # 一覧取得時に assets→public を差分コピーして「置いたら即プルダウンに出る」を実現する。
 ASSETS_DIR = os.path.join(ROOT_DIR, "video", "assets")
 _SYNC_SUBS = [
-    ("background", (".png", ".jpg", ".jpeg", ".webp")),
+    ("background", (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov")),
     ("mobs", (".png", ".webp")),
 ]
 
@@ -82,7 +82,12 @@ _CT = {
     ".jpeg": "image/jpeg",
     ".gif": "image/gif",
     ".webp": "image/webp",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mov": "video/quicktime",
 }
+_BG_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+_BG_VIDEO_EXTS = (".mp4", ".webm", ".mov")
 
 
 def _load_page():
@@ -107,8 +112,17 @@ def _save_scenes(data):
     for scene_id, scene in data["scenes"].items():
         if not isinstance(scene, dict):
             raise ValueError(f"シーン {scene_id} が不正")
-        if "bg" not in scene or not isinstance(scene.get("bg"), str):
-            raise ValueError(f"シーン {scene_id}: bg(文字列)が必要です")
+        bg = scene.get("bg")
+        bg_video = scene.get("bgVideo")
+        if bg is not None and not isinstance(bg, str):
+            raise ValueError(f"シーン {scene_id}: bg は文字列である必要があります")
+        if bg_video is not None and not isinstance(bg_video, str):
+            raise ValueError(f"シーン {scene_id}: bgVideo は文字列である必要があります")
+        if not ((isinstance(bg, str) and bg) or (isinstance(bg_video, str) and bg_video)):
+            raise ValueError(f"シーン {scene_id}: bg または bgVideo のどちらかが必要です")
+        bg_video_loop = scene.get("bgVideoLoop")
+        if bg_video_loop is not None and not isinstance(bg_video_loop, bool):
+            raise ValueError(f"シーン {scene_id}: bgVideoLoop は true/false である必要があります")
     with open(SCENES_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -116,11 +130,14 @@ def _save_scenes(data):
 def _list_assets():
     _sync_assets_to_public()
     backgrounds = []
+    background_videos = []
     if os.path.isdir(BG_DIR):
         for fn in sorted(os.listdir(BG_DIR)):
             ext = os.path.splitext(fn)[1].lower()
-            if ext in _CT:
+            if ext in _BG_IMAGE_EXTS:
                 backgrounds.append(f"background/{fn}")
+            elif ext in _BG_VIDEO_EXTS:
+                background_videos.append(f"background/{fn}")
 
     characters = []
     if os.path.exists(MANIFEST_JSON):
@@ -134,7 +151,12 @@ def _list_assets():
                 if os.path.isdir(os.path.join(AVATARS_DIR, entry)):
                     characters.append(entry)
 
-    return {"backgrounds": backgrounds, "characters": characters, "mobs": _list_mobs()}
+    return {
+        "backgrounds": backgrounds,
+        "backgroundVideos": background_videos,
+        "characters": characters,
+        "mobs": _list_mobs(),
+    }
 
 
 def _safe_path(base_dir, relative):
@@ -166,22 +188,58 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
     def _send_error_json(self, status, msg):
         self._send_json({"error": msg}, status)
 
-    def _send_image(self, path):
+    def _send_static(self, path):
         if not os.path.isfile(path):
-            self._send_error_json(404, "画像が見つかりません")
+            self._send_error_json(404, "ファイルが見つかりません")
             return
         ext = os.path.splitext(path)[1].lower()
-        ct = _CT.get(ext, "application/octet-stream")
+        ct = _CT.get(ext) or mimetypes.guess_type(path)[0] or "application/octet-stream"
+        file_size = os.path.getsize(path)
+        range_header = self.headers.get("Range")
+        start, end = 0, file_size - 1
+        is_partial = False
+        if range_header and range_header.startswith("bytes="):
+            spec = range_header[len("bytes="):].split(",")[0].strip()
+            try:
+                if spec.startswith("-"):
+                    suffix = int(spec[1:])
+                    if suffix > 0:
+                        start = max(0, file_size - suffix)
+                        end = file_size - 1
+                        is_partial = True
+                else:
+                    s, _, e = spec.partition("-")
+                    start = int(s)
+                    end = int(e) if e else file_size - 1
+                    end = min(end, file_size - 1)
+                    if start <= end and start < file_size:
+                        is_partial = True
+            except ValueError:
+                is_partial = False
+        if is_partial and start > end:
+            self.send_response(416)
+            self.send_header("Content-Range", "bytes */%d" % file_size)
+            self.end_headers()
+            return
+        length = (end - start + 1) if is_partial else file_size
         with open(path, "rb") as f:
-            body = f.read()
-        self.send_response(200)
+            if is_partial:
+                f.seek(start)
+            body = f.read(length)
+        self.send_response(206 if is_partial else 200)
         self.send_header("Content-Type", ct)
+        self.send_header("Accept-Ranges", "bytes")
         # 同名ファイル上書き(モブ画像等)でURLが変わらないため、キャッシュ禁止にしないと
         # 差し替え後も古い画像が表示され続ける。
         self.send_header("Cache-Control", "no-store, must-revalidate")
         self.send_header("Content-Length", str(len(body)))
+        if is_partial:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, file_size))
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -218,7 +276,7 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
             if safe is None:
                 self._send_error_json(400, "不正なパスです")
                 return
-            self._send_image(safe)
+            self._send_static(safe)
 
         elif path.startswith("/avatars/"):
             rel = path[len("/avatars/"):]
@@ -226,7 +284,7 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
             if safe is None:
                 self._send_error_json(400, "不正なパスです")
                 return
-            self._send_image(safe)
+            self._send_static(safe)
 
         elif path.startswith("/mobs/"):
             rel = path[len("/mobs/"):]
@@ -234,7 +292,7 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
             if safe is None:
                 self._send_error_json(400, "不正なパスです")
                 return
-            self._send_image(safe)
+            self._send_static(safe)
 
         else:
             self._send_error_json(404, "Not Found")

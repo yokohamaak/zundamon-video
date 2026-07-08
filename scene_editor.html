@@ -69,6 +69,14 @@
     background-size: cover; background-position: center;
     background-color: #222;
   }
+  .stage-bg-video {
+    position: absolute; inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    pointer-events: none;
+  }
   .stage-front {
     position: absolute; inset: 0;
     background-size: cover; background-position: center;
@@ -407,6 +415,7 @@
     <div class="preview-wrap" id="previewWrap">
       <div class="stage" id="stage">
         <div class="stage-bg" id="stageBg"></div>
+        <video class="stage-bg-video" id="stageBgVideo" muted loop autoplay playsinline></video>
         <div class="camera-frame" id="cameraFrameBox">
           <div class="camera-frame-center"></div>
           <div class="camera-frame-handle" id="cameraFrameHandle"></div>
@@ -426,8 +435,27 @@
         <input class="field-input" id="fLabel" type="text" placeholder="例: オフィス">
       </div>
       <div class="field-row">
+        <label class="field-label">背景タイプ</label>
+        <select class="field-select" id="fBgType">
+          <option value="image">静止画</option>
+          <option value="video">動画</option>
+        </select>
+      </div>
+      <div class="field-row">
         <label class="field-label">背景画像 (bg)</label>
         <select class="field-select" id="fBg"></select>
+      </div>
+      <div class="field-row" id="bgVideoRow">
+        <label class="field-label">背景動画 (bgVideo)</label>
+        <select class="field-select" id="fBgVideo">
+          <option value="__none__">なし</option>
+        </select>
+      </div>
+      <div class="field-row" id="bgVideoLoopRow">
+        <label class="toggle-row">
+          <input type="checkbox" id="fBgVideoLoop">
+          <span>動画をループする</span>
+        </label>
       </div>
       <div class="field-row">
         <label class="field-label">前景画像 (front)</label>
@@ -500,7 +528,7 @@
       <div class="field-row">
         <label class="field-label">傾き角度</label>
         <div class="slider-row">
-          <input type="range" id="camTiltAngleSlider" min="0" max="6" step="0.1" value="2.4">
+          <input type="range" id="camTiltAngleSlider" min="0" max="15" step="0.1" value="2.4">
           <span class="slider-val" id="camTiltAngleVal">2.4</span>
         </div>
       </div>
@@ -870,7 +898,10 @@ function selectScene(id) {
   document.getElementById('bgBlurSlider').value = bgBlur;
   document.getElementById('bgBlurVal').textContent = `${bgBlur}px`;
   // bg/front セレクト
+  syncBgTypeUI(sc);
   setSelectValue('fBg', sc.bg || '');
+  setSelectValue('fBgVideo', sc.bgVideo || '__none__');
+  document.getElementById('fBgVideoLoop').checked = !!sc.bgVideoLoop;
   setSelectValue('fFront', sc.front || '__none__');
   showFront = document.getElementById('frontToggle').checked;
   selectedMobId = null;
@@ -904,22 +935,46 @@ function setSelectValue(id, val) {
   sel.value = val || '__none__';
 }
 
+function safePauseVideo(el) {
+  try { el.pause(); } catch {}
+}
+
+function sceneBgType(sc) {
+  return sc && sc.bgVideo ? 'video' : 'image';
+}
+
+function syncBgTypeUI(sc) {
+  const type = sceneBgType(sc);
+  document.getElementById('fBgType').value = type;
+  document.getElementById('fBg').closest('.field-row').style.display = type === 'image' ? '' : 'none';
+  document.getElementById('bgVideoRow').style.display = type === 'video' ? '' : 'none';
+  document.getElementById('bgVideoLoopRow').style.display = type === 'video' ? '' : 'none';
+}
+
 // ============================================================
 // bg/front セレクト構築
 // ============================================================
 function populateBgSelects() {
-  const bgs = sortedStrings(assets?.backgrounds ?? []);
+  const bgImages = sortedStrings(assets?.backgrounds ?? []);
+  const bgVideos = sortedStrings(assets?.backgroundVideos ?? []);
   const bgSel = document.getElementById('fBg');
+  const bgVideoSel = document.getElementById('fBgVideo');
   const frontSel = document.getElementById('fFront');
   bgSel.innerHTML = '';
+  bgVideoSel.innerHTML = '<option value="__none__">なし</option>';
   frontSel.innerHTML = '<option value="__none__">なし</option>';
-  for (const bg of bgs) {
+  for (const bg of bgImages) {
     const o1 = document.createElement('option');
     o1.value = bg; o1.textContent = bg;
     bgSel.appendChild(o1);
     const o2 = document.createElement('option');
     o2.value = bg; o2.textContent = bg;
     frontSel.appendChild(o2);
+  }
+  for (const bg of bgVideos) {
+    const opt = document.createElement('option');
+    opt.value = bg; opt.textContent = bg;
+    bgVideoSel.appendChild(opt);
   }
 }
 
@@ -1101,12 +1156,36 @@ function renderPreview() {
 
   // 背景
   const bgEl = document.getElementById('stageBg');
-  bgEl.style.backgroundImage = sc.bg ? `url(${IMG_BASE}${encodePathSegs(sc.bg)})` : 'none';
+  const bgVideoEl = document.getElementById('stageBgVideo');
   const bgBlur = Math.max(0, sc.bgBlur != null ? sc.bgBlur : 0);
   const bgScale = bgBlur > 0 ? 1 + Math.min(bgBlur, 32) / 180 : 1;
-  bgEl.style.filter = bgBlur > 0 ? `blur(${bgBlur}px)` : 'none';
-  bgEl.style.transform = bgScale > 1 ? `scale(${bgScale})` : 'none';
-  bgEl.style.transformOrigin = 'center center';
+  if (sceneBgType(sc) === 'video' && sc.bgVideo) {
+    bgEl.style.backgroundImage = 'none';
+    bgEl.style.display = 'none';
+    const videoSrc = `${IMG_BASE}${encodePathSegs(sc.bgVideo)}`;
+    if (bgVideoEl.getAttribute('src') !== videoSrc) bgVideoEl.src = videoSrc;
+    bgVideoEl.loop = !!sc.bgVideoLoop;
+    bgVideoEl.style.display = '';
+    bgVideoEl.style.filter = bgBlur > 0 ? `blur(${bgBlur}px)` : 'none';
+    bgVideoEl.style.transform = bgScale > 1 ? `scale(${bgScale})` : 'none';
+    bgVideoEl.style.transformOrigin = 'center center';
+    bgVideoEl.onerror = () => { bgVideoEl.style.display = 'none'; };
+    const playPromise = bgVideoEl.play();
+    if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(() => {});
+  } else {
+    bgEl.style.display = '';
+    bgEl.style.backgroundImage = sc.bg ? `url(${IMG_BASE}${encodePathSegs(sc.bg)})` : 'none';
+    bgEl.style.filter = bgBlur > 0 ? `blur(${bgBlur}px)` : 'none';
+    bgEl.style.transform = bgScale > 1 ? `scale(${bgScale})` : 'none';
+    bgEl.style.transformOrigin = 'center center';
+    safePauseVideo(bgVideoEl);
+    bgVideoEl.removeAttribute('src');
+    bgVideoEl.load();
+    bgVideoEl.loop = false;
+    bgVideoEl.style.display = 'none';
+    bgVideoEl.style.filter = 'none';
+    bgVideoEl.style.transform = 'none';
+  }
 
   // 前景
   const frontEl = document.getElementById('stageFront');
@@ -1443,9 +1522,57 @@ function setupEvents() {
     if (sc) { sc.label = e.target.value; refreshSceneSelectLabel(); }
   });
 
+  document.getElementById('fBgType').addEventListener('change', e => {
+    const sc = currentScene();
+    if (!sc) return;
+    if (e.target.value === 'video') {
+      if (!sc.bgVideo) {
+        const first = (assets?.backgroundVideos ?? [])[0];
+        if (!first) {
+          alert('background/ に動画ファイルがありません。先に mp4 / webm / mov を追加してください。');
+          syncBgTypeUI(sc);
+          return;
+        }
+        sc.bgVideo = first;
+      }
+      delete sc.bg;
+    } else {
+      delete sc.bgVideo;
+      delete sc.bgVideoLoop;
+      if (!sc.bg) {
+        const first = (assets?.backgrounds ?? [])[0];
+        if (first) sc.bg = first;
+      }
+    }
+    syncBgTypeUI(sc);
+    selectScene(currentSceneId);
+  });
+
   document.getElementById('fBg').addEventListener('change', e => {
     const sc = currentScene();
     if (sc) { sc.bg = e.target.value; renderPreview(); }
+  });
+
+  document.getElementById('fBgVideo').addEventListener('change', e => {
+    const sc = currentScene();
+    if (sc) {
+      if (e.target.value && e.target.value !== '__none__') {
+        sc.bgVideo = e.target.value;
+        delete sc.bg;
+      } else {
+        delete sc.bgVideo;
+        delete sc.bgVideoLoop;
+      }
+      renderPreview();
+    }
+  });
+
+  document.getElementById('fBgVideoLoop').addEventListener('change', e => {
+    const sc = currentScene();
+    if (!sc || !sc.bgVideo) return;
+    if (e.target.checked) sc.bgVideoLoop = true;
+    else delete sc.bgVideoLoop;
+    renderPreview();
   });
 
   document.getElementById('fFront').addEventListener('change', e => {

@@ -672,7 +672,7 @@
       }
     },
     "office_copy": {
-      "label": "office_copy",
+      "label": "オフィスコピー機前",
       "bg": "background/copy.png",
       "front": null,
       "figure": "full",
@@ -717,6 +717,56 @@
           "y": 0.545
         }
       }
+    },
+    "money": {
+      "label": "money",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "cameraFrame": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "width": 1
+      },
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {},
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      },
+      "bgVideo": "background/money.mp4",
+      "bgVideoLoop": true
     }
   }
 }

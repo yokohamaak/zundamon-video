@@ -36,6 +36,8 @@
     "office": {
       "label": "オフィス",
       "bg": "background/office.png",        // 必須。public配下の相対パス
+      "bgVideo": "background/office.mp4",   // 任意。背景動画。指定時は bg ではなくこちらを使う
+      "bgVideoLoop": true,                  // 任意。背景動画をループ再生する
       "front": "background/office_front.png", // 任意(null可)。手前レイヤー(透過PNG)
       "shot": "duo",                         // "solo"|"duo"|"split"（編集UIでは選択肢として持つ程度）
       "camera": "static",                    // "static"|"slow-zoom"
@@ -93,8 +95,8 @@
 - `GET /` → scene_editor.html
 - `GET /api/scenes` → story-scenes.json をそのまま返す（JSON）
 - `POST /api/scenes` → リクエストbody(JSON全体)を `video/public/story-scenes.json` へ保存（整形して indent=2, ensure_ascii=False相当）。保存前に最低限の検証（scenes が dict / 各 bg が文字列）。
-- `GET /api/list-assets` → `{ "backgrounds": ["background/xxx.png", ...], "characters": ["zundamon","metan",...] }`
-  （backgrounds は `video/public/background/` の画像一覧、characters は `avatars/manifest.json` のキー）
+- `GET /api/list-assets` → `{ "backgrounds": ["background/xxx.png", ...], "backgroundVideos": ["background/xxx.mp4", ...], "characters": ["zundamon","metan",...] }`
+  （backgrounds / backgroundVideos は `video/public/background/` の一覧、characters は `avatars/manifest.json` のキー）
 - `GET /img/<path>` → `video/public/<path>` の画像を配信（背景・front用。パスは許可ディレクトリ内に限定＝traversal防止）
 - `GET /avatars/<dir>/<file>` → `video/public/avatars/<dir>/<file>` を配信（立ち絵パーツ）
 

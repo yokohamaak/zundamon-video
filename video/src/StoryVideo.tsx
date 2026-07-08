@@ -7,6 +7,7 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
+  Video,
 } from "remotion";
 import { useWindowedAudioData } from "@remotion/media-utils";
 import { Avatar, MOUTH_HALF } from "./Avatar";
@@ -98,6 +99,13 @@ type CameraEffectSettings = {
   pan?: CameraEffectSettingGroup;
   tilt?: CameraEffectSettingGroup;
 };
+type SubtitleStyle = {
+  fontSize?: number;
+  textColor?: string;
+  boxBorder?: boolean;
+  boxBorderColor?: string;
+  boxBorderWidth?: number;
+};
 
 export type StoryTurn = {
   id: string;
@@ -135,7 +143,7 @@ export type StoryTurn = {
   speakerAnchor?: string;
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
-  face?: Record<string, "left" | "right">;
+  face?: Record<string, FaceDirection>;
   // 話者プッシュイン演出の開始トリガー。
   // emphasis=true のターンで寄りを開始し、同じ話者が続く間は維持する。
   emphasis?: boolean;
@@ -165,6 +173,9 @@ export type StoryTurn = {
   effectSettings?: StoryEffectSettings;
   // 台詞後の無音秒（音声生成で使用。描画では参照しない）。
   pause?: number;
+  subtitleMode?: "subtitle";
+  subtitleStyle?: SubtitleStyle;
+  hideCharacters?: boolean;
   // PC画面インサート演出（このターン中に全画面PC画面UIを重ねる）。
   insert?: StoryInsert;
   // 退場するキャラ。このターンの終わり（end）にスライドアウトして以後は非表示。
@@ -279,6 +290,8 @@ type CameraFrame = { cx?: number; cy?: number; width?: number };
 export type SceneDef = {
   label?: string;
   bg: string;
+  bgVideo?: string;
+  bgVideoLoop?: boolean;
   // 背景(back)だけに掛ける被写界深度風のブラー量(px)。
   bgBlur?: number;
   front?: string | null;
@@ -320,6 +333,16 @@ export type CameraSettings = {
 };
 
 export type SceneLibrary = { scenes: Record<string, SceneDef>; camera?: CameraSettings };
+type FaceDirection =
+  | "left"
+  | "right"
+  | "front_left"
+  | "front_right"
+  | "side_left"
+  | "side_right"
+  | "back_left"
+  | "back_right"
+  | "back";
 
 export type CharDef = {
   avatar: string; // パーツ立ち絵フォルダ名
@@ -540,11 +563,72 @@ const FULL_CANVAS = {
   zundamon: { w: 783, h: 1473 },
   metan: { w: 858, h: 1769 },
 } as const;
+const ZUNDAMON_ANGLE_CANVAS = { w: 1082, h: 1574 } as const;
+const ZUNDAMON_ANGLE_SCALE = ZUNDAMON_ANGLE_CANVAS.w / FULL_CANVAS.zundamon.w;
 const FULL_BOX_W = 445; // 全身Avatar表示幅（px）。scene_editor.html と同値にする（WYSIWYG）。sceneのavScaleで最終サイズが決まる。
 function fullBoxSize(charId: string): { w: number; h: number } {
   const c = FULL_CANVAS[charId as keyof typeof FULL_CANVAS];
   if (!c) return { w: FULL_BOX_W, h: Math.round(FULL_BOX_W * 1.8) };
   return { w: FULL_BOX_W, h: Math.round(FULL_BOX_W * (c.h / c.w)) };
+}
+
+const ANGLE_FACE_STEM: Partial<Record<FaceDirection, string>> = {
+  front_left: "front_left",
+  front_right: "front_right",
+  side_left: "left",
+  side_right: "right",
+  back_left: "back_left",
+  back_right: "back_right",
+  back: "back",
+};
+
+function normalizeFaceDirection(value: unknown): FaceDirection | undefined {
+  switch (value) {
+    case "left":
+    case "right":
+    case "front_left":
+    case "front_right":
+    case "side_left":
+    case "side_right":
+    case "back_left":
+    case "back_right":
+    case "back":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function normalizeFaceDirectionForChar(charId: string, value: unknown): FaceDirection | undefined {
+  const face = normalizeFaceDirection(value);
+  if (!face) return undefined;
+  if (charId !== "metan") return face;
+  if (face === "left" || face === "right") return face;
+  if (face.endsWith("_left")) return "left";
+  if (face.endsWith("_right")) return "right";
+  return undefined;
+}
+
+function facingFlipFor(face: FaceDirection | undefined, anchorX: number): boolean {
+  if (face === "left") return false;
+  if (face === "right") return true;
+  return anchorX < 0.5;
+}
+
+function angleFaceSrc(
+  charId: string,
+  sceneDef: SceneDef,
+  face: FaceDirection | undefined,
+): string | null {
+  if (charId !== "zundamon") return null;
+  if ((sceneDef.figure ?? "bust") !== "full") return null;
+  const stem = face ? ANGLE_FACE_STEM[face] : null;
+  return stem ? staticFile(`avatars/zundamon/full/${stem}.png`) : null;
+}
+
+function angleFaceScale(charId: string, face: FaceDirection | undefined): number {
+  if (charId === "zundamon" && face && ANGLE_FACE_STEM[face]) return ZUNDAMON_ANGLE_SCALE;
+  return 1;
 }
 
 // ─── モブ判定 ──────────────────────────────────────────────
@@ -2700,6 +2784,17 @@ function isNarrationTurn(turn: StoryTurn | null | undefined): boolean {
   return !!turn?.narrationVoice;
 }
 
+function isSubtitleTurn(turn: StoryTurn | null | undefined): boolean {
+  return turn?.subtitleMode === "subtitle";
+}
+
+function subtitleProgressiveText(turn: StoryTurn, t: number): string {
+  const groups = bubbleSentenceTexts(turn);
+  if (groups.length <= 1) return bubbleTextAt(turn, t);
+  const visible = bubbleSentenceVisibleCount(turn, t);
+  return groups.slice(0, Math.max(1, visible)).join("\n");
+}
+
 // セリフ無し（間・待機用）のターンかどうか。空の吹き出しを出さないための判定。
 function hasBubbleText(turn: StoryTurn | null | undefined): boolean {
   return !!turn?.text?.trim();
@@ -3166,8 +3261,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   }
 
   const avScale = sceneDef.scale ?? 1.9;
-  const bgBlur = Math.max(0, sceneDef.bgBlur ?? 0);
-  const bgScale = bgBlur > 0 ? 1 + Math.min(bgBlur, 32) / 180 : 1;
   const flashbackBoundaryStarts = new Set<number>();
   for (let i = 1; i < script.length; i++) {
     if (!!script[i - 1].flashback !== !!script[i].flashback) {
@@ -3554,9 +3647,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     // 向き: 台本の face 指定 > x座標からの自動（中央を向く）。
     // 立ち絵素材は「画面左向き」が素なので、右を向かせるときだけ反転する。
     // 画面左半分(x<0.5)のキャラは右＝中央向き、右半分は左＝中央向き。x を動かせば向きも自動追従。
-    const want: "left" | "right" =
-      active.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
-    const flip = want === "right";
+    const explicitFace = normalizeFaceDirectionForChar(charId, active.face?.[charId]);
+    const angleSrc = angleFaceSrc(charId, sceneDef, explicitFace);
+    const angleScale = angleFaceScale(charId, explicitFace);
+    const flip = angleSrc ? false : facingFlipFor(explicitFace, anchor.x);
     // 表情未指定は直前の自分の表情を引き継ぐ（lastExpressionOf）。それも無ければ normal。
     // 未知の表情キーは "normal" にフォールバック（組み込み5種のモーションを維持）。
     const resolvedExpr =
@@ -3639,6 +3733,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           <Avatar
             dir={avatarDir}
             manifest={avatarManifest}
+            singleSrc={angleSrc}
+            singleScale={angleScale}
             fallbackGender={cdef.gender}
             active={isSpeaker}
             activatedAtFrame={Math.round(active.start * fps)}
@@ -3892,6 +3988,62 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       </div>
     );
   };
+  const subtitleStyleOf = (turn: StoryTurn): Required<SubtitleStyle> => {
+    const raw = turn.subtitleStyle || {};
+    const fontSizeNum = Number(raw.fontSize);
+    const fontSize = Number.isFinite(fontSizeNum)
+      ? clamp(Math.round(fontSizeNum), 24, 96)
+      : 46;
+    const textColor = /^#([0-9a-fA-F]{6})$/.test(String(raw.textColor || ""))
+      ? String(raw.textColor)
+      : "#ffffff";
+    const boxBorderColor = /^#([0-9a-fA-F]{6})$/.test(String(raw.boxBorderColor || ""))
+      ? String(raw.boxBorderColor)
+      : "#ffffff";
+    const boxBorderWidthNum = Number(raw.boxBorderWidth);
+    return {
+      fontSize,
+      textColor,
+      boxBorder: raw.boxBorder !== false,
+      boxBorderColor,
+      boxBorderWidth: Number.isFinite(boxBorderWidthNum)
+        ? clamp(boxBorderWidthNum, 0.5, 6)
+        : 2,
+    };
+  };
+  const renderSubtitle = (texts: string[], key: string) => {
+    const visibleTexts = texts.filter((text) => !!String(text || "").trim());
+    if (visibleTexts.length === 0) return null;
+    const subtitleStyle = subtitleStyleOf(active);
+    return (
+      <div
+        key={key}
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: 42,
+          transform: "translateX(-50%)",
+          width: Math.min(width * 0.84, 1360),
+          padding: "16px 28px 18px",
+          borderRadius: 18,
+          background: "rgba(8, 10, 14, 0.84)",
+          border: subtitleStyle.boxBorder ? `${subtitleStyle.boxBorderWidth}px solid ${subtitleStyle.boxBorderColor}` : "none",
+          boxShadow: "0 14px 34px rgba(0,0,0,0.4)",
+          color: subtitleStyle.textColor,
+          fontSize: subtitleStyle.fontSize,
+          lineHeight: 1.45,
+          fontWeight: 700,
+          fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif',
+          textAlign: "center",
+          whiteSpace: "pre-wrap",
+          textShadow: "0 2px 6px rgba(0,0,0,0.4)",
+          pointerEvents: "none",
+        }}
+      >
+        {visibleTexts.join("\n")}
+      </div>
+    );
+  };
 
   const groupRange = activeIdx >= 0 ? continueBubbleGroupRange(script, activeIdx) : null;
   const bubbleGroup = groupRange
@@ -3913,6 +4065,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     !activeInsertLine &&
     autoBubbleTexts.length > 1;
   const autoBubbleVisibleCount = bubbleSentenceVisibleCount(active, t);
+  const shouldShowSubtitle = !isNarrationTurn(active) && hasBubbleText(active) && isSubtitleTurn(active) && !activeInsertLine;
+  const subtitleTexts = shouldShowSubtitle
+    ? (bubbleGroup.length > 1
+      ? bubbleGroup.slice(0, visibleGroupCount).map((turn) => subtitleProgressiveText(turn, t))
+      : [subtitleProgressiveText(active, t)])
+    : [];
 
   // ── 回想（flashback）演出 ────────────────────────────────────
   const isFlashback = !!active.flashback;
@@ -4075,9 +4233,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       if (!cdef) return null;
       const anchor = resolveCharXY(charId, nextAnchorOf, nextSceneDef!, nextSeg!, nextSeg!.start, { x: 0.5, y: 1.02 });
       const isSpeaker = !isNarrationTurn(nextActive) && charId === nextActive.speaker;
-      const want: "left" | "right" =
-        nextActive.face?.[charId] ?? (anchor.x < 0.5 ? "right" : "left");
-      const flip = want === "right";
+      const explicitFace = normalizeFaceDirectionForChar(charId, nextActive.face?.[charId]);
+      const angleSrc = angleFaceSrc(charId, nextSceneDef!, explicitFace);
+      const angleScale = angleFaceScale(charId, explicitFace);
+      const flip = angleSrc ? false : facingFlipFor(explicitFace, anchor.x);
       // 次ターンの入場プレビューも表情未指定なら直前の自分の表情を引き継ぐ。
       const exprKey =
         nextActive.expression ??
@@ -4110,6 +4269,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             <Avatar
               dir={avatarDir}
               manifest={avatarManifest}
+              singleSrc={angleSrc}
+              singleScale={angleScale}
               fallbackGender={cdef.gender}
               active={isSpeaker}
               activatedAtFrame={Math.round(nextSeg!.start * fps)}
@@ -4133,13 +4294,40 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     });
   };
 
+  const renderSceneBackdrop = (plateSceneDef: SceneDef) => {
+    const plateBlur = Math.max(0, plateSceneDef.bgBlur ?? 0);
+    const plateScale = plateBlur > 0 ? 1 + Math.min(plateBlur, 32) / 180 : 1;
+    const mediaStyle: React.CSSProperties = {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      filter: plateBlur > 0 ? `blur(${plateBlur}px)` : undefined,
+      transform: plateScale > 1 ? `scale(${plateScale})` : undefined,
+      transformOrigin: "center center",
+    };
+    return (
+      <>
+        {plateSceneDef.bgVideo ? (
+          <Video
+            src={staticFile(plateSceneDef.bgVideo)}
+            muted
+            loop={plateSceneDef.bgVideoLoop === true}
+            style={mediaStyle}
+          />
+        ) : (
+          <Img src={staticFile(plateSceneDef.bg)} style={mediaStyle} />
+        )}
+      </>
+    );
+  };
+
   const renderScenePlate = (
     plateSceneDef: SceneDef,
     key: string,
     opts?: { clipPath?: string; shiftX?: number; filter?: string; children?: React.ReactNode }
   ) => {
-    const plateBlur = Math.max(0, plateSceneDef.bgBlur ?? 0);
-    const plateScale = plateBlur > 0 ? 1 + Math.min(plateBlur, 32) / 180 : 1;
     const plateTransform = opts?.shiftX
       ? `translateX(${opts.shiftX}px)`
       : undefined;
@@ -4153,19 +4341,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           overflow: "hidden",
         }}
       >
-        <Img
-          src={staticFile(plateSceneDef.bg)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: plateBlur > 0 ? `blur(${plateBlur}px)` : undefined,
-            transform: plateScale > 1 ? `scale(${plateScale})` : undefined,
-            transformOrigin: "center center",
-          }}
-        />
+        {renderSceneBackdrop(plateSceneDef)}
         {opts?.children}
         {plateSceneDef.front ? (
           <Img
@@ -4234,6 +4410,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const activeOverlays = activeOverlaysAt(script, story.overlays, t);
   const normalOverlays = activeOverlays.filter((overlay) => !isOverInsertOverlay(overlay));
   const overInsertOverlays = activeOverlays.filter((overlay) => isOverInsertOverlay(overlay));
+  const hideCharacters = active.hideCharacters === true;
   const nextTurn2 = activeIdx < script.length - 1 ? script[activeIdx + 1] : null;
   // 隣のターンがインサートを持つか（種別問わず）。インサート同士の間は通常画面を出さない。
   const prevHasInsert = activeIdx > 0 && !!effectiveInsertAt(script, activeIdx - 1);
@@ -4288,25 +4465,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         }}
       >
         {/* 背景（back） */}
-        <Img
-          src={staticFile(sceneDef.bg)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
-            transform: bgScale > 1 ? `scale(${bgScale})` : undefined,
-            transformOrigin: "center center",
-          }}
-        />
+        {renderSceneBackdrop(sceneDef)}
 
         {/* キャラ（back と front の間） */}
-        {presentNow.map(renderAvatar)}
+        {hideCharacters ? null : presentNow.map(renderAvatar)}
 
         {/* モブ（登場〜退場の区間だけ1枚絵を立たせる。素材未配置なら自動で非表示） */}
-        {presentMobs.map(renderMob)}
+        {hideCharacters ? null : presentMobs.map(renderMob)}
 
         {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
         {sceneDef.front ? (
@@ -4363,25 +4528,27 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
       {overInsertOverlays.length > 0 ? <StoryOverlayLayer overlays={overInsertOverlays} /> : null}
 
+      {shouldShowSubtitle ? renderSubtitle(subtitleTexts, `subtitle-${active.id}`) : null}
+
       {/* 吹き出し。continueBubble の連続区間は1グループとして積み、
           先の段数ぶんも最初から予約して位置を固定する。インサートより前面。 */}
       {/* セリフがチャット/AIチャット画面に出ているターンは吹き出しを出さない。
           前後ターンも各自の insert 種別で判定し、遷移時のチラ見え漏れを防ぐ。 */}
-      {!isNarrationTurn(active) && hasBubbleText(active) && shouldShowBubbleGroup
+      {!shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowBubbleGroup
         ? renderBubbleGroup(
           bubbleGroup[0]?.speaker ?? active.speaker,
           bubbleGroup.map((turn) => bubbleTextAt(turn, t)),
           visibleGroupCount,
           `bubble-group-${bubbleGroup[0]?.id ?? active.id}`
         )
-        : !isNarrationTurn(active) && hasBubbleText(active) && shouldShowAutoBubbleGroup
+        : !shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowAutoBubbleGroup
           ? renderBubbleGroup(
             active.speaker,
             autoBubbleTexts,
             autoBubbleVisibleCount,
             `bubble-auto-group-${active.id}`
           )
-        : (!isNarrationTurn(active) && !activeInsertLine && hasBubbleText(active)
+        : (!shouldShowSubtitle && !isNarrationTurn(active) && !activeInsertLine && hasBubbleText(active)
           ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false), !!active.continueBubble)
           : null)}
 

@@ -1091,14 +1091,66 @@
             <div class="field-help" id="fNoLipSyncHelp">心の声やモノローグ用。音声は鳴りますが、話者の口だけ止めます。</div>
           </div>
           <div class="field-row">
+            <label class="field-label">キャラ表示</label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fHideCharacters">
+              <span>この行ではキャラクターを表示しない</span>
+            </label>
+            <div class="field-help" id="fHideCharactersHelp">動画背景や字幕専用の行で、立ち絵とモブをまとめて隠します。</div>
+          </div>
+          <div class="field-row">
             <label class="field-label">吹き出し</label>
+            <select class="field-select" id="fSubtitleMode">
+              <option value="">吹き出し</option>
+              <option value="subtitle">下部字幕</option>
+            </select>
+            <div class="field-help" id="fSubtitleModeHelp">イメージ動画背景などで、吹き出しの代わりに画面下へ字幕帯を出します。</div>
+          </div>
+          <div class="field-row" id="fSubtitleStyleRow" style="display:none;">
+            <label class="field-label">字幕スタイル</label>
+            <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                <label style="display:flex; flex-direction:column; gap:6px;">
+                  <span style="font-size:12px; color:var(--muted);">文字サイズ</span>
+                  <input type="number" class="field-input" id="fSubtitleFontSize" min="24" max="96" step="1" placeholder="46">
+                </label>
+                <label class="toggle-row" style="align-self:end;">
+                  <input type="checkbox" id="fSubtitleBoxBorder">
+                  <span>字幕エリア枠を表示</span>
+                </label>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+                <div class="color-field">
+                  <label class="field-label" style="font-size:12px;">文字色</label>
+                  <div class="color-row">
+                    <input type="color" class="color-picker" id="fSubtitleTextColor" value="#ffffff">
+                    <input type="text" class="field-input" id="fSubtitleTextColorHex" value="#ffffff" placeholder="#ffffff">
+                  </div>
+                </div>
+                <div class="color-field" id="fSubtitleBoxBorderColorField">
+                  <label class="field-label" style="font-size:12px;">字幕エリア枠色</label>
+                  <div class="color-row">
+                    <input type="color" class="color-picker" id="fSubtitleBoxBorderColor" value="#ffffff">
+                    <input type="text" class="field-input" id="fSubtitleBoxBorderColorHex" value="#ffffff" placeholder="#ffffff">
+                  </div>
+                </div>
+                <label style="display:flex; flex-direction:column; gap:6px;">
+                  <span style="font-size:12px; color:var(--muted);">字幕エリア枠太さ</span>
+                  <input type="number" class="field-input" id="fSubtitleBoxBorderWidth" min="0.5" max="6" step="0.1" placeholder="2.0">
+                </label>
+              </div>
+            </div>
+            <div class="field-help" id="fSubtitleStyleHelp">字幕モードの時だけ使う設定です。吹き出し表示とは別管理です。</div>
+          </div>
+          <div class="field-row" id="fContinueBubbleRow">
+            <label class="field-label">吹き出し連結</label>
             <select class="field-select" id="fContinueBubble">
               <option value="">単独吹き出し</option>
               <option value="1">前の下に続ける</option>
             </select>
             <div class="field-help" id="fContinueBubbleHelp"></div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="fAutoBubbleSplitRow">
             <label class="field-label">自動分割</label>
             <label class="toggle-row">
               <input type="checkbox" id="fAutoBubbleSplit">
@@ -1132,6 +1184,35 @@
               <option value="">auto</option>
             </select>
             <div class="field-help">未指定なら表情に応じて自動で決まります。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">向き</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div>
+                <div class="field-help" style="margin-bottom:4px;">ずんだもん</div>
+                <select class="field-select" id="fFaceZundamon">
+                  <option value="">(自動)</option>
+                  <option value="left">left</option>
+                  <option value="right">right</option>
+                  <option value="front_left">斜め前 left</option>
+                  <option value="front_right">斜め前 right</option>
+                  <option value="side_left">横 left</option>
+                  <option value="side_right">横 right</option>
+                  <option value="back_left">斜め後ろ left</option>
+                  <option value="back_right">斜め後ろ right</option>
+                  <option value="back">後ろ</option>
+                </select>
+              </div>
+              <div>
+                <div class="field-help" style="margin-bottom:4px;">四国めたん</div>
+                <select class="field-select" id="fFaceMetan">
+                  <option value="">(自動)</option>
+                  <option value="left">left</option>
+                  <option value="right">right</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-help">角度差分PNGは現在ずんだもんの全身シーンのみ対応。めたんは左右のみ、バストでは従来どおり left/right だけを使います。</div>
           </div>
           <div class="field-row">
             <label class="field-label">このセリフで登場</label>
@@ -1238,8 +1319,10 @@
             <input type="text" class="field-input" id="fStampRain" placeholder="例: 期待">
             <div class="field-help">短い単語を上から降らせます。空なら出しません。</div>
           </div>
-          <div class="section-divider">この行だけ上書き</div>
-          <div id="fTurnEffectSettings"></div>
+          <div id="fTurnEffectSettingsSection" style="display:none;">
+            <div class="section-divider">この行だけ上書き</div>
+            <div id="fTurnEffectSettings"></div>
+          </div>
 
           <div class="section-divider">SE（任意）</div>
           <div id="fSeList" style="margin-bottom:4px;"></div>
@@ -1531,7 +1614,7 @@ const CAMERA_EFFECT_SETTING_SPECS = [
   { group: "zoom", label: "ズーム時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "zoomDuration" },
   { group: "pan", label: "パン量", key: "amount", min: 0, max: 0.2, step: 0.01, defaultValue: 0.08, digits: 2, commonKey: "panAmount", legacyKey: "panMax" },
   { group: "pan", label: "パン時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "panDuration" },
-  { group: "tilt", label: "傾き角度", key: "angle", min: 0, max: 6, step: 0.1, defaultValue: 2.4, digits: 1, unit: "度", commonKey: "tiltAngle", legacyKey: "tiltDeg" },
+  { group: "tilt", label: "傾き角度", key: "angle", min: 0, max: 15, step: 0.1, defaultValue: 2.4, digits: 1, unit: "度", commonKey: "tiltAngle", legacyKey: "tiltDeg" },
   { group: "tilt", label: "傾き時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "tiltDuration" },
 ];
 // 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
@@ -1827,7 +1910,6 @@ function renderEffectSettingsEditor() {
 function activeTurnEffectGroups(turn) {
   if (!turn) return [];
   const groups = [];
-  if (turn.emphasis) groups.push("emphasis");
   if (turn.zoomPunch) groups.push("zoomPunch");
   if (turn.quoteFreeze) groups.push("quoteFreeze");
   if (turn.stampRain) groups.push("stampRain");
@@ -1951,19 +2033,18 @@ function makeTurnEffectSettingControl(turn, spec) {
 }
 
 function renderTurnEffectSettings(turn) {
+  const section = document.getElementById("fTurnEffectSettingsSection");
   const container = document.getElementById("fTurnEffectSettings");
-  if (!container) return;
+  if (!section || !container) return;
+  section.style.display = "none";
   container.innerHTML = "";
   if (!turn) return;
   const groups = activeTurnEffectGroups(turn);
+  if (!groups.length) return;
+  section.style.display = "";
   const intro = document.createElement("div");
   intro.className = "field-help";
   intro.style.marginBottom = "10px";
-  if (!groups.length) {
-    intro.textContent = "この行で有効な演出がまだありません。上のチェックや入力を入れると、この行だけの上書き項目が出ます。";
-    container.appendChild(intro);
-    return;
-  }
   intro.textContent = "未設定なら演出共通の値を使います。この行だけ少し強くしたい時だけ上書きしてください。";
   container.appendChild(intro);
   for (const spec of EFFECT_SETTING_SPECS) {
@@ -2464,6 +2545,20 @@ function normalizeHexColor(value, fallback = "#ffffff") {
     return `#${s[0]}${s[0]}${s[1]}${s[1]}${s[2]}${s[2]}`.toLowerCase();
   }
   return fallback;
+}
+
+function getSubtitleStyleData(turn) {
+  const raw = turn && turn.subtitleStyle && typeof turn.subtitleStyle === "object" ? turn.subtitleStyle : {};
+  const fontSizeNum = Number(raw.fontSize);
+  const fontSize = Number.isFinite(fontSizeNum) ? Math.max(24, Math.min(96, Math.round(fontSizeNum))) : 46;
+  const boxBorderWidthNum = Number(raw.boxBorderWidth);
+  return {
+    fontSize,
+    textColor: normalizeHexColor(raw.textColor, "#ffffff"),
+    boxBorder: raw.boxBorder !== false,
+    boxBorderColor: normalizeHexColor(raw.boxBorderColor, "#ffffff"),
+    boxBorderWidth: Number.isFinite(boxBorderWidthNum) ? Math.max(0.5, Math.min(6, boxBorderWidthNum)) : 2,
+  };
 }
 
 function hexToRgba(hex, alpha) {
@@ -4544,6 +4639,17 @@ const POSE_KEYS = [
   "proud", "step_in", "step_back", "listening", "sneak", "wobble",
   "point",
 ];
+const FACE_LABELS = {
+  left: "left",
+  right: "right",
+  front_left: "斜め前 left",
+  front_right: "斜め前 right",
+  side_left: "横 left",
+  side_right: "横 right",
+  back_left: "斜め後ろ left",
+  back_right: "斜め後ろ right",
+  back: "後ろ",
+};
 
 function poseLabel(pose) {
   const labels = {
@@ -4562,6 +4668,18 @@ function poseLabel(pose) {
     point: "指差し",
   };
   return labels[pose] || pose || "";
+}
+
+function faceLabel(face) {
+  return FACE_LABELS[face] || face || "";
+}
+
+function faceSummary(faceMap) {
+  if (!faceMap || typeof faceMap !== "object") return "";
+  const items = [];
+  if (faceMap.zundamon) items.push("ず:" + faceLabel(faceMap.zundamon));
+  if (faceMap.metan) items.push("め:" + faceLabel(faceMap.metan));
+  return items.join(" / ");
 }
 
 function buildPoseSelect() {
@@ -4729,16 +4847,20 @@ function renderList() {
     if (turn.sparkleBurst) badges.appendChild(makeBadge("キラッ", "fx"));
     if (turn.irisOut) badges.appendChild(makeBadge("アイリスアウト", "fx"));
     if (turn.pose) badges.appendChild(makeBadge("ポーズ:" + poseLabel(turn.pose), "fx"));
+    const faceText = faceSummary(turn.face);
+    if (faceText) badges.appendChild(makeBadge("向き:" + faceText, "fx"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
     if (turn.noLipSync) badges.appendChild(makeBadge("口パクOFF", "warn"));
+    if (turn.hideCharacters) badges.appendChild(makeBadge("キャラ非表示", "warn"));
+    if (isSubtitleTurnData(turn)) badges.appendChild(makeBadge("字幕", "bubble"));
     const bubbleInfo = getContinueBubbleInfo(script, i);
     const autoInfo = getAutoBubbleInfo(turn);
-    if (!isNarrationTurnData(turn) && bubbleInfo.valid) {
+    if (!isNarrationTurnData(turn) && !isSubtitleTurnData(turn) && bubbleInfo.valid) {
       badges.appendChild(makeBadge("2段目", "bubble"));
       badges.appendChild(makeBadge("同時消え", "bubble"));
-    } else if (!isNarrationTurnData(turn) && bubbleInfo.active) {
+    } else if (!isNarrationTurnData(turn) && !isSubtitleTurnData(turn) && bubbleInfo.active) {
       badges.appendChild(makeBadge("続き指定", "warn"));
-    } else if (!isNarrationTurnData(turn) && isContinueBubbleParent(script, i)) {
+    } else if (!isNarrationTurnData(turn) && !isSubtitleTurnData(turn) && isContinueBubbleParent(script, i)) {
       badges.appendChild(makeBadge("1段目", "bubble"));
     }
     if (autoInfo.active) badges.appendChild(makeBadge(`自動${autoInfo.count}段`, "warn"));
@@ -4840,6 +4962,25 @@ function normalizeSpokenText(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
+function isSubtitleTurnData(turn) {
+  return !!(turn && turn.subtitleMode === "subtitle");
+}
+
+function syncSubtitleModeUi(turn) {
+  const subtitleMode = isSubtitleTurnData(turn);
+  const subtitleStyleRow = document.getElementById("fSubtitleStyleRow");
+  const continueBubbleRow = document.getElementById("fContinueBubbleRow");
+  const autoBubbleSplitRow = document.getElementById("fAutoBubbleSplitRow");
+  const boxBorderField = document.getElementById("fSubtitleBoxBorderColorField");
+  const boxBorderWidthField = document.getElementById("fSubtitleBoxBorderWidth");
+  const boxBorderEnabled = !!document.getElementById("fSubtitleBoxBorder")?.checked;
+  if (subtitleStyleRow) subtitleStyleRow.style.display = subtitleMode ? "" : "none";
+  if (continueBubbleRow) continueBubbleRow.style.display = subtitleMode ? "none" : "";
+  if (autoBubbleSplitRow) autoBubbleSplitRow.style.display = subtitleMode ? "none" : "";
+  if (boxBorderField) boxBorderField.style.opacity = boxBorderEnabled ? "1" : "0.5";
+  if (boxBorderWidthField) boxBorderWidthField.disabled = !boxBorderEnabled;
+}
+
 function manualBubbleSplitTexts(text) {
   return String(text || "")
     .split(/\r?\n+/)
@@ -4855,7 +4996,7 @@ function predictedAutoBubbleTexts(turn) {
 }
 
 function autoBubbleTexts(turn) {
-  if (!turn || turn.insert) return [];
+  if (!turn || turn.insert || isSubtitleTurnData(turn)) return [];
   if (turn.disableAutoBubbleSplit) return [];
   const sentenceTexts = Array.isArray(turn.sentences)
     ? turn.sentences.map(x => String(x && x.text || "").trim()).filter(Boolean)
@@ -4884,7 +5025,9 @@ function getContinueBubbleInfo(script, idx) {
   const turn = script && script[idx];
   const prev = idx > 0 && script ? script[idx - 1] : null;
   if (!turn || !turn.continueBubble) return { active: false, valid: false, reason: "" };
+  if (isSubtitleTurnData(turn)) return { active: true, valid: false, reason: "字幕モードでは吹き出し連結を使いません。" };
   if (!prev) return { active: true, valid: false, reason: "先頭行なので前のセリフに続けられません。" };
+  if (isSubtitleTurnData(prev)) return { active: true, valid: false, reason: "直前が字幕モードです。" };
   if ((prev.speaker || "") !== (turn.speaker || "")) return { active: true, valid: false, reason: "直前が別話者です。" };
   if ((prev.scene || "") !== (turn.scene || "")) return { active: true, valid: false, reason: "直前とシーンが違います。" };
   if (prev.insert) return { active: true, valid: false, reason: "直前がインサート表示です。" };
@@ -4897,7 +5040,7 @@ function isContinueBubbleParent(script, idx) {
 }
 
 function bubbleLengthWarning(turn) {
-  if (!turn || turn.insert || isNarrationTurnData(turn)) return "";
+  if (!turn || turn.insert || isNarrationTurnData(turn) || isSubtitleTurnData(turn)) return "";
   const autoInfo = getAutoBubbleInfo(turn);
   const parts = autoInfo.active ? autoInfo.texts : [String(turn.text || "")];
   const lengths = parts
@@ -5050,6 +5193,8 @@ function renderDetail() {
   buildSpeakerAnchorSelect(turn.scene, turn.speakerAnchor || "");
   setField("fExpression", "select", turn.expression || "");
   setField("fPose", "select", turn.pose || "");
+  setField("fFaceZundamon", "select", (turn.face && turn.face.zundamon) || "");
+  setField("fFaceMetan", "select", (turn.face && turn.face.metan) || "");
   document.getElementById("fShake").checked = !!turn.shake;
   document.getElementById("fFlashback").checked = !!turn.flashback;
   const cameraFx = normalizeCameraEffects(turn);
@@ -5072,12 +5217,26 @@ function renderDetail() {
   document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
   setField("fVoicePreset", "select", voicePresetKey(turn));
   document.getElementById("fNoLipSync").checked = !!turn.noLipSync;
+  document.getElementById("fHideCharacters").checked = !!turn.hideCharacters;
+  setField("fSubtitleMode", "select", isSubtitleTurnData(turn) ? "subtitle" : "");
+  const subtitleStyle = getSubtitleStyleData(turn);
+  document.getElementById("fSubtitleFontSize").value = subtitleStyle.fontSize;
+  document.getElementById("fSubtitleTextColor").value = subtitleStyle.textColor;
+  document.getElementById("fSubtitleTextColorHex").value = subtitleStyle.textColor;
+  document.getElementById("fSubtitleBoxBorder").checked = subtitleStyle.boxBorder;
+  document.getElementById("fSubtitleBoxBorderColor").value = subtitleStyle.boxBorderColor;
+  document.getElementById("fSubtitleBoxBorderColorHex").value = subtitleStyle.boxBorderColor;
+  document.getElementById("fSubtitleBoxBorderWidth").value = String(subtitleStyle.boxBorderWidth);
   setField("fContinueBubble", "select", turn.continueBubble ? "1" : "");
   document.getElementById("fAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
+  syncSubtitleModeUi(turn);
   const voicePresetHelp = document.getElementById("fVoicePresetHelp");
   const noLipSyncHelp = document.getElementById("fNoLipSyncHelp");
+  const hideCharactersHelp = document.getElementById("fHideCharactersHelp");
   const narrationHelp = document.getElementById("fNarrationHelp");
   const cameraEffectHelp = document.getElementById("fCameraEffectHelp");
+  const subtitleModeHelp = document.getElementById("fSubtitleModeHelp");
+  const subtitleStyleHelp = document.getElementById("fSubtitleStyleHelp");
   if (narrationHelp) {
     narrationHelp.className = "field-help" + (isNarrationTurnData(turn) ? " warn" : "");
     narrationHelp.textContent = isNarrationTurnData(turn)
@@ -5116,12 +5275,54 @@ function renderDetail() {
         : "心の声やモノローグ用。音声は鳴りますが、話者の口だけ止めます。";
     }
   }
+  if (hideCharactersHelp) {
+    if (isNarrationTurnData(turn)) {
+      hideCharactersHelp.className = "field-help";
+      hideCharactersHelp.textContent = "ナレーション行では立ち絵が出ないため、この設定は実質使われません。";
+    } else if (turn.hideCharacters) {
+      hideCharactersHelp.className = "field-help warn";
+      hideCharactersHelp.textContent = "この行では立ち絵とモブを表示しません。字幕や動画背景だけを見せたい時に使います。";
+    } else {
+      hideCharactersHelp.className = "field-help";
+      hideCharactersHelp.textContent = "動画背景や字幕専用の行で、立ち絵とモブをまとめて隠します。";
+    }
+  }
+  if (subtitleModeHelp) {
+    if (isNarrationTurnData(turn)) {
+      subtitleModeHelp.className = "field-help";
+      subtitleModeHelp.textContent = "ナレーション行では字幕モード設定は使いません。";
+    } else if (isSubtitleTurnData(turn)) {
+      subtitleModeHelp.className = "field-help warn";
+      subtitleModeHelp.textContent = "この行は吹き出しを出さず、画面下の字幕帯で表示します。";
+    } else {
+      subtitleModeHelp.className = "field-help";
+      subtitleModeHelp.textContent = "イメージ動画背景などで、吹き出しの代わりに画面下へ字幕帯を出します。";
+    }
+  }
+  if (subtitleStyleHelp) {
+    if (isNarrationTurnData(turn)) {
+      subtitleStyleHelp.className = "field-help";
+      subtitleStyleHelp.textContent = "ナレーション行では字幕モード設定は使いません。";
+    } else if (isSubtitleTurnData(turn)) {
+      subtitleStyleHelp.className = "field-help warn";
+      const notes = [];
+      notes.push("文字サイズ・文字色をこの行だけ上書きできます。");
+      notes.push(subtitleStyle.boxBorder ? `字幕エリア枠オン(${subtitleStyle.boxBorderWidth.toFixed(1)}px)` : "字幕エリア枠オフ");
+      subtitleStyleHelp.textContent = notes.join(" ");
+    } else {
+      subtitleStyleHelp.className = "field-help";
+      subtitleStyleHelp.textContent = "字幕モードの時だけ使う設定です。吹き出し表示とは別管理です。";
+    }
+  }
   const bubbleHelp = document.getElementById("fContinueBubbleHelp");
   const autoBubbleSplitHelp = document.getElementById("fAutoBubbleSplitHelp");
   if (bubbleHelp) {
     if (isNarrationTurnData(turn)) {
       bubbleHelp.className = "field-help warn";
       bubbleHelp.textContent = "ナレーション行なので吹き出しは出ません。";
+    } else if (isSubtitleTurnData(turn)) {
+      bubbleHelp.className = "field-help";
+      bubbleHelp.textContent = "字幕モードでは吹き出し連結は使いません。";
     } else {
     const info = getContinueBubbleInfo(storyData.script, selectedIdx);
     const autoInfo = getAutoBubbleInfo(turn);
@@ -5155,6 +5356,9 @@ function renderDetail() {
     if (isNarrationTurnData(turn)) {
       autoBubbleSplitHelp.className = "field-help";
       autoBubbleSplitHelp.textContent = "ナレーション行では自動分割設定は使いません。";
+    } else if (isSubtitleTurnData(turn)) {
+      autoBubbleSplitHelp.className = "field-help";
+      autoBubbleSplitHelp.textContent = "字幕モードでも文単位の出し分けは使いますが、吹き出し段数の警告は出しません。";
     } else {
       const autoInfo = getAutoBubbleInfo(turn);
       autoBubbleSplitHelp.className = "field-help" + (turn.disableAutoBubbleSplit ? " warn" : "");
@@ -6285,6 +6489,14 @@ function collectBasic() {
   if (pose) turn.pose = pose;
   else delete turn.pose;
 
+  const face = {};
+  const zundamonFace = document.getElementById("fFaceZundamon").value;
+  const metanFace = document.getElementById("fFaceMetan").value;
+  if (zundamonFace) face.zundamon = zundamonFace;
+  if (metanFace) face.metan = metanFace;
+  if (Object.keys(face).length) turn.face = face;
+  else delete turn.face;
+
   const cameraEffects = {};
   const cameraZoom = document.getElementById("fCameraEffectZoom").value;
   const cameraPan = document.getElementById("fCameraEffectPan").value;
@@ -6354,13 +6566,44 @@ function collectBasic() {
   if (noLipSyncVal) turn.noLipSync = true;
   else delete turn.noLipSync;
 
+  const hideCharactersVal = document.getElementById("fHideCharacters").checked;
+  if (hideCharactersVal) turn.hideCharacters = true;
+  else delete turn.hideCharacters;
+
+  const subtitleModeVal = document.getElementById("fSubtitleMode").value;
+  if (subtitleModeVal === "subtitle") turn.subtitleMode = "subtitle";
+  else delete turn.subtitleMode;
+
+  if (subtitleModeVal === "subtitle") {
+    const subtitleFontSizeVal = document.getElementById("fSubtitleFontSize").value;
+    const subtitleFontSizeNum = Number(subtitleFontSizeVal);
+    const subtitleBoxBorder = document.getElementById("fSubtitleBoxBorder").checked;
+    const subtitleBoxBorderWidthVal = document.getElementById("fSubtitleBoxBorderWidth").value;
+    const subtitleBoxBorderWidthNum = Number(subtitleBoxBorderWidthVal);
+    const subtitleFontSize = Number.isFinite(subtitleFontSizeNum) && subtitleFontSizeVal !== ""
+      ? Math.max(24, Math.min(96, Math.round(subtitleFontSizeNum)))
+      : 46;
+    turn.subtitleStyle = {
+      fontSize: subtitleFontSize,
+      textColor: normalizeHexColor(document.getElementById("fSubtitleTextColor").value, "#ffffff"),
+      boxBorder: subtitleBoxBorder,
+      boxBorderColor: normalizeHexColor(document.getElementById("fSubtitleBoxBorderColor").value, "#ffffff"),
+      boxBorderWidth: Number.isFinite(subtitleBoxBorderWidthNum) && subtitleBoxBorderWidthVal !== ""
+        ? Math.max(0.5, Math.min(6, subtitleBoxBorderWidthNum))
+        : 2,
+    };
+  } else {
+    delete turn.subtitleStyle;
+  }
+
   const continueBubbleVal = document.getElementById("fContinueBubble").value;
-  if (continueBubbleVal) turn.continueBubble = true;
+  if (continueBubbleVal && subtitleModeVal !== "subtitle") turn.continueBubble = true;
   else delete turn.continueBubble;
 
   const autoBubbleSplitVal = document.getElementById("fAutoBubbleSplit").checked;
   if (autoBubbleSplitVal) turn.disableAutoBubbleSplit = true;
   else delete turn.disableAutoBubbleSplit;
+  syncSubtitleModeUi(turn);
 
   // 本文を変えたら、古い音声生成結果の字幕断片(sentences)はプレビューに使わない。
   if (normalizeSpokenText(turn.text) !== oldSpokenText) delete turn.sentences;
@@ -7373,16 +7616,44 @@ function setupEvents() {
   });
 
   // 基本タブ: 変更をリアルタイム収集
-  const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose",
+  const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose", "fFaceZundamon", "fFaceMetan",
                     "fSpeakerAnchor", "fShake", "fFlashback", "fCameraEffectZoom", "fCameraEffectPan", "fCameraEffectTilt", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
                     "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
-                    "fPause", "fVoicePreset", "fEnterDir", "fExitDir", "fContinueBubble", "fAutoBubbleSplit"];
+                    "fPause", "fVoicePreset", "fHideCharacters", "fEnterDir", "fExitDir", "fSubtitleMode", "fSubtitleFontSize",
+                    "fSubtitleTextColorHex", "fSubtitleBoxBorder", "fSubtitleBoxBorderColorHex", "fSubtitleBoxBorderWidth", "fContinueBubble", "fAutoBubbleSplit"];
   for (const id of basicIds) {
     const el = document.getElementById(id);
     if (!el) continue;
     const evt = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
     el.addEventListener(evt, collectBasic);
   }
+  const bindBasicColorPair = (pickerId, hexId) => {
+    const picker = document.getElementById(pickerId);
+    const hex = document.getElementById(hexId);
+    if (picker && hex) {
+      picker.addEventListener("input", () => {
+        hex.value = picker.value;
+        collectBasic();
+      });
+      hex.addEventListener("change", () => {
+        hex.value = normalizeHexColor(hex.value, picker.value || "#ffffff");
+        picker.value = hex.value;
+        collectBasic();
+      });
+    }
+  };
+  bindBasicColorPair("fSubtitleTextColor", "fSubtitleTextColorHex");
+  bindBasicColorPair("fSubtitleBoxBorderColor", "fSubtitleBoxBorderColorHex");
+  const subtitleModeField = document.getElementById("fSubtitleMode");
+  if (subtitleModeField) subtitleModeField.addEventListener("change", () => {
+    const turn = selectedIdx >= 0 ? storyData.script[selectedIdx] : null;
+    syncSubtitleModeUi(turn);
+  });
+  const subtitleBoxBorderField = document.getElementById("fSubtitleBoxBorder");
+  if (subtitleBoxBorderField) subtitleBoxBorderField.addEventListener("change", () => {
+    const turn = selectedIdx >= 0 ? storyData.script[selectedIdx] : null;
+    syncSubtitleModeUi(turn);
+  });
 
   // enter/exit チェックボックス群は動的生成後に委譲
   document.getElementById("fEnter").addEventListener("change", collectBasic);
