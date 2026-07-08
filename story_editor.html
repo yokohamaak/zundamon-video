@@ -1211,6 +1211,22 @@
             <div class="field-help">角度差分PNGは現在ずんだもんの全身シーンのみ対応。めたんは左右のみ、バストでは従来どおり left/right だけを使います。</div>
           </div>
           <div class="field-row">
+            <label class="field-label">向きの効き方</label>
+            <select class="field-select" id="fFaceMode">
+              <option value="">このターンだけ</option>
+              <option value="hold">以後も維持</option>
+            </select>
+            <div class="field-help">向きを指定した時だけ意味があります。「以後も維持」は、次のターンで別話者が話しても向きを戻しません。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">向き保持の解除</label>
+            <div class="multi-select-wrap">
+              <label class="multi-check"><input type="checkbox" id="fClearFaceZundamon"> ずんだもんを自動へ戻す</label>
+              <label class="multi-check"><input type="checkbox" id="fClearFaceMetan"> めたんを自動へ戻す</label>
+            </div>
+            <div class="field-help">このターンの開始時点で、そのキャラの保持中の向きを解除します。向き指定と同時に使うと、このターンでは指定向きを使い、以後は新しい設定に切り替わります。</div>
+          </div>
+          <div class="field-row">
             <label class="field-label">このセリフで登場</label>
             <div class="multi-select-wrap" id="fEnter"></div>
             <div class="exit-dir-row">
@@ -4667,6 +4683,18 @@ function faceSummary(faceMap) {
   return items.join(" / ");
 }
 
+function faceModeLabel(mode) {
+  return mode === "hold" ? "維持" : "";
+}
+
+function clearFaceSummary(clearFace) {
+  if (!Array.isArray(clearFace) || !clearFace.length) return "";
+  const items = [];
+  if (clearFace.includes("zundamon")) items.push("ず");
+  if (clearFace.includes("metan")) items.push("め");
+  return items.join(" / ");
+}
+
 function buildPoseSelect() {
   const sel = document.getElementById("fPose");
   const keep = sel.value;
@@ -4834,6 +4862,9 @@ function renderList() {
     if (turn.pose) badges.appendChild(makeBadge("ポーズ:" + poseLabel(turn.pose), "fx"));
     const faceText = faceSummary(turn.face);
     if (faceText) badges.appendChild(makeBadge("向き:" + faceText, "fx"));
+    if (turn.face && turn.faceMode === "hold") badges.appendChild(makeBadge("向き維持", "fx"));
+    const clearFaceText = clearFaceSummary(turn.clearFace);
+    if (clearFaceText) badges.appendChild(makeBadge("向き解除:" + clearFaceText, "warn"));
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
     if (turn.noLipSync) badges.appendChild(makeBadge("口パクOFF", "warn"));
     if (turn.hideCharacters) badges.appendChild(makeBadge("キャラ非表示", "warn"));
@@ -5180,6 +5211,9 @@ function renderDetail() {
   setField("fPose", "select", turn.pose || "");
   setField("fFaceZundamon", "select", (turn.face && turn.face.zundamon) || "");
   setField("fFaceMetan", "select", (turn.face && turn.face.metan) || "");
+  setField("fFaceMode", "select", turn.faceMode || "");
+  document.getElementById("fClearFaceZundamon").checked = !!(turn.clearFace && turn.clearFace.includes("zundamon"));
+  document.getElementById("fClearFaceMetan").checked = !!(turn.clearFace && turn.clearFace.includes("metan"));
   document.getElementById("fShake").checked = !!turn.shake;
   document.getElementById("fFlashback").checked = !!turn.flashback;
   const cameraFx = normalizeCameraEffects(turn);
@@ -6481,6 +6515,14 @@ function collectBasic() {
   if (metanFace) face.metan = metanFace;
   if (Object.keys(face).length) turn.face = face;
   else delete turn.face;
+  const faceMode = document.getElementById("fFaceMode").value;
+  if (Object.keys(face).length && faceMode === "hold") turn.faceMode = "hold";
+  else delete turn.faceMode;
+  const clearFace = [];
+  if (document.getElementById("fClearFaceZundamon").checked) clearFace.push("zundamon");
+  if (document.getElementById("fClearFaceMetan").checked) clearFace.push("metan");
+  if (clearFace.length) turn.clearFace = clearFace;
+  else delete turn.clearFace;
 
   const cameraEffects = {};
   const cameraZoom = document.getElementById("fCameraEffectZoom").value;
@@ -7601,7 +7643,7 @@ function setupEvents() {
   });
 
   // 基本タブ: 変更をリアルタイム収集
-  const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose", "fFaceZundamon", "fFaceMetan",
+  const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose", "fFaceZundamon", "fFaceMetan", "fFaceMode", "fClearFaceZundamon", "fClearFaceMetan",
                     "fSpeakerAnchor", "fShake", "fFlashback", "fCameraEffectZoom", "fCameraEffectPan", "fCameraEffectTilt", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
                     "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
                     "fPause", "fVoicePreset", "fHideCharacters", "fEnterDir", "fExitDir", "fSubtitleMode", "fSubtitleFontSize",

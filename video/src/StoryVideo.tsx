@@ -144,6 +144,10 @@ export type StoryTurn = {
   // キャラの向き（画面のどちらを向くか）の明示指定。省略時は立ち位置から自動（中央向き）。
   // 例: { "zundamon": "left", "metan": "right" }
   face?: Record<string, FaceDirection>;
+  // face の効き方。hold は以後のターンでも維持、turn/省略はそのターンだけ。
+  faceMode?: "turn" | "hold";
+  // 保持中の向きを解除して自動向きへ戻す対象。
+  clearFace?: string[];
   // 話者プッシュイン演出の開始トリガー。
   // emphasis=true のターンで寄りを開始し、同じ話者が続く間は維持する。
   emphasis?: boolean;
@@ -627,6 +631,18 @@ function angleFaceSrc(
 function angleFaceScale(charId: string, face: FaceDirection | undefined): number {
   if (charId === "zundamon" && face && ANGLE_FACE_STEM[face]) return ZUNDAMON_ANGLE_SCALE;
   return 1;
+}
+
+function heldFaceOf(script: StoryTurn[], charId: string, t: number): FaceDirection | undefined {
+  let held: FaceDirection | undefined;
+  for (const turn of script) {
+    if ((turn.start ?? 0) > t) break;
+    if ((turn.clearFace ?? []).includes(charId)) held = undefined;
+    const face = normalizeFaceDirectionForChar(charId, turn.face?.[charId]);
+    if (!face) continue;
+    if (turn.faceMode === "hold") held = face;
+  }
+  return held;
 }
 
 // ─── モブ判定 ──────────────────────────────────────────────
@@ -3634,9 +3650,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     // 立ち絵素材は「画面左向き」が素なので、右を向かせるときだけ反転する。
     // 画面左半分(x<0.5)のキャラは右＝中央向き、右半分は左＝中央向き。x を動かせば向きも自動追従。
     const explicitFace = normalizeFaceDirectionForChar(charId, active.face?.[charId]);
-    const angleSrc = angleFaceSrc(charId, sceneDef, explicitFace);
-    const angleScale = angleFaceScale(charId, explicitFace);
-    const flip = angleSrc ? false : facingFlipFor(explicitFace, anchor.x);
+    const resolvedFace = explicitFace ?? heldFaceOf(script, charId, t);
+    const angleSrc = angleFaceSrc(charId, sceneDef, resolvedFace);
+    const angleScale = angleFaceScale(charId, resolvedFace);
+    const flip = angleSrc ? false : facingFlipFor(resolvedFace, anchor.x);
     // 表情未指定は直前の自分の表情を引き継ぐ（lastExpressionOf）。それも無ければ normal。
     // 未知の表情キーは "normal" にフォールバック（組み込み5種のモーションを維持）。
     const resolvedExpr =
@@ -4220,9 +4237,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       const anchor = resolveCharXY(charId, nextAnchorOf, nextSceneDef!, nextSeg!, nextSeg!.start, { x: 0.5, y: 1.02 });
       const isSpeaker = !isNarrationTurn(nextActive) && charId === nextActive.speaker;
       const explicitFace = normalizeFaceDirectionForChar(charId, nextActive.face?.[charId]);
-      const angleSrc = angleFaceSrc(charId, nextSceneDef!, explicitFace);
-      const angleScale = angleFaceScale(charId, explicitFace);
-      const flip = angleSrc ? false : facingFlipFor(explicitFace, anchor.x);
+      const resolvedFace = explicitFace ?? heldFaceOf(script, charId, nextSeg!.start);
+      const angleSrc = angleFaceSrc(charId, nextSceneDef!, resolvedFace);
+      const angleScale = angleFaceScale(charId, resolvedFace);
+      const flip = angleSrc ? false : facingFlipFor(resolvedFace, anchor.x);
       // 次ターンの入場プレビューも表情未指定なら直前の自分の表情を引き継ぐ。
       const exprKey =
         nextActive.expression ??

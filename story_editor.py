@@ -633,6 +633,8 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "exit": ["metan"], "exitDir": "instant" … シーン境界まで立たせたまま即時退場させる',
         '- "face": {"zundamon":"left"} … 向きの明示（通常は不要。left/right は従来どおり）',
         '- "face": {"zundamon":"front_right"} / {"zundamon":"side_left"} / {"zundamon":"back"} … ずんだもん全身シーンで斜め前・横・後ろ向きを使える',
+        '- "faceMode": "hold" … そのターンで指定した向きを以後のターンでも維持する（省略時はそのターンだけ）',
+        '- "clearFace": ["zundamon"] … 保持中の向きを解除して自動向きへ戻す',
         '- "se": [{"file":"se/alarm.mp3","at":0.0,"volume":0.9}] … この行だけ鳴らす手動SE',
         '- "impactText": "ドン！" … 漫画風の大きな一撃テキストをバーンと出す（ここぞという一言に）',
         '- "zoomPunch": true … 話し始めに一瞬強く寄って戻る（縁が光る）強調。emphasisより短く鋭い',
@@ -723,7 +725,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
-    "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterDir", "face",
+    "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterDir", "face", "faceMode", "clearFace",
     "emphasis", "shake", "cameraEffect", "cameraEffects", "cameraEffectSettings", "flashback", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "subtitleMode", "subtitleStyle", "hideCharacters", "continueBubble", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
