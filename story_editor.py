@@ -498,7 +498,7 @@ def _load_story_world():
 
 def _build_script_prompt(theme, length, notes, mode="safe",
                          custom_world="", custom_example="", extra_rules=""):
-    """AI(ChatGPT/Claude)に投げる台本生成プロンプトを組み立てて返す。
+    """AI(ChatGPT/Gemini など)に投げる台本生成プロンプトを組み立てて返す。
 
     現在ツールが対応しているシーン/キャラ/表情/演出/インサートと、
     読み込み可能なJSONスキーマ＋例を埋め込む。ローカル生成のみ（外部送信なし）。
@@ -626,6 +626,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "continueBubble": true … 直前の同話者セリフを上段に残して2段吹き出しにする',
         '- "disableAutoBubbleSplit": true … 句点や ! ? があってもこの行だけ吹き出し自動分割を止める',
         '- "speakerAnchor": "left" … その行の話者を指定アンカー位置へ立たせる。以後そのシーン中はその位置を使う',
+        '- "manualPos": {"zundamon":{"x":0.58,"y":0.96},"metan":null} … そのターンからキャラ/モブの位置を手動指定する。null で自動配置へ戻す。通常は不要',
         '- "enter": ["metan"] … そのターンでキャラ/モブを登場させる（自分の居る側からスライドイン）',
         '- "enter": ["metan"], "enterDir": "left" … 左からスライド登場させる（"right"も可）',
         '- "enter": ["metan"], "enterDir": "instant" … スライドなしで即時登場させる（回想の切り替え向け）',
@@ -642,10 +643,12 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "stampRain": "完了！" … 指定文字の判子（スタンプ）が降ってくる（達成・完了の演出）',
         '- "typingFlood": true … チャット通知風のカードが次々流れる（通知殺到・炎上感）',
         '- "sparkleBurst": true … キラッと光の粒が弾ける（閃き・良い知らせ）',
+        '- "sparklePos": {"x":0.62,"y":0.30} … sparkleBurst の発生位置を明示指定する。通常は不要',
         '- "irisOut": true … 円が閉じて（または開いて）暗転する古典的な締め演出。話の最後のターンでのみ使う。'
         ' 位置・速さ等は effectSettings.irisOut で調整可能だが、基本は true だけで良い',
-        '- "effectSettings": {"irisOut":{"closeStart":1.0,"closeEnd":2.5}} … 上記演出の細かい調整（このターンだけ上書き）。'
-        ' 通常は不要（既定値で自然に動く）',
+        '- "effectSettings": {"entrance":{"duration":0.45},"emphasis":{"duration":0.35,"scale":0.18},"zoomPunch":{"scale":0.16},'
+        ' "irisOut":{"closeStart":1.0,"closeEnd":2.5}} … entrance / emphasis / zoomPunch / quoteFreeze / stampRain / typingFlood / sparkleBurst / irisOut'
+        ' の細かい調整（このターンだけ上書き）。通常は不要（既定値で自然に動く）',
         "",
         "━━━ インサート演出（\"insert\"。全画面にPC画面/チャット等を重ねる・任意）━━━",
         '- {"kind":"warning","title":"...","text":"..."} … ZunMonitor 警告画面(監視アラート)',
@@ -670,7 +673,8 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         ' character.pose/expression は通常ターンの pose/expression と同じ値が使える（省略可・省略時は自動）。'
         ' animation.mode は step(推奨)/all/none。sectionsは3件固定、bulletsは各3件まで。'
         ' "visibleSections":[true,false,false] … このターンで表示するsections(3件)を個別にon/off。'
-        ' 複数ターンに分けて1項目ずつ話しながら順に表示したい時に使う（省略時は3件とも表示）',
+        ' 複数ターンに分けて1項目ずつ話しながら順に表示したい時に使う（省略時は3件とも表示）。'
+        ' "visibleArrows":[true,false], "showConclusion":false, "showConclusionArrow":true で矢印や結論欄の表示も調整できる',
         "※ チャット系インサート・whiteboard_explain中は、そのターンの内容をチャット内/ホワイトボード内に書く。",
         "※ 社内システム(Zun○○)とインサートの対応: ZunMail=mailer / ZunChat=teamchat / ZunMonitor=warning / ZunAI=chat / ZunMeet=videocall。",
         '※ どのkindも共通で "width"(パネル幅倍率) / "bg"(パネル自体の背景色) / "backdropBg"(画面全体の背景色)'
@@ -708,8 +712,9 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         + (', "_proposals": [ ... ] }' if experimental else " }"),
         "- 各ターンの必須キー: speaker, text, scene。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
-        '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / speakerAnchor / telopX / telopY / telopSize / se / pose / transition'
-        ' / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood / sparkleBurst / irisOut / effectSettings / cameraEffects / cameraEffectSettings / zoomTarget / cameraCenter も使ってよい。',
+        '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / speakerAnchor / manualPos / enter / enterDir / exit / exitDir'
+        ' / face / faceMode / clearFace / telopX / telopY / telopSize / se / insert / pose / transition / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood'
+        ' / sparkleBurst / sparklePos / irisOut / effectSettings / cameraEffects / cameraEffectSettings / zoomTarget / cameraCenter も使ってよい。',
         '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
          if experimental

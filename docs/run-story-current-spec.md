@@ -116,10 +116,11 @@
 - `音` タブで SE 自動マップ、シーン別BGM、プレビュー再生
 
 ## 6. AI台本生成まわりの現仕様
-- 外部API連携はしない。**プロンプト生成だけローカル**で行い、ChatGPT/Claude等への貼り付けは手動
+- 外部API連携はしない。**プロンプト生成だけローカル**で行い、ChatGPT/Gemini/Claude 等への貼り付けは手動
 - 取り込み時は ```json fenced block``` や前後の説明文つきでも読める
 - 既知の項目はそのまま保存し、未対応の新フィールド / 新シーン / 新表情 / 新インサートだけを検出表示する
-- 既知ターン項目には `pose`, `transition`, `voice`, `narrationVoice`, `noLipSync`, `continueBubble`, `disableAutoBubbleSplit`, `se`, `cameraEffects`, `cameraEffectSettings`, `zoomTarget`, `cameraCenter` を含む
+- AI向けプロンプトは `subtitleMode`, `manualPos`, `faceMode`, `clearFace`, `sparklePos`, `cameraEffects`, `cameraEffectSettings`, `zoomTarget`, `cameraCenter`, `whiteboard_explain` の詳細オプションまで案内する
+- 既知ターン項目には `pose`, `transition`, `voice`, `narrationVoice`, `noLipSync`, `continueBubble`, `disableAutoBubbleSplit`, `manualPos`, `faceMode`, `clearFace`, `se`, `sparklePos`, `cameraEffects`, `cameraEffectSettings`, `zoomTarget`, `cameraCenter` を含む
 
 ## 7. 実行フロー
 1. `./run-story story`
