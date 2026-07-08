@@ -1068,6 +1068,13 @@
               <button type="button" class="btn btn-secondary btn-sm" id="btnSplitDialogue">セリフ分割</button>
               <div class="field-help">Enterは同じ吹き出し内の改行です。吹き出しを分けたい時だけ使います。</div>
             </div>
+            <div id="fBubbleMaxCharsRow" style="margin-top:10px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.02);">
+              <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <label class="field-label" for="fBubbleMaxChars" style="margin:0; min-width:auto;">吹き出し最大文字数</label>
+                <input type="number" class="field-input" id="fBubbleMaxChars" min="1" max="99" step="1" style="width:110px;">
+              </div>
+              <div class="field-help" id="fBubbleMaxCharsHelp" style="margin-top:8px;">未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。</div>
+            </div>
           </div>
           <div class="field-row">
             <label class="field-label">ポーズ秒 (pause)</label>
@@ -1157,11 +1164,6 @@
               <span>この行だけ無効</span>
             </label>
             <div class="field-help" id="fAutoBubbleSplitHelp">句点や ! ? による自動多段化を、この行だけ止めます。</div>
-          </div>
-          <div class="field-row" id="fBubbleMaxCharsRow">
-            <label class="field-label">最大文字数</label>
-            <input type="number" class="field-input" id="fBubbleMaxChars" min="1" max="99" step="1" placeholder="自動">
-            <div class="field-help" id="fBubbleMaxCharsHelp">未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。</div>
           </div>
 
           <div class="section-divider">キャラクター</div>
@@ -5095,6 +5097,20 @@ function bubbleLengthWarning(turn) {
     : "この文字数から吹き出し文字が自動で小さくなります。分割を検討してください。";
 }
 
+function setBubbleMaxCharsField(turn) {
+  const input = document.getElementById("fBubbleMaxChars");
+  if (!input) return;
+  const autoInfo = getAutoBubbleInfo(turn);
+  const limit = bubbleLengthLimit(turn, autoInfo);
+  if (turn && turn.bubbleMaxChars != null && turn.bubbleMaxChars !== "") {
+    input.value = String(turn.bubbleMaxChars);
+    input.dataset.explicit = "1";
+  } else {
+    input.value = String(limit);
+    input.dataset.explicit = "";
+  }
+}
+
 const VOICE_PRESETS = {
   "monotone-male": { speed: 0.88, pitch: 0.0, intonation: 0.0 },
   "monotone-female": { speed: 0.90, pitch: 0.0, intonation: 0.0 },
@@ -5272,7 +5288,7 @@ function renderDetail() {
   document.getElementById("fSubtitleBoxBorderWidth").value = String(subtitleStyle.boxBorderWidth);
   setField("fContinueBubble", "select", turn.continueBubble ? "1" : "");
   document.getElementById("fAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
-  document.getElementById("fBubbleMaxChars").value = turn.bubbleMaxChars != null ? String(turn.bubbleMaxChars) : "";
+  setBubbleMaxCharsField(turn);
   syncSubtitleModeUi(turn);
   const voicePresetHelp = document.getElementById("fVoicePresetHelp");
   const noLipSyncHelp = document.getElementById("fNoLipSyncHelp");
@@ -5428,7 +5444,7 @@ function renderDetail() {
       bubbleMaxCharsHelp.textContent = `この行は ${limit} 文字を目安に表示折り返しと警告を調整します。`;
     } else {
       bubbleMaxCharsHelp.className = "field-help";
-      bubbleMaxCharsHelp.textContent = `未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。現在の目安は ${limit} 文字です。`;
+      bubbleMaxCharsHelp.textContent = `この欄には既定値 ${limit} を表示しています。上下ボタンか直接入力すると、この行だけ上書きできます。`;
     }
   }
 
@@ -6673,8 +6689,9 @@ function collectBasic() {
   const autoBubbleSplitVal = document.getElementById("fAutoBubbleSplit").checked;
   if (autoBubbleSplitVal) turn.disableAutoBubbleSplit = true;
   else delete turn.disableAutoBubbleSplit;
-  const bubbleMaxCharsVal = document.getElementById("fBubbleMaxChars").value;
-  if (bubbleMaxCharsVal !== "") {
+  const bubbleMaxCharsInput = document.getElementById("fBubbleMaxChars");
+  const bubbleMaxCharsVal = bubbleMaxCharsInput.value;
+  if (bubbleMaxCharsInput.dataset.explicit === "1" && bubbleMaxCharsVal !== "") {
     const bubbleMaxCharsNum = Number(bubbleMaxCharsVal);
     if (Number.isFinite(bubbleMaxCharsNum)) turn.bubbleMaxChars = Math.max(1, Math.min(99, Math.round(bubbleMaxCharsNum)));
     else delete turn.bubbleMaxChars;
@@ -7760,6 +7777,14 @@ function setupEvents() {
     if (!el) continue;
     const evt = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
     el.addEventListener(evt, collectBasic);
+  }
+  const bubbleMaxCharsField = document.getElementById("fBubbleMaxChars");
+  if (bubbleMaxCharsField) {
+    const markBubbleMaxCharsExplicit = () => {
+      bubbleMaxCharsField.dataset.explicit = "1";
+    };
+    bubbleMaxCharsField.addEventListener("input", markBubbleMaxCharsExplicit, true);
+    bubbleMaxCharsField.addEventListener("change", markBubbleMaxCharsExplicit, true);
   }
   const bindBasicColorPair = (pickerId, hexId) => {
     const picker = document.getElementById(pickerId);
