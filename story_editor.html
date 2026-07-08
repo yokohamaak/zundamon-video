@@ -5023,8 +5023,13 @@ function predictedAutoBubbleTexts(turn) {
   return (text.match(AUTO_SENTENCE_RE) || []).map(s => s.trim()).filter(Boolean);
 }
 
+function hasManualBubbleLineBreak(text) {
+  return /\r?\n/.test(String(text || ""));
+}
+
 function autoBubbleTexts(turn) {
   if (!turn || turn.insert || isSubtitleTurnData(turn)) return [];
+  if (hasManualBubbleLineBreak(turn.text)) return [String(turn.text || "")];
   if (turn.disableAutoBubbleSplit) return [];
   const sentenceTexts = Array.isArray(turn.sentences)
     ? turn.sentences.map(x => String(x && x.text || "").trim()).filter(Boolean)
@@ -5420,7 +5425,7 @@ function renderDetail() {
       bubbleMaxCharsHelp.textContent = "字幕モードでは吹き出し文字数の警告は使いません。";
     } else if (turn.bubbleMaxChars != null && turn.bubbleMaxChars !== "") {
       bubbleMaxCharsHelp.className = "field-help warn";
-      bubbleMaxCharsHelp.textContent = `この行は ${limit} 文字を上限目安にしています。`;
+      bubbleMaxCharsHelp.textContent = `この行は ${limit} 文字を目安に表示折り返しと警告を調整します。`;
     } else {
       bubbleMaxCharsHelp.className = "field-help";
       bubbleMaxCharsHelp.textContent = `未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。現在の目安は ${limit} 文字です。`;

@@ -192,6 +192,7 @@ export type StoryTurn = {
   end: number;
   narrationVoice?: string;
   continueBubble?: boolean;
+  bubbleMaxChars?: number;
   disableAutoBubbleSplit?: boolean;
   noLipSync?: boolean;
   sentences?: StorySentence[];
@@ -2723,6 +2724,7 @@ const StoryOverlayLayer: React.FC<{ overlays: StoryOverlay[] }> = ({ overlays })
 
 // その時刻に吹き出しへ出す文字列（sentences があれば文単位で小出し・§4.4）。
 function bubbleTextAt(turn: StoryTurn, t: number): string {
+  if (hasManualBubbleLineBreak(turn.text)) return turn.text;
   if (turn.disableAutoBubbleSplit) return turn.text;
   const sentenceText = turn.sentences?.map((x) => x.text).join("") ?? "";
   if (turn.text && sentenceText && sentenceText !== turn.text.replace(/\s+/g, "")) {
@@ -2757,17 +2759,13 @@ function bubbleSentenceGroups(turn: StoryTurn): Array<{ text: string; startIdx: 
   return groups;
 }
 
-function manualBubbleSplitTexts(text: string | null | undefined): string[] {
-  return String(text ?? "")
-    .split(/\r?\n+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+function hasManualBubbleLineBreak(text: string | null | undefined): boolean {
+  return /\r?\n/.test(String(text ?? ""));
 }
 
 function bubbleSentenceTexts(turn: StoryTurn): string[] {
   if (turn.disableAutoBubbleSplit) return [turn.text];
-  const manualSplits = manualBubbleSplitTexts(turn.text);
-  if (manualSplits.length > 1) return manualSplits;
+  if (hasManualBubbleLineBreak(turn.text)) return [turn.text];
   const sentenceText = turn.sentences?.map((x) => x.text).join("") ?? "";
   if (
     turn.sentences &&
@@ -2781,8 +2779,7 @@ function bubbleSentenceTexts(turn: StoryTurn): string[] {
 }
 
 function bubbleSentenceVisibleCount(turn: StoryTurn, t: number): number {
-  const manualSplits = manualBubbleSplitTexts(turn.text);
-  if (manualSplits.length > 1) return manualSplits.length;
+  if (hasManualBubbleLineBreak(turn.text)) return 1;
   if (!turn.sentences?.length) return 1;
   const groups = bubbleSentenceGroups(turn);
   if (groups.length <= 1) return 1;
@@ -2911,6 +2908,25 @@ function bubbleFontSize(text: string, stacked: boolean): number {
   return stacked ? 52 : 54;
 }
 
+function bubbleWrapCharLimit(turn: StoryTurn): number | null {
+  const raw = Number(turn?.bubbleMaxChars);
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  return Math.round(raw);
+}
+
+function bubbleMaxWidthForTurn(
+  turn: StoryTurn,
+  stageWidth: number,
+  stacked: boolean,
+  fallbackWidth: number
+): number {
+  const charLimit = bubbleWrapCharLimit(turn);
+  if (!charLimit) return fallbackWidth;
+  const fontSize = bubbleFontSize(turn.text ?? "", stacked);
+  const desiredWidth = charDisplayWidth(fontSize, "あ") * charLimit + 66 + 12;
+  return clamp(desiredWidth, 120, stageWidth - 40);
+}
+
 function bubbleSide(x: number, width: number): "left" | "right" {
   if (x >= width * 0.52) return "right";
   return "left";
@@ -2956,10 +2972,17 @@ function wrapLineToWidth(line: string, fontSize: number, maxTextWidth: number): 
 // 既存の改行(\n)は本来この関数に届く前に別バブルへ分割されている想定だが、
 // disableAutoBubbleSplit等ですり抜けてきた場合に備え、\n は行区切りとして尊重する。
 // 各行がmaxWidth(パディング66px込み)に収まらない場合のみ、その行だけ複数行へ折り返す。
-function bubbleMetrics(text: string, stacked: boolean, maxWidth: number) {
+function bubbleMetrics(turn: StoryTurn, text: string, stacked: boolean, maxWidth: number) {
   const fontSize = bubbleFontSize(text, stacked);
   const paragraphs = String(text || "").split("\n").map((p) => p.replace(/\s+/g, ""));
-  const budget = Math.max(40, maxWidth - 66);
+  let budget = Math.max(40, maxWidth - 66);
+  const charLimit = bubbleWrapCharLimit(turn);
+  if (charLimit) {
+    // turn.bubbleMaxChars は「警告」だけでなく、このターンの表示折り返し幅の目安としても使う。
+    // 半角混じりでも過度に狭くなりすぎないよう、見た目幅ベースの概算へ変換して上限としてかける。
+    const charBudget = Math.max(40, charDisplayWidth(fontSize, "あ") * charLimit);
+    budget = Math.min(budget, charBudget);
+  }
   const lines: string[] = [];
   let maxLineWidth = 0;
   for (const para of paragraphs) {
@@ -3880,7 +3903,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   );
   // 1つの吹き出しを描く（話者の足元・話者色）。
   // 下端を固定(translateY -100%)して上に伸ばす＝行が増えても画面下にはみ出ない。
-  const bubbleMaxWidth = width * 0.72;
+  const bubbleBaseMaxWidth = width * 0.72;
   const zoomBubbleK = clamp((tf.s - 1) / 0.6, 0, 1);
   const followK = focusBubbleK * 0.45;
   const bubbleBoxStyle = (
@@ -3888,7 +3911,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     text: string,
     stacked: boolean,
     align: "left" | "right",
-    widthPx: number
+    widthPx: number,
+    fontSize: number
   ): React.CSSProperties => ({
     display: "inline-block",
     width: widthPx,
@@ -3898,7 +3922,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     padding: "14px 28px",
     borderRadius: 18,
     border: `5px solid ${color}`,
-    fontSize: bubbleMetrics(text, stacked, bubbleMaxWidth).fontSize,
+    fontSize,
     lineHeight: 1.3,
     fontWeight: 700,
     fontFamily: "sans-serif",
@@ -3928,7 +3952,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   };
   const renderBubble = (turn: StoryTurn, key: string, bottomOffset = 0, stacked = false) => {
     const text = bubbleTextAt(turn, t);
-    const metrics = bubbleMetrics(text, stacked, bubbleMaxWidth);
+    const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, stacked, bubbleBaseMaxWidth);
+    const metrics = bubbleMetrics(turn, text, stacked, bubbleMaxWidth);
     const { side, groupCenterX, top } = bubbleGroupPlacement(turn.speaker, metrics.width);
     const sx = side === "right"
       ? groupCenterX + metrics.width / 2
@@ -3942,7 +3967,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           left: sx,
           top: top - bottomOffset,
           transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)",
-          ...bubbleBoxStyle(color, text, stacked, side, metrics.width),
+          ...bubbleBoxStyle(color, text, stacked, side, metrics.width, metrics.fontSize),
         }}
       >
         {metrics.text}
@@ -3950,12 +3975,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     );
   };
   const renderBubbleGroup = (
+    turn: StoryTurn,
     speaker: string,
     texts: string[],
     visibleCount: number,
     key: string
   ) => {
-    const metrics = texts.map((text) => bubbleMetrics(text, true, bubbleMaxWidth));
+    const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, true, bubbleBaseMaxWidth);
+    const metrics = texts.map((text) => bubbleMetrics(turn, text, true, bubbleMaxWidth));
     const groupWidth = metrics.reduce((max, item) => Math.max(max, item.width), 120);
     const { side, groupCenterX, top } = bubbleGroupPlacement(speaker, groupWidth);
     const color = CHARACTERS[speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
@@ -3980,7 +4007,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           <div
             key={`${key}-${idx}`}
             style={{
-              ...bubbleBoxStyle(color, text, true, side, metrics[idx].width),
+              ...bubbleBoxStyle(color, text, true, side, metrics[idx].width, metrics[idx].fontSize),
               transform: `translateX(${idx * bubbleStepX}px)`,
               visibility: idx < visibleCount ? "visible" : "hidden",
             }}
@@ -4540,6 +4567,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           前後ターンも各自の insert 種別で判定し、遷移時のチラ見え漏れを防ぐ。 */}
       {!shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowBubbleGroup
         ? renderBubbleGroup(
+          active,
           bubbleGroup[0]?.speaker ?? active.speaker,
           bubbleGroup.map((turn) => bubbleTextAt(turn, t)),
           visibleGroupCount,
@@ -4547,6 +4575,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         )
         : !shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowAutoBubbleGroup
           ? renderBubbleGroup(
+            active,
             active.speaker,
             autoBubbleTexts,
             autoBubbleVisibleCount,

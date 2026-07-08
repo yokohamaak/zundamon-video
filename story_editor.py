@@ -625,7 +625,9 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "subtitleMode": "subtitle" … 吹き出しではなく画面下の字幕帯で出す（イメージ動画背景向け）',
         '- "subtitleStyle": {"fontSize":46,"textColor":"#ffffff","boxBorder":true,"boxBorderColor":"#ffffff","boxBorderWidth":2.0} … 字幕モード時だけ使う字幕の見た目上書き',
         '- "hideCharacters": true … この行では立ち絵とモブを表示しない（動画背景や字幕だけを見せたい時向け）',
-        '- "continueBubble": true … 直前の同話者セリフを上段に残して2段吹き出しにする',
+        '- text に "\\n" を入れる … 同じターン・同じ吹き出しの中で改行する。改行しても吹き出しは増えない',
+        '- 吹き出しを分けたい時は turn 自体を分ける … 同話者で続きの吹き出しにしたい時だけ次のターンへ "continueBubble": true を付ける',
+        '- "continueBubble": true … 直前の同話者セリフを上段に残して2段吹き出しにする（吹き出し分割用。単なる改行には使わない）',
         '- "disableAutoBubbleSplit": true … 句点や ! ? があってもこの行だけ吹き出し自動分割を止める',
         '- "speakerAnchor": "left" … その行の話者を指定アンカー位置へ立たせる。以後そのシーン中はその位置を使う',
         '- "manualPos": {"zundamon":{"x":0.58,"y":0.96},"metan":null} … そのターンからキャラ/モブの位置を手動指定する。null で自動配置へ戻す。通常は不要',
@@ -718,6 +720,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / bubbleMaxChars / speakerAnchor / manualPos / enter / enterDir / exit / exitDir'
         ' / face / faceMode / clearFace / telopX / telopY / telopSize / se / insert / pose / transition / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood'
         ' / sparkleBurst / sparklePos / irisOut / effectSettings / cameraEffects / cameraEffectSettings / zoomTarget / cameraCenter も使ってよい。',
+        '- text 内の "\\n" は同一吹き出し内の改行として扱う。別吹き出しにしたいなら turn を分ける。',
         '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
          if experimental
