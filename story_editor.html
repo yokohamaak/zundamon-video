@@ -833,8 +833,8 @@
   </div>
   <input type="text" class="header-title-edit" id="storyTitle" placeholder="タイトル">
   <select class="field-select" id="idleFaceSel" title="聞き役(非話者)の表情の扱い" style="width:auto; padding:2px 6px; font-size:12px;">
-    <option value="normal">聞き役: 真顔</option>
     <option value="hold">聞き役: 直前を保持</option>
+    <option value="normal">聞き役: 真顔</option>
   </select>
   <button class="btn btn-primary" id="btnSave">💾 保存</button>
   <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
@@ -2363,9 +2363,10 @@ async function init() {
     sceneDefs = await sceneRes.json();
     normalizeStoryTransitions(storyData);
     normalizeStoryVoicePresets(storyData);
+    normalizeStoryIdleFace(storyData);
 
     document.getElementById("storyTitle").value = storyData.title || "";
-    document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
+    document.getElementById("idleFaceSel").value = storyData.idleFace || "hold";
     buildSpeakerSelect();
     buildSceneSelect();
     buildExpressionSelect();
@@ -4443,6 +4444,14 @@ function normalizeStoryTransitions(data) {
   }
   return changed;
 }
+
+function normalizeStoryIdleFace(data) {
+  if (!data || typeof data !== "object") return false;
+  if (data.idleFace === "normal" || data.idleFace === "hold") return false;
+  data.idleFace = "hold";
+  return true;
+}
+
 function transitionOptionsHtml(selected) {
   const options = [
     ["cut", "cut（カット）"],
@@ -4521,6 +4530,7 @@ function renderTimelineTransitionOverlay() {
 function buildPreviewStory() {
   return {
     ...storyData,
+    idleFace: storyData.idleFace || "hold",
     script: withProvisionalTimings(storyData.script)
   };
 }
@@ -7001,9 +7011,10 @@ function importStoryFromFile(file) {
       clearMultiSelection();
       normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
+      normalizeStoryIdleFace(storyData);
       _selectedOverlayId = null;
       document.getElementById("storyTitle").value = storyData.title || "";
-      document.getElementById("idleFaceSel").value = storyData.idleFace || "normal";
+      document.getElementById("idleFaceSel").value = storyData.idleFace || "hold";
       selectedIdx = -1;
       renderList();
       renderDetail();
