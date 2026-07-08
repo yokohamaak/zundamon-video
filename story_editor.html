@@ -882,10 +882,6 @@
         <option value="3">300%</option>
         <option value="4">400%</option>
       </select>
-      <label class="toggle-row" style="font-size:12px; gap:4px; margin-left:8px;">
-        <input type="checkbox" id="previewAutoFrameToggle">
-        <span>自動寄せ</span>
-      </label>
       <span class="preview-status" id="playerStatus" style="margin-left:8px;">story-player.js を読み込み中...</span>
       <button class="btn btn-secondary btn-sm" id="btnAddOverlay" style="margin-left:auto; font-size:12px; padding:2px 8px;">＋画像Overlay</button>
       <button class="btn btn-secondary btn-sm" id="btnAddTextOverlay" style="font-size:12px; padding:2px 8px;">＋字幕</button>
@@ -3917,7 +3913,6 @@ function placementPreviewTf(rect) {
   if (!sceneDef) return { tx: 0, ty: 0, s: 1 };
   const frame = normalizedCameraFrameJS(sceneDef);
   const baseScale = 1 / frame.width;
-  const autoFrame = !!document.getElementById("previewAutoFrameToggle")?.checked;
   const toTf = (cam) => {
     const s = cam.s;
     return {
@@ -3932,16 +3927,7 @@ function placementPreviewTf(rect) {
   if (manualCenter) {
     baseCam = { s: baseScale, cx: manualCenter.x, cy: manualCenter.y };
   } else {
-    const presentChars = presentActorsAt(script, selectedIdx).filter((id) => KNOWN_CHARS.includes(id));
-    if (!autoFrame || presentChars.length === 0) {
-      baseCam = { s: baseScale, cx: frame.cx, cy: frame.cy };
-    } else if (presentChars.length === 1) {
-      const xy = resolveActorXYAt(script, selectedIdx, presentChars[0]);
-      baseCam = { s: baseScale, cx: xy.x, cy: frame.cy };
-    } else {
-      const xs = presentChars.map((id) => resolveActorXYAt(script, selectedIdx, id).x);
-      baseCam = { s: baseScale, cx: (Math.min(...xs) + Math.max(...xs)) / 2, cy: frame.cy };
-    }
+    baseCam = { s: baseScale, cx: frame.cx, cy: frame.cy };
   }
 
   const emphasisInfo = getEmphasisCarryInfo(script, selectedIdx);
@@ -4519,7 +4505,6 @@ function renderTimelineTransitionOverlay() {
 function buildPreviewStory() {
   return {
     ...storyData,
-    previewCameraAutoFrame: !!document.getElementById("previewAutoFrameToggle")?.checked,
     script: withProvisionalTimings(storyData.script)
   };
 }
@@ -7707,7 +7692,6 @@ function setupEvents() {
 
   // プレビューのズーム倍率
   document.getElementById("previewZoom").addEventListener("change", sizePlayerWrap);
-  document.getElementById("previewAutoFrameToggle").addEventListener("change", notifyPlayerUpdate);
 
   // タイムラインの横ズーム
   document.getElementById("timelineZoom").addEventListener("change", drawScriptTimeline);

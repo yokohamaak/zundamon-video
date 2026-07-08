@@ -279,8 +279,6 @@ export type StoryScript = {
   idleFace?: "normal" | "hold";
   effectSettings?: StoryEffectSettings;
   overlays?: StoryOverlay[];
-  // story_editor のプレビュー専用トグル。未指定時も既定OFFとして扱う。
-  previewCameraAutoFrame?: boolean;
   script: StoryTurn[];
 };
 
@@ -2999,23 +2997,12 @@ function targetCam(
   anchorOf: Record<string, string>,
   sceneDef: SceneDef,
   seg: Segment,
-  tb: number,
-  autoFrame: boolean
+  tb: number
 ): Cam {
   const frame = normalizedCameraFrame(sceneDef);
   const manualCenter = cameraCenterValueAt(seg, tb);
   if (manualCenter) return { s: 1.0, cx: manualCenter.x, cy: manualCenter.y };
-  const ax = (c: string) => resolveCharXY(c, anchorOf, sceneDef, seg, tb).x;
-  if (chars.length <= 1) {
-    if (!autoFrame || !chars[0]) return { s: 1.0, cx: frame.cx, cy: frame.cy };
-    return { s: 1.0, cx: ax(chars[0]), cy: frame.cy };
-  }
-  if (!autoFrame) {
-    return { s: 1.0, cx: frame.cx, cy: frame.cy };
-  }
-  // 複数：全員が収まる引き。
-  const xs = chars.map(ax);
-  return { s: 1.0, cx: (Math.min(...xs) + Math.max(...xs)) / 2, cy: frame.cy };
+  return { s: 1.0, cx: frame.cx, cy: frame.cy };
 }
 
 // ─── BGMレイヤー ────────────────────────────────────────────
@@ -3199,7 +3186,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
 
   const script = story.script;
   const segments = buildSegments(script);
-  const autoFrame = story.previewCameraAutoFrame === true;
   const active = activeTurnAt(script, t);
   const activeIdx = script.findIndex((x) => x.id === active.id);
   // セリフ無しターン(SE/演出だけの間)は音声尺が0で active.end===active.start になりうる。
@@ -3346,8 +3332,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     roster.filter(
       (c) => entrance[c] <= tb + 1e-6 && (effectiveExitAt(c) === undefined || tb <= effectiveExitAt(c)! + 1e-6)
     );
-  const Tcur = targetCam(presentAt(times[idx]), anchorOfAt(times[idx]), sceneDef, seg, times[idx], autoFrame);
-  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOfAt(times[idx - 1]), sceneDef, seg, times[idx - 1], autoFrame) : Tcur;
+  const Tcur = targetCam(presentAt(times[idx]), anchorOfAt(times[idx]), sceneDef, seg, times[idx]);
+  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOfAt(times[idx - 1]), sceneDef, seg, times[idx - 1]) : Tcur;
   const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
   // cam(s,cx,cy) → クランプ済みステージ変換(tx,ty,s)。
   // ★「補間してからクランプ」ではなく「クランプ済み変換同士を補間」する。
