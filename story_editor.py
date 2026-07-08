@@ -585,9 +585,11 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         "━━━ speaker に使う値 ━━━",
         "- zundamon … ずんだもん（主人公）",
         "- metan … 四国めたん（先輩）",
-        "- " + mob_list + " … モブキャラ（1枚絵・口パク簡易）。videocall/teamchat等の脇役として登場できる。",
+        "- " + mob_list + " … 画面に姿を出せるモブキャラ（1枚絵・口パク簡易）。videocall/teamchat等の脇役として登場できる。",
         "- AI … 社内AI「ZunAI」。セリフのspeakerは必ず\"AI\"。",
         "- troublemaker_male_normal / troublemaker_male_creepy / troublemaker_female_normal / troublemaker_female_creepy … 画面に姿を出さない声のみのキャラ（電話越し・チャットのみ等）。",
+        "- speaker は上記リストから完全一致でコピーする。翻訳・簡体字化・別名化は禁止（例: 部長は \"部長\"。\"部长\" は禁止）。",
+        "- 画面に姿を出す人物はモブキャラ名を使い、troublemaker_* は声だけでよい人物に限る。",
         "",
         ("━━━ シーン（scene の値・既存。新規も可）━━━" if experimental
          else "━━━ 使えるシーン（scene に使う値。リスト以外は使用不可）━━━"),
@@ -599,7 +601,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         "",
         "━━━ 表情（expression に使う値・各ターンに付ける）━━━",
         expr_list,
-        "※ normal=通常 / happy=笑顔 / surprise=驚き / trouble=困り / panic=焦り。流れに合うものを選ぶ。",
+        "※ expression は上記リストのキーのみ使う。例: normal=通常 / happy=笑顔 / surprise=驚き / trouble=困り / panic=焦り / angry=怒り / niyari=ニヤリ / question=疑問。",
         "",
         # 【重要】新しい演出を実装したら、この節に1行追記すること。
         #   併せて _KNOWN_TURN_FIELDS / _KNOWN_INSERT_KINDS も更新。
@@ -707,10 +709,11 @@ def _build_script_prompt(theme, length, notes, mode="safe",
     parts += [
         "",
         "━━━ 出力フォーマット（厳守）━━━",
-        "- 出力は JSON のみ（```json ... ``` で囲ってよい）。JSON 以外の説明文は書かない。",
+        "- 出力は厳密な JSON のみ（```json ... ``` で囲ってよい）。JSON 以外の説明文は書かない。",
+        "- script 配列の要素外に calendar_event などのラベル、注釈、ツール呼び出し風の語を絶対に書かない。",
         '- トップレベル: { "title": "動画タイトル", "script": [ ターン, ... ]'
         + (', "_proposals": [ ... ] }' if experimental else " }"),
-        "- 各ターンの必須キー: speaker, text, scene。expression は推奨。その他の演出キーは任意。",
+        "- 各ターンの必須キー: speaker, text, scene。どのターンでも scene を省略しない。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
         '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / speakerAnchor / manualPos / enter / enterDir / exit / exitDir'
         ' / face / faceMode / clearFace / telopX / telopY / telopSize / se / insert / pose / transition / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood'
@@ -719,6 +722,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
          if experimental
          else "- scene は必ず上記リストのキーから選ぶ。speaker も上記の値のみ。"),
+        "- 出力直前に自己検査する: JSON.parse可能か / 全ターンに speaker,text,scene があるか / speaker,scene,expression が許可リスト内か。",
         "",
         "━━━ 出力例（最小）━━━",
         example,

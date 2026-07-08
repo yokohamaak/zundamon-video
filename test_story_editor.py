@@ -34,6 +34,12 @@ def test_prompt_mentions_current_story_fields():
         '"visibleArrows"',
         '"showConclusion"',
         '"showConclusionArrow"',
+        "JSON.parse",
+        "calendar_event",
+        '"部長"',
+        '"部长"',
+        "scene を省略しない",
+        "完全一致",
     ):
         assert token in prompt, f"{token} がプロンプトに無い"
     print("  現行の主要ターン項目がプロンプトに含まれる: OK")
