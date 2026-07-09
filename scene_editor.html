@@ -31,6 +31,35 @@
     background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
     color: var(--text); padding: 4px 8px; font-size: 13px; cursor: pointer; min-width: 140px;
   }
+  .camera-frame-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: rgba(255,255,255,.03);
+  }
+  .camera-frame-switch-label {
+    color: var(--text2);
+    font-size: 11px;
+    margin: 0 6px;
+    white-space: nowrap;
+  }
+  .camera-frame-switch button {
+    padding: 4px 9px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .camera-frame-switch button.active {
+    background: var(--accent);
+    color: #fff;
+  }
   .btn {
     padding: 5px 14px; border-radius: 6px; border: none; font-size: 13px; font-weight: 500;
     cursor: pointer; transition: opacity .15s;
@@ -333,8 +362,16 @@
     }
     .header h1,
     .scene-select,
+    .camera-frame-switch,
     .status {
       width: 100%;
+    }
+    .camera-frame-switch {
+      justify-content: stretch;
+    }
+    .camera-frame-switch button {
+      flex: 1 1 0;
+      min-height: 34px;
     }
     .scene-select {
       min-height: 38px;
@@ -404,6 +441,12 @@
 <div class="header">
   <h1>シーンエディタ</h1>
   <select class="scene-select" id="sceneSelect"></select>
+  <div class="camera-frame-switch" id="cameraFrameSwitch" aria-label="シーン基本カメラ枠">
+    <span class="camera-frame-switch-label">カメラ枠</span>
+    <button type="button" data-camera-frame-key="default">default</button>
+    <button type="button" data-camera-frame-key="leftFocus">leftFocus</button>
+    <button type="button" data-camera-frame-key="rightFocus">rightFocus</button>
+  </div>
   <button class="btn btn-secondary" id="btnAddScene">＋ シーン追加</button>
   <button class="btn btn-danger" id="btnDeleteScene">シーン削除</button>
   <button class="btn btn-primary" id="btnSave">保存</button>
@@ -749,6 +792,24 @@ function updateCameraFrameInfo() {
   el.textContent = `${currentCameraFrameKey}: center(${frame.cx.toFixed(3)}, ${frame.cy.toFixed(3)}) / width ${frame.width.toFixed(3)}`;
 }
 
+function syncCameraFrameKeyUi() {
+  const frameKeySel = document.getElementById('cameraFrameKey');
+  if (frameKeySel) frameKeySel.value = currentCameraFrameKey;
+  for (const btn of document.querySelectorAll('[data-camera-frame-key]')) {
+    btn.classList.toggle('active', btn.dataset.cameraFrameKey === currentCameraFrameKey);
+  }
+}
+
+function setCameraFrameKey(key) {
+  currentCameraFrameKey = key || 'default';
+  const sc = currentScene();
+  if (sc) ensureCameraFrame(sc, currentCameraFrameKey);
+  syncCameraFrameKeyUi();
+  updateCameraFrameInfo();
+  applyStageTransform();
+  renderPreview();
+}
+
 // ============================================================
 // 初期化
 // ============================================================
@@ -916,8 +977,7 @@ function selectScene(id) {
   const sc = currentScene();
   if (!sc) return;
   ensureCameraFrames(sc);
-  const frameKeySel = document.getElementById('cameraFrameKey');
-  if (frameKeySel) frameKeySel.value = currentCameraFrameKey;
+  syncCameraFrameKeyUi();
   document.getElementById('fLabel').value = sc.label || '';
   document.getElementById('fCamera').value = sc.camera || 'static';
   const focusZoom = sc.focusZoom != null ? sc.focusZoom : 0.3;
@@ -1627,13 +1687,12 @@ function setupEvents() {
   document.getElementById('cameraPreviewToggle').addEventListener('change', applyStageTransform);
 
   document.getElementById('cameraFrameKey').addEventListener('change', e => {
-    currentCameraFrameKey = e.target.value || 'default';
-    const sc = currentScene();
-    if (sc) ensureCameraFrame(sc, currentCameraFrameKey);
-    updateCameraFrameInfo();
-    applyStageTransform();
-    renderPreview();
+    setCameraFrameKey(e.target.value);
   });
+
+  for (const btn of document.querySelectorAll('[data-camera-frame-key]')) {
+    btn.addEventListener('click', () => setCameraFrameKey(btn.dataset.cameraFrameKey));
+  }
 
   document.getElementById('focusPreviewToggle').addEventListener('change', applyStageTransform);
 
