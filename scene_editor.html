@@ -607,7 +607,7 @@
 </div>
 
 <script>
-const API_BASE = window.SCENE_EDITOR_API_BASE || "";
+const API_BASE = window.SCENE_EDITOR_API_BASE || "/api";
 const IMG_BASE = window.SCENE_EDITOR_IMG_BASE || "/img/";
 
 // ============================================================
@@ -1165,7 +1165,7 @@ function renderPreview() {
     const videoSrc = `${IMG_BASE}${encodePathSegs(sc.bgVideo)}`;
     if (bgVideoEl.getAttribute('src') !== videoSrc) bgVideoEl.src = videoSrc;
     bgVideoEl.loop = !!sc.bgVideoLoop;
-    bgVideoEl.style.display = '';
+    bgVideoEl.style.display = 'block';
     bgVideoEl.style.filter = bgBlur > 0 ? `blur(${bgBlur}px)` : 'none';
     bgVideoEl.style.transform = bgScale > 1 ? `scale(${bgScale})` : 'none';
     bgVideoEl.style.transformOrigin = 'center center';
@@ -1702,7 +1702,7 @@ function addScene() {
     camera: 'static',
     cameraFrame: { cx: 0.5, cy: 0.5, width: 1 },
     scale: 1.1,
-    bgBlur: 8,
+    bgBlur: 0,
     cast: {},
     mobs: mobsInit,
     anchors: {
