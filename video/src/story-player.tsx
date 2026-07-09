@@ -29,6 +29,7 @@ type StoryPlayerApi = {
 declare global {
   interface Window {
     storyPlayer?: StoryPlayerApi;
+    storyDisplayPreviewPlayer?: StoryPlayerApi;
   }
 }
 
@@ -42,11 +43,6 @@ type Props = {
   seMap?: SeMap;
   mobs?: MobsMap;
 };
-
-let root: Root | null = null;
-let playerRef: PlayerRef | null = null;
-let setPropsState: React.Dispatch<React.SetStateAction<Props>> | null = null;
-let onPlayerReady: (() => void) | null = null;
 
 function withAudioCacheBust(audio: string | undefined, token: number | string = Date.now()) {
   if (!audio) return undefined;
@@ -67,7 +63,12 @@ function patchStaticFilePrefix() {
   }
 }
 
-const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps }) => {
+const StoryPlayerComponent: React.FC<{
+  initialProps: Props;
+  controls?: boolean;
+  emitFrameEvents?: boolean;
+  onReady?: (ref: PlayerRef | null, setProps: React.Dispatch<React.SetStateAction<Props>>) => void;
+}> = ({ initialProps, controls = true, emitFrameEvents = true, onReady }) => {
   const ref = useRef<PlayerRef>(null);
   const [props, setProps] = useState(initialProps);
 
@@ -79,13 +80,11 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
   );
 
   useEffect(() => {
-    playerRef = ref.current;
-    setPropsState = setProps;
-    onPlayerReady?.();
-    onPlayerReady = null;
+    onReady?.(ref.current, setProps);
     // フレーム更新を window イベントで通知（エディタが再生に合わせて台本を選択する用）。
     const player = ref.current;
     const onFrame = (e: { detail: { frame: number } }) => {
+      if (!emitFrameEvents) return;
       const playing = player ? player.isPlaying() : false;
       window.dispatchEvent(
         new CustomEvent("story-player-frame", {
@@ -96,10 +95,8 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
     player?.addEventListener("frameupdate", onFrame);
     return () => {
       player?.removeEventListener("frameupdate", onFrame);
-      playerRef = null;
-      setPropsState = null;
     };
-  }, []);
+  }, [emitFrameEvents, onReady]);
 
   return (
     <Player
@@ -110,7 +107,7 @@ const StoryPlayerComponent: React.FC<{ initialProps: Props }> = ({ initialProps 
       compositionWidth={WIDTH}
       compositionHeight={HEIGHT}
       fps={FPS}
-      controls
+      controls={controls}
       showPlaybackRateControl={[0.5, 0.75, 1, 1.25, 1.5, 2]}
       initiallyMuted={false}
       // モバイルでは共有 audio tag を増やしすぎると、主音声が頭に戻る不安定さが出やすいため
@@ -190,150 +187,170 @@ async function loadInitialProps(): Promise<Props> {
   return { story, scenes, manifest, audio, expressions, poses, seMap, mobs };
 }
 
-window.storyPlayer = {
-  async mount(element) {
-    if (root) root.unmount();
-    root = null;
-    playerRef = null;
-    onPlayerReady = null;
+function createStoryPlayerApi(options?: {
+  controls?: boolean;
+  emitFrameEvents?: boolean;
+  initialPropsLoader?: () => Promise<Props>;
+}) {
+  let root: Root | null = null;
+  let playerRef: PlayerRef | null = null;
+  let setPropsState: React.Dispatch<React.SetStateAction<Props>> | null = null;
+  let onPlayerReady: (() => void) | null = null;
+  const controls = options?.controls ?? true;
+  const emitFrameEvents = options?.emitFrameEvents ?? true;
+  const loadProps = options?.initialPropsLoader ?? loadInitialProps;
 
-    patchStaticFilePrefix();
+  return {
+    async mount(element) {
+      if (root) root.unmount();
+      root = null;
+      playerRef = null;
+      setPropsState = null;
+      onPlayerReady = null;
 
-    const initialProps = await loadInitialProps();
+      patchStaticFilePrefix();
 
-    root = createRoot(element);
-    await new Promise<void>((resolve) => {
-      onPlayerReady = resolve;
-      root!.render(<StoryPlayerComponent initialProps={initialProps} />);
-    });
-  },
+      const initialProps = await loadProps();
 
-  unmount() {
-    onPlayerReady = null;
-    if (root) root.unmount();
-    root = null;
-    playerRef = null;
-    setPropsState = null;
-  },
+      root = createRoot(element);
+      await new Promise<void>((resolve) => {
+        onPlayerReady = resolve;
+        root!.render(
+          <StoryPlayerComponent
+            initialProps={initialProps}
+            controls={controls}
+            emitFrameEvents={emitFrameEvents}
+            onReady={(ref, setProps) => {
+              playerRef = ref;
+              setPropsState = setProps;
+              onPlayerReady?.();
+              onPlayerReady = null;
+            }}
+          />
+        );
+      });
+    },
 
-  updateStory(story) {
-    if (!setPropsState) return;
-    setPropsState((prev) => {
-      const duration = story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
-      const prevDuration = prev.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
-      // audio は story.audio を優先（変更されていれば更新）
-      const prevBase = (prev.audio || "").split("?")[0];
-      const nextBase = story.audio || "";
-      const audio = nextBase && nextBase !== prevBase ? withAudioCacheBust(nextBase) : prev.audio;
-      return { ...prev, story, audio, _duration: Math.max(duration, prevDuration) } as Props;
-    });
-  },
+    unmount() {
+      onPlayerReady = null;
+      if (root) root.unmount();
+      root = null;
+      playerRef = null;
+      setPropsState = null;
+    },
 
-  async reloadScenes() {
-    // シーンタブで編集・保存された story-scenes.json を読み直してプレビューへ反映。
-    if (!setPropsState) return;
-    try {
-      const res = await fetch("/preview-assets/story-scenes.json", { cache: "no-store" });
-      if (!res.ok) return;
-      const scenes = await res.json();
-      setPropsState((prev) => ({ ...prev, scenes } as Props));
-    } catch {
-      // 失敗時は据え置き
-    }
-  },
+    updateStory(story) {
+      if (!setPropsState) return;
+      setPropsState((prev) => {
+        const duration = story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
+        const prevDuration = prev.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
+        const prevBase = (prev.audio || "").split("?")[0];
+        const nextBase = story.audio || "";
+        const audio = nextBase && nextBase !== prevBase ? withAudioCacheBust(nextBase) : prev.audio;
+        return { ...prev, story, audio, _duration: Math.max(duration, prevDuration) } as Props;
+      });
+    },
 
-  async reloadExpressions() {
-    // 表情タブ(expression_editor)で編集・書き出しされた expressions.json を読み直す。
-    if (!setPropsState) return;
-    try {
-      const res = await fetch("/preview-assets/expressions.json", { cache: "no-store" });
-      if (!res.ok) return;
-      const expressions = await res.json();
-      setPropsState((prev) => ({ ...prev, expressions } as Props));
-    } catch {
-      // 失敗時は据え置き
-    }
-  },
+    async reloadScenes() {
+      if (!setPropsState) return;
+      try {
+        const res = await fetch("/preview-assets/story-scenes.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const scenes = await res.json();
+        setPropsState((prev) => ({ ...prev, scenes } as Props));
+      } catch {
+      }
+    },
 
-  async reloadPoses() {
-    if (!setPropsState) return;
-    try {
-      const res = await fetch("/preview-assets/poses.json", { cache: "no-store" });
-      if (!res.ok) return;
-      const poses = await res.json();
-      setPropsState((prev) => ({ ...prev, poses } as Props));
-    } catch {
-      // 失敗時は据え置き
-    }
-  },
+    async reloadExpressions() {
+      if (!setPropsState) return;
+      try {
+        const res = await fetch("/preview-assets/expressions.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const expressions = await res.json();
+        setPropsState((prev) => ({ ...prev, expressions } as Props));
+      } catch {
+      }
+    },
 
-  async reloadMobs() {
-    // モブキャラタブで保存された mobs.json を読み直してプレビューへ反映。
-    if (!setPropsState) return;
-    try {
-      const res = await fetch("/preview-assets/mobs.json", { cache: "no-store" });
-      if (!res.ok) return;
-      const mobs = await res.json();
-      setPropsState((prev) => ({ ...prev, mobs } as Props));
-    } catch {
-      // 失敗時は据え置き
-    }
-  },
+    async reloadPoses() {
+      if (!setPropsState) return;
+      try {
+        const res = await fetch("/preview-assets/poses.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const poses = await res.json();
+        setPropsState((prev) => ({ ...prev, poses } as Props));
+      } catch {
+      }
+    },
 
-  seekToFrame(frame) {
-    if (!playerRef) return;
-    playerRef.seekTo(Math.max(0, frame));
-  },
+    async reloadMobs() {
+      if (!setPropsState) return;
+      try {
+        const res = await fetch("/preview-assets/mobs.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const mobs = await res.json();
+        setPropsState((prev) => ({ ...prev, mobs } as Props));
+      } catch {
+      }
+    },
 
-  seekToTime(sec) {
-    if (!playerRef) return;
-    playerRef.seekTo(Math.max(0, Math.ceil(sec * FPS)));
-  },
+    seekToFrame(frame) {
+      if (!playerRef) return;
+      playerRef.seekTo(Math.max(0, frame));
+    },
 
-  play() {
-    playerRef?.play();
-  },
+    seekToTime(sec) {
+      if (!playerRef) return;
+      playerRef.seekTo(Math.max(0, Math.ceil(sec * FPS)));
+    },
 
-  pause() {
-    playerRef?.pause();
-  },
+    play() {
+      playerRef?.play();
+    },
 
-  togglePlay() {
-    if (!playerRef) return false;
-    if (playerRef.isPlaying()) {
-      playerRef.pause();
-      return false;
-    }
-    playerRef.play();
-    return true;
-  },
+    pause() {
+      playerRef?.pause();
+    },
 
-  isPlaying() {
-    return playerRef ? playerRef.isPlaying() : false;
-  },
+    togglePlay() {
+      if (!playerRef) return false;
+      if (playerRef.isPlaying()) {
+        playerRef.pause();
+        return false;
+      }
+      playerRef.play();
+      return true;
+    },
 
-  async reloadAudio() {
-    // 音タブで保存された BGM(scenes/story) と SE(se-map) をプレビューへ反映。
-    if (!setPropsState) return;
-    try {
-      const [scenesRes, storyRes, seRes] = await Promise.all([
-        fetch("/preview-assets/story-scenes.json", { cache: "no-store" }),
-        fetch("/api/story", { cache: "no-store" }),
-        fetch("/preview-assets/se-map.json", { cache: "no-store" }),
-      ]);
-      const scenes = scenesRes.ok ? await scenesRes.json() : undefined;
-      const story = storyRes.ok ? await storyRes.json() : undefined;
-      const seMap = seRes.ok ? await seRes.json() : undefined;
-      setPropsState((prev) => ({
-        ...prev,
-        ...(scenes ? { scenes } : {}),
-        ...(story ? { story, audio: withAudioCacheBust(story.audio) ?? prev.audio } : {}),
-        ...(seMap ? { seMap } : {}),
-      } as Props));
-    } catch {
-      // 失敗時は据え置き
-    }
-  },
-};
+    isPlaying() {
+      return playerRef ? playerRef.isPlaying() : false;
+    },
+
+    async reloadAudio() {
+      if (!setPropsState) return;
+      try {
+        const [scenesRes, storyRes, seRes] = await Promise.all([
+          fetch("/preview-assets/story-scenes.json", { cache: "no-store" }),
+          fetch("/api/story", { cache: "no-store" }),
+          fetch("/preview-assets/se-map.json", { cache: "no-store" }),
+        ]);
+        const scenes = scenesRes.ok ? await scenesRes.json() : undefined;
+        const story = storyRes.ok ? await storyRes.json() : undefined;
+        const seMap = seRes.ok ? await seRes.json() : undefined;
+        setPropsState((prev) => ({
+          ...prev,
+          ...(scenes ? { scenes } : {}),
+          ...(story ? { story, audio: withAudioCacheBust(story.audio) ?? prev.audio } : {}),
+          ...(seMap ? { seMap } : {}),
+        } as Props));
+      } catch {
+      }
+    },
+  } satisfies StoryPlayerApi;
+}
+
+window.storyPlayer = createStoryPlayerApi();
+window.storyDisplayPreviewPlayer = createStoryPlayerApi({ controls: false, emitFrameEvents: false });
 
 window.dispatchEvent(new Event("story-player-ready"));

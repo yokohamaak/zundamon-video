@@ -106,6 +106,37 @@ type SubtitleStyle = {
   boxBorderColor?: string;
   boxBorderWidth?: number;
 };
+type BubbleDisplaySettings = {
+  maxChars?: number | null;
+  fontSize?: number;
+  fontFamily?: string;
+  textColor?: string;
+  bgColor?: string;
+  borderWidth?: number;
+  radius?: number;
+};
+type SubtitleDisplaySettings = {
+  fontSize?: number;
+  fontFamily?: string;
+  textColor?: string;
+  bgColor?: string;
+  bgOpacity?: number;
+  border?: boolean;
+  borderColor?: string;
+  borderWidth?: number;
+  bottom?: number;
+  width?: number;
+};
+type SpeakerColorSettings = Record<string, string | undefined> & {
+  zundamon?: string;
+  metan?: string;
+  default?: string;
+};
+type StoryDisplaySettings = {
+  bubble?: BubbleDisplaySettings;
+  subtitle?: SubtitleDisplaySettings;
+  speakerColors?: SpeakerColorSettings;
+};
 
 export type StoryTurn = {
   id: string;
@@ -282,6 +313,7 @@ export type StoryScript = {
   // 聞き役(非話者)の表情: "normal"=常に真顔(既定) / "hold"=直前に自分が話した表情を保持
   // （surprise/panic は除外して normal）。
   idleFace?: "normal" | "hold";
+  displaySettings?: StoryDisplaySettings;
   effectSettings?: StoryEffectSettings;
   overlays?: StoryOverlay[];
   script: StoryTurn[];
@@ -354,6 +386,27 @@ export type CharDef = {
   bubbleColor?: string; // 吹き出し枠の色（話者で色分け）
 };
 
+const DEFAULT_BUBBLE_DISPLAY_SETTINGS = {
+  maxChars: null as number | null,
+  fontSize: 54,
+  fontFamily: "sans-serif",
+  textColor: "#1b1b1f",
+  bgColor: "#ffffff",
+  borderWidth: 5,
+  radius: 18,
+};
+const DEFAULT_SUBTITLE_DISPLAY_SETTINGS = {
+  fontSize: 46,
+  fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif',
+  textColor: "#ffffff",
+  bgColor: "#080a0e",
+  bgOpacity: 0.84,
+  border: true,
+  borderColor: "#ffffff",
+  borderWidth: 2,
+  bottom: 42,
+  width: 0.84,
+};
 // モブ／未定義キャラの既定枠色。
 const DEFAULT_BUBBLE_COLOR = "#9aa0a6"; // グレー
 
@@ -893,6 +946,13 @@ function zoomTargetValueAt(seg: Segment, tb: number): { x: number; y: number } |
   return result;
 }
 
+function explicitZoomTarget(turn: StoryTurn | undefined): { x: number; y: number } | undefined {
+  const entry = turn?.zoomTarget;
+  return entry && typeof entry.x === "number" && typeof entry.y === "number"
+    ? { x: entry.x, y: entry.y }
+    : undefined;
+}
+
 function cameraCenterWaypoints(seg: Segment): PosWaypoint[] {
   const points: PosWaypoint[] = [];
   for (const turn of seg.turns) {
@@ -1052,6 +1112,102 @@ const DEFAULT_EFFECT_SETTINGS: ResolvedEffectSettings = {
   // 常に黒い縁が見えてしまうため、既定値は少し余裕を持たせて画面を完全に覆う値にする。
   irisOut: { cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0 },
 };
+
+function hexToRgba(hex: string, opacity: number): string {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(String(hex || ""));
+  if (!m) return `rgba(8, 10, 14, ${clamp(opacity, 0, 1)})`;
+  const raw = m[1];
+  const r = parseInt(raw.slice(0, 2), 16);
+  const g = parseInt(raw.slice(2, 4), 16);
+  const b = parseInt(raw.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${clamp(opacity, 0, 1)})`;
+}
+
+function resolveDisplaySettings(story: StoryScript | null | undefined) {
+  const bubble = story?.displaySettings?.bubble || {};
+  const subtitle = story?.displaySettings?.subtitle || {};
+  const speakerColors = story?.displaySettings?.speakerColors || {};
+  const bubbleMaxCharsNum = Number(bubble.maxChars);
+  const bubbleFontSizeNum = Number(bubble.fontSize);
+  const bubbleBorderWidthNum = Number(bubble.borderWidth);
+  const bubbleRadiusNum = Number(bubble.radius);
+  const subtitleFontSizeNum = Number(subtitle.fontSize);
+  const subtitleBgOpacityNum = Number(subtitle.bgOpacity);
+  const subtitleBorderWidthNum = Number(subtitle.borderWidth);
+  const subtitleBottomNum = Number(subtitle.bottom);
+  const subtitleWidthNum = Number(subtitle.width);
+  return {
+    bubble: {
+      maxChars: Number.isFinite(bubbleMaxCharsNum) && bubbleMaxCharsNum > 0
+        ? Math.round(bubbleMaxCharsNum)
+        : DEFAULT_BUBBLE_DISPLAY_SETTINGS.maxChars,
+      fontSize: Number.isFinite(bubbleFontSizeNum)
+        ? clamp(Math.round(bubbleFontSizeNum), 24, 96)
+        : DEFAULT_BUBBLE_DISPLAY_SETTINGS.fontSize,
+      fontFamily: bubble.fontFamily || DEFAULT_BUBBLE_DISPLAY_SETTINGS.fontFamily,
+      textColor: /^#([0-9a-fA-F]{6})$/.test(String(bubble.textColor || ""))
+        ? String(bubble.textColor)
+        : DEFAULT_BUBBLE_DISPLAY_SETTINGS.textColor,
+      bgColor: /^#([0-9a-fA-F]{6})$/.test(String(bubble.bgColor || ""))
+        ? String(bubble.bgColor)
+        : DEFAULT_BUBBLE_DISPLAY_SETTINGS.bgColor,
+      borderWidth: Number.isFinite(bubbleBorderWidthNum)
+        ? clamp(bubbleBorderWidthNum, 1, 12)
+        : DEFAULT_BUBBLE_DISPLAY_SETTINGS.borderWidth,
+      radius: Number.isFinite(bubbleRadiusNum)
+        ? clamp(Math.round(bubbleRadiusNum), 4, 40)
+        : DEFAULT_BUBBLE_DISPLAY_SETTINGS.radius,
+    },
+    subtitle: {
+      fontSize: Number.isFinite(subtitleFontSizeNum)
+        ? clamp(Math.round(subtitleFontSizeNum), 24, 96)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.fontSize,
+      fontFamily: subtitle.fontFamily || DEFAULT_SUBTITLE_DISPLAY_SETTINGS.fontFamily,
+      textColor: /^#([0-9a-fA-F]{6})$/.test(String(subtitle.textColor || ""))
+        ? String(subtitle.textColor)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.textColor,
+      bgColor: /^#([0-9a-fA-F]{6})$/.test(String(subtitle.bgColor || ""))
+        ? String(subtitle.bgColor)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.bgColor,
+      bgOpacity: Number.isFinite(subtitleBgOpacityNum)
+        ? clamp(subtitleBgOpacityNum, 0, 1)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.bgOpacity,
+      border: subtitle.border !== false,
+      borderColor: /^#([0-9a-fA-F]{6})$/.test(String(subtitle.borderColor || ""))
+        ? String(subtitle.borderColor)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.borderColor,
+      borderWidth: Number.isFinite(subtitleBorderWidthNum)
+        ? clamp(subtitleBorderWidthNum, 0.5, 6)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.borderWidth,
+      bottom: Number.isFinite(subtitleBottomNum)
+        ? clamp(Math.round(subtitleBottomNum), 0, 200)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.bottom,
+      width: Number.isFinite(subtitleWidthNum)
+        ? clamp(subtitleWidthNum, 0.4, 1)
+        : DEFAULT_SUBTITLE_DISPLAY_SETTINGS.width,
+    },
+    speakerColors: {
+      zundamon: /^#([0-9a-fA-F]{6})$/.test(String(speakerColors.zundamon || ""))
+        ? String(speakerColors.zundamon)
+        : "#5fb84f",
+      metan: /^#([0-9a-fA-F]{6})$/.test(String(speakerColors.metan || ""))
+        ? String(speakerColors.metan)
+        : "#e87bb0",
+      default: /^#([0-9a-fA-F]{6})$/.test(String(speakerColors.default || ""))
+        ? String(speakerColors.default)
+        : DEFAULT_BUBBLE_COLOR,
+    },
+  };
+}
+
+function speakerBubbleColor(
+  speaker: string,
+  displaySettings: ReturnType<typeof resolveDisplaySettings>
+): string {
+  if (speaker === "zundamon") return displaySettings.speakerColors.zundamon;
+  if (speaker === "metan") return displaySettings.speakerColors.metan;
+  return CHARACTERS[speaker]?.bubbleColor ?? displaySettings.speakerColors.default ?? DEFAULT_BUBBLE_COLOR;
+}
 
 function resolveEffectSettings(settings?: StoryEffectSettings): ResolvedEffectSettings {
   return {
@@ -2922,25 +3078,26 @@ function bubbleBottomOffset(turn: StoryTurn, hasNextContinue: boolean): number {
   return turn.continueBubble ? 12 : 36;
 }
 
-function bubbleFontSize(text: string, stacked: boolean): number {
-  return stacked ? 52 : 54;
+function bubbleFontSize(text: string, stacked: boolean, baseFontSize = DEFAULT_BUBBLE_DISPLAY_SETTINGS.fontSize): number {
+  return stacked ? Math.max(20, baseFontSize - 2) : baseFontSize;
 }
 
-function bubbleWrapCharLimit(turn: StoryTurn): number | null {
+function bubbleWrapCharLimit(turn: StoryTurn, defaultMaxChars: number | null): number | null {
   const raw = Number(turn?.bubbleMaxChars);
-  if (!Number.isFinite(raw) || raw <= 0) return null;
-  return Math.round(raw);
+  if (Number.isFinite(raw) && raw > 0) return Math.round(raw);
+  return defaultMaxChars;
 }
 
 function bubbleMaxWidthForTurn(
   turn: StoryTurn,
   stageWidth: number,
   stacked: boolean,
-  fallbackWidth: number
+  fallbackWidth: number,
+  bubbleSettings: ReturnType<typeof resolveDisplaySettings>["bubble"]
 ): number {
-  const charLimit = bubbleWrapCharLimit(turn);
+  const charLimit = bubbleWrapCharLimit(turn, bubbleSettings.maxChars);
   if (!charLimit) return fallbackWidth;
-  const fontSize = bubbleFontSize(turn.text ?? "", stacked);
+  const fontSize = bubbleFontSize(turn.text ?? "", stacked, bubbleSettings.fontSize);
   const desiredWidth = charDisplayWidth(fontSize, "あ") * charLimit + 66 + 12;
   return clamp(desiredWidth, 120, stageWidth - 40);
 }
@@ -2990,11 +3147,17 @@ function wrapLineToWidth(line: string, fontSize: number, maxTextWidth: number): 
 // 既存の改行(\n)は本来この関数に届く前に別バブルへ分割されている想定だが、
 // disableAutoBubbleSplit等ですり抜けてきた場合に備え、\n は行区切りとして尊重する。
 // 各行がmaxWidth(パディング66px込み)に収まらない場合のみ、その行だけ複数行へ折り返す。
-function bubbleMetrics(turn: StoryTurn, text: string, stacked: boolean, maxWidth: number) {
-  const fontSize = bubbleFontSize(text, stacked);
+function bubbleMetrics(
+  turn: StoryTurn,
+  text: string,
+  stacked: boolean,
+  maxWidth: number,
+  bubbleSettings: ReturnType<typeof resolveDisplaySettings>["bubble"]
+) {
+  const fontSize = bubbleFontSize(text, stacked, bubbleSettings.fontSize);
   const paragraphs = String(text || "").split("\n").map((p) => p.replace(/\s+/g, ""));
   let budget = Math.max(40, maxWidth - 66);
-  const charLimit = bubbleWrapCharLimit(turn);
+  const charLimit = bubbleWrapCharLimit(turn, bubbleSettings.maxChars);
   if (charLimit) {
     // turn.bubbleMaxChars は「警告」だけでなく、このターンの表示折り返し幅の目安としても使う。
     // 半角混じりでも過度に狭くなりすぎないよう、見た目幅ベースの概算へ変換して上限としてかける。
@@ -3242,6 +3405,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   });
 
   const script = story.script;
+  const displaySettings = resolveDisplaySettings(story);
   const segments = buildSegments(script);
   const active = activeTurnAt(script, t);
   const activeIdx = script.findIndex((x) => x.id === active.id);
@@ -3439,7 +3603,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     // 縦は話者の顔位置＋オフセット(focusDy)。プッシュインは寄りが強いので既定は顔寄りめ。
     const autoFocusCy = clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.12), 0, 1);
     // turn.zoomTarget があれば寄り位置を手動指定値で上書きする（無ければ自動計算のまま）。
-    const manualFocus = resolveZoomTargetAt(seg, t, () => ({ x: autoFocusCx, y: autoFocusCy }));
+    const manualFocus =
+      explicitZoomTarget(active) ??
+      zoomTargetValueAt(seg, t) ??
+      resolveZoomTargetAt(seg, t, () => ({ x: autoFocusCx, y: autoFocusCy }));
     const emphasisCfg = resolveEffectSettings(
       mergeEffectSettings(story.effectSettings, active.effectSettings)
     ).emphasis;
@@ -3489,7 +3656,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         }
         return { x: Tcur.cx, y: Tcur.cy };
       })();
-      const zoomFocus = zoomTargetValueAt(seg, turn.start) ?? defaultFocus;
+      const zoomFocus = explicitZoomTarget(turn) ?? zoomTargetValueAt(seg, turn.start) ?? defaultFocus;
       const zoomAmount = cameraEffectTurnValue(turn, camCfg, "zoom", "amount");
       const targetScale = effect === "in"
         ? zoomTf.s + zoomAmount
@@ -3956,15 +4123,15 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     display: "inline-block",
     width: widthPx,
     boxSizing: "border-box",
-    background: "#ffffff",
-    color: "#1b1b1f",
+    background: displaySettings.bubble.bgColor,
+    color: displaySettings.bubble.textColor,
     padding: "14px 28px",
-    borderRadius: 18,
-    border: `5px solid ${color}`,
+    borderRadius: displaySettings.bubble.radius,
+    border: `${displaySettings.bubble.borderWidth}px solid ${color}`,
     fontSize,
     lineHeight: 1.3,
     fontWeight: 700,
-    fontFamily: "sans-serif",
+    fontFamily: displaySettings.bubble.fontFamily,
     boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
     textAlign: align,
     // "pre": bubbleMetricsで決めた\nだけを改行として反映する。
@@ -3991,13 +4158,13 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   };
   const renderBubble = (turn: StoryTurn, key: string, bottomOffset = 0, stacked = false) => {
     const text = bubbleTextAt(turn, t);
-    const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, stacked, bubbleBaseMaxWidth);
-    const metrics = bubbleMetrics(turn, text, stacked, bubbleMaxWidth);
+    const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, stacked, bubbleBaseMaxWidth, displaySettings.bubble);
+    const metrics = bubbleMetrics(turn, text, stacked, bubbleMaxWidth, displaySettings.bubble);
     const { side, groupCenterX, top } = bubbleGroupPlacement(turn.speaker, metrics.width);
     const sx = side === "right"
       ? groupCenterX + metrics.width / 2
       : groupCenterX - metrics.width / 2;
-    const color = CHARACTERS[turn.speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
+    const color = speakerBubbleColor(turn.speaker, displaySettings);
     return (
       <div
         key={key}
@@ -4020,11 +4187,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     visibleCount: number,
     key: string
   ) => {
-    const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, true, bubbleBaseMaxWidth);
-    const metrics = texts.map((text) => bubbleMetrics(turn, text, true, bubbleMaxWidth));
+    const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, true, bubbleBaseMaxWidth, displaySettings.bubble);
+    const metrics = texts.map((text) => bubbleMetrics(turn, text, true, bubbleMaxWidth, displaySettings.bubble));
     const groupWidth = metrics.reduce((max, item) => Math.max(max, item.width), 120);
     const { side, groupCenterX, top } = bubbleGroupPlacement(speaker, groupWidth);
-    const color = CHARACTERS[speaker]?.bubbleColor ?? DEFAULT_BUBBLE_COLOR;
+    const color = speakerBubbleColor(speaker, displaySettings);
     const bubbleStepX = side === "right" ? -18 : 18;
     return (
       <div
@@ -4062,22 +4229,22 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const fontSizeNum = Number(raw.fontSize);
     const fontSize = Number.isFinite(fontSizeNum)
       ? clamp(Math.round(fontSizeNum), 24, 96)
-      : 46;
+      : displaySettings.subtitle.fontSize;
     const textColor = /^#([0-9a-fA-F]{6})$/.test(String(raw.textColor || ""))
       ? String(raw.textColor)
-      : "#ffffff";
+      : displaySettings.subtitle.textColor;
     const boxBorderColor = /^#([0-9a-fA-F]{6})$/.test(String(raw.boxBorderColor || ""))
       ? String(raw.boxBorderColor)
-      : "#ffffff";
+      : displaySettings.subtitle.borderColor;
     const boxBorderWidthNum = Number(raw.boxBorderWidth);
     return {
       fontSize,
       textColor,
-      boxBorder: raw.boxBorder !== false,
+      boxBorder: raw.boxBorder != null ? raw.boxBorder !== false : displaySettings.subtitle.border,
       boxBorderColor,
       boxBorderWidth: Number.isFinite(boxBorderWidthNum)
         ? clamp(boxBorderWidthNum, 0.5, 6)
-        : 2,
+        : displaySettings.subtitle.borderWidth,
     };
   };
   const renderSubtitle = (texts: string[], key: string) => {
@@ -4090,19 +4257,19 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         style={{
           position: "absolute",
           left: "50%",
-          bottom: 42,
+          bottom: displaySettings.subtitle.bottom,
           transform: "translateX(-50%)",
-          width: Math.min(width * 0.84, 1360),
+          width: Math.min(width * displaySettings.subtitle.width, 1360),
           padding: "16px 28px 18px",
           borderRadius: 18,
-          background: "rgba(8, 10, 14, 0.84)",
+          background: hexToRgba(displaySettings.subtitle.bgColor, displaySettings.subtitle.bgOpacity),
           border: subtitleStyle.boxBorder ? `${subtitleStyle.boxBorderWidth}px solid ${subtitleStyle.boxBorderColor}` : "none",
           boxShadow: "0 14px 34px rgba(0,0,0,0.4)",
           color: subtitleStyle.textColor,
           fontSize: subtitleStyle.fontSize,
           lineHeight: 1.45,
           fontWeight: 700,
-          fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif',
+          fontFamily: displaySettings.subtitle.fontFamily,
           textAlign: "center",
           whiteSpace: "pre-wrap",
           textShadow: "0 2px 6px rgba(0,0,0,0.4)",
