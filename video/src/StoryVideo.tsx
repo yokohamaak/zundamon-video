@@ -88,6 +88,7 @@ type CameraEffects = {
   zoom?: "in" | "out";
   pan?: "left" | "right";
   tilt?: "left" | "right";
+  shake?: boolean;
 };
 type CameraEffectSettingGroup = {
   amount?: number;
@@ -98,6 +99,7 @@ type CameraEffectSettings = {
   zoom?: CameraEffectSettingGroup;
   pan?: CameraEffectSettingGroup;
   tilt?: CameraEffectSettingGroup;
+  shake?: CameraEffectSettingGroup;
 };
 type SubtitleStyle = {
   fontSize?: number;
@@ -182,6 +184,9 @@ export type StoryTurn = {
   // 話者プッシュイン演出の開始トリガー。
   // emphasis=true のターンで寄りを開始し、同じ話者が続く間は維持する。
   emphasis?: boolean;
+  focusSpeaker?: boolean;
+  cameraTransition?: "smooth" | "cut";
+  manualCameraFrame?: CameraFrame;
   // その行だけ付ける追加カメラ効果。カテゴリごとに1つずつ併用できる。
   cameraEffects?: CameraEffects;
   cameraEffectSettings?: CameraEffectSettings;
@@ -231,12 +236,8 @@ export type StoryTurn = {
   // 値がオブジェクト: この時刻からその座標に手動配置(登場中ずっと固定、次の指定 or 退場まで有効)。
   // 値がnull: この時刻から自動配置(名前付きアンカー/シーン既定)に戻す(手動配置の解除)。
   manualPos?: Record<string, { x: number; y: number } | null>;
-  // ソロズーム/話者プッシュインが寄る先の手動指定。値がオブジェクト: この時刻からその座標へ
-  // （区間内で次の指定 or nullまで有効）。値がnull: 自動計算（顔位置+シーン既定オフセット）に戻す。
+  // cameraEffects.zoom / emphasis が寄る先の手動指定。
   zoomTarget?: { x: number; y: number } | null;
-  // 仮想カメラ(16:9枠)の中心点。値がオブジェクト: この時刻からその座標をベースカメラ中心にする。
-  // 値がnull: シーン既定のcameraFrame中心/自動計算へ戻す。
-  cameraCenter?: { x: number; y: number } | null;
 };
 
 export type StoryOverlayAnchor = {
@@ -321,6 +322,7 @@ export type StoryScript = {
 
 type Anchor = { x: number; y: number };
 type CameraFrame = { cx?: number; cy?: number; width?: number };
+type CameraFrameKey = "default" | "leftFocus" | "rightFocus";
 
 export type SceneDef = {
   label?: string;
@@ -337,6 +339,7 @@ export type SceneDef = {
   focusDy?: number; // プッシュイン 顔からの縦オフセット（既定 0.12）
   // 背景全体に対する既定の16:9カメラ領域。anchors はこの枠内の相対位置として解釈する。
   cameraFrame?: CameraFrame;
+  cameraFrames?: Partial<Record<CameraFrameKey, CameraFrame>>;
   scale?: number; // 立ち絵の拡大率（既定 1.9）
   anchors: Record<string, Anchor>;
   // どのキャラをどのアンカーに置くか（charId→アンカー名）。
@@ -473,12 +476,20 @@ function mergeVideoCallInsert(
   };
 }
 
-function normalizedCameraFrame(sceneDef: SceneDef): { cx: number; cy: number; width: number; x: number; y: number } {
-  const src = sceneDef.cameraFrame;
+function normalizeCameraFrame(src?: CameraFrame): { cx: number; cy: number; width: number; x: number; y: number } {
   const width = clamp(typeof src?.width === "number" ? src.width : 1, 0.35, 1);
   const cx = clamp(typeof src?.cx === "number" ? src.cx : 0.5, width / 2, 1 - width / 2);
   const cy = clamp(typeof src?.cy === "number" ? src.cy : 0.5, width / 2, 1 - width / 2);
   return { cx, cy, width, x: cx - width / 2, y: cy - width / 2 };
+}
+
+function sceneCameraFrame(sceneDef: SceneDef, key: CameraFrameKey): ReturnType<typeof normalizeCameraFrame> {
+  const src = sceneDef.cameraFrames?.[key] ?? (key === "default" ? sceneDef.cameraFrame : undefined);
+  return normalizeCameraFrame(src ?? sceneDef.cameraFrames?.default ?? sceneDef.cameraFrame);
+}
+
+function normalizedCameraFrame(sceneDef: SceneDef): ReturnType<typeof normalizeCameraFrame> {
+  return sceneCameraFrame(sceneDef, "default");
 }
 
 function anchorToScene(anchor: Anchor, sceneDef: SceneDef): Anchor {
@@ -491,6 +502,7 @@ function normalizedCameraEffects(turn?: StoryTurn | null): CameraEffects {
   if (src?.zoom === "in" || src?.zoom === "out") next.zoom = src.zoom;
   if (src?.pan === "left" || src?.pan === "right") next.pan = src.pan;
   if (src?.tilt === "left" || src?.tilt === "right") next.tilt = src.tilt;
+  if (src?.shake === true) next.shake = true;
   if (!turn?.cameraEffect) return next;
   switch (turn.cameraEffect) {
     case "pull-out":
@@ -951,29 +963,6 @@ function explicitZoomTarget(turn: StoryTurn | undefined): { x: number; y: number
   return entry && typeof entry.x === "number" && typeof entry.y === "number"
     ? { x: entry.x, y: entry.y }
     : undefined;
-}
-
-function cameraCenterWaypoints(seg: Segment): PosWaypoint[] {
-  const points: PosWaypoint[] = [];
-  for (const turn of seg.turns) {
-    const entry = turn.cameraCenter;
-    if (entry === undefined) continue;
-    if (entry === null) {
-      points.length = 0;
-      continue;
-    }
-    points.push({ time: turn.start, x: entry.x, y: entry.y });
-  }
-  return points;
-}
-
-function cameraCenterValueAt(seg: Segment, tb: number): { x: number; y: number } | undefined {
-  const points = cameraCenterWaypoints(seg);
-  let result: { x: number; y: number } | undefined;
-  for (const p of points) {
-    if (p.time <= tb + 1e-6) result = { x: p.x, y: p.y };
-  }
-  return result;
 }
 
 // 既知キャラの実座標。turn.manualPos があればそれ（遷移込み）を優先し、無ければ
@@ -3055,24 +3044,6 @@ function resolveCameraEffectRange(
   };
 }
 
-function resolveCameraEffectChainStart(
-  script: StoryTurn[],
-  activeIdx: number,
-  category: keyof CameraEffects,
-): number {
-  const activeTurn = script[activeIdx];
-  const activeEffect = normalizedCameraEffects(activeTurn)[category];
-  if (!activeTurn || !activeEffect || isNarrationTurn(activeTurn)) return activeIdx;
-  let startIdx = activeIdx;
-  for (let i = activeIdx - 1; i >= 0; i -= 1) {
-    const turn = script[i];
-    if (!turn || turn.scene !== activeTurn.scene || isNarrationTurn(turn)) break;
-    if (normalizedCameraEffects(turn)[category] !== activeEffect) break;
-    startIdx = i;
-  }
-  return startIdx;
-}
-
 function bubbleBottomOffset(turn: StoryTurn, hasNextContinue: boolean): number {
   if (hasNextContinue) return 112;
   return turn.continueBubble ? 12 : 36;
@@ -3212,17 +3183,31 @@ function faceCyOf(
   return clamp(anchor.y - (0.5 - ratio) * ((boxH * avScale) / 1080), 0, 1);
 }
 
-function targetCam(
-  chars: string[],
+function resolveTurnCameraFrame(
+  turn: StoryTurn | undefined,
+  present: string[],
   anchorOf: Record<string, string>,
-  sceneDef: SceneDef,
-  seg: Segment,
-  tb: number
-): Cam {
-  const frame = normalizedCameraFrame(sceneDef);
-  const manualCenter = cameraCenterValueAt(seg, tb);
-  if (manualCenter) return { s: 1.0, cx: manualCenter.x, cy: manualCenter.y };
-  return { s: 1.0, cx: frame.cx, cy: frame.cy };
+  sceneDef: SceneDef
+): ReturnType<typeof normalizeCameraFrame> {
+  if (turn?.manualCameraFrame) {
+    return normalizeCameraFrame(turn.manualCameraFrame);
+  }
+  if (turn?.focusSpeaker && !isNarrationTurn(turn) && present.includes(turn.speaker)) {
+    const anchorName = anchorOf[turn.speaker];
+    if (anchorName === "left") return sceneCameraFrame(sceneDef, "leftFocus");
+    if (anchorName === "right") return sceneCameraFrame(sceneDef, "rightFocus");
+  }
+  return sceneCameraFrame(sceneDef, "default");
+}
+
+function targetCameraFrame(
+  turn: StoryTurn | undefined,
+  present: string[],
+  anchorOf: Record<string, string>,
+  sceneDef: SceneDef
+): Cam & { width: number } {
+  const frame = resolveTurnCameraFrame(turn, present, anchorOf, sceneDef);
+  return { s: 1.0 / frame.width, cx: frame.cx, cy: frame.cy, width: frame.width };
 }
 
 // ─── BGMレイヤー ────────────────────────────────────────────
@@ -3534,16 +3519,15 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       )
   );
 
-  // ── 仮想カメラ：登場/退場のたびに「寄り↔引き」を滑らかに遷移（カットしない） ──
+  // ── カメラ枠：構図を先に確定し、その上にカメラ演出を重ねる ──
   const TRANS = 0.8; // 遷移にかける秒数
-  // 境界時刻＝登場時刻＋退場時刻（退場で人数が減ればカメラも寄りへ遷移する）＋
-  // ズーム位置(zoomTarget)の変更時刻（ソロズームの寄り先が変わった時も同じcrossfadeで遷移させる）。
+  // 境界時刻＝ターン開始＋登場/退場。manualCameraFrame/focusSpeaker はそのターンだけで評価し、
+  // 未指定の次ターンでは default / focusSpeaker 判定へ戻す。
   const times = [
     ...new Set([
+      ...seg.turns.map((turn) => turn.start),
       ...roster.map((c) => entrance[c]),
       ...roster.map((c) => effectiveExitAt(c)).filter((v): v is number => typeof v === "number"),
-      ...zoomTargetWaypoints(seg).map((w) => w.time),
-      ...cameraCenterWaypoints(seg).map((w) => w.time),
     ]),
   ].sort((a, b) => a - b);
   let idx = 0;
@@ -3553,9 +3537,11 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     roster.filter(
       (c) => entrance[c] <= tb + 1e-6 && (effectiveExitAt(c) === undefined || tb <= effectiveExitAt(c)! + 1e-6)
     );
-  const Tcur = targetCam(presentAt(times[idx]), anchorOfAt(times[idx]), sceneDef, seg, times[idx]);
-  const Tprev = idx > 0 ? targetCam(presentAt(times[idx - 1]), anchorOfAt(times[idx - 1]), sceneDef, seg, times[idx - 1]) : Tcur;
-  const k = idx > 0 ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
+  const turnAt = (tb: number) => activeTurnAt(seg.turns, tb);
+  const Tcur = targetCameraFrame(turnAt(times[idx]), presentAt(times[idx]), anchorOfAt(times[idx]), sceneDef);
+  const Tprev = idx > 0 ? targetCameraFrame(turnAt(times[idx - 1]), presentAt(times[idx - 1]), anchorOfAt(times[idx - 1]), sceneDef) : Tcur;
+  const transitionMode = turnAt(times[idx])?.cameraTransition;
+  const k = idx > 0 && transitionMode !== "cut" ? easeInOutCubic(clamp((t - times[idx]) / TRANS, 0, 1)) : 1;
   // cam(s,cx,cy) → クランプ済みステージ変換(tx,ty,s)。
   // ★「補間してからクランプ」ではなく「クランプ済み変換同士を補間」する。
   //   こうしないと、ズーム率が低い間は pan が clamp で中央に固定され、ズームが進むにつれ
@@ -3583,10 +3569,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   }
 
   // 人数変化の寄り↔引き：キーフレーム(Tprev/Tcur)それぞれをクランプ済み変換にしてから補間。
-  const baseFrame = normalizedCameraFrame(sceneDef);
-  const baseScale = 1 / baseFrame.width;
-  const tfPrev = toTf({ ...Tprev, s: Tprev.s * driftS * baseScale });
-  const tfCur = toTf({ ...Tcur, s: Tcur.s * driftS * baseScale });
+  const tfPrev = toTf({ ...Tprev, s: Tprev.s * driftS });
+  const tfCur = toTf({ ...Tcur, s: Tcur.s * driftS });
   let tf = {
     tx: lerp(tfPrev.tx, tfCur.tx, k),
     ty: lerp(tfPrev.ty, tfCur.ty, k),
@@ -3634,45 +3618,34 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   let stageRotateDeg = 0;
   const zoomEffectRange = activeIdx >= 0 ? resolveCameraEffectRange(script, activeIdx, "zoom") : null;
   if (zoomEffectRange && activeIdx >= 0) {
-    const chainStartIdx = resolveCameraEffectChainStart(script, activeIdx, "zoom");
-    let zoomTf = tf;
-    for (let i = chainStartIdx; i <= activeIdx; i += 1) {
-      const turn = script[i];
-      if (!turn) continue;
-      const effect = normalizedCameraEffects(turn).zoom;
-      if (!effect) continue;
-      const effectDur = Math.max(cameraEffectTurnValue(turn, camCfg, "zoom", "duration"), 0.001);
-      const effectK = i < activeIdx
-        ? 1
-        : easeInOutCubic(clamp((t - turn.start) / effectDur, 0, 1));
-      const anchorAtTurn = anchorOfAt(turn.start);
-      const defaultFocus = (() => {
-        if (!isNarrationTurn(turn) && isKnownChar(turn.speaker)) {
-          const speakerAnchor = resolveCharXY(turn.speaker, anchorAtTurn, sceneDef, seg, turn.start);
-          return {
-            x: speakerAnchor.x,
-            y: clamp(faceCyOf(turn.speaker, anchorAtTurn, sceneDef, seg, turn.start) + (sceneDef.focusDy ?? 0.12), 0, 1),
-          };
-        }
-        return { x: Tcur.cx, y: Tcur.cy };
-      })();
-      const zoomFocus = explicitZoomTarget(turn) ?? zoomTargetValueAt(seg, turn.start) ?? defaultFocus;
-      const zoomAmount = cameraEffectTurnValue(turn, camCfg, "zoom", "amount");
-      const targetScale = effect === "in"
-        ? zoomTf.s + zoomAmount
-        : Math.max(1, zoomTf.s - zoomAmount);
-      const effectCam = toTf({
-        s: targetScale,
-        cx: zoomFocus.x,
-        cy: zoomFocus.y,
-      });
-      zoomTf = {
-        tx: lerp(zoomTf.tx, effectCam.tx, effectK),
-        ty: lerp(zoomTf.ty, effectCam.ty, effectK),
-        s: lerp(zoomTf.s, effectCam.s, effectK),
-      };
-    }
-    tf = zoomTf;
+    const effect = normalizedCameraEffects(active).zoom;
+    const effectDur = Math.max(cameraEffectTurnValue(active, camCfg, "zoom", "duration"), 0.001);
+    const effectK = easeInOutCubic(clamp((t - zoomEffectRange.start) / effectDur, 0, 1));
+    const defaultFocus = (() => {
+      if (!isNarrationTurn(active) && isKnownChar(active.speaker)) {
+        const speakerAnchor = resolveCharXY(active.speaker, anchorOf, sceneDef, seg, t);
+        return {
+          x: speakerAnchor.x,
+          y: clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.12), 0, 1),
+        };
+      }
+      return { x: Tcur.cx, y: Tcur.cy };
+    })();
+    const zoomFocus = explicitZoomTarget(active) ?? defaultFocus;
+    const zoomAmount = cameraEffectTurnValue(active, camCfg, "zoom", "amount");
+    const targetScale = effect === "in"
+      ? tf.s + zoomAmount
+      : Math.max(1, tf.s - zoomAmount);
+    const effectCam = toTf({
+      s: targetScale,
+      cx: zoomFocus.x,
+      cy: zoomFocus.y,
+    });
+    tf = {
+      tx: lerp(tf.tx, effectCam.tx, effectK),
+      ty: lerp(tf.ty, effectCam.ty, effectK),
+      s: lerp(tf.s, effectCam.s, effectK),
+    };
   }
   const panEffectRange = activeIdx >= 0 ? resolveCameraEffectRange(script, activeIdx, "pan") : null;
   if (panEffectRange) {
@@ -3711,7 +3684,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   let stageTy = tf.ty;
   let shakeX = 0;
   let shakeY = 0;
-  if (active.shake) {
+  if (active.shake || normalizedCameraEffects(active).shake) {
     const shakeS = Math.max(tf.s, 1.02);
     const turnDur = Math.max(active.end - active.start, 0.001);
     const elapsed = t - active.start;
@@ -3748,7 +3721,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const sfy = clamp(stageTy + shakeY, height * (1 - stageS), 0);
 
   const stageTransform = `translate(${sfx}px, ${sfy}px) scale(${stageS}) rotate(${stageRotateDeg}deg)`;
-  const insertShakeTransform = active.shake
+  const insertShakeTransform = active.shake || normalizedCameraEffects(active).shake
     ? `translate(${shakeX}px, ${shakeY}px) scale(1.02)`
     : undefined;
 

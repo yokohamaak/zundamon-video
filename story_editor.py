@@ -460,12 +460,14 @@ def _load_scenes_detail():
             continue
         anchors = v.get("anchors") if isinstance(v.get("anchors"), dict) else {}
         cast = v.get("cast") if isinstance(v.get("cast"), dict) else {}
+        camera_frames = v.get("cameraFrames") if isinstance(v.get("cameraFrames"), dict) else {}
         out.append({
             "key": k,
             "label": v.get("label") or k,
             "figure": v.get("figure", "bust"),
             "shot": v.get("shot", "duo"),
             "anchors": list(anchors.keys()),
+            "cameraFrames": [name for name in ("default", "leftFocus", "rightFocus") if name in camera_frames],
             "cast": cast,
             "soloZoom": bool(v.get("soloZoom", True)),
             "camera": v.get("camera", "static"),
@@ -514,13 +516,14 @@ def _build_script_prompt(theme, length, notes, mode="safe",
     scenes = _load_scenes_detail()
     if scenes:
         scene_lines = "\n".join(
-            "- %s … %s（%s / %s / %s / anchors: %s%s）" % (
+            "- %s … %s（%s / %s / %s / anchors: %s / cameraFrames: %s%s）" % (
                 s["key"],
                 s["label"],
                 "全身" if s["figure"] == "full" else "バスト",
                 "1人向け" if s["shot"] == "solo" else "2人向け",
                 "ゆっくりズーム" if s.get("camera") == "slow-zoom" else "固定カメラ",
                 ", ".join(s["anchors"]) if s["anchors"] else "なし",
+                ", ".join(s["cameraFrames"]) if s["cameraFrames"] else "default",
                 (
                     " / 既定配置: " +
                     ", ".join("%s=%s" % (name, anchor) for name, anchor in s["cast"].items())
@@ -549,11 +552,11 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         ' "insert": {"kind":"videocall","room":"開発定例会議","layout":"focus",'
         '"participants":[{"speaker":"zundamon","bgStyle":"office"},{"speaker":"営業","bgStyle":"office"},{"speaker":"AI","bgStyle":"ai","name":"ZunAI"}]} },\n'
         '    { "speaker": "営業", "text": "あ、ずんだもんさん。お疲れ様です。えーっと、今週の進捗ですが……『ゼロ』です！",'
-        ' "scene": "meeting_room", "expression": "normal" },\n'
+        ' "scene": "meeting_room", "expression": "normal", "focusSpeaker": true },\n'
         '    { "speaker": "zundamon", "text": "えええーっ！？ ゼロって何なのだ！？ もうすぐテスト工程に入るスケジュールなのだ！",'
-        ' "scene": "meeting_room", "expression": "surprise", "shake": true, "pose": "recoil" },\n'
+        ' "scene": "meeting_room", "expression": "surprise", "pose": "recoil", "focusSpeaker": true, "cameraEffects": {"shake": true} },\n'
         '    { "speaker": "metan", "text": "最近、我が社のシステム部に導入された最新鋭のAI……\\n『ZunAI』の存在を忘れたの？",'
-        ' "scene": "rooftop", "expression": "happy", "emphasis": true, "pose": "proud", "transition": "wipe-left" }\n'
+        ' "scene": "rooftop", "expression": "happy", "pose": "proud", "focusSpeaker": true, "cameraEffects": {"zoom":"in"}, "transition": "wipe-left" }\n'
         '  ]\n'
         '}'
     ).replace("FIRST", first_scene)
@@ -599,6 +602,17 @@ def _build_script_prompt(theme, length, notes, mode="safe",
          if experimental
          else "※ scene は各ターンの背景。リストのキーのみ使う。anchors は speakerAnchor で使える立ち位置名。場面転換は話の区切りで行う。"),
         "",
+        "━━━ カメラ指定ルール（重要）━━━",
+        "- カメラ枠 = 構図、カメラ演出 = 動き。構図調整と動きの演出を混ぜない。",
+        "- 通常の会話では、話者へ寄せたいターンに \"focusSpeaker\": true を付ける。これはズームではなく、話者の立ち位置に応じてシーン側の cameraFrames を選ぶ指定。",
+        "- focusSpeaker の判定: 話者が left → leftFocus、right → rightFocus、center → default。focusSpeaker が無い/falseなら default。",
+        "- left / center / right は画面座標ではなく、シーン内の立ち位置アンカー名。center 専用フォーカス枠は無いので center 話者は default。",
+        "- 特殊構図・3人以上・例外カットだけ \"manualCameraFrame\": {\"cx\":0.5,\"cy\":0.5,\"width\":0.8} を使ってよい。manualCameraFrame はそのターンだけ有効で、次ターンへ暗黙継続しない。",
+        "- 同じ手動構図を複数ターンで使う場合は、各ターンへ同じ manualCameraFrame を明示的に書く。ただし通常は生成段階で多用しない。",
+        "- セリフ中の動きは \"cameraEffects\" で指定する。使える動きは zoom(in/out), pan(left/right), tilt(left/right), shake(true)。cameraEffects もそのターンだけ有効で、前ターンから積み上げない。",
+        "- 構図調整用の cameraZoom / cameraCenter / cameraEffect は使わない。寄りの構図は cameraFrames または manualCameraFrame の width で表現し、動きだけ cameraEffects.zoom で表現する。",
+        "- \"cameraTransition\": \"cut\" は即切り替えしたい例外だけに使う。未指定なら smooth。",
+        "",
         "━━━ 表情（expression に使う値・各ターンに付ける）━━━",
         expr_list,
         "※ expression は上記リストのキーのみ使う。例: normal=通常 / happy=笑顔 / surprise=驚き / trouble=困り / panic=焦り / angry=怒り / niyari=ニヤリ / question=疑問。",
@@ -609,12 +623,13 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         "━━━ 使える演出（任意。付けると良くなる）━━━",
         '- "transition": "cut" / "fade-black" / "fade-white" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" … シーンが切り替わる最初の行だけに付ける場面転換',
         '- "pose": "idle" / "cheer" / "recoil" / "lean" / "droop" / "flustered" / "proud" / "step_in" / "step_back" / "listening" / "sneak" / "wobble" / "point" … その行の話者ポーズ',
-        '- "emphasis": true … 話者にズームイン（強調したい一言で）。細かな強さは通常シーン既定のままでよい',
-        '- "shake": true … 画面を揺らす（衝撃・驚き）',
-        '- "cameraEffects": {"zoom":"in"|"out","pan":"left"|"right","tilt":"left"|"right"} … その行だけカメラに追加の動きを付ける（カテゴリごとに併用可）',
+        '- "emphasis": true … 強調したい一言用の既存強調演出。通常のカメラ構図指定には使わず、話者構図は focusSpeaker を使う',
+        '- "focusSpeaker": true … 話者の立ち位置(left/right)に応じてシーン側の leftFocus/rightFocus カメラ枠へ切り替える。center は default',
+        '- "manualCameraFrame": {"cx":0.5,"cy":0.5,"width":0.8} … その行だけ使う手動カメラ枠。次の行へ暗黙継続しない。通常は必要最小限にする',
+        '- "cameraTransition": "cut" … カメラ枠を即切り替えしたい例外だけに使う。未指定なら smooth',
+        '- "cameraEffects": {"zoom":"in"|"out","pan":"left"|"right","tilt":"left"|"right","shake":true} … 決定済みの構図に、その行だけ追加のカメラ演出を重ねる（カテゴリごとに併用可）',
         '- "cameraEffectSettings": {"zoom":{"amount":0.18,"duration":0.45},"pan":{"amount":0.08,"duration":0.4},"tilt":{"angle":6.0,"duration":0.35}} … cameraEffects の効き量をその行だけ上書きする。通常は不要で、強く見せたい行だけ使う',
         '- "zoomTarget": {"x":0.52,"y":0.38} … その行のズーム演出が狙う位置（フォーカス位置）を明示指定する。通常は不要',
-        '- "cameraCenter": {"x":0.50,"y":0.45} … その行から仮想カメラの中心点を明示指定する（未指定ならシーン既定）。通常は不要',
         '- "flashback": true … 回想（彩度が落ちる。"telop" と併用推奨）',
         '- "telop": "― 前日 ―" … 画面隅に短時間出る字幕（時代・場面ラベル）',
         '- "telopX": 0.05, "telopY": 0.06, "telopSize": 1.0 … テロップの位置と大きさを微調整',
@@ -719,7 +734,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
         '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / bubbleMaxChars / speakerAnchor / manualPos / enter / enterDir / exit / exitDir'
         ' / face / faceMode / clearFace / telopX / telopY / telopSize / se / insert / pose / transition / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood'
-        ' / sparkleBurst / sparklePos / irisOut / effectSettings / cameraEffects / cameraEffectSettings / zoomTarget / cameraCenter も使ってよい。',
+        ' / sparkleBurst / sparklePos / irisOut / effectSettings / cameraEffects / cameraEffectSettings / focusSpeaker / manualCameraFrame / cameraTransition / zoomTarget も使ってよい。',
         '- text 内の "\\n" は同一吹き出し内の改行として扱う。別吹き出しにしたいなら turn を分ける。',
         '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
@@ -738,14 +753,44 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterDir", "face", "faceMode", "clearFace",
-    "emphasis", "shake", "cameraEffect", "cameraEffects", "cameraEffectSettings", "flashback", "telop", "pause", "transition", "insert",
+    "emphasis", "shake", "cameraEffects", "cameraEffectSettings", "flashback", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "subtitleMode", "subtitleStyle", "hideCharacters", "continueBubble", "bubbleMaxChars", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
     "impactText", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
-    "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos", "zoomTarget", "cameraCenter",
+    "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos", "zoomTarget", "focusSpeaker", "manualCameraFrame", "cameraTransition",
     "sparklePos",
 }
 _KNOWN_INSERT_KINDS = {"warning", "ok", "chat", "teamchat", "mailer", "videocall", "whiteboard_explain"}
+
+
+def _normalize_generated_camera_fields(turn):
+    """生成JSONの旧/揺れ表記を、現行カメラ仕様へ寄せる。"""
+    if not isinstance(turn, dict):
+        return
+    effects = turn.get("cameraEffects")
+    if not isinstance(effects, dict):
+        effects = {}
+
+    legacy = turn.pop("cameraEffect", None)
+    legacy_map = {
+        "pull-out": ("zoom", "out"),
+        "pan-left": ("pan", "left"),
+        "pan-right": ("pan", "right"),
+        "tilt-left": ("tilt", "left"),
+        "tilt-right": ("tilt", "right"),
+    }
+    if legacy in legacy_map:
+        key, value = legacy_map[legacy]
+        effects.setdefault(key, value)
+
+    if effects.get("shake") is True:
+        turn["shake"] = True
+        effects.pop("shake", None)
+
+    if effects:
+        turn["cameraEffects"] = effects
+    else:
+        turn.pop("cameraEffects", None)
 
 
 def _import_script_text(raw):
@@ -796,6 +841,7 @@ def _import_script_text(raw):
         # 自動生成フィールドを除去し id を振り直す（未対応の新演出キーは保持する）
         for k in ("start", "end", "sentences"):
             turn.pop(k, None)
+        _normalize_generated_camera_fields(turn)
         turn["id"] = "turn-%04d" % (i + 1)
         n = i + 1
         for k in turn:

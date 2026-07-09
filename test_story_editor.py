@@ -27,8 +27,10 @@ def test_prompt_mentions_current_story_fields():
         '"sparklePos"',
         '"cameraEffects"',
         '"cameraEffectSettings"',
+        '"focusSpeaker"',
+        '"manualCameraFrame"',
+        '"cameraTransition"',
         '"zoomTarget"',
-        '"cameraCenter"',
         '"whiteboard_explain"',
         '"visibleSections"',
         '"visibleArrows"',
@@ -81,10 +83,12 @@ def test_import_recognizes_supported_story_fields():
                         "faceMode": "hold",
                         "clearFace": ["zundamon"],
                         "manualPos": {"zundamon": {"x": 0.58, "y": 0.96}},
-                        "cameraEffects": {"zoom": "in", "pan": "left"},
+                        "focusSpeaker": True,
+                        "manualCameraFrame": {"cx": 0.5, "cy": 0.45, "width": 0.8},
+                        "cameraTransition": "cut",
+                        "cameraEffects": {"zoom": "in", "pan": "left", "shake": True},
                         "cameraEffectSettings": {"zoom": {"amount": 0.18, "duration": 0.45}},
                         "zoomTarget": {"x": 0.52, "y": 0.38},
-                        "cameraCenter": {"x": 0.50, "y": 0.45},
                         "se": [{"file": "se/alarm.mp3", "at": 0.0, "volume": 0.9}],
                         "sparklePos": {"x": 0.62, "y": 0.30},
                         "insert": {
@@ -123,7 +127,11 @@ def test_import_recognizes_supported_story_fields():
             assert turn["disableAutoBubbleSplit"] is True
             assert turn["faceMode"] == "hold"
             assert turn["manualPos"]["zundamon"]["x"] == 0.58
+            assert turn["focusSpeaker"] is True
+            assert turn["manualCameraFrame"]["width"] == 0.8
+            assert turn["cameraTransition"] == "cut"
             assert turn["cameraEffects"]["zoom"] == "in"
+            assert turn["shake"] is True
             assert turn["sparklePos"]["x"] == 0.62
             assert turn["insert"]["kind"] == "whiteboard_explain"
             assert turn["insert"]["visibleArrows"] == [True, False]

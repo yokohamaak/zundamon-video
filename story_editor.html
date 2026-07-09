@@ -417,7 +417,8 @@
     position: absolute;
     border: 2px solid rgba(250, 204, 21, 0.95);
     box-shadow: 0 0 0 1px rgba(17, 19, 24, 0.6);
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: move;
   }
   .placement-mini-camera-frame::before {
     content: "";
@@ -430,6 +431,17 @@
     border: 2px solid rgba(255,255,255,.92);
     background: rgba(250, 204, 21, 0.85);
     transform: translate(-50%, -50%);
+  }
+  .placement-mini-camera-handle {
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    border: 2px solid rgba(17, 19, 24, 0.9);
+    background: rgba(250, 204, 21, 0.96);
+    cursor: nwse-resize;
   }
   .overlay-modal-backdrop {
     position: fixed;
@@ -1048,6 +1060,10 @@
       <span id="bulkSceneCount"></span>
       <select class="field-select" id="bulkSceneSelect" style="width:auto; flex:1;"></select>
       <button class="btn btn-primary btn-sm" id="btnBulkSceneApply">シーンを一括適用</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkFocusOn">話者フォーカスON</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkFocusOff">話者フォーカスOFF</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkManualCameraApply">手動カメラ適用</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkManualCameraClear">手動カメラ解除</button>
       <button class="btn btn-secondary btn-sm" id="btnBulkSceneClear">選択解除</button>
     </div>
     <div class="script-list" id="scriptList"></div>
@@ -1561,7 +1577,7 @@
           「手動配置」をONにするとプレビュー上にマーカーが出るので、ドラッグで位置を指定してください。
           退場するまでその位置に固定され、別のターンで配置し直すとなめらかに移動します。
           「フォーカス位置」をONにすると、このターンのズーム演出が狙う位置を手動で指定できます。
-          「仮想カメラ中心」をONにすると、16:9の枠そのものの中心点を手動で指定できます。
+          手動カメラはこのターンだけの例外構図です。次のターンへは暗黙継続しません。
         </div>
           <div id="placementList" style="display:flex; flex-direction:column; gap:6px;"></div>
           <div class="placement-mini-card">
@@ -1570,7 +1586,9 @@
               <div class="placement-mini-stage" id="placementMiniStage">
                 <div class="placement-mini-bg" id="placementMiniBg"></div>
                 <div class="placement-mini-char-layer" id="placementMiniCharLayer"></div>
-                <div class="placement-mini-camera-frame" id="placementMiniCameraFrame"></div>
+                <div class="placement-mini-camera-frame" id="placementMiniCameraFrame">
+                  <div class="placement-mini-camera-handle" id="placementMiniCameraHandle"></div>
+                </div>
               </div>
               <div class="overlay-edit-layer placement-mini-edit-layer" id="placementMiniEditLayer"></div>
             </div>
@@ -2583,6 +2601,7 @@ function normalizeCameraEffects(turn) {
   if (src && (src.zoom === "in" || src.zoom === "out")) fx.zoom = src.zoom;
   if (src && (src.pan === "left" || src.pan === "right")) fx.pan = src.pan;
   if (src && (src.tilt === "left" || src.tilt === "right")) fx.tilt = src.tilt;
+  if (src && src.shake === true) fx.shake = true;
   if (!turn || !turn.cameraEffect) return fx;
   switch (turn.cameraEffect) {
     case "pull-out": fx.zoom = "out"; break;
@@ -2600,6 +2619,7 @@ function cameraEffectsSummary(turn) {
   if (fx.zoom) labels.push("ズーム:" + cameraEffectLabel(fx.zoom));
   if (fx.pan) labels.push("パン:" + cameraEffectLabel(fx.pan));
   if (fx.tilt) labels.push("傾き:" + cameraEffectLabel(fx.tilt));
+  if (fx.shake) labels.push("揺れ");
   return labels;
 }
 
@@ -4147,9 +4167,9 @@ function setupScriptTimeline() {
 // （story_editor.py の BASE_SPEAKERS 定義コメントにも同じ前提が書かれている）。
 const KNOWN_CHARS = ["zundamon", "metan"];
 let _placementDrag = null; // { id, startX, startY, origX, origY, origScreenX, origScreenY, pointerLock, dragTf, draftStage }
+let _manualCameraDrag = null; // { mode, startX, startY, frame, left, top, wrapId }
 // 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
 const ZOOM_TARGET_ID = "__zoomTarget__";
-const CAMERA_CENTER_ID = "__cameraCenter__";
 const SPARKLE_POS_ID = "__sparklePos__";
 const TELOP_POS_ID = "__telopPos__";
 
@@ -4187,12 +4207,24 @@ function encodePathSegsJS(path) {
   return String(path || "").split("/").map((seg) => encodeURIComponent(seg)).join("/");
 }
 
-function normalizedCameraFrameJS(sceneDef) {
-  const src = sceneDef && sceneDef.cameraFrame || {};
+function normalizeCameraFrameValueJS(src = {}) {
   const width = clampJS(typeof src.width === "number" ? src.width : 1, 0.35, 1);
   const cx = clampJS(typeof src.cx === "number" ? src.cx : 0.5, width / 2, 1 - width / 2);
   const cy = clampJS(typeof src.cy === "number" ? src.cy : 0.5, width / 2, 1 - width / 2);
   return { cx, cy, width };
+}
+
+function sceneCameraFrameJS(sceneDef, key) {
+  const src = (sceneDef && sceneDef.cameraFrames && sceneDef.cameraFrames[key])
+    || (key === "default" && sceneDef && sceneDef.cameraFrame)
+    || (sceneDef && sceneDef.cameraFrames && sceneDef.cameraFrames.default)
+    || (sceneDef && sceneDef.cameraFrame)
+    || {};
+  return normalizeCameraFrameValueJS(src);
+}
+
+function normalizedCameraFrameJS(sceneDef) {
+  return sceneCameraFrameJS(sceneDef, "default");
 }
 
 // 選択中ターン(idx)が含まれる「同一sceneが連続する区間」の[開始,終了]絶対インデックスを返す
@@ -4301,6 +4333,36 @@ function resolveActorXYAt(script, idx, id) {
   return { x: 0.5, y: 1.0 };
 }
 
+function resolveSpeakerAnchorNameAt(script, idx, speaker) {
+  if (!script || idx < 0 || idx >= script.length || !speaker) return "";
+  const turn = script[idx];
+  const sceneDef = sceneDefs?.scenes?.[turn.scene];
+  if (!sceneDef) return "";
+  const { start, end } = sceneRangeAt(script, idx);
+  const roster = sceneKnownCharRosterAt(script, start, end);
+  const anchorMap = { ...assignAnchorsJS(roster), ...(sceneDef.cast || {}) };
+  for (let i = start; i <= idx; i++) {
+    const t = script[i];
+    if (!t.narrationVoice && t.speaker === speaker && t.speakerAnchor) {
+      anchorMap[speaker] = t.speakerAnchor;
+    }
+  }
+  return anchorMap[speaker] || "";
+}
+
+function effectiveCameraFrameAt(script, idx) {
+  const turn = script && script[idx];
+  const sceneDef = sceneDefs?.scenes?.[turn?.scene];
+  if (!turn || !sceneDef) return { cx: 0.5, cy: 0.5, width: 1 };
+  if (turn.manualCameraFrame) return normalizeCameraFrameValueJS(turn.manualCameraFrame);
+  if (turn.focusSpeaker && !turn.narrationVoice && presentActorsAt(script, idx).includes(turn.speaker)) {
+    const anchorName = resolveSpeakerAnchorNameAt(script, idx, turn.speaker);
+    if (anchorName === "left") return sceneCameraFrameJS(sceneDef, "leftFocus");
+    if (anchorName === "right") return sceneCameraFrameJS(sceneDef, "rightFocus");
+  }
+  return sceneCameraFrameJS(sceneDef, "default");
+}
+
 function isTurnActorManuallyPlaced(turn, id) {
   return !!(turn.manualPos && turn.manualPos[id]);
 }
@@ -4315,16 +4377,6 @@ function resolveAutoZoomXYAt(script, idx) {
     const xy = resolveActorXYAt(script, idx, turn.speaker);
     const dy = (sceneDef && sceneDef.focusDy) ?? 0.12;
     return { x: xy.x, y: Math.max(0, Math.min(1, xy.y + dy)) };
-  }
-  return { x: 0.5, y: 0.5 };
-}
-
-function resolveAutoCameraCenterAt(script, idx) {
-  const turn = script[idx];
-  const sceneDef = sceneDefs?.scenes?.[turn.scene];
-  const frame = sceneDef?.cameraFrame;
-  if (frame && typeof frame.cx === "number" && typeof frame.cy === "number") {
-    return { x: frame.cx, y: frame.cy };
   }
   return { x: 0.5, y: 0.5 };
 }
@@ -4361,7 +4413,7 @@ function placementPreviewTf(rect) {
   const turn = script[selectedIdx];
   const sceneDef = sceneDefs?.scenes?.[turn.scene];
   if (!sceneDef) return { tx: 0, ty: 0, s: 1 };
-  const frame = normalizedCameraFrameJS(sceneDef);
+  const frame = effectiveCameraFrameAt(script, selectedIdx);
   const baseScale = 1 / frame.width;
   const toTf = (cam) => {
     const s = cam.s;
@@ -4372,13 +4424,7 @@ function placementPreviewTf(rect) {
     };
   };
 
-  let baseCam;
-  const manualCenter = resolvePlacementPointAt(script, selectedIdx, "cameraCenter");
-  if (manualCenter) {
-    baseCam = { s: baseScale, cx: manualCenter.x, cy: manualCenter.y };
-  } else {
-    baseCam = { s: baseScale, cx: frame.cx, cy: frame.cy };
-  }
+  const baseCam = { s: baseScale, cx: frame.cx, cy: frame.cy };
 
   const emphasisInfo = getEmphasisCarryInfo(script, selectedIdx);
   if (!emphasisInfo.active || turn.narrationVoice || !KNOWN_CHARS.includes(turn.speaker)) {
@@ -4415,7 +4461,7 @@ function placementScreenToStage(rect, sx, sy, tfOverride) {
   };
 }
 
-// 配置タブの「チェックで単一座標をON/OFF」共通行。フォーカス位置・仮想カメラ中心・キラッ位置・テロップ位置で共有する。
+// 配置タブの「チェックで単一座標をON/OFF」共通行。フォーカス位置・キラッ位置・テロップ位置で共有する。
 // opts: { icon, label, isChecked, getAuto, onSet({x,y}), onClear }
 function makePositionToggleRow(opts) {
   const row = document.createElement("label");
@@ -4495,15 +4541,56 @@ function renderPlacementPanel() {
     onClear: () => { turn.zoomTarget = null; },
   }));
 
-  // 仮想カメラ中心（16:9枠の中心点）。明示した時だけシーン既定のcameraFrame中心を上書きする。
-  container.appendChild(makePositionToggleRow({
-    icon: "📷",
-    label: "仮想カメラ中心",
-    isChecked: () => turn.cameraCenter != null,
-    getAuto: () => resolveAutoCameraCenterAt(storyData.script, selectedIdx),
-    onSet: (xy) => { turn.cameraCenter = xy; },
-    onClear: () => { turn.cameraCenter = null; },
-  }));
+  const focusRow = document.createElement("label");
+  focusRow.className = "toggle-row";
+  focusRow.style.cssText = "justify-content:space-between; padding:4px 0; border-top:1px solid var(--border); margin-top:6px; padding-top:10px;";
+  const focusLabel = document.createElement("span");
+  focusLabel.textContent = "話者フォーカス";
+  const focusCb = document.createElement("input");
+  focusCb.type = "checkbox";
+  focusCb.checked = !!turn.focusSpeaker;
+  focusCb.addEventListener("change", () => {
+    if (focusCb.checked) turn.focusSpeaker = true;
+    else delete turn.focusSpeaker;
+    markDirty();
+    notifyPlayerUpdate();
+    renderPlacementEditLayer();
+  });
+  focusRow.appendChild(focusCb);
+  focusRow.appendChild(focusLabel);
+  container.appendChild(focusRow);
+
+  const manualRow = document.createElement("div");
+  manualRow.style.cssText = "display:flex; gap:8px; align-items:center; border-top:1px solid var(--border); margin-top:6px; padding-top:10px; flex-wrap:wrap;";
+  const manualBtn = document.createElement("button");
+  manualBtn.type = "button";
+  manualBtn.className = "btn btn-secondary btn-sm";
+  manualBtn.textContent = turn.manualCameraFrame ? "手動カメラ更新" : "手動カメラ作成";
+  manualBtn.addEventListener("click", () => {
+    turn.manualCameraFrame = { ...effectiveCameraFrameAt(storyData.script, selectedIdx) };
+    markDirty();
+    notifyPlayerUpdate();
+    renderPlacementPanel();
+  });
+  manualRow.appendChild(manualBtn);
+  if (turn.manualCameraFrame) {
+    const clearBtn = document.createElement("button");
+    clearBtn.type = "button";
+    clearBtn.className = "btn btn-secondary btn-sm";
+    clearBtn.textContent = "手動カメラ解除";
+    clearBtn.addEventListener("click", () => {
+      delete turn.manualCameraFrame;
+      markDirty();
+      notifyPlayerUpdate();
+      renderPlacementPanel();
+    });
+    manualRow.appendChild(clearBtn);
+  }
+  const manualHelp = document.createElement("span");
+  manualHelp.style.cssText = "font-size:11px; color:var(--text2);";
+  manualHelp.textContent = turn.manualCameraFrame ? "黄色枠をドラッグ/右下でサイズ変更" : "現在の構図をこのターンだけコピー";
+  manualRow.appendChild(manualHelp);
+  container.appendChild(manualRow);
 
   // キラッ位置（sparkleBurstが有効な行だけ出す。効果が無いターンでは意味が無いため）。
   if (turn.sparkleBurst) {
@@ -4587,9 +4674,6 @@ function renderPlacementMarkers(layer, wrap, tf, wrapId) {
   if (turn.zoomTarget) {
     addPlacementMarkerWithTf(layer, rect, tf, placementDraftValue(ZOOM_TARGET_ID, turn.zoomTarget), ZOOM_TARGET_ID, "フォーカス", "placement-marker-zoom", wrapId);
   }
-  if (turn.cameraCenter) {
-    addPlacementMarkerWithTf(layer, rect, tf, placementDraftValue(CAMERA_CENTER_ID, turn.cameraCenter), CAMERA_CENTER_ID, "カメラ", "placement-marker-zoom", wrapId);
-  }
   if (turn.sparklePos) {
     addPlacementMarkerWithTf(layer, rect, tf, placementDraftValue(SPARKLE_POS_ID, turn.sparklePos), SPARKLE_POS_ID, "キラッ", "placement-marker-sparkle", wrapId);
   }
@@ -4621,15 +4705,16 @@ function renderPlacementMiniPreview() {
     bg.style.backgroundImage = `url(/preview-assets/${encodePathSegsJS(sceneDef.bg)})`;
   }
   if (sceneDef) {
-    const cameraFrame = normalizedCameraFrameJS(sceneDef);
-    const cameraCenter = resolvePlacementPointAt(storyData.script, selectedIdx, "cameraCenter");
-    const cx = cameraCenter?.x ?? cameraFrame.cx;
-    const cy = cameraCenter?.y ?? cameraFrame.cy;
+    const cameraFrame = effectiveCameraFrameAt(storyData.script, selectedIdx);
+    const cx = cameraFrame.cx;
+    const cy = cameraFrame.cy;
     frameEl.style.display = "";
     frameEl.style.left = ((cx - cameraFrame.width / 2) * 100) + "%";
     frameEl.style.top = ((cy - cameraFrame.width / 2) * 100) + "%";
     frameEl.style.width = (cameraFrame.width * 100) + "%";
     frameEl.style.height = (cameraFrame.width * 100) + "%";
+    frameEl.style.pointerEvents = turn.manualCameraFrame ? "auto" : "none";
+    frameEl.style.opacity = turn.manualCameraFrame ? "1" : "0.55";
   }
 
   const actors = presentActorsAt(storyData.script, selectedIdx);
@@ -4710,8 +4795,6 @@ function beginPlacementDrag(e, id, wrapId) {
   let xy;
   if (id === ZOOM_TARGET_ID) {
     xy = resolvePlacementPointAt(storyData.script, selectedIdx, "zoomTarget") || resolveAutoZoomXYAt(storyData.script, selectedIdx);
-  } else if (id === CAMERA_CENTER_ID) {
-    xy = resolvePlacementPointAt(storyData.script, selectedIdx, "cameraCenter") || resolveAutoCameraCenterAt(storyData.script, selectedIdx);
   } else if (id === SPARKLE_POS_ID) {
     xy = turn.sparklePos || { x: 0.5, y: 0.45 };
   } else if (id === TELOP_POS_ID) {
@@ -4736,11 +4819,58 @@ function beginPlacementDrag(e, id, wrapId) {
     origScreenX: screen.x,
     origScreenY: screen.y,
     // 点指定系は「マーカーを掴んだ位置」ではなく「カーソル位置そのもの」を保存した方が直感的。
-    pointerLock: id === ZOOM_TARGET_ID || id === CAMERA_CENTER_ID,
-    // cameraCenter自身がカメラ変換を変えるため、D&D中の逆変換は開始時の見た目に固定する。
+    pointerLock: id === ZOOM_TARGET_ID,
     dragTf,
     draftStage: xy,
   };
+}
+
+function beginManualCameraDrag(e, mode) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (selectedIdx < 0 || !storyData) return;
+  const turn = storyData.script[selectedIdx];
+  if (!turn.manualCameraFrame) return;
+  const frame = normalizeCameraFrameValueJS(turn.manualCameraFrame);
+  _manualCameraDrag = {
+    mode,
+    startX: e.clientX,
+    startY: e.clientY,
+    frame,
+    left: frame.cx - frame.width / 2,
+    top: frame.cy - frame.width / 2,
+  };
+}
+
+function updateManualCameraFrameFromDrag(e) {
+  if (!_manualCameraDrag || selectedIdx < 0 || !storyData) return;
+  const wrap = document.getElementById("placementMiniWrap");
+  if (!wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const dx = (e.clientX - _manualCameraDrag.startX) / Math.max(rect.width, 1);
+  const dy = (e.clientY - _manualCameraDrag.startY) / Math.max(rect.height, 1);
+  const turn = storyData.script[selectedIdx];
+  if (!turn.manualCameraFrame) return;
+  if (_manualCameraDrag.mode === "move") {
+    const width = _manualCameraDrag.frame.width;
+    turn.manualCameraFrame = {
+      cx: clampJS(_manualCameraDrag.frame.cx + dx, width / 2, 1 - width / 2),
+      cy: clampJS(_manualCameraDrag.frame.cy + dy, width / 2, 1 - width / 2),
+      width,
+    };
+  } else {
+    const nextWidth = Math.max(_manualCameraDrag.frame.width + Math.max(dx, dy), 0.35);
+    const maxWidth = Math.min(1 - _manualCameraDrag.left, 1 - _manualCameraDrag.top, 1);
+    const width = clampJS(nextWidth, 0.35, maxWidth);
+    turn.manualCameraFrame = {
+      cx: _manualCameraDrag.left + width / 2,
+      cy: _manualCameraDrag.top + width / 2,
+      width,
+    };
+  }
+  markDirty();
+  notifyPlayerUpdate();
+  renderPlacementMiniPreview();
 }
 
 function renderOverlayEditLayer() {
@@ -5687,6 +5817,49 @@ function applyBulkScene() {
   notifyPlayerUpdate();
 }
 
+function applyBulkFocusSpeaker(enabled) {
+  if (selectedIndices.size < 2 || !storyData) return;
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (!turn) continue;
+    if (enabled) turn.focusSpeaker = true;
+    else delete turn.focusSpeaker;
+  }
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
+function applyBulkManualCamera() {
+  if (selectedIndices.size < 2 || !storyData || selectedIdx < 0) return;
+  const src = storyData.script[selectedIdx]?.manualCameraFrame;
+  if (!src) {
+    alert("選択中ターンに manualCameraFrame がありません。配置タブで手動カメラを作成してから適用してください。");
+    return;
+  }
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (turn) turn.manualCameraFrame = { ...normalizeCameraFrameValueJS(src) };
+  }
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
+function clearBulkManualCamera() {
+  if (selectedIndices.size < 2 || !storyData) return;
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (turn) delete turn.manualCameraFrame;
+  }
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
 function renderList() {
   const container = document.getElementById("scriptList");
   container.innerHTML = "";
@@ -5735,6 +5908,8 @@ function renderList() {
     else if (emphasisInfo.stop) badges.appendChild(makeBadge("ズーム終了", "warn"));
     if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
+    if (turn.focusSpeaker) badges.appendChild(makeBadge("話者フォーカス", "fx"));
+    if (turn.manualCameraFrame) badges.appendChild(makeBadge("手動カメラ", "fx"));
     for (const label of cameraEffectsSummary(turn)) {
       badges.appendChild(makeBadge("カメラ:" + label, "fx"));
     }
@@ -6121,9 +6296,9 @@ function renderDetail() {
   setField("fFaceMode", "select", turn.faceMode || "");
   document.getElementById("fClearFaceZundamon").checked = !!(turn.clearFace && turn.clearFace.includes("zundamon"));
   document.getElementById("fClearFaceMetan").checked = !!(turn.clearFace && turn.clearFace.includes("metan"));
-  document.getElementById("fShake").checked = !!turn.shake;
   document.getElementById("fFlashback").checked = !!turn.flashback;
   const cameraFx = normalizeCameraEffects(turn);
+  document.getElementById("fShake").checked = !!turn.shake || !!cameraFx.shake;
   setField("fCameraEffectZoom", "select", cameraFx.zoom || "");
   setField("fCameraEffectPan", "select", cameraFx.pan || "");
   setField("fCameraEffectTilt", "select", cameraFx.tilt || "");
@@ -7451,10 +7626,10 @@ function collectBasic() {
   else delete turn.clearFace;
 
   const cameraEffects = {};
-  const cameraZoom = document.getElementById("fCameraEffectZoom").value;
+  const cameraEffectZoom = document.getElementById("fCameraEffectZoom").value;
   const cameraPan = document.getElementById("fCameraEffectPan").value;
   const cameraTilt = document.getElementById("fCameraEffectTilt").value;
-  if (cameraZoom) cameraEffects.zoom = cameraZoom;
+  if (cameraEffectZoom) cameraEffects.zoom = cameraEffectZoom;
   if (cameraPan) cameraEffects.pan = cameraPan;
   if (cameraTilt) cameraEffects.tilt = cameraTilt;
   if (Object.keys(cameraEffects).length > 0) turn.cameraEffects = cameraEffects;
@@ -7822,7 +7997,7 @@ function addTurnAfter(inheritScene = false) {
     delete newTurn.exitDir;
     delete newTurn.manualPos;
     delete newTurn.zoomTarget;
-    delete newTurn.cameraCenter;
+    delete newTurn.manualCameraFrame;
     delete newTurn.sparklePos;
   } else {
     // 既定は暗転(黒) scene=""の空ターン。
@@ -7879,7 +8054,7 @@ function splitDialogueAtCursor() {
   delete newTurn.exitDir;
   delete newTurn.manualPos;
   delete newTurn.zoomTarget;
-  delete newTurn.cameraCenter;
+  delete newTurn.manualCameraFrame;
   delete newTurn.sparklePos;
   if (!isSubtitleTurnData(turn)) newTurn.continueBubble = true;
 
@@ -8547,6 +8722,10 @@ function setupEvents() {
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
   document.getElementById("btnBulkSceneApply").addEventListener("click", applyBulkScene);
+  document.getElementById("btnBulkFocusOn").addEventListener("click", () => applyBulkFocusSpeaker(true));
+  document.getElementById("btnBulkFocusOff").addEventListener("click", () => applyBulkFocusSpeaker(false));
+  document.getElementById("btnBulkManualCameraApply").addEventListener("click", applyBulkManualCamera);
+  document.getElementById("btnBulkManualCameraClear").addEventListener("click", clearBulkManualCamera);
   document.getElementById("btnBulkSceneClear").addEventListener("click", () => { clearMultiSelection(); renderList(); });
   document.getElementById("btnAddOverlay").addEventListener("click", async () => {
     await ensureOverlayAssets();
@@ -8598,6 +8777,10 @@ function setupEvents() {
   });
 
   window.addEventListener("mousemove", (e) => {
+    if (_manualCameraDrag) {
+      updateManualCameraFrameFromDrag(e);
+      return;
+    }
     if (!_placementDrag) return;
     e.preventDefault();
     const wrap = document.getElementById(_placementDrag.wrapId || "playerWrap");
@@ -8616,6 +8799,13 @@ function setupEvents() {
     renderPlacementEditLayer();
   });
   window.addEventListener("mouseup", () => {
+    if (_manualCameraDrag) {
+      _manualCameraDrag = null;
+      renderPlacementPanel();
+      renderPlacementEditLayer();
+      notifyPlayerUpdate();
+      return;
+    }
     if (!_placementDrag) return;
     if (selectedIdx >= 0 && storyData) {
       const turn = storyData.script[selectedIdx];
@@ -8623,8 +8813,6 @@ function setupEvents() {
       if (stage) {
         if (_placementDrag.id === ZOOM_TARGET_ID) {
           turn.zoomTarget = { x: stage.x, y: stage.y };
-        } else if (_placementDrag.id === CAMERA_CENTER_ID) {
-          turn.cameraCenter = { x: stage.x, y: stage.y };
         } else if (_placementDrag.id === SPARKLE_POS_ID) {
           turn.sparklePos = { x: stage.x, y: stage.y };
         } else if (_placementDrag.id === TELOP_POS_ID) {
@@ -8641,6 +8829,15 @@ function setupEvents() {
     renderPlacementEditLayer();
     notifyPlayerUpdate();
   });
+
+  const placementMiniCameraFrame = document.getElementById("placementMiniCameraFrame");
+  const placementMiniCameraHandle = document.getElementById("placementMiniCameraHandle");
+  if (placementMiniCameraFrame) {
+    placementMiniCameraFrame.addEventListener("mousedown", (e) => beginManualCameraDrag(e, "move"));
+  }
+  if (placementMiniCameraHandle) {
+    placementMiniCameraHandle.addEventListener("mousedown", (e) => beginManualCameraDrag(e, "resize"));
+  }
 
   // タブ切替
   document.querySelectorAll(".tab-btn").forEach(btn => {

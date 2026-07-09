@@ -486,7 +486,7 @@
       <div class="field-row">
         <label class="toggle-row">
           <input type="checkbox" id="cameraPreviewToggle" checked>
-          <span>デフォルトカメラ枠をプレビュー</span>
+          <span>選択中カメラ枠をプレビュー</span>
         </label>
         <label class="toggle-row" style="margin-top:6px">
           <input type="checkbox" id="focusPreviewToggle">
@@ -575,9 +575,17 @@
     </div>
 
     <div class="side-section">
-      <div class="section-title">デフォルトカメラ枠</div>
+      <div class="section-title">シーン基本カメラ枠</div>
+      <div class="field-row">
+        <label class="field-label">編集する枠</label>
+        <select class="field-select" id="cameraFrameKey">
+          <option value="default">default（標準構図）</option>
+          <option value="leftFocus">leftFocus（left話者）</option>
+          <option value="rightFocus">rightFocus（right話者）</option>
+        </select>
+      </div>
       <div class="field-label" id="cameraFrameInfo">center(0.500, 0.500) / width 1.000</div>
-      <div class="slider-hint">背景全体に対する既定の16:9カメラ領域です。枠内が通常表示範囲になり、既存のパン・ズームはこの枠を基準に効きます。</div>
+      <div class="slider-hint">default / leftFocus / rightFocus の3枠をシーン共通の構図として保存します。話者フォーカスONのターンでは、話者の立ち位置に応じて枠が切り替わります。</div>
     </div>
 
     <div class="side-section">
@@ -647,6 +655,7 @@ let selectedMobId = null;    // スケールスライダー対象モブID
 let showFront = true;
 let manifestData = null;     // avatars/manifest.json キャッシュ
 let draggingFrame = null;    // カメラ枠D&D: { mode:'move'|'resize', offsetX?, offsetY?, left?, top? }
+let currentCameraFrameKey = 'default';
 
 function compareUiText(a, b) {
   return String(a || '').localeCompare(String(b || ''), 'ja', { numeric: true, sensitivity: 'base' });
@@ -669,8 +678,7 @@ function clampN(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-function normalizedCameraFrame(sc) {
-  const src = sc?.cameraFrame || {};
+function normalizedFrameValue(src = {}) {
   const width = clampN(
     typeof src.width === 'number' ? src.width : 1,
     CAMERA_FRAME_MIN,
@@ -689,17 +697,41 @@ function normalizedCameraFrame(sc) {
   return { cx, cy, width, x: cx - width / 2, y: cy - width / 2, h: width };
 }
 
-function ensureCameraFrame(sc) {
-  if (!sc.cameraFrame) sc.cameraFrame = { cx: 0.5, cy: 0.5, width: 1 };
-  const norm = normalizedCameraFrame(sc);
-  sc.cameraFrame.cx = norm.cx;
-  sc.cameraFrame.cy = norm.cy;
-  sc.cameraFrame.width = norm.width;
-  return sc.cameraFrame;
+function cameraFrameSource(sc, key = currentCameraFrameKey) {
+  if (!sc) return {};
+  return (sc.cameraFrames && sc.cameraFrames[key])
+    || (key === 'default' ? sc.cameraFrame : null)
+    || (sc.cameraFrames && sc.cameraFrames.default)
+    || sc.cameraFrame
+    || {};
+}
+
+function normalizedCameraFrame(sc, key = currentCameraFrameKey) {
+  return normalizedFrameValue(cameraFrameSource(sc, key));
+}
+
+function ensureCameraFrames(sc) {
+  if (!sc.cameraFrames) sc.cameraFrames = {};
+  const base = normalizedFrameValue(sc.cameraFrames.default || sc.cameraFrame || {});
+  if (!sc.cameraFrames.default) sc.cameraFrames.default = { cx: base.cx, cy: base.cy, width: base.width };
+  for (const key of ['leftFocus', 'rightFocus']) {
+    if (!sc.cameraFrames[key]) sc.cameraFrames[key] = { ...sc.cameraFrames.default };
+  }
+  sc.cameraFrame = { ...sc.cameraFrames.default };
+}
+
+function ensureCameraFrame(sc, key = currentCameraFrameKey) {
+  ensureCameraFrames(sc);
+  const norm = normalizedCameraFrame(sc, key);
+  sc.cameraFrames[key].cx = norm.cx;
+  sc.cameraFrames[key].cy = norm.cy;
+  sc.cameraFrames[key].width = norm.width;
+  if (key === 'default') sc.cameraFrame = { ...sc.cameraFrames.default };
+  return sc.cameraFrames[key];
 }
 
 function cameraFramePx(sc) {
-  const norm = normalizedCameraFrame(sc);
+  const norm = normalizedCameraFrame(sc, currentCameraFrameKey);
   return {
     ...norm,
     px: norm.x * STAGE_W,
@@ -714,7 +746,7 @@ function updateCameraFrameInfo() {
   const el = document.getElementById('cameraFrameInfo');
   if (!el || !sc) return;
   const frame = normalizedCameraFrame(sc);
-  el.textContent = `center(${frame.cx.toFixed(3)}, ${frame.cy.toFixed(3)}) / width ${frame.width.toFixed(3)}`;
+  el.textContent = `${currentCameraFrameKey}: center(${frame.cx.toFixed(3)}, ${frame.cy.toFixed(3)}) / width ${frame.width.toFixed(3)}`;
 }
 
 // ============================================================
@@ -883,6 +915,9 @@ function selectScene(id) {
   document.getElementById('sceneSelect').value = id;
   const sc = currentScene();
   if (!sc) return;
+  ensureCameraFrames(sc);
+  const frameKeySel = document.getElementById('cameraFrameKey');
+  if (frameKeySel) frameKeySel.value = currentCameraFrameKey;
   document.getElementById('fLabel').value = sc.label || '';
   document.getElementById('fCamera').value = sc.camera || 'static';
   const focusZoom = sc.focusZoom != null ? sc.focusZoom : 0.3;
@@ -1416,18 +1451,19 @@ function setupDrag() {
     if (draggingFrame) {
       const sc = currentScene();
       if (!sc) return;
-      ensureCameraFrame(sc);
+      const cameraFrame = ensureCameraFrame(sc, currentCameraFrameKey);
       if (draggingFrame.mode === 'move') {
-        const width = sc.cameraFrame.width;
-        sc.cameraFrame.cx = clampN(sx / STAGE_W - draggingFrame.offsetX, width / 2, 1 - width / 2);
-        sc.cameraFrame.cy = clampN(sy / STAGE_H - draggingFrame.offsetY, width / 2, 1 - width / 2);
+        const width = cameraFrame.width;
+        cameraFrame.cx = clampN(sx / STAGE_W - draggingFrame.offsetX, width / 2, 1 - width / 2);
+        cameraFrame.cy = clampN(sy / STAGE_H - draggingFrame.offsetY, width / 2, 1 - width / 2);
       } else {
         const maxWidth = Math.min(1 - draggingFrame.left, 1 - draggingFrame.top);
         const nextWidth = Math.max((sx / STAGE_W) - draggingFrame.left, (sy / STAGE_H) - draggingFrame.top);
-        sc.cameraFrame.width = clampN(nextWidth, CAMERA_FRAME_MIN, Math.min(CAMERA_FRAME_MAX, maxWidth));
-        sc.cameraFrame.cx = draggingFrame.left + sc.cameraFrame.width / 2;
-        sc.cameraFrame.cy = draggingFrame.top + sc.cameraFrame.width / 2;
+        cameraFrame.width = clampN(nextWidth, CAMERA_FRAME_MIN, Math.min(CAMERA_FRAME_MAX, maxWidth));
+        cameraFrame.cx = draggingFrame.left + cameraFrame.width / 2;
+        cameraFrame.cy = draggingFrame.top + cameraFrame.width / 2;
       }
+      if (currentCameraFrameKey === 'default') sc.cameraFrame = { ...cameraFrame };
       updateCameraFrameInfo();
       applyStageTransform();
       renderPreview();
@@ -1590,6 +1626,15 @@ function setupEvents() {
 
   document.getElementById('cameraPreviewToggle').addEventListener('change', applyStageTransform);
 
+  document.getElementById('cameraFrameKey').addEventListener('change', e => {
+    currentCameraFrameKey = e.target.value || 'default';
+    const sc = currentScene();
+    if (sc) ensureCameraFrame(sc, currentCameraFrameKey);
+    updateCameraFrameInfo();
+    applyStageTransform();
+    renderPreview();
+  });
+
   document.getElementById('focusPreviewToggle').addEventListener('change', applyStageTransform);
 
   document.getElementById('focusZoomSlider').addEventListener('input', e => {
@@ -1701,6 +1746,11 @@ function addScene() {
     figure: 'full',
     camera: 'static',
     cameraFrame: { cx: 0.5, cy: 0.5, width: 1 },
+    cameraFrames: {
+      default: { cx: 0.5, cy: 0.5, width: 1 },
+      leftFocus: { cx: 0.5, cy: 0.5, width: 1 },
+      rightFocus: { cx: 0.5, cy: 0.5, width: 1 }
+    },
     scale: 1.1,
     bgBlur: 0,
     cast: {},
