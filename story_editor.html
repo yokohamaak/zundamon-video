@@ -191,7 +191,9 @@
     transition: background .1s;
   }
   .turn-row:hover { background: var(--surface2); }
+  .turn-row.playback-follow { background: rgba(91,141,238,.10); }
   .turn-row.selected { background: rgba(91,141,238,.18); border-left: 3px solid var(--accent); padding-left: 7px; }
+  .turn-row.selected.playback-follow { background: rgba(91,141,238,.24); }
   .turn-row.multi-selected { outline: 2px solid var(--green); outline-offset: -2px; }
   .bulk-edit-bar {
     display: flex; align-items: center; gap: 6px; padding: 6px 8px;
@@ -823,7 +825,7 @@
   @media (max-width: 900px) and (orientation: portrait) {
     .main {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(240px, 42vh) auto minmax(0, 1fr) auto;
+      grid-template-rows: minmax(220px, 36vh) auto minmax(0, 1.35fr) minmax(120px, .65fr);
       grid-template-areas:
         "preview"
         "switch"
@@ -835,6 +837,7 @@
       border-left: none;
       border-right: none;
       border-bottom: 1px solid var(--border);
+      min-height: 0;
     }
     .preview-pane {
       padding-bottom: 6px;
@@ -842,6 +845,12 @@
     .timeline-pane {
       padding-top: 8px;
       border-top: 1px solid var(--border);
+      min-height: 0;
+    }
+    .script-list {
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     .preview-player-wrap {
       border-radius: 12px;
@@ -856,13 +865,22 @@
       border-radius: 14px;
     }
     .pane-left-toolbar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
       padding: 10px 12px;
-      gap: 10px;
+      gap: 8px;
     }
     .pane-left-toolbar .btn {
-      min-height: 48px;
-      font-size: 16px;
+      flex: 0 0 auto;
+      min-height: 42px;
+      min-width: 88px;
+      font-size: 14px;
       border-radius: 12px;
+    }
+    .turn-count {
+      margin-left: 4px;
+      flex: 0 0 auto;
     }
     .scene-group-header {
       padding: 10px 16px 6px;
@@ -5881,7 +5899,10 @@ function renderList() {
 
     // ターン行
     const row = document.createElement("div");
-    row.className = "turn-row" + (i === selectedIdx ? " selected" : "") + (selectedIndices.has(i) ? " multi-selected" : "");
+    row.className = "turn-row"
+      + (i === selectedIdx ? " selected" : "")
+      + (i === playbackFollowIdx ? " playback-follow" : "")
+      + (selectedIndices.has(i) ? " multi-selected" : "");
     row.dataset.idx = i;
 
     // アイコン
@@ -5975,15 +5996,24 @@ function renderList() {
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 
-function updateSelectedTurnRow(prevIdx, nextIdx, scrollIntoView = false) {
+function updateTurnRowHighlight(prevIdx, nextIdx, className, scrollIntoView = false) {
   const container = document.getElementById("scriptList");
   if (!container) return false;
   const prev = prevIdx >= 0 ? container.querySelector(`.turn-row[data-idx="${prevIdx}"]`) : null;
   const next = nextIdx >= 0 ? container.querySelector(`.turn-row[data-idx="${nextIdx}"]`) : null;
   if (!next) return false;
-  if (prev && prev !== next) prev.classList.remove("selected");
-  next.classList.add("selected");
+  if (prev && prev !== next) prev.classList.remove(className);
+  next.classList.add(className);
   if (scrollIntoView) next.scrollIntoView({ block: "nearest" });
+  return true;
+}
+
+function isScriptListVisibleForPlaybackFollow() {
+  const view = document.getElementById("viewScript");
+  if (!view) return true;
+  if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
+    return view.dataset.mobilePanel !== "detail";
+  }
   return true;
 }
 
@@ -5992,8 +6022,10 @@ function keepSelectedTurnRowVisible(idx) {
   if (!container) return false;
   const row = idx >= 0 ? container.querySelector(`.turn-row[data-idx="${idx}"]`) : null;
   if (!row) return false;
-  const rowTop = row.offsetTop;
-  const rowBottom = rowTop + row.offsetHeight;
+  const containerRect = container.getBoundingClientRect();
+  const rowRect = row.getBoundingClientRect();
+  const rowTop = rowRect.top - containerRect.top + container.scrollTop;
+  const rowBottom = rowRect.bottom - containerRect.top + container.scrollTop;
   const viewTop = container.scrollTop;
   const viewBottom = viewTop + container.clientHeight;
   if (rowTop < viewTop) {
@@ -6005,7 +6037,7 @@ function keepSelectedTurnRowVisible(idx) {
 }
 
 function followPlaybackTurn(idx) {
-  const prevIdx = playbackFollowIdx >= 0 ? playbackFollowIdx : selectedIdx;
+  const prevIdx = playbackFollowIdx;
   playbackFollowIdx = idx;
   updateTurnCount(idx);
   // 再生中は一覧全体の再構築や詳細フォーム更新を避ける。
@@ -6014,7 +6046,11 @@ function followPlaybackTurn(idx) {
   // ここで selectedIdx 自体は変更しない：変更すると、詳細フォームに表示中の
   // （再生で進んだ）別ターンへ、画面上の古いフォーム値が誤って書き込まれてしまう
   // （演出編集中に別行のセリフが化ける事故の原因だった）。
-  if (!updateSelectedTurnRow(prevIdx, idx, false)) {
+  if (!isScriptListVisibleForPlaybackFollow()) {
+    if (typeof drawScriptTimeline === "function") drawScriptTimeline();
+    return;
+  }
+  if (!updateTurnRowHighlight(prevIdx, idx, "playback-follow", false)) {
     renderList();
     return;
   }
@@ -6234,15 +6270,16 @@ function fallbackIcon(speaker) {
 // ターン選択
 // ============================================================
 function selectTurn(idx, doSeek = true) {
-  // ハイライトが再生追従(playbackFollowIdx)でselectedIdxからズレている場合も
-  // 確実に旧ハイライトを消せるよう、実際に光っている方を prevIdx として使う。
-  const prevIdx = playbackFollowIdx >= 0 ? playbackFollowIdx : selectedIdx;
+  const prevSelectedIdx = selectedIdx;
+  const prevPlaybackIdx = playbackFollowIdx;
   selectedIdx = idx;
   playbackFollowIdx = idx;
   updateTurnCount();
   _selectedOverlayId = null;
   _selectedBgmIdx = -1;
-  if (!updateSelectedTurnRow(prevIdx, idx, true)) {
+  const selectedUpdated = updateTurnRowHighlight(prevSelectedIdx, idx, "selected", true);
+  const playbackUpdated = updateTurnRowHighlight(prevPlaybackIdx, idx, "playback-follow", false);
+  if (!selectedUpdated || !playbackUpdated) {
     renderList();
   } else if (typeof drawScriptTimeline === "function") {
     drawScriptTimeline();
@@ -8521,6 +8558,11 @@ function setMobilePanel(panel) {
   document.querySelectorAll(".mobile-work-tab").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mobilePanel === next);
   });
+  if (next === "script") {
+    renderList();
+    const idx = playbackFollowIdx >= 0 ? playbackFollowIdx : selectedIdx;
+    if (idx >= 0) keepSelectedTurnRowVisible(idx);
+  }
 }
 
 // ============================================================
