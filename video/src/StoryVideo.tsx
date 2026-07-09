@@ -302,7 +302,7 @@ export type SceneDef = {
   // 話者プッシュイン(emphasis)の調整。focusZoom=現在倍率への加算量。
   focusZoom?: number;
   focusCy?: number; // 廃止(旧・縦の絶対注視点)。focusDy に置き換え。読み込みはしない。
-  focusDy?: number; // プッシュイン 顔からの縦オフセット（既定 0.04）
+  focusDy?: number; // プッシュイン 顔からの縦オフセット（既定 0.12）
   // 背景全体に対する既定の16:9カメラ領域。anchors はこの枠内の相対位置として解釈する。
   cameraFrame?: CameraFrame;
   scale?: number; // 立ち絵の拡大率（既定 1.9）
@@ -3437,7 +3437,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const speakerAnchor = resolveCharXY(active.speaker, anchorOf, sceneDef, seg, t);
     const autoFocusCx = speakerAnchor.x;
     // 縦は話者の顔位置＋オフセット(focusDy)。プッシュインは寄りが強いので既定は顔寄りめ。
-    const autoFocusCy = clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.04), 0, 1);
+    const autoFocusCy = clamp(faceCyOf(active.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.12), 0, 1);
     // turn.zoomTarget があれば寄り位置を手動指定値で上書きする（無ければ自動計算のまま）。
     const manualFocus = resolveZoomTargetAt(seg, t, () => ({ x: autoFocusCx, y: autoFocusCy }));
     const emphasisCfg = resolveEffectSettings(
@@ -3484,12 +3484,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           const speakerAnchor = resolveCharXY(turn.speaker, anchorAtTurn, sceneDef, seg, turn.start);
           return {
             x: speakerAnchor.x,
-            y: clamp(faceCyOf(turn.speaker, anchorAtTurn, sceneDef, seg, turn.start) + (sceneDef.focusDy ?? 0.04), 0, 1),
+            y: clamp(faceCyOf(turn.speaker, anchorAtTurn, sceneDef, seg, turn.start) + (sceneDef.focusDy ?? 0.12), 0, 1),
           };
         }
         return { x: Tcur.cx, y: Tcur.cy };
       })();
-      const zoomFocus = resolveZoomTargetAt(seg, turn.start, () => defaultFocus) ?? defaultFocus;
+      const zoomFocus = zoomTargetValueAt(seg, turn.start) ?? defaultFocus;
       const zoomAmount = cameraEffectTurnValue(turn, camCfg, "zoom", "amount");
       const targetScale = effect === "in"
         ? zoomTf.s + zoomAmount

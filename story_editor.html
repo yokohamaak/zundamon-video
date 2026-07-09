@@ -3891,7 +3891,7 @@ function resolveAutoZoomXYAt(script, idx) {
   const sceneDef = sceneDefs?.scenes?.[turn.scene];
   if (!turn.narrationVoice && KNOWN_CHARS.includes(turn.speaker) && getEmphasisCarryInfo(script, idx).active) {
     const xy = resolveActorXYAt(script, idx, turn.speaker);
-    const dy = (sceneDef && sceneDef.focusDy) ?? 0.04;
+    const dy = (sceneDef && sceneDef.focusDy) ?? 0.12;
     return { x: xy.x, y: Math.max(0, Math.min(1, xy.y + dy)) };
   }
   return { x: 0.5, y: 0.5 };
@@ -3965,7 +3965,7 @@ function placementPreviewTf(rect) {
   const speakerXY = resolveActorXYAt(script, selectedIdx, turn.speaker);
   const autoFocus = {
     x: speakerXY.x,
-    y: clampJS(speakerXY.y + ((sceneDef && sceneDef.focusDy) ?? 0.04), 0, 1),
+    y: clampJS(speakerXY.y + ((sceneDef && sceneDef.focusDy) ?? 0.12), 0, 1),
   };
   const manualFocus = resolvePlacementPointAt(script, selectedIdx, "zoomTarget");
   return toTf({
