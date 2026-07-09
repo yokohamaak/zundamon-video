@@ -6992,7 +6992,7 @@ function splitDialogueAtCursor() {
   const text = String(textEl.value || "");
   const cursor = Math.max(0, Math.min(textEl.selectionStart ?? text.length, text.length));
   const before = text.slice(0, cursor).replace(/[ \t]+$/g, "");
-  const after = text.slice(cursor).replace(/^[ \t]+/g, "");
+  const after = text.slice(cursor).replace(/^[ \t\r\n]+/g, "");
   if (!before.trim() || !after.trim()) {
     alert("前後どちらにもセリフが残る位置で分割してください。");
     return;
