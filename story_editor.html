@@ -359,6 +359,78 @@
     width: 22px; height: 22px;
     border-radius: 6px;
   }
+  .placement-mini-card {
+    margin-top: 14px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .placement-mini-title {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .placement-mini-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #0f1117;
+    border: 1px solid var(--border);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+  }
+  .placement-mini-stage,
+  .placement-mini-edit-layer,
+  .placement-mini-char-layer {
+    position: absolute;
+    inset: 0;
+  }
+  .placement-mini-bg {
+    position: absolute;
+    inset: 0;
+    background: #151924 center center / cover no-repeat;
+  }
+  .placement-mini-char {
+    position: absolute;
+    transform-origin: center center;
+    pointer-events: none;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,.32));
+  }
+  .placement-mini-char-parts {
+    position: relative;
+  }
+  .placement-mini-char-parts img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .placement-mini-mob {
+    position: absolute;
+    width: auto;
+    pointer-events: none;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,.32));
+  }
+  .placement-mini-camera-frame {
+    position: absolute;
+    border: 2px solid rgba(250, 204, 21, 0.95);
+    box-shadow: 0 0 0 1px rgba(17, 19, 24, 0.6);
+    pointer-events: none;
+  }
+  .placement-mini-camera-frame::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,255,255,.92);
+    background: rgba(250, 204, 21, 0.85);
+    transform: translate(-50%, -50%);
+  }
   .overlay-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -1373,14 +1445,25 @@
 
         <!-- 配置タブ -->
         <div class="tab-panel" id="tabPlacement">
-          <div class="field-help" style="margin-bottom:10px;">
-            このターンで登場中(またはこのターンから登場する)キャラ/モブを手動配置できます。
-            「手動配置」をONにするとプレビュー上にマーカーが出るので、ドラッグで位置を指定してください。
-            退場するまでその位置に固定され、別のターンで配置し直すとなめらかに移動します。
-            「フォーカス位置」をONにすると、このターンのズーム演出が狙う位置を手動で指定できます。
-            「仮想カメラ中心」をONにすると、16:9の枠そのものの中心点を手動で指定できます。
-          </div>
+        <div class="field-help" style="margin-bottom:10px;">
+          このターンで登場中(またはこのターンから登場する)キャラ/モブを手動配置できます。
+          「手動配置」をONにするとプレビュー上にマーカーが出るので、ドラッグで位置を指定してください。
+          退場するまでその位置に固定され、別のターンで配置し直すとなめらかに移動します。
+          「フォーカス位置」をONにすると、このターンのズーム演出が狙う位置を手動で指定できます。
+          「仮想カメラ中心」をONにすると、16:9の枠そのものの中心点を手動で指定できます。
+        </div>
           <div id="placementList" style="display:flex; flex-direction:column; gap:6px;"></div>
+          <div class="placement-mini-card">
+            <div class="placement-mini-title">配置プレビュー</div>
+            <div class="placement-mini-wrap" id="placementMiniWrap">
+              <div class="placement-mini-stage" id="placementMiniStage">
+                <div class="placement-mini-bg" id="placementMiniBg"></div>
+                <div class="placement-mini-char-layer" id="placementMiniCharLayer"></div>
+                <div class="placement-mini-camera-frame" id="placementMiniCameraFrame"></div>
+              </div>
+              <div class="overlay-edit-layer placement-mini-edit-layer" id="placementMiniEditLayer"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -3746,8 +3829,14 @@ const TELOP_POS_ID = "__telopPos__";
 // 「顔の位置」を指定・保存する仕様にしているため、自動配置(アンカー)から初期値を作る時だけ
 // ここでボックス中心→顔位置へ変換する。マーカー表示自体は保存値(=顔位置)をそのまま使う。
 const AVATAR_BOX_JS = 445;
+const STAGE_W_JS = 1920;
+const STAGE_H_JS = 1080;
 const FULL_CANVAS_JS = { zundamon: { w: 783, h: 1473 }, metan: { w: 858, h: 1769 } };
 const FACE_RATIO_JS = { bust: 0.3, full: 0.12 };
+const PLACEMENT_PREVIEW_PARTS = {
+  zundamon: ["base", "cheek_hoppe", "arm_normal", "eye_open", "mouth_close", "brow_normal"],
+  metan: ["base", "cheek_normal2", "arm_normal", "eye_open", "mouth_close", "bangs", "brow_futo_gokigen"],
+};
 function fullBoxHeightJS(charId) {
   const c = FULL_CANVAS_JS[charId];
   if (!c) return Math.round(AVATAR_BOX_JS * 1.8);
@@ -3763,6 +3852,10 @@ function charFaceOffsetJS(charId, sceneDef) {
 
 function clampJS(v, min, max) {
   return Math.max(min, Math.min(max, v));
+}
+
+function encodePathSegsJS(path) {
+  return String(path || "").split("/").map((seg) => encodeURIComponent(seg)).join("/");
 }
 
 function normalizedCameraFrameJS(sceneDef) {
@@ -4129,6 +4222,24 @@ function addPlacementMarker(layer, rect, xy, id, label, extraClass) {
   layer.appendChild(marker);
 }
 
+function addPlacementMarkerWithTf(layer, rect, tf, xy, id, label, extraClass, wrapId) {
+  const screen = {
+    x: xy.x * rect.width * tf.s + tf.tx,
+    y: xy.y * rect.height * tf.s + tf.ty,
+  };
+  const marker = document.createElement("div");
+  marker.className = "placement-marker" + (extraClass ? " " + extraClass : "");
+  marker.style.left = screen.x + "px";
+  marker.style.top = screen.y + "px";
+  marker.dataset.id = id;
+  const labelEl = document.createElement("div");
+  labelEl.className = "placement-marker-label";
+  labelEl.textContent = label;
+  marker.appendChild(labelEl);
+  marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, id, wrapId));
+  layer.appendChild(marker);
+}
+
 function placementDraftValue(id, fallback) {
   if (_placementDrag && _placementDrag.id === id && _placementDrag.draftStage) {
     return _placementDrag.draftStage;
@@ -4136,42 +4247,136 @@ function placementDraftValue(id, fallback) {
   return fallback;
 }
 
+function renderPlacementMarkers(layer, wrap, tf, wrapId) {
+  if (!layer || !wrap || selectedIdx < 0 || !storyData) return;
+  const turn = storyData.script[selectedIdx];
+  const rect = wrap.getBoundingClientRect();
+  const actors = presentActorsAt(storyData.script, selectedIdx).filter((id) => isTurnActorManuallyPlaced(turn, id));
+  for (const id of actors) {
+    addPlacementMarkerWithTf(layer, rect, tf, placementDraftValue(id, resolveActorXYAt(storyData.script, selectedIdx, id)), id, id, "", wrapId);
+  }
+  if (turn.zoomTarget) {
+    addPlacementMarkerWithTf(layer, rect, tf, placementDraftValue(ZOOM_TARGET_ID, turn.zoomTarget), ZOOM_TARGET_ID, "フォーカス", "placement-marker-zoom", wrapId);
+  }
+  if (turn.cameraCenter) {
+    addPlacementMarkerWithTf(layer, rect, tf, placementDraftValue(CAMERA_CENTER_ID, turn.cameraCenter), CAMERA_CENTER_ID, "カメラ", "placement-marker-zoom", wrapId);
+  }
+  if (turn.sparklePos) {
+    addPlacementMarkerWithTf(layer, rect, tf, placementDraftValue(SPARKLE_POS_ID, turn.sparklePos), SPARKLE_POS_ID, "キラッ", "placement-marker-sparkle", wrapId);
+  }
+  if (typeof turn.telopX === "number" || typeof turn.telopY === "number") {
+    const xy = placementDraftValue(TELOP_POS_ID, { x: turn.telopX ?? 0.045, y: turn.telopY ?? 0.06 });
+    addPlacementMarkerWithTf(layer, rect, tf, xy, TELOP_POS_ID, "テロップ", "placement-marker-telop", wrapId);
+  }
+}
+
+function renderPlacementMiniPreview() {
+  const tabBtn = document.querySelector('.tab-btn[data-tab="placement"]');
+  const wrap = document.getElementById("placementMiniWrap");
+  const layer = document.getElementById("placementMiniEditLayer");
+  const bg = document.getElementById("placementMiniBg");
+  const charLayer = document.getElementById("placementMiniCharLayer");
+  const frameEl = document.getElementById("placementMiniCameraFrame");
+  if (!wrap || !layer || !bg || !charLayer || !frameEl) return;
+  layer.innerHTML = "";
+  charLayer.innerHTML = "";
+  bg.style.backgroundImage = "none";
+  frameEl.style.display = "none";
+  if (!tabBtn || !tabBtn.classList.contains("active")) return;
+  if (selectedIdx < 0 || !storyData) return;
+  const wrapRect = wrap.getBoundingClientRect();
+  const stageScale = Math.max(0.01, wrapRect.width / STAGE_W_JS);
+  const turn = storyData.script[selectedIdx];
+  const sceneDef = sceneDefs?.scenes?.[turn.scene];
+  if (sceneDef?.bg) {
+    bg.style.backgroundImage = `url(/preview-assets/${encodePathSegsJS(sceneDef.bg)})`;
+  }
+  if (sceneDef) {
+    const cameraFrame = normalizedCameraFrameJS(sceneDef);
+    const cameraCenter = resolvePlacementPointAt(storyData.script, selectedIdx, "cameraCenter");
+    const cx = cameraCenter?.x ?? cameraFrame.cx;
+    const cy = cameraCenter?.y ?? cameraFrame.cy;
+    frameEl.style.display = "";
+    frameEl.style.left = ((cx - cameraFrame.width / 2) * 100) + "%";
+    frameEl.style.top = ((cy - cameraFrame.width / 2) * 100) + "%";
+    frameEl.style.width = (cameraFrame.width * 100) + "%";
+    frameEl.style.height = (cameraFrame.width * 100) + "%";
+  }
+
+  const actors = presentActorsAt(storyData.script, selectedIdx);
+  for (const id of actors) {
+    const xy = resolveActorXYAt(storyData.script, selectedIdx, id);
+    if (KNOWN_CHARS.includes(id)) {
+      const charEl = document.createElement("div");
+      charEl.className = "placement-mini-char";
+      const faceOffset = charFaceOffsetJS(id, sceneDef);
+      const centerY = xy.y + faceOffset;
+      const isFull = (sceneDef?.figure || "bust") === "full";
+      const boxW = AVATAR_BOX_JS * (sceneDef?.scale ?? 1.9) * stageScale;
+      const boxH = (isFull ? fullBoxHeightJS(id) : AVATAR_BOX_JS) * (sceneDef?.scale ?? 1.9) * stageScale;
+      charEl.style.left = (xy.x * 100) + "%";
+      charEl.style.top = (centerY * 100) + "%";
+      charEl.style.transform = "translate(-50%, -50%)";
+      const parts = document.createElement("div");
+      parts.className = "placement-mini-char-parts";
+      parts.style.width = boxW + "px";
+      parts.style.height = boxH + "px";
+      if (xy.x < 0.5) parts.style.transform = "scaleX(-1)";
+      const baseDir = isFull ? `/preview-assets/avatars/${id}/full/` : `/preview-assets/avatars/${id}/`;
+      for (const stem of (PLACEMENT_PREVIEW_PARTS[id] || ["base"])) {
+        const img = document.createElement("img");
+        img.src = `${baseDir}${encodeURIComponent(stem)}.png`;
+        img.alt = stem;
+        img.onerror = () => { img.style.display = "none"; };
+        parts.appendChild(img);
+      }
+      charEl.appendChild(parts);
+      charLayer.appendChild(charEl);
+      continue;
+    }
+    const mob = mobsMap && mobsMap[id];
+    if (!mob || !mob.image) continue;
+    const mobEl = document.createElement("img");
+    mobEl.className = "placement-mini-mob";
+    mobEl.src = `/preview-assets/${encodePathSegsJS(mob.image)}`;
+    mobEl.alt = id;
+    mobEl.style.left = (xy.x * 100) + "%";
+    mobEl.style.top = (xy.y * 100) + "%";
+    mobEl.style.height = `${Math.max(36, 760 * (mob.scale ?? 0.85) * stageScale)}px`;
+    mobEl.style.transform = "translate(-50%, -100%)";
+    mobEl.onerror = () => { mobEl.style.display = "none"; };
+    charLayer.appendChild(mobEl);
+  }
+
+  renderPlacementMarkers(layer, wrap, { tx: 0, ty: 0, s: 1 }, "placementMiniWrap");
+}
+
 function renderPlacementEditLayer() {
   const layer = document.getElementById("placementEditLayer");
   const wrap = document.getElementById("playerWrap");
   if (!layer || !wrap) return;
   layer.innerHTML = "";
-  // 配置タブが選択されていない時は表示しない。
   const tabBtn = document.querySelector('.tab-btn[data-tab="placement"]');
-  if (!tabBtn || !tabBtn.classList.contains("active")) return;
-  if (selectedIdx < 0 || !storyData) return;
-  const turn = storyData.script[selectedIdx];
+  if (!tabBtn || !tabBtn.classList.contains("active")) {
+    renderPlacementMiniPreview();
+    return;
+  }
+  if (selectedIdx < 0 || !storyData) {
+    renderPlacementMiniPreview();
+    return;
+  }
   const rect = wrap.getBoundingClientRect();
-  const actors = presentActorsAt(storyData.script, selectedIdx).filter((id) => isTurnActorManuallyPlaced(turn, id));
-  for (const id of actors) {
-    addPlacementMarker(layer, rect, placementDraftValue(id, resolveActorXYAt(storyData.script, selectedIdx, id)), id, id);
-  }
-  if (turn.zoomTarget) {
-    addPlacementMarker(layer, rect, placementDraftValue(ZOOM_TARGET_ID, turn.zoomTarget), ZOOM_TARGET_ID, "フォーカス", "placement-marker-zoom");
-  }
-  if (turn.cameraCenter) {
-    addPlacementMarker(layer, rect, placementDraftValue(CAMERA_CENTER_ID, turn.cameraCenter), CAMERA_CENTER_ID, "カメラ", "placement-marker-zoom");
-  }
-  if (turn.sparklePos) {
-    addPlacementMarker(layer, rect, placementDraftValue(SPARKLE_POS_ID, turn.sparklePos), SPARKLE_POS_ID, "キラッ", "placement-marker-sparkle");
-  }
-  if (typeof turn.telopX === "number" || typeof turn.telopY === "number") {
-    const xy = placementDraftValue(TELOP_POS_ID, { x: turn.telopX ?? 0.045, y: turn.telopY ?? 0.06 });
-    addPlacementMarker(layer, rect, xy, TELOP_POS_ID, "テロップ", "placement-marker-telop");
-  }
+  renderPlacementMarkers(layer, wrap, placementPreviewTf(rect), "playerWrap");
+  renderPlacementMiniPreview();
 }
 
-function beginPlacementDrag(e, id) {
+function beginPlacementDrag(e, id, wrapId) {
   e.preventDefault();
   e.stopPropagation();
   if (selectedIdx < 0) return;
   const turn = storyData.script[selectedIdx];
-  const wrap = document.getElementById("playerWrap");
+  const targetWrapId = wrapId || "playerWrap";
+  const wrap = document.getElementById(targetWrapId);
   const rect = wrap ? wrap.getBoundingClientRect() : null;
   let xy;
   if (id === ZOOM_TARGET_ID) {
@@ -4185,7 +4390,7 @@ function beginPlacementDrag(e, id) {
   } else {
     xy = resolveActorXYAt(storyData.script, selectedIdx, id);
   }
-  const dragTf = rect ? placementPreviewTf(rect) : { tx: 0, ty: 0, s: 1 };
+  const dragTf = rect ? (targetWrapId === "placementMiniWrap" ? { tx: 0, ty: 0, s: 1 } : placementPreviewTf(rect)) : { tx: 0, ty: 0, s: 1 };
   const screen = rect
     ? {
         x: xy.x * rect.width * dragTf.s + dragTf.tx,
@@ -4196,6 +4401,7 @@ function beginPlacementDrag(e, id) {
     id,
     startX: e.clientX,
     startY: e.clientY,
+    wrapId: targetWrapId,
     origX: xy.x,
     origY: xy.y,
     origScreenX: screen.x,
@@ -7712,11 +7918,10 @@ function setupEvents() {
   window.addEventListener("mousemove", (e) => {
     if (!_placementDrag) return;
     e.preventDefault();
-    const wrap = document.getElementById("playerWrap");
+    const wrap = document.getElementById(_placementDrag.wrapId || "playerWrap");
     if (!wrap || selectedIdx < 0) return;
     const rect = wrap.getBoundingClientRect();
-    const turn = storyData.script[selectedIdx];
-    const dragTf = _placementDrag.dragTf || placementPreviewTf(rect);
+    const dragTf = _placementDrag.dragTf || ((_placementDrag.wrapId === "placementMiniWrap") ? { tx: 0, ty: 0, s: 1 } : placementPreviewTf(rect));
     let stage;
     if (_placementDrag.pointerLock) {
       stage = placementScreenToStage(rect, e.clientX - rect.left, e.clientY - rect.top, dragTf);
