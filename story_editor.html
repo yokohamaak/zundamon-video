@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ストーリーエディタ</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,7 +21,8 @@
     --right-w: 360px;
   }
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; }
-  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  /* iOS Safariはアドレスバー分100vhが実表示より大きくなるため、対応ブラウザではdvhで上書き */
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 
   /* ── ヘッダー ── */
   .header {
@@ -30,6 +31,12 @@
     flex-shrink: 0;
   }
   .header h1 { font-size: 14px; font-weight: 600; letter-spacing: .02em; margin-right: 4px; }
+  /* 保存/音声生成/書き出しはモバイル縦で下部固定バーにするためDOM上は連続配置。
+     PCではdisplay:contentsで従来と同じヘッダー内フロー、orderで従来の並び順を維持する */
+  .header-actions { display: contents; }
+  #forceRebuildRow { order: 1; }
+  #btnExportVideo { order: 2; }
+  .header .status { order: 3; }
   .header-title-edit {
     background: var(--surface2); border: 1px solid var(--border); border-radius: 5px;
     color: var(--text); padding: 3px 8px; font-size: 13px; min-width: 200px;
@@ -764,6 +771,14 @@
   .se-manual-at { width: 60px; }
   .se-manual-vol { width: 70px; }
 
+  /* モバイル用の器（PCでは非表示）。トーストはsetStatusのミラー表示先 */
+  .status-toast { display: none; }
+  .timeline-collapse-toggle { display: none; }
+  #btnSelectMode { display: none; }
+  /* タッチでドラッグ操作を成立させる（ブラウザのスクロール横取りを止める）。マウス操作には影響しない */
+  .placement-marker, .overlay-box, .overlay-resize-handle,
+  #placementMiniCameraFrame, #placementMiniCameraHandle, #scriptTimeline { touch-action: none; }
+
   @media (max-width: 900px) {
     :root {
       --left-w: 100%;
@@ -771,6 +786,7 @@
     }
     body { overflow: hidden; }
     .mobile-work-tabs { display: flex; }
+    #btnSelectMode { display: block; }
     .pane-left, .pane-right {
       width: auto;
       border-left: none;
@@ -831,7 +847,52 @@
         "switch"
         "work"
         "timeline";
+      /* 下部固定アクションバーの分だけ内容を上げる */
+      padding-bottom: calc(64px + env(safe-area-inset-bottom));
     }
+    .main.tl-collapsed {
+      grid-template-rows: minmax(220px, 36vh) auto minmax(0, 1fr) auto;
+    }
+    /* !important はBGM/Overlay区間エディタのインラインstyle(display:flex)対策 */
+    .main.tl-collapsed .timeline-header,
+    .main.tl-collapsed .timeline-scroll,
+    .main.tl-collapsed #bgmRegionEditor,
+    .main.tl-collapsed #overlayRegionEditor { display: none !important; }
+    .timeline-collapse-toggle {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; min-height: 40px; background: none; border: none;
+      color: var(--text2); font-size: 13px; cursor: pointer;
+    }
+    .header { flex-wrap: wrap; }
+    .header h1 { display: none; }
+    /* タイトルが潰れないよう最低幅を確保し、収まらない項目は次の行へ折り返す */
+    .header-title-edit { flex: 1 1 160px; min-width: 120px; }
+    .header .status { display: none; }
+    .header-actions {
+      display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+      gap: 8px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+      background: var(--surface); border-top: 1px solid var(--border);
+    }
+    .header-actions .btn { flex: 1; min-height: 48px; font-size: 15px; border-radius: 12px; }
+    .status-toast.show {
+      display: block; position: fixed; left: 12px; right: 12px;
+      bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 70;
+      padding: 12px 14px; border-radius: 10px; font-size: 14px; text-align: center;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    }
+    .status-toast.ok { border-color: var(--green); color: var(--green); }
+    .status-toast.err { border-color: var(--danger); color: var(--danger); }
+    .status-toast.dirty { border-color: var(--yellow); color: var(--yellow); }
+    .status-toast.busy {
+      border-color: var(--yellow); color: #ffd23f; font-weight: 700;
+      animation: status-pulse 1s ease-in-out infinite;
+    }
+    .preview-toolbar .btn, .timeline-header .btn,
+    .preview-toolbar select, .timeline-header select {
+      min-height: 44px; font-size: 15px !important; padding: 6px 12px !important; border-radius: 10px;
+    }
+    /* 長押し選択(M5)でテキスト選択・コールアウトが出ないようにする */
+    .turn-row { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     .pane-left, .pane-right {
       grid-area: work;
       border-left: none;
@@ -1049,15 +1110,18 @@
     <option value="hold">聞き役: 直前を保持</option>
     <option value="normal">聞き役: 真顔</option>
   </select>
-  <button class="btn btn-primary" id="btnSave">💾 保存</button>
-  <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
   <label class="toggle-row" id="forceRebuildRow" style="font-size:11px; color:var(--text2); gap:4px;" title="読み替え辞書・漢字の読み修正がキャッシュに反映されない時だけ使う（生成が遅くなります）">
     <input type="checkbox" id="chkForceRebuild">キャッシュ無視
   </label>
   <input type="file" id="importFile" accept=".json,application/json" style="display:none">
-  <button class="btn btn-secondary" id="btnExportVideo" title="保存してRemotionで動画を書き出す（video/out/ にタイトル名で出力）">🎬 書き出し</button>
+  <div class="header-actions">
+    <button class="btn btn-primary" id="btnSave">💾 保存</button>
+    <button class="btn btn-secondary" id="btnAudio" title="保存してVOICEVOXで音声生成（要VOICEVOX起動）">🔊 音声生成</button>
+    <button class="btn btn-secondary" id="btnExportVideo" title="保存してRemotionで動画を書き出す（video/out/ にタイトル名で出力）">🎬 書き出し</button>
+  </div>
   <span class="status" id="statusMsg"></span>
 </div>
+<div class="status-toast" id="statusToast"></div>
 
 <div class="main" id="viewScript" data-mobile-panel="script">
   <div class="mobile-work-tabs" id="mobileWorkTabs" aria-label="モバイル作業切替">
@@ -1072,6 +1136,7 @@
       <button class="btn btn-danger btn-sm" id="btnDelete" title="選択ターンを削除">🗑</button>
       <button class="btn btn-secondary btn-sm" id="btnUp" title="上へ">↑</button>
       <button class="btn btn-secondary btn-sm" id="btnDown" title="下へ">↓</button>
+      <button class="btn btn-secondary btn-sm" id="btnSelectMode" title="タップで複数選択するモード（行の長押しでも開始）">☑ 選択</button>
       <span class="turn-count" id="turnCount">全 0 ターン</span>
     </div>
     <div class="bulk-edit-bar" id="bulkSceneBar" style="display:none;" title="Shift/Ctrl(⌘)クリックで複数のターンを選択できます">
@@ -1116,6 +1181,7 @@
 
   <!-- タイムライン -->
   <div class="timeline-pane">
+    <button class="timeline-collapse-toggle" id="timelineCollapseToggle" type="button">タイムライン ▾</button>
     <div class="timeline-header">
       <span>タイムライン</span>
       <button class="btn btn-secondary btn-sm" id="btnAddBgmRegion" style="margin-left:8px; font-size:12px; padding:2px 8px;">＋BGM</button>
@@ -2017,6 +2083,10 @@ let playbackFollowIdx = -1;
 // とは別に持つ：既存の単一選択の仕組みには手を入れず、並行して複数選択を扱う。
 let selectedIndices = new Set();
 let selectionAnchorIdx = -1; // shift-click範囲選択の起点
+// タッチには修飾キーが無いため、長押し/選択ボタンで入る複数選択モードを別フラグで持つ
+let _mobileSelectMode = false;
+let _suppressNextRowClick = false; // 長押し成立直後のclickで選択がトグルで戻るのを防ぐ
+let _turnLongPress = null;
 let isDirty = false;     // 未保存変更フラグ
 let playerReady = false; // Remotion Player が mount 済みか
 let displayPreviewReady = false;
@@ -3933,9 +4003,9 @@ function setupScriptTimeline() {
   });
 
   // ============================================================
-  // BGMレーン D&D: mousedown
+  // BGMレーン D&D: pointerdown
   // ============================================================
-  canvas.addEventListener("mousedown", (e) => {
+  canvas.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
     const cx = _canvasX(canvas, e);
     const cy = e.clientY - canvas.getBoundingClientRect().top;
@@ -4016,9 +4086,9 @@ function setupScriptTimeline() {
   });
 
   // ============================================================
-  // BGMレーン D&D: mousemove
+  // BGMレーン D&D: pointermove
   // ============================================================
-  window.addEventListener("mousemove", (e) => {
+  window.addEventListener("pointermove", (e) => {
     if (!_bgmDrag && !_overlayTimelineDrag) {
       // カーソル更新(ホバー)
       const cy = e.clientY - canvas.getBoundingClientRect().top;
@@ -4103,9 +4173,9 @@ function setupScriptTimeline() {
   });
 
   // ============================================================
-  // BGMレーン D&D: mouseup
+  // BGMレーン D&D: pointerup
   // ============================================================
-  window.addEventListener("mouseup", (e) => {
+  const onTimelinePointerUp = (e) => {
     if (_overlayTimelineDrag) {
       _overlayTimelineDrag = null;
       markDirty();
@@ -4166,7 +4236,9 @@ function setupScriptTimeline() {
       _updateBgmRegionEditor();
     }
     canvas.style.cursor = "default";
-  });
+  };
+  window.addEventListener("pointerup", onTimelinePointerUp);
+  window.addEventListener("pointercancel", onTimelinePointerUp);
 
   // 再生中はヘッド追従
   window.addEventListener("story-player-frame", (e) => {
@@ -4652,7 +4724,7 @@ function addPlacementMarker(layer, rect, xy, id, label, extraClass) {
   labelEl.className = "placement-marker-label";
   labelEl.textContent = label;
   marker.appendChild(labelEl);
-  marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, id));
+  marker.addEventListener("pointerdown", (e) => beginPlacementDrag(e, id));
   layer.appendChild(marker);
 }
 
@@ -4670,7 +4742,7 @@ function addPlacementMarkerWithTf(layer, rect, tf, xy, id, label, extraClass, wr
   labelEl.className = "placement-marker-label";
   labelEl.textContent = label;
   marker.appendChild(labelEl);
-  marker.addEventListener("mousedown", (e) => beginPlacementDrag(e, id, wrapId));
+  marker.addEventListener("pointerdown", (e) => beginPlacementDrag(e, id, wrapId));
   layer.appendChild(marker);
 }
 
@@ -4938,9 +5010,9 @@ function renderOverlayEditLayer() {
   const handle = document.createElement("div");
   handle.className = "overlay-resize-handle";
   handle.dataset.id = overlay.id;
-  handle.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "resize"));
+  handle.addEventListener("pointerdown", (e) => beginOverlayPreviewDrag(e, overlay.id, "resize"));
   box.appendChild(handle);
-  box.addEventListener("mousedown", (e) => beginOverlayPreviewDrag(e, overlay.id, "move"));
+  box.addEventListener("pointerdown", (e) => beginOverlayPreviewDrag(e, overlay.id, "move"));
   box.addEventListener("click", (e) => {
     e.stopPropagation();
     selectOverlay(overlay.id, false);
@@ -5807,14 +5879,62 @@ function updateTurnCount(displayIdx) {
 function clearMultiSelection() {
   selectedIndices = new Set();
   selectionAnchorIdx = -1;
+  _mobileSelectMode = false;
+  updateSelectModeBtn();
   updateBulkSceneBar();
+}
+
+// ── タッチ用の複数選択モード（行の長押し or ☑選択ボタンで開始） ──
+function enterMobileSelectMode(idx) {
+  _mobileSelectMode = true;
+  if (idx >= 0) {
+    selectedIndices.add(idx);
+    selectionAnchorIdx = idx;
+  }
+  updateSelectModeBtn();
+  renderList();
+  updateBulkSceneBar();
+}
+
+function updateSelectModeBtn() {
+  const btn = document.getElementById("btnSelectMode");
+  if (btn) btn.classList.toggle("btn-primary", _mobileSelectMode);
+}
+
+function beginTurnLongPress(e, idx) {
+  if (e.pointerType === "mouse" || _mobileSelectMode) return;
+  cancelTurnLongPress();
+  _turnLongPress = {
+    x: e.clientX,
+    y: e.clientY,
+    timer: setTimeout(() => {
+      _turnLongPress = null;
+      _suppressNextRowClick = true;
+      enterMobileSelectMode(idx);
+    }, 500),
+  };
+}
+
+function moveTurnLongPress(e) {
+  if (!_turnLongPress) return;
+  // スクロール開始と区別する（10px超動いたら長押し不成立）
+  if (Math.abs(e.clientX - _turnLongPress.x) > 10 || Math.abs(e.clientY - _turnLongPress.y) > 10) {
+    cancelTurnLongPress();
+  }
+}
+
+function cancelTurnLongPress() {
+  if (_turnLongPress) {
+    clearTimeout(_turnLongPress.timer);
+    _turnLongPress = null;
+  }
 }
 
 function updateBulkSceneBar() {
   const bar = document.getElementById("bulkSceneBar");
   if (!bar) return;
   const n = selectedIndices.size;
-  if (n > 1) {
+  if (n > 1 || (_mobileSelectMode && n > 0)) {
     bar.style.display = "flex";
     document.getElementById("bulkSceneCount").textContent = `${n}件選択中`;
   } else {
@@ -5971,6 +6091,17 @@ function renderList() {
     row.appendChild(body);
 
     row.addEventListener("click", (e) => {
+      if (_mobileSelectMode) {
+        // 選択モード中：タップは選択のトグルだけ（詳細遷移・シークはしない）
+        if (_suppressNextRowClick) { _suppressNextRowClick = false; return; }
+        if (selectedIndices.has(i)) selectedIndices.delete(i); else selectedIndices.add(i);
+        selectionAnchorIdx = i;
+        if (selectedIndices.size === 0) _mobileSelectMode = false;
+        updateSelectModeBtn();
+        renderList();
+        updateBulkSceneBar();
+        return;
+      }
       if (e.shiftKey && selectionAnchorIdx >= 0) {
         // 範囲選択：起点〜クリック行までをまとめて選択し直す。
         const lo = Math.min(selectionAnchorIdx, i);
@@ -5990,7 +6121,16 @@ function renderList() {
       selectTurn(i);
       renderList();
       updateBulkSceneBar();
+      // モバイルではタップ→そのまま詳細編集へ（一覧タブで戻れる）
+      if (!e.shiftKey && !e.ctrlKey && !e.metaKey
+          && window.matchMedia("(max-width: 900px)").matches) {
+        setMobilePanel("detail");
+      }
     });
+    row.addEventListener("pointerdown", (e) => beginTurnLongPress(e, i));
+    row.addEventListener("pointermove", moveTurnLongPress);
+    row.addEventListener("pointerup", cancelTurnLongPress);
+    row.addEventListener("pointercancel", cancelTurnLongPress);
     container.appendChild(row);
   }
   if (typeof drawScriptTimeline === "function") drawScriptTimeline();
@@ -8405,6 +8545,28 @@ function setStatus(cls, msg) {
   const el = document.getElementById("statusMsg");
   el.className = "status" + (cls ? " " + cls : "");
   el.textContent = msg;
+  updateStatusToast(cls, msg);
+}
+
+// モバイル縦ではヘッダーのstatusが非表示のため、同内容を下部トーストへミラーする。
+// 表示可否はCSS(縦画面media query)側で制御するので、ここでは常に更新してよい。
+let _statusToastTimer = null;
+function updateStatusToast(cls, msg) {
+  const toast = document.getElementById("statusToast");
+  if (!toast) return;
+  if (_statusToastTimer) { clearTimeout(_statusToastTimer); _statusToastTimer = null; }
+  // 編集のたびに出る「未保存」は常時表示だと画面を覆い続けるためトーストには出さない
+  if (!msg || (cls === "dirty" && msg === "未保存")) {
+    toast.className = "status-toast";
+    toast.textContent = "";
+    return;
+  }
+  toast.className = "status-toast show" + (cls ? " " + cls : "");
+  toast.textContent = msg;
+  // busyは進捗表示なので出し続け、errはタップで閉じるまで残す
+  if (cls === "ok" || cls === "dirty" || cls === "") {
+    _statusToastTimer = setTimeout(() => { toast.className = "status-toast"; }, 2500);
+  }
 }
 
 function loadGenSettings() {
@@ -8563,6 +8725,19 @@ function setMobilePanel(panel) {
     const idx = playbackFollowIdx >= 0 ? playbackFollowIdx : selectedIdx;
     if (idx >= 0) keepSelectedTurnRowVisible(idx);
   }
+}
+
+// モバイル縦のタイムライン折りたたみ。クラスの効果は縦画面media query内に限定してあり、
+// PC表示ではクラスが付いていても見た目は変わらない。
+const TIMELINE_COLLAPSE_KEY = "storyEditorTimelineCollapsed";
+function setTimelineCollapsed(collapsed) {
+  const view = document.getElementById("viewScript");
+  if (view) view.classList.toggle("tl-collapsed", collapsed);
+  const btn = document.getElementById("timelineCollapseToggle");
+  if (btn) btn.textContent = collapsed ? "タイムライン ▸ 開く" : "タイムライン ▾ 閉じる";
+  try { localStorage.setItem(TIMELINE_COLLAPSE_KEY, collapsed ? "1" : "0"); } catch (_) {}
+  // 折りたたみ中はcanvasが幅0のため、展開時に測り直して描画する
+  if (!collapsed && typeof drawScriptTimeline === "function") drawScriptTimeline();
 }
 
 // ============================================================
@@ -8769,6 +8944,28 @@ function setupEvents() {
   document.getElementById("btnBulkManualCameraApply").addEventListener("click", applyBulkManualCamera);
   document.getElementById("btnBulkManualCameraClear").addEventListener("click", clearBulkManualCamera);
   document.getElementById("btnBulkSceneClear").addEventListener("click", () => { clearMultiSelection(); renderList(); });
+  document.getElementById("btnSelectMode").addEventListener("click", () => {
+    if (_mobileSelectMode) {
+      clearMultiSelection();
+      renderList();
+    } else {
+      enterMobileSelectMode(selectedIdx);
+    }
+  });
+  const statusToastEl = document.getElementById("statusToast");
+  if (statusToastEl) {
+    statusToastEl.addEventListener("click", () => { statusToastEl.className = "status-toast"; });
+  }
+  const tlToggle = document.getElementById("timelineCollapseToggle");
+  if (tlToggle) {
+    tlToggle.addEventListener("click", () => {
+      const view = document.getElementById("viewScript");
+      setTimelineCollapsed(!(view && view.classList.contains("tl-collapsed")));
+    });
+    let savedTl = null;
+    try { savedTl = localStorage.getItem(TIMELINE_COLLAPSE_KEY); } catch (_) {}
+    setTimelineCollapsed(savedTl == null ? true : savedTl === "1");
+  }
   document.getElementById("btnAddOverlay").addEventListener("click", async () => {
     await ensureOverlayAssets();
     createOverlayAtPlayhead();
@@ -8786,7 +8983,7 @@ function setupEvents() {
 
   document.getElementById("storyTitle").addEventListener("input", markDirty);
 
-  window.addEventListener("mousemove", (e) => {
+  window.addEventListener("pointermove", (e) => {
     if (!_overlayPreviewDrag) return;
     e.preventDefault();
     const overlay = getOverlayById(_overlayPreviewDrag.id);
@@ -8810,15 +9007,17 @@ function setupEvents() {
     notifyPlayerUpdate();
     renderOverlayEditLayer();
   });
-  window.addEventListener("mouseup", () => {
+  const onOverlayPreviewPointerUp = () => {
     if (!_overlayPreviewDrag) return;
     _overlayPreviewDrag = null;
     renderOverlayEditor();
     renderOverlayEditLayer();
     notifyPlayerUpdate();
-  });
+  };
+  window.addEventListener("pointerup", onOverlayPreviewPointerUp);
+  window.addEventListener("pointercancel", onOverlayPreviewPointerUp);
 
-  window.addEventListener("mousemove", (e) => {
+  window.addEventListener("pointermove", (e) => {
     if (_manualCameraDrag) {
       updateManualCameraFrameFromDrag(e);
       return;
@@ -8840,7 +9039,7 @@ function setupEvents() {
     _placementDrag.draftStage = { x: stage.x, y: stage.y };
     renderPlacementEditLayer();
   });
-  window.addEventListener("mouseup", () => {
+  const onPlacementPointerUp = () => {
     if (_manualCameraDrag) {
       _manualCameraDrag = null;
       renderPlacementPanel();
@@ -8870,15 +9069,17 @@ function setupEvents() {
     _placementDrag = null;
     renderPlacementEditLayer();
     notifyPlayerUpdate();
-  });
+  };
+  window.addEventListener("pointerup", onPlacementPointerUp);
+  window.addEventListener("pointercancel", onPlacementPointerUp);
 
   const placementMiniCameraFrame = document.getElementById("placementMiniCameraFrame");
   const placementMiniCameraHandle = document.getElementById("placementMiniCameraHandle");
   if (placementMiniCameraFrame) {
-    placementMiniCameraFrame.addEventListener("mousedown", (e) => beginManualCameraDrag(e, "move"));
+    placementMiniCameraFrame.addEventListener("pointerdown", (e) => beginManualCameraDrag(e, "move"));
   }
   if (placementMiniCameraHandle) {
-    placementMiniCameraHandle.addEventListener("mousedown", (e) => beginManualCameraDrag(e, "resize"));
+    placementMiniCameraHandle.addEventListener("pointerdown", (e) => beginManualCameraDrag(e, "resize"));
   }
 
   // タブ切替
