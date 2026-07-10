@@ -3617,6 +3617,47 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   // 3. 単発カメラ効果（その行だけ付ける軽いズーム/パン/傾き）。
   let stageRotateDeg = 0;
   const zoomEffectRange = activeIdx >= 0 ? resolveCameraEffectRange(script, activeIdx, "zoom") : null;
+  const prevZoomEffectRange = activeIdx > 0 ? resolveCameraEffectRange(script, activeIdx - 1, "zoom") : null;
+  if (
+    !zoomEffectRange &&
+    prevZoomEffectRange &&
+    activeIdx > 0 &&
+    transitionMode !== "cut" &&
+    script[activeIdx - 1]?.scene === active.scene
+  ) {
+    const prevTurn = script[activeIdx - 1];
+    const releaseDur = Math.max(cameraEffectTurnValue(prevTurn, camCfg, "zoom", "duration"), 0.001);
+    const releaseK = easeInOutCubic(clamp((t - active.start) / releaseDur, 0, 1));
+    if (releaseK < 1) {
+      const prevBase = targetCameraFrame(prevTurn, presentAt(active.start), anchorOfAt(active.start), sceneDef);
+      const prevBaseTf = toTf({ ...prevBase, s: prevBase.s * driftS });
+      const defaultFocus = (() => {
+        if (!isNarrationTurn(prevTurn) && isKnownChar(prevTurn.speaker)) {
+          const speakerAnchor = resolveCharXY(prevTurn.speaker, anchorOf, sceneDef, seg, t);
+          return {
+            x: speakerAnchor.x,
+            y: clamp(faceCyOf(prevTurn.speaker, anchorOf, sceneDef, seg, t) + (sceneDef.focusDy ?? 0.12), 0, 1),
+          };
+        }
+        return { x: prevBase.cx, y: prevBase.cy };
+      })();
+      const zoomFocus = explicitZoomTarget(prevTurn) ?? defaultFocus;
+      const zoomAmount = cameraEffectTurnValue(prevTurn, camCfg, "zoom", "amount");
+      const targetScale = prevZoomEffectRange.effect === "in"
+        ? prevBaseTf.s + zoomAmount
+        : Math.max(1, prevBaseTf.s - zoomAmount);
+      const prevEffectTf = toTf({
+        s: targetScale,
+        cx: zoomFocus.x,
+        cy: zoomFocus.y,
+      });
+      tf = {
+        tx: lerp(prevEffectTf.tx, tf.tx, releaseK),
+        ty: lerp(prevEffectTf.ty, tf.ty, releaseK),
+        s: lerp(prevEffectTf.s, tf.s, releaseK),
+      };
+    }
+  }
   if (zoomEffectRange && activeIdx >= 0) {
     const effect = normalizedCameraEffects(active).zoom;
     const effectDur = Math.max(cameraEffectTurnValue(active, camCfg, "zoom", "duration"), 0.001);
@@ -4582,6 +4623,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   let telopText: string | null = null;
   let telopOpacity = 0;
   let telopTurn: StoryTurn | null = null;
+  const firstTurn = script[0] ?? null;
+  const introTelopDt = firstTurn ? t - firstTurn.start : Number.POSITIVE_INFINITY;
+  const shouldShowIntroTelop =
+    !!firstTurn?.telop &&
+    introTelopDt >= -FB_TELOP_FADE &&
+    introTelopDt < FB_TELOP_SEC;
   if (isFlashback) {
     const entered = [...fbBoundaries]
       .filter((b) => b.entering && b.at <= t + 1e-6)
@@ -4590,6 +4637,20 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       telopText = entered.telop;
       telopTurn = script.find((turn) => turn.start === entered.at) ?? null;
       telopOpacity = clamp((t - entered.at) / FB_TELOP_FADE, 0, 1);
+    } else if (firstTurn?.flashback && shouldShowIntroTelop) {
+      telopText = firstTurn.telop ?? null;
+      telopTurn = firstTurn;
+      telopOpacity = clamp((t - firstTurn.start) / FB_TELOP_FADE, 0, 1);
+    }
+  } else if (shouldShowIntroTelop && !firstTurn?.flashback) {
+    telopText = firstTurn.telop ?? null;
+    telopTurn = firstTurn;
+    if (introTelopDt < FB_TELOP_FADE) {
+      telopOpacity = clamp((introTelopDt + FB_TELOP_FADE) / FB_TELOP_FADE, 0, 1);
+    } else if (introTelopDt >= FB_TELOP_SEC - FB_TELOP_FADE) {
+      telopOpacity = clamp((FB_TELOP_SEC - introTelopDt) / FB_TELOP_FADE, 0, 1);
+    } else {
+      telopOpacity = 1;
     }
   } else if (nearestBoundary?.telop && !nearestBoundary.entering) {
     const dt = t - nearestBoundary.at;

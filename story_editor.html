@@ -817,6 +817,12 @@
     .timeline-header {
       flex-wrap: wrap;
     }
+    .timeline-pane {
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
     .preview-scroll { overflow: auto; }
     .display-settings-layout {
       grid-template-columns: minmax(0, 1fr);
@@ -907,6 +913,7 @@
     }
     .timeline-pane {
       padding-top: 8px;
+      padding-bottom: calc(86px + env(safe-area-inset-bottom));
       border-top: 1px solid var(--border);
       min-height: 0;
     }
@@ -6125,11 +6132,6 @@ function renderList() {
       selectTurn(i);
       renderList();
       updateBulkSceneBar();
-      // モバイルではタップ→そのまま詳細編集へ（一覧タブで戻れる）
-      if (!e.shiftKey && !e.ctrlKey && !e.metaKey
-          && window.matchMedia("(max-width: 900px)").matches) {
-        setMobilePanel("detail");
-      }
     });
     row.addEventListener("pointerdown", (e) => beginTurnLongPress(e, i));
     row.addEventListener("pointermove", moveTurnLongPress);
