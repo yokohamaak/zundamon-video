@@ -40,6 +40,9 @@ export type WhiteboardExplainExpression =
 
 export type WhiteboardExplainAnimationMode = 'step' | 'all' | 'none';
 
+/** 'compact' はキャラを小さくしてボード・項目の表示領域を広げる版。 */
+export type WhiteboardExplainLayoutVariant = 'default' | 'compact';
+
 export type WhiteboardExplainSection = {
   heading: string;
   bullets: string[];
@@ -50,6 +53,12 @@ export type WhiteboardExplainSection = {
   iconY?: number;
   /** Icon size in 1920x1080 base pixels. Omitted = default. */
   iconSize?: number;
+  /** Show the circular badge (fill + ring) behind the icon. Omitted = true. */
+  iconBadge?: boolean;
+  /** Icon line color. Omitted = style.bodyColor. */
+  iconColor?: string;
+  /** Badge circle/ring color. Omitted = style.accentColor. */
+  iconBadgeColor?: string;
 };
 
 export type WhiteboardExplainCharacterConfig = {
@@ -158,6 +167,8 @@ export type WhiteboardExplainInsertConfig = {
   style?: WhiteboardExplainStyleConfig;
   animation?: WhiteboardExplainAnimationConfig;
   assets?: WhiteboardExplainAssetsConfig;
+  /** ボード領域を広げてキャラを小さくする版を選ぶ。省略時は 'default'。 */
+  layout?: WhiteboardExplainLayoutVariant;
 };
 
 export type NormalizedWhiteboardExplainInsertConfig = Required<
@@ -173,6 +184,7 @@ export type NormalizedWhiteboardExplainInsertConfig = Required<
   style: Required<WhiteboardExplainStyleConfig>;
   animation: Required<WhiteboardExplainAnimationConfig>;
   assets: Required<WhiteboardExplainAssetsConfig>;
+  layout: WhiteboardExplainLayoutVariant;
 };
 
 export type WhiteboardExplainPopTargets = {

@@ -1,3 +1,5 @@
+import type { WhiteboardExplainLayoutVariant } from './whiteboardExplainTypes';
+
 export type Rect = { x: number; y: number; width: number; height: number };
 export type Point = { x: number; y: number };
 
@@ -18,8 +20,8 @@ const scaleRect = (rect: Rect, sx: number, sy: number): Rect => ({
   height: rect.height * sy,
 });
 
-export const getWhiteboardExplainLayout = (width = 1920, height = 1080): WhiteboardExplainLayout => {
-  const base: WhiteboardExplainLayout = {
+const BASE_LAYOUTS: Record<WhiteboardExplainLayoutVariant, WhiteboardExplainLayout> = {
+  default: {
     scene: { x: 0, y: 0, width: 1920, height: 1080 },
     board: { x: 80, y: 38, width: 1450, height: 985 },
     // 右下の解説役。v3で調整済みの位置を維持する。
@@ -35,7 +37,29 @@ export const getWhiteboardExplainLayout = (width = 1920, height = 1080): Whitebo
     ],
     // プレイヤーUIに被りにくいよう少し上げる。右端はキャラに被らない幅に抑える。
     conclusion: { x: 245, y: 700, width: 1150, height: 200 },
-  };
+  },
+  // ホワイトボードを広く使いたい時用。キャラを小さくして右下に寄せ、その分ボードと項目を広げる。
+  compact: {
+    scene: { x: 0, y: 0, width: 1920, height: 1080 },
+    board: { x: 50, y: 34, width: 1620, height: 990 },
+    character: { x: 1600, y: 560, width: 380, height: 480 },
+    title: { x: 180, y: 80, width: 1030, height: 105 },
+    theme: { x: 300, y: 205, width: 980, height: 72 },
+    sections: [
+      { x: 135, y: 330, width: 480, height: 360 },
+      { x: 630, y: 330, width: 480, height: 360 },
+      { x: 1125, y: 330, width: 480, height: 360 },
+    ],
+    conclusion: { x: 160, y: 700, width: 1350, height: 200 },
+  },
+};
+
+export const getWhiteboardExplainLayout = (
+  width = 1920,
+  height = 1080,
+  variant: WhiteboardExplainLayoutVariant = 'default',
+): WhiteboardExplainLayout => {
+  const base = BASE_LAYOUTS[variant] ?? BASE_LAYOUTS.default;
 
   const sx = width / 1920;
   const sy = height / 1080;

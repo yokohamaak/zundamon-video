@@ -3974,7 +3974,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     const expressionCfg = charExprs?.[exprKey] ?? charExprs?.["normal"] ?? null;
     const poseNameRaw = insert.character?.pose || undefined;
     const poseCfg = poseNameRaw ? poses?.[charKey]?.[poseNameRaw] ?? null : null;
-    const wbLayout = getWhiteboardExplainLayout(width, height);
+    const wbLayout = getWhiteboardExplainLayout(width, height, insert.layout === "compact" ? "compact" : "default");
     const scale = wbLayout.character.width / AVATAR_BOX;
     // このインサートのキャラが実際のターン話者と一致する時だけ、通常のセリフ同様にリップシンクする。
     const isSpeaker = charKey === active.speaker;

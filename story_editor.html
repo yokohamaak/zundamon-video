@@ -6898,27 +6898,27 @@ function renderInsertFields(insert) {
     }
   } else if (kind === "whiteboard_explain") {
     const ICON_OPTIONS = [
-      { value: "none", label: "none（なし）" },
-      { value: "cause", label: "cause（原因・虫眼鏡）" },
-      { value: "problem", label: "problem（問題点・バツ印）" },
-      { value: "solution", label: "solution（対策・工具）" },
-      { value: "process", label: "process（手順・流れ）" },
-      { value: "priority", label: "priority（優先度）" },
-      { value: "deadline", label: "deadline（期限・時計）" },
-      { value: "evidence", label: "evidence（証拠・確認）" },
-      { value: "data", label: "data（データ・グラフ）" },
-      { value: "share", label: "share（共有）" },
-      { value: "rule", label: "rule（ルール）" },
-      { value: "risk", label: "risk（リスク）" },
-      { value: "improvement", label: "improvement（改善）" },
-      { value: "confused", label: "confused（困惑・旧互換）" },
-      { value: "scribble", label: "scribble（混乱・旧互換）" },
-      { value: "checklist", label: "checklist（チェックリスト）" },
-      { value: "memo", label: "memo（メモ）" },
-      { value: "conversation", label: "conversation（会話）" },
-      { value: "warning", label: "warning（警告）" },
-      { value: "idea", label: "idea（ひらめき）" },
-      { value: "table", label: "table（表）" },
+      { value: "none", label: "なし" },
+      { value: "cause", label: "原因（虫眼鏡）" },
+      { value: "problem", label: "問題点（バツ印）" },
+      { value: "solution", label: "対策（工具）" },
+      { value: "process", label: "手順（流れ）" },
+      { value: "priority", label: "優先度（星）" },
+      { value: "deadline", label: "期限（時計）" },
+      { value: "evidence", label: "証拠・確認（書類）" },
+      { value: "data", label: "データ（グラフ）" },
+      { value: "share", label: "共有（ネットワーク）" },
+      { value: "rule", label: "ルール（チェック）" },
+      { value: "risk", label: "リスク（盾）" },
+      { value: "improvement", label: "改善（上昇矢印）" },
+      { value: "confused", label: "困惑（顔）" },
+      { value: "scribble", label: "混乱（渦巻き）" },
+      { value: "checklist", label: "チェックリスト（クリップボード）" },
+      { value: "memo", label: "メモ（ノート）" },
+      { value: "conversation", label: "会話（吹き出し）" },
+      { value: "warning", label: "警告（三角）" },
+      { value: "idea", label: "ひらめき（電球）" },
+      { value: "table", label: "表（グリッド）" },
     ];
     const POSE_OPTIONS = [
       { value: "", label: "自動（通常）" },
@@ -6933,6 +6933,15 @@ function renderInsertFields(insert) {
       { value: "all", label: "all（最初から全部表示）" },
       { value: "none", label: "none（アニメーション無し）" },
     ];
+    container.appendChild(makeSelectField(
+      "layout（ボード領域の広さ）",
+      "fWLayout",
+      [
+        { value: "default", label: "default（既定）" },
+        { value: "compact", label: "compact（キャラを小さくしてボードを広げる）" },
+      ],
+      insert.layout === "compact" ? "compact" : "default",
+    ));
     container.appendChild(makeField("title（タイトル・18文字以内推奨）", "text", "fWTitle", insert.title || ""));
     container.appendChild(makeField("theme（テーマ・30文字以内推奨）", "text", "fWTheme", insert.theme || ""));
     const wbStyle = insert.style || {};
@@ -6957,6 +6966,18 @@ function renderInsertFields(insert) {
       container.appendChild(makeField("iconX（項目内X座標・既定は右寄せ）", "number", `fWSecIconX${i}`, sec.iconX ?? "", "272"));
       container.appendChild(makeField("iconY（項目内Y座標・既定200）", "number", `fWSecIconY${i}`, sec.iconY ?? "", "200"));
       container.appendChild(makeField("iconSize（アイコンサイズ・既定120）", "number", `fWSecIconSize${i}`, sec.iconSize ?? "", "120"));
+      const badgeRow = document.createElement("label");
+      badgeRow.className = "toggle-row";
+      const badgeCb = document.createElement("input");
+      badgeCb.type = "checkbox";
+      badgeCb.id = `fWSecBadge${i}`;
+      badgeCb.checked = sec.iconBadge !== false;
+      badgeCb.addEventListener("change", collectInsert);
+      badgeRow.appendChild(badgeCb);
+      badgeRow.appendChild(document.createTextNode("アイコンの丸バッジを表示"));
+      container.appendChild(badgeRow);
+      container.appendChild(makeColorPairField("iconColor（アイコン色・空欄で既定色）", `fWSecIconColor${i}`, sec.iconColor || "", "#111111"));
+      container.appendChild(makeColorPairField("iconBadgeColor（丸バッジの色・空欄で既定色）", `fWSecIconBadgeColor${i}`, sec.iconBadgeColor || "", "#f04d93"));
       const visibleRow = document.createElement("label");
       visibleRow.className = "toggle-row";
       const visibleCb = document.createElement("input");
@@ -7045,6 +7066,11 @@ function renderInsertFields(insert) {
     container.appendChild(makeField("conclusionBoxHeight（既定200）", "number", "fWConclusionBoxHeight", wbStyle.conclusionBoxHeight ?? "", "200"));
 
     container.appendChild(makeTextareaField("conclusion（結論・40文字以内推奨）", "fWConclusion", insert.conclusion || ""));
+    const conclusionMarkerHint = document.createElement("div");
+    conclusionMarkerHint.className = "field-hint";
+    conclusionMarkerHint.style.cssText = "font-size:12px; opacity:0.75; padding:0 2px 8px;";
+    conclusionMarkerHint.textContent = "強調したい語句は **語句** のように囲むと、その部分だけマーカー下線が引かれます（例: つまり**見える形**にするのが大事！）。";
+    container.appendChild(conclusionMarkerHint);
     const character = insert.character || {};
     container.appendChild(makeSelectField("character.pose（他のターンと同じポーズ）", "fWCharPose", POSE_OPTIONS, character.pose || ""));
     container.appendChild(makeSelectField("character.expression（他のターンと同じ表情）", "fWCharExpression", EXPRESSION_OPTIONS, character.expression || ""));
@@ -7099,6 +7125,35 @@ function makeField(labelText, inputType, id, value, placeholder) {
   if (placeholder) inp.placeholder = placeholder;
   inp.addEventListener("change", collectInsert);
   wrap.appendChild(lbl); wrap.appendChild(inp);
+  return wrap;
+}
+
+function makeColorPairField(labelText, id, value, fallback) {
+  const wrap = document.createElement("div");
+  wrap.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label"; lbl.textContent = labelText;
+  const row = document.createElement("div");
+  row.className = "color-row";
+  const picker = document.createElement("input");
+  picker.type = "color"; picker.className = "color-picker"; picker.id = id;
+  picker.value = normalizeHexColor(value, fallback);
+  const hex = document.createElement("input");
+  hex.type = "text"; hex.className = "field-input"; hex.id = `${id}Hex`;
+  hex.placeholder = fallback; hex.value = value || "";
+  picker.addEventListener("input", () => {
+    hex.value = picker.value;
+    collectInsert();
+  });
+  hex.addEventListener("change", () => {
+    if (hex.value.trim() !== "") {
+      hex.value = normalizeHexColor(hex.value, picker.value || fallback);
+      picker.value = hex.value;
+    }
+    collectInsert();
+  });
+  row.appendChild(picker); row.appendChild(hex);
+  wrap.appendChild(lbl); wrap.appendChild(row);
   return wrap;
 }
 
@@ -8048,6 +8103,8 @@ function collectInsert() {
       if (parts.length) ins.participants = parts;
     }
   } else if (kind === "whiteboard_explain") {
+    const layout = document.getElementById("fWLayout");
+    if (layout && layout.value === "compact") ins.layout = "compact";
     const title = document.getElementById("fWTitle");
     ins.title = title ? title.value : "";
     const theme = document.getElementById("fWTheme");
@@ -8086,6 +8143,9 @@ function collectInsert() {
       const iconX = document.getElementById(`fWSecIconX${i}`);
       const iconY = document.getElementById(`fWSecIconY${i}`);
       const iconSize = document.getElementById(`fWSecIconSize${i}`);
+      const iconBadge = document.getElementById(`fWSecBadge${i}`);
+      const iconColor = document.getElementById(`fWSecIconColor${i}Hex`);
+      const iconBadgeColor = document.getElementById(`fWSecIconBadgeColor${i}Hex`);
       const bullets = [0, 1, 2]
         .map((b) => document.getElementById(`fWSecBullet${i}_${b}`))
         .map((el) => (el ? el.value : ""))
@@ -8094,6 +8154,7 @@ function collectInsert() {
         heading: heading ? heading.value : "",
         bullets,
         icon: icon ? icon.value : "none",
+        iconBadge: iconBadge ? iconBadge.checked : true,
       };
       const applySectionNumber = (el, key, min, max) => {
         if (!el || el.value === "") return;
@@ -8103,6 +8164,8 @@ function collectInsert() {
       applySectionNumber(iconX, "iconX", -200, 700);
       applySectionNumber(iconY, "iconY", -100, 420);
       applySectionNumber(iconSize, "iconSize", 24, 220);
+      if (iconColor && iconColor.value.trim() !== "") sectionOut.iconColor = iconColor.value.trim();
+      if (iconBadgeColor && iconBadgeColor.value.trim() !== "") sectionOut.iconBadgeColor = iconBadgeColor.value.trim();
       return sectionOut;
     });
     ins.visibleSections = [0, 1, 2].map((i) => {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { normalizeWhiteboardExplainConfig } from './whiteboardExplainDefaults';
 import { getStepFrameRanges, getWhiteboardExplainLayout, Rect } from './whiteboardExplainLayout';
-import { fitText } from './whiteboardExplainValidation';
+import { fitConclusionSegments, fitText } from './whiteboardExplainValidation';
 import { resolveCharacterImage, resolveIconImage, toStaticFile } from './whiteboardExplainAssets';
 import { WhiteboardDoodleIcon } from './WhiteboardDoodleIcon';
 import type { WhiteboardExplainInsertProps, WhiteboardExplainSection } from './whiteboardExplainTypes';
@@ -292,17 +292,44 @@ const SectionBlock: React.FC<{
         ))}
       </div>
 
-      <div style={{ position: 'absolute', left: iconLeft, top: iconTop, width: iconSize, height: iconSize, opacity: 0.92 }}>
-        {iconImage && !iconFailed ? (
-          <Img
-            src={iconImage}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            onError={() => setIconFailed(true)}
-          />
-        ) : (
-          <WhiteboardDoodleIcon icon={section.icon} color={bodyColor} accentColor={accentColor} size={iconSize} />
-        )}
-      </div>
+      {section.icon && section.icon !== 'none' && (() => {
+        const showBadge = section.iconBadge !== false;
+        const iconColor = section.iconColor || bodyColor;
+        const badgeColor = section.iconBadgeColor || accentColor;
+        const badgeSize = iconSize * 1.34;
+        const badgeOffset = (badgeSize - iconSize) / 2;
+        const ringWidth = Math.max(3, iconSize * 0.032);
+        return (
+          <div style={{ position: 'absolute', left: iconLeft - badgeOffset, top: iconTop - badgeOffset, width: badgeSize, height: badgeSize }}>
+            {showBadge && (
+              <>
+                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: badgeColor, opacity: 0.1 }} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: badgeSize * 0.05,
+                    borderRadius: '50%',
+                    border: `${ringWidth}px solid ${badgeColor}`,
+                    opacity: 0.55,
+                    transform: 'rotate(-2deg)',
+                  }}
+                />
+              </>
+            )}
+            <div style={{ position: 'absolute', left: badgeOffset, top: badgeOffset, width: iconSize, height: iconSize, opacity: 0.94 }}>
+              {iconImage && !iconFailed ? (
+                <Img
+                  src={iconImage}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  onError={() => setIconFailed(true)}
+                />
+              ) : (
+                <WhiteboardDoodleIcon icon={section.icon} color={iconColor} accentColor={badgeColor} size={iconSize} />
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
@@ -364,7 +391,7 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
   // need the frame relative to the current insert/turn start. StoryVideo passes localFrame.
   const frame = typeof localFrame === 'number' ? localFrame : absoluteFrame;
   const normalized = normalizeWhiteboardExplainConfig(config);
-  const layout = getWhiteboardExplainLayout(actualWidth, actualHeight);
+  const layout = getWhiteboardExplainLayout(actualWidth, actualHeight, normalized.layout);
   const ranges = getStepFrameRanges(actualDuration);
   const mode = normalized.animation.mode;
 
@@ -653,15 +680,31 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
           style={{
             fontFamily,
             fontSize: conclusionFontSize,
-            lineHeight: 1.25,
+            lineHeight: 1.5,
             color: normalized.style.bodyColor,
             textAlign: 'center',
             whiteSpace: 'pre-wrap',
           }}
         >
-          {fitText(normalized.conclusion, 40)}
+          {fitConclusionSegments(normalized.conclusion, 40).map((segment, segmentIndex) =>
+            segment.highlighted ? (
+              <span
+                key={segmentIndex}
+                style={{
+                  background: `linear-gradient(to top, ${normalized.style.markerColor} 40%, transparent 40%)`,
+                  boxDecorationBreak: 'clone',
+                  WebkitBoxDecorationBreak: 'clone',
+                  padding: '0 0.06em',
+                  opacity: interpolate(conclusionMarkerProgress, [0, 1], [0.35, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }),
+                }}
+              >
+                {segment.text}
+              </span>
+            ) : (
+              <React.Fragment key={segmentIndex}>{segment.text}</React.Fragment>
+            ),
+          )}
         </div>
-        <div style={{ position: 'absolute', left: conclusionRect.width * 0.25, bottom: 28, width: conclusionRect.width * 0.48 * conclusionMarkerProgress, height: 18, background: normalized.style.markerColor, opacity: 0.75, borderRadius: 20, zIndex: -1 }} />
       </div>
       )}
 

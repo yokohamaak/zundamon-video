@@ -90,6 +90,7 @@ export const normalizeWhiteboardExplainConfig = (
     visibleArrows: config.visibleArrows ?? [true, true],
     showConclusion: config.showConclusion !== false,
     showConclusionArrow: config.showConclusionArrow === true,
+    layout: config.layout === 'compact' ? 'compact' : 'default',
     activeSection: typeof config.activeSection === 'number' ? Math.max(0, Math.min(2, Math.floor(config.activeSection))) : undefined,
     highlightSections: config.highlightSections,
     sections: sections.map((section, index) => {
@@ -107,6 +108,9 @@ export const normalizeWhiteboardExplainConfig = (
         iconX: typeof section?.iconX === 'number' ? section.iconX : defaultIconX,
         iconY: typeof section?.iconY === 'number' ? section.iconY : defaultIconY,
         iconSize: typeof section?.iconSize === 'number' ? section.iconSize : defaultIconSize,
+        iconBadge: section?.iconBadge !== false,
+        iconColor: section?.iconColor || undefined,
+        iconBadgeColor: section?.iconBadgeColor || undefined,
       };
     }),
     character: {
