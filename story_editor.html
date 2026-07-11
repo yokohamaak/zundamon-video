@@ -1401,6 +1401,10 @@
           </div>
           <div class="field-row">
             <label class="field-label">吹き出し</label>
+            <label class="toggle-row" style="margin-bottom:8px;">
+              <input type="checkbox" id="fHideBubble">
+              <span>この行では吹き出しを表示しない</span>
+            </label>
             <select class="field-select" id="fSubtitleMode">
               <option value="">吹き出し</option>
               <option value="subtitle">下部字幕</option>
@@ -6081,6 +6085,7 @@ function renderList() {
     if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
     if (turn.noLipSync) badges.appendChild(makeBadge("口パクOFF", "warn"));
     if (turn.hideCharacters) badges.appendChild(makeBadge("キャラ非表示", "warn"));
+    if (turn.hideBubble) badges.appendChild(makeBadge("吹き出し非表示", "warn"));
     if (isSubtitleTurnData(turn)) badges.appendChild(makeBadge("字幕", "bubble"));
     const bubbleInfo = getContinueBubbleInfo(script, i);
     const autoInfo = getAutoBubbleInfo(turn);
@@ -6502,6 +6507,7 @@ function renderDetail() {
   setField("fVoicePreset", "select", voicePresetKey(turn));
   document.getElementById("fNoLipSync").checked = !!turn.noLipSync;
   document.getElementById("fHideCharacters").checked = !!turn.hideCharacters;
+  document.getElementById("fHideBubble").checked = !!turn.hideBubble;
   setField("fSubtitleMode", "select", isSubtitleTurnData(turn) ? "subtitle" : "");
   const subtitleStyle = getSubtitleStyleData(turn);
   document.getElementById("fSubtitleFontSize").value = subtitleStyle.fontSize;
@@ -6577,6 +6583,9 @@ function renderDetail() {
     if (isNarrationTurnData(turn)) {
       subtitleModeHelp.className = "field-help";
       subtitleModeHelp.textContent = "ナレーション行では字幕モード設定は使いません。";
+    } else if (turn.hideBubble) {
+      subtitleModeHelp.className = "field-help warn";
+      subtitleModeHelp.textContent = "この行ではキャラクターと音声は残し、吹き出しだけ表示しません。";
     } else if (isSubtitleTurnData(turn)) {
       subtitleModeHelp.className = "field-help warn";
       subtitleModeHelp.textContent = "この行は吹き出しを出さず、画面下の字幕帯で表示します。";
@@ -7936,6 +7945,10 @@ function collectBasic() {
   if (hideCharactersVal) turn.hideCharacters = true;
   else delete turn.hideCharacters;
 
+  const hideBubbleVal = document.getElementById("fHideBubble").checked;
+  if (hideBubbleVal) turn.hideBubble = true;
+  else delete turn.hideBubble;
+
   const subtitleModeVal = document.getElementById("fSubtitleMode").value;
   if (subtitleModeVal === "subtitle") turn.subtitleMode = "subtitle";
   else delete turn.subtitleMode;
@@ -9191,7 +9204,7 @@ function setupEvents() {
   const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose", "fFaceZundamon", "fFaceMetan", "fFaceMode", "fClearFaceZundamon", "fClearFaceMetan",
                     "fSpeakerAnchor", "fShake", "fFlashback", "fCameraEffectZoom", "fCameraEffectPan", "fCameraEffectTilt", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
                     "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
-                    "fPause", "fVoicePreset", "fHideCharacters", "fEnterDir", "fExitDir", "fSubtitleMode", "fSubtitleFontSize",
+                    "fPause", "fVoicePreset", "fNoLipSync", "fHideCharacters", "fHideBubble", "fEnterDir", "fExitDir", "fSubtitleMode", "fSubtitleFontSize",
                     "fSubtitleTextColorHex", "fSubtitleBoxBorder", "fSubtitleBoxBorderColorHex", "fSubtitleBoxBorderWidth", "fContinueBubble", "fAutoBubbleSplit", "fBubbleMaxChars"];
   for (const id of basicIds) {
     const el = document.getElementById(id);

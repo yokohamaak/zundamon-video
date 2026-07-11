@@ -1461,6 +1461,20 @@ function setupDrag() {
       draggingFrame = { mode: 'resize', left: frame.x, top: frame.y };
       return;
     }
+    // カメラ枠は広く重なるため、枠の下にいるモブを先に掴めるようにする。
+    const mobEl = e.target.closest('.mob-image')
+      || Array.from(document.elementsFromPoint(e.clientX, e.clientY)).find(el => el.classList?.contains('mob-image'));
+    if (mobEl) {
+      e.preventDefault();
+      const mobId = mobEl.dataset.mobId;
+      // 選択状態にする
+      selectedMobId = mobId;
+      mobEl.classList.add('mob-dragging');
+      draggingMob = { mobId, el: mobEl };
+      buildMobList();
+      renderPreview();
+      return;
+    }
     const frameBox = e.target.closest('.camera-frame');
     if (frameBox) {
       e.preventDefault();
@@ -1476,19 +1490,6 @@ function setupDrag() {
         offsetX: sx / STAGE_W - frame.cx,
         offsetY: sy / STAGE_H - frame.cy,
       };
-      return;
-    }
-    // モブ画像のドラッグ（アンカードットより先に判定）
-    const mobEl = e.target.closest('.mob-image');
-    if (mobEl) {
-      e.preventDefault();
-      const mobId = mobEl.dataset.mobId;
-      // 選択状態にする
-      selectedMobId = mobId;
-      mobEl.classList.add('mob-dragging');
-      draggingMob = { mobId, el: mobEl };
-      buildMobList();
-      renderPreview();
       return;
     }
     // アンカードットのドラッグ

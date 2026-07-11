@@ -216,6 +216,7 @@ export type StoryTurn = {
   subtitleMode?: "subtitle";
   subtitleStyle?: SubtitleStyle;
   hideCharacters?: boolean;
+  hideBubble?: boolean;
   // PC画面インサート演出（このターン中に全画面PC画面UIを重ねる）。
   insert?: StoryInsert;
   // 退場するキャラ。このターンの終わり（end）にスライドアウトして以後は非表示。
@@ -3476,9 +3477,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const effectiveExitAt = (charId: string) => {
     const leaving = exit[charId];
     if (leaving === undefined) return undefined;
-    if (exitDir[charId] === "instant" && nextSeg) {
-      return Math.max(leaving, nextSeg.start);
-    }
     return leaving;
   };
   // 表示中＝登場済み かつ（退場していない or 退場スライド中）。
@@ -3503,9 +3501,6 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const mobEffectiveExitAt = (mobId: string) => {
     const leaving = mobExit[mobId];
     if (leaving === undefined) return undefined;
-    if (mobExitDir[mobId] === "instant" && nextSeg) {
-      return Math.max(leaving, nextSeg.start);
-    }
     return leaving;
   };
   const presentMobs = Object.keys(mobEntrance).filter(
@@ -3661,7 +3656,14 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   if (zoomEffectRange && activeIdx >= 0) {
     const effect = normalizedCameraEffects(active).zoom;
     const effectDur = Math.max(cameraEffectTurnValue(active, camCfg, "zoom", "duration"), 0.001);
-    const effectK = easeInOutCubic(clamp((t - zoomEffectRange.start) / effectDur, 0, 1));
+    const isContinuingZoom =
+      !!effect &&
+      !!prevZoomEffectRange &&
+      prevZoomEffectRange.effect === effect &&
+      script[activeIdx - 1]?.scene === active.scene;
+    const effectK = isContinuingZoom
+      ? 1
+      : easeInOutCubic(clamp((t - zoomEffectRange.start) / effectDur, 0, 1));
     const defaultFocus = (() => {
       if (!isNarrationTurn(active) && isKnownChar(active.speaker)) {
         const speakerAnchor = resolveCharXY(active.speaker, anchorOf, sceneDef, seg, t);
@@ -4315,7 +4317,8 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     !activeInsertLine &&
     autoBubbleTexts.length > 1;
   const autoBubbleVisibleCount = bubbleSentenceVisibleCount(active, t);
-  const shouldShowSubtitle = !isNarrationTurn(active) && hasBubbleText(active) && isSubtitleTurn(active) && !activeInsertLine;
+  const hideBubble = active.hideBubble === true;
+  const shouldShowSubtitle = !hideBubble && !isNarrationTurn(active) && hasBubbleText(active) && isSubtitleTurn(active) && !activeInsertLine;
   const subtitleTexts = shouldShowSubtitle
     ? (bubbleGroup.length > 1
       ? bubbleGroup.slice(0, visibleGroupCount).map((turn) => subtitleProgressiveText(turn, t))
@@ -4666,6 +4669,22 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
       }
     }
   }
+  if (!telopText && active.telop) {
+    const dt = t - active.start;
+    const activeTelopEnd = Math.max(active.end, script[activeIdx + 1]?.start ?? active.end);
+    const outStart = Math.max(active.start, activeTelopEnd - FB_TELOP_FADE);
+    if (dt >= -FB_TELOP_FADE && t < activeTelopEnd) {
+      telopText = active.telop;
+      telopTurn = active;
+      if (dt < FB_TELOP_FADE) {
+        telopOpacity = clamp((dt + FB_TELOP_FADE) / FB_TELOP_FADE, 0, 1);
+      } else if (t >= outStart) {
+        telopOpacity = clamp((activeTelopEnd - t) / FB_TELOP_FADE, 0, 1);
+      } else {
+        telopOpacity = 1;
+      }
+    }
+  }
   const telopX = typeof telopTurn?.telopX === "number" ? telopTurn.telopX : 0.045;
   const telopY = typeof telopTurn?.telopY === "number" ? telopTurn.telopY : 0.06;
   const telopSize = typeof telopTurn?.telopSize === "number" ? telopTurn.telopSize : 1;
@@ -4805,7 +4824,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           先の段数ぶんも最初から予約して位置を固定する。インサートより前面。 */}
       {/* セリフがチャット/AIチャット画面に出ているターンは吹き出しを出さない。
           前後ターンも各自の insert 種別で判定し、遷移時のチラ見え漏れを防ぐ。 */}
-      {!shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowBubbleGroup
+      {!hideBubble && !shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowBubbleGroup
         ? renderBubbleGroup(
           active,
           bubbleGroup[0]?.speaker ?? active.speaker,
@@ -4813,7 +4832,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           visibleGroupCount,
           `bubble-group-${bubbleGroup[0]?.id ?? active.id}`
         )
-        : !shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowAutoBubbleGroup
+        : !hideBubble && !shouldShowSubtitle && !isNarrationTurn(active) && hasBubbleText(active) && shouldShowAutoBubbleGroup
           ? renderBubbleGroup(
             active,
             active.speaker,
@@ -4821,7 +4840,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
             autoBubbleVisibleCount,
             `bubble-auto-group-${active.id}`
           )
-        : (!shouldShowSubtitle && !isNarrationTurn(active) && !activeInsertLine && hasBubbleText(active)
+        : (!hideBubble && !shouldShowSubtitle && !isNarrationTurn(active) && !activeInsertLine && hasBubbleText(active)
           ? renderBubble(active, "bubble-active", bubbleBottomOffset(active, false), !!active.continueBubble)
           : null)}
 
