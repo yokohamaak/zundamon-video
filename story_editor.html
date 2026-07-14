@@ -6724,17 +6724,27 @@ function renderList() {
     const badges = document.createElement("div");
     badges.className = "turn-badges";
     if (isNarrationTurnData(turn)) badges.appendChild(makeBadge("ナレーション", "warn"));
+    // 表示種別。ZunMeet は insert を持たない継承ターンでも通話画面になるので、それも見る。
+    const effDisp = effectiveDisplayTypeAt(i);
+    // 立ち絵・カメラが映らない行では、その行の絵に効かない演出のバッジを出さない
+    const stageVisible = displayTypeDefOf(effDisp.id).stage;
     const emphasisInfo = getEmphasisCarryInfo(script, i);
-    if (emphasisInfo.explicit) badges.appendChild(makeBadge("ズーム", "fx"));
-    else if (emphasisInfo.inherited) badges.appendChild(makeBadge("ズーム継続", "fx"));
-    else if (emphasisInfo.stop) badges.appendChild(makeBadge("ズーム終了", "warn"));
-    if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
+    if (stageVisible) {
+      if (emphasisInfo.explicit) badges.appendChild(makeBadge("ズーム", "fx"));
+      else if (emphasisInfo.inherited) badges.appendChild(makeBadge("ズーム継続", "fx"));
+      else if (emphasisInfo.stop) badges.appendChild(makeBadge("ズーム終了", "warn"));
+    }
+    // シェイク・回想・ノイズはインサート表示にも効くので、表示種別によらず出す
+    if (turn.shake || normalizeCameraEffects(turn).shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
     if (turn.visionNoise) badges.appendChild(makeBadge("ノイズ", "fx"));
-    if (turn.focusSpeaker) badges.appendChild(makeBadge("話者フォーカス", "fx"));
-    if (turn.manualCameraFrame) badges.appendChild(makeBadge("手動カメラ", "fx"));
-    for (const label of cameraEffectsSummary(turn)) {
-      badges.appendChild(makeBadge("カメラ:" + label, "fx"));
+    if (stageVisible) {
+      if (turn.focusSpeaker) badges.appendChild(makeBadge("話者フォーカス", "fx"));
+      if (turn.manualCameraFrame) badges.appendChild(makeBadge("手動カメラ", "fx"));
+      for (const label of cameraEffectsSummary(turn)) {
+        if (label === "揺れ") continue;
+        badges.appendChild(makeBadge("カメラ:" + label, "fx"));
+      }
     }
     if (turn.impactLines || turn.impactText) badges.appendChild(makeBadge("集中線", "fx"));
     if (turn.zoomPunch) badges.appendChild(makeBadge("ズームパンチ", "fx"));
@@ -6743,14 +6753,17 @@ function renderList() {
     if (turn.typingFlood) badges.appendChild(makeBadge("通知洪水", "fx"));
     if (turn.sparkleBurst) badges.appendChild(makeBadge("キラッ", "fx"));
     if (turn.irisOut) badges.appendChild(makeBadge("アイリスアウト", "fx"));
-    if (turn.pose) badges.appendChild(makeBadge("ポーズ:" + poseLabel(turn.pose), "fx"));
-    const faceText = faceSummary(turn.face);
-    if (faceText) badges.appendChild(makeBadge("向き:" + faceText, "fx"));
-    if (turn.face && turn.faceMode === "hold") badges.appendChild(makeBadge("向き維持", "fx"));
-    const clearFaceText = clearFaceSummary(turn.clearFace);
-    if (clearFaceText) badges.appendChild(makeBadge("向き解除:" + clearFaceText, "warn"));
-    // 表示種別バッジ。ZunMeet は insert を持たない継承ターンでも通話画面になるので、それも出す。
-    const effDisp = effectiveDisplayTypeAt(i);
+    // ポーズはホワイトボード等では立ち絵に使われない（insert.character 側が使われる）
+    if (turn.pose && displayTypeDefOf(effDisp.id).turnCharacter) {
+      badges.appendChild(makeBadge("ポーズ:" + poseLabel(turn.pose), "fx"));
+    }
+    if (stageVisible) {
+      const faceText = faceSummary(turn.face);
+      if (faceText) badges.appendChild(makeBadge("向き:" + faceText, "fx"));
+      if (turn.face && turn.faceMode === "hold") badges.appendChild(makeBadge("向き維持", "fx"));
+      const clearFaceText = clearFaceSummary(turn.clearFace);
+      if (clearFaceText) badges.appendChild(makeBadge("向き解除:" + clearFaceText, "warn"));
+    }
     if (effDisp.id) {
       badges.appendChild(makeBadge(
         displayTypeDefOf(effDisp.id).label + (effDisp.inherited ? "（継続）" : ""),
@@ -7533,7 +7546,8 @@ function applyDisplayTypeVisibility(eff) {
   show("rowClearFace", def.stage);
   show("rowHideCharacters", def.stage);
   show("rowCameraEffects", def.stage);
-  show("rowFlashback", def.stage);
+  // 回想は「その行の見た目」ではなく回想区間のフラグ。インサート行で外すと
+  // そこで区間が切れて白ディゾルブが入るため、どの表示種別でも編集できるままにする。
   // 配置タブ（manualPos / focusSpeaker / manualCameraFrame）も通常表示専用
   show("tabBtnPlacement", def.stage);
   if (!def.stage) {
@@ -9435,6 +9449,7 @@ async function saveStory() {
   // タイトル反映
   storyData.title = document.getElementById("storyTitle").value;
   normalizeStoryTransitions(storyData);
+  pruneAllTurnsForDisplayType();
   try {
     const r = await fetch("/api/story", {
       method: "POST",
@@ -10496,6 +10511,7 @@ function setupEvents() {
       const prev = (turn.insert && turn.insert.kind === "videocall" && turn.insert.end) ? null : turn.insert;
       turn.insert = buildDefaultInsert(kind, prev);
     }
+    pruneTurnForDisplayType(turn, effectiveDisplayTypeAt(selectedIdx));
     markDirty();
     renderDisplayTypeUi();
     renderList();
@@ -10787,6 +10803,45 @@ function inheritedVideoCallAt(idx) {
   const cur = storyData.script[idx];
   if (!cur || cur.insert) return null;
   return findPreviousVideoCallInsert(idx);
+}
+
+// 表示種別が変わると確実に無視される項目を落とす。
+// 「その行では見えないが後続ターンへ引き継がれる」項目（expression / pose / speakerAnchor /
+// face / faceMode / clearFace / manualPos / enter / exit / flashback）は消さない。
+// 消すと後続の通常ターンの絵が変わってしまうため。
+function pruneTurnForDisplayType(turn, eff) {
+  const def = displayTypeDefOf(eff.id);
+  if (!def.stage) {
+    // ステージ（背景・立ち絵・カメラ）が映らないので、その行だけのカメラ指定は効かない
+    delete turn.hideCharacters;
+    delete turn.focusSpeaker;
+    delete turn.manualCameraFrame;
+    delete turn.cameraTransition;
+    delete turn.zoomTarget;
+    // shake だけはインサートパネルにも効くので残す
+    if (turn.cameraEffects) {
+      delete turn.cameraEffects.zoom;
+      delete turn.cameraEffects.pan;
+      delete turn.cameraEffects.tilt;
+      if (!turn.cameraEffects.shake) delete turn.cameraEffects;
+    }
+    delete turn.cameraEffectSettings;
+  }
+  if (!def.bubble) {
+    // セリフがパネル内に出るため吹き出し・字幕そのものが出ない
+    delete turn.hideBubble;
+    delete turn.subtitleMode;
+    delete turn.subtitleStyle;
+    delete turn.continueBubble;
+    delete turn.bubbleMaxChars;
+    delete turn.disableAutoBubbleSplit;
+  }
+}
+
+// 全ターンから、表示種別で無視される項目を落とす（保存時に実行）。
+function pruneAllTurnsForDisplayType() {
+  if (!storyData || !Array.isArray(storyData.script)) return;
+  storyData.script.forEach((turn, i) => pruneTurnForDisplayType(turn, effectiveDisplayTypeAt(i)));
 }
 
 // そのターンが実際にレンダリングされる表示種別（継承・終了マーカー込み）。
