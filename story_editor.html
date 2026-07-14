@@ -255,6 +255,10 @@
     box-shadow: 0 1px 0 rgba(255,255,255,.25) inset;
   }
   .field-help { font-size: 11px; color: var(--text2); line-height: 1.5; }
+  /* 常時出る説明文は縦を食うだけなので畳む。行にホバーすると title で読める。
+     いま効いている設定を知らせる warn 付きの説明だけを出す。 */
+  #tabBasic .field-help:not(.warn) { display: none; }
+  .param-label { font-size: 11px; color: var(--text2); }
   .field-help.warn {
     color: #5a3900;
     background: linear-gradient(135deg, #fff3bf, #ffd98a);
@@ -610,8 +614,16 @@
   .tab-panel.active { display: block; }
 
   /* フォーム部品 */
-  .field-row { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+  /* 項目名を左・入力を右に置く表組みレイアウト。縦に伸びるのを抑えて一覧性を上げる。 */
+  .field-row {
+    display: grid; grid-template-columns: 116px minmax(0, 1fr);
+    column-gap: 12px; row-gap: 4px; align-items: start; margin-bottom: 8px;
+  }
+  .field-row > .field-label { grid-column: 1; padding-top: 6px; }
+  .field-row > *:not(.field-label) { grid-column: 2; }
   .field-row:last-child { margin-bottom: 0; }
+  /* 表示種別の固有フォームは項目名が長いので、従来どおり項目名を上に積む */
+  #insertFields .field-row { display: flex; flex-direction: column; gap: 3px; }
   .field-label { font-size: 11px; color: var(--text2); font-weight: 600; letter-spacing: .04em; }
   .field-input, .field-select, .field-textarea {
     background: var(--surface2); border: 1px solid var(--border);
@@ -720,7 +732,16 @@
     margin-top: 8px; margin-bottom: 4px;
   }
   .section-divider:first-child { border-top: none; margin-top: 0; }
-  .fx-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  /* 演出トグルはチップ状にして、オンのものが一目で分かるようにする */
+  .fx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 6px; }
+  .fx-grid .toggle-row {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; background: var(--surface2); font-size: 12px;
+  }
+  .fx-grid .toggle-row:hover { border-color: var(--accent); }
+  .fx-grid .toggle-row:has(input:checked) {
+    border-color: var(--accent); background: rgba(91,141,238,.16); color: var(--text);
+  }
 
   /* enter/exit マルチセレクト */
   .multi-select-wrap {
@@ -1029,10 +1050,14 @@
     .tab-panel {
       padding: 16px 18px 22px;
     }
+    /* 幅の狭い端末では表組みにせず、従来どおり縦に積む */
     .field-row {
+      display: flex;
+      flex-direction: column;
       gap: 6px;
       margin-bottom: 16px;
     }
+    #tabBasic .field-help:not(.warn) { display: block; }
     .field-label {
       font-size: calc(13px * var(--m-font-scale, 1));
     }
@@ -1473,6 +1498,12 @@
             </select>
           </div>
 
+          <!-- 選択中の表示種別に固有の設定（通常表示では空）。よく触るので表示種別のすぐ下に置く。 -->
+          <div id="displayTypeSection" style="display:none;">
+            <div class="section-divider" id="displayTypeSectionTitle">表示種別の設定</div>
+            <div id="insertFields"></div>
+          </div>
+
           <div class="section-divider">セリフ</div>
           <div class="field-row">
             <label class="field-label">話者</label>
@@ -1501,49 +1532,7 @@
               <div class="field-help" id="fBubbleMaxCharsHelp" style="margin-top:8px;">未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。</div>
             </div>
           </div>
-          <div class="field-row">
-            <label class="field-label">ポーズ秒 (pause)</label>
-            <input type="number" class="field-input" id="fPause" data-number-default="pause" min="0" step="0.1" placeholder="0.0">
-          </div>
-          <div class="field-row">
-            <label class="field-label">声プリセット</label>
-            <select class="field-select" id="fVoicePreset">
-              <option value="">通常</option>
-              <option value="monotone-male">棒読み（男性）</option>
-              <option value="monotone-female">棒読み（女性）</option>
-            </select>
-            <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:8px;">
-              <label style="display:flex; flex-direction:column; gap:4px;">
-                <span class="field-help">speed</span>
-                <input type="number" class="field-input" id="fVoiceSpeed" data-voice-param="speed" min="0.5" max="2.0" step="0.01" placeholder="既定">
-              </label>
-              <label style="display:flex; flex-direction:column; gap:4px;">
-                <span class="field-help">pitch</span>
-                <input type="number" class="field-input" id="fVoicePitch" data-voice-param="pitch" min="-0.15" max="0.15" step="0.01" placeholder="既定">
-              </label>
-              <label style="display:flex; flex-direction:column; gap:4px;">
-                <span class="field-help">intonation</span>
-                <input type="number" class="field-input" id="fVoiceIntonation" data-voice-param="intonation" min="0" max="2.0" step="0.01" placeholder="既定">
-              </label>
-            </div>
-            <div class="field-help" id="fVoicePresetHelp">この行だけ speed / pitch / intonation を上書きします。</div>
-          </div>
-          <div class="field-row">
-            <label class="field-label">口パク</label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fNoLipSync">
-              <span>この行だけ口パクしない</span>
-            </label>
-            <div class="field-help" id="fNoLipSyncHelp">心の声やモノローグ用。音声は鳴りますが、話者の口だけ止めます。</div>
-          </div>
-          <div class="field-row" id="rowHideCharacters">
-            <label class="field-label">キャラ表示</label>
-            <label class="toggle-row">
-              <input type="checkbox" id="fHideCharacters">
-              <span>この行ではキャラクターを表示しない</span>
-            </label>
-            <div class="field-help" id="fHideCharactersHelp">動画背景や字幕専用の行で、立ち絵とモブをまとめて隠します。</div>
-          </div>
+          <div class="section-divider" id="dividerBubble">吹き出し・字幕</div>
           <div class="field-row" id="rowBubbleMode">
             <label class="field-label">吹き出し</label>
             <label class="toggle-row" style="margin-bottom:8px;">
@@ -1642,24 +1631,24 @@
               <div>
                 <div class="field-help" style="margin-bottom:4px;">ずんだもん</div>
                 <select class="field-select" id="fFaceZundamon">
-                  <option value="">(自動)</option>
-                  <option value="left">left</option>
-                  <option value="right">right</option>
-                  <option value="front_left">斜め前 left</option>
-                  <option value="front_right">斜め前 right</option>
-                  <option value="side_left">横 left</option>
-                  <option value="side_right">横 right</option>
-                  <option value="back_left">斜め後ろ left</option>
-                  <option value="back_right">斜め後ろ right</option>
-                  <option value="back">後ろ</option>
+                  <option value="">自動</option>
+                  <option value="left">左向き</option>
+                  <option value="right">右向き</option>
+                  <option value="front_left">斜め前・左</option>
+                  <option value="front_right">斜め前・右</option>
+                  <option value="side_left">横・左</option>
+                  <option value="side_right">横・右</option>
+                  <option value="back_left">斜め後ろ・左</option>
+                  <option value="back_right">斜め後ろ・右</option>
+                  <option value="back">後ろ向き</option>
                 </select>
               </div>
               <div>
                 <div class="field-help" style="margin-bottom:4px;">四国めたん</div>
                 <select class="field-select" id="fFaceMetan">
-                  <option value="">(自動)</option>
-                  <option value="left">left</option>
-                  <option value="right">right</option>
+                  <option value="">自動</option>
+                  <option value="left">左向き</option>
+                  <option value="right">右向き</option>
                 </select>
               </div>
             </div>
@@ -1681,6 +1670,14 @@
             </div>
             <div class="field-help">このターンの開始時点で、そのキャラの保持中の向きを解除します。向き指定と同時に使うと、このターンでは指定向きを使い、以後は新しい設定に切り替わります。</div>
           </div>
+          <div class="field-row" id="rowHideCharacters">
+            <label class="field-label">キャラ表示</label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fHideCharacters">
+              <span>この行ではキャラクターを表示しない</span>
+            </label>
+            <div class="field-help" id="fHideCharactersHelp">動画背景や字幕専用の行で、立ち絵とモブをまとめて隠します。</div>
+          </div>
           <div class="field-row" id="rowEnter">
             <label class="field-label">このセリフで登場</label>
             <div class="field-help" id="fEnterHelp" style="display:none;"></div>
@@ -1688,10 +1685,10 @@
             <div class="exit-dir-row">
               登場方向:
               <select class="field-select" id="fEnterDir" style="width:auto;padding:2px 6px;font-size:12px">
-                <option value="">(自動)</option>
-                <option value="left">left</option>
-                <option value="right">right</option>
-                <option value="instant">即時登場</option>
+                <option value="">自動</option>
+                <option value="left">左から</option>
+                <option value="right">右から</option>
+                <option value="instant">即時（スライドなし）</option>
               </select>
             </div>
           </div>
@@ -1701,10 +1698,10 @@
             <div class="exit-dir-row">
               退場方向:
               <select class="field-select" id="fExitDir" style="width:auto;padding:2px 6px;font-size:12px">
-                <option value="">(自動)</option>
-                <option value="left">left</option>
-                <option value="right">right</option>
-                <option value="instant">即時退場</option>
+                <option value="">自動</option>
+                <option value="left">左へ</option>
+                <option value="right">右へ</option>
+                <option value="instant">即時（スライドなし）</option>
               </select>
             </div>
           </div>
@@ -1798,15 +1795,46 @@
             <div id="fTurnEffectSettings"></div>
           </div>
 
+          <div class="section-divider">音声</div>
+          <div class="field-row">
+            <label class="field-label">声プリセット</label>
+            <select class="field-select" id="fVoicePreset">
+              <option value="">通常</option>
+              <option value="monotone-male">棒読み（男性）</option>
+              <option value="monotone-female">棒読み（女性）</option>
+            </select>
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:8px;">
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span class="param-label">速さ</span>
+                <input type="number" class="field-input" id="fVoiceSpeed" data-voice-param="speed" min="0.5" max="2.0" step="0.01" placeholder="既定">
+              </label>
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span class="param-label">高さ</span>
+                <input type="number" class="field-input" id="fVoicePitch" data-voice-param="pitch" min="-0.15" max="0.15" step="0.01" placeholder="既定">
+              </label>
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span class="param-label">抑揚</span>
+                <input type="number" class="field-input" id="fVoiceIntonation" data-voice-param="intonation" min="0" max="2.0" step="0.01" placeholder="既定">
+              </label>
+            </div>
+            <div class="field-help" id="fVoicePresetHelp">この行だけ speed / pitch / intonation を上書きします。</div>
+          </div>
+          <div class="field-row">
+            <label class="field-label">セリフ後の間</label>
+            <input type="number" class="field-input" id="fPause" data-number-default="pause" min="0" step="0.1" placeholder="0.0（秒）">
+          </div>
+          <div class="field-row">
+            <label class="field-label">口パク</label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fNoLipSync">
+              <span>この行だけ口パクしない</span>
+            </label>
+            <div class="field-help" id="fNoLipSyncHelp">心の声やモノローグ用。音声は鳴りますが、話者の口だけ止めます。</div>
+          </div>
+
           <div class="section-divider">SE（任意）</div>
           <div id="fSeList" style="margin-bottom:4px;"></div>
           <button class="insert-add-btn" id="btnAddSe" style="margin-bottom:8px;">＋ SE追加</button>
-
-          <!-- 選択中の表示種別に固有の設定（通常表示では空） -->
-          <div id="displayTypeSection" style="display:none;">
-            <div class="section-divider" id="displayTypeSectionTitle">表示種別の設定</div>
-            <div id="insertFields"></div>
-          </div>
         </div>
 
         <!-- 配置タブ -->
@@ -7530,6 +7558,18 @@ function renderDisplayTypeUi() {
   applyDisplayTypeVisibility(eff);
 }
 
+// 「向きの効き方」「向き保持の解除」は、向きを指定した行でしか意味を持たない。
+// 常時3行出すとかさばるので、関係する時だけ出す。
+function syncFaceRows(stageVisible) {
+  const turn = selectedIdx >= 0 ? storyData.script[selectedIdx] : null;
+  const faceSet = !!(document.getElementById("fFaceZundamon").value || document.getElementById("fFaceMetan").value);
+  const clearSet = !!(turn && turn.clearFace && turn.clearFace.length);
+  const modeRow = document.getElementById("rowFaceMode");
+  const clearRow = document.getElementById("rowClearFace");
+  if (modeRow) modeRow.style.display = stageVisible && faceSet ? "" : "none";
+  if (clearRow) clearRow.style.display = stageVisible && (faceSet || clearSet) ? "" : "none";
+}
+
 // 選択中の表示種別で意味を持たない項目を隠す。
 // レンダリング側は変更していないため、既存JSONに残った値の効き方は従来どおり。
 function applyDisplayTypeVisibility(eff) {
@@ -7542,9 +7582,8 @@ function applyDisplayTypeVisibility(eff) {
   // ステージ（背景・立ち絵・カメラ）が見える種別だけの項目
   show("rowSpeakerAnchor", def.stage);
   show("rowFace", def.stage);
-  show("rowFaceMode", def.stage);
-  show("rowClearFace", def.stage);
   show("rowHideCharacters", def.stage);
+  syncFaceRows(def.stage);
   show("rowCameraEffects", def.stage);
   // 回想は「その行の見た目」ではなく回想区間のフラグ。インサート行で外すと
   // そこで区間が切れて白ディゾルブが入るため、どの表示種別でも編集できるままにする。
@@ -10357,6 +10396,17 @@ function setupEvents() {
     const evt = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
     el.addEventListener(evt, collectBasic);
   }
+  // 向きを指定した時だけ「向きの効き方」「向き保持の解除」を出す
+  for (const id of ["fFaceZundamon", "fFaceMetan"]) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => syncFaceRows(true));
+  }
+  // 常時表示の説明文は畳んでいるので、行にホバーすれば読めるようにしておく
+  document.querySelectorAll("#tabBasic .field-row").forEach((row) => {
+    const help = row.querySelector(".field-help");
+    const text = help ? help.textContent.trim() : "";
+    if (text && !row.title) row.title = text;
+  });
   const voicePresetField = document.getElementById("fVoicePreset");
   if (voicePresetField) {
     voicePresetField.addEventListener("change", () => {
