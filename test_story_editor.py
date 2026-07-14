@@ -152,8 +152,47 @@ def test_speakers_include_troublemaker_profiles():
     print("  speakers: troublemaker男女4種がエディタ選択肢にある: OK")
 
 
+def _turn(**extra):
+    turn = {"speaker": "zundamon", "text": "テスト", "scene": "office"}
+    turn.update(extra)
+    return turn
+
+
+def test_validate_story_accepts_existing_inserts():
+    """既存の表示種別(insert)付きJSONがそのまま読める。未知kindも落とさない。"""
+    inserts = [
+        {"kind": "warning", "title": "警告", "text": "エラー"},
+        {"kind": "ok", "text": "正常"},
+        {"kind": "chat", "user": "質問", "ai": ["回答"]},
+        {"kind": "teamchat", "messages": [{"from": "a", "text": "b"}]},
+        {"kind": "mailer", "subject": "件名", "body": "本文"},
+        {"kind": "videocall", "room": "定例", "participants": [{"speaker": "metan"}]},
+        {"kind": "videocall", "end": True},
+        {"kind": "whiteboard_explain", "title": "解説", "theme": "t", "sections": [], "conclusion": "c"},
+        # 未対応の表示種別も、可能な範囲でそのまま通す（勝手に落とさない）
+        {"kind": "future_unknown_kind", "foo": 1},
+    ]
+    se._validate_story({"script": [_turn(insert=ins) for ins in inserts]})
+    # インサート無しの通常ターンも従来どおり通る
+    se._validate_story({"script": [_turn()]})
+    print("  validate: 既存インサート付き/通常JSONを読める(未知kindも保持): OK")
+
+
+def test_validate_story_rejects_broken_insert():
+    """壊れた insert（object でない・kind 無し）は保存前に弾く。"""
+    for bad in ("warning", {"title": "kindが無い"}, {"kind": ""}, {"kind": 1}):
+        try:
+            se._validate_story({"script": [_turn(insert=bad)]})
+        except ValueError:
+            continue
+        raise AssertionError(f"不正な insert を通してしまった: {bad!r}")
+    print("  validate: 不正な insert を弾く: OK")
+
+
 if __name__ == "__main__":
     test_prompt_mentions_current_story_fields()
     test_import_recognizes_supported_story_fields()
     test_speakers_include_troublemaker_profiles()
+    test_validate_story_accepts_existing_inserts()
+    test_validate_story_rejects_broken_insert()
     print("OK")

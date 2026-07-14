@@ -297,6 +297,13 @@ def _validate_story(data):
         for field in ("speaker", "text", "scene"):
             if field not in turn or not isinstance(turn[field], str):
                 raise ValueError(f"turn[{i}]: {field}(文字列)が必要です")
+        # insert = そのターンの表示種別。未知の kind は将来/旧データとして通すが、形は守らせる。
+        if "insert" in turn:
+            ins = turn["insert"]
+            if not isinstance(ins, dict):
+                raise ValueError(f"turn[{i}]: insert は object である必要があります")
+            if not isinstance(ins.get("kind"), str) or not ins["kind"]:
+                raise ValueError(f"turn[{i}]: insert.kind(文字列)が必要です")
 
 
 def _save_story(data):

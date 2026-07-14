@@ -1442,12 +1442,37 @@
     <div id="detailPanel" style="display:none; display:flex; flex-direction:column; height:100%; overflow:hidden;">
       <div class="tabs">
         <button class="tab-btn active" data-tab="basic">基本</button>
-        <button class="tab-btn" data-tab="insert">インサート</button>
-        <button class="tab-btn" data-tab="placement">配置</button>
+        <button class="tab-btn" data-tab="placement" id="tabBtnPlacement">配置</button>
       </div>
       <div class="tab-content">
         <!-- 基本タブ -->
         <div class="tab-panel active" id="tabBasic">
+          <div class="section-divider">表示種別</div>
+          <div class="field-row">
+            <label class="field-label">表示種別</label>
+            <select class="field-select" id="fDisplayType">
+              <option value="">通常表示</option>
+              <option value="monitor">ZunMonitor（警告 / 正常）</option>
+              <option value="chat">ZunAI（AIチャット）</option>
+              <option value="teamchat">ZunChat（チームチャット）</option>
+              <option value="mailer">ZunMail（メール）</option>
+              <option value="videocall">ZunMeet（ビデオ会議）</option>
+              <option value="whiteboard_explain">ホワイトボード解説</option>
+            </select>
+            <div class="field-help" id="fDisplayTypeHelp"></div>
+            <!-- 保存される insert.kind。表示種別プルダウンから同期する（ZunMonitorは warning / ok の2値） -->
+            <select id="fInsertKind" style="display:none;">
+              <option value="">(なし)</option>
+              <option value="warning">warning</option>
+              <option value="ok">ok</option>
+              <option value="chat">chat</option>
+              <option value="teamchat">teamchat</option>
+              <option value="mailer">mailer</option>
+              <option value="videocall">videocall</option>
+              <option value="whiteboard_explain">whiteboard_explain</option>
+            </select>
+          </div>
+
           <div class="section-divider">セリフ</div>
           <div class="field-row">
             <label class="field-label">話者</label>
@@ -1511,7 +1536,7 @@
             </label>
             <div class="field-help" id="fNoLipSyncHelp">心の声やモノローグ用。音声は鳴りますが、話者の口だけ止めます。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowHideCharacters">
             <label class="field-label">キャラ表示</label>
             <label class="toggle-row">
               <input type="checkbox" id="fHideCharacters">
@@ -1519,7 +1544,7 @@
             </label>
             <div class="field-help" id="fHideCharactersHelp">動画背景や字幕専用の行で、立ち絵とモブをまとめて隠します。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowBubbleMode">
             <label class="field-label">吹き出し</label>
             <label class="toggle-row" style="margin-bottom:8px;">
               <input type="checkbox" id="fHideBubble">
@@ -1584,33 +1609,34 @@
             <div class="field-help" id="fAutoBubbleSplitHelp">句点や ! ? による自動多段化を、この行だけ止めます。</div>
           </div>
 
-          <div class="section-divider">キャラクター</div>
-          <div class="field-row">
+          <div class="section-divider" id="dividerCharacter">キャラクター</div>
+          <div class="field-row" id="rowScene">
             <label class="field-label">シーン</label>
             <select class="field-select" id="fScene"></select>
+            <div class="field-help" id="fSceneHelp"></div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowSpeakerAnchor">
             <label class="field-label">立ち位置</label>
             <select class="field-select" id="fSpeakerAnchor">
               <option value="">(シーン既定)</option>
             </select>
             <div class="field-help">この行の話者が立つアンカーです。未指定ならシーン既定を使います。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowExpression">
             <label class="field-label">表情</label>
             <select class="field-select" id="fExpression">
               <option value="">(引き継ぎ＝直前の自分の表情)</option>
             </select>
-            <div class="field-help">未指定は真顔に戻らず、そのキャラが最後に使った表情を引き継ぎます。真顔に戻すには normal を指定。</div>
+            <div class="field-help" id="fExpressionHelp">未指定は真顔に戻らず、そのキャラが最後に使った表情を引き継ぎます。真顔に戻すには normal を指定。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowPose">
             <label class="field-label">ポーズ</label>
             <select class="field-select" id="fPose">
               <option value="">auto</option>
             </select>
             <div class="field-help">未指定なら表情に応じて自動で決まります。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowFace">
             <label class="field-label">向き</label>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
               <div>
@@ -1639,7 +1665,7 @@
             </div>
             <div class="field-help">角度差分PNGは現在ずんだもんの全身シーンのみ対応。めたんは左右のみ、バストでは従来どおり left/right だけを使います。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowFaceMode">
             <label class="field-label">向きの効き方</label>
             <select class="field-select" id="fFaceMode">
               <option value="">このターンだけ</option>
@@ -1647,7 +1673,7 @@
             </select>
             <div class="field-help">向きを指定した時だけ意味があります。「以後も維持」は、次のターンで別話者が話しても向きを戻しません。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowClearFace">
             <label class="field-label">向き保持の解除</label>
             <div class="multi-select-wrap">
               <label class="multi-check"><input type="checkbox" id="fClearFaceZundamon"> ずんだもんを自動へ戻す</label>
@@ -1655,8 +1681,9 @@
             </div>
             <div class="field-help">このターンの開始時点で、そのキャラの保持中の向きを解除します。向き指定と同時に使うと、このターンでは指定向きを使い、以後は新しい設定に切り替わります。</div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowEnter">
             <label class="field-label">このセリフで登場</label>
+            <div class="field-help" id="fEnterHelp" style="display:none;"></div>
             <div class="multi-select-wrap" id="fEnter"></div>
             <div class="exit-dir-row">
               登場方向:
@@ -1668,7 +1695,7 @@
               </select>
             </div>
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowExit">
             <label class="field-label">このセリフ後に退場</label>
             <div class="multi-select-wrap" id="fExit"></div>
             <div class="exit-dir-row">
@@ -1688,7 +1715,7 @@
               <input type="checkbox" id="fShake">
               <span>シェイク</span>
             </label>
-            <label class="toggle-row">
+            <label class="toggle-row" id="rowFlashback">
               <input type="checkbox" id="fFlashback">
               <span>回想</span>
             </label>
@@ -1700,7 +1727,7 @@
           <div class="field-help" style="margin-bottom:10px;">
             未来視、防犯カメラ映像、VHS映像、通信障害、砂嵐のような映像ノイズを重ねます。回想と併用すると「色あせた予知・記録映像」風になります。
           </div>
-          <div class="field-row">
+          <div class="field-row" id="rowCameraEffects">
             <label class="field-label">カメラ効果</label>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <select class="field-select" id="fCameraEffectZoom" style="width:auto; min-width:120px;">
@@ -1774,25 +1801,12 @@
           <div class="section-divider">SE（任意）</div>
           <div id="fSeList" style="margin-bottom:4px;"></div>
           <button class="insert-add-btn" id="btnAddSe" style="margin-bottom:8px;">＋ SE追加</button>
-        </div>
 
-        <!-- インサートタブ -->
-        <div class="tab-panel" id="tabInsert">
-          <div class="field-row">
-            <label class="field-label">種別 (insert.kind)</label>
-            <select class="field-select" id="fInsertKind">
-              <option value="">(なし)</option>
-              <option value="warning">ZunMonitor（警告）</option>
-              <option value="ok">ZunMonitor（正常/OK）</option>
-              <option value="chat">ZunAI（AIチャット）</option>
-              <option value="teamchat">ZunChat（チームチャット）</option>
-              <option value="mailer">ZunMail（メール）</option>
-              <option value="videocall">ZunMeet（ビデオ会議）</option>
-              <option value="whiteboard_explain">ホワイトボード解説</option>
-            </select>
+          <!-- 選択中の表示種別に固有の設定（通常表示では空） -->
+          <div id="displayTypeSection" style="display:none;">
+            <div class="section-divider" id="displayTypeSectionTitle">表示種別の設定</div>
+            <div id="insertFields"></div>
           </div>
-          <!-- 種別に応じた入力欄 -->
-          <div id="insertFields"></div>
         </div>
 
         <!-- 配置タブ -->
@@ -6735,7 +6749,16 @@ function renderList() {
     if (turn.face && turn.faceMode === "hold") badges.appendChild(makeBadge("向き維持", "fx"));
     const clearFaceText = clearFaceSummary(turn.clearFace);
     if (clearFaceText) badges.appendChild(makeBadge("向き解除:" + clearFaceText, "warn"));
-    if (turn.insert) badges.appendChild(makeBadge(turn.insert.kind, "insert"));
+    // 表示種別バッジ。ZunMeet は insert を持たない継承ターンでも通話画面になるので、それも出す。
+    const effDisp = effectiveDisplayTypeAt(i);
+    if (effDisp.id) {
+      badges.appendChild(makeBadge(
+        displayTypeDefOf(effDisp.id).label + (effDisp.inherited ? "（継続）" : ""),
+        "insert"
+      ));
+    } else if (turn.insert && turn.insert.kind === "videocall" && turn.insert.end) {
+      badges.appendChild(makeBadge("ZunMeet終了", "warn"));
+    }
     if (turn.noLipSync) badges.appendChild(makeBadge("口パクOFF", "warn"));
     if (turn.hideCharacters) badges.appendChild(makeBadge("キャラ非表示", "warn"));
     if (turn.hideBubble) badges.appendChild(makeBadge("吹き出し非表示", "warn"));
@@ -7428,13 +7451,137 @@ function renderDetail() {
   // ── 手動SE ──
   renderManualSe();
 
-  // ── インサートタブ ──
-  const kind = turn.insert ? turn.insert.kind : "";
-  document.getElementById("fInsertKind").value = kind;
-  renderInsertFields(turn.insert || null);
+  // ── 表示種別（プルダウン＋種別固有設定） ──
+  renderDisplayTypeUi();
 
   // ── 配置タブ ──
   renderPlacementPanel();
+}
+
+// 表示種別プルダウン・種別固有フォーム・基本タブ項目の出し分けをまとめて更新する。
+function renderDisplayTypeUi() {
+  if (selectedIdx < 0 || selectedIdx >= storyData.script.length) return;
+  const turn = storyData.script[selectedIdx];
+  const eff = effectiveDisplayTypeAt(selectedIdx);
+  const sel = document.getElementById("fDisplayType");
+
+  // 未対応の kind は落とさず読み取り専用で見せる
+  const unknownOpt = sel.querySelector('option[value="' + UNKNOWN_DISPLAY_TYPE + '"]');
+  if (eff.id === UNKNOWN_DISPLAY_TYPE) {
+    if (!unknownOpt) {
+      const o = document.createElement("option");
+      o.value = UNKNOWN_DISPLAY_TYPE;
+      o.textContent = "不明な表示種別（未対応: " + eff.kind + "）";
+      sel.appendChild(o);
+    }
+  } else if (unknownOpt) {
+    unknownOpt.remove();
+  }
+  sel.value = eff.id;
+  // collectInsert() の書き戻し先。継承中のターンは videocall の差分パッチとして書く。
+  document.getElementById("fInsertKind").value = turn.insert
+    ? turn.insert.kind
+    : (eff.inherited ? "videocall" : "");
+
+  const endsVideoCall = !!(turn.insert && turn.insert.kind === "videocall" && turn.insert.end);
+  const help = document.getElementById("fDisplayTypeHelp");
+  if (endsVideoCall) {
+    help.className = "field-help warn";
+    help.textContent = "この行で ZunMeet を終了します。この行以降は通常画面に戻ります。";
+  } else if (eff.inherited) {
+    help.className = "field-help warn";
+    help.textContent = "前のターンから ZunMeet が継続しています。この行も通話画面で表示されます（背景・立ち絵は映りません）。通常画面に戻すには「通常表示」を選んでください。";
+  } else if (eff.id === UNKNOWN_DISPLAY_TYPE) {
+    help.className = "field-help warn";
+    help.textContent = "このエディタが未対応の表示種別です。内容は保持されますが編集できません。";
+  } else if (eff.id) {
+    help.className = "field-help warn";
+    help.textContent = "この行は画面全体が " + displayTypeDefOf(eff.id).label + " に置き換わります。背景・立ち絵・カメラは映りません。";
+  } else {
+    help.className = "field-help";
+    help.textContent = "この行の画面構成です。通常表示は背景＋立ち絵、それ以外は全画面の専用画面に置き換わります。";
+  }
+
+  // 種別固有フォーム。継承中の ZunMeet は「差分パッチ」として空の videocall を出す。
+  const section = document.getElementById("displayTypeSection");
+  const title = document.getElementById("displayTypeSectionTitle");
+  if (eff.id && eff.id !== UNKNOWN_DISPLAY_TYPE) {
+    section.style.display = "";
+    title.textContent = displayTypeDefOf(eff.id).label + " の設定";
+    renderInsertFields(turn.insert || (eff.inherited ? { kind: "videocall" } : null));
+  } else {
+    section.style.display = "none";
+    renderInsertFields(null);
+  }
+
+  applyDisplayTypeVisibility(eff);
+}
+
+// 選択中の表示種別で意味を持たない項目を隠す。
+// レンダリング側は変更していないため、既存JSONに残った値の効き方は従来どおり。
+function applyDisplayTypeVisibility(eff) {
+  const def = displayTypeDefOf(eff.id);
+  const show = (id, visible) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? "" : "none";
+  };
+
+  // ステージ（背景・立ち絵・カメラ）が見える種別だけの項目
+  show("rowSpeakerAnchor", def.stage);
+  show("rowFace", def.stage);
+  show("rowFaceMode", def.stage);
+  show("rowClearFace", def.stage);
+  show("rowHideCharacters", def.stage);
+  show("rowCameraEffects", def.stage);
+  show("rowFlashback", def.stage);
+  // 配置タブ（manualPos / focusSpeaker / manualCameraFrame）も通常表示専用
+  show("tabBtnPlacement", def.stage);
+  if (!def.stage) {
+    const placementBtn = document.getElementById("tabBtnPlacement");
+    if (placementBtn && placementBtn.classList.contains("active")) {
+      document.querySelector('.tab-btn[data-tab="basic"]').click();
+    }
+  }
+
+  // 表情・ポーズはターンの立ち絵に反映される種別だけ（ホワイトボードは insert.character 側で指定）
+  show("rowExpression", def.turnCharacter);
+  show("rowPose", def.turnCharacter);
+
+  // 吹き出し・字幕が出る種別だけ
+  show("rowBubbleMode", def.bubble);
+  show("fSubtitleStyleRow", def.bubble && document.getElementById("fSubtitleMode").value === "subtitle");
+  show("fContinueBubbleRow", def.bubble);
+  show("fAutoBubbleSplitRow", def.bubble);
+  show("fBubbleMaxCharsRow", def.bubble);
+
+  // シーンは背景が映らなくても、場面転換の区切りと ZunMeet 継承の打ち切り条件として効き続ける
+  const sceneHelp = document.getElementById("fSceneHelp");
+  if (sceneHelp) {
+    if (def.stage) {
+      sceneHelp.className = "field-help";
+      sceneHelp.textContent = "";
+      sceneHelp.style.display = "none";
+    } else {
+      sceneHelp.className = "field-help warn";
+      sceneHelp.textContent = "この表示種別では背景は映りません。ただし場面の区切りとしては効きます。";
+      sceneHelp.style.display = "";
+    }
+  }
+
+  // 登場・退場は画面に映らないが、以降の通常画面での在席状態は変わる
+  const enterHelp = document.getElementById("fEnterHelp");
+  if (enterHelp) {
+    enterHelp.className = "field-help warn";
+    enterHelp.textContent = "この行では登場・退場は画面に映りませんが、以降の通常画面に反映されます。";
+    enterHelp.style.display = def.stage ? "none" : "";
+  }
+
+  const exprHelp = document.getElementById("fExpressionHelp");
+  if (exprHelp && eff.id === "videocall") {
+    exprHelp.textContent = "ZunMeet では、話者タイルの中の立ち絵に反映されます。";
+  } else if (exprHelp) {
+    exprHelp.textContent = "未指定は真顔に戻らず、そのキャラが最後に使った表情を引き継ぎます。真顔に戻すには normal を指定。";
+  }
 }
 
 function setField(id, type, value) {
@@ -7481,6 +7628,39 @@ function renderInsertFields(insert) {
   const kind = insert ? insert.kind : "";
 
   if (!kind) return;
+
+  // ZunMonitor は警告/正常を1つの表示種別として見せる（保存される kind は warning / ok のまま）
+  if (kind === "warning" || kind === "ok") {
+    const row = document.createElement("div");
+    row.className = "field-row";
+    const lbl = document.createElement("label");
+    lbl.className = "field-label";
+    lbl.textContent = "状態";
+    const stateSel = document.createElement("select");
+    stateSel.className = "field-select";
+    stateSel.id = "fIMonitorState";
+    [["warning", "警告（赤）"], ["ok", "正常 / OK（緑）"]].forEach(([value, label]) => {
+      const o = document.createElement("option");
+      o.value = value;
+      o.textContent = label;
+      stateSel.appendChild(o);
+    });
+    stateSel.value = kind;
+    stateSel.addEventListener("change", () => {
+      const turn = storyData.script[selectedIdx];
+      if (!turn) return;
+      const text = (turn.insert && turn.insert.text) || "";
+      turn.insert = buildDefaultInsert(stateSel.value, turn.insert);
+      turn.insert.text = text;
+      markDirty();
+      renderDisplayTypeUi();
+      renderList();
+      notifyPlayerUpdate();
+    });
+    row.appendChild(lbl);
+    row.appendChild(stateSel);
+    container.appendChild(row);
+  }
 
   if (kind !== "whiteboard_explain") {
     const effectiveVideoCall = kind === "videocall" ? resolveEffectiveVideoCallInsert(selectedIdx) : null;
@@ -7858,8 +8038,7 @@ function renderInsertFields(insert) {
 // （videocall の上書き⇄継承のように、値の有無で表示が変わるフォーム用）。
 function rerenderInsertFieldsForSelected() {
   if (selectedIdx < 0) return;
-  const turn = storyData.script[selectedIdx];
-  renderInsertFields(turn && turn.insert ? turn.insert : null);
+  renderDisplayTypeUi();
 }
 
 function makeField(labelText, inputType, id, value, placeholder) {
@@ -10289,19 +10468,36 @@ function setupEvents() {
     buildSpeakerAnchorSelect(document.getElementById("fScene").value, turn && turn.speakerAnchor ? turn.speakerAnchor : "");
   });
 
-  // インサートタブ: kind変更でフォーム再構築
-  document.getElementById("fInsertKind").addEventListener("change", () => {
+  // 表示種別プルダウン: 種別を切り替えて固有フォームを作り直す
+  document.getElementById("fDisplayType").addEventListener("change", () => {
     if (selectedIdx < 0) return;
-    const kind = document.getElementById("fInsertKind").value;
+    const sel = document.getElementById("fDisplayType");
+    const next = sel.value;
     const turn = storyData.script[selectedIdx];
-    // 種別変更時は insert を初期値にリセット
-    if (!kind) {
-      delete turn.insert;
-    } else {
-      turn.insert = buildDefaultInsert(kind, turn.insert);
+    const eff = effectiveDisplayTypeAt(selectedIdx);
+    if (next === eff.id) return;
+    if (next === UNKNOWN_DISPLAY_TYPE) { sel.value = eff.id; return; }
+
+    // 種別固有の入力内容は引き継がない。消える前に確認する。
+    if (turn.insert && !turn.insert.end) {
+      const ok = confirm(
+        "「" + displayTypeDefOf(eff.id).label + "」に入力した内容は失われます。\n表示種別を「" + displayTypeDefOf(next).label + "」に変更しますか？"
+      );
+      if (!ok) { sel.value = eff.id; return; }
     }
-    renderInsertFields(turn.insert || null);
+
+    if (!next) {
+      delete turn.insert;
+      // 同シーンの直前 ZunMeet から継承してしまう位置なら、終了マーカーで通話を閉じる
+      if (inheritedVideoCallAt(selectedIdx)) turn.insert = { kind: "videocall", end: true };
+    } else {
+      const kind = displayTypeDefOf(next).kinds[0];
+      // 終了マーカーは引き継がない（同じ行で ZunMeet を選び直したら通話を再開する）
+      const prev = (turn.insert && turn.insert.kind === "videocall" && turn.insert.end) ? null : turn.insert;
+      turn.insert = buildDefaultInsert(kind, prev);
+    }
     markDirty();
+    renderDisplayTypeUi();
     renderList();
     notifyPlayerUpdate();
   });
@@ -10535,10 +10731,73 @@ function findPreviousVideoCallInsert(idx) {
   for (let i = idx - 1; i >= 0; i--) {
     const prev = storyData.script[i];
     if (!prev || prev.scene !== cur.scene) break;
-    if (prev.insert && prev.insert.kind === "videocall") return prev.insert;
+    if (prev.insert && prev.insert.kind === "videocall") {
+      // 終了マーカーより前へは遡らない（StoryVideo.tsx effectiveInsertAt と同じ判定）
+      if (prev.insert.end) break;
+      return prev.insert;
+    }
     if (prev.insert && prev.insert.kind !== "videocall") break;
   }
   return null;
+}
+
+// ─── 表示種別（そのターンの画面構成そのもの） ────────────────
+// insert 7種はいずれも背景・立ち絵を不透明パネルで完全に覆うため、
+// 「通常画面へ重ねるオーバーレイ」ではなく画面構成の置き換え＝表示種別として扱う。
+// 詳細と根拠: docs/display-type-ui-analysis.md
+const DISPLAY_TYPES = {
+  "": {
+    label: "通常表示",
+    kinds: [],
+    // ステージ（背景・立ち絵・モブ・カメラ）が見えるか
+    stage: true,
+    // 吹き出し／字幕が出るか
+    bubble: true,
+    // ターンの表情・ポーズが立ち絵に反映されるか
+    turnCharacter: true,
+  },
+  monitor: { label: "ZunMonitor", kinds: ["warning", "ok"], stage: false, bubble: true, turnCharacter: false },
+  chat: { label: "ZunAI（AIチャット）", kinds: ["chat"], stage: false, bubble: false, turnCharacter: false },
+  teamchat: { label: "ZunChat（チームチャット）", kinds: ["teamchat"], stage: false, bubble: false, turnCharacter: false },
+  mailer: { label: "ZunMail（メール）", kinds: ["mailer"], stage: false, bubble: true, turnCharacter: false },
+  // ZunMeet はタイル内の立ち絵にターンの表情・ポーズを使う
+  videocall: { label: "ZunMeet（ビデオ会議）", kinds: ["videocall"], stage: false, bubble: true, turnCharacter: true },
+  // ホワイトボードはキャラを insert.character で持つため、ターンの表情・ポーズは使わない
+  whiteboard_explain: { label: "ホワイトボード解説", kinds: ["whiteboard_explain"], stage: false, bubble: false, turnCharacter: false },
+};
+const UNKNOWN_DISPLAY_TYPE = "__unknown";
+
+// insert.kind → 表示種別ID。warning/ok はどちらも ZunMonitor に畳む。
+function displayTypeIdOfKind(kind) {
+  if (!kind) return "";
+  for (const id of Object.keys(DISPLAY_TYPES)) {
+    if (DISPLAY_TYPES[id].kinds.includes(kind)) return id;
+  }
+  return UNKNOWN_DISPLAY_TYPE;
+}
+
+function displayTypeDefOf(id) {
+  return DISPLAY_TYPES[id] || { label: "不明な表示種別（未対応）", kinds: [], stage: false, bubble: false, turnCharacter: false };
+}
+
+// 自分の insert を持たないターンが、同シーンの直前 videocall から継承する通話。
+// StoryVideo.tsx effectiveInsertAt の継承条件をミラーしている。
+function inheritedVideoCallAt(idx) {
+  if (!storyData || !Array.isArray(storyData.script)) return null;
+  const cur = storyData.script[idx];
+  if (!cur || cur.insert) return null;
+  return findPreviousVideoCallInsert(idx);
+}
+
+// そのターンが実際にレンダリングされる表示種別（継承・終了マーカー込み）。
+function effectiveDisplayTypeAt(idx) {
+  const turn = storyData.script[idx];
+  if (!turn) return { id: "", kind: "", inherited: false };
+  const ins = turn.insert;
+  if (ins && ins.kind === "videocall" && ins.end) return { id: "", kind: "", inherited: false };
+  if (ins) return { id: displayTypeIdOfKind(ins.kind), kind: ins.kind, inherited: false };
+  if (inheritedVideoCallAt(idx)) return { id: "videocall", kind: "videocall", inherited: true };
+  return { id: "", kind: "", inherited: false };
 }
 
 function resolveEffectiveVideoCallInsert(idx, opts = {}) {
