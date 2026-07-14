@@ -27,8 +27,8 @@
     },
     "flustered": {
       "arm": "arm_mouth",
-      "speed": 0.65,
-      "strength": 1
+      "speed": 0.45,
+      "strength": 0.45
     },
     "proud": {
       "arm": "arm_point",
@@ -37,8 +37,8 @@
     },
     "step_in": {
       "arm": "arm_point",
-      "speed": 1,
-      "strength": 1
+      "speed": 0.4,
+      "strength": 0.4
     },
     "step_back": {
       "arm": "arm_waist",
@@ -57,8 +57,8 @@
     },
     "wobble": {
       "arm": "arm_suffering",
-      "speed": 0.7,
-      "strength": 0.6
+      "speed": 0.45,
+      "strength": 0.4
     },
     "point": {
       "arm": "arm_point",

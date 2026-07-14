@@ -209,7 +209,22 @@
     border-bottom: 1px solid var(--border); flex-shrink: 0;
     background: rgba(74,222,128,.08); font-size: 12px;
   }
+  .bulk-edit-bar .field-select { min-width: 0; }
   .bulk-edit-bar #bulkSceneCount { color: var(--green); font-weight: 700; white-space: nowrap; }
+  .bulk-edit-panel {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    z-index: 80; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 80px); overflow: auto;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 18px 60px rgba(0,0,0,.58); padding: 16px;
+  }
+  .bulk-edit-panel-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--border);
+    font-weight: 700;
+  }
+  .bulk-edit-panel-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+  .bulk-edit-panel-row { display: contents; }
+  .bulk-edit-panel-label { color: var(--text2); font-size: 12px; }
   .turn-icon {
     width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
     object-fit: cover; background: var(--surface2);
@@ -764,6 +779,29 @@
   .bgm-range-label { font-size: 11px; color: var(--text2); flex-shrink: 0; }
   .bgm-range-num { width: 58px; }
   .vol-display { font-size: 11px; color: var(--text2); min-width: 28px; text-align: right; flex-shrink: 0; }
+  .voice-profile-list {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .voice-profile-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .voice-profile-head {
+    display: grid; grid-template-columns: minmax(120px, 180px) minmax(220px, 1fr);
+    gap: 10px; align-items: end;
+  }
+  .voice-profile-params {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    gap: 8px;
+  }
+  .voice-profile-param {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .voice-profile-param .field-input { width: 100%; }
+  .voice-profile-note {
+    font-size: 11px; color: var(--text2); line-height: 1.5;
+  }
   /* ターン詳細内手動SE */
   .se-manual-row {
     display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
@@ -1154,11 +1192,78 @@
       <span id="bulkSceneCount"></span>
       <select class="field-select" id="bulkSceneSelect" style="width:auto; flex:1;"></select>
       <button class="btn btn-primary btn-sm" id="btnBulkSceneApply">シーンを一括適用</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkOpenAdvanced">一括変更</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkSceneClear">選択解除</button>
+    </div>
+    <div class="bulk-edit-panel" id="bulkEditPanel" style="display:none;">
+      <div class="bulk-edit-panel-header">
+        <span>選択セリフを一括変更</span>
+        <button class="btn btn-secondary btn-sm" id="btnBulkPanelClose" type="button">閉じる</button>
+      </div>
+      <div class="bulk-edit-panel-grid">
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">話者フォーカス</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
       <button class="btn btn-secondary btn-sm" id="btnBulkFocusOn">話者フォーカスON</button>
       <button class="btn btn-secondary btn-sm" id="btnBulkFocusOff">話者フォーカスOFF</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">表情</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <select class="field-select" id="bulkExpressionSelect" style="width:auto; max-width:120px;"></select>
+      <button class="btn btn-secondary btn-sm" id="btnBulkExpressionApply">表情適用</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">カメラ演出</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <select class="field-select" id="bulkCameraEffectSelect" style="width:auto; max-width:132px;">
+        <option value="">カメラ演出</option>
+        <option value="clear">解除</option>
+        <option value="zoom-in">ズームイン</option>
+        <option value="zoom-out">ズームアウト</option>
+        <option value="pan-left">左パン</option>
+        <option value="pan-right">右パン</option>
+        <option value="tilt-left">左傾き</option>
+        <option value="tilt-right">右傾き</option>
+        <option value="shake">揺れ</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" id="btnBulkCameraEffectApply">演出適用</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">声</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <select class="field-select" id="bulkVoiceSelect" style="width:auto; max-width:132px;">
+        <option value="">声</option>
+        <option value="clear">解除</option>
+        <option value="copy-current">選択中からコピー</option>
+        <option value="monotone-male">棒読み（男性）</option>
+        <option value="monotone-female">棒読み（女性）</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" id="btnBulkVoiceApply">声適用</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">テロップ</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <input class="field-input" id="bulkTelopText" type="text" placeholder="テロップ文字" style="width:160px;">
+      <input class="field-input" id="bulkTelopX" type="number" min="0" max="1" step="0.01" placeholder="X" style="width:64px;">
+      <input class="field-input" id="bulkTelopY" type="number" min="0" max="1" step="0.01" placeholder="Y" style="width:64px;">
+      <input class="field-input" id="bulkTelopSize" type="number" min="0.5" max="3" step="0.1" placeholder="倍率" style="width:72px;">
+      <button class="btn btn-secondary btn-sm" id="btnBulkTelopApply">テロップ適用</button>
+      <button class="btn btn-secondary btn-sm" id="btnBulkTelopClear">解除</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">手動カメラ</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
       <button class="btn btn-secondary btn-sm" id="btnBulkManualCameraApply">手動カメラ適用</button>
       <button class="btn btn-secondary btn-sm" id="btnBulkManualCameraClear">手動カメラ解除</button>
-      <button class="btn btn-secondary btn-sm" id="btnBulkSceneClear">選択解除</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="script-list" id="scriptList"></div>
   </div>
@@ -1246,6 +1351,7 @@
           <option value="text">字幕</option>
         </select>
         <select id="overlayRegionFile" class="field-select" style="flex:1; min-width:160px; max-width:260px;"></select>
+        <input id="overlayRegionUpload" type="file" accept="image/png,image/jpeg,image/webp" style="font-size:11px; width:132px; flex-shrink:0;">
         <input id="overlayRegionText" class="field-input" type="text" placeholder="字幕テキスト" style="flex:1; min-width:220px; display:none;">
         <select id="overlayRegionLayer" class="field-select" style="width:132px; flex-shrink:0;">
           <option value="normal">通常</option>
@@ -1365,14 +1471,14 @@
             <div id="fBubbleMaxCharsRow" style="margin-top:10px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.02);">
               <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
                 <label class="field-label" for="fBubbleMaxChars" style="margin:0; min-width:auto;">吹き出し最大文字数</label>
-                <input type="number" class="field-input" id="fBubbleMaxChars" min="1" max="99" step="1" style="width:110px;">
+                <input type="number" class="field-input" id="fBubbleMaxChars" data-number-default="bubbleMaxChars" min="1" max="99" step="1" style="width:110px;">
               </div>
               <div class="field-help" id="fBubbleMaxCharsHelp" style="margin-top:8px;">未指定なら通常24文字、連結/自動分割時は20文字を目安に警告します。</div>
             </div>
           </div>
           <div class="field-row">
             <label class="field-label">ポーズ秒 (pause)</label>
-            <input type="number" class="field-input" id="fPause" min="0" step="0.1" placeholder="0.0">
+            <input type="number" class="field-input" id="fPause" data-number-default="pause" min="0" step="0.1" placeholder="0.0">
           </div>
           <div class="field-row">
             <label class="field-label">声プリセット</label>
@@ -1381,6 +1487,20 @@
               <option value="monotone-male">棒読み（男性）</option>
               <option value="monotone-female">棒読み（女性）</option>
             </select>
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:8px;">
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span class="field-help">speed</span>
+                <input type="number" class="field-input" id="fVoiceSpeed" data-voice-param="speed" min="0.5" max="2.0" step="0.01" placeholder="既定">
+              </label>
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span class="field-help">pitch</span>
+                <input type="number" class="field-input" id="fVoicePitch" data-voice-param="pitch" min="-0.15" max="0.15" step="0.01" placeholder="既定">
+              </label>
+              <label style="display:flex; flex-direction:column; gap:4px;">
+                <span class="field-help">intonation</span>
+                <input type="number" class="field-input" id="fVoiceIntonation" data-voice-param="intonation" min="0" max="2.0" step="0.01" placeholder="既定">
+              </label>
+            </div>
             <div class="field-help" id="fVoicePresetHelp">この行だけ speed / pitch / intonation を上書きします。</div>
           </div>
           <div class="field-row">
@@ -1572,6 +1692,13 @@
               <input type="checkbox" id="fFlashback">
               <span>回想</span>
             </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="fVisionNoise">
+              <span>ノイズ</span>
+            </label>
+          </div>
+          <div class="field-help" style="margin-bottom:10px;">
+            未来視、防犯カメラ映像、VHS映像、通信障害、砂嵐のような映像ノイズを重ねます。回想と併用すると「色あせた予知・記録映像」風になります。
           </div>
           <div class="field-row">
             <label class="field-label">カメラ効果</label>
@@ -1602,18 +1729,17 @@
           <div class="field-row">
             <label class="field-label">テロップ位置・サイズ</label>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <input type="number" class="field-input" id="fTelopX" min="0" max="1" step="0.01" placeholder="X 0..1" style="width:96px;">
-              <input type="number" class="field-input" id="fTelopY" min="0" max="1" step="0.01" placeholder="Y 0..1" style="width:96px;">
-              <input type="number" class="field-input" id="fTelopSize" min="0.5" max="3" step="0.1" placeholder="倍率" style="width:96px;">
+              <input type="number" class="field-input" id="fTelopX" data-number-default="telopX" min="0" max="1" step="0.01" placeholder="X 0..1" style="width:96px;">
+              <input type="number" class="field-input" id="fTelopY" data-number-default="telopY" min="0" max="1" step="0.01" placeholder="Y 0..1" style="width:96px;">
+              <input type="number" class="field-input" id="fTelopSize" data-number-default="telopSize" min="0.5" max="3" step="0.1" placeholder="倍率" style="width:96px;">
             </div>
             <div class="field-help">未入力なら既定位置。X/Y は画面比率、サイズは 1.0 が標準です。</div>
           </div>
-          <div class="field-row">
-            <label class="field-label">衝撃文字</label>
-            <input type="text" class="field-input" id="fImpactText" placeholder="例: 大型新人、襲来">
-            <div class="field-help">画面中央に大きく一瞬出す文字です。空なら出しません。</div>
-          </div>
           <div class="fx-grid" style="margin-bottom:10px">
+            <label class="toggle-row">
+              <input type="checkbox" id="fImpactLines">
+              <span>集中線</span>
+            </label>
             <label class="toggle-row">
               <input type="checkbox" id="fZoomPunch">
               <span>ズームパンチ</span>
@@ -1727,6 +1853,23 @@
       <button class="btn btn-primary" id="btnAudioPlay" style="font-size:15px;">▶ 再生</button>
       <span style="font-size:12px; color:var(--text2);">プレビュー（画面は台本タブ）の音声＋BGM＋SEを再生します。各設定を<b>保存してから</b>押すと最新が反映されます。</span>
       <span class="status" id="audioPlayStatus" style="margin-left:auto;"></span>
+    </div>
+
+    <!-- セクションV: 声の共通設定 -->
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
+        声 共通設定
+      </div>
+      <div class="voice-profile-note">
+        話者ごとのVOICEVOX話者と既定パラメータです。各ターンの speed / pitch / intonation が空欄の場合、この共通設定が使われます。保存後、台本タブの「音声生成」で反映されます。
+      </div>
+      <div id="voiceProfilesList" class="voice-profile-list">
+        <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
+        <button class="btn btn-primary btn-sm" id="btnSaveVoiceProfiles">声の共通設定を保存</button>
+        <span id="voiceProfilesStatus" style="font-size:12px;"></span>
+      </div>
     </div>
 
     <!-- セクションA: SE自動マッピング -->
@@ -1962,6 +2105,25 @@
       </div>
 
       <div class="display-settings-card">
+        <div class="display-card-title">テロップ</div>
+        <div class="display-card-note">各セリフのテロップ位置・サイズが未指定の時に使う既定値です。位置は画面比率で、0.00 が左/上、1.00 が右/下です。</div>
+        <div class="display-settings-grid">
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span class="field-label">X（左から）</span>
+            <input id="dsTelopX" type="number" class="field-input" min="0" max="1" step="0.01">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span class="field-label">Y（上から）</span>
+            <input id="dsTelopY" type="number" class="field-input" min="0" max="1" step="0.01">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span class="field-label">サイズ倍率</span>
+            <input id="dsTelopSize" type="number" class="field-input" min="0.5" max="3" step="0.1">
+          </label>
+        </div>
+      </div>
+
+      <div class="display-settings-card">
         <div class="display-card-title">話者ごとの吹き出し枠色</div>
         <div class="display-settings-grid colors">
           <div class="color-field">
@@ -2071,6 +2233,15 @@
           style="font-family:monospace; font-size:12px; min-height:200px; resize:vertical;"
           placeholder="AIが出力したJSON（\`\`\`json ... \`\`\` ごと貼ってOK）"></textarea>
       </div>
+      <div style="background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div style="font-size:12px; font-weight:700; color:var(--text2); margin-right:auto;">日本語表示</div>
+          <button class="btn btn-secondary btn-sm" id="btnGenReadableOutline" type="button">1 確認用</button>
+          <button class="btn btn-secondary btn-sm" id="btnGenReadablePlain" type="button">2 本文だけ</button>
+        </div>
+        <pre id="genReadablePreview" style="white-space:pre-wrap; overflow:auto; max-height:360px; min-height:120px; margin:0; padding:12px; border-radius:6px; background:var(--bg); color:var(--text); border:1px solid var(--border); font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; line-height:1.7;">AI出力JSONを貼り付けると、ここに日本語だけの台本表示が出ます。</pre>
+        <div id="genReadableStatus" style="font-size:12px; color:var(--text2);"></div>
+      </div>
       <div style="display:flex; align-items:center; gap:12px;">
         <button class="btn btn-primary" id="btnImportScript">取り込んで読込</button>
         <span id="genImportStatus" style="font-size:12px;"></span>
@@ -2089,6 +2260,7 @@
 let storyData = null;    // story-01.json 全体 { title, audio, script, ... }
 let meta = null;         // /api/meta { speakers, speakerIcons, scenes, expressions, insertKinds }
 let sceneDefs = null;    // /api/scene/scenes 全体 { scenes: { key: { anchors, ... } } }
+let voiceProfiles = {};  // /api/voice-profiles（話者ごとのVOICEVOX既定値）
 let selectedIdx = -1;    // 選択中(＝詳細フォームの編集対象)ターンのインデックス
 // 再生中に一覧のハイライトだけを追従させるための表示専用インデックス。
 // selectedIdxとは別に持つ：ここをselectedIdxと共有すると、再生で自動的に進んだ
@@ -2132,6 +2304,11 @@ const DISPLAY_DEFAULTS = {
     bottom: 42,
     width: 0.84,
   },
+  telop: {
+    x: 0.045,
+    y: 0.06,
+    size: 1,
+  },
   speakerColors: {
     zundamon: "#5fb84f",
     metan: "#e87bb0",
@@ -2157,6 +2334,18 @@ const EFFECT_SETTING_SPECS = [
   { group: "sparkleBurst", label: "キラッ 数", key: "count", min: 4, max: 20, step: 1, defaultValue: 10, digits: 0 },
   { group: "sparkleBurst", label: "キラッ 広がり", key: "spread", min: 80, max: 420, step: 5, defaultValue: 260, digits: 0, unit: "px" },
   { group: "sparkleBurst", label: "キラッ 時間", key: "duration", min: 0.1, max: 0.8, step: 0.01, defaultValue: 0.32, digits: 2, unit: "秒" },
+  { group: "impactLines", label: "集中線 中心X", key: "cx", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
+  { group: "impactLines", label: "集中線 中心Y", key: "cy", min: 0, max: 1, step: 0.01, defaultValue: 0.48, digits: 2 },
+  { group: "impactLines", label: "集中線 本数", key: "count", min: 12, max: 180, step: 1, defaultValue: 72, digits: 0 },
+  { group: "impactLines", label: "集中線 太さ", key: "thickness", min: 0.3, max: 5, step: 0.05, defaultValue: 1.25, digits: 2 },
+  { group: "impactLines", label: "集中線 濃さ", key: "opacity", min: 0, max: 1, step: 0.01, defaultValue: 0.72, digits: 2 },
+  { group: "impactLines", label: "集中線 中央の空き", key: "innerRadius", min: 0, max: 0.5, step: 0.01, defaultValue: 0.17, digits: 2 },
+  { group: "impactLines", label: "集中線 開始秒", key: "start", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
+  { group: "impactLines", label: "集中線 終了秒（0=自動）", key: "end", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
+  { group: "visionNoise", label: "ノイズ量", key: "strength", min: 0, max: 1, step: 0.01, defaultValue: 0.68, digits: 2 },
+  { group: "visionNoise", label: "走査線", key: "scanline", min: 0, max: 1, step: 0.01, defaultValue: 0.78, digits: 2 },
+  { group: "visionNoise", label: "グリッチ", key: "glitch", min: 0, max: 1, step: 0.01, defaultValue: 0.36, digits: 2 },
+  { group: "visionNoise", label: "ちらつき", key: "flicker", min: 0, max: 1, step: 0.01, defaultValue: 0.42, digits: 2 },
   { group: "irisOut", label: "アイリスアウト 中心X", key: "cx", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
   { group: "irisOut", label: "アイリスアウト 中心Y", key: "cy", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
   { group: "irisOut", label: "アイリスアウト 初期半径", key: "startRadius", min: 0.15, max: 1.3, step: 0.02, defaultValue: 1.05, digits: 2 },
@@ -2173,6 +2362,13 @@ const CAMERA_EFFECT_SETTING_SPECS = [
 ];
 // 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
 const IRIS_OUT_DEFAULT_COLOR = "#000000";
+const VISION_NOISE_DEFAULT_TINT = "#7dd3fc";
+const VISION_NOISE_TYPES = [
+  ["future", "未来視"],
+  ["snow", "砂嵐"],
+  ["vhs", "VHS"],
+  ["glitch", "グリッチ"],
+];
 
 // 話者→背景色（アイコン未設定時の色丸）
 const SPEAKER_COLORS = {
@@ -2259,6 +2455,64 @@ function clearTurnIrisOutColor(turn) {
   if (!Object.keys(turn.effectSettings).length) delete turn.effectSettings;
 }
 
+function getTurnVisionNoiseTintRaw(turn) {
+  if (turn && turn.visionNoise && typeof turn.visionNoise === "object" && turn.visionNoise.tint) return turn.visionNoise.tint;
+  return (turn && turn.effectSettings && turn.effectSettings.visionNoise && turn.effectSettings.visionNoise.tint) || null;
+}
+function getTurnVisionNoiseTypeRaw(turn) {
+  if (turn && turn.visionNoise && typeof turn.visionNoise === "object" && turn.visionNoise.type) return turn.visionNoise.type;
+  return (turn && turn.effectSettings && turn.effectSettings.visionNoise && turn.effectSettings.visionNoise.type) || null;
+}
+function getTurnVisionNoiseTypeEffective(turn) {
+  const raw = getTurnVisionNoiseTypeRaw(turn);
+  return VISION_NOISE_TYPES.some(([value]) => value === raw) ? raw : "future";
+}
+function setTurnVisionNoiseType(turn, value) {
+  if (!turn) return;
+  if (turn.visionNoise && typeof turn.visionNoise === "object") {
+    turn.visionNoise.type = value;
+    return;
+  }
+  const settings = ensureTurnEffectSettings(turn);
+  if (!settings.visionNoise || typeof settings.visionNoise !== "object") settings.visionNoise = {};
+  settings.visionNoise.type = value;
+}
+function clearTurnVisionNoiseType(turn) {
+  if (turn && turn.visionNoise && typeof turn.visionNoise === "object") {
+    delete turn.visionNoise.type;
+    if (!Object.keys(turn.visionNoise).length) turn.visionNoise = true;
+    return;
+  }
+  if (!turn || !turn.effectSettings || !turn.effectSettings.visionNoise) return;
+  delete turn.effectSettings.visionNoise.type;
+  if (!Object.keys(turn.effectSettings.visionNoise).length) delete turn.effectSettings.visionNoise;
+  if (!Object.keys(turn.effectSettings).length) delete turn.effectSettings;
+}
+function getTurnVisionNoiseTintEffective(turn) {
+  return getTurnVisionNoiseTintRaw(turn) || VISION_NOISE_DEFAULT_TINT;
+}
+function setTurnVisionNoiseTint(turn, value) {
+  if (!turn) return;
+  if (turn.visionNoise && typeof turn.visionNoise === "object") {
+    turn.visionNoise.tint = value;
+    return;
+  }
+  const settings = ensureTurnEffectSettings(turn);
+  if (!settings.visionNoise || typeof settings.visionNoise !== "object") settings.visionNoise = {};
+  settings.visionNoise.tint = value;
+}
+function clearTurnVisionNoiseTint(turn) {
+  if (turn && turn.visionNoise && typeof turn.visionNoise === "object") {
+    delete turn.visionNoise.tint;
+    if (!Object.keys(turn.visionNoise).length) turn.visionNoise = true;
+    return;
+  }
+  if (!turn || !turn.effectSettings || !turn.effectSettings.visionNoise) return;
+  delete turn.effectSettings.visionNoise.tint;
+  if (!Object.keys(turn.effectSettings.visionNoise).length) delete turn.effectSettings.visionNoise;
+  if (!Object.keys(turn.effectSettings).length) delete turn.effectSettings;
+}
+
 function makeEffectColorControl() {
   const row = document.createElement("div");
   row.className = "field-row";
@@ -2331,6 +2585,43 @@ function makeIrisOutPositionPickControl(turn) {
   return row;
 }
 
+function armImpactLinesPositionPick(turn) {
+  const wrap = document.getElementById("playerWrap");
+  if (!wrap) return;
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:absolute; inset:0; z-index:50; cursor:crosshair; background:rgba(255,255,255,0.06);";
+  overlay.title = "クリックで集中線の中心位置を指定";
+  overlay.addEventListener("click", (e) => {
+    const rect = wrap.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    const cxSpec = EFFECT_SETTING_SPECS.find((s) => s.group === "impactLines" && s.key === "cx");
+    const cySpec = EFFECT_SETTING_SPECS.find((s) => s.group === "impactLines" && s.key === "cy");
+    setTurnEffectSettingValue(turn, cxSpec, x);
+    setTurnEffectSettingValue(turn, cySpec, y);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+    overlay.remove();
+  });
+  wrap.appendChild(overlay);
+}
+
+function makeImpactLinesPositionPickControl(turn) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "集中線の中心";
+  const btn = document.createElement("button");
+  btn.className = "btn btn-secondary btn-sm";
+  btn.textContent = "プレビューをクリック";
+  btn.addEventListener("click", () => armImpactLinesPositionPick(turn));
+  row.appendChild(lbl);
+  row.appendChild(btn);
+  return row;
+}
+
 function makeTurnEffectColorControl(turn) {
   const row = document.createElement("div");
   row.className = "field-row";
@@ -2361,6 +2652,87 @@ function makeTurnEffectColorControl(turn) {
     notifyPlayerUpdate();
   });
   body.appendChild(picker);
+  body.appendChild(reset);
+  body.appendChild(state);
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
+}
+
+function makeVisionNoiseTintControl(turn) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "ノイズ色味";
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%;";
+  const picker = document.createElement("input");
+  picker.type = "color";
+  picker.value = getTurnVisionNoiseTintEffective(turn);
+  const state = document.createElement("span");
+  state.style.cssText = "font-size:11px; color:var(--text2);";
+  state.textContent = getTurnVisionNoiseTintRaw(turn) != null ? "この行で上書き" : "既定色";
+  picker.addEventListener("change", () => {
+    setTurnVisionNoiseTint(turn, picker.value);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  });
+  const reset = document.createElement("button");
+  reset.className = "btn btn-secondary btn-sm";
+  reset.textContent = "既定";
+  reset.addEventListener("click", () => {
+    clearTurnVisionNoiseTint(turn);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  });
+  body.appendChild(picker);
+  body.appendChild(reset);
+  body.appendChild(state);
+  row.appendChild(lbl);
+  row.appendChild(body);
+  return row;
+}
+
+function makeVisionNoiseTypeControl(turn) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const lbl = document.createElement("label");
+  lbl.className = "field-label";
+  lbl.textContent = "ノイズ種類";
+  const body = document.createElement("div");
+  body.style.cssText = "display:flex; align-items:center; gap:8px; width:100%; flex-wrap:wrap;";
+  const sel = document.createElement("select");
+  sel.className = "field-select";
+  sel.style.cssText = "width:auto; min-width:140px;";
+  for (const [value, label] of VISION_NOISE_TYPES) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  }
+  sel.value = getTurnVisionNoiseTypeEffective(turn);
+  const state = document.createElement("span");
+  state.style.cssText = "font-size:11px; color:var(--text2);";
+  state.textContent = getTurnVisionNoiseTypeRaw(turn) != null ? "この行で上書き" : "既定";
+  sel.addEventListener("change", () => {
+    setTurnVisionNoiseType(turn, sel.value);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  });
+  const reset = document.createElement("button");
+  reset.className = "btn btn-secondary btn-sm";
+  reset.textContent = "既定";
+  reset.addEventListener("click", () => {
+    clearTurnVisionNoiseType(turn);
+    markDirty();
+    renderTurnEffectSettings(turn);
+    notifyPlayerUpdate();
+  });
+  body.appendChild(sel);
   body.appendChild(reset);
   body.appendChild(state);
   row.appendChild(lbl);
@@ -2469,6 +2841,8 @@ function activeTurnEffectGroups(turn) {
   if (turn.stampRain) groups.push("stampRain");
   if (turn.typingFlood) groups.push("typingFlood");
   if (turn.sparkleBurst) groups.push("sparkleBurst");
+  if (turn.impactLines || turn.impactText) groups.push("impactLines");
+  if (turn.visionNoise) groups.push("visionNoise");
   if (turn.irisOut) groups.push("irisOut");
   return groups;
 }
@@ -2482,6 +2856,10 @@ function ensureTurnEffectSettings(turn) {
 }
 
 function getTurnEffectSettingRaw(turn, spec) {
+  if (spec.group === "visionNoise" && turn && turn.visionNoise && typeof turn.visionNoise === "object") {
+    const directRaw = turn.visionNoise[spec.key];
+    if (Number.isFinite(directRaw)) return directRaw;
+  }
   const settings = turn && turn.effectSettings;
   const group = settings && settings[spec.group];
   const raw = group && group[spec.key];
@@ -2495,6 +2873,10 @@ function getTurnEffectSettingEffective(turn, spec) {
 
 function setTurnEffectSettingValue(turn, spec, value) {
   if (!turn) return;
+  if (spec.group === "visionNoise" && turn.visionNoise && typeof turn.visionNoise === "object") {
+    turn.visionNoise[spec.key] = Math.max(spec.min, Math.min(spec.max, value));
+    return;
+  }
   const settings = ensureTurnEffectSettings(turn);
   if (!settings[spec.group] || typeof settings[spec.group] !== "object") settings[spec.group] = {};
   const group = settings[spec.group];
@@ -2502,6 +2884,11 @@ function setTurnEffectSettingValue(turn, spec, value) {
 }
 
 function clearTurnEffectSettingValue(turn, spec) {
+  if (spec.group === "visionNoise" && turn && turn.visionNoise && typeof turn.visionNoise === "object") {
+    delete turn.visionNoise[spec.key];
+    if (!Object.keys(turn.visionNoise).length) turn.visionNoise = true;
+    return;
+  }
   if (!turn || !turn.effectSettings || !turn.effectSettings[spec.group]) return;
   delete turn.effectSettings[spec.group][spec.key];
   if (!Object.keys(turn.effectSettings[spec.group]).length) delete turn.effectSettings[spec.group];
@@ -2599,14 +2986,25 @@ function renderTurnEffectSettings(turn) {
   const intro = document.createElement("div");
   intro.className = "field-help";
   intro.style.marginBottom = "10px";
-  intro.textContent = "未設定なら演出共通の値を使います。この行だけ少し強くしたい時だけ上書きしてください。";
+  intro.textContent = groups.includes("visionNoise")
+    ? "ノイズは未来視・防犯カメラ・VHS映像・砂嵐・グリッチ表現に使えます。種類を選び、必要ならこの行だけ強さを上書きしてください。"
+    : "未設定なら演出共通の値を使います。この行だけ少し強くしたい時だけ上書きしてください。";
   container.appendChild(intro);
+  if (groups.includes("visionNoise")) {
+    container.appendChild(makeVisionNoiseTypeControl(turn));
+  }
   for (const spec of EFFECT_SETTING_SPECS) {
     if (!groups.includes(spec.group)) continue;
     if (spec.group === "irisOut" && spec.key === "cx") {
       container.appendChild(makeIrisOutPositionPickControl(turn));
     }
+    if (spec.group === "impactLines" && spec.key === "cx") {
+      container.appendChild(makeImpactLinesPositionPickControl(turn));
+    }
     container.appendChild(makeTurnEffectSettingControl(turn, spec));
+    if (spec.group === "visionNoise" && spec.key === "flicker") {
+      container.appendChild(makeVisionNoiseTintControl(turn));
+    }
     if (spec.group === "irisOut" && spec.key === "closeEnd") {
       container.appendChild(makeTurnEffectColorControl(turn));
     }
@@ -2896,15 +3294,17 @@ function renderCameraEffectSettings(turn) {
 // ============================================================
 async function init() {
   try {
-    const [storyRes, metaRes, sceneRes] = await Promise.all([
+    const [storyRes, metaRes, sceneRes, voiceProfilesRes] = await Promise.all([
       fetch("/api/story"),
       fetch("/api/meta"),
       fetch("/api/scene/scenes"),
+      fetch("/api/voice-profiles"),
     ]);
     storyData = await storyRes.json();
     clearMultiSelection();
     meta = await metaRes.json();
     sceneDefs = await sceneRes.json();
+    voiceProfiles = await voiceProfilesRes.json();
     normalizeStoryTransitions(storyData);
     normalizeStoryVoicePresets(storyData);
     normalizeStoryIdleFace(storyData);
@@ -2915,6 +3315,7 @@ async function init() {
     buildSpeakerSelect();
     buildSceneSelect();
     buildExpressionSelect();
+    buildBulkExpressionSelect();
     buildPoseSelect();
     buildMultiSpeakers();
     loadGenSettings();
@@ -3700,11 +4101,13 @@ function renderOverlayEditor() {
 
   const kindSel = document.getElementById("overlayRegionKind");
   const fileSel = document.getElementById("overlayRegionFile");
+  const uploadInp = document.getElementById("overlayRegionUpload");
   const textInp = document.getElementById("overlayRegionText");
   const detailBtn = document.getElementById("overlayRegionDetailBtn");
   const isText = overlay.kind === "text";
   if (kindSel) kindSel.value = overlay.kind || "image";
   if (fileSel) fileSel.style.display = isText ? "none" : "";
+  if (uploadInp) uploadInp.style.display = isText ? "none" : "";
   if (textInp) textInp.style.display = isText ? "" : "none";
   if (detailBtn) detailBtn.style.display = isText ? "" : "none";
 
@@ -3794,6 +4197,43 @@ function collectOverlayEditor() {
   renderOverlayEditor();
   renderOverlayEditLayer();
   drawScriptTimeline();
+}
+
+async function uploadOverlayRegionImage() {
+  const uploadInp = document.getElementById("overlayRegionUpload");
+  const overlay = getOverlayById(_selectedOverlayId);
+  if (!uploadInp || !overlay) return;
+  const file = uploadInp.files && uploadInp.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const r = await fetch("/api/overlay-assets/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, dataUrl }),
+    });
+    const result = await r.json();
+    if (!r.ok || !result.ok || !result.path) throw new Error(result.error || "upload failed");
+    overlay.kind = "image";
+    overlay.src = result.path;
+    delete overlay.text;
+    overlayAssets = null;
+    await ensureOverlayAssets();
+    markDirty();
+    notifyPlayerUpdate();
+    renderOverlayEditor();
+    renderOverlayEditLayer();
+    drawScriptTimeline();
+  } catch (e) {
+    alert("画像Overlayのアップロードに失敗しました: " + (e && e.message ? e.message : e));
+  } finally {
+    uploadInp.value = "";
+  }
 }
 
 function syncOverlayModalFromOverlay(overlay) {
@@ -3910,6 +4350,8 @@ function _setupOverlayEditorEvents() {
   if (kindSel) kindSel.addEventListener("change", collectOverlayEditor);
   const fileSel = document.getElementById("overlayRegionFile");
   if (fileSel) fileSel.addEventListener("change", collectOverlayEditor);
+  const uploadInp = document.getElementById("overlayRegionUpload");
+  if (uploadInp) uploadInp.addEventListener("change", uploadOverlayRegionImage);
   const textInp = document.getElementById("overlayRegionText");
   if (textInp) textInp.addEventListener("input", collectOverlayEditor);
   const detailBtn = document.getElementById("overlayRegionDetailBtn");
@@ -5185,12 +5627,13 @@ function buildSceneBlocks(script) {
   for (let i = 0; i < turns.length; i++) {
     const turn = turns[i];
     const last = blocks[blocks.length - 1];
-    if (last && last.scene === turn.scene) {
+    const rawTurn = storyData && Array.isArray(storyData.script) ? storyData.script[i] : null;
+    const hasManualBoundary = rawTurn && rawTurn.transition != null;
+    if (last && last.scene === turn.scene && !hasManualBoundary) {
       last.endIdx = i;
       last.end = Math.max(last.end, turn.end || turn.start || 0);
       continue;
     }
-    const rawTurn = storyData && Array.isArray(storyData.script) ? storyData.script[i] : null;
     blocks.push({
       scene: turn.scene || "",
       startIdx: i,
@@ -5201,6 +5644,27 @@ function buildSceneBlocks(script) {
     });
   }
   return blocks;
+}
+
+function buildTransitionBoundaries(script) {
+  const turns = Array.isArray(script) ? script : [];
+  const rawScript = storyData && Array.isArray(storyData.script) ? storyData.script : [];
+  const boundaries = [];
+  for (let i = 1; i < turns.length; i++) {
+    const turn = turns[i];
+    const prev = turns[i - 1];
+    const rawTurn = rawScript[i] || null;
+    const sceneChanged = (prev?.scene || "") !== (turn?.scene || "");
+    const hasManualBoundary = rawTurn && rawTurn.transition != null;
+    boundaries.push({
+      scene: turn?.scene || "",
+      startIdx: i,
+      start: turn?.start || 0,
+      sceneChanged,
+      transition: (sceneChanged || hasManualBoundary) ? normalizeTransitionValue(rawTurn && rawTurn.transition) : "",
+    });
+  }
+  return boundaries;
 }
 
 function normalizeStoryTransitions(data) {
@@ -5220,8 +5684,10 @@ function normalizeStoryTransitions(data) {
       continue;
     }
     if (turn && "transition" in turn) {
-      delete turn.transition;
-      changed = true;
+      if (turn.transition !== normalized) {
+        turn.transition = normalized;
+        changed = true;
+      }
     }
   }
   return changed;
@@ -5238,6 +5704,7 @@ function getDisplaySettingsData(data = storyData) {
   const raw = data && typeof data === "object" ? (data.displaySettings || {}) : {};
   const bubbleRaw = raw.bubble || {};
   const subtitleRaw = raw.subtitle || {};
+  const telopRaw = raw.telop || {};
   const speakerRaw = raw.speakerColors || {};
   const bubbleMaxCharsNum = Number(bubbleRaw.maxChars);
   const bubbleFontSizeNum = Number(bubbleRaw.fontSize);
@@ -5248,6 +5715,9 @@ function getDisplaySettingsData(data = storyData) {
   const subtitleBorderWidthNum = Number(subtitleRaw.borderWidth);
   const subtitleBottomNum = Number(subtitleRaw.bottom);
   const subtitleWidthNum = Number(subtitleRaw.width);
+  const telopXNum = Number(telopRaw.x);
+  const telopYNum = Number(telopRaw.y);
+  const telopSizeNum = Number(telopRaw.size);
   return {
     bubble: {
       maxChars: Number.isFinite(bubbleMaxCharsNum) && bubbleMaxCharsNum > 0
@@ -5293,6 +5763,11 @@ function getDisplaySettingsData(data = storyData) {
       metan: normalizeHexColor(speakerRaw.metan, DISPLAY_DEFAULTS.speakerColors.metan),
       default: normalizeHexColor(speakerRaw.default, DISPLAY_DEFAULTS.speakerColors.default),
     },
+    telop: {
+      x: Number.isFinite(telopXNum) ? Math.max(0, Math.min(1, telopXNum)) : DISPLAY_DEFAULTS.telop.x,
+      y: Number.isFinite(telopYNum) ? Math.max(0, Math.min(1, telopYNum)) : DISPLAY_DEFAULTS.telop.y,
+      size: Number.isFinite(telopSizeNum) ? Math.max(0.5, Math.min(3, telopSizeNum)) : DISPLAY_DEFAULTS.telop.size,
+    },
   };
 }
 
@@ -5328,6 +5803,9 @@ function renderDisplaySettingsEditor() {
   setVal("dsSubtitleBorderWidth", String(settings.subtitle.borderWidth));
   setVal("dsSubtitleBottom", String(settings.subtitle.bottom));
   setVal("dsSubtitleWidth", String(settings.subtitle.width));
+  setVal("dsTelopX", String(settings.telop.x));
+  setVal("dsTelopY", String(settings.telop.y));
+  setVal("dsTelopSize", String(settings.telop.size));
   setVal("dsSpeakerColorZundamon", settings.speakerColors.zundamon);
   setVal("dsSpeakerColorZundamonHex", settings.speakerColors.zundamon);
   setVal("dsSpeakerColorMetan", settings.speakerColors.metan);
@@ -5339,37 +5817,56 @@ function renderDisplaySettingsEditor() {
 
 function collectDisplaySettings() {
   if (!storyData) return;
+  const readNumber = (id, fallback) => {
+    const el = document.getElementById(id);
+    const n = Number(el ? el.value : fallback);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const readString = (id, fallback) => {
+    const el = document.getElementById(id);
+    return el ? el.value : fallback;
+  };
+  const readChecked = (id, fallback) => {
+    const el = document.getElementById(id);
+    return el ? !!el.checked : fallback;
+  };
   storyData.displaySettings = {
     bubble: {
       maxChars: (() => {
-        const raw = document.getElementById("dsBubbleMaxChars").value;
+        const el = document.getElementById("dsBubbleMaxChars");
+        const raw = el ? el.value : "";
         if (raw === "") return null;
         const n = Number(raw);
         return Number.isFinite(n) ? Math.max(1, Math.min(99, Math.round(n))) : null;
       })(),
-      fontSize: Math.max(24, Math.min(96, Math.round(Number(document.getElementById("dsBubbleFontSize").value) || DISPLAY_DEFAULTS.bubble.fontSize))),
-      fontFamily: document.getElementById("dsBubbleFontFamily").value || DISPLAY_DEFAULTS.bubble.fontFamily,
-      textColor: normalizeHexColor(document.getElementById("dsBubbleTextColorHex").value, DISPLAY_DEFAULTS.bubble.textColor),
-      bgColor: normalizeHexColor(document.getElementById("dsBubbleBgColorHex").value, DISPLAY_DEFAULTS.bubble.bgColor),
-      borderWidth: Math.max(1, Math.min(12, Number(document.getElementById("dsBubbleBorderWidth").value) || DISPLAY_DEFAULTS.bubble.borderWidth)),
-      radius: Math.max(4, Math.min(40, Math.round(Number(document.getElementById("dsBubbleRadius").value) || DISPLAY_DEFAULTS.bubble.radius))),
+      fontSize: Math.max(24, Math.min(96, Math.round(readNumber("dsBubbleFontSize", DISPLAY_DEFAULTS.bubble.fontSize) || DISPLAY_DEFAULTS.bubble.fontSize))),
+      fontFamily: readString("dsBubbleFontFamily", DISPLAY_DEFAULTS.bubble.fontFamily) || DISPLAY_DEFAULTS.bubble.fontFamily,
+      textColor: normalizeHexColor(readString("dsBubbleTextColorHex", DISPLAY_DEFAULTS.bubble.textColor), DISPLAY_DEFAULTS.bubble.textColor),
+      bgColor: normalizeHexColor(readString("dsBubbleBgColorHex", DISPLAY_DEFAULTS.bubble.bgColor), DISPLAY_DEFAULTS.bubble.bgColor),
+      borderWidth: Math.max(1, Math.min(12, readNumber("dsBubbleBorderWidth", DISPLAY_DEFAULTS.bubble.borderWidth) || DISPLAY_DEFAULTS.bubble.borderWidth)),
+      radius: Math.max(4, Math.min(40, Math.round(readNumber("dsBubbleRadius", DISPLAY_DEFAULTS.bubble.radius) || DISPLAY_DEFAULTS.bubble.radius))),
     },
     subtitle: {
-      fontSize: Math.max(24, Math.min(96, Math.round(Number(document.getElementById("dsSubtitleFontSize").value) || DISPLAY_DEFAULTS.subtitle.fontSize))),
-      fontFamily: document.getElementById("dsSubtitleFontFamily").value || DISPLAY_DEFAULTS.subtitle.fontFamily,
-      textColor: normalizeHexColor(document.getElementById("dsSubtitleTextColorHex").value, DISPLAY_DEFAULTS.subtitle.textColor),
-      bgColor: normalizeHexColor(document.getElementById("dsSubtitleBgColorHex").value, DISPLAY_DEFAULTS.subtitle.bgColor),
-      bgOpacity: Math.max(0, Math.min(1, Number(document.getElementById("dsSubtitleBgOpacity").value) || DISPLAY_DEFAULTS.subtitle.bgOpacity)),
-      border: !!document.getElementById("dsSubtitleBorder").checked,
-      borderColor: normalizeHexColor(document.getElementById("dsSubtitleBorderColorHex").value, DISPLAY_DEFAULTS.subtitle.borderColor),
-      borderWidth: Math.max(0.5, Math.min(6, Number(document.getElementById("dsSubtitleBorderWidth").value) || DISPLAY_DEFAULTS.subtitle.borderWidth)),
-      bottom: Math.max(0, Math.min(200, Math.round(Number(document.getElementById("dsSubtitleBottom").value) || DISPLAY_DEFAULTS.subtitle.bottom))),
-      width: Math.max(0.4, Math.min(1, Number(document.getElementById("dsSubtitleWidth").value) || DISPLAY_DEFAULTS.subtitle.width)),
+      fontSize: Math.max(24, Math.min(96, Math.round(readNumber("dsSubtitleFontSize", DISPLAY_DEFAULTS.subtitle.fontSize) || DISPLAY_DEFAULTS.subtitle.fontSize))),
+      fontFamily: readString("dsSubtitleFontFamily", DISPLAY_DEFAULTS.subtitle.fontFamily) || DISPLAY_DEFAULTS.subtitle.fontFamily,
+      textColor: normalizeHexColor(readString("dsSubtitleTextColorHex", DISPLAY_DEFAULTS.subtitle.textColor), DISPLAY_DEFAULTS.subtitle.textColor),
+      bgColor: normalizeHexColor(readString("dsSubtitleBgColorHex", DISPLAY_DEFAULTS.subtitle.bgColor), DISPLAY_DEFAULTS.subtitle.bgColor),
+      bgOpacity: Math.max(0, Math.min(1, readNumber("dsSubtitleBgOpacity", DISPLAY_DEFAULTS.subtitle.bgOpacity) || DISPLAY_DEFAULTS.subtitle.bgOpacity)),
+      border: readChecked("dsSubtitleBorder", DISPLAY_DEFAULTS.subtitle.border),
+      borderColor: normalizeHexColor(readString("dsSubtitleBorderColorHex", DISPLAY_DEFAULTS.subtitle.borderColor), DISPLAY_DEFAULTS.subtitle.borderColor),
+      borderWidth: Math.max(0.5, Math.min(6, readNumber("dsSubtitleBorderWidth", DISPLAY_DEFAULTS.subtitle.borderWidth) || DISPLAY_DEFAULTS.subtitle.borderWidth)),
+      bottom: Math.max(0, Math.min(200, Math.round(readNumber("dsSubtitleBottom", DISPLAY_DEFAULTS.subtitle.bottom) || DISPLAY_DEFAULTS.subtitle.bottom))),
+      width: Math.max(0.4, Math.min(1, readNumber("dsSubtitleWidth", DISPLAY_DEFAULTS.subtitle.width) || DISPLAY_DEFAULTS.subtitle.width)),
     },
     speakerColors: {
-      zundamon: normalizeHexColor(document.getElementById("dsSpeakerColorZundamonHex").value, DISPLAY_DEFAULTS.speakerColors.zundamon),
-      metan: normalizeHexColor(document.getElementById("dsSpeakerColorMetanHex").value, DISPLAY_DEFAULTS.speakerColors.metan),
-      default: normalizeHexColor(document.getElementById("dsSpeakerColorDefaultHex").value, DISPLAY_DEFAULTS.speakerColors.default),
+      zundamon: normalizeHexColor(readString("dsSpeakerColorZundamonHex", DISPLAY_DEFAULTS.speakerColors.zundamon), DISPLAY_DEFAULTS.speakerColors.zundamon),
+      metan: normalizeHexColor(readString("dsSpeakerColorMetanHex", DISPLAY_DEFAULTS.speakerColors.metan), DISPLAY_DEFAULTS.speakerColors.metan),
+      default: normalizeHexColor(readString("dsSpeakerColorDefaultHex", DISPLAY_DEFAULTS.speakerColors.default), DISPLAY_DEFAULTS.speakerColors.default),
+    },
+    telop: {
+      x: Math.max(0, Math.min(1, readNumber("dsTelopX", DISPLAY_DEFAULTS.telop.x) || DISPLAY_DEFAULTS.telop.x)),
+      y: Math.max(0, Math.min(1, readNumber("dsTelopY", DISPLAY_DEFAULTS.telop.y) || DISPLAY_DEFAULTS.telop.y)),
+      size: Math.max(0.5, Math.min(3, readNumber("dsTelopSize", DISPLAY_DEFAULTS.telop.size) || DISPLAY_DEFAULTS.telop.size)),
     },
   };
   markDirty();
@@ -5563,8 +6060,9 @@ async function updateDisplaySettingsPreview() {
   window.storyDisplayPreviewPlayer.seekToTime(previewSec);
 }
 
-function transitionOptionsHtml(selected) {
+function transitionOptionsHtml(selected, allowNone = false) {
   const options = [
+    ...(allowNone ? [["", "なし"]] : []),
     ["cut", "cut（カット）"],
     ["fade-black", "fade-black（暗転）"],
     ["fade-white", "fade-white（白フェード）"],
@@ -5588,8 +6086,8 @@ function renderTimelineTransitionOverlay() {
     overlay.hidden = true;
     return;
   }
-  const blocks = buildSceneBlocks(previewScriptTurns());
-  if (blocks.length <= 1) {
+  const blocks = buildTransitionBoundaries(previewScriptTurns());
+  if (blocks.length <= 0) {
     overlay.hidden = true;
     return;
   }
@@ -5603,8 +6101,8 @@ function renderTimelineTransitionOverlay() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "timeline-transition-labelbtn" + (_selectedTransitionBlockStartIdx === block.startIdx ? " active" : "");
-    btn.textContent = transitionMarkerStyle(block.transition).label;
-    btn.title = `切り替え: ${block.transition}`;
+    btn.textContent = block.transition ? transitionMarkerStyle(block.transition).label : "+";
+    btn.title = block.transition ? `切り替え: ${block.transition}` : "この境界にトランジションを追加";
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -5622,10 +6120,12 @@ function renderTimelineTransitionOverlay() {
       sel.style.minWidth = "112px";
       sel.style.padding = "2px 8px";
       sel.style.fontSize = "12px";
-      sel.innerHTML = transitionOptionsHtml(block.transition);
+      sel.innerHTML = transitionOptionsHtml(block.transition, !block.sceneChanged);
       sel.addEventListener("change", (e) => {
         if (!storyData || !storyData.script || !storyData.script[block.startIdx]) return;
-        storyData.script[block.startIdx].transition = normalizeTransitionValue(e.target.value);
+        const value = e.target.value;
+        if (value) storyData.script[block.startIdx].transition = normalizeTransitionValue(value);
+        else delete storyData.script[block.startIdx].transition;
         markDirty();
         notifyPlayerUpdate();
         drawScriptTimeline();
@@ -5714,6 +6214,22 @@ function buildSceneSelect() {
   populateSceneOptions(document.getElementById("fScene"));
   const bulkSel = document.getElementById("bulkSceneSelect");
   if (bulkSel) populateSceneOptions(bulkSel);
+}
+
+function buildBulkExpressionSelect() {
+  const sel = document.getElementById("bulkExpressionSelect");
+  if (!sel) return;
+  sel.innerHTML = "";
+  const clear = document.createElement("option");
+  clear.value = "";
+  clear.textContent = "表情解除";
+  sel.appendChild(clear);
+  for (const ex of sortedStrings(meta.expressions)) {
+    const o = document.createElement("option");
+    o.value = ex;
+    o.textContent = ex;
+    sel.appendChild(o);
+  }
 }
 
 // turn.scene を select にセット。未登録値（AI由来/旧データ）は消さず「(未登録)」で保持表示。
@@ -5895,6 +6411,7 @@ function clearMultiSelection() {
   selectedIndices = new Set();
   selectionAnchorIdx = -1;
   _mobileSelectMode = false;
+  closeBulkEditPanel();
   updateSelectModeBtn();
   updateBulkSceneBar();
 }
@@ -5954,7 +6471,20 @@ function updateBulkSceneBar() {
     document.getElementById("bulkSceneCount").textContent = `${n}件選択中`;
   } else {
     bar.style.display = "none";
+    closeBulkEditPanel();
   }
+}
+
+function openBulkEditPanel() {
+  const panel = document.getElementById("bulkEditPanel");
+  if (!panel) return;
+  panel.style.display = "block";
+}
+
+function closeBulkEditPanel() {
+  const panel = document.getElementById("bulkEditPanel");
+  if (!panel) return;
+  panel.style.display = "none";
 }
 
 function applyBulkScene() {
@@ -5977,6 +6507,128 @@ function applyBulkFocusSpeaker(enabled) {
     if (!turn) continue;
     if (enabled) turn.focusSpeaker = true;
     else delete turn.focusSpeaker;
+  }
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
+function applyBulkExpression() {
+  if (selectedIndices.size < 2 || !storyData) return;
+  const expression = document.getElementById("bulkExpressionSelect").value;
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (!turn) continue;
+    if (expression) turn.expression = expression;
+    else delete turn.expression;
+  }
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
+function applyBulkCameraEffect() {
+  if (selectedIndices.size < 2 || !storyData) return;
+  const value = document.getElementById("bulkCameraEffectSelect").value;
+  if (!value) return;
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (!turn) continue;
+    delete turn.cameraEffect;
+    if (value === "clear") {
+      delete turn.cameraEffects;
+      delete turn.cameraEffectSettings;
+      delete turn.shake;
+      continue;
+    }
+    const fx = { ...(turn.cameraEffects || {}) };
+    if (value === "zoom-in") fx.zoom = "in";
+    else if (value === "zoom-out") fx.zoom = "out";
+    else if (value === "pan-left") fx.pan = "left";
+    else if (value === "pan-right") fx.pan = "right";
+    else if (value === "tilt-left") fx.tilt = "left";
+    else if (value === "tilt-right") fx.tilt = "right";
+    else if (value === "shake") {
+      fx.shake = true;
+      delete turn.shake;
+    }
+    if (Object.keys(fx).length) turn.cameraEffects = fx;
+    else delete turn.cameraEffects;
+  }
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
+function applyBulkVoice() {
+  if (selectedIndices.size < 2 || !storyData) return;
+  const value = document.getElementById("bulkVoiceSelect").value;
+  if (!value) return;
+  let copiedVoice = null;
+  if (value === "copy-current") {
+    copiedVoice = selectedIdx >= 0 && storyData.script[selectedIdx]?.voice
+      ? { ...storyData.script[selectedIdx].voice }
+      : null;
+    if (!copiedVoice) {
+      alert("選択中ターンに voice 設定がありません。");
+      return;
+    }
+  }
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (!turn) continue;
+    if (value === "clear") delete turn.voice;
+    else if (value === "copy-current") turn.voice = { ...copiedVoice };
+    else if (VOICE_PRESETS[value]) turn.voice = { ...VOICE_PRESETS[value] };
+  }
+  markDirty();
+  markAudioDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
+function applyBulkTelop() {
+  if (selectedIndices.size < 2 || !storyData) return;
+  const text = document.getElementById("bulkTelopText").value;
+  const xRaw = document.getElementById("bulkTelopX").value;
+  const yRaw = document.getElementById("bulkTelopY").value;
+  const sizeRaw = document.getElementById("bulkTelopSize").value;
+  const hasText = text.trim() !== "";
+  const hasX = xRaw !== "";
+  const hasY = yRaw !== "";
+  const hasSize = sizeRaw !== "";
+  if (!hasText && !hasX && !hasY && !hasSize) {
+    alert("適用するテロップ文字・位置・サイズを入力してください。");
+    return;
+  }
+  const clampNum = (raw, min, max) => Math.max(min, Math.min(max, Number(raw)));
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (!turn) continue;
+    if (hasText) turn.telop = text.trim();
+    if (hasX && Number.isFinite(Number(xRaw))) turn.telopX = clampNum(xRaw, 0, 1);
+    if (hasY && Number.isFinite(Number(yRaw))) turn.telopY = clampNum(yRaw, 0, 1);
+    if (hasSize && Number.isFinite(Number(sizeRaw))) turn.telopSize = clampNum(sizeRaw, 0.5, 3);
+  }
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+}
+
+function clearBulkTelop() {
+  if (selectedIndices.size < 2 || !storyData) return;
+  for (const idx of selectedIndices) {
+    const turn = storyData.script[idx];
+    if (!turn) continue;
+    delete turn.telop;
+    delete turn.telopX;
+    delete turn.telopY;
+    delete turn.telopSize;
   }
   markDirty();
   renderList();
@@ -6064,12 +6716,13 @@ function renderList() {
     else if (emphasisInfo.stop) badges.appendChild(makeBadge("ズーム終了", "warn"));
     if (turn.shake) badges.appendChild(makeBadge("シェイク", "fx"));
     if (turn.flashback) badges.appendChild(makeBadge("回想", "fx"));
+    if (turn.visionNoise) badges.appendChild(makeBadge("ノイズ", "fx"));
     if (turn.focusSpeaker) badges.appendChild(makeBadge("話者フォーカス", "fx"));
     if (turn.manualCameraFrame) badges.appendChild(makeBadge("手動カメラ", "fx"));
     for (const label of cameraEffectsSummary(turn)) {
       badges.appendChild(makeBadge("カメラ:" + label, "fx"));
     }
-    if (turn.impactText) badges.appendChild(makeBadge("衝撃文字", "fx"));
+    if (turn.impactLines || turn.impactText) badges.appendChild(makeBadge("集中線", "fx"));
     if (turn.zoomPunch) badges.appendChild(makeBadge("ズームパンチ", "fx"));
     if (turn.quoteFreeze) badges.appendChild(makeBadge("引用止め", "fx"));
     if (turn.stampRain) badges.appendChild(makeBadge("スタンプ雨", "fx"));
@@ -6357,6 +7010,12 @@ const LEGACY_VOICE_PRESETS = {
   ],
 };
 
+function voiceParamValue(voice, key) {
+  return voice && typeof voice === "object" && Number.isFinite(Number(voice[key]))
+    ? Number(voice[key])
+    : null;
+}
+
 function voiceMatchesPreset(voice, preset) {
   return !!(
     voice &&
@@ -6377,6 +7036,80 @@ function voicePresetKey(turn) {
     if ((presets || []).some((preset) => voiceMatchesPreset(voice, preset))) return key;
   }
   return "";
+}
+
+function setVoiceParamFields(voice) {
+  const speed = voiceParamValue(voice, "speed");
+  const pitch = voiceParamValue(voice, "pitch");
+  const intonation = voiceParamValue(voice, "intonation");
+  document.getElementById("fVoiceSpeed").value = speed != null ? String(speed) : "";
+  document.getElementById("fVoicePitch").value = pitch != null ? String(pitch) : "";
+  document.getElementById("fVoiceIntonation").value = intonation != null ? String(intonation) : "";
+}
+
+function collectVoiceParamsFromFields() {
+  const entries = [
+    ["speed", "fVoiceSpeed", 0.5, 2.0],
+    ["pitch", "fVoicePitch", -0.15, 0.15],
+    ["intonation", "fVoiceIntonation", 0, 2.0],
+  ];
+  const voice = {};
+  for (const [key, id, min, max] of entries) {
+    const raw = document.getElementById(id).value;
+    if (raw === "") continue;
+    const num = Number(raw);
+    if (!Number.isFinite(num)) continue;
+    voice[key] = Math.max(min, Math.min(max, num));
+  }
+  return Object.keys(voice).length > 0 ? voice : null;
+}
+
+function effectiveVoiceSpeakerName() {
+  const speakerEl = document.getElementById("fSpeaker");
+  const speaker = speakerEl ? speakerEl.value : "";
+  return speaker || (selectedIdx >= 0 ? storyData?.script?.[selectedIdx]?.speaker : "") || "";
+}
+
+function voiceProfileDefaultValue(speaker, key) {
+  const params = voiceProfiles?.[speaker]?.params || {};
+  const scaleKey = key === "speed" ? "speedScale" : key === "pitch" ? "pitchScale" : "intonationScale";
+  const raw = params[key] ?? params[scaleKey];
+  if (Number.isFinite(Number(raw))) return Number(raw);
+  if (key === "pitch") return 0;
+  return 1;
+}
+
+function numberInputDefaultValue(input) {
+  const voiceKey = input?.dataset?.voiceParam;
+  if (voiceKey) return voiceProfileDefaultValue(effectiveVoiceSpeakerName(), voiceKey);
+  switch (input?.dataset?.numberDefault) {
+    case "pause":
+      return 0;
+    case "telopX":
+      return 0.045;
+    case "telopY":
+      return 0.06;
+    case "telopSize":
+      return 1;
+    case "bubbleMaxChars": {
+      const turn = selectedIdx >= 0 ? storyData?.script?.[selectedIdx] : null;
+      return bubbleLengthLimit(turn, turn ? getAutoBubbleInfo(turn) : null);
+    }
+    default:
+      return null;
+  }
+}
+
+function fillNumberDefaultIfEmpty(input) {
+  if (!input || input.value !== "") return;
+  const value = numberInputDefaultValue(input);
+  if (value == null || !Number.isFinite(Number(value))) return;
+  input.value = String(value);
+}
+
+function isNumberSpinnerPointer(input, event) {
+  const rect = input.getBoundingClientRect();
+  return event.clientX >= rect.right - 28;
 }
 
 function normalizeStoryVoicePresets(data) {
@@ -6485,6 +7218,7 @@ function renderDetail() {
   document.getElementById("fClearFaceZundamon").checked = !!(turn.clearFace && turn.clearFace.includes("zundamon"));
   document.getElementById("fClearFaceMetan").checked = !!(turn.clearFace && turn.clearFace.includes("metan"));
   document.getElementById("fFlashback").checked = !!turn.flashback;
+  document.getElementById("fVisionNoise").checked = !!turn.visionNoise;
   const cameraFx = normalizeCameraEffects(turn);
   document.getElementById("fShake").checked = !!turn.shake || !!cameraFx.shake;
   setField("fCameraEffectZoom", "select", cameraFx.zoom || "");
@@ -6495,7 +7229,7 @@ function renderDetail() {
   document.getElementById("fTelopX").value = turn.telopX != null ? turn.telopX : "";
   document.getElementById("fTelopY").value = turn.telopY != null ? turn.telopY : "";
   document.getElementById("fTelopSize").value = turn.telopSize != null ? turn.telopSize : "";
-  document.getElementById("fImpactText").value = turn.impactText || "";
+  document.getElementById("fImpactLines").checked = !!turn.impactLines || !!turn.impactText;
   document.getElementById("fZoomPunch").checked = !!turn.zoomPunch;
   document.getElementById("fQuoteFreeze").checked = !!turn.quoteFreeze;
   document.getElementById("fStampRain").value = turn.stampRain || "";
@@ -6505,6 +7239,7 @@ function renderDetail() {
   renderTurnEffectSettings(turn);
   document.getElementById("fPause").value = turn.pause != null ? turn.pause : "";
   setField("fVoicePreset", "select", voicePresetKey(turn));
+  setVoiceParamFields(turn.voice);
   document.getElementById("fNoLipSync").checked = !!turn.noLipSync;
   document.getElementById("fHideCharacters").checked = !!turn.hideCharacters;
   document.getElementById("fHideBubble").checked = !!turn.hideBubble;
@@ -6554,7 +7289,9 @@ function renderDetail() {
       ? "この行は低抑揚の棒読み寄り設定です。"
       : preset === "monotone-female"
         ? "この行は女性寄りの低抑揚設定です。"
-        : "この行だけ speed / pitch / intonation を上書きします。";
+        : turn.voice
+          ? "この行だけ speed / pitch / intonation を数値で上書きします。空欄は話者既定を使います。"
+          : "この行だけ speed / pitch / intonation を上書きできます。空欄は話者既定を使います。";
   }
   if (noLipSyncHelp) {
     if (isNarrationTurnData(turn)) {
@@ -7771,6 +8508,52 @@ function makeVideoCallParticipantItem(idx, part) {
   item.appendChild(bgRow);
   item.appendChild(makeVideoCallBgImageField(idx, part));
 
+  const adjustSection = document.createElement("div");
+  adjustSection.className = "section-divider";
+  adjustSection.textContent = "キャラ調整（タイル内）";
+  item.appendChild(adjustSection);
+  const adjustHint = document.createElement("div");
+  adjustHint.className = "field-hint";
+  adjustHint.style.cssText = "font-size:12px; opacity:0.72; padding:0 2px 6px;";
+  adjustHint.textContent = "未入力なら既定位置。横/縦は 0〜1 基準、サイズは 1 が既定。";
+  item.appendChild(adjustHint);
+  const makeAdjustNumber = (field, label, value, placeholder, step, min, max) => {
+    const row = document.createElement("div");
+    row.className = "field-row";
+    const lbl = document.createElement("label");
+    lbl.className = "field-label";
+    lbl.textContent = label;
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.className = "field-input";
+    inp.dataset.field = field;
+    inp.dataset.idx = idx;
+    inp.step = step;
+    inp.min = min;
+    inp.max = max;
+    inp.placeholder = placeholder;
+    if (typeof value === "number" && Number.isFinite(value)) inp.value = String(value);
+    inp.addEventListener("change", collectInsert);
+    row.appendChild(lbl);
+    row.appendChild(inp);
+    return row;
+  };
+  item.appendChild(makeAdjustNumber("feedX", "横位置 feedX", part.feedX, "0.50", "0.01", "-0.5", "1.5"));
+  item.appendChild(makeAdjustNumber("feedY", "縦位置 feedY", part.feedY, "1.00", "0.01", "-0.5", "1.5"));
+  item.appendChild(makeAdjustNumber("feedScale", "サイズ feedScale", part.feedScale, "1.00", "0.05", "0.1", "3"));
+  const resetAdjust = document.createElement("button");
+  resetAdjust.type = "button";
+  resetAdjust.className = "btn btn-sm";
+  resetAdjust.textContent = "キャラ調整をリセット";
+  resetAdjust.addEventListener("click", () => {
+    for (const field of ["feedX", "feedY", "feedScale"]) {
+      const inp = item.querySelector(`input[data-field=${field}]`);
+      if (inp) inp.value = "";
+    }
+    collectInsert();
+  });
+  item.appendChild(resetAdjust);
+
   const flagsRow = document.createElement("div");
   flagsRow.className = "field-row";
   flagsRow.style.display = "flex";
@@ -7804,14 +8587,29 @@ function getVideoCallParticipants() {
     const name = item.querySelector("input[data-field=name]");
     const bgStyle = item.querySelector("select[data-field=bgStyle]");
     const bgImage = item.querySelector("select[data-field=bgImage]");
+    const feedX = item.querySelector("input[data-field=feedX]");
+    const feedY = item.querySelector("input[data-field=feedY]");
+    const feedScale = item.querySelector("input[data-field=feedScale]");
     const cameraOff = item.querySelector("input[data-field=cameraOff]");
     const muted = item.querySelector("input[data-field=muted]");
     const out = {
       speaker: speaker ? speaker.value : "",
       bgStyle: bgStyle ? bgStyle.value : "office",
     };
+    const readOptionalNumber = (input, defaultValue) => {
+      if (!input || input.value === "") return null;
+      const n = Number(input.value);
+      if (!Number.isFinite(n)) return null;
+      return Math.abs(n - defaultValue) < 0.0001 ? null : n;
+    };
     if (name && name.value) out.name = name.value;
     if (bgImage && bgImage.value) out.bgImage = bgImage.value;
+    const fx = readOptionalNumber(feedX, 0.5);
+    const fy = readOptionalNumber(feedY, 1);
+    const fs = readOptionalNumber(feedScale, 1);
+    if (fx != null) out.feedX = fx;
+    if (fy != null) out.feedY = fy;
+    if (fs != null) out.feedScale = fs;
     if (cameraOff && cameraOff.checked) out.cameraOff = true;
     if (muted && muted.checked) out.muted = true;
     return out;
@@ -7890,6 +8688,15 @@ function collectBasic() {
   if (!turn.shake) delete turn.shake;
   turn.flashback = document.getElementById("fFlashback").checked || undefined;
   if (!turn.flashback) delete turn.flashback;
+  if (document.getElementById("fVisionNoise").checked) {
+    if (!turn.visionNoise) turn.visionNoise = true;
+  } else {
+    delete turn.visionNoise;
+    if (turn.effectSettings && turn.effectSettings.visionNoise) {
+      delete turn.effectSettings.visionNoise;
+      if (!Object.keys(turn.effectSettings).length) delete turn.effectSettings;
+    }
+  }
 
   const telop = document.getElementById("fTelop").value;
   if (telop) turn.telop = telop; else delete turn.telop;
@@ -7906,9 +8713,9 @@ function collectBasic() {
   if (telopSizeVal !== "") turn.telopSize = parseFloat(telopSizeVal);
   else delete turn.telopSize;
 
-  const impactText = document.getElementById("fImpactText").value.trim();
-  if (impactText) turn.impactText = impactText;
-  else delete turn.impactText;
+  turn.impactLines = document.getElementById("fImpactLines").checked || undefined;
+  if (!turn.impactLines) delete turn.impactLines;
+  delete turn.impactText;
 
   turn.zoomPunch = document.getElementById("fZoomPunch").checked || undefined;
   if (!turn.zoomPunch) delete turn.zoomPunch;
@@ -7930,12 +8737,9 @@ function collectBasic() {
   if (pauseVal !== "") turn.pause = parseFloat(pauseVal);
   else delete turn.pause;
 
-  const voicePresetVal = document.getElementById("fVoicePreset").value;
-  if (voicePresetVal && VOICE_PRESETS[voicePresetVal]) {
-    turn.voice = { ...VOICE_PRESETS[voicePresetVal] };
-  } else {
-    delete turn.voice;
-  }
+  const voiceParams = collectVoiceParamsFromFields();
+  if (voiceParams) turn.voice = voiceParams;
+  else delete turn.voice;
 
   const noLipSyncVal = document.getElementById("fNoLipSync").checked;
   if (noLipSyncVal) turn.noLipSync = true;
@@ -8495,6 +9299,11 @@ async function generateAudio(confirmFirst = true) {
   if (confirmFirst && !confirm("VOICEVOX で音声生成します（数十秒〜）。VOICEVOXエンジンを起動済みか確認してください。")) return;
   btn.disabled = true;
   try {
+    if (mobsDirty) {
+      setStatus("busy", "モブ設定を保存中…");
+      const mobsSaved = await saveMobs();
+      if (!mobsSaved) throw new Error("モブ設定の保存に失敗しました");
+    }
     await saveStory();                       // 最新を保存してから生成（make_story_audioは保存済みJSONを読む）
     // 生成中(数十秒〜)に編集を続けると、完了時の再読込で編集内容が丸ごと巻き戻り、
     // selectedIdxはそのままなので別ターンが表示される事故が起きるため編集をロックする。
@@ -8691,6 +9500,140 @@ function saveGenSettings() {
   try {
     localStorage.setItem(GEN_SETTINGS_KEY, JSON.stringify(data));
   } catch (_) {}
+}
+
+let genReadableMode = "outline";
+
+function extractJsonText(raw) {
+  const text = (raw || "").trim();
+  if (!text) return "";
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  return (fenced ? fenced[1] : text).trim();
+}
+
+function parseGeneratedStoryForPreview() {
+  const raw = document.getElementById("genImport")?.value || "";
+  const jsonText = extractJsonText(raw);
+  if (jsonText) return JSON.parse(jsonText);
+  if (storyData && Array.isArray(storyData.script)) return storyData;
+  throw new Error("AI出力JSONを貼り付けてください。");
+}
+
+function readableSceneLabel(sceneKey) {
+  if (!sceneKey) return "未設定";
+  const scene = sceneDefs?.scenes?.[sceneKey];
+  return scene?.label || sceneKey;
+}
+
+function readableInsertLabel(insert) {
+  if (!insert || typeof insert !== "object") return "";
+  const labels = {
+    warning: "監視アラート",
+    ok: "正常表示",
+    chat: "人工知能チャット",
+    teamchat: "チームチャット",
+    mailer: "メール画面",
+    videocall: insert.end ? "ビデオ会議終了" : "ビデオ会議",
+    whiteboard_explain: "ホワイトボード解説",
+  };
+  const base = labels[insert.kind] || insert.kind || "インサート";
+  if (insert.kind === "teamchat" && insert.channel) return `${base}: ${insert.channel}`;
+  if (insert.kind === "videocall" && insert.room) return `${base}: ${insert.room}`;
+  if (insert.kind === "mailer" && insert.subject) return `${base}: ${insert.subject}`;
+  if (insert.kind === "whiteboard_explain" && insert.title) return `${base}: ${insert.title}`;
+  return base;
+}
+
+function readableTransitionLabel(transition) {
+  const labels = {
+    cut: "カット",
+    "fade-black": "暗転",
+    "fade-white": "白フェード",
+    "wipe-left": "左ワイプ",
+    "wipe-right": "右ワイプ",
+    "slide-left": "左スライド",
+    "slide-right": "右スライド",
+  };
+  return labels[transition] || transition;
+}
+
+function buildReadableScript(story, mode) {
+  const script = Array.isArray(story?.script) ? story.script : [];
+  if (!script.length) return "script 配列が見つかりません。";
+  const lines = [];
+  if (mode === "outline") {
+    if (story.title) {
+      lines.push("タイトル：");
+      lines.push(story.title);
+      lines.push("");
+    }
+    let prevScene = null;
+    for (let i = 0; i < script.length; i++) {
+      const turn = script[i] || {};
+      const scene = turn.scene || "";
+      if (i === 0 || scene !== prevScene || turn.transition) {
+        const parts = [`場面：${readableSceneLabel(scene)}`];
+        if (turn.transition) parts.push(`切替：${readableTransitionLabel(turn.transition)}`);
+        lines.push(`【${parts.join(" / ")}】`);
+      }
+      const insertLabel = readableInsertLabel(turn.insert);
+      if (insertLabel) lines.push(`［画面：${insertLabel}］`);
+      lines.push(`${i + 1}. ${turn.speaker || "話者未設定"}`);
+      lines.push(turn.text || "（セリフなし）");
+      lines.push("");
+      prevScene = scene;
+    }
+    return lines.join("\n").trim();
+  }
+  for (const turn of script) {
+    const speaker = turn?.speaker || "話者未設定";
+    const text = turn?.text || "";
+    if (!text.trim()) continue;
+    lines.push(`${speaker}：${text}`);
+  }
+  return lines.join("\n\n").trim() || "表示できるセリフ本文がありません。";
+}
+
+function renderGenReadableButtons() {
+  const outline = document.getElementById("btnGenReadableOutline");
+  const plain = document.getElementById("btnGenReadablePlain");
+  if (outline) {
+    outline.classList.toggle("btn-primary", genReadableMode === "outline");
+    outline.classList.toggle("btn-secondary", genReadableMode !== "outline");
+  }
+  if (plain) {
+    plain.classList.toggle("btn-primary", genReadableMode === "plain");
+    plain.classList.toggle("btn-secondary", genReadableMode !== "plain");
+  }
+}
+
+function setGenReadableMode(mode) {
+  genReadableMode = mode === "plain" ? "plain" : "outline";
+  renderGenReadableButtons();
+  renderGenReadablePreview();
+}
+
+function renderGenReadablePreview() {
+  const out = document.getElementById("genReadablePreview");
+  const status = document.getElementById("genReadableStatus");
+  if (!out) return;
+  try {
+    const story = parseGeneratedStoryForPreview();
+    out.textContent = buildReadableScript(story, genReadableMode);
+    if (status) {
+      const raw = document.getElementById("genImport")?.value || "";
+      status.style.color = "var(--text2)";
+      status.textContent = raw.trim()
+        ? "貼り付けたAI出力JSONを表示中"
+        : "現在読み込み中の台本を表示中";
+    }
+  } catch (e) {
+    out.textContent = "AI出力JSONを貼り付けると、ここに日本語だけの台本表示が出ます。";
+    if (status) {
+      status.style.color = "var(--danger)";
+      status.textContent = e.message || "JSONを解析できません。";
+    }
+  }
 }
 
 // ============================================================
@@ -8984,6 +9927,7 @@ async function refreshExpressions() {
     meta.expressions = m.expressions;
     const prevExpr = selectedIdx >= 0 ? (storyData.script[selectedIdx].expression || "") : "";
     _buildExpressionOptions(prevExpr);
+    buildBulkExpressionSelect();
     // 表情エディタで変えた表情パーツ/割当をプレビューにも反映する。
     if (window.storyPlayer && playerReady && window.storyPlayer.reloadExpressions) {
       window.storyPlayer.reloadExpressions();
@@ -9039,8 +9983,15 @@ function setupEvents() {
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
   document.getElementById("btnBulkSceneApply").addEventListener("click", applyBulkScene);
+  document.getElementById("btnBulkOpenAdvanced").addEventListener("click", openBulkEditPanel);
+  document.getElementById("btnBulkPanelClose").addEventListener("click", closeBulkEditPanel);
   document.getElementById("btnBulkFocusOn").addEventListener("click", () => applyBulkFocusSpeaker(true));
   document.getElementById("btnBulkFocusOff").addEventListener("click", () => applyBulkFocusSpeaker(false));
+  document.getElementById("btnBulkExpressionApply").addEventListener("click", applyBulkExpression);
+  document.getElementById("btnBulkCameraEffectApply").addEventListener("click", applyBulkCameraEffect);
+  document.getElementById("btnBulkVoiceApply").addEventListener("click", applyBulkVoice);
+  document.getElementById("btnBulkTelopApply").addEventListener("click", applyBulkTelop);
+  document.getElementById("btnBulkTelopClear").addEventListener("click", clearBulkTelop);
   document.getElementById("btnBulkManualCameraApply").addEventListener("click", applyBulkManualCamera);
   document.getElementById("btnBulkManualCameraClear").addEventListener("click", clearBulkManualCamera);
   document.getElementById("btnBulkSceneClear").addEventListener("click", () => { clearMultiSelection(); renderList(); });
@@ -9202,15 +10153,32 @@ function setupEvents() {
 
   // 基本タブ: 変更をリアルタイム収集
   const basicIds = ["fSpeaker", "fNarration", "fText", "fScene", "fExpression", "fPose", "fFaceZundamon", "fFaceMetan", "fFaceMode", "fClearFaceZundamon", "fClearFaceMetan",
-                    "fSpeakerAnchor", "fShake", "fFlashback", "fCameraEffectZoom", "fCameraEffectPan", "fCameraEffectTilt", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
-                    "fImpactText", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
-                    "fPause", "fVoicePreset", "fNoLipSync", "fHideCharacters", "fHideBubble", "fEnterDir", "fExitDir", "fSubtitleMode", "fSubtitleFontSize",
+                    "fSpeakerAnchor", "fShake", "fFlashback", "fVisionNoise", "fCameraEffectZoom", "fCameraEffectPan", "fCameraEffectTilt", "fTelop", "fTelopX", "fTelopY", "fTelopSize",
+                    "fImpactLines", "fZoomPunch", "fQuoteFreeze", "fStampRain", "fTypingFlood", "fSparkleBurst", "fIrisOut",
+                    "fPause", "fVoiceSpeed", "fVoicePitch", "fVoiceIntonation", "fNoLipSync", "fHideCharacters", "fHideBubble", "fEnterDir", "fExitDir", "fSubtitleMode", "fSubtitleFontSize",
                     "fSubtitleTextColorHex", "fSubtitleBoxBorder", "fSubtitleBoxBorderColorHex", "fSubtitleBoxBorderWidth", "fContinueBubble", "fAutoBubbleSplit", "fBubbleMaxChars"];
   for (const id of basicIds) {
     const el = document.getElementById(id);
     if (!el) continue;
     const evt = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
     el.addEventListener(evt, collectBasic);
+  }
+  const voicePresetField = document.getElementById("fVoicePreset");
+  if (voicePresetField) {
+    voicePresetField.addEventListener("change", () => {
+      setVoiceParamFields(VOICE_PRESETS[voicePresetField.value] || null);
+      collectBasic();
+    });
+  }
+  for (const id of ["fPause", "fTelopX", "fTelopY", "fTelopSize", "fBubbleMaxChars", "fVoiceSpeed", "fVoicePitch", "fVoiceIntonation"]) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener("pointerdown", (e) => {
+      if (isNumberSpinnerPointer(el, e)) fillNumberDefaultIfEmpty(el);
+    });
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") fillNumberDefaultIfEmpty(el);
+    });
   }
   const bubbleMaxCharsField = document.getElementById("fBubbleMaxChars");
   if (bubbleMaxCharsField) {
@@ -9242,7 +10210,7 @@ function setupEvents() {
     "dsBubbleBorderWidth", "dsBubbleRadius", "dsSubtitleFontSize", "dsSubtitleFontFamily", "dsSubtitleTextColorHex",
     "dsSubtitleBgColorHex", "dsSubtitleBgOpacity", "dsSubtitleBorder", "dsSubtitleBorderColorHex",
     "dsSubtitleBorderWidth", "dsSubtitleBottom", "dsSubtitleWidth", "dsSpeakerColorZundamonHex",
-    "dsSpeakerColorMetanHex", "dsSpeakerColorDefaultHex",
+    "dsTelopX", "dsTelopY", "dsTelopSize", "dsSpeakerColorMetanHex", "dsSpeakerColorDefaultHex",
   ];
   for (const id of displayFieldIds) {
     const el = document.getElementById(id);
@@ -9341,6 +10309,9 @@ function setupEvents() {
   // 音タブ: SEマッピング保存
   document.getElementById("btnSaveSeMap").addEventListener("click", saveSeMap);
 
+  // 音タブ: 声の共通設定
+  document.getElementById("btnSaveVoiceProfiles").addEventListener("click", saveVoiceProfiles);
+
   // 音タブ: 読み替え辞書
   document.getElementById("btnSaveReadings").addEventListener("click", saveReadings);
   document.getElementById("btnAddReading").addEventListener("click", () => {
@@ -9358,6 +10329,7 @@ function setupEvents() {
   document.getElementById("btnSaveMobs").addEventListener("click", saveMobs);
   document.getElementById("btnAddMob").addEventListener("click", () => {
     document.getElementById("mobsList").appendChild(makeMobCard("", { scale: 1, anchor: { x: 0.5, y: 0.95 }, images: {} }));
+    markMobsDirty();
   });
 
   // 音タブ: プレビュー再生/停止
@@ -9435,6 +10407,18 @@ function setupEvents() {
     setTimeout(() => { btn.textContent = originalText; }, 1800);
   });
 
+  // 台本生成タブ: AI出力JSONを日本語だけでプレビュー
+  const genImportEl = document.getElementById("genImport");
+  if (genImportEl) {
+    genImportEl.addEventListener("input", renderGenReadablePreview);
+  }
+  const readableOutlineBtn = document.getElementById("btnGenReadableOutline");
+  if (readableOutlineBtn) readableOutlineBtn.addEventListener("click", () => setGenReadableMode("outline"));
+  const readablePlainBtn = document.getElementById("btnGenReadablePlain");
+  if (readablePlainBtn) readablePlainBtn.addEventListener("click", () => setGenReadableMode("plain"));
+  renderGenReadableButtons();
+  renderGenReadablePreview();
+
   // 台本生成タブ: AI出力を取り込んで読込
   document.getElementById("btnImportScript").addEventListener("click", async () => {
     const raw = document.getElementById("genImport").value.trim();
@@ -9469,6 +10453,7 @@ function setupEvents() {
           document.getElementById("storyTitle").value = storyData.title || "";
           buildSceneSelect();
           buildExpressionSelect();
+          buildBulkExpressionSelect();
           renderList();
           if (selectedIdx >= storyData.script.length) selectedIdx = storyData.script.length - 1;
           if (selectedIdx >= 0) renderDetail();
@@ -9673,7 +10658,231 @@ let audioAssets = null;   // { bgm: [...], se: [...] }
 let seMap = null;         // se-map.json の中身
 let readingsMap = null;   // config/readings.json の中身（_comment除く）
 let kanjiReadingsMap = null;  // config/kanji_readings.json の中身（_comment除く）
+let voiceProfileDefaults = null;  // /api/voice-profile-defaults（工場出荷時の声既定値）
 let audioLoaded = false;  // 初回ロード済みフラグ
+
+const VOICE_PROFILE_PARAM_SPECS = [
+  ["speedScale", "速さ", 0.5, 2.0, 0.01],
+  ["pitchScale", "高さ", -0.15, 0.15, 0.01],
+  ["intonationScale", "抑揚", 0.0, 2.0, 0.01],
+  ["volumeScale", "音量", 0.0, 2.0, 0.01],
+  ["prePhonemeLength", "前無音", 0.0, 1.5, 0.01],
+  ["postPhonemeLength", "後無音", 0.0, 1.5, 0.01],
+];
+const VOICE_PROFILE_BASE_PARAMS = {
+  speedScale: 1.0,
+  pitchScale: 0.0,
+  intonationScale: 1.0,
+  volumeScale: 1.0,
+  prePhonemeLength: 0.0,
+  postPhonemeLength: 0.1,
+};
+
+function voiceProfileDisplayName(name) {
+  const labels = {
+    zundamon: "ずんだもん",
+    metan: "四国めたん",
+  };
+  return labels[name] || name;
+}
+
+function voiceProfileParamValue(profile, key) {
+  const raw = profile?.params?.[key];
+  if (Number.isFinite(Number(raw))) return Number(raw);
+  return VOICE_PROFILE_BASE_PARAMS[key];
+}
+
+function voiceProfileFactoryParamValue(name, key) {
+  const profile = voiceProfileDefaults?.profiles?.[name] || {};
+  const baseParams = voiceProfileDefaults?.baseParams || VOICE_PROFILE_BASE_PARAMS;
+  const raw = profile.params?.[key];
+  if (Number.isFinite(Number(raw))) return Number(raw);
+  const base = baseParams[key];
+  if (Number.isFinite(Number(base))) return Number(base);
+  return VOICE_PROFILE_BASE_PARAMS[key];
+}
+
+function resetVoiceProfileCardParams(card) {
+  if (!card) return;
+  const name = card.dataset.name || "";
+  card.querySelectorAll(".voice-profile-param-input").forEach((input) => {
+    const value = voiceProfileFactoryParamValue(name, input.dataset.param);
+    input.value = value != null ? String(value) : "";
+  });
+}
+
+function makeVoicevoxSpeakerSelect(currentSpeakerId) {
+  const sel = document.createElement("select");
+  sel.className = "field-select voice-profile-speaker";
+  let matched = false;
+  for (const s of voicevoxSpeakers) {
+    const opt = document.createElement("option");
+    opt.value = String(s.id);
+    opt.textContent = `${s.label}（ID:${s.id}）`;
+    if (currentSpeakerId != null && s.id === currentSpeakerId) {
+      opt.selected = true;
+      matched = true;
+    }
+    sel.appendChild(opt);
+  }
+  if (currentSpeakerId != null && !matched) {
+    const opt = document.createElement("option");
+    opt.value = String(currentSpeakerId);
+    opt.textContent = `ID:${currentSpeakerId}（一覧に見つかりません）`;
+    opt.selected = true;
+    sel.appendChild(opt);
+  }
+  if (!sel.children.length) {
+    const opt = document.createElement("option");
+    opt.value = currentSpeakerId != null ? String(currentSpeakerId) : "";
+    opt.textContent = currentSpeakerId != null
+      ? `ID:${currentSpeakerId}（VOICEVOX未接続）`
+      : "VOICEVOX未接続";
+    sel.appendChild(opt);
+  }
+  return sel;
+}
+
+function renderVoiceProfilesSection() {
+  const container = document.getElementById("voiceProfilesList");
+  if (!container) return;
+  container.innerHTML = "";
+  const keys = sortedStrings(Object.keys(voiceProfiles || {}));
+  for (const name of keys) {
+    const profile = voiceProfiles[name] || {};
+    const card = document.createElement("div");
+    card.className = "voice-profile-card";
+    card.dataset.name = name;
+    card.dataset.fx = profile.fx ? JSON.stringify(profile.fx) : "";
+
+    const head = document.createElement("div");
+    head.className = "voice-profile-head";
+
+    const nameWrap = document.createElement("label");
+    nameWrap.style.cssText = "display:flex; flex-direction:column; gap:6px;";
+    const nameLabel = document.createElement("span");
+    nameLabel.className = "field-label";
+    nameLabel.textContent = "話者";
+    const nameBox = document.createElement("div");
+    nameBox.className = "field-input";
+    nameBox.style.cssText = "font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;";
+    nameBox.textContent = voiceProfileDisplayName(name);
+    nameBox.title = name;
+    nameWrap.appendChild(nameLabel);
+    nameWrap.appendChild(nameBox);
+    head.appendChild(nameWrap);
+
+    const speakerWrap = document.createElement("label");
+    speakerWrap.style.cssText = "display:flex; flex-direction:column; gap:6px;";
+    const speakerLabel = document.createElement("span");
+    speakerLabel.className = "field-label";
+    speakerLabel.textContent = "VOICEVOX話者";
+    speakerWrap.appendChild(speakerLabel);
+    speakerWrap.appendChild(makeVoicevoxSpeakerSelect(profile.speaker));
+    head.appendChild(speakerWrap);
+    card.appendChild(head);
+
+    const params = document.createElement("div");
+    params.className = "voice-profile-params";
+    for (const [key, label, min, max, step] of VOICE_PROFILE_PARAM_SPECS) {
+      const wrap = document.createElement("label");
+      wrap.className = "voice-profile-param";
+      const span = document.createElement("span");
+      span.className = "field-label";
+      span.textContent = label;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.className = "field-input voice-profile-param-input";
+      input.dataset.param = key;
+      input.min = String(min);
+      input.max = String(max);
+      input.step = String(step);
+      const value = voiceProfileParamValue(profile, key);
+      input.value = value != null ? String(value) : "";
+      wrap.appendChild(span);
+      wrap.appendChild(input);
+      params.appendChild(wrap);
+    }
+    card.appendChild(params);
+
+    const actions = document.createElement("div");
+    actions.style.cssText = "display:flex; justify-content:flex-end;";
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "btn btn-secondary btn-sm";
+    resetBtn.textContent = "パラメータをデフォルトに戻す";
+    resetBtn.addEventListener("click", () => resetVoiceProfileCardParams(card));
+    actions.appendChild(resetBtn);
+    card.appendChild(actions);
+
+    container.appendChild(card);
+  }
+  if (container.children.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">声の共通設定がありません</div>";
+  }
+}
+
+function collectVoiceProfilesFromUi() {
+  const entries = {};
+  const cards = document.querySelectorAll("#voiceProfilesList .voice-profile-card");
+  for (const card of cards) {
+    const name = card.dataset.name;
+    const speakerRaw = card.querySelector(".voice-profile-speaker")?.value || "";
+    if (!name || speakerRaw === "") continue;
+    const profile = {
+      engine: "voicevox",
+      speaker: parseInt(speakerRaw, 10),
+      params: {},
+    };
+    card.querySelectorAll(".voice-profile-param-input").forEach((input) => {
+      const raw = input.value.trim();
+      if (raw === "") return;
+      const value = parseFloat(raw);
+      if (Number.isFinite(value)) profile.params[input.dataset.param] = value;
+    });
+    if (Object.keys(profile.params).length === 0) delete profile.params;
+    if (card.dataset.fx) {
+      try {
+        const fx = JSON.parse(card.dataset.fx);
+        if (fx && typeof fx === "object") profile.fx = fx;
+      } catch (e) { /* 無視 */ }
+    }
+    entries[name] = profile;
+  }
+  return entries;
+}
+
+async function saveVoiceProfiles() {
+  const statusEl = document.getElementById("voiceProfilesStatus");
+  if (!statusEl) return;
+  statusEl.style.color = "var(--text2)";
+  statusEl.textContent = "保存中...";
+  try {
+    const entries = collectVoiceProfilesFromUi();
+    const r = await fetch("/api/voice-profiles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entries),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      const res = await fetch("/api/voice-profiles");
+      voiceProfiles = await res.json();
+      renderVoiceProfilesSection();
+      if (selectedIdx >= 0) renderDetail();
+      markAudioDirty();
+      statusEl.style.color = "var(--green)";
+      statusEl.textContent = "保存しました（音声生成が必要）";
+      setTimeout(() => { statusEl.textContent = ""; }, 3000);
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "保存失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
+}
 
 function isIOSVolumeLimited() {
   const ua = navigator.userAgent || "";
@@ -9790,22 +10999,29 @@ async function loadAudioPanel() {
   // 毎回再取得したい場合は audioLoaded をリセットして呼べばよい。
   if (audioLoaded) return;
   try {
-    const [assetsRes, seRes, readingsRes, kanjiRes] = await Promise.all([
+    const [assetsRes, seRes, readingsRes, kanjiRes, voiceProfilesRes, voiceDefaultsRes] = await Promise.all([
       fetch("/api/audio-assets"),
       fetch("/api/se-map"),
       fetch("/api/readings"),
       fetch("/api/kanji-readings"),
+      fetch("/api/voice-profiles"),
+      fetch("/api/voice-profile-defaults"),
+      loadVoicevoxSpeakers(),
     ]);
     audioAssets = await assetsRes.json();
     seMap = await seRes.json();
     readingsMap = await readingsRes.json();
     kanjiReadingsMap = await kanjiRes.json();
+    voiceProfiles = await voiceProfilesRes.json();
+    voiceProfileDefaults = await voiceDefaultsRes.json();
     audioLoaded = true;
+    renderVoiceProfilesSection();
     renderSeMapSection();
     renderReadingsSection();
     renderKanjiReadingsSection();
   } catch (e) {
-    document.getElementById("seMapContainer").innerHTML =
+    const target = document.getElementById("voiceProfilesList") || document.getElementById("seMapContainer");
+    target.innerHTML =
       "<div style=\"color:var(--danger);font-size:12px;\">読み込みエラー: " + e.message + "</div>";
   }
 }
@@ -10150,13 +11366,16 @@ async function saveReadings() {
       statusEl.style.color = "var(--green)";
       statusEl.textContent = "保存しました";
       setTimeout(() => { statusEl.textContent = ""; }, 2500);
+      return true;
     } else {
       statusEl.style.color = "var(--danger)";
       statusEl.textContent = "保存失敗: " + (result.error || r.status);
+      return false;
     }
   } catch (e) {
     statusEl.style.color = "var(--danger)";
     statusEl.textContent = "通信エラー";
+    return false;
   }
 }
 
@@ -10253,8 +11472,18 @@ async function saveKanjiReadings() {
 // ============================================================
 let mobsMap = {};
 let mobsLoaded = false;
+let mobsDirty = false;
 let voicevoxSpeakers = [];
 let voicevoxSpeakersLoaded = false;
+
+function markMobsDirty() {
+  mobsDirty = true;
+  const statusEl = document.getElementById("mobsStatus");
+  if (statusEl) {
+    statusEl.style.color = "var(--yellow)";
+    statusEl.textContent = "未保存のモブ設定があります";
+  }
+}
 
 async function loadVoicevoxSpeakers() {
   if (voicevoxSpeakersLoaded) return;
@@ -10352,6 +11581,7 @@ function makeMobImageSlot(labelText, currentPath, mobNameGetter, stateKey, mouth
         pathText.textContent = result.path;
         thumb.style.visibility = "visible";
         thumb.src = "/preview-assets/" + result.path + "?t=" + Date.now();
+        markMobsDirty();
       } else {
         pathText.textContent = "アップロード失敗: " + (result.error || r.status);
       }
@@ -10379,6 +11609,7 @@ function makeMobCard(name, def) {
   nameInp.placeholder = "モブ名（例: 後輩）";
   nameInp.value = name || "";
   nameInp.style.cssText = "font-weight:700; width:160px;";
+  nameInp.addEventListener("input", markMobsDirty);
   head.appendChild(nameInp);
 
   const nameGetter = () => (nameInp.value || "").trim();
@@ -10396,6 +11627,7 @@ function makeMobCard(name, def) {
   scaleInp.max = "3";
   scaleInp.value = def.scale ?? 1;
   scaleInp.style.cssText = "width:70px;";
+  scaleInp.addEventListener("input", markMobsDirty);
   head.appendChild(scaleInp);
 
   const anchorXLabel = document.createElement("span");
@@ -10411,6 +11643,7 @@ function makeMobCard(name, def) {
   anchorXInp.max = "1";
   anchorXInp.value = def.anchor?.x ?? 0.5;
   anchorXInp.style.cssText = "width:70px;";
+  anchorXInp.addEventListener("input", markMobsDirty);
   head.appendChild(anchorXInp);
 
   const anchorYLabel = document.createElement("span");
@@ -10426,13 +11659,14 @@ function makeMobCard(name, def) {
   anchorYInp.max = "1.2";
   anchorYInp.value = def.anchor?.y ?? 0.95;
   anchorYInp.style.cssText = "width:70px;";
+  anchorYInp.addEventListener("input", markMobsDirty);
   head.appendChild(anchorYInp);
 
   const delBtn = document.createElement("button");
   delBtn.className = "btn btn-danger btn-sm";
   delBtn.textContent = "このモブを削除";
   delBtn.style.marginLeft = "auto";
-  delBtn.addEventListener("click", () => { card.remove(); });
+  delBtn.addEventListener("click", () => { card.remove(); markMobsDirty(); });
   head.appendChild(delBtn);
 
   card.appendChild(head);
@@ -10470,6 +11704,12 @@ function makeMobCard(name, def) {
     o.selected = true;
     voiceSel.appendChild(o);
   }
+  voiceSel.addEventListener("change", () => {
+    markMobsDirty();
+    const mobName = nameGetter();
+    const usedInStory = !!mobName && storyData?.script?.some((turn) => (turn?.narrationVoice || turn?.speaker) === mobName);
+    if (usedInStory) markAudioDirty();
+  });
   voiceRow.appendChild(voiceSel);
 
   if (voicevoxSpeakers.length === 0) {
@@ -10547,6 +11787,12 @@ async function saveMobs() {
 	      if (window.storyPlayer && playerReady) window.storyPlayer.reloadMobs();
 	      if (window.storyDisplayPreviewPlayer && displayPreviewReady) window.storyDisplayPreviewPlayer.reloadMobs();
 	      updateDisplaySettingsPreview();
+	      const usedMobVoiceChanged = storyData?.script?.some((turn) => {
+	        const voiceName = turn?.narrationVoice || turn?.speaker;
+	        return voiceName && Object.prototype.hasOwnProperty.call(entries, voiceName);
+	      });
+	      if (usedMobVoiceChanged) markAudioDirty();
+	      mobsDirty = false;
 	      // シーン編集タブが開き済みなら、モブ一覧(モブ配置)を最新化するためiframeを再読込。
 	      const sceneFrame = document.getElementById("sceneFrame");
       if (sceneFrame && sceneFrame.getAttribute("src")) {

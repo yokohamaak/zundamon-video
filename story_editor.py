@@ -13,10 +13,12 @@ import binascii
 import json
 import os
 import re
+import shutil
 import signal
 import socket
 import subprocess
 import sys
+import unicodedata
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
 from urllib.request import urlopen
@@ -31,6 +33,7 @@ sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
 from tts_voicevox import sync_kanji_readings_to_voicevox  # noqa: E402
 import make_story_audio  # noqa: E402  台本取り込み時の話者検証で使う（音声生成と同じ判定基準）
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
+VIDEO_ASSETS_DIR = os.path.join(ROOT_DIR, "video", "assets")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
 EXPRESSIONS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "expressions.json")
@@ -49,6 +52,7 @@ BGM_DIR = os.path.join(VIDEO_PUBLIC_DIR, "bgm")
 SE_DIR = os.path.join(VIDEO_PUBLIC_DIR, "se")
 OVERLAYS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "overlays")
 BACKGROUND_DIR = os.path.join(VIDEO_PUBLIC_DIR, "background")
+MOBS_ASSETS_DIR = os.path.join(VIDEO_ASSETS_DIR, "mobs")
 _AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
 _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
@@ -110,8 +114,61 @@ def _save_mobs(data):
                 raise ValueError(f"{name} の音声設定(speaker)が不正です")
             if "params" in voice and not isinstance(voice["params"], dict):
                 raise ValueError(f"{name} の音声パラメータ(params)が不正です")
+    for d in data.values():
+        for pair in (d.get("images") or {}).values():
+            for rel in (pair.get("closed"), pair.get("open")):
+                if not isinstance(rel, str) or not rel.startswith("mobs/"):
+                    continue
+                src = os.path.join(VIDEO_PUBLIC_DIR, rel)
+                dst = os.path.join(VIDEO_ASSETS_DIR, rel)
+                if os.path.isfile(src) and not os.path.isfile(dst):
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.copyfile(src, dst)
     with open(MOBS_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def _save_voice_profiles(data):
+    if not isinstance(data, dict):
+        raise ValueError("voice_profiles はオブジェクトである必要があります")
+    cleaned = {}
+    for name, profile in data.items():
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("話者名が不正です")
+        if not isinstance(profile, dict):
+            raise ValueError(f"{name} の音声設定が不正です")
+        engine = profile.get("engine", "voicevox")
+        if engine != "voicevox":
+            raise ValueError(f"{name} の engine は voicevox のみ対応しています")
+        speaker = profile.get("speaker")
+        if not isinstance(speaker, int):
+            raise ValueError(f"{name} の speaker が不正です")
+        entry = {"engine": "voicevox", "speaker": speaker}
+        params = profile.get("params") or {}
+        if not isinstance(params, dict):
+            raise ValueError(f"{name} の params が不正です")
+        cleaned_params = {}
+        for key, value in params.items():
+            if not isinstance(key, str):
+                raise ValueError(f"{name} の params キーが不正です")
+            if not isinstance(value, (int, float)):
+                raise ValueError(f"{name} の {key} は数値である必要があります")
+            cleaned_params[key] = float(value)
+        if cleaned_params:
+            entry["params"] = cleaned_params
+        fx = profile.get("fx")
+        if isinstance(fx, dict):
+            cleaned_fx = {}
+            for key, value in fx.items():
+                if isinstance(key, str) and isinstance(value, (int, float, str, bool)):
+                    cleaned_fx[key] = value
+            if cleaned_fx:
+                entry["fx"] = cleaned_fx
+        cleaned[name.strip()] = entry
+    os.makedirs(os.path.dirname(make_story_audio.VOICE_PROFILES_PATH), exist_ok=True)
+    with open(make_story_audio.VOICE_PROFILES_PATH, "w", encoding="utf-8") as f:
+        json.dump(cleaned, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
 
@@ -261,7 +318,8 @@ def _safe_image_filename(name, default_stem="image"):
     OSで問題になりうる記号だけ除去し、日本語名はそのまま残す
     （全角文字を"_"に潰すと別名同士が同じファイル名に衝突し、
     一方の画像がもう一方で上書きされるバグになるため）。"""
-    cleaned = re.sub(r'[\\/:*?"<>|\r\n\t]', "", (name or "")).strip(". ")
+    cleaned = unicodedata.normalize("NFC", name or "")
+    cleaned = re.sub(r'[\\/:*?"<>|\r\n\t]', "", cleaned).strip(". ")
     cleaned = cleaned or default_stem
     ext = os.path.splitext(cleaned)[1].lower()
     if ext not in _IMAGE_EXTS:
@@ -621,7 +679,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         #   併せて _KNOWN_TURN_FIELDS / _KNOWN_INSERT_KINDS も更新。
         #   詳細手順: docs/new-effect-checklist.md
         "━━━ 使える演出（任意。付けると良くなる）━━━",
-        '- "transition": "cut" / "fade-black" / "fade-white" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" … シーンが切り替わる最初の行だけに付ける場面転換',
+        '- "transition": "cut" / "fade-black" / "fade-white" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" … この行に入る直前のターン境界にかける場面転換。通常はsceneが切り替わる最初の行に付ける。同じscene内でも明示的に区切りたい時はターンを分けて付けてよい',
         '- "pose": "idle" / "cheer" / "recoil" / "lean" / "droop" / "flustered" / "proud" / "step_in" / "step_back" / "listening" / "sneak" / "wobble" / "point" … その行の話者ポーズ',
         '- "emphasis": true … 強調したい一言用の既存強調演出。通常のカメラ構図指定には使わず、話者構図は focusSpeaker を使う',
         '- "focusSpeaker": true … 話者の立ち位置(left/right)に応じてシーン側の leftFocus/rightFocus カメラ枠へ切り替える。center は default',
@@ -631,6 +689,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "cameraEffectSettings": {"zoom":{"amount":0.18,"duration":0.45},"pan":{"amount":0.08,"duration":0.4},"tilt":{"angle":6.0,"duration":0.35}} … cameraEffects の効き量をその行だけ上書きする。通常は不要で、強く見せたい行だけ使う',
         '- "zoomTarget": {"x":0.52,"y":0.38} … その行のズーム演出が狙う位置（フォーカス位置）を明示指定する。通常は不要',
         '- "flashback": true … 回想（彩度が落ちる。"telop" と併用推奨）',
+        '- "visionNoise": true … 映像ノイズ。未来視・防犯カメラ映像・VHS映像・通信障害・砂嵐に使える。flashback と併用すると色あせ＋ノイズの予知/記録映像になる。種類は effectSettings.visionNoise.type で "future"（未来視）/ "snow"（砂嵐）/ "vhs"（VHS・防犯カメラ）/ "glitch"（デジタル異常）を指定可能。強くしたい時は "effectSettings":{"visionNoise":{"type":"snow","strength":0.8,"scanline":0.6,"glitch":0.25,"flicker":0.3,"tint":"#7dd3fc"}} を併用',
         '- "telop": "― 前日 ―" … 画面隅に短時間出る字幕（時代・場面ラベル）',
         '- "telopX": 0.05, "telopY": 0.06, "telopSize": 1.0 … テロップの位置と大きさを微調整',
         '- "pause": 0.5 … その台詞の後に入れる無音秒（間）',
@@ -657,7 +716,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "faceMode": "hold" … そのターンで指定した向きを以後のターンでも維持する（省略時はそのターンだけ）',
         '- "clearFace": ["zundamon"] … 保持中の向きを解除して自動向きへ戻す',
         '- "se": [{"file":"se/alarm.mp3","at":0.0,"volume":0.9}] … この行だけ鳴らす手動SE',
-        '- "impactText": "ドン！" … 漫画風の大きな一撃テキストをバーンと出す（ここぞという一言に）',
+        '- "impactLines": true … 漫画の集中線だけを出す（驚き・発覚・ツッコミの瞬間に）。文字は出さない',
         '- "zoomPunch": true … 話し始めに一瞬強く寄って戻る（縁が光る）強調。emphasisより短く鋭い',
         '- "quoteFreeze": true … 画面を暗くしてそのターンのtextを大きな引用カードで見せる（名言・宣言の一文向け）',
         '- "stampRain": "完了！" … 指定文字の判子（スタンプ）が降ってくる（達成・完了の演出）',
@@ -667,7 +726,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- "irisOut": true … 円が閉じて（または開いて）暗転する古典的な締め演出。話の最後のターンでのみ使う。'
         ' 位置・速さ等は effectSettings.irisOut で調整可能だが、基本は true だけで良い',
         '- "effectSettings": {"entrance":{"duration":0.45},"emphasis":{"duration":0.35,"scale":0.18},"zoomPunch":{"scale":0.16},'
-        ' "irisOut":{"closeStart":1.0,"closeEnd":2.5}} … entrance / emphasis / zoomPunch / quoteFreeze / stampRain / typingFlood / sparkleBurst / irisOut'
+        ' "impactLines":{"cx":0.5,"cy":0.45,"count":90,"thickness":1.6,"start":0.2,"end":1.4},"irisOut":{"closeStart":1.0,"closeEnd":2.5}} … entrance / emphasis / zoomPunch / quoteFreeze / stampRain / typingFlood / sparkleBurst / impactLines / irisOut'
         ' の細かい調整（このターンだけ上書き）。通常は不要（既定値で自然に動く）',
         "",
         "━━━ インサート演出（\"insert\"。全画面にPC画面/チャット等を重ねる・任意）━━━",
@@ -679,7 +738,8 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         '- {"kind":"videocall","room":"定例会議","layout":"focus","participants":[{"speaker":"zundamon","bgStyle":"office"},{"speaker":"metan","bgStyle":"home"}]}'
         ' … ZunMeet（ビデオ会議画面）。一度出すと同シーン内の後続ターンへ自動継続するので、後続ターンには insert を書かない。'
         ' bgStyle は office / meeting_room / home / ai / green。話者のタイルが自動で大きく表示される。'
-        ' 参加者ごとに bgImage で用意済みの背景画像(例: "background/ベンダー会議室.png")を bgStyle の代わりに指定してもよい',
+        ' 参加者ごとに bgImage で用意済みの背景画像(例: "background/ベンダー会議室.png")を bgStyle の代わりに指定してもよい。'
+        ' キャラ絵のタイル内調整が必要な参加者だけ feedX/feedY/feedScale を指定できる（既定は 0.5/1/1）',
         '- {"kind":"videocall","end":true} … 進行中のZunMeet通話をこのターンで終了して通常画面に戻す',
         '- {"kind":"whiteboard_explain","title":"めたんの解説コーナー","theme":"...","sections":['
         '{"heading":"...","bullets":["...","...","..."],"icon":"confused"},'
@@ -734,10 +794,10 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         "- 各ターンの必須キー: speaker, text, scene。どのターンでも scene を省略しない。expression は推奨。その他の演出キーは任意。",
         "- start / end / sentences / audio / id は書かない（ツールが自動生成する）。",
         '- narrationVoice / voice / noLipSync / subtitleMode / subtitleStyle / hideCharacters / continueBubble / disableAutoBubbleSplit / bubbleMaxChars / speakerAnchor / manualPos / enter / enterDir / exit / exitDir'
-        ' / face / faceMode / clearFace / telopX / telopY / telopSize / se / insert / pose / transition / impactText / zoomPunch / quoteFreeze / stampRain / typingFlood'
-        ' / sparkleBurst / sparklePos / irisOut / effectSettings / cameraEffects / cameraEffectSettings / focusSpeaker / manualCameraFrame / cameraTransition / zoomTarget も使ってよい。',
+        ' / face / faceMode / clearFace / telopX / telopY / telopSize / se / insert / pose / transition / impactLines / zoomPunch / quoteFreeze / stampRain / typingFlood'
+        ' / sparkleBurst / sparklePos / irisOut / visionNoise / effectSettings / cameraEffects / cameraEffectSettings / focusSpeaker / manualCameraFrame / cameraTransition / zoomTarget も使ってよい。',
         '- text 内の "\\n" は同一吹き出し内の改行として扱う。別吹き出しにしたいなら turn を分ける。',
-        '- transition は「scene が切り替わる先頭行」にだけ付ける。連続する同sceneの後続行には付けない。',
+        '- transition は基本「scene が切り替わる先頭行」に付ける。同じscene内で時間経過・場面区切りを見せたい場合だけ、区切り後の先頭ターンに明示してよい。',
         ("- 新演出は任意キーで自由に。新シーン名も可。新規分は必ず _proposals に列挙する。"
          if experimental
          else "- scene は必ず上記リストのキーから選ぶ。speaker も上記の値のみ。"),
@@ -754,10 +814,10 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterDir", "face", "faceMode", "clearFace",
-    "emphasis", "shake", "cameraEffects", "cameraEffectSettings", "flashback", "telop", "pause", "transition", "insert",
+    "emphasis", "shake", "cameraEffects", "cameraEffectSettings", "flashback", "visionNoise", "telop", "pause", "transition", "insert",
     "exit", "exitDir", "se", "voice", "narrationVoice", "noLipSync", "subtitleMode", "subtitleStyle", "hideCharacters", "hideBubble", "continueBubble", "bubbleMaxChars", "speakerAnchor",
     "disableAutoBubbleSplit", "telopSize", "telopX", "telopY", "start", "end", "sentences",
-    "impactText", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
+    "impactText", "impactLines", "zoomPunch", "quoteFreeze", "stampRain", "typingFlood", "sparkleBurst",
     "irisOut", "effectSettings", "audioFx", "chorus", "closing", "manualPos", "zoomTarget", "focusSpeaker", "manualCameraFrame", "cameraTransition",
     "sparklePos",
 }
@@ -1231,6 +1291,22 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
         elif path == "/api/voicevox/speakers":
             self._send_json(_load_voicevox_speakers())
 
+        elif path == "/api/voice-profiles":
+            self._send_json(make_story_audio.load_voice_profiles())
+
+        elif path == "/api/voice-profile-defaults":
+            base_params = {
+                key: make_story_audio.BASE_TTS_CONFIG[key]
+                for key in (
+                    "speedScale", "pitchScale", "intonationScale",
+                    "volumeScale", "prePhonemeLength", "postPhonemeLength",
+                )
+            }
+            self._send_json({
+                "baseParams": base_params,
+                "profiles": make_story_audio.DEFAULT_VOICE_PROFILES,
+            })
+
         elif path.startswith("/img/"):
             rel = path[len("/img/"):]
             safe = _safe_path(VIDEO_PUBLIC_DIR, rel)
@@ -1306,6 +1382,17 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 self._send_error_json(400, str(e))
             except Exception as e:
                 self._send_error_json(500, str(e))
+        elif path == "/api/voice-profiles":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                _save_voice_profiles(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
         elif path == "/api/mobs/upload-image":
             # 画像アップロード（multipartは標準ライブラリのみ方針だと煩雑なため、
             # base64 dataURLをJSONで受け取る簡易方式にする）。
@@ -1316,6 +1403,7 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 filename = _safe_image_filename(data.get("filename"), "mob_image")
                 mobs_dir = os.path.join(VIDEO_PUBLIC_DIR, "mobs")
                 _save_base64_image(mobs_dir, filename, data.get("dataUrl", ""))
+                _save_base64_image(MOBS_ASSETS_DIR, filename, data.get("dataUrl", ""))
                 self._send_json({"ok": True, "path": f"mobs/{filename}"})
             except (json.JSONDecodeError, ValueError, binascii.Error) as e:
                 self._send_error_json(400, str(e))

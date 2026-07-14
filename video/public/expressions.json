@@ -94,9 +94,10 @@
       "arm": "normal",
       "eye": "surprise",
       "mouth_close": "close",
-      "mouth_half": "mufu",
+      "mouth_half": "tri",
       "mouth_open": "naa",
-      "fx": []
+      "fx": [],
+      "holdAs": "angry"
     },
     "question": {
       "brow": "up",
@@ -109,6 +110,20 @@
       "mouth_half": "nhe",
       "mouth_open": "o",
       "fx": null
+    },
+    "cry": {
+      "brow": "worry2",
+      "cheek": "hoppe_red",
+      "shadow": "kageri",
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "nagomi",
+      "mouth_close": "nn",
+      "mouth_half": "tri",
+      "mouth_open": "naa",
+      "fx": [
+        "tears"
+      ]
     }
   },
   "metan": {
@@ -190,6 +205,17 @@
       "fx": null
     },
     "question": {
+      "brow": "futo_gokigen",
+      "cheek": "normal2",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "open",
+      "mouth_close": "close",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": null
+    },
+    "cry": {
       "brow": "futo_gokigen",
       "cheek": "normal2",
       "shadow": null,

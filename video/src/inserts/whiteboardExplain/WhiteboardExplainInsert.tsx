@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { normalizeWhiteboardExplainConfig } from './whiteboardExplainDefaults';
 import { getStepFrameRanges, getWhiteboardExplainLayout, Rect } from './whiteboardExplainLayout';
-import { fitConclusionSegments, fitText } from './whiteboardExplainValidation';
+import { parseConclusionSegments } from './whiteboardExplainValidation';
 import { resolveCharacterImage, resolveIconImage, toStaticFile } from './whiteboardExplainAssets';
 import { WhiteboardDoodleIcon } from './WhiteboardDoodleIcon';
 import type { WhiteboardExplainInsertProps, WhiteboardExplainSection } from './whiteboardExplainTypes';
@@ -219,8 +219,8 @@ const SectionBlock: React.FC<{
   markerColor?: string;
 }> = ({ section, index, rect, fontFamily, headingColor, bodyColor, accentColor, iconImage, widthScale, heightScale, sectionHeadingFontSize, sectionBodyFontSize, underlineProgress = 1, highlighted = false, markerColor = '#f6db45' }) => {
   const [iconFailed, setIconFailed] = useState(false);
-  const heading = fitText(section.heading, 14);
-  const bullets = section.bullets.slice(0, 3).map((bullet) => fitText(bullet, 16));
+  const heading = section.heading;
+  const bullets = section.bullets.slice(0, 3);
   const headingFont = Math.max(22, sectionHeadingFontSize ?? rect.width * 0.075);
   const bodyFont = Math.max(20, sectionBodyFontSize ?? rect.width * 0.066);
   const iconSize = Math.max(24, (section.iconSize ?? 120) * widthScale);
@@ -288,7 +288,7 @@ const SectionBlock: React.FC<{
         }}
       >
         {bullets.map((bullet, bulletIndex) => (
-          <div key={bulletIndex}>・{bullet}</div>
+          <div key={bulletIndex} style={{ paddingLeft: '1em', textIndent: '-1em' }}>・{bullet}</div>
         ))}
       </div>
 
@@ -502,7 +502,7 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
         }}
       >
         <BoardText rect={layout.title} fontSize={titleFontSize} color={normalized.style.titleColor} fontFamily={fontFamily} align="center" weight={700}>
-          {fitText(normalized.title, 18)}
+          {normalized.title}
         </BoardText>
         {handwritingLine({ x: layout.title.x + 90, y: layout.title.y + 92 * (actualHeight / 1080), width: layout.title.width - 180, color: normalized.style.accentColor, progress: underlineDrawEnabled ? titleLineProgress : 1, variant: 0 })}
       </div>
@@ -517,7 +517,7 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
         }}
       >
         <BoardText rect={layout.theme} fontSize={themeFontSize} color={normalized.style.themeColor} fontFamily={fontFamily} align="center" weight={600}>
-          {fitText(normalized.theme, 30)}
+          {normalized.theme}
         </BoardText>
         {handwritingLine({ x: layout.theme.x - 25, y: layout.theme.y + 67 * (actualHeight / 1080), width: layout.theme.width + 50, color: normalized.style.accentColor, strokeWidth: 6, progress: underlineDrawEnabled ? themeLineProgress : 1, variant: 1 })}
       </div>
@@ -686,7 +686,7 @@ export const WhiteboardExplainInsert: React.FC<WhiteboardExplainInsertProps> = (
             whiteSpace: 'pre-wrap',
           }}
         >
-          {fitConclusionSegments(normalized.conclusion, 40).map((segment, segmentIndex) =>
+          {parseConclusionSegments(normalized.conclusion).map((segment, segmentIndex) =>
             segment.highlighted ? (
               <span
                 key={segmentIndex}

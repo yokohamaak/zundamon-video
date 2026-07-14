@@ -1,4 +1,24 @@
 {
+  "おじいさんずんだもん": {
+    "scale": 1,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.95
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/おじいさんずんだもん_normal_closed.png",
+        "open": "mobs/おじいさんずんだもん_normal_open.png"
+      },
+      "agitated": {
+        "closed": "mobs/おじいさんずんだもん_agitated_closed.png",
+        "open": "mobs/おじいさんずんだもん_agitated_open.png"
+      }
+    },
+    "voice": {
+      "speaker": 3
+    }
+  },
   "営業": {
     "scale": 0.85,
     "anchor": {
@@ -39,6 +59,46 @@
       "speaker": 73
     }
   },
+  "女性": {
+    "scale": 1,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.95
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/女性_normal_closed.png",
+        "open": "mobs/女性_normal_open.png"
+      },
+      "agitated": {
+        "closed": "mobs/女性_agitated_closed.png",
+        "open": "mobs/女性_agitated_open.png"
+      }
+    },
+    "voice": {
+      "speaker": 8
+    }
+  },
+  "豆山": {
+    "scale": 1,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.95
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/豆山_normal_closed.png",
+        "open": "mobs/豆山_normal_open.png"
+      },
+      "agitated": {
+        "closed": "mobs/豆山_agitated_closed.png",
+        "open": "mobs/豆山_agitated_open.png"
+      }
+    },
+    "voice": {
+      "speaker": 70
+    }
+  },
   "部長": {
     "scale": 0.62,
     "anchor": {
@@ -57,6 +117,26 @@
     },
     "voice": {
       "speaker": 13
+    }
+  },
+  "おじいさん": {
+    "scale": 1,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.95
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/おじいさん_normal_closed.png",
+        "open": "mobs/おじいさん_normal_open.png"
+      },
+      "agitated": {
+        "closed": "mobs/おじいさん_agitated_closed.png",
+        "open": "mobs/おじいさん_agitated_open.png"
+      }
+    },
+    "voice": {
+      "speaker": 42
     }
   }
 }
