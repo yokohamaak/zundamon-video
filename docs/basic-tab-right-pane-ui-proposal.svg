@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
+  <title id="title">基本タブ右ペイン UI 改善案</title>
+  <desc id="desc">右ペインの基本タブを、よく使う項目、セクション目次、目的別カード、折りたたみ高度設定に分けたUI提案。</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.26"/>
+    </filter>
+    <linearGradient id="appBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111522"/>
+      <stop offset="0.55" stop-color="#0d1018"/>
+      <stop offset="1" stop-color="#161826"/>
+    </linearGradient>
+    <linearGradient id="previewBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c2434"/>
+      <stop offset="1" stop-color="#10131d"/>
+    </linearGradient>
+    <style>
+      .bg { fill: url(#appBg); }
+      .panel { fill: #181c28; stroke: #2d3346; stroke-width: 1; }
+      .panel2 { fill: #202638; stroke: #343b50; stroke-width: 1; }
+      .soft { fill: #151925; stroke: #2a3042; stroke-width: 1; }
+      .input { fill: #252b3d; stroke: #3a4259; stroke-width: 1; }
+      .inputActive { fill: #26314a; stroke: #6b91f1; stroke-width: 1.5; }
+      .muted { fill: #8e96ad; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .text { fill: #f2f4fa; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .small { font-size: 14px; }
+      .xs { font-size: 12px; }
+      .label { font-size: 12px; font-weight: 700; letter-spacing: .04em; fill: #a7afc4; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .heading { font-size: 18px; font-weight: 800; fill: #f4f6fb; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .title { font-size: 24px; font-weight: 850; fill: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .note { font-size: 13px; line-height: 1.5; fill: #aeb6c9; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .chipText { font-size: 12px; font-weight: 700; fill: #dce5ff; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .tabText { font-size: 14px; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+      .mono { font-size: 12px; fill: #aeb6c9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1440" height="980"/>
+
+  <text x="70" y="74" class="title">右ペイン「基本」タブ改善案</text>
+  <text x="70" y="104" class="note">原因は「同じ見た目」だけでなく、頻度・目的・影響範囲が違う設定が同じ縦リストに混在していること。まず探す場所を固定する。</text>
+
+  <g transform="translate(70 150)">
+    <rect x="0" y="0" width="470" height="760" rx="14" class="panel" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="470" height="54" rx="14" fill="#141824"/>
+    <rect x="0" y="42" width="470" height="12" fill="#141824"/>
+    <text x="22" y="34" class="text" style="font-size:16px;font-weight:800;">現状の見え方</text>
+    <text x="340" y="34" class="muted small">360-440px</text>
+
+    <g transform="translate(22 76)">
+      <rect x="0" y="0" width="426" height="44" rx="8" class="soft"/>
+      <text x="16" y="27" class="label">表示種別</text>
+      <rect x="0" y="60" width="426" height="44" rx="8" class="soft"/>
+      <text x="16" y="87" class="label">セリフ</text>
+      <rect x="0" y="120" width="426" height="86" rx="8" class="soft"/>
+      <text x="16" y="147" class="label">話者 / ナレーション / セリフ</text>
+      <rect x="0" y="222" width="426" height="142" rx="8" class="soft"/>
+      <text x="16" y="249" class="label">吹き出し・字幕</text>
+      <rect x="0" y="380" width="426" height="196" rx="8" class="soft"/>
+      <text x="16" y="407" class="label">キャラクター</text>
+      <rect x="0" y="592" width="426" height="116" rx="8" class="soft"/>
+      <text x="16" y="619" class="label">演出</text>
+
+      <g opacity=".85">
+        <line x1="18" y1="30" x2="400" y2="30" stroke="#31384c"/>
+        <line x1="18" y1="90" x2="400" y2="90" stroke="#31384c"/>
+        <line x1="18" y1="150" x2="400" y2="150" stroke="#31384c"/>
+        <line x1="18" y1="176" x2="400" y2="176" stroke="#31384c"/>
+        <line x1="18" y1="252" x2="400" y2="252" stroke="#31384c"/>
+        <line x1="18" y1="282" x2="400" y2="282" stroke="#31384c"/>
+        <line x1="18" y1="312" x2="400" y2="312" stroke="#31384c"/>
+        <line x1="18" y1="410" x2="400" y2="410" stroke="#31384c"/>
+        <line x1="18" y1="442" x2="400" y2="442" stroke="#31384c"/>
+        <line x1="18" y1="474" x2="400" y2="474" stroke="#31384c"/>
+        <line x1="18" y1="506" x2="400" y2="506" stroke="#31384c"/>
+        <line x1="18" y1="538" x2="400" y2="538" stroke="#31384c"/>
+        <line x1="18" y1="622" x2="400" y2="622" stroke="#31384c"/>
+        <line x1="18" y1="654" x2="400" y2="654" stroke="#31384c"/>
+      </g>
+    </g>
+
+    <g transform="translate(32 700)">
+      <rect x="0" y="0" width="406" height="42" rx="8" fill="#301d24" stroke="#6f3348"/>
+      <text x="16" y="26" class="text small" style="fill:#ffd7e1;font-weight:700;">問題: 全部が「同じ重さ」に見えて、探す前に読む必要がある</text>
+    </g>
+  </g>
+
+  <g transform="translate(600 150)">
+    <rect x="0" y="0" width="500" height="760" rx="14" class="panel" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="500" height="54" rx="14" fill="#141824"/>
+    <rect x="0" y="42" width="500" height="12" fill="#141824"/>
+    <text x="22" y="34" class="text" style="font-size:16px;font-weight:800;">提案: 頻度別 + 目的別カード</text>
+
+    <g transform="translate(22 70)">
+      <rect x="0" y="0" width="456" height="44" rx="9" fill="#101522" stroke="#30384c"/>
+      <rect x="4" y="4" width="220" height="36" rx="7" fill="#5b8dee"/>
+      <text x="94" y="27" fill="#fff" class="tabText" text-anchor="middle">基本</text>
+      <text x="340" y="27" fill="#9aa3b8" class="tabText" text-anchor="middle">配置</text>
+    </g>
+
+    <g transform="translate(22 130)">
+      <rect x="0" y="0" width="456" height="84" rx="10" fill="#202a42" stroke="#557dde"/>
+      <text x="16" y="28" class="heading">この行の要点</text>
+      <rect x="16" y="44" width="60" height="24" rx="12" fill="#315fce"/>
+      <text x="46" y="61" class="chipText" text-anchor="middle">字幕</text>
+      <rect x="84" y="44" width="72" height="24" rx="12" fill="#2c754f"/>
+      <text x="120" y="61" class="chipText" text-anchor="middle">happy</text>
+      <rect x="164" y="44" width="82" height="24" rx="12" fill="#7a4cc8"/>
+      <text x="205" y="61" class="chipText" text-anchor="middle">シェイク</text>
+      <rect x="254" y="44" width="80" height="24" rx="12" fill="#7d6230"/>
+      <text x="294" y="61" class="chipText" text-anchor="middle">間 0.4s</text>
+      <text x="352" y="61" class="muted xs">効いている設定だけ表示</text>
+    </g>
+
+    <g transform="translate(22 230)">
+      <rect x="0" y="0" width="456" height="50" rx="10" fill="#151a27" stroke="#2e3548"/>
+      <rect x="10" y="10" width="74" height="30" rx="15" fill="#5b8dee"/>
+      <text x="47" y="30" fill="#fff" class="chipText" text-anchor="middle">本文</text>
+      <rect x="92" y="10" width="74" height="30" rx="15" fill="#252b3d"/>
+      <text x="129" y="30" class="chipText" text-anchor="middle" fill="#cbd3e6">表示</text>
+      <rect x="174" y="10" width="74" height="30" rx="15" fill="#252b3d"/>
+      <text x="211" y="30" class="chipText" text-anchor="middle" fill="#cbd3e6">キャラ</text>
+      <rect x="256" y="10" width="74" height="30" rx="15" fill="#252b3d"/>
+      <text x="293" y="30" class="chipText" text-anchor="middle" fill="#cbd3e6">演出</text>
+      <rect x="338" y="10" width="52" height="30" rx="15" fill="#252b3d"/>
+      <text x="364" y="30" class="chipText" text-anchor="middle" fill="#cbd3e6">音</text>
+      <rect x="398" y="10" width="48" height="30" rx="15" fill="#252b3d"/>
+      <text x="422" y="30" class="chipText" text-anchor="middle" fill="#cbd3e6">SE</text>
+    </g>
+
+    <g transform="translate(22 300)">
+      <rect x="0" y="0" width="456" height="178" rx="12" class="panel2"/>
+      <rect x="0" y="0" width="5" height="178" rx="2.5" fill="#5b8dee"/>
+      <text x="18" y="28" class="heading">本文</text>
+      <text x="398" y="28" class="muted xs">最重要</text>
+      <text x="18" y="56" class="label">話者</text>
+      <rect x="18" y="66" width="160" height="38" rx="6" class="inputActive"/>
+      <text x="34" y="90" class="text small">ずんだもん</text>
+      <text x="198" y="56" class="label">表示種別</text>
+      <rect x="198" y="66" width="240" height="38" rx="6" class="input"/>
+      <text x="214" y="90" class="text small">通常表示</text>
+      <text x="18" y="126" class="label">セリフ</text>
+      <rect x="18" y="136" width="420" height="28" rx="6" class="input"/>
+      <text x="34" y="155" class="muted small">このセリフの本文を編集...</text>
+    </g>
+
+    <g transform="translate(22 494)">
+      <rect x="0" y="0" width="456" height="112" rx="12" class="panel2"/>
+      <rect x="0" y="0" width="5" height="112" rx="2.5" fill="#2fbd7f"/>
+      <text x="18" y="28" class="heading">表示</text>
+      <rect x="340" y="12" width="98" height="24" rx="12" fill="#253b30"/>
+      <text x="389" y="29" class="chipText" text-anchor="middle" fill="#bff5d8">変更あり</text>
+      <rect x="18" y="46" width="200" height="38" rx="6" class="input"/>
+      <text x="34" y="70" class="text small">吹き出し / 字幕</text>
+      <rect x="232" y="46" width="206" height="38" rx="6" class="input"/>
+      <text x="248" y="70" class="text small">連結・自動分割</text>
+      <text x="18" y="99" class="muted xs">字幕モードなど、見た目に直結する設定だけを前面へ</text>
+    </g>
+
+    <g transform="translate(22 622)">
+      <rect x="0" y="0" width="456" height="52" rx="10" fill="#171c2a" stroke="#343b50"/>
+      <rect x="0" y="0" width="5" height="52" rx="2.5" fill="#f0a34d"/>
+      <text x="18" y="32" class="text small" style="font-weight:800;">キャラクター</text>
+      <text x="142" y="32" class="muted small">シーン / 表情 / ポーズ / 登場退場</text>
+      <text x="410" y="32" class="muted small">開く</text>
+    </g>
+
+    <g transform="translate(22 686)">
+      <rect x="0" y="0" width="456" height="52" rx="10" fill="#171c2a" stroke="#343b50"/>
+      <rect x="0" y="0" width="5" height="52" rx="2.5" fill="#a16cf0"/>
+      <text x="18" y="32" class="text small" style="font-weight:800;">演出</text>
+      <text x="142" y="32" class="muted small">シェイク / カメラ / テロップ / 効果</text>
+      <rect x="354" y="14" width="56" height="24" rx="12" fill="#3d2f5c"/>
+      <text x="382" y="31" class="chipText" text-anchor="middle">2件</text>
+    </g>
+  </g>
+
+  <g transform="translate(1158 168)">
+    <text x="0" y="0" class="heading">設計ポイント</text>
+
+    <g transform="translate(0 34)">
+      <circle cx="10" cy="10" r="10" fill="#5b8dee"/>
+      <text x="30" y="15" class="text small" style="font-weight:800;">1. 最上部に「効いている設定」</text>
+      <text x="30" y="40" class="note">探す前に、今この行で何が特殊か分かる。</text>
+    </g>
+
+    <g transform="translate(0 118)">
+      <circle cx="10" cy="10" r="10" fill="#2fbd7f"/>
+      <text x="30" y="15" class="text small" style="font-weight:800;">2. ミニ目次でジャンプ</text>
+      <text x="30" y="40" class="note">長い縦スクロールでも「音声」「演出」へ即移動。</text>
+    </g>
+
+    <g transform="translate(0 202)">
+      <circle cx="10" cy="10" r="10" fill="#f0a34d"/>
+      <text x="30" y="15" class="text small" style="font-weight:800;">3. セクションに色と形を付ける</text>
+      <text x="30" y="40" class="note">フォーム部品は同じでも、探す単位が見える。</text>
+    </g>
+
+    <g transform="translate(0 286)">
+      <circle cx="10" cy="10" r="10" fill="#a16cf0"/>
+      <text x="30" y="15" class="text small" style="font-weight:800;">4. 高度設定は折りたたむ</text>
+      <text x="30" y="40" class="note">普段触らない項目を隠して、必要な時だけ開く。</text>
+    </g>
+
+    <g transform="translate(0 404)">
+      <rect x="0" y="0" width="214" height="136" rx="12" fill="#141824" stroke="#333b50"/>
+      <text x="18" y="30" class="text small" style="font-weight:800;">実装するなら最小差分</text>
+      <text x="18" y="58" class="note">既存フォームIDは維持。</text>
+      <text x="18" y="82" class="note">HTMLの並びとCSSだけで</text>
+      <text x="18" y="106" class="note">まず試せる。</text>
+    </g>
+  </g>
+
+  <g transform="translate(70 930)">
+    <text class="mono">docs/basic-tab-right-pane-ui-proposal.svg</text>
+  </g>
+</svg>

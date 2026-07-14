@@ -729,6 +729,93 @@
     margin-top: 8px; margin-bottom: 4px;
   }
   .section-divider:first-child { border-top: none; margin-top: 0; }
+  .basic-assist {
+    position: sticky; top: 0; z-index: 5;
+    margin: -12px -14px 12px; padding: 10px 14px 12px;
+    background: linear-gradient(180deg, rgba(24,28,40,.98), rgba(24,28,40,.94));
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+  }
+  .basic-summary {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 9px;
+    max-height: 56px; overflow: auto;
+  }
+  .basic-summary-chip {
+    display: inline-flex; align-items: center; min-height: 24px; max-width: 100%;
+    border-radius: 999px; padding: 3px 9px;
+    background: rgba(91,141,238,.16); border: 1px solid rgba(91,141,238,.38);
+    color: #dce6ff; font-size: 11px; font-weight: 700; line-height: 1.3;
+  }
+  .basic-summary-chip.muted {
+    color: var(--text2); background: var(--surface2); border-color: var(--border); font-weight: 600;
+  }
+  .basic-section-nav {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px; margin-bottom: 9px;
+  }
+  .basic-nav-btn {
+    min-width: 0; height: 30px; padding: 0 8px;
+    border: 1px solid var(--border); border-radius: 7px;
+    background: var(--surface2); color: var(--text2);
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  }
+  .basic-nav-btn:hover { border-color: var(--accent); color: var(--text); }
+  .basic-nav-btn.active { color: var(--text); border-color: rgba(91,141,238,.6); background: rgba(91,141,238,.12); }
+  .basic-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .basic-nav-count {
+    min-width: 18px; height: 18px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.08); color: var(--text2); font-size: 10px;
+  }
+  .basic-nav-btn.active .basic-nav-count { background: rgba(91,141,238,.32); color: #eaf0ff; }
+  .basic-search-row { display: flex; align-items: center; gap: 6px; }
+  .basic-search-input {
+    flex: 1; min-width: 0; height: 32px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 7px; color: var(--text); padding: 0 10px;
+    font-size: 12px;
+  }
+  .basic-search-input:focus { outline: none; border-color: var(--accent); }
+  .basic-clear-btn {
+    width: 32px; height: 32px; border-radius: 7px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text2); cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .basic-clear-btn:hover { border-color: var(--accent); color: var(--text); }
+  #tabBasic > .section-divider.basic-section-header {
+    position: sticky; top: 164px; z-index: 4;
+    display: grid; grid-template-columns: 4px minmax(0, 1fr) auto auto;
+    gap: 8px; align-items: center;
+    min-height: 38px; padding: 8px 10px; margin: 14px 0 8px;
+    border: 1px solid var(--border); border-radius: 9px;
+    background: rgba(32,38,56,.96);
+    color: var(--text); cursor: pointer;
+    text-transform: none; letter-spacing: 0; font-size: 13px;
+  }
+  .basic-section-accent { width: 4px; height: 20px; border-radius: 999px; background: var(--accent); }
+  .basic-section-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
+  .basic-section-count {
+    min-width: 20px; height: 20px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(91,141,238,.2); color: #dce6ff; font-size: 10px; font-weight: 800;
+  }
+  .basic-section-count:empty { display: none; }
+  .basic-section-chevron { color: var(--text2); font-size: 12px; }
+  .basic-section-header.collapsed .basic-section-chevron { transform: rotate(-90deg); }
+  .field-row.basic-row-active > .field-label::before {
+    content: ""; display: inline-block; width: 6px; height: 6px;
+    border-radius: 999px; margin-right: 6px; vertical-align: 1px;
+    background: var(--accent);
+  }
+  .basic-section-collapsed,
+  .basic-filter-hidden { display: none !important; }
+  .basic-search-empty {
+    display: none; padding: 14px 10px; margin: 8px 0 12px;
+    border: 1px dashed var(--border); border-radius: 9px;
+    color: var(--text2); font-size: 12px; text-align: center;
+  }
+  #tabBasic.basic-search-empty-visible .basic-search-empty { display: block; }
   /* 演出トグルはチップ状にして、オンのものが一目で分かるようにする */
   .fx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 6px; }
   .fx-grid .toggle-row {
@@ -1055,6 +1142,19 @@
       margin-bottom: 16px;
     }
     #tabBasic .field-help:not(.warn) { display: block; }
+    .basic-assist {
+      position: static;
+      margin: -16px -18px 16px;
+      padding: 12px 18px;
+    }
+    .basic-section-nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    #tabBasic > .section-divider.basic-section-header {
+      position: static;
+      min-height: 44px;
+      font-size: calc(15px * var(--m-font-scale, 1));
+    }
     .field-label {
       font-size: calc(13px * var(--m-font-scale, 1));
     }
@@ -1469,6 +1569,15 @@
       <div class="tab-content">
         <!-- 基本タブ -->
         <div class="tab-panel active" id="tabBasic">
+          <div class="basic-assist" id="basicAssist">
+            <div class="basic-summary" id="basicSummary" aria-label="この行で効いている設定"></div>
+            <div class="basic-section-nav" id="basicSectionNav" aria-label="基本タブ内のセクション移動"></div>
+            <div class="basic-search-row">
+              <input type="search" class="basic-search-input" id="fBasicSearch" placeholder="設定を検索（例: テロップ / 口パク / 表情）" autocomplete="off">
+              <button type="button" class="basic-clear-btn" id="btnBasicSearchClear" title="検索をクリア">×</button>
+            </div>
+          </div>
+          <div class="basic-search-empty" id="basicSearchEmpty">該当する設定がありません</div>
           <div class="section-divider">表示種別</div>
           <div class="field-row">
             <label class="field-label">表示種別</label>
@@ -7249,6 +7358,246 @@ function turnIndexAtTime(t) {
 // ============================================================
 // 詳細ペイン
 // ============================================================
+const BASIC_SECTION_STORAGE_KEY = "storyEditor.basicTabCollapsed";
+const BASIC_SECTION_COLORS = ["#5b8dee", "#2fbd7f", "#f0a34d", "#a16cf0", "#f06f8f", "#55c2d5", "#d8a657"];
+const BASIC_ACTIVE_EXCLUDE_IDS = new Set([
+  "fSpeaker", "fText", "fScene", "fDisplayType", "fInsertKind",
+  "fSubtitleTextColor", "fSubtitleTextColorHex", "fSubtitleBoxBorderColor", "fSubtitleBoxBorderColorHex",
+  "fSubtitleBoxBorderWidth", "fSubtitleFontSize"
+]);
+const BASIC_ACTIVE_EXCLUDE_ID_RE = /^(fWSecVisible|fWArrowVisible|fWConclusionVisible|fWConclusionArrowVisible|fWSectionPop|fWArrowPop|fWConclusionPop|fWUnderlineDraw|fWConclusionImpact)/;
+
+function loadBasicCollapsedState() {
+  try {
+    return JSON.parse(localStorage.getItem(BASIC_SECTION_STORAGE_KEY) || "{}") || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveBasicCollapsedState(state) {
+  try {
+    localStorage.setItem(BASIC_SECTION_STORAGE_KEY, JSON.stringify(state || {}));
+  } catch (_) {}
+}
+
+function normalizeBasicSearchText(text) {
+  return String(text || "").toLowerCase().replace(/\s+/g, "");
+}
+
+function basicSectionKeyFromTitle(title, idx) {
+  const t = String(title || "").trim();
+  if (t.includes("表示種別")) return "display";
+  if (t.includes("セリフ")) return "dialogue";
+  if (t.includes("吹き出し") || t.includes("字幕")) return "bubble";
+  if (t.includes("キャラクター")) return "character";
+  if (t.includes("演出")) return "effects";
+  if (t.includes("音声")) return "voice";
+  if (t.includes("SE")) return "se";
+  return "section-" + idx;
+}
+
+function ensureBasicSectionHeader(header, idx) {
+  if (!header || header.dataset.basicEnhanced === "1") return;
+  const title = header.textContent.trim();
+  const key = basicSectionKeyFromTitle(title, idx);
+  header.dataset.basicEnhanced = "1";
+  header.dataset.basicSectionKey = key;
+  header.dataset.basicSectionTitle = title;
+  header.classList.add("basic-section-header");
+  header.setAttribute("role", "button");
+  header.setAttribute("tabindex", "0");
+  header.innerHTML = "";
+
+  const accent = document.createElement("span");
+  accent.className = "basic-section-accent";
+  accent.style.background = BASIC_SECTION_COLORS[idx % BASIC_SECTION_COLORS.length];
+  const titleEl = document.createElement("span");
+  titleEl.className = "basic-section-title";
+  titleEl.textContent = title;
+  const countEl = document.createElement("span");
+  countEl.className = "basic-section-count";
+  const chevron = document.createElement("span");
+  chevron.className = "basic-section-chevron";
+  chevron.textContent = "▼";
+
+  header.appendChild(accent);
+  header.appendChild(titleEl);
+  header.appendChild(countEl);
+  header.appendChild(chevron);
+  header.addEventListener("click", () => toggleBasicSection(key));
+  header.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleBasicSection(key);
+    }
+  });
+}
+
+function getBasicSections() {
+  const panel = document.getElementById("tabBasic");
+  if (!panel) return [];
+  const children = Array.from(panel.children);
+  const headers = children.filter((el) => el.classList && el.classList.contains("section-divider"));
+  headers.forEach((header, idx) => ensureBasicSectionHeader(header, idx));
+  return headers.map((header, idx) => {
+    const items = [];
+    let node = header.nextElementSibling;
+    while (node && !(node.classList && node.classList.contains("section-divider"))) {
+      items.push(node);
+      node = node.nextElementSibling;
+    }
+    return {
+      key: header.dataset.basicSectionKey || basicSectionKeyFromTitle(header.textContent, idx),
+      title: header.dataset.basicSectionTitle || header.textContent.trim(),
+      header,
+      items,
+    };
+  });
+}
+
+function toggleBasicSection(key, forceOpen = false) {
+  const state = loadBasicCollapsedState();
+  state[key] = forceOpen ? false : !state[key];
+  saveBasicCollapsedState(state);
+  updateBasicPanelAssist();
+}
+
+function getBasicRowSearchText(el) {
+  const parts = [el.textContent, el.title, el.id, el.dataset && el.dataset.basicSearch];
+  el.querySelectorAll("input, select, textarea, button").forEach((input) => {
+    parts.push(input.id, input.name, input.placeholder, input.value);
+    if (input.labels) input.labels.forEach((label) => parts.push(label.textContent));
+  });
+  return normalizeBasicSearchText(parts.join(" "));
+}
+
+function isBasicInputActive(input) {
+  if (!input || BASIC_ACTIVE_EXCLUDE_IDS.has(input.id) || BASIC_ACTIVE_EXCLUDE_ID_RE.test(input.id || "")) return false;
+  if (input.type === "checkbox") return !!input.checked;
+  if (input.type === "radio") return !!input.checked;
+  if (input.tagName === "SELECT") return !!input.value;
+  if (input.type === "number") return input.value !== "" && input.dataset.explicit !== "";
+  return String(input.value || "").trim() !== "";
+}
+
+function isBasicRowActive(row) {
+  if (!row) return false;
+  return Array.from(row.querySelectorAll("input, select, textarea")).some(isBasicInputActive);
+}
+
+function collectBasicSummaryChips(turn) {
+  if (!turn) return [{ text: "ターン未選択", muted: true }];
+  const chips = [];
+  const eff = selectedIdx >= 0 ? effectiveDisplayTypeAt(selectedIdx) : { id: "", inherited: false };
+  if (eff.id) {
+    chips.push(displayTypeDefOf(eff.id).label + (eff.inherited ? " 継続" : ""));
+  }
+  if (isNarrationTurnData(turn)) chips.push("ナレーション");
+  if (turn.hideBubble) chips.push("吹き出しOFF");
+  else if (isSubtitleTurnData(turn)) chips.push("字幕");
+  if (turn.expression) chips.push("表情 " + turn.expression);
+  if (turn.pose) chips.push("ポーズ " + turn.pose);
+  if (turn.enter && turn.enter.length) chips.push("登場 " + turn.enter.length);
+  if (turn.exit && turn.exit.length) chips.push("退場 " + turn.exit.length);
+  if (turn.shake) chips.push("シェイク");
+  if (turn.flashback) chips.push("回想");
+  if (turn.visionNoise) chips.push("ノイズ");
+  const camera = cameraEffectsSummary(turn);
+  if (camera.length) chips.push(camera.join(" / "));
+  if (turn.telop) chips.push("テロップ");
+  const effectLabels = [];
+  if (turn.impactLines || turn.impactText) effectLabels.push("集中線");
+  if (turn.zoomPunch) effectLabels.push("ズームパンチ");
+  if (turn.quoteFreeze) effectLabels.push("引用止め");
+  if (turn.typingFlood) effectLabels.push("通知洪水");
+  if (turn.sparkleBurst) effectLabels.push("キラッ");
+  if (turn.irisOut) effectLabels.push("アイリスアウト");
+  if (turn.stampRain) effectLabels.push("スタンプ雨");
+  if (effectLabels.length) chips.push(effectLabels.join(" / "));
+  const preset = voicePresetKey(turn);
+  if (preset) chips.push(document.querySelector(`#fVoicePreset option[value="${preset}"]`)?.textContent || "声プリセット");
+  else if (turn.voice) chips.push("声 上書き");
+  if (turn.pause != null) chips.push("間 " + turn.pause + "s");
+  if (turn.noLipSync) chips.push("口パクOFF");
+  if (turn.se && turn.se.length) chips.push("SE " + turn.se.length);
+  return chips.length ? chips.map((text) => ({ text })) : [{ text: "通常設定", muted: true }];
+}
+
+function renderBasicSummary(turn) {
+  const wrap = document.getElementById("basicSummary");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  for (const chip of collectBasicSummaryChips(turn).slice(0, 8)) {
+    const el = document.createElement("span");
+    el.className = "basic-summary-chip" + (chip.muted ? " muted" : "");
+    el.textContent = chip.text;
+    wrap.appendChild(el);
+  }
+}
+
+function renderBasicSectionNav(sections) {
+  const nav = document.getElementById("basicSectionNav");
+  if (!nav) return;
+  nav.innerHTML = "";
+  for (const sec of sections) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "basic-nav-btn" + (sec.activeCount ? " active" : "");
+    btn.dataset.sectionKey = sec.key;
+    const label = document.createElement("span");
+    label.className = "basic-nav-label";
+    label.textContent = sec.title.replace("（任意）", "");
+    const count = document.createElement("span");
+    count.className = "basic-nav-count";
+    count.textContent = sec.activeCount ? String(sec.activeCount) : "";
+    btn.appendChild(label);
+    btn.appendChild(count);
+    btn.addEventListener("click", () => {
+      toggleBasicSection(sec.key, true);
+      sec.header.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    nav.appendChild(btn);
+  }
+}
+
+function updateBasicPanelAssist() {
+  const panel = document.getElementById("tabBasic");
+  if (!panel) return;
+  const turn = selectedIdx >= 0 && storyData && storyData.script ? storyData.script[selectedIdx] : null;
+  renderBasicSummary(turn);
+  const sections = getBasicSections();
+  const collapsed = loadBasicCollapsedState();
+  const searchInput = document.getElementById("fBasicSearch");
+  const query = normalizeBasicSearchText(searchInput ? searchInput.value : "");
+  let visibleMatches = 0;
+
+  for (const sec of sections) {
+    let sectionMatches = !query || normalizeBasicSearchText(sec.title).includes(query);
+    let activeCount = 0;
+    for (const item of sec.items) {
+      item.classList.remove("basic-section-collapsed", "basic-filter-hidden");
+      const rows = item.matches && item.matches(".field-row") ? [item] : Array.from(item.querySelectorAll(".field-row"));
+      for (const row of rows) {
+        row.classList.toggle("basic-row-active", isBasicRowActive(row));
+      }
+      activeCount += rows.filter(isBasicRowActive).length;
+      const match = !query || getBasicRowSearchText(item).includes(query);
+      if (query && !match) item.classList.add("basic-filter-hidden");
+      if (match) sectionMatches = true;
+      if (!query && collapsed[sec.key]) item.classList.add("basic-section-collapsed");
+    }
+    sec.activeCount = activeCount;
+    sec.header.classList.toggle("collapsed", !query && !!collapsed[sec.key]);
+    sec.header.classList.toggle("basic-filter-hidden", !!query && !sectionMatches);
+    const countEl = sec.header.querySelector(".basic-section-count");
+    if (countEl) countEl.textContent = activeCount ? String(activeCount) : "";
+    if (!query || sectionMatches) visibleMatches += 1;
+  }
+  panel.classList.toggle("basic-search-empty-visible", !!query && visibleMatches === 0);
+  renderBasicSectionNav(sections);
+}
+
 function renderDetail() {
   const emptyEl = document.getElementById("detailEmpty");
   const panelEl = document.getElementById("detailPanel");
@@ -7553,6 +7902,7 @@ function renderDisplayTypeUi() {
   }
 
   applyDisplayTypeVisibility(eff);
+  updateBasicPanelAssist();
 }
 
 // 「向きの効き方」「向き保持の解除」は、向きを指定した行でしか意味を持たない。
@@ -9062,6 +9412,7 @@ function collectInsert() {
     delete turn.insert;
     markDirty();
     renderList();
+    updateBasicPanelAssist();
     notifyPlayerUpdate();
     return;
   }
@@ -9261,6 +9612,7 @@ function collectInsert() {
   // セリフ空のターンのインサートは尺確保のため音声生成が必要（make_story_audioが最低表示秒を付与）。
   if (!(turn.text || "").trim()) markAudioDirty();
   renderList();
+  updateBasicPanelAssist();
   notifyPlayerUpdate();
 }
 
@@ -10404,6 +10756,16 @@ function setupEvents() {
     const text = help ? help.textContent.trim() : "";
     if (text && !row.title) row.title = text;
   });
+  const basicSearch = document.getElementById("fBasicSearch");
+  if (basicSearch) basicSearch.addEventListener("input", updateBasicPanelAssist);
+  const basicSearchClear = document.getElementById("btnBasicSearchClear");
+  if (basicSearchClear) {
+    basicSearchClear.addEventListener("click", () => {
+      if (basicSearch) basicSearch.value = "";
+      updateBasicPanelAssist();
+      if (basicSearch) basicSearch.focus();
+    });
+  }
   const voicePresetField = document.getElementById("fVoicePreset");
   if (voicePresetField) {
     voicePresetField.addEventListener("change", () => {
@@ -10608,6 +10970,7 @@ function setupEvents() {
     turn.se.push({ file: "" });
     markDirty();
     renderManualSe();
+    updateBasicPanelAssist();
   });
 
   // 台本生成タブ: プロンプト生成
@@ -11610,6 +11973,7 @@ function makeManualSeRow(idx, seItem) {
     if (t.se.length === 0) delete t.se;
     markDirty();
     renderManualSe();
+    updateBasicPanelAssist();
   });
   row.appendChild(delBtn);
   return row;
@@ -11638,6 +12002,7 @@ function collectManualSe() {
     delete turn.se;
   }
   markDirty();
+  updateBasicPanelAssist();
 }
 
 // ============================================================
