@@ -528,12 +528,12 @@
       </div>
       <div class="field-row">
         <label class="toggle-row">
-          <input type="checkbox" id="cameraPreviewToggle" checked>
-          <span>選択中カメラ枠をプレビュー</span>
+          <input type="checkbox" id="cameraPreviewToggle">
+          <span>カメラ枠プレビュー</span>
         </label>
         <label class="toggle-row" style="margin-top:6px">
           <input type="checkbox" id="focusPreviewToggle">
-          <span>＋ズームも重ねる</span>
+          <span>＋ズーム</span>
         </label>
       </div>
     </div>
@@ -681,6 +681,11 @@ const BUST_H = 445; // 820×780はほぼ正方形なので正方形枠で object
 const FULL_BOX_W = 445; // 全身の基準幅。render(StoryVideo.FULL_BOX_W)と同値にする。
 // 全身キャンバス寸法（assets/avatars/<char>/full/_box.json と一致）。キャラ別アスペクトで高さを出す。
 const FULL_CANVAS = { zundamon: { w: 783, h: 1473 }, metan: { w: 858, h: 1769 } };
+const V2_SLOT_PREVIEW_CHARACTERS = {
+  speakerLeft: 'metan',
+  speakerRight: 'zundamon',
+  center: 'zundamon',
+};
 function fullBoxSize(charId) {
   const c = FULL_CANVAS[charId];
   const h = c ? Math.round(FULL_BOX_W * (c.h / c.w)) : Math.round(FULL_BOX_W * 1.8);
@@ -1442,7 +1447,6 @@ function renderPreview() {
     frontEl.style.display = 'none';
   }
 
-  const scale = sc.scale != null ? sc.scale : 1.9;
   const frame = cameraFramePx(sc);
   const frameBox = document.getElementById('cameraFrameBox');
   frameBox.style.display = '';
@@ -1465,7 +1469,9 @@ function renderPreview() {
   for (const [name, coord] of Object.entries(layoutPoints)) {
     const ax = coord.x * STAGE_W;
     const ay = coord.y * STAGE_H;
-    const charId = anchorToChar[name];
+    const slot = v2 ? v2Slots(sc)[name] : null;
+    const charId = v2 ? V2_SLOT_PREVIEW_CHARACTERS[name] : anchorToChar[name];
+    const scale = v2 ? (slot?.scale ?? 1) : (sc.scale != null ? sc.scale : 1.9);
     const flip = coord.x < 0.5;
 
     // キャラコンテナ（中央(体の中心)をanchorに合わせる＝renderと一致）
@@ -1474,8 +1480,10 @@ function renderPreview() {
     container.style.position = 'absolute';
     container.style.left = ax + 'px';
     container.style.top = ay + 'px';
-    container.style.transform = `translate(-50%, -50%) scale(${scale})`;
-    container.style.transformOrigin = 'center center';
+    container.style.transform = v2
+      ? `translate(-50%, -100%) scale(${scale})`
+      : `translate(-50%, -50%) scale(${scale})`;
+    container.style.transformOrigin = v2 ? 'bottom center' : 'center center';
 
     const parts = document.createElement('div');
     parts.className = 'char-parts';
@@ -1554,45 +1562,47 @@ function renderPreview() {
     stage.appendChild(dotLabel);
   }
 
-  // ── モブ描画 ──
+  // ── モブ描画（旧sceneだけ） ──
   // StoryVideo と同じ配置: left=x*W, top=y*H, transform=translate(-50%,-100%), height=760*scale
   // z-index で主役より前面にするが、選択中モブは最前面
   // hidden=true のモブはステージに描画しない（ドラッグ対象からも外す）
-  const mobs = assets?.mobs ?? [];
-  const frontEl3 = document.getElementById('stageFront');
-  for (const mob of mobs) {
-    const mdata = (sc.mobs && sc.mobs[mob.id]) ? sc.mobs[mob.id] : { x: 0.5, y: 0.98, scale: 0.85 };
+  if (!v2) {
+    const mobs = assets?.mobs ?? [];
+    const frontEl3 = document.getElementById('stageFront');
+    for (const mob of mobs) {
+      const mdata = (sc.mobs && sc.mobs[mob.id]) ? sc.mobs[mob.id] : { x: 0.5, y: 0.98, scale: 0.85 };
 
-    // hidden=true のモブはプレビューに描画しない
-    if (mdata.hidden) continue;
+      // hidden=true のモブはプレビューに描画しない
+      if (mdata.hidden) continue;
 
-    const mx = mdata.x * STAGE_W;
-    const my = mdata.y * STAGE_H;
-    const mh = MOB_BASE_H * mdata.scale;
+      const mx = mdata.x * STAGE_W;
+      const my = mdata.y * STAGE_H;
+      const mh = MOB_BASE_H * mdata.scale;
 
-    const mobEl = document.createElement('img');
-    mobEl.className = 'mob-image' +
-      (selectedMobId === mob.id ? ' mob-selected' : '');
-    mobEl.src = IMG_BASE + mob.image;
-    mobEl.alt = mob.id;
-    mobEl.dataset.mobId = mob.id;
-    mobEl.style.position = 'absolute';
-    mobEl.style.left = mx + 'px';
-    mobEl.style.top = my + 'px';
-    mobEl.style.height = mh + 'px';
-    mobEl.style.width = 'auto';
-    // bottom-center 基準（StoryVideo の transform: translate(-50%,-100%) と一致）
-    mobEl.style.transform = 'translate(-50%, -100%)';
-    mobEl.style.transformOrigin = 'bottom center';
-    mobEl.style.zIndex = selectedMobId === mob.id ? 90 : 50;
-    // 404等でも壊れないよう非表示にする
-    mobEl.onerror = () => { mobEl.style.display = 'none'; };
-    // クリックで選択
-    mobEl.addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectMob(mob.id);
-    });
-    stage.insertBefore(mobEl, frontEl3);
+      const mobEl = document.createElement('img');
+      mobEl.className = 'mob-image' +
+        (selectedMobId === mob.id ? ' mob-selected' : '');
+      mobEl.src = IMG_BASE + mob.image;
+      mobEl.alt = mob.id;
+      mobEl.dataset.mobId = mob.id;
+      mobEl.style.position = 'absolute';
+      mobEl.style.left = mx + 'px';
+      mobEl.style.top = my + 'px';
+      mobEl.style.height = mh + 'px';
+      mobEl.style.width = 'auto';
+      // bottom-center 基準（StoryVideo の transform: translate(-50%,-100%) と一致）
+      mobEl.style.transform = 'translate(-50%, -100%)';
+      mobEl.style.transformOrigin = 'bottom center';
+      mobEl.style.zIndex = selectedMobId === mob.id ? 90 : 50;
+      // 404等でも壊れないよう非表示にする
+      mobEl.onerror = () => { mobEl.style.display = 'none'; };
+      // クリックで選択
+      mobEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectMob(mob.id);
+      });
+      stage.insertBefore(mobEl, frontEl3);
+    }
   }
 }
 
