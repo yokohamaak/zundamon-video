@@ -1657,6 +1657,11 @@
           <div class="basic-search-empty" id="basicSearchEmpty">該当する設定がありません</div>
           <div id="v2StageControls" style="display:none; padding:12px; gap:12px; flex-direction:column;">
             <div class="section-divider" style="margin-top:0">表示種別（v2）</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnV2Undo" disabled>↶ 元に戻す</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnV2Redo" disabled>↷ やり直す</button>
+              <span class="field-help" style="margin:0">確定したv2編集だけをこの画面を開いている間、最大80件まで戻せます。</span>
+            </div>
             <div class="field-row">
               <label class="field-label">表示種別</label>
               <select class="field-select" id="fV2DisplayMode">
@@ -3632,6 +3637,7 @@ async function init() {
     normalizeStoryTransitions(storyData);
     normalizeStoryVoicePresets(storyData);
     normalizeStoryIdleFace(storyData);
+    v2ResetHistory();
 
     document.getElementById("storyTitle").value = storyData.title || "";
     document.getElementById("idleFaceSel").value = storyData.idleFace || "hold";
@@ -7888,6 +7894,76 @@ function v2Option(select, value, label) {
 }
 
 let _v2InstanceAssetsLoading = false;
+const V2_HISTORY_LIMIT = 80;
+let _v2HistoryCurrent = null;
+let _v2UndoStack = [];
+let _v2RedoStack = [];
+
+function v2SerializeStory() {
+  return JSON.stringify(storyData);
+}
+
+function v2ResetHistory() {
+  _v2HistoryCurrent = isV2StoryEditor() ? v2SerializeStory() : null;
+  _v2UndoStack = [];
+  _v2RedoStack = [];
+  v2UpdateHistoryButtons();
+}
+
+function v2UpdateHistoryButtons() {
+  const undo = document.getElementById("btnV2Undo");
+  const redo = document.getElementById("btnV2Redo");
+  if (undo) undo.disabled = !isV2StoryEditor() || _v2UndoStack.length === 0;
+  if (redo) redo.disabled = !isV2StoryEditor() || _v2RedoStack.length === 0;
+}
+
+function v2RecordHistory() {
+  if (!isV2StoryEditor()) return;
+  const current = v2SerializeStory();
+  if (_v2HistoryCurrent == null) {
+    _v2HistoryCurrent = current;
+    v2UpdateHistoryButtons();
+    return;
+  }
+  if (current === _v2HistoryCurrent) return;
+  _v2UndoStack.push(_v2HistoryCurrent);
+  if (_v2UndoStack.length > V2_HISTORY_LIMIT) _v2UndoStack.shift();
+  _v2HistoryCurrent = current;
+  _v2RedoStack = [];
+  v2UpdateHistoryButtons();
+}
+
+function v2RestoreHistory(snapshot) {
+  storyData = JSON.parse(snapshot);
+  if (selectedIdx >= storyData.script.length) selectedIdx = storyData.script.length - 1;
+  clearMultiSelection();
+  markDirty();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  else renderDetail();
+  drawScriptTimeline();
+  notifyPlayerUpdate();
+}
+
+function v2Undo() {
+  if (!isV2StoryEditor() || _v2UndoStack.length === 0) return;
+  const current = v2SerializeStory();
+  const snapshot = _v2UndoStack.pop();
+  _v2RedoStack.push(current);
+  _v2HistoryCurrent = snapshot;
+  v2RestoreHistory(snapshot);
+  v2UpdateHistoryButtons();
+}
+
+function v2Redo() {
+  if (!isV2StoryEditor() || _v2RedoStack.length === 0) return;
+  const current = v2SerializeStory();
+  const snapshot = _v2RedoStack.pop();
+  _v2UndoStack.push(current);
+  _v2HistoryCurrent = snapshot;
+  v2RestoreHistory(snapshot);
+  v2UpdateHistoryButtons();
+}
 
 function v2CharacterIds() {
   return [...new Set([...KNOWN_CHARS, ...Object.keys(mobsMap || {})])].sort(compareUiText);
@@ -8015,6 +8091,7 @@ function v2AddInstance() {
 
 function v2Commit(turn, audioChanged = false) {
   v2PruneStageEvent(turn);
+  v2RecordHistory();
   markDirty();
   if (audioChanged) markAudioDirty();
   renderList();
@@ -10924,6 +11001,7 @@ function importStoryFromFile(file) {
       normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
       normalizeStoryIdleFace(storyData);
+      v2ResetHistory();
       _selectedOverlayId = null;
       document.getElementById("storyTitle").value = storyData.title || "";
       document.getElementById("idleFaceSel").value = storyData.idleFace || "hold";
@@ -11038,6 +11116,7 @@ async function generateAudio(confirmFirst = true) {
       clearMultiSelection();
       normalizeStoryTransitions(storyData);
       normalizeStoryVoicePresets(storyData);
+      v2ResetHistory();
       renderDisplaySettingsEditor();
       _selectedOverlayId = null;
       if (selectedIdx >= storyData.script.length) selectedIdx = storyData.script.length - 1;
@@ -11925,6 +12004,16 @@ function setupEvents() {
     v2Commit(turn);
     renderV2Detail(turn);
   });
+  document.getElementById("btnV2Undo")?.addEventListener("click", v2Undo);
+  document.getElementById("btnV2Redo")?.addEventListener("click", v2Redo);
+  window.addEventListener("keydown", (e) => {
+    if (!isV2StoryEditor() || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const target = e.target;
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target?.isContentEditable) return;
+    if (e.key.toLowerCase() !== "z") return;
+    e.preventDefault();
+    if (e.shiftKey) v2Redo(); else v2Undo();
+  });
   document.getElementById("fV2NewInstanceRole")?.addEventListener("change", v2UpdateNewInstanceFields);
   document.getElementById("btnV2AddInstance")?.addEventListener("click", v2AddInstance);
   // 向きを指定した時だけ「向きの効き方」「向き保持の解除」を出す
@@ -12253,6 +12342,7 @@ function setupEvents() {
           clearMultiSelection();
           normalizeStoryTransitions(storyData);
           normalizeStoryVoicePresets(storyData);
+          v2ResetHistory();
           renderDisplaySettingsEditor();
           document.getElementById("storyTitle").value = storyData.title || "";
           buildSceneSelect();
