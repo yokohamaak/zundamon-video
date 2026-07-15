@@ -21,7 +21,7 @@
 - **実装済み**: 個体IDと素材・音声IDの分離、主役・モブ共通のinstance、明示的なenter/exit、sceneごとのslot、slot offsetと手動配置、手動scale/z-index、`framing` と一時的な `cameraMotion` の分離、`standard` / `whiteboard` / `zunMeet` の専用表示、左右向き（`face: left | right`）、モブの実在表情素材検証、v2用Undo/Redo（最大80操作）。
 - **実装箇所**: validatorは `stage_schema.py`、Remotionの状態解決は `video/src/stage-v2.ts`、描画は `video/src/StageVideoV2.tsx`、v2編集は `story_editor.html`、slot・camera presetの事前設定は `scene_editor.html` / `scene_editor.py`、音声話者解決は `make_story_audio.py` に置いた。`video/src/Root.tsx` と `video/src/player.tsx` はschema versionでv2描画へ振り分ける。
 - **意図的に未実装**: 登場・退場のアニメーション契約、後ろ姿・座り姿を扱う素材能力モデル、3人構図の自動合成、前景の後ろへ置くレイヤー、ニュース／再現VTR等の新しい表示種別。必要になった時だけ追加する。
-- **残る検証負債**: validator・型チェック・v2 fixtureによる静止画は確認済みだが、実編集データを使うブラウザ上のv2通し編集は別途確認する。旧データはユーザーの編集中台本なので、検証のために自動変換・上書きしない。
+- **検証状況**: validator・型チェック・v2 fixtureによる通常／ホワイトボード／ZunMeetの静止画、ブラウザ上のv2フォーム・表示種別切替・プレビュー反映・Undo/Redoを確認済み。残るのは、実際の長編台本をv2へ変換した後の通し編集である。旧データはユーザーの編集中台本なので、検証のためにv2へ変換して永続的に上書きしない。
 
 ## 2. 調査範囲と根拠
 
@@ -438,7 +438,7 @@ LayoutContext = {
 - 3人用composition、前景後ろレイヤー、より複雑なz-order。
 - 後ろ姿・座り姿・ポーズ組合せを検証できる素材能力モデル。
 - 移動/登退場を `from/to/duration/easing` の明示animationへ発展。
-- 実編集データを使うブラウザ上のv2通し編集と、対応する視覚回帰fixture。
+- 実際の長編台本をv2へ変換した後の通し編集と、対応する視覚回帰fixture。
 
 ## 19. 決定済み仕様と実装上の境界
 
