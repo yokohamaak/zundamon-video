@@ -504,21 +504,21 @@
         <label class="field-label">前景画像 (front)</label>
         <select class="field-select" id="fFront"></select>
       </div>
-      <div class="field-row">
+      <div class="field-row" id="legacyCameraModeRow">
         <label class="field-label">カメラ</label>
         <select class="field-select" id="fCamera">
           <option value="static">static（固定）</option>
           <option value="slow-zoom">slow-zoom（ゆっくりズーム）</option>
         </select>
       </div>
-      <div class="field-row">
+      <div class="field-row" id="legacyFocusZoomRow">
         <label class="field-label">ズームの強さ（emphasis時の加算倍率）</label>
         <div class="slider-row">
           <input type="range" id="focusZoomSlider" min="0" max="0.6" step="0.05" value="0.3">
           <span class="slider-val" id="focusZoomVal">0.30</span>
         </div>
       </div>
-      <div class="field-row">
+      <div class="field-row" id="legacyFocusDyRow">
         <label class="field-label">ズーム 顔からの縦オフセット</label>
         <div class="slider-row">
           <input type="range" id="focusDySlider" min="-0.10" max="0.30" step="0.01" value="0.12">
@@ -538,7 +538,7 @@
       </div>
     </div>
 
-    <div class="side-section">
+    <div class="side-section" id="legacyMotionSection">
       <div class="section-title">カメラ共通設定（全シーン共通）</div>
       <div class="field-row">
         <label class="field-label">ズーム量</label>
@@ -592,7 +592,7 @@
       <div class="slider-hint">カメラ演出(cameraEffects)とslow-zoomの効き量。全シーン共通で、「保存」で story-scenes.json に書き込まれる。slow-zoomは最終書き出し時のみ有効。</div>
     </div>
 
-    <div class="side-section">
+    <div class="side-section" id="legacyScaleSection">
       <div class="section-title">立ち絵スケール</div>
       <div class="slider-row">
         <input type="range" id="scaleSlider" min="0.8" max="2.5" step="0.05" value="1.9">
@@ -600,7 +600,7 @@
       </div>
     </div>
 
-    <div class="side-section">
+    <div class="side-section" id="legacyBgBlurSection">
       <div class="section-title">背景ブラー</div>
       <div class="slider-row">
         <input type="range" id="bgBlurSlider" min="0" max="24" step="1" value="0">
@@ -628,21 +628,28 @@
         </select>
       </div>
       <div class="field-label" id="cameraFrameInfo">center(0.500, 0.500) / width 1.000</div>
-      <div class="slider-hint">default / leftFocus / rightFocus の3枠をシーン共通の構図として保存します。話者フォーカスONのターンでは、話者の立ち位置に応じて枠が切り替わります。</div>
+      <div class="slider-hint" id="cameraFrameHint">default / leftFocus / rightFocus の3枠をシーン共通の構図として保存します。話者フォーカスONのターンでは、話者の立ち位置に応じて枠が切り替わります。</div>
     </div>
 
-    <div class="side-section">
+    <div class="side-section" id="legacyCastSection">
       <div class="section-title">キャスト割当 (cast)</div>
       <div id="castRows"></div>
     </div>
 
-    <div class="side-section">
+    <div class="side-section" id="legacyAnchorSection">
       <div class="section-title">アンカー座標</div>
       <div class="anchor-list" id="anchorList"></div>
       <button class="btn btn-secondary" id="btnAddAnchor" style="margin-top:8px;width:100%;font-size:12px">＋ アンカー追加</button>
     </div>
 
-    <div class="side-section">
+    <div class="side-section" id="v2SlotSection" style="display:none">
+      <div class="section-title">通常表示の配置スロット</div>
+      <div class="slider-hint" style="margin-bottom:8px">ステージ上の点をドラッグして位置を調整します。slotは画面内の場所であり、話者役ではありません。</div>
+      <div class="anchor-list" id="slotList"></div>
+      <button class="btn btn-secondary" id="btnAddSlot" style="margin-top:8px;width:100%;font-size:12px">＋ スロット追加</button>
+    </div>
+
+    <div class="side-section" id="legacyMobSection">
       <div class="section-title">モブ配置 (mobs)</div>
       <div style="font-size:11px;color:var(--text2);margin-bottom:8px">ステージ上の画像をドラッグして位置調整。クリックで選択→スライダーでscale変更。</div>
       <div id="mobList"></div>
@@ -700,6 +707,73 @@ let manifestData = null;     // avatars/manifest.json キャッシュ
 let draggingFrame = null;    // カメラ枠D&D: { mode:'move'|'resize', offsetX?, offsetY?, left?, top? }
 let currentCameraFrameKey = 'default';
 
+function isV2Scene(sc = currentScene()) {
+  return scenesData?.schemaVersion === 2 && !!sc;
+}
+
+function ensureV2Layout(sc) {
+  if (!sc.layouts) sc.layouts = {};
+  if (!sc.layouts.standard) sc.layouts.standard = {};
+  if (!sc.layouts.standard.slots) {
+    sc.layouts.standard.slots = {
+      speakerLeft: { origin: { x: 0.28, y: 0.95 }, scale: 1.2, zIndex: 20, cameraPresetId: 'left' },
+      speakerRight: { origin: { x: 0.72, y: 0.95 }, scale: 1.2, zIndex: 20, cameraPresetId: 'right' },
+      center: { origin: { x: 0.5, y: 0.95 }, scale: 1.2, zIndex: 20, cameraPresetId: 'default' }
+    };
+  }
+  if (!sc.cameraPresets) sc.cameraPresets = {};
+  if (!sc.cameraPresets.default) sc.cameraPresets.default = { cx: 0.5, cy: 0.5, width: 1 };
+  if (!sc.cameraPresets.left) sc.cameraPresets.left = { ...sc.cameraPresets.default };
+  if (!sc.cameraPresets.right) sc.cameraPresets.right = { ...sc.cameraPresets.default };
+}
+
+function v2Slots(sc = currentScene()) {
+  if (!isV2Scene(sc)) return {};
+  ensureV2Layout(sc);
+  return sc.layouts.standard.slots;
+}
+
+function cameraPresetKey(key = currentCameraFrameKey, sc = currentScene()) {
+  if (!isV2Scene(sc)) return key;
+  if (key === 'leftFocus') return 'left';
+  if (key === 'rightFocus') return 'right';
+  return key || 'default';
+}
+
+function syncV2LayoutUi() {
+  const v2 = isV2Scene();
+  document.getElementById('legacyCameraModeRow').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyFocusZoomRow').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyFocusDyRow').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyMotionSection').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyScaleSection').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyBgBlurSection').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyCastSection').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyAnchorSection').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyMobSection').style.display = v2 ? 'none' : '';
+  document.getElementById('v2SlotSection').style.display = v2 ? '' : 'none';
+  const select = document.getElementById('cameraFrameKey');
+  const hint = document.getElementById('cameraFrameHint');
+  const buttons = document.querySelectorAll('[data-camera-frame-key]');
+  if (v2) {
+    select.options[1].textContent = 'left（左slot用の構図）';
+    select.options[2].textContent = 'right（右slot用の構図）';
+    hint.textContent = 'default / left / right の構図を編集します。台本の「話者を主役にする」は、話者が置かれたslotのcamera presetを使います。';
+    buttons.forEach(btn => {
+      if (btn.dataset.cameraFrameKey === 'leftFocus') btn.textContent = 'left';
+      if (btn.dataset.cameraFrameKey === 'rightFocus') btn.textContent = 'right';
+    });
+  } else {
+    select.options[1].textContent = 'leftFocus（left話者）';
+    select.options[2].textContent = 'rightFocus（right話者）';
+    hint.textContent = 'default / leftFocus / rightFocus の3枠をシーン共通の構図として保存します。話者フォーカスONのターンでは、話者の立ち位置に応じて枠が切り替わります。';
+    buttons.forEach(btn => {
+      if (btn.dataset.cameraFrameKey === 'leftFocus') btn.textContent = 'leftFocus';
+      if (btn.dataset.cameraFrameKey === 'rightFocus') btn.textContent = 'rightFocus';
+    });
+  }
+}
+
 function compareUiText(a, b) {
   return String(a || '').localeCompare(String(b || ''), 'ja', { numeric: true, sensitivity: 'base' });
 }
@@ -742,6 +816,10 @@ function normalizedFrameValue(src = {}) {
 
 function cameraFrameSource(sc, key = currentCameraFrameKey) {
   if (!sc) return {};
+  if (isV2Scene(sc)) {
+    ensureV2Layout(sc);
+    return sc.cameraPresets[cameraPresetKey(key, sc)] || sc.cameraPresets.default || {};
+  }
   return (sc.cameraFrames && sc.cameraFrames[key])
     || (key === 'default' ? sc.cameraFrame : null)
     || (sc.cameraFrames && sc.cameraFrames.default)
@@ -754,6 +832,10 @@ function normalizedCameraFrame(sc, key = currentCameraFrameKey) {
 }
 
 function ensureCameraFrames(sc) {
+  if (isV2Scene(sc)) {
+    ensureV2Layout(sc);
+    return;
+  }
   if (!sc.cameraFrames) sc.cameraFrames = {};
   const base = normalizedFrameValue(sc.cameraFrames.default || sc.cameraFrame || {});
   if (!sc.cameraFrames.default) sc.cameraFrames.default = { cx: base.cx, cy: base.cy, width: base.width };
@@ -766,6 +848,11 @@ function ensureCameraFrames(sc) {
 function ensureCameraFrame(sc, key = currentCameraFrameKey) {
   ensureCameraFrames(sc);
   const norm = normalizedCameraFrame(sc, key);
+  if (isV2Scene(sc)) {
+    const presetKey = cameraPresetKey(key, sc);
+    sc.cameraPresets[presetKey] = { cx: norm.cx, cy: norm.cy, width: norm.width };
+    return sc.cameraPresets[presetKey];
+  }
   sc.cameraFrames[key].cx = norm.cx;
   sc.cameraFrames[key].cy = norm.cy;
   sc.cameraFrames[key].width = norm.width;
@@ -789,7 +876,8 @@ function updateCameraFrameInfo() {
   const el = document.getElementById('cameraFrameInfo');
   if (!el || !sc) return;
   const frame = normalizedCameraFrame(sc);
-  el.textContent = `${currentCameraFrameKey}: center(${frame.cx.toFixed(3)}, ${frame.cy.toFixed(3)}) / width ${frame.width.toFixed(3)}`;
+  const name = cameraPresetKey(currentCameraFrameKey, sc);
+  el.textContent = `${name}: center(${frame.cx.toFixed(3)}, ${frame.cy.toFixed(3)}) / width ${frame.width.toFixed(3)}`;
 }
 
 function syncCameraFrameKeyUi() {
@@ -977,6 +1065,7 @@ function selectScene(id) {
   const sc = currentScene();
   if (!sc) return;
   ensureCameraFrames(sc);
+  syncV2LayoutUi();
   syncCameraFrameKeyUi();
   document.getElementById('fLabel').value = sc.label || '';
   document.getElementById('fCamera').value = sc.camera || 'static';
@@ -1002,6 +1091,7 @@ function selectScene(id) {
   selectedMobId = null;
   buildCastRows();
   buildAnchorList();
+  buildSlotList();
   buildMobList();
   updateCameraFrameInfo();
   applyStageTransform();
@@ -1083,6 +1173,7 @@ function buildCastRows() {
   container.innerHTML = '';
   const chars = sortedStrings(assets?.characters ?? []);
   const cast = sc.cast || {};
+  const v2 = isV2Scene(sc);
   const anchors = sortedStrings(Object.keys(sc.anchors || {}));
   for (const ch of chars) {
     const row = document.createElement('div');
@@ -1141,6 +1232,66 @@ function updateAnchorList(name, x, y) {
   const ey = document.getElementById(`ac-y-${name}`);
   if (ex) ex.textContent = `x: ${x.toFixed(3)}`;
   if (ey) ey.textContent = `y: ${y.toFixed(3)}`;
+}
+
+function buildSlotList() {
+  const sc = currentScene();
+  if (!isV2Scene(sc)) return;
+  const container = document.getElementById('slotList');
+  container.innerHTML = '';
+  const presets = Object.keys(sc.cameraPresets || {}).sort(compareUiText);
+  for (const slotId of sortedStrings(Object.keys(v2Slots(sc)))) {
+    const slot = v2Slots(sc)[slotId];
+    const item = document.createElement('div');
+    item.className = 'anchor-item';
+    const name = document.createElement('span');
+    name.className = 'anchor-name'; name.textContent = slotId;
+    const coords = document.createElement('span');
+    coords.className = 'anchor-coord'; coords.id = `slot-coord-${slotId}`;
+    coords.textContent = `x: ${slot.origin.x.toFixed(3)} / y: ${slot.origin.y.toFixed(3)}`;
+    const scale = document.createElement('input');
+    scale.type = 'number'; scale.step = '0.05'; scale.min = '0.1'; scale.value = slot.scale ?? 1;
+    scale.title = 'scale'; scale.style.width = '58px';
+    scale.addEventListener('change', () => {
+      const value = parseFloat(scale.value);
+      if (Number.isFinite(value) && value > 0) slot.scale = value;
+      else scale.value = slot.scale ?? 1;
+    });
+    const zIndex = document.createElement('input');
+    zIndex.type = 'number'; zIndex.step = '1'; zIndex.value = slot.zIndex ?? 0;
+    zIndex.title = 'z-index'; zIndex.style.width = '52px';
+    zIndex.addEventListener('change', () => {
+      const value = parseFloat(zIndex.value);
+      if (Number.isFinite(value)) slot.zIndex = value;
+      else zIndex.value = slot.zIndex ?? 0;
+    });
+    const preset = document.createElement('select');
+    preset.className = 'cast-select'; preset.style.width = '92px';
+    const none = document.createElement('option'); none.value = ''; none.textContent = '構図なし'; preset.appendChild(none);
+    for (const presetId of presets) {
+      const option = document.createElement('option'); option.value = presetId; option.textContent = presetId; preset.appendChild(option);
+    }
+    preset.value = slot.cameraPresetId || '';
+    preset.addEventListener('change', () => {
+      if (preset.value) slot.cameraPresetId = preset.value;
+      else delete slot.cameraPresetId;
+    });
+    const overlapLabel = document.createElement('label');
+    overlapLabel.style.cssText = 'font-size:11px;color:var(--text2);white-space:nowrap';
+    const overlap = document.createElement('input'); overlap.type = 'checkbox'; overlap.checked = !!slot.allowOverlap;
+    overlap.addEventListener('change', () => {
+      if (overlap.checked) slot.allowOverlap = true;
+      else delete slot.allowOverlap;
+    });
+    overlapLabel.append(overlap, ' 重なり');
+    item.append(name, coords, scale, zIndex, preset, overlapLabel);
+    container.appendChild(item);
+  }
+}
+
+function updateSlotCoords(slotId, origin) {
+  const el = document.getElementById(`slot-coord-${slotId}`);
+  if (el) el.textContent = `x: ${origin.x.toFixed(3)} / y: ${origin.y.toFixed(3)}`;
 }
 
 // ============================================================
@@ -1300,14 +1451,18 @@ function renderPreview() {
   frameBox.style.width = frame.pw + 'px';
   frameBox.style.height = frame.ph + 'px';
   const cast = sc.cast || {};
+  const v2 = isV2Scene(sc);
   // アンカー名→charId の逆引き
   const anchorToChar = {};
   for (const [ch, an] of Object.entries(cast)) {
     anchorToChar[an] = ch;
   }
 
-  // アンカーごとにキャラ＋ドットを描画
-  for (const [name, coord] of Object.entries(sc.anchors || {})) {
+  // 旧形式はanchor、v2はslot originをドラッグ可能な点として描画する。
+  const layoutPoints = v2
+    ? Object.fromEntries(Object.entries(v2Slots(sc)).map(([slotId, slot]) => [slotId, slot.origin]))
+    : (sc.anchors || {});
+  for (const [name, coord] of Object.entries(layoutPoints)) {
     const ax = coord.x * STAGE_W;
     const ay = coord.y * STAGE_H;
     const charId = anchorToChar[name];
@@ -1370,7 +1525,7 @@ function renderPreview() {
       img.src = avatarBasePath + 'base.png';
       img.onerror = () => { img.style.display = 'none'; };
       parts.appendChild(img);
-    } else {
+    } else if (!v2) {
       const miss = document.createElement('div');
       miss.className = 'char-missing';
       miss.textContent = name;
@@ -1395,7 +1550,7 @@ function renderPreview() {
     dotLabel.className = 'anchor-label';
     dotLabel.style.left = ax + 'px';
     dotLabel.style.top = ay + 'px';
-    dotLabel.textContent = name + (charId ? ` (${charId})` : '');
+    dotLabel.textContent = name + (charId ? ` (${charId})` : v2 ? ' (slot)' : '');
     stage.appendChild(dotLabel);
   }
 
@@ -1524,7 +1679,7 @@ function setupDrag() {
         cameraFrame.cx = draggingFrame.left + cameraFrame.width / 2;
         cameraFrame.cy = draggingFrame.top + cameraFrame.width / 2;
       }
-      if (currentCameraFrameKey === 'default') sc.cameraFrame = { ...cameraFrame };
+      if (!isV2Scene(sc) && currentCameraFrameKey === 'default') sc.cameraFrame = { ...cameraFrame };
       updateCameraFrameInfo();
       applyStageTransform();
       renderPreview();
@@ -1558,12 +1713,21 @@ function setupDrag() {
 
     if (dragging) {
       const sc = currentScene();
-      if (!sc || !sc.anchors[dragging.name]) return;
+      if (!sc) return;
       const nx = Math.max(0, Math.min(1, sx / STAGE_W));
       const ny = Math.max(0, Math.min(1, sy / STAGE_H));
-      sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
-      sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
-      updateAnchorList(dragging.name, sc.anchors[dragging.name].x, sc.anchors[dragging.name].y);
+      if (isV2Scene(sc)) {
+        const slot = v2Slots(sc)[dragging.name];
+        if (!slot) return;
+        slot.origin.x = Math.round(nx * 1000) / 1000;
+        slot.origin.y = Math.round(ny * 1000) / 1000;
+        updateSlotCoords(dragging.name, slot.origin);
+      } else {
+        if (!sc.anchors[dragging.name]) return;
+        sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
+        sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
+        updateAnchorList(dragging.name, sc.anchors[dragging.name].x, sc.anchors[dragging.name].y);
+      }
       applyStageTransform(); // ズームプレビュー中は注視点(アンカーx)の変化にカメラも追従
       renderPreview();
     }
@@ -1718,6 +1882,7 @@ function setupEvents() {
   document.getElementById('btnDeleteScene').addEventListener('click', deleteScene);
 
   document.getElementById('btnAddAnchor').addEventListener('click', addAnchor);
+  document.getElementById('btnAddSlot').addEventListener('click', addSlot);
 
   document.getElementById('mobScaleSlider').addEventListener('input', e => {
     if (!selectedMobId) return;
@@ -1799,7 +1964,7 @@ function addScene() {
   // 既定は全身立ち絵(figure:full)。本プロジェクトの全シーンが全身のため。
   // アンカーy=立ち絵ボックスの「中心」位置。全身が収まるよう中央寄り(0.68)＋
   // scale控えめ(1.1)にする（既存 home シーンと同等の見え方＝足元が画面下端付近）。
-  scenesData.scenes[id] = {
+  const legacyScene = {
     label: id,
     bg: bgs[0] || '',
     front: null,
@@ -1821,6 +1986,25 @@ function addScene() {
       right: { x: 0.68, y: 0.68 }
     }
   };
+  scenesData.scenes[id] = scenesData.schemaVersion === 2 ? {
+    label: id,
+    bg: bgs[0] || '',
+    front: null,
+    layouts: {
+      standard: {
+        slots: {
+          speakerLeft: { origin: { x: 0.28, y: 0.95 }, scale: 1.2, zIndex: 20, cameraPresetId: 'left' },
+          speakerRight: { origin: { x: 0.72, y: 0.95 }, scale: 1.2, zIndex: 20, cameraPresetId: 'right' },
+          center: { origin: { x: 0.5, y: 0.95 }, scale: 1.2, zIndex: 20, cameraPresetId: 'default' }
+        }
+      }
+    },
+    cameraPresets: {
+      default: { cx: 0.5, cy: 0.5, width: 1 },
+      left: { cx: 0.34, cy: 0.5, width: 0.82 },
+      right: { cx: 0.66, cy: 0.5, width: 0.82 }
+    }
+  } : legacyScene;
   const sel = document.getElementById('sceneSelect');
   const opt = document.createElement('option');
   opt.value = id;
@@ -1871,6 +2055,23 @@ function addAnchor() {
   sc.anchors[name] = { x: 0.5, y: 0.85 };
   buildCastRows();
   buildAnchorList();
+  renderPreview();
+}
+
+function addSlot() {
+  const sc = currentScene();
+  if (!isV2Scene(sc)) return;
+  const slotId = prompt('スロットID（半角英数字・ハイフン・アンダースコア）:');
+  if (!slotId || !slotId.match(/^[a-zA-Z0-9_-]+$/)) { alert('不正なスロットIDです'); return; }
+  const slots = v2Slots(sc);
+  if (slots[slotId]) { alert('同名のスロットが既にあります'); return; }
+  slots[slotId] = {
+    origin: { x: 0.5, y: 0.95 },
+    scale: 1,
+    zIndex: 20,
+    cameraPresetId: 'default'
+  };
+  buildSlotList();
   renderPreview();
 }
 

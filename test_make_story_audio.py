@@ -36,6 +36,24 @@ def test_build_script_turns_uses_profile_fx_and_narration_defaults():
     print("  script-turns: speaker名→プロファイル/fx を解決 OK")
 
 
+def test_build_script_turns_resolves_v2_instance_voice_id():
+    profiles = msa.load_voice_profiles()
+    data = {
+        "schemaVersion": 2,
+        "instances": {
+            "boss": {"voiceId": "部長", "role": "stage", "characterId": "boss_mob"},
+            "narrator": {"voiceId": "棒読み男", "role": "voiceOnly"},
+        },
+        "script": [
+            {"speaker": "boss", "text": "報告して。", "scene": "office"},
+            {"speaker": "narrator", "text": "その後。", "scene": "office"},
+        ],
+    }
+    script = msa.build_script_turns(data, profiles)
+    assert [item["speaker"] for item in script] == ["部長", "棒読み男"]
+    print("  script-turns: v2個体IDをvoiceIdへ解決 OK")
+
+
 def test_build_tts_config_maps_profiles_to_speakers():
     profiles = {
         "troublemaker_male_normal": {
@@ -72,6 +90,7 @@ def test_load_voice_profiles_merges_override_file():
 if __name__ == "__main__":
     test_load_voice_profiles_includes_troublemakers()
     test_build_script_turns_uses_profile_fx_and_narration_defaults()
+    test_build_script_turns_resolves_v2_instance_voice_id()
     test_build_tts_config_maps_profiles_to_speakers()
     test_load_voice_profiles_merges_override_file()
     print("OK")

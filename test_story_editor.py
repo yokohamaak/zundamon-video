@@ -189,10 +189,83 @@ def test_validate_story_rejects_broken_insert():
     print("  validate: 不正な insert を弾く: OK")
 
 
+def test_validate_story_v2_resolves_instance_voice_ids():
+    """v2保存時はscene slotと音声profileの両方を確認する。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        scenes_path = os.path.join(tmp, "story-scenes.json")
+        with open(scenes_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "schemaVersion": 2,
+                "scenes": {"office": {"layouts": {"standard": {"slots": {
+                    "left": {"origin": {"x": 0.3, "y": 0.95}},
+                }}}, "cameraPresets": {}}},
+            }, f, ensure_ascii=False)
+        old_scenes = se.SCENES_JSON
+        try:
+            se.SCENES_JSON = scenes_path
+            story = {
+                "schemaVersion": 2,
+                "instances": {"hero": {"characterId": "zundamon", "voiceId": "zundamon"}},
+                "script": [{
+                    "id": "turn-0001", "speaker": "hero", "text": "テスト", "scene": "office",
+                    "stage": {"enter": [{"instanceId": "hero", "placement": {"mode": "slot", "slotId": "left"}}]},
+                }],
+            }
+            se._validate_story(story)
+            story["instances"]["hero"]["voiceId"] = "存在しない声"
+            try:
+                se._validate_story(story)
+            except ValueError as exc:
+                assert "音声プロファイル" in str(exc)
+            else:
+                raise AssertionError("存在しないv2 voiceIdを通してしまった")
+        finally:
+            se.SCENES_JSON = old_scenes
+    print("  validate: v2個体のslot/voiceIdを検証する: OK")
+
+
+def test_import_v2_story_keeps_stage_and_instance_references():
+    with tempfile.TemporaryDirectory() as tmp:
+        story_path = os.path.join(tmp, "story-01.json")
+        scenes_path = os.path.join(tmp, "story-scenes.json")
+        with open(scenes_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "schemaVersion": 2,
+                "scenes": {"office": {"layouts": {"standard": {"slots": {
+                    "left": {"origin": {"x": 0.3, "y": 0.95}},
+                }}}, "cameraPresets": {}}},
+            }, f, ensure_ascii=False)
+        old_story, old_scenes = se.STORY_JSON, se.SCENES_JSON
+        try:
+            se.STORY_JSON, se.SCENES_JSON = story_path, scenes_path
+            raw = json.dumps({
+                "schemaVersion": 2,
+                "instances": {"hero": {"characterId": "zundamon", "voiceId": "zundamon", "label": "主人公"}},
+                "script": [{
+                    "id": "generated-id", "speaker": "hero", "text": "始めるのだ", "scene": "office",
+                    "displayMode": {"kind": "standard"},
+                    "stage": {"enter": [{"instanceId": "hero", "placement": {"mode": "slot", "slotId": "left"}}]},
+                }],
+            }, ensure_ascii=False)
+            ok, msg, info = se._import_script_text(raw)
+            assert ok, msg
+            assert info["report"]["newFields"] == {}
+            assert info["report"]["newSpeakers"] == {}
+            saved = json.load(open(story_path, encoding="utf-8"))
+            assert saved["instances"]["hero"]["voiceId"] == "zundamon"
+            assert saved["script"][0]["speaker"] == "hero"
+            assert saved["script"][0]["stage"]["enter"][0]["instanceId"] == "hero"
+        finally:
+            se.STORY_JSON, se.SCENES_JSON = old_story, old_scenes
+    print("  import: v2個体/stageを未知項目・未知話者扱いせず保存する: OK")
+
+
 if __name__ == "__main__":
     test_prompt_mentions_current_story_fields()
     test_import_recognizes_supported_story_fields()
     test_speakers_include_troublemaker_profiles()
     test_validate_story_accepts_existing_inserts()
     test_validate_story_rejects_broken_insert()
+    test_validate_story_v2_resolves_instance_voice_ids()
+    test_import_v2_story_keeps_stage_and_instance_references()
     print("OK")

@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
-import { StoryVideo } from "./StoryVideo";
-import type { StoryScript, SceneLibrary, ExpressionsMap, PosesMap, SeMap, MobsMap } from "./StoryVideo";
+import { StoryVideoRouter } from "./StoryVideoRouter";
+import type { ExpressionsMap, PosesMap, SeMap, MobsMap } from "./StoryVideo";
+import type { StoryVideoRouterProps } from "./StoryVideoRouter";
 import "./fonts"; // プレビューでも書き出しと同じ同梱フォントを使う（Yusei Magic等の豆腐防止）
 
 const FPS = 30;
@@ -12,7 +13,7 @@ const HEIGHT = 1080;
 type StoryPlayerApi = {
   mount: (element: HTMLElement) => Promise<void>;
   unmount: () => void;
-  updateStory: (story: StoryScript) => void;
+  updateStory: (story: StoryVideoRouterProps["story"]) => void;
   reloadScenes: () => Promise<void>;
   reloadExpressions: () => Promise<void>;
   reloadPoses: () => Promise<void>;
@@ -33,16 +34,7 @@ declare global {
   }
 }
 
-type Props = {
-  story: StoryScript;
-  scenes: SceneLibrary;
-  manifest?: Record<string, Record<string, string>>;
-  audio?: string;
-  expressions?: ExpressionsMap;
-  poses?: PosesMap;
-  seMap?: SeMap;
-  mobs?: MobsMap;
-};
+type Props = StoryVideoRouterProps;
 
 function withAudioCacheBust(audio: string | undefined, token: number | string = Date.now()) {
   if (!audio) return undefined;
@@ -101,7 +93,7 @@ const StoryPlayerComponent: React.FC<{
   return (
     <Player
       ref={ref}
-      component={StoryVideo}
+      component={StoryVideoRouter}
       inputProps={props}
       durationInFrames={duration}
       compositionWidth={WIDTH}
@@ -140,8 +132,8 @@ async function loadInitialProps(): Promise<Props> {
   if (!storyRes.ok) throw new Error("story-01.json が取得できません");
   if (!scenesRes.ok) throw new Error("story-scenes.json が取得できません");
 
-  const story: StoryScript = await storyRes.json();
-  const scenes: SceneLibrary = await scenesRes.json();
+  const story = await storyRes.json() as StoryVideoRouterProps["story"];
+  const scenes = await scenesRes.json() as StoryVideoRouterProps["scenes"];
 
   let manifest: Record<string, Record<string, string>> | undefined;
   try {

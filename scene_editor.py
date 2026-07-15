@@ -15,6 +15,8 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
 
+from stage_schema import validate_scene_library_v2
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
@@ -123,6 +125,8 @@ def _save_scenes(data):
         bg_video_loop = scene.get("bgVideoLoop")
         if bg_video_loop is not None and not isinstance(bg_video_loop, bool):
             raise ValueError(f"シーン {scene_id}: bgVideoLoop は true/false である必要があります")
+    if data.get("schemaVersion") == 2:
+        validate_scene_library_v2(data)
     with open(SCENES_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 

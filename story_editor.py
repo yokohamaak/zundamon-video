@@ -32,6 +32,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT_DIR, "src"))
 from tts_voicevox import sync_kanji_readings_to_voicevox  # noqa: E402
 import make_story_audio  # noqa: E402  台本取り込み時の話者検証で使う（音声生成と同じ判定基準）
+from stage_schema import validate_story_v2  # noqa: E402
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 VIDEO_ASSETS_DIR = os.path.join(ROOT_DIR, "video", "assets")
 STORY_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.json")
@@ -304,6 +305,14 @@ def _validate_story(data):
                 raise ValueError(f"turn[{i}]: insert は object である必要があります")
             if not isinstance(ins.get("kind"), str) or not ins["kind"]:
                 raise ValueError(f"turn[{i}]: insert.kind(文字列)が必要です")
+    if data.get("schemaVersion") == 2:
+        # v2は旧anchor系を解釈せず、sceneのslot・個体・構図まで保存前に検証する。
+        validate_story_v2(data, _load_scene_library(), _load_mobs())
+        known_voices = set(make_story_audio.load_voice_profiles())
+        for instance_id, instance in data["instances"].items():
+            voice_id = instance["voiceId"]
+            if voice_id not in known_voices:
+                raise ValueError(f"instances.{instance_id}.voiceId: 音声プロファイルがありません: {voice_id}")
 
 
 def _save_story(data):
@@ -538,6 +547,18 @@ def _load_scenes_detail():
             "camera": v.get("camera", "static"),
         })
     return out
+
+
+def _load_scene_library():
+    """保存時のv2 validatorへ渡す、要約していないscene JSON。"""
+    if not os.path.exists(SCENES_JSON):
+        return {}
+    try:
+        with open(SCENES_JSON, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _load_story_world():
@@ -887,6 +908,7 @@ def _import_script_text(raw):
         return False, "JSONとして解釈できません: %s" % ex, {}
     if not isinstance(data, dict) or not isinstance(data.get("script"), list):
         return False, "script 配列が見つかりません", {}
+    is_v2 = data.get("schemaVersion") == 2
 
     existing_scenes = set(_load_scenes_keys())
     existing_expr = set(_load_expression_keys())
@@ -909,29 +931,32 @@ def _import_script_text(raw):
         # 自動生成フィールドを除去し id を振り直す（未対応の新演出キーは保持する）
         for k in ("start", "end", "sentences"):
             turn.pop(k, None)
-        _normalize_generated_camera_fields(turn)
+        if not is_v2:
+            _normalize_generated_camera_fields(turn)
         turn["id"] = "turn-%04d" % (i + 1)
         n = i + 1
-        for k in turn:
-            if k not in _KNOWN_TURN_FIELDS:
-                new_fields.setdefault(k, []).append(n)
+        if not is_v2:
+            for k in turn:
+                if k not in _KNOWN_TURN_FIELDS:
+                    new_fields.setdefault(k, []).append(n)
         sc = turn.get("scene")
         if isinstance(sc, str) and existing_scenes and sc not in existing_scenes:
             new_scenes.setdefault(sc, []).append(n)
-        ex_ = turn.get("expression")
-        if isinstance(ex_, str) and existing_expr and ex_ not in existing_expr:
-            new_expr.setdefault(ex_, []).append(n)
-        ins = turn.get("insert")
-        if isinstance(ins, dict):
-            kind = ins.get("kind")
-            if kind and kind not in _KNOWN_INSERT_KINDS:
-                new_inserts.setdefault(kind, []).append(n)
-        voice_name = turn.get("narrationVoice") or turn.get("speaker")
-        if isinstance(voice_name, str) and voice_name and voice_name not in known_voices:
-            new_speakers.setdefault(voice_name, []).append(n)
-        for name in (turn.get("enter") or []) + (turn.get("exit") or []):
-            if isinstance(name, str) and name and name not in known_actors:
-                new_speakers.setdefault(name, []).append(n)
+        if not is_v2:
+            ex_ = turn.get("expression")
+            if isinstance(ex_, str) and existing_expr and ex_ not in existing_expr:
+                new_expr.setdefault(ex_, []).append(n)
+            ins = turn.get("insert")
+            if isinstance(ins, dict):
+                kind = ins.get("kind")
+                if kind and kind not in _KNOWN_INSERT_KINDS:
+                    new_inserts.setdefault(kind, []).append(n)
+            voice_name = turn.get("narrationVoice") or turn.get("speaker")
+            if isinstance(voice_name, str) and voice_name and voice_name not in known_voices:
+                new_speakers.setdefault(voice_name, []).append(n)
+            for name in (turn.get("enter") or []) + (turn.get("exit") or []):
+                if isinstance(name, str) and name and name not in known_actors:
+                    new_speakers.setdefault(name, []).append(n)
 
     proposals = data.get("_proposals") if isinstance(data.get("_proposals"), list) else []
     data.pop("audio", None)

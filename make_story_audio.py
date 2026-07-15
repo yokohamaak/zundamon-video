@@ -152,14 +152,25 @@ def normalize_spoken_text(text):
     return " ".join(str(text or "").split())
 
 
+def resolve_turn_voice_id(data, turn):
+    """v2では台本のspeaker個体IDを、個体定義のvoiceIdへ解決する。"""
+    if data.get("schemaVersion") != 2:
+        return turn.get("narrationVoice") or turn["speaker"]
+    instance_id = turn["speaker"]
+    instance = (data.get("instances") or {}).get(instance_id)
+    voice_id = instance.get("voiceId") if isinstance(instance, dict) else None
+    if not isinstance(voice_id, str) or not voice_id:
+        raise KeyError(f"話者個体のvoiceIdがありません: {instance_id}")
+    return voice_id
+
+
 def build_script_turns(data, voice_profiles):
     insert_hold = 2.5
     silent_read_rate = 0.12  # 音声なし話者の表示時間を文字数から見積もる目安秒数/字
     script = []
     for t in data["script"]:
         pause = t.get("pause")
-        narration_voice = t.get("narrationVoice")
-        speaker = narration_voice or t["speaker"]
+        speaker = resolve_turn_voice_id(data, t)
         bubble_text = (t.get("text") or "").strip()
         is_silent = speaker == SILENT_SPEAKER_NAME
         if t.get("insert") and not bubble_text and not pause:

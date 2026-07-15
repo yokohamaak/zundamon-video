@@ -394,6 +394,11 @@
     width: 22px; height: 22px;
     border-radius: 6px;
   }
+  .placement-marker-v2 {
+    width: 32px; height: 32px;
+    background: rgba(59,130,246,.94);
+    box-shadow: 0 0 0 4px rgba(255,255,255,.24);
+  }
   .placement-mini-card {
     margin-top: 14px;
     border-top: 1px solid var(--border);
@@ -477,6 +482,76 @@
     border: 2px solid rgba(17, 19, 24, 0.9);
     background: rgba(250, 204, 21, 0.96);
     cursor: nwse-resize;
+  }
+  .v2-camera-map {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #151924 center center / cover no-repeat;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+  }
+  .v2-camera-map::after {
+    content: "ステージ全体";
+    position: absolute;
+    left: 7px;
+    bottom: 6px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: rgba(8,10,15,.72);
+    color: rgba(255,255,255,.88);
+    font-size: 10px;
+    pointer-events: none;
+  }
+  .v2-camera-map-actor {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    max-width: 42%;
+    padding: 3px 6px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.84);
+    border-radius: 999px;
+    background: rgba(37,99,235,.9);
+    color: #fff;
+    font-size: 10px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .v2-camera-map-frame {
+    position: absolute;
+    border: 2px solid rgba(250,204,21,.98);
+    box-shadow: 0 0 0 9999px rgba(8,10,15,.36), 0 0 0 1px rgba(17,19,24,.72);
+    cursor: move;
+    touch-action: none;
+  }
+  .v2-camera-map-frame::before {
+    content: "手動構図";
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: rgba(17,19,24,.76);
+    color: #fff;
+    font-size: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .v2-camera-map-handle {
+    position: absolute;
+    right: -8px;
+    bottom: -8px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(17,19,24,.9);
+    border-radius: 5px;
+    background: rgba(250,204,21,.98);
+    cursor: nwse-resize;
+    touch-action: none;
   }
   .overlay-modal-backdrop {
     position: fixed;
@@ -1462,6 +1537,8 @@
         <input type="number" id="bgmRegionFadeIn" class="field-input" min="0" step="0.1" style="width:52px; flex-shrink:0;">
         <label style="font-size:12px; color:var(--text2); flex-shrink:0;">fadeOut</label>
         <input type="number" id="bgmRegionFadeOut" class="field-input" min="0" step="0.1" style="width:52px; flex-shrink:0;">
+        <button id="bgmRegionSplit" class="btn btn-secondary btn-sm" style="flex-shrink:0;">ここで分割</button>
+        <button id="bgmRegionCutEnd" class="btn btn-secondary btn-sm" style="flex-shrink:0;">ここで終了</button>
         <button id="bgmRegionDelete" class="btn btn-danger btn-sm" style="flex-shrink:0;">削除</button>
       </div>
     </div>
@@ -1578,6 +1655,105 @@
             </div>
           </div>
           <div class="basic-search-empty" id="basicSearchEmpty">該当する設定がありません</div>
+          <div id="v2StageControls" style="display:none; padding:12px; gap:12px; flex-direction:column;">
+            <div class="section-divider" style="margin-top:0">表示種別（v2）</div>
+            <div class="field-row">
+              <label class="field-label">表示種別</label>
+              <select class="field-select" id="fV2DisplayMode">
+                <option value="standard">通常表示</option>
+                <option value="whiteboard">ホワイトボード解説</option>
+                <option value="zunMeet">ZunMeet（ビデオ会議）</option>
+              </select>
+              <div class="field-help">特殊表示中も舞台の在席状態は維持され、通常表示へ戻ると復帰します。</div>
+            </div>
+            <div class="field-row">
+              <label class="field-label">話者</label>
+              <select class="field-select" id="fV2Speaker"></select>
+            </div>
+            <div class="field-row">
+              <label class="field-label">セリフ</label>
+              <textarea class="field-textarea" id="fV2Text"></textarea>
+            </div>
+            <div class="field-row">
+              <label class="field-label">シーン</label>
+              <select class="field-select" id="fV2Scene"></select>
+              <div class="field-help">シーンが変わると舞台上の人物はリセットされます。</div>
+            </div>
+            <div class="section-divider">個体管理</div>
+            <div class="field-help">同じ素材を複数の個体として追加できます。モブの画像・声そのものは「モブ」タブで管理します。</div>
+            <div id="v2InstanceRegistry" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
+              <select class="field-select" id="fV2NewInstanceRole"><option value="stage">画面に出す</option><option value="voiceOnly">声のみ</option></select>
+              <select class="field-select" id="fV2NewInstanceCharacter"></select>
+              <select class="field-select" id="fV2NewInstanceVoice"></select>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input class="field-input" id="fV2NewInstanceLabel" type="text" placeholder="表示名（任意）">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnV2AddInstance">＋ 個体を追加</button>
+            </div>
+            <div id="v2WhiteboardControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">ホワイトボード解説</div>
+              <div class="field-row">
+                <label class="field-label">解説役</label>
+                <select class="field-select" id="fV2WhiteboardPresenter"></select>
+                <div class="field-help">在席中の個体を選びます。選ばない場合は立ち絵を出しません。</div>
+              </div>
+              <div class="field-row"><label class="field-label">タイトル</label><input class="field-input" id="fV2WhiteboardTitle" type="text"></div>
+              <div class="field-row"><label class="field-label">テーマ</label><input class="field-input" id="fV2WhiteboardTheme" type="text"></div>
+              <div class="field-row"><label class="field-label">項目1</label><input class="field-input" id="fV2WhiteboardHeading0" type="text" placeholder="見出し"><textarea class="field-textarea" id="fV2WhiteboardBullets0" placeholder="箇条書き（1行ずつ）"></textarea></div>
+              <div class="field-row"><label class="field-label">項目2</label><input class="field-input" id="fV2WhiteboardHeading1" type="text" placeholder="見出し"><textarea class="field-textarea" id="fV2WhiteboardBullets1" placeholder="箇条書き（1行ずつ）"></textarea></div>
+              <div class="field-row"><label class="field-label">項目3</label><input class="field-input" id="fV2WhiteboardHeading2" type="text" placeholder="見出し"><textarea class="field-textarea" id="fV2WhiteboardBullets2" placeholder="箇条書き（1行ずつ）"></textarea></div>
+              <div class="field-row"><label class="field-label">結論</label><textarea class="field-textarea" id="fV2WhiteboardConclusion"></textarea></div>
+              <div class="field-row"><label class="field-label">レイアウト</label><select class="field-select" id="fV2WhiteboardLayout"><option value="default">標準</option><option value="compact">コンパクト</option></select></div>
+            </div>
+            <div id="v2ZunMeetControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">ZunMeet</div>
+              <div class="field-row"><label class="field-label">会議名</label><input class="field-input" id="fV2MeetRoom" type="text" placeholder="定例会議"></div>
+              <div class="field-row"><label class="field-label">レイアウト</label><select class="field-select" id="fV2MeetLayout"><option value="focus">話者を大きく</option><option value="grid">均等グリッド</option></select></div>
+              <div class="field-row"><label class="field-label">話者を大きく</label><select class="field-select" id="fV2MeetActiveSpeaker"></select></div>
+              <div id="v2MeetParticipants" style="display:flex; flex-direction:column; gap:8px;"></div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnV2MeetAddParticipant">＋ 参加者を追加</button>
+            </div>
+            <div class="section-divider">登場人物</div>
+            <div class="field-help">登場・退場はこのターンの明示イベントです。話者を選んでも自動では登場しません。</div>
+            <div id="v2InstanceActions" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div class="section-divider">在席中の状態</div>
+            <div id="v2PresentInstances" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <div class="section-divider">構図</div>
+            <div class="field-row">
+              <label class="field-label">構図指定</label>
+              <select class="field-select" id="fV2FramingMode">
+                <option value="inherit">前の構図を維持</option>
+                <option value="sceneDefault">シーン標準</option>
+                <option value="speaker">話者を主役にする</option>
+                <option value="slot">slotの構図</option>
+                <option value="manual">手動構図</option>
+              </select>
+            </div>
+            <div class="field-row" id="v2FramingSlotRow">
+              <label class="field-label">構図に使うslot</label>
+              <select class="field-select" id="fV2FramingSlot"></select>
+            </div>
+            <div class="field-row" id="v2ManualFrameRow">
+              <label class="field-label">手動構図</label>
+              <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
+                <input class="field-input" id="fV2FrameCx" type="number" step="0.01" placeholder="中心X">
+                <input class="field-input" id="fV2FrameCy" type="number" step="0.01" placeholder="中心Y">
+                <input class="field-input" id="fV2FrameWidth" type="number" step="0.01" min="0.1" placeholder="幅">
+              </div>
+              <div class="field-help">ステージマップの黄色い枠をドラッグして移動し、右下のハンドルで大きさを変えます。ここでの操作は構図だけを変え、下のカメラ演出には影響しません。</div>
+              <div class="v2-camera-map" id="v2ManualCameraMap" aria-label="手動構図のステージマップ"></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label">カメラ演出</label>
+              <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
+                <input class="field-input" id="fV2MotionZoom" type="number" step="0.01" placeholder="zoom">
+                <input class="field-input" id="fV2MotionPanX" type="number" step="0.01" placeholder="pan X">
+                <input class="field-input" id="fV2MotionPanY" type="number" step="0.01" placeholder="pan Y">
+              </div>
+              <div class="field-help">構図に一時的に重ねる演出です。人物の位置や在席は変えません。</div>
+            </div>
+          </div>
           <div class="section-divider">表示種別</div>
           <div class="field-row">
             <label class="field-label">表示種別</label>
@@ -3808,6 +3984,7 @@ function _overlayTimelineItems() {
 function _overlayLayoutRows() {
   const items = _overlayTimelineItems();
   const rows = [];
+  const yOverlay = _bgmLaneBaseY() + Math.max(24, _bgmLayoutRows().length * 18 + 6) + 4;
   for (const item of items) {
     let rowIdx = rows.findIndex((row) => item.start >= row.lastEnd - 1e-6);
     if (rowIdx < 0) {
@@ -3818,7 +3995,7 @@ function _overlayLayoutRows() {
     row.items.push({
       ...item,
       row: rowIdx,
-      y: 69 + rowIdx * 18,
+      y: yOverlay + rowIdx * 18,
     });
     row.lastEnd = item.end;
   }
@@ -3827,7 +4004,8 @@ function _overlayLayoutRows() {
 
 function _overlayLaneY(canvas) {
   const overlayRows = _overlayLayoutRows();
-  const yOverlay = 13 + 24 + 4 + 24 + 4;
+  const bgmLane = _bgmLaneY(canvas);
+  const yOverlay = bgmLane.yBgm + bgmLane.laneH + 4;
   const laneH = Math.max(18, overlayRows.length * 18 + 6);
   return { yOverlay, laneH, rows: overlayRows };
 }
@@ -3861,13 +4039,14 @@ function drawScriptTimeline() {
   const zoom = zsel ? (parseFloat(zsel.value) || 1) : 1;
   const baseW = (scrollEl ? scrollEl.clientWidth : canvas.clientWidth) || 600;
   const W = Math.max(40, Math.round(baseW * zoom));
-  const overlayRows = _overlayLayoutRows();
-  const overlayLaneH = Math.max(18, overlayRows.length * 18 + 6);
   const PAD = 13;
   const talkH = 24;
-  const bgmH = 24;
   const gap = 4;
-  const H = PAD + talkH + gap + bgmH + gap + overlayLaneH + 10;
+  const bgmRows = _bgmLayoutRows();
+  const bgmLaneH = Math.max(24, bgmRows.length * 18 + 6);
+  const overlayRows = _overlayLayoutRows();
+  const overlayLaneH = Math.max(18, overlayRows.length * 18 + 6);
+  const H = PAD + talkH + gap + bgmLaneH + gap + overlayLaneH + 10;
   if (canvas.height !== H) canvas.height = H;
   canvas.width = W;
   canvas.style.width = W + "px";
@@ -3881,7 +4060,7 @@ function drawScriptTimeline() {
   const xOf = (sec) => Math.round((sec / total) * W);
   const yTalk = PAD;
   const yBgm = yTalk + talkH + gap;
-  const yOverlay = yBgm + bgmH + gap;
+  const yOverlay = yBgm + bgmLaneH + gap;
 
   // セリフ レーン
   for (let i = 0; i < turns.length; i++) {
@@ -3912,31 +4091,30 @@ function drawScriptTimeline() {
     }
   }
   // BGM レーン
-  const regions = _bgmRegions();
   const BGM_COLORS = ["#5b8dee", "#4ade80", "#fbbf24", "#a78bfa", "#38bdf8"];
   // storyData.bgm の時間ベース区間を描画（インデックス対応で選択ハイライト）
   const directBgm = (storyData && storyData.bgm) ? storyData.bgm : [];
   const isTimeBased = directBgm.some(o => o.file && typeof o.start === "number" && typeof o.end === "number" && o.end > o.start);
   if (isTimeBased) {
-    directBgm.forEach((r, i) => {
-      if (!r.file || typeof r.start !== "number" || typeof r.end !== "number" || r.end <= r.start) return;
+    bgmRows.forEach((row) => row.items.forEach((r) => {
+      const i = r._idx;
       const x1 = xOf(r.start), x2 = xOf(r.end);
       const isSel = (i === _selectedBgmIdx);
       ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
       ctx.globalAlpha = isSel ? 0.85 : 0.6;
-      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), bgmH);
+      ctx.fillRect(x1, r.y, Math.max(2, x2 - x1 - 1), 14);
       ctx.globalAlpha = 1;
       if (isSel) {
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(x1 + 0.75, yBgm + 0.75, Math.max(2, x2 - x1 - 2), bgmH - 1.5);
+        ctx.strokeRect(x1 + 0.75, r.y + 0.75, Math.max(2, x2 - x1 - 2), 12.5);
       }
       if (x2 - x1 > 28) {
         ctx.fillStyle = "#0b0d12";
         ctx.font = "10px system-ui, sans-serif";
-        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + bgmH - 6);
+        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, r.y + 10);
       }
-    });
+    }));
     // ドラッグ中の新規区間プレビュー
     if (_bgmDrag && _bgmDrag.op === "create" && _bgmDragThreshold) {
       const d = _bgmDrag;
@@ -3944,21 +4122,21 @@ function drawScriptTimeline() {
       const x1 = xOf(s), x2 = xOf(e2);
       ctx.fillStyle = "#ffffff";
       ctx.globalAlpha = 0.25;
-      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1), bgmH);
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1), 14);
       ctx.globalAlpha = 1;
     }
   } else {
     // フォールバック(シーン連動): 読み取り専用表示
-    regions.forEach((r, i) => {
+    _bgmRegions().forEach((r, i) => {
       const x1 = xOf(r.start), x2 = xOf(r.end);
       ctx.fillStyle = BGM_COLORS[i % BGM_COLORS.length];
       ctx.globalAlpha = 0.4;
-      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), bgmH);
+      ctx.fillRect(x1, yBgm, Math.max(2, x2 - x1 - 1), 14);
       ctx.globalAlpha = 1;
       if (x2 - x1 > 28) {
         ctx.fillStyle = "#8892aa";
         ctx.font = "10px system-ui, sans-serif";
-        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + bgmH - 6);
+        ctx.fillText(r.file.replace(/^bgm\//, ""), x1 + 4, yBgm + 10);
       }
     });
   }
@@ -4061,11 +4239,9 @@ function _canvasX(canvas, e) {
 
 // BGMレーンのY範囲
 function _bgmLaneY(canvas) {
-  const PAD = 13;
-  const talkH = 24;
-  const gap = 4;
-  const yBgm = PAD + talkH + gap;
-  return { yBgm, laneH: 24 };
+  const rows = _bgmLayoutRows();
+  const yBgm = _bgmLaneBaseY();
+  return { yBgm, laneH: Math.max(24, rows.length * 18 + 6), rows };
 }
 
 // storyData.bgm の時間ベース区間をインデックスつきで取得
@@ -4083,21 +4259,55 @@ function _fallbackBgmRegions() {
     .map((r, i) => ({ ...r, _fallbackIdx: i }));
 }
 
+function _bgmLayoutRows() {
+  const rows = [];
+  const items = _timeBgmRegions()
+    .slice()
+    .sort((a, b) => {
+      if (a.start !== b.start) return a.start - b.start;
+      if (a.end !== b.end) return a.end - b.end;
+      return a._idx - b._idx;
+    });
+  for (const item of items) {
+    let rowIdx = rows.findIndex((row) => item.start >= row.lastEnd - 1e-6);
+    if (rowIdx < 0) {
+      rowIdx = rows.length;
+      rows.push({ lastEnd: -Infinity, items: [] });
+    }
+    const row = rows[rowIdx];
+    row.items.push({
+      ...item,
+      row: rowIdx,
+      y: _bgmLaneBaseY() + rowIdx * 18,
+    });
+    row.lastEnd = item.end;
+  }
+  return rows;
+}
+
+function _bgmLaneBaseY() {
+  const PAD = 13;
+  const talkH = 24;
+  const gap = 4;
+  return PAD + talkH + gap;
+}
+
 // ヒットテスト: BGMレーン上のどこをクリックしたか
 function _bgmHitTest(canvas, cx, cy) {
-  const { yBgm, laneH } = _bgmLaneY(canvas);
+  const { yBgm, laneH, rows } = _bgmLaneY(canvas);
   if (cy < yBgm || cy > yBgm + laneH) return null; // BGMレーン外
   const t = _timelineXtoT(canvas, cx);
-  const regions = _timeBgmRegions();
-  // 後ろから検索(上に重なった区間が優先)
-  for (let i = regions.length - 1; i >= 0; i--) {
-    const r = regions[i];
-    const x1 = _timelineTtoX(canvas, r.start);
-    const x2 = _timelineTtoX(canvas, r.end);
-    if (cx >= x1 - EDGE_PX && cx <= x2 + EDGE_PX) {
-      if (cx <= x1 + EDGE_PX) return { type: "resizeL", idx: r._idx, region: r };
-      if (cx >= x2 - EDGE_PX) return { type: "resizeR", idx: r._idx, region: r };
-      return { type: "move", idx: r._idx, region: r };
+  for (let rIdx = rows.length - 1; rIdx >= 0; rIdx--) {
+    const row = rows[rIdx];
+    for (let i = row.items.length - 1; i >= 0; i--) {
+      const r = row.items[i];
+      const x1 = _timelineTtoX(canvas, r.start);
+      const x2 = _timelineTtoX(canvas, r.end);
+      if (cy >= r.y && cy <= r.y + 14 && cx >= x1 - EDGE_PX && cx <= x2 + EDGE_PX) {
+        if (cx <= x1 + EDGE_PX) return { type: "resizeL", idx: r._idx, region: r };
+        if (cx >= x2 - EDGE_PX) return { type: "resizeR", idx: r._idx, region: r };
+        return { type: "move", idx: r._idx, region: r };
+      }
     }
   }
   const fallbackRegions = _fallbackBgmRegions();
@@ -4227,6 +4437,46 @@ function _collectBgmRegionEditor() {
   if (fadeInInp && fadeInInp.value !== "") r.fadeIn = parseFloat(fadeInInp.value) || 0;
   const fadeOutInp = document.getElementById("bgmRegionFadeOut");
   if (fadeOutInp && fadeOutInp.value !== "") r.fadeOut = parseFloat(fadeOutInp.value) || 0;
+  markDirty();
+  notifyPlayerUpdate();
+  drawScriptTimeline();
+  _updateBgmRegionEditor();
+}
+
+function selectedBgmRegion() {
+  const idx = _selectedBgmIdx;
+  if (!storyData || !storyData.bgm || idx < 0 || idx >= storyData.bgm.length) return null;
+  return storyData.bgm[idx];
+}
+
+function splitSelectedBgmAtPlayhead() {
+  const r = selectedBgmRegion();
+  if (!r) return;
+  const t = _snapT(_playheadTime);
+  if (!(t > r.start + MIN_LEN && t < r.end - MIN_LEN)) {
+    alert("再生ヘッドを、選択中BGM区間の内側に置いてください。端に近すぎる位置では分割できません。");
+    return;
+  }
+  const oldEnd = r.end;
+  const next = { ...r, start: t, end: oldEnd };
+  r.end = t;
+  storyData.bgm.splice(_selectedBgmIdx + 1, 0, next);
+  _selectedBgmIdx += 1;
+  markDirty();
+  notifyPlayerUpdate();
+  drawScriptTimeline();
+  _updateBgmRegionEditor();
+}
+
+function cutSelectedBgmEndAtPlayhead() {
+  const r = selectedBgmRegion();
+  if (!r) return;
+  const t = _snapT(_playheadTime);
+  if (!(t > r.start + MIN_LEN && t < r.end)) {
+    alert("再生ヘッドを、選択中BGM区間の内側に置いてください。端に近すぎる位置では終了位置にできません。");
+    return;
+  }
+  r.end = t;
   markDirty();
   notifyPlayerUpdate();
   drawScriptTimeline();
@@ -4459,6 +4709,10 @@ function _setupBgmRegionEditorEvents() {
   if (fadeInInp) fadeInInp.addEventListener("change", _collectBgmRegionEditor);
   const fadeOutInp = document.getElementById("bgmRegionFadeOut");
   if (fadeOutInp) fadeOutInp.addEventListener("change", _collectBgmRegionEditor);
+  const splitBtn = document.getElementById("bgmRegionSplit");
+  if (splitBtn) splitBtn.addEventListener("click", splitSelectedBgmAtPlayhead);
+  const cutEndBtn = document.getElementById("bgmRegionCutEnd");
+  if (cutEndBtn) cutEndBtn.addEventListener("click", cutSelectedBgmEndAtPlayhead);
   const playBtn = document.getElementById("bgmRegionPlay");
   if (playBtn) playBtn.addEventListener("click", () => {
     const f = document.getElementById("bgmRegionFile");
@@ -4824,9 +5078,6 @@ function setupScriptTimeline() {
       if (!_bgmDragMoved) {
         _selectedBgmIdx = d.idx;
         _selectedOverlayId = null;
-        const mid = (d.origStart + d.origEnd) / 2;
-        if (window.storyPlayer && playerReady) window.storyPlayer.seekToTime(mid);
-        _playheadTime = mid;
         ensureAudioAssets().then(() => _updateBgmRegionEditor());
         renderOverlayEditor();
         renderOverlayEditLayer();
@@ -4863,6 +5114,8 @@ function setupScriptTimeline() {
 const KNOWN_CHARS = ["zundamon", "metan"];
 let _placementDrag = null; // { id, startX, startY, origX, origY, origScreenX, origScreenY, pointerLock, dragTf, draftStage }
 let _manualCameraDrag = null; // { mode, startX, startY, frame, left, top, wrapId }
+let _v2ManualCameraDrag = null; // { mode, startX, startY, frame, left, top }
+let _v2ManualPlacementEdit = null; // { turnIndex, instanceId }
 // 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
 const ZOOM_TARGET_ID = "__zoomTarget__";
 const SPARKLE_POS_ID = "__sparklePos__";
@@ -5465,6 +5718,10 @@ function renderPlacementEditLayer() {
   const wrap = document.getElementById("playerWrap");
   if (!layer || !wrap) return;
   layer.innerHTML = "";
+  if (isV2StoryEditor()) {
+    renderV2ManualPlacementMarker(layer, wrap);
+    return;
+  }
   const tabBtn = document.querySelector('.tab-btn[data-tab="placement"]');
   if (!tabBtn || !tabBtn.classList.contains("active")) {
     renderPlacementMiniPreview();
@@ -7536,6 +7793,853 @@ function renderBasicSummary(turn) {
   }
 }
 
+function isV2StoryEditor() {
+  return storyData?.schemaVersion === 2 && !!storyData.instances;
+}
+
+function v2StageEvent(turn) {
+  if (!turn.stage || typeof turn.stage !== "object") turn.stage = {};
+  return turn.stage;
+}
+
+function v2PruneStageEvent(turn) {
+  const stage = turn.stage;
+  if (!stage) return;
+  if (stage.enter && stage.enter.length === 0) delete stage.enter;
+  if (stage.exit && stage.exit.length === 0) delete stage.exit;
+  if (stage.reset && stage.reset.length === 0) delete stage.reset;
+  if (stage.update) {
+    for (const [id, patch] of Object.entries(stage.update)) {
+      if (!patch || Object.keys(patch).length === 0) delete stage.update[id];
+    }
+    if (Object.keys(stage.update).length === 0) delete stage.update;
+  }
+  if (Object.keys(stage).length === 0) delete turn.stage;
+}
+
+function v2SlotsForScene(sceneId) {
+  const slots = sceneDefs?.scenes?.[sceneId]?.layouts?.standard?.slots;
+  return slots && typeof slots === "object" ? slots : {};
+}
+
+function v2Clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function v2StateAt(index, includeCurrent = true) {
+  const state = {};
+  let scene = null;
+  const last = includeCurrent ? index : index - 1;
+  for (let i = 0; i <= last; i += 1) {
+    const turn = storyData.script[i];
+    if (turn.scene !== scene) {
+      scene = turn.scene;
+      for (const id of Object.keys(state)) delete state[id];
+    }
+    const stage = turn.stage || {};
+    for (const item of stage.enter || []) {
+      const definition = storyData.instances[item.instanceId];
+      if (!definition) continue;
+      state[item.instanceId] = { instanceId: item.instanceId, definition, placement: v2Clone(item.placement) };
+    }
+    for (const id of stage.exit || []) delete state[id];
+    for (const id of stage.reset || []) {
+      const current = state[id];
+      if (current) state[id] = { instanceId: id, definition: current.definition, placement: current.placement };
+    }
+    for (const [id, patch] of Object.entries(stage.update || {})) {
+      const current = state[id];
+      if (!current) continue;
+      state[id] = { ...current, ...v2Clone(patch), placement: patch.placement ? v2Clone(patch.placement) : current.placement };
+    }
+  }
+  return state;
+}
+
+function v2DefaultPlacement(sceneId) {
+  const slots = v2SlotsForScene(sceneId);
+  const slotId = ["speakerLeft", "speakerRight", "center", ...Object.keys(slots)].find((id, pos, all) => !!slots[id] && all.indexOf(id) === pos);
+  return { mode: "slot", slotId: slotId || "center" };
+}
+
+function v2SetEditorVisibility() {
+  const v2 = isV2StoryEditor();
+  const panel = document.getElementById("tabBasic");
+  const controls = document.getElementById("v2StageControls");
+  if (!panel || !controls) return;
+  for (const child of Array.from(panel.children)) {
+    if (child === controls) continue;
+    child.style.display = v2 ? "none" : "";
+  }
+  controls.style.display = v2 ? "flex" : "none";
+  const placementButton = document.getElementById("tabBtnPlacement");
+  if (placementButton) placementButton.style.display = v2 ? "none" : "";
+  if (v2) {
+    document.querySelectorAll(".tab-btn").forEach((button) => button.classList.toggle("active", button.dataset.tab === "basic"));
+    document.querySelectorAll(".tab-panel").forEach((tab) => tab.classList.toggle("active", tab.id === "tabBasic"));
+  }
+}
+
+function v2Option(select, value, label) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = label;
+  select.appendChild(option);
+}
+
+let _v2InstanceAssetsLoading = false;
+
+function v2CharacterIds() {
+  return [...new Set([...KNOWN_CHARS, ...Object.keys(mobsMap || {})])].sort(compareUiText);
+}
+
+function v2VoiceIds() {
+  return [...new Set([
+    ...Object.keys(voiceProfiles || {}),
+    ...Object.values(storyData.instances || {}).map((instance) => instance.voiceId).filter(Boolean),
+  ])].sort(compareUiText);
+}
+
+function v2ExpressionNamesForInstance(definition) {
+  const characterId = definition?.characterId;
+  if (!characterId) return [];
+  if (KNOWN_CHARS.includes(characterId)) return sortedStrings(meta?.expressions || []);
+  return sortedStrings(Object.entries(mobsMap?.[characterId]?.images || {})
+    .filter(([, pair]) => pair && pair.closed && pair.open)
+    .map(([name]) => name));
+}
+
+function v2InstanceIsReferenced(instanceId) {
+  return storyData.script.some((turn) => {
+    if (turn.speaker === instanceId || turn.displayMode?.presenterId === instanceId) return true;
+    const meeting = turn.displayMode?.kind === "zunMeet" ? turn.displayMode.zunMeet : null;
+    if (meeting?.activeSpeakerId === instanceId || meeting?.participants?.some((participant) => participant.instanceId === instanceId)) return true;
+    const stage = turn.stage || {};
+    return (stage.enter || []).some((item) => item.instanceId === instanceId)
+      || (stage.exit || []).includes(instanceId)
+      || (stage.reset || []).includes(instanceId)
+      || Object.prototype.hasOwnProperty.call(stage.update || {}, instanceId);
+  });
+}
+
+function v2UniqueInstanceId(characterId) {
+  const base = String(characterId || "voice").replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "instance";
+  let candidate = base;
+  let number = 2;
+  while (storyData.instances[candidate]) candidate = `${base}-${number++}`;
+  return candidate;
+}
+
+function v2UpdateNewInstanceFields() {
+  const role = document.getElementById("fV2NewInstanceRole");
+  const character = document.getElementById("fV2NewInstanceCharacter");
+  if (!role || !character) return;
+  character.disabled = role.value === "voiceOnly";
+}
+
+function renderV2InstanceRegistry() {
+  const registry = document.getElementById("v2InstanceRegistry");
+  const characterSelect = document.getElementById("fV2NewInstanceCharacter");
+  const voiceSelect = document.getElementById("fV2NewInstanceVoice");
+  if (!registry || !characterSelect || !voiceSelect) return;
+  const characterIds = v2CharacterIds();
+  const voiceIds = v2VoiceIds();
+  registry.innerHTML = "";
+  for (const [instanceId, definition] of Object.entries(storyData.instances || {})) {
+    const card = document.createElement("div"); card.style.cssText = "display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto; gap:8px; align-items:center; padding:8px; border:1px solid var(--border); border-radius:8px;";
+    const title = document.createElement("span"); title.style.cssText = "font-size:12px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"; title.textContent = `${instanceId}（${definition.role === "voiceOnly" ? "声のみ" : "画面"}）`;
+    const label = document.createElement("input"); label.type = "text"; label.className = "field-input"; label.placeholder = "表示名"; label.value = definition.label || "";
+    const voice = document.createElement("select"); voice.className = "field-select";
+    for (const voiceId of voiceIds) v2Option(voice, voiceId, voiceId);
+    if (!voice.querySelector(`option[value="${CSS.escape(definition.voiceId || "")}"]`)) v2Option(voice, definition.voiceId || "", definition.voiceId || "（voiceId未設定）");
+    voice.value = definition.voiceId || "";
+    const character = definition.role === "voiceOnly" ? null : document.createElement("select");
+    if (character) {
+      character.className = "field-select";
+      for (const characterId of characterIds) v2Option(character, characterId, characterId);
+      if (!character.querySelector(`option[value="${CSS.escape(definition.characterId || "")}"]`)) v2Option(character, definition.characterId || "", definition.characterId || "（素材未設定）");
+      character.value = definition.characterId || "";
+    }
+    const update = () => {
+      definition.label = label.value.trim() || undefined;
+      definition.voiceId = voice.value;
+      if (character) definition.characterId = character.value;
+      v2Commit(storyData.script[selectedIdx]);
+      renderV2Detail(storyData.script[selectedIdx]);
+    };
+    label.addEventListener("change", update); voice.addEventListener("change", update); character?.addEventListener("change", update);
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "btn btn-secondary btn-sm"; remove.textContent = "削除";
+    const referenced = v2InstanceIsReferenced(instanceId);
+    remove.disabled = referenced; remove.title = referenced ? "台本内で参照されている個体は削除できません" : "";
+    remove.addEventListener("click", () => {
+      if (v2InstanceIsReferenced(instanceId)) return;
+      delete storyData.instances[instanceId];
+      v2Commit(storyData.script[selectedIdx]);
+      renderV2Detail(storyData.script[selectedIdx]);
+    });
+    card.append(title, label, character || voice, character ? voice : remove);
+    if (character) card.appendChild(remove);
+    registry.appendChild(card);
+  }
+  characterSelect.innerHTML = "";
+  for (const characterId of characterIds) v2Option(characterSelect, characterId, characterId);
+  voiceSelect.innerHTML = "";
+  for (const voiceId of voiceIds) v2Option(voiceSelect, voiceId, voiceId);
+  v2UpdateNewInstanceFields();
+  if (!mobsLoaded && !_v2InstanceAssetsLoading) {
+    _v2InstanceAssetsLoading = true;
+    loadMobsPanel().finally(() => {
+      _v2InstanceAssetsLoading = false;
+      if (isV2StoryEditor() && selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
+    });
+  }
+}
+
+function v2AddInstance() {
+  if (!isV2StoryEditor() || selectedIdx < 0) return;
+  const role = document.getElementById("fV2NewInstanceRole").value;
+  const characterId = document.getElementById("fV2NewInstanceCharacter").value;
+  const voiceId = document.getElementById("fV2NewInstanceVoice").value;
+  const label = document.getElementById("fV2NewInstanceLabel").value.trim();
+  if (!voiceId || (role !== "voiceOnly" && !characterId)) return;
+  const instanceId = v2UniqueInstanceId(role === "voiceOnly" ? "voice" : characterId);
+  storyData.instances[instanceId] = {
+    voiceId,
+    ...(role === "voiceOnly" ? { role: "voiceOnly" } : { characterId }),
+    ...(label ? { label } : {}),
+  };
+  document.getElementById("fV2NewInstanceLabel").value = "";
+  v2Commit(storyData.script[selectedIdx]);
+  renderV2Detail(storyData.script[selectedIdx]);
+}
+
+function v2Commit(turn, audioChanged = false) {
+  v2PruneStageEvent(turn);
+  markDirty();
+  if (audioChanged) markAudioDirty();
+  renderList();
+  drawScriptTimeline();
+  notifyPlayerUpdate();
+}
+
+function v2SetPlacement(turn, instanceId, placement) {
+  const stage = v2StageEvent(turn);
+  const entering = (stage.enter || []).find((item) => item.instanceId === instanceId);
+  if (entering) entering.placement = placement;
+  else {
+    if (!stage.update) stage.update = {};
+    if (!stage.update[instanceId]) stage.update[instanceId] = {};
+    stage.update[instanceId].placement = placement;
+  }
+}
+
+function v2PlacementOriginForEditor(placement, sceneId) {
+  if (placement?.mode === "manual") return placement.origin;
+  const slot = v2SlotsForScene(sceneId)[placement?.slotId];
+  if (!slot?.origin) return null;
+  return {
+    x: slot.origin.x + (placement.offset?.x ?? 0),
+    y: slot.origin.y + (placement.offset?.y ?? 0),
+  };
+}
+
+function v2PlacementScaleForEditor(placement, sceneId) {
+  if (placement?.mode === "manual") return placement.scale ?? 1;
+  return v2SlotsForScene(sceneId)[placement?.slotId]?.scale ?? 1;
+}
+
+function v2PlacementZIndexForEditor(placement, sceneId, instance) {
+  if (instance?.zIndex != null) return instance.zIndex;
+  if (placement?.mode === "manual") return placement.zIndex ?? 0;
+  return v2SlotsForScene(sceneId)[placement?.slotId]?.zIndex ?? 0;
+}
+
+// 描画素材の中心を掴む。保存するorigin（足元）とは明確に分離する。
+function v2BodyCenterOffset(instance, placement, sceneId) {
+  const scale = v2PlacementScaleForEditor(placement, sceneId);
+  const isMainCharacter = KNOWN_CHARS.includes(instance?.definition?.characterId);
+  return (isMainCharacter ? (445 / 1080 / 2) : (760 / 1080 / 2)) * scale;
+}
+
+function v2FramingAt(index) {
+  let sceneId = null;
+  let framing = { mode: "sceneDefault" };
+  for (let i = 0; i <= index; i += 1) {
+    const turn = storyData.script[i];
+    if (turn.scene !== sceneId) {
+      sceneId = turn.scene;
+      framing = { mode: "sceneDefault" };
+    }
+    if (turn.stage?.framing) framing = turn.stage.framing;
+  }
+  return framing;
+}
+
+function v2CameraFrameForEditor(index, state) {
+  const turn = storyData.script[index];
+  const scene = sceneDefs?.scenes?.[turn.scene];
+  if (!scene) return null;
+  const presets = scene.cameraPresets || {};
+  const framing = v2FramingAt(index);
+  if (framing.mode === "manual") return framing.frame;
+  if (framing.mode === "sceneDefault") return presets.default || null;
+  const slotId = framing.mode === "slot"
+    ? framing.slotId
+    : state[turn.speaker]?.placement?.mode === "slot"
+      ? state[turn.speaker].placement.slotId
+      : null;
+  const presetId = slotId ? v2SlotsForScene(turn.scene)[slotId]?.cameraPresetId : null;
+  return (presetId ? presets[presetId] : null) || presets.default || null;
+}
+
+function v2PreviewTransform(rect, index, state) {
+  const frame = v2CameraFrameForEditor(index, state);
+  if (!frame) return { tx: 0, ty: 0, s: 1 };
+  const motion = storyData.script[index].stage?.cameraMotion;
+  const width = frame.width / Math.max(0.2, 1 + (motion?.zoom ?? 0));
+  const cx = frame.cx + (motion?.pan?.x ?? 0);
+  const cy = frame.cy + (motion?.pan?.y ?? 0);
+  const s = Math.max(1, 1 / width);
+  return {
+    tx: Math.min(0, Math.max(rect.width * (1 - s), rect.width / 2 - cx * rect.width * s)),
+    ty: Math.min(0, Math.max(rect.height * (1 - s), rect.height / 2 - cy * rect.height * s)),
+    s,
+  };
+}
+
+function v2BeginManualPlacementDrag(e, instanceId) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!isV2StoryEditor() || selectedIdx < 0) return;
+  const state = v2StateAt(selectedIdx, true);
+  const instance = state[instanceId];
+  const origin = instance && v2PlacementOriginForEditor(instance.placement, storyData.script[selectedIdx].scene);
+  const wrap = document.getElementById("playerWrap");
+  const rect = wrap?.getBoundingClientRect();
+  if (!instance || !origin || !rect) return;
+  const grabOffsetY = v2BodyCenterOffset(instance, instance.placement, storyData.script[selectedIdx].scene);
+  const grab = { x: origin.x, y: clampJS(origin.y - grabOffsetY, 0, 1) };
+  const dragTf = v2PreviewTransform(rect, selectedIdx, state);
+  _placementDrag = {
+    id: instanceId,
+    v2InstanceId: instanceId,
+    startX: e.clientX,
+    startY: e.clientY,
+    wrapId: "playerWrap",
+    origX: origin.x,
+    origY: origin.y,
+    origScreenX: grab.x * rect.width * dragTf.s + dragTf.tx,
+    origScreenY: grab.y * rect.height * dragTf.s + dragTf.ty,
+    originToGrabY: grabOffsetY,
+    dragTf,
+    draftStage: origin,
+  };
+}
+
+function renderV2ManualPlacementMarker(layer, wrap) {
+  if (!isV2StoryEditor() || !_v2ManualPlacementEdit || _v2ManualPlacementEdit.turnIndex !== selectedIdx) return;
+  const turn = storyData.script[selectedIdx];
+  if (turn.displayMode?.kind && turn.displayMode.kind !== "standard") return;
+  const state = v2StateAt(selectedIdx, true);
+  const instanceId = _v2ManualPlacementEdit.instanceId;
+  const instance = state[instanceId];
+  const origin = _placementDrag?.v2InstanceId === instanceId && _placementDrag.draftStage
+    ? _placementDrag.draftStage
+    : instance && v2PlacementOriginForEditor(instance.placement, turn.scene);
+  const rect = wrap.getBoundingClientRect();
+  if (!instance || !origin || !rect.width || !rect.height) return;
+  const grab = {
+    x: origin.x,
+    y: clampJS(origin.y - v2BodyCenterOffset(instance, instance.placement, turn.scene), 0, 1),
+  };
+  const tf = v2PreviewTransform(rect, selectedIdx, state);
+  const marker = document.createElement("div");
+  marker.className = "placement-marker placement-marker-v2";
+  marker.style.left = (grab.x * rect.width * tf.s + tf.tx) + "px";
+  marker.style.top = (grab.y * rect.height * tf.s + tf.ty) + "px";
+  const label = document.createElement("div");
+  label.className = "placement-marker-label";
+  label.textContent = `${instance.definition.label || instanceId}（身体中央）`;
+  marker.appendChild(label);
+  marker.addEventListener("pointerdown", (e) => v2BeginManualPlacementDrag(e, instanceId));
+  layer.appendChild(marker);
+}
+
+function v2StartManualPlacement(turn, instanceId) {
+  const state = v2StateAt(selectedIdx, true);
+  const instance = state[instanceId];
+  const origin = instance && v2PlacementOriginForEditor(instance.placement, turn.scene);
+  if (!instance || !origin) return;
+  v2SetPlacement(turn, instanceId, {
+    mode: "manual",
+    origin,
+    scale: v2PlacementScaleForEditor(instance.placement, turn.scene),
+    zIndex: v2PlacementZIndexForEditor(instance.placement, turn.scene, instance),
+  });
+  _v2ManualPlacementEdit = { turnIndex: selectedIdx, instanceId };
+  v2Commit(turn);
+  renderV2Detail(turn);
+  renderPlacementEditLayer();
+}
+
+function v2ReturnToSlotPlacement(turn, instanceId) {
+  v2SetPlacement(turn, instanceId, v2DefaultPlacement(turn.scene));
+  if (_v2ManualPlacementEdit?.turnIndex === selectedIdx && _v2ManualPlacementEdit.instanceId === instanceId) _v2ManualPlacementEdit = null;
+  v2Commit(turn);
+  renderV2Detail(turn);
+  renderPlacementEditLayer();
+}
+
+function v2SetPatch(turn, instanceId, key, value) {
+  const stage = v2StageEvent(turn);
+  if (!stage.update) stage.update = {};
+  if (!stage.update[instanceId]) stage.update[instanceId] = {};
+  if (value === "" || value == null) delete stage.update[instanceId][key];
+  else stage.update[instanceId][key] = value;
+}
+
+function v2TogglePresence(instanceId) {
+  const turn = storyData.script[selectedIdx];
+  const before = v2StateAt(selectedIdx, false);
+  const stage = v2StageEvent(turn);
+  const enterIndex = (stage.enter || []).findIndex((item) => item.instanceId === instanceId);
+  const exitIndex = (stage.exit || []).indexOf(instanceId);
+  if (enterIndex >= 0) {
+    stage.enter.splice(enterIndex, 1);
+    if (stage.update) delete stage.update[instanceId];
+  } else if (exitIndex >= 0) {
+    stage.exit.splice(exitIndex, 1);
+  } else if (before[instanceId]) {
+    if (!stage.exit) stage.exit = [];
+    stage.exit.push(instanceId);
+    if (stage.update) delete stage.update[instanceId];
+  } else {
+    const definition = storyData.instances[instanceId];
+    if (definition?.role === "voiceOnly") return;
+    if (!stage.enter) stage.enter = [];
+    stage.enter.push({ instanceId, placement: v2DefaultPlacement(turn.scene) });
+  }
+  v2Commit(turn);
+  renderV2Detail(turn);
+}
+
+function v2UpdateFramingFields() {
+  const mode = document.getElementById("fV2FramingMode").value;
+  document.getElementById("v2FramingSlotRow").style.display = mode === "slot" ? "" : "none";
+  document.getElementById("v2ManualFrameRow").style.display = mode === "manual" ? "" : "none";
+}
+
+function v2NormalizeManualFrame(frame) {
+  const width = clampJS(typeof frame?.width === "number" ? frame.width : 1, 0.1, 1);
+  return {
+    cx: clampJS(typeof frame?.cx === "number" ? frame.cx : 0.5, width / 2, 1 - width / 2),
+    cy: clampJS(typeof frame?.cy === "number" ? frame.cy : 0.5, width / 2, 1 - width / 2),
+    width,
+  };
+}
+
+function v2ManualFrameForEditor(turn) {
+  if (turn.stage?.framing?.mode === "manual") return v2NormalizeManualFrame(turn.stage.framing.frame);
+  const state = v2StateAt(selectedIdx, true);
+  return v2NormalizeManualFrame(v2CameraFrameForEditor(selectedIdx, state));
+}
+
+function v2SetManualCameraFrame(turn, frame) {
+  v2StageEvent(turn).framing = { mode: "manual", frame: v2NormalizeManualFrame(frame) };
+}
+
+function v2SyncManualFrameInputs(frame) {
+  document.getElementById("fV2FrameCx").value = frame.cx;
+  document.getElementById("fV2FrameCy").value = frame.cy;
+  document.getElementById("fV2FrameWidth").value = frame.width;
+}
+
+function renderV2ManualCameraMap(turn) {
+  const map = document.getElementById("v2ManualCameraMap");
+  if (!map) return;
+  map.innerHTML = "";
+  if (document.getElementById("fV2FramingMode").value !== "manual") return;
+  const scene = sceneDefs?.scenes?.[turn.scene];
+  map.style.backgroundImage = scene?.bg ? `url(/preview-assets/${encodePathSegsJS(scene.bg)})` : "none";
+  const state = v2StateAt(selectedIdx, true);
+  for (const [instanceId, instance] of Object.entries(state)) {
+    const origin = v2PlacementOriginForEditor(instance.placement, turn.scene);
+    if (!origin) continue;
+    const actor = document.createElement("div");
+    actor.className = "v2-camera-map-actor";
+    actor.textContent = instance.definition.label || instanceId;
+    actor.style.left = `${clampJS(origin.x, 0, 1) * 100}%`;
+    actor.style.top = `${clampJS(origin.y, 0, 1) * 100}%`;
+    map.appendChild(actor);
+  }
+  const frame = _v2ManualCameraDrag?.frame || v2ManualFrameForEditor(turn);
+  const left = frame.cx - frame.width / 2;
+  const top = frame.cy - frame.width / 2;
+  const frameEl = document.createElement("div");
+  frameEl.className = "v2-camera-map-frame";
+  frameEl.style.left = `${left * 100}%`;
+  frameEl.style.top = `${top * 100}%`;
+  frameEl.style.width = `${frame.width * 100}%`;
+  frameEl.style.height = `${frame.width * 100}%`;
+  frameEl.addEventListener("pointerdown", (e) => v2BeginManualCameraDrag(e, "move"));
+  const handle = document.createElement("div");
+  handle.className = "v2-camera-map-handle";
+  handle.addEventListener("pointerdown", (e) => v2BeginManualCameraDrag(e, "resize"));
+  frameEl.appendChild(handle);
+  map.appendChild(frameEl);
+}
+
+function v2BeginManualCameraDrag(e, mode) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
+  const map = document.getElementById("v2ManualCameraMap");
+  if (!map) return;
+  const frame = v2ManualFrameForEditor(storyData.script[selectedIdx]);
+  _v2ManualCameraDrag = {
+    mode,
+    startX: e.clientX,
+    startY: e.clientY,
+    frame,
+    left: frame.cx - frame.width / 2,
+    top: frame.cy - frame.width / 2,
+  };
+}
+
+function v2UpdateManualCameraFrameFromDrag(e) {
+  if (!_v2ManualCameraDrag || selectedIdx < 0 || !storyData) return;
+  const map = document.getElementById("v2ManualCameraMap");
+  if (!map) return;
+  const rect = map.getBoundingClientRect();
+  const dx = (e.clientX - _v2ManualCameraDrag.startX) / Math.max(rect.width, 1);
+  const dy = (e.clientY - _v2ManualCameraDrag.startY) / Math.max(rect.height, 1);
+  let frame;
+  if (_v2ManualCameraDrag.mode === "move") {
+    const width = _v2ManualCameraDrag.frame.width;
+    frame = {
+      cx: clampJS(_v2ManualCameraDrag.frame.cx + dx, width / 2, 1 - width / 2),
+      cy: clampJS(_v2ManualCameraDrag.frame.cy + dy, width / 2, 1 - width / 2),
+      width,
+    };
+  } else {
+    const maxWidth = Math.min(1 - _v2ManualCameraDrag.left, 1 - _v2ManualCameraDrag.top, 1);
+    const width = clampJS(_v2ManualCameraDrag.frame.width + Math.max(dx, dy), 0.1, maxWidth);
+    frame = {
+      cx: _v2ManualCameraDrag.left + width / 2,
+      cy: _v2ManualCameraDrag.top + width / 2,
+      width,
+    };
+  }
+  const turn = storyData.script[selectedIdx];
+  _v2ManualCameraDrag.frame = v2NormalizeManualFrame(frame);
+  v2SetManualCameraFrame(turn, _v2ManualCameraDrag.frame);
+  v2SyncManualFrameInputs(_v2ManualCameraDrag.frame);
+  markDirty();
+  notifyPlayerUpdate();
+  renderV2ManualCameraMap(turn);
+}
+
+function v2DefaultWhiteboard() {
+  return {
+    title: "ポイントを整理します",
+    theme: "テーマ",
+    sections: [
+      { heading: "原因", bullets: ["要点を入力"] },
+      { heading: "影響", bullets: ["要点を入力"] },
+      { heading: "対策", bullets: ["要点を入力"] },
+    ],
+    conclusion: "結論を入力",
+    layout: "default",
+  };
+}
+
+function v2WhiteboardForTurn(turn) {
+  const display = turn.displayMode;
+  return display?.kind === "whiteboard" && display.whiteboard ? display.whiteboard : v2DefaultWhiteboard();
+}
+
+function v2UpdateDisplayModeFields() {
+  const kind = document.getElementById("fV2DisplayMode").value;
+  document.getElementById("v2WhiteboardControls").style.display = kind === "whiteboard" ? "flex" : "none";
+  document.getElementById("v2ZunMeetControls").style.display = kind === "zunMeet" ? "flex" : "none";
+}
+
+function v2ZunMeetForTurn(turn) {
+  const display = turn.displayMode;
+  return display?.kind === "zunMeet" && display.zunMeet ? display.zunMeet : { room: "", layout: "focus", participants: [] };
+}
+
+function renderV2MeetParticipants(turn) {
+  const meeting = v2ZunMeetForTurn(turn);
+  const list = document.getElementById("v2MeetParticipants");
+  const active = document.getElementById("fV2MeetActiveSpeaker");
+  list.innerHTML = ""; active.innerHTML = "";
+  v2Option(active, "", "現在の話者");
+  for (const participant of meeting.participants || []) {
+    const row = document.createElement("div"); row.style.cssText = "display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto auto; gap:8px; align-items:center; padding:8px; border:1px solid var(--border); border-radius:8px;";
+    const select = document.createElement("select"); select.className = "field-select";
+    const usedByOthers = new Set((meeting.participants || []).filter((item) => item !== participant).map((item) => item.instanceId));
+    for (const [id, definition] of Object.entries(storyData.instances || {})) {
+      v2Option(select, id, definition.label || id);
+      select.lastElementChild.disabled = usedByOthers.has(id);
+    }
+    select.value = participant.instanceId;
+    const name = document.createElement("input"); name.type = "text"; name.className = "field-input"; name.placeholder = "表示名（任意）"; name.value = participant.name || "";
+    const camera = document.createElement("label"); camera.className = "toggle-row"; const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!participant.cameraOff; camera.append(cb, " カメラOFF");
+    const muted = document.createElement("label"); muted.className = "toggle-row"; const muteCb = document.createElement("input"); muteCb.type = "checkbox"; muteCb.checked = !!participant.muted; muted.append(muteCb, " ミュート");
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "btn btn-secondary btn-sm"; remove.textContent = "削除"; remove.disabled = (meeting.participants || []).length <= 1; remove.title = remove.disabled ? "ZunMeetには参加者が1人以上必要です" : "";
+    const update = () => {
+      participant.instanceId = select.value;
+      participant.cameraOff = cb.checked || undefined;
+      participant.muted = muteCb.checked || undefined;
+      const displayName = name.value.trim();
+      if (displayName) participant.name = displayName; else delete participant.name;
+      collectV2Basic(); renderV2Detail(turn);
+    };
+    select.addEventListener("change", update); name.addEventListener("change", update); cb.addEventListener("change", update); muteCb.addEventListener("change", update);
+    remove.addEventListener("click", () => { meeting.participants.splice(meeting.participants.indexOf(participant), 1); turn.displayMode = { kind: "zunMeet", zunMeet: meeting }; v2Commit(turn); renderV2Detail(turn); });
+    row.append(select, name, camera, muted, remove); list.appendChild(row);
+    v2Option(active, participant.instanceId, storyData.instances?.[participant.instanceId]?.label || participant.instanceId);
+  }
+  active.value = meeting.activeSpeakerId || "";
+}
+
+function renderV2Detail(turn) {
+  v2SetEditorVisibility();
+  const speaker = document.getElementById("fV2Speaker");
+  speaker.innerHTML = "";
+  for (const [id, definition] of Object.entries(storyData.instances || {})) {
+    v2Option(speaker, id, definition.label || id);
+  }
+  speaker.value = turn.speaker || "";
+  document.getElementById("fV2Text").value = turn.text || "";
+  const sceneSelect = document.getElementById("fV2Scene");
+  sceneSelect.innerHTML = "";
+  for (const sceneId of sortedKeysBySceneLabel(sceneDefs?.scenes || {})) {
+    const label = sceneDefs.scenes[sceneId]?.label || sceneId;
+    v2Option(sceneSelect, sceneId, `${label} (${sceneId})`);
+  }
+  if (!sceneSelect.querySelector(`option[value="${CSS.escape(turn.scene || "")}"]`)) v2Option(sceneSelect, turn.scene || "", turn.scene || "(scene未設定)");
+  sceneSelect.value = turn.scene || "";
+  const displayMode = turn.displayMode?.kind || "standard";
+  document.getElementById("fV2DisplayMode").value = displayMode;
+
+  const slots = v2SlotsForScene(turn.scene);
+  const framingSlot = document.getElementById("fV2FramingSlot");
+  framingSlot.innerHTML = "";
+  for (const slotId of Object.keys(slots).sort(compareUiText)) v2Option(framingSlot, slotId, slotId);
+  const stage = turn.stage || {};
+  const framing = stage.framing || null;
+  document.getElementById("fV2FramingMode").value = framing?.mode || "inherit";
+  framingSlot.value = framing?.mode === "slot" ? framing.slotId : (Object.keys(slots)[0] || "");
+  document.getElementById("fV2FrameCx").value = framing?.mode === "manual" ? framing.frame.cx : "";
+  document.getElementById("fV2FrameCy").value = framing?.mode === "manual" ? framing.frame.cy : "";
+  document.getElementById("fV2FrameWidth").value = framing?.mode === "manual" ? framing.frame.width : "";
+  document.getElementById("fV2MotionZoom").value = stage.cameraMotion?.zoom ?? "";
+  document.getElementById("fV2MotionPanX").value = stage.cameraMotion?.pan?.x ?? "";
+  document.getElementById("fV2MotionPanY").value = stage.cameraMotion?.pan?.y ?? "";
+  v2UpdateFramingFields();
+
+  const before = v2StateAt(selectedIdx, false);
+  const now = v2StateAt(selectedIdx, true);
+  const whiteboard = v2WhiteboardForTurn(turn);
+  const presenter = document.getElementById("fV2WhiteboardPresenter");
+  presenter.innerHTML = "";
+  v2Option(presenter, "", "立ち絵なし");
+  for (const [instanceId, state] of Object.entries(now)) {
+    if (state.definition.role !== "voiceOnly") v2Option(presenter, instanceId, state.definition.label || instanceId);
+  }
+  presenter.value = turn.displayMode?.kind === "whiteboard" ? (turn.displayMode.presenterId || "") : "";
+  document.getElementById("fV2WhiteboardTitle").value = whiteboard.title || "";
+  document.getElementById("fV2WhiteboardTheme").value = whiteboard.theme || "";
+  for (let index = 0; index < 3; index += 1) {
+    const section = whiteboard.sections?.[index] || { heading: "", bullets: [] };
+    document.getElementById(`fV2WhiteboardHeading${index}`).value = section.heading || "";
+    document.getElementById(`fV2WhiteboardBullets${index}`).value = (section.bullets || []).join("\n");
+  }
+  document.getElementById("fV2WhiteboardConclusion").value = whiteboard.conclusion || "";
+  document.getElementById("fV2WhiteboardLayout").value = whiteboard.layout === "compact" ? "compact" : "default";
+  const meeting = v2ZunMeetForTurn(turn);
+  document.getElementById("fV2MeetRoom").value = meeting.room || "";
+  document.getElementById("fV2MeetLayout").value = meeting.layout === "grid" ? "grid" : "focus";
+  const addMeetParticipant = document.getElementById("btnV2MeetAddParticipant");
+  if (addMeetParticipant) addMeetParticipant.disabled = (meeting.participants || []).length >= 4;
+  renderV2MeetParticipants(turn);
+  v2UpdateDisplayModeFields();
+  renderV2InstanceRegistry();
+  const actions = document.getElementById("v2InstanceActions");
+  actions.innerHTML = "";
+  for (const [instanceId, definition] of Object.entries(storyData.instances || {})) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px;";
+    const text = document.createElement("span");
+    const isOnStage = definition.role !== "voiceOnly";
+    text.textContent = `${definition.label || instanceId}${isOnStage ? (now[instanceId] ? "（在席）" : "（不在）") : "（声のみ）"}`;
+    const button = document.createElement("button");
+    button.type = "button"; button.className = "btn btn-secondary btn-sm";
+    if (!isOnStage) { button.disabled = true; button.textContent = "画面には出さない"; }
+    else if ((stage.enter || []).some((item) => item.instanceId === instanceId)) button.textContent = "登場を取り消す";
+    else if ((stage.exit || []).includes(instanceId)) button.textContent = "退場を取り消す";
+    else button.textContent = before[instanceId] ? "退場" : "登場";
+    button.addEventListener("click", () => v2TogglePresence(instanceId));
+    row.append(text, button);
+    actions.appendChild(row);
+  }
+
+  const present = document.getElementById("v2PresentInstances");
+  present.innerHTML = "";
+  for (const [instanceId, state] of Object.entries(now)) {
+    const card = document.createElement("div");
+    card.style.cssText = "padding:10px; border:1px solid var(--border); border-radius:8px; display:grid; gap:8px;";
+    const title = document.createElement("strong"); title.textContent = state.definition.label || instanceId;
+    const placement = state.placement || v2DefaultPlacement(turn.scene);
+    const slotSelect = document.createElement("select"); slotSelect.className = "field-select";
+    v2Option(slotSelect, "", "手動配置");
+    for (const slotId of Object.keys(slots).sort(compareUiText)) v2Option(slotSelect, slotId, slotId);
+    slotSelect.value = placement.mode === "slot" ? placement.slotId : "";
+    const offsetX = document.createElement("input"); offsetX.type = "number"; offsetX.step = "0.01"; offsetX.className = "field-input"; offsetX.value = placement.mode === "slot" ? placement.offset?.x ?? "" : ""; offsetX.placeholder = "offset X";
+    const offsetY = document.createElement("input"); offsetY.type = "number"; offsetY.step = "0.01"; offsetY.className = "field-input"; offsetY.value = placement.mode === "slot" ? placement.offset?.y ?? "" : ""; offsetY.placeholder = "offset Y";
+    const expression = document.createElement("select"); expression.className = "field-select";
+    v2Option(expression, "", "表情: 継承/既定");
+    const expressionNames = v2ExpressionNamesForInstance(state.definition);
+    for (const name of expressionNames) v2Option(expression, name, `表情: ${name}`);
+    if (state.expression && !expressionNames.includes(state.expression)) {
+      v2Option(expression, state.expression, `表情: ${state.expression}（素材なし）`);
+      expression.lastElementChild.disabled = true;
+    }
+    expression.value = state.expression || "";
+    const face = document.createElement("select"); face.className = "field-select";
+    v2Option(face, "", "向き: 継承"); v2Option(face, "left", "向き: 左"); v2Option(face, "right", "向き: 右");
+    face.value = state.face || "";
+    const pose = document.createElement("input"); pose.type = "text"; pose.className = "field-input"; pose.value = state.pose || ""; pose.placeholder = "ポーズ（任意）";
+    const zIndex = document.createElement("input"); zIndex.type = "number"; zIndex.step = "1"; zIndex.className = "field-input"; zIndex.value = state.zIndex ?? (placement.mode === "manual" ? placement.zIndex ?? "" : ""); zIndex.placeholder = "重なり順（任意）"; zIndex.title = "数値が大きいほど手前。空欄にするとスロットまたは手動配置の既定値を使います";
+    const flipLabel = document.createElement("label"); flipLabel.className = "toggle-row";
+    const flip = document.createElement("input"); flip.type = "checkbox"; flip.checked = !!state.flip; flipLabel.append(flip, " 左右反転");
+    const reset = document.createElement("button"); reset.type = "button"; reset.className = "btn btn-secondary btn-sm"; reset.textContent = "状態をリセット"; reset.title = "表情・ポーズ・向き・反転・重なり順を既定へ戻します。配置は維持します。";
+    const applyPlacement = () => {
+      if (!slotSelect.value) return;
+      const offset = {};
+      const x = Number(offsetX.value), y = Number(offsetY.value);
+      if (offsetX.value !== "" && Number.isFinite(x)) offset.x = x;
+      if (offsetY.value !== "" && Number.isFinite(y)) offset.y = y;
+      v2SetPlacement(turn, instanceId, { mode: "slot", slotId: slotSelect.value, ...(Object.keys(offset).length ? { offset } : {}) });
+      v2Commit(turn); renderV2Detail(turn);
+    };
+    slotSelect.addEventListener("change", applyPlacement);
+    offsetX.addEventListener("change", applyPlacement); offsetY.addEventListener("change", applyPlacement);
+    expression.addEventListener("change", () => { v2SetPatch(turn, instanceId, "expression", expression.value); v2Commit(turn); renderV2Detail(turn); });
+    face.addEventListener("change", () => { v2SetPatch(turn, instanceId, "face", face.value); v2Commit(turn); renderV2Detail(turn); });
+    pose.addEventListener("change", () => { v2SetPatch(turn, instanceId, "pose", pose.value.trim()); v2Commit(turn); renderV2Detail(turn); });
+    zIndex.addEventListener("change", () => {
+      const value = zIndex.value.trim();
+      const number = Number(value);
+      if (value !== "" && !Number.isFinite(number)) return;
+      v2SetPatch(turn, instanceId, "zIndex", value === "" ? null : number);
+      v2Commit(turn); renderV2Detail(turn);
+    });
+    flip.addEventListener("change", () => { v2SetPatch(turn, instanceId, "flip", flip.checked); v2Commit(turn); renderV2Detail(turn); });
+    reset.addEventListener("click", () => { const event = v2StageEvent(turn); if (!event.reset) event.reset = []; if (!event.reset.includes(instanceId)) event.reset.push(instanceId); v2Commit(turn); renderV2Detail(turn); });
+    const grid = document.createElement("div"); grid.style.cssText = "display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;";
+    grid.append(slotSelect, offsetX, offsetY, expression, face, pose, zIndex, flipLabel);
+    const placementActions = document.createElement("div"); placementActions.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap;";
+    const drag = document.createElement("button"); drag.type = "button"; drag.className = "btn btn-secondary btn-sm";
+    const editingThis = _v2ManualPlacementEdit?.turnIndex === selectedIdx && _v2ManualPlacementEdit.instanceId === instanceId;
+    drag.textContent = placement.mode === "manual" ? (editingThis ? "プレビューでドラッグ中" : "プレビューで位置を動かす") : "手動配置にしてドラッグ";
+    const canDrag = (turn.displayMode?.kind || "standard") === "standard";
+    drag.disabled = !canDrag;
+    drag.title = canDrag ? "プレビュー上の身体中央マーカーをドラッグします" : "特殊表示中は通常ステージが見えないため、配置をドラッグできません";
+    drag.addEventListener("click", () => {
+      if (placement.mode === "manual") {
+        _v2ManualPlacementEdit = { turnIndex: selectedIdx, instanceId };
+        renderPlacementEditLayer();
+        return;
+      }
+      v2StartManualPlacement(turn, instanceId);
+    });
+    placementActions.appendChild(drag);
+    if (placement.mode === "manual") {
+      const manualX = document.createElement("input"); manualX.type = "number"; manualX.step = "0.01"; manualX.className = "field-input"; manualX.value = placement.origin.x; manualX.title = "足元基準 X";
+      const manualY = document.createElement("input"); manualY.type = "number"; manualY.step = "0.01"; manualY.className = "field-input"; manualY.value = placement.origin.y; manualY.title = "足元基準 Y";
+      const manualScale = document.createElement("input"); manualScale.type = "number"; manualScale.step = "0.01"; manualScale.min = "0.01"; manualScale.className = "field-input"; manualScale.value = placement.scale ?? v2PlacementScaleForEditor(placement, turn.scene); manualScale.title = "手動配置の拡大率";
+      const applyManual = () => {
+        const x = Number(manualX.value), y = Number(manualY.value), scale = Number(manualScale.value);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(scale) || scale <= 0) return;
+        v2SetPlacement(turn, instanceId, { ...placement, origin: { x, y }, scale });
+        v2Commit(turn); renderV2Detail(turn); renderPlacementEditLayer();
+      };
+      manualX.addEventListener("change", applyManual); manualY.addEventListener("change", applyManual); manualScale.addEventListener("change", applyManual);
+      const backToSlot = document.createElement("button"); backToSlot.type = "button"; backToSlot.className = "btn btn-secondary btn-sm"; backToSlot.textContent = "スロット配置へ戻す";
+      backToSlot.addEventListener("click", () => v2ReturnToSlotPlacement(turn, instanceId));
+      placementActions.append(manualX, manualY, manualScale, backToSlot);
+    }
+    card.append(title, grid, placementActions, reset);
+    present.appendChild(card);
+  }
+  if (Object.keys(now).length === 0) present.textContent = "在席中の人物はいません。上の「登場」で追加してください。";
+  renderV2ManualCameraMap(turn);
+  renderPlacementEditLayer();
+}
+
+function collectV2Basic() {
+  if (!isV2StoryEditor() || selectedIdx < 0) return;
+  const turn = storyData.script[selectedIdx];
+  const oldSpeaker = turn.speaker;
+  const oldText = turn.text;
+  turn.speaker = document.getElementById("fV2Speaker").value;
+  turn.text = document.getElementById("fV2Text").value;
+  const nextScene = document.getElementById("fV2Scene").value;
+  if (turn.scene !== nextScene) delete turn.stage;
+  turn.scene = nextScene;
+  const displayKind = document.getElementById("fV2DisplayMode").value;
+  if (displayKind === "whiteboard") {
+    const sections = [0, 1, 2].map((index) => ({
+      heading: document.getElementById(`fV2WhiteboardHeading${index}`).value.trim(),
+      bullets: document.getElementById(`fV2WhiteboardBullets${index}`).value.split("\n").map((line) => line.trim()).filter(Boolean),
+    }));
+    const presenterId = document.getElementById("fV2WhiteboardPresenter").value;
+    turn.displayMode = {
+      kind: "whiteboard",
+      ...(presenterId ? { presenterId } : {}),
+      whiteboard: {
+        title: document.getElementById("fV2WhiteboardTitle").value.trim(),
+        theme: document.getElementById("fV2WhiteboardTheme").value.trim(),
+        sections,
+        conclusion: document.getElementById("fV2WhiteboardConclusion").value.trim(),
+        layout: document.getElementById("fV2WhiteboardLayout").value === "compact" ? "compact" : "default",
+      },
+    };
+  } else if (displayKind === "zunMeet") {
+    const previous = v2ZunMeetForTurn(turn);
+    turn.displayMode = { kind: "zunMeet", zunMeet: {
+      room: document.getElementById("fV2MeetRoom").value.trim(),
+      layout: document.getElementById("fV2MeetLayout").value === "grid" ? "grid" : "focus",
+      ...(document.getElementById("fV2MeetActiveSpeaker").value ? { activeSpeakerId: document.getElementById("fV2MeetActiveSpeaker").value } : {}),
+      participants: previous.participants || [],
+    }};
+  } else {
+    turn.displayMode = { kind: "standard" };
+  }
+  const stage = v2StageEvent(turn);
+  const framingMode = document.getElementById("fV2FramingMode").value;
+  if (framingMode === "inherit") delete stage.framing;
+  else if (framingMode === "slot") stage.framing = { mode: "slot", slotId: document.getElementById("fV2FramingSlot").value };
+  else if (framingMode === "manual") {
+    const cx = Number(document.getElementById("fV2FrameCx").value);
+    const cy = Number(document.getElementById("fV2FrameCy").value);
+    const width = Number(document.getElementById("fV2FrameWidth").value);
+    if (Number.isFinite(cx) && Number.isFinite(cy) && Number.isFinite(width) && width > 0) v2SetManualCameraFrame(turn, { cx, cy, width });
+    else v2SetManualCameraFrame(turn, v2ManualFrameForEditor(turn));
+  } else stage.framing = { mode: framingMode };
+  const zoom = Number(document.getElementById("fV2MotionZoom").value);
+  const panX = Number(document.getElementById("fV2MotionPanX").value);
+  const panY = Number(document.getElementById("fV2MotionPanY").value);
+  const motion = {};
+  if (document.getElementById("fV2MotionZoom").value !== "" && Number.isFinite(zoom)) motion.zoom = zoom;
+  if ((document.getElementById("fV2MotionPanX").value !== "" && Number.isFinite(panX)) || (document.getElementById("fV2MotionPanY").value !== "" && Number.isFinite(panY))) motion.pan = { x: Number.isFinite(panX) ? panX : 0, y: Number.isFinite(panY) ? panY : 0 };
+  if (Object.keys(motion).length) stage.cameraMotion = motion; else delete stage.cameraMotion;
+  v2Commit(turn, oldSpeaker !== turn.speaker || oldText !== turn.text);
+}
+
 function renderBasicSectionNav(sections) {
   const nav = document.getElementById("basicSectionNav");
   if (!nav) return;
@@ -7612,6 +8716,11 @@ function renderDetail() {
   panelEl.style.display = "flex";
 
   const turn = storyData.script[selectedIdx];
+  if (isV2StoryEditor()) {
+    renderV2Detail(turn);
+    return;
+  }
+  v2SetEditorVisibility();
 
   // ── 基本タブ ──
   setField("fSpeaker", "select", turn.speaker || "");
@@ -9210,6 +10319,10 @@ function refreshVideoCallParticipants(items) {
 // ============================================================
 function collectBasic() {
   if (selectedIdx < 0) return;
+  if (isV2StoryEditor()) {
+    collectV2Basic();
+    return;
+  }
   const turn = storyData.script[selectedIdx];
   const oldSpeaker = turn.speaker, oldText = turn.text, oldPause = turn.pause, oldVoice = JSON.stringify(turn.voice || null), oldNarration = turn.narrationVoice || "";
   const oldSpokenText = normalizeSpokenText(oldText);
@@ -10658,6 +11771,10 @@ function setupEvents() {
   window.addEventListener("pointercancel", onOverlayPreviewPointerUp);
 
   window.addEventListener("pointermove", (e) => {
+    if (_v2ManualCameraDrag) {
+      v2UpdateManualCameraFrameFromDrag(e);
+      return;
+    }
     if (_manualCameraDrag) {
       updateManualCameraFrameFromDrag(e);
       return;
@@ -10676,10 +11793,21 @@ function setupEvents() {
       const sy = _placementDrag.origScreenY + (e.clientY - _placementDrag.startY);
       stage = placementScreenToStage(rect, sx, sy, dragTf);
     }
-    _placementDrag.draftStage = { x: stage.x, y: stage.y };
+    _placementDrag.draftStage = _placementDrag.v2InstanceId
+      ? { x: stage.x, y: clampJS(stage.y + _placementDrag.originToGrabY, 0, 1) }
+      : { x: stage.x, y: stage.y };
     renderPlacementEditLayer();
   });
   const onPlacementPointerUp = () => {
+    if (_v2ManualCameraDrag) {
+      const turn = selectedIdx >= 0 && storyData ? storyData.script[selectedIdx] : null;
+      _v2ManualCameraDrag = null;
+      if (turn) {
+        v2Commit(turn);
+        renderV2Detail(turn);
+      }
+      return;
+    }
     if (_manualCameraDrag) {
       _manualCameraDrag = null;
       renderPlacementPanel();
@@ -10692,7 +11820,20 @@ function setupEvents() {
       const turn = storyData.script[selectedIdx];
       const stage = _placementDrag.draftStage;
       if (stage) {
-        if (_placementDrag.id === ZOOM_TARGET_ID) {
+        if (_placementDrag.v2InstanceId) {
+          const state = v2StateAt(selectedIdx, true);
+          const instance = state[_placementDrag.v2InstanceId];
+          const placement = instance?.placement;
+          v2SetPlacement(turn, _placementDrag.v2InstanceId, {
+            mode: "manual",
+            origin: { x: stage.x, y: stage.y },
+            scale: placement?.mode === "manual" ? placement.scale : v2PlacementScaleForEditor(placement, turn.scene),
+            zIndex: placement?.mode === "manual" ? placement.zIndex : v2PlacementZIndexForEditor(placement, turn.scene, instance),
+          });
+          _v2ManualPlacementEdit = { turnIndex: selectedIdx, instanceId: _placementDrag.v2InstanceId };
+          v2Commit(turn);
+          renderV2Detail(turn);
+        } else if (_placementDrag.id === ZOOM_TARGET_ID) {
           turn.zoomTarget = { x: stage.x, y: stage.y };
         } else if (_placementDrag.id === SPARKLE_POS_ID) {
           turn.sparklePos = { x: stage.x, y: stage.y };
@@ -10703,7 +11844,7 @@ function setupEvents() {
           if (!turn.manualPos) turn.manualPos = {};
           turn.manualPos[_placementDrag.id] = { x: stage.x, y: stage.y };
         }
-        markDirty();
+        if (!_placementDrag.v2InstanceId) markDirty();
       }
     }
     _placementDrag = null;
@@ -10745,6 +11886,47 @@ function setupEvents() {
     const evt = (el.tagName === "SELECT" || el.type === "checkbox") ? "change" : "input";
     el.addEventListener(evt, collectBasic);
   }
+  const v2BasicIds = [
+    "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Scene", "fV2FramingMode", "fV2FramingSlot",
+    "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY",
+    "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
+    "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",
+    "fV2MeetRoom", "fV2MeetLayout", "fV2MeetActiveSpeaker",
+  ];
+  for (const id of v2BasicIds) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener("change", () => {
+      if (!isV2StoryEditor()) return;
+      const turn = selectedIdx >= 0 ? storyData.script[selectedIdx] : null;
+      if (id === "fV2Scene" && turn && turn.scene !== el.value && turn.stage && Object.keys(turn.stage).length > 0) {
+        const confirmed = window.confirm("シーンを変更すると、このターンの登場・退場・配置・構図指定を解除します。続けますか？");
+        if (!confirmed) {
+          el.value = turn.scene;
+          return;
+        }
+      }
+      if (id === "fV2FramingMode") v2UpdateFramingFields();
+      if (id === "fV2DisplayMode") v2UpdateDisplayModeFields();
+      collectV2Basic();
+      if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
+    });
+  }
+  document.getElementById("btnV2MeetAddParticipant")?.addEventListener("click", () => {
+    if (!isV2StoryEditor() || selectedIdx < 0) return;
+    const turn = storyData.script[selectedIdx];
+    const meeting = v2ZunMeetForTurn(turn);
+    if ((meeting.participants || []).length >= 4) return;
+    const used = new Set((meeting.participants || []).map((participant) => participant.instanceId));
+    const nextId = Object.keys(storyData.instances || {}).find((id) => !used.has(id));
+    if (!nextId) return;
+    meeting.participants.push({ instanceId: nextId });
+    turn.displayMode = { kind: "zunMeet", zunMeet: meeting };
+    v2Commit(turn);
+    renderV2Detail(turn);
+  });
+  document.getElementById("fV2NewInstanceRole")?.addEventListener("change", v2UpdateNewInstanceFields);
+  document.getElementById("btnV2AddInstance")?.addEventListener("click", v2AddInstance);
   // 向きを指定した時だけ「向きの効き方」「向き保持の解除」を出す
   for (const id of ["fFaceZundamon", "fFaceMetan"]) {
     const el = document.getElementById(id);

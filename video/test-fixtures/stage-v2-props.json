@@ -1,0 +1,90 @@
+{
+  "story": {
+    "schemaVersion": 2,
+    "instances": {
+      "zundamon": { "characterId": "zundamon", "voiceId": "zundamon" },
+      "metan": { "characterId": "metan", "voiceId": "metan" }
+    },
+    "script": [
+      {
+        "id": "turn-0001",
+        "speaker": "zundamon",
+        "text": "新しいスロット配置なのだ。",
+        "scene": "office",
+        "start": 0,
+        "end": 3,
+        "displayMode": { "kind": "standard" },
+        "stage": {
+          "enter": [
+            { "instanceId": "zundamon", "placement": { "mode": "slot", "slotId": "speakerLeft" } },
+            { "instanceId": "metan", "placement": { "mode": "slot", "slotId": "speakerRight" } }
+          ],
+          "framing": { "mode": "speaker" }
+        }
+      },
+      {
+        "id": "turn-0002",
+        "speaker": "metan",
+        "text": "ここが大事です。",
+        "scene": "office",
+        "start": 3,
+        "end": 6,
+        "displayMode": {
+          "kind": "whiteboard",
+          "presenterId": "metan",
+          "whiteboard": {
+            "title": "原因と対策",
+            "theme": "手戻りを減らす",
+            "sections": [
+              { "heading": "原因", "bullets": ["共有が遅い"] },
+              { "heading": "影響", "bullets": ["手戻りが増える"] },
+              { "heading": "対策", "bullets": ["決定を記録する"] }
+            ],
+            "conclusion": "早めの共有が近道",
+            "layout": "compact"
+          }
+        }
+      },
+      {
+        "id": "turn-0003",
+        "speaker": "metan",
+        "text": "会議を始めます。",
+        "scene": "office",
+        "start": 6,
+        "end": 9,
+        "displayMode": {
+          "kind": "zunMeet",
+          "zunMeet": {
+            "room": "定例会議",
+            "layout": "focus",
+            "activeSpeakerId": "metan",
+            "participants": [
+              { "instanceId": "zundamon", "name": "ずんだもん" },
+              { "instanceId": "metan", "name": "四国めたん" }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "scenes": {
+    "scenes": {
+      "office": {
+        "bg": "background/office_bg.png",
+        "layouts": {
+          "standard": {
+            "slots": {
+              "speakerLeft": { "origin": { "x": 0.28, "y": 0.95 }, "scale": 1.2, "zIndex": 20, "cameraPresetId": "left" },
+              "speakerRight": { "origin": { "x": 0.72, "y": 0.95 }, "scale": 1.2, "zIndex": 20, "cameraPresetId": "right" }
+            }
+          }
+        },
+        "cameraPresets": {
+          "default": { "cx": 0.5, "cy": 0.5, "width": 1 },
+          "left": { "cx": 0.34, "cy": 0.5, "width": 0.82 },
+          "right": { "cx": 0.66, "cy": 0.5, "width": 0.82 }
+        }
+      }
+    }
+  }
+}
