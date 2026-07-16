@@ -12,7 +12,7 @@ import {
   type SceneLibraryV2,
   type StoryV2,
 } from "./stage-v2";
-import type {BgmRegion, ExpressionsMap, MobsMap, PosesMap, SeMap, SeMapEntry, StoryOverlay, TurnSe} from "./StoryVideo";
+import type {BgmRegion, ExpressionsMap, MobDef, MobsMap, PosesMap, SeMap, SeMapEntry, StoryOverlay, TurnSe} from "./StoryVideo";
 
 type Manifest = Record<string, Record<string, string>>;
 
@@ -114,6 +114,13 @@ function activeOverlays(story: StoryV2, seconds: number) {
       return start != null && end != null && end > start && start <= seconds && seconds < end;
     })
     .sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+}
+
+function mobImageForState(mob: MobDef | undefined, expression: string | undefined, speaking: boolean, amplitude: number) {
+  const expressionImages = mob?.images[expression ?? "normal"] ?? mob?.images.normal;
+  return speaking && amplitude > MOUTH_HALF
+    ? expressionImages?.open ?? expressionImages?.closed
+    : expressionImages?.closed ?? expressionImages?.open;
 }
 
 const V2BgmLayer: React.FC<{regions?: BgmRegion[]; fps: number}> = ({regions, fps}) => (
@@ -304,13 +311,21 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     const instance = state.instances[state.displayMode.presenterId ?? ""];
     const characterId = instance?.definition.characterId;
     const main = characterId ? MAIN_CHARACTERS[characterId] : undefined;
-    if (!instance || !main) return undefined;
+    const mob = characterId ? mobs?.[characterId] : undefined;
+    if (!instance || (!main && !mob)) return undefined;
     const layout = getWhiteboardExplainLayout(width, height, state.displayMode.whiteboard.layout === "compact" ? "compact" : "default");
+    const isSpeaker = instance.instanceId === turn.speaker;
+    if (mob) {
+      const image = mobImageForState(mob, instance.expression, isSpeaker, speakerMouthAmplitude);
+      if (!image) return undefined;
+      const flip = resolvedFlip(instance, mob.flip ?? false);
+      return <Img src={staticFile(image)} style={{position: "absolute", left: "50%", bottom: 0, width: "100%", height: "100%", objectFit: "contain", transform: `translateX(-50%) scaleX(${flip ? -1 : 1})`, transformOrigin: "bottom center"}} />;
+    }
+    if (!main) return undefined;
     const expression: ExpressionCfg | null = expressions?.[main.avatar]?.[instance.expression ?? "normal"]
       ?? expressions?.[main.avatar]?.normal
       ?? null;
     const pose = instance.pose ? poses?.[main.avatar]?.[instance.pose] : undefined;
-    const isSpeaker = instance.instanceId === turn.speaker;
     return (
       <div style={{position: "absolute", left: "50%", bottom: 0, transform: `translateX(-50%) scale(${layout.character.width / 445})`, transformOrigin: "bottom center"}}>
         <Avatar
@@ -359,7 +374,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           {ordered.map((participant, index) => {
             const definition = story.instances[participant.instanceId];
             const stageInstance = state.instances[participant.instanceId];
-            const main = definition?.characterId ? MAIN_CHARACTERS[definition.characterId] : undefined;
+            const characterId = definition?.characterId;
+            const main = characterId ? MAIN_CHARACTERS[characterId] : undefined;
+            const mob = characterId ? mobs?.[characterId] : undefined;
             const active = participant.instanceId === (meeting.activeSpeakerId ?? turn.speaker);
             const expression: ExpressionCfg | null = main && stageInstance
               ? expressions?.[main.avatar]?.[stageInstance.expression ?? "normal"] ?? expressions?.[main.avatar]?.normal ?? null
@@ -367,7 +384,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             const isFocusTile = meeting.layout === "focus" && index === 0;
             const isFullRow = isFocusTile || (meeting.layout === "focus" && ordered.length === 2 && index === 1);
             return <div key={participant.instanceId} style={{position: "relative", overflow: "hidden", minHeight: 0, gridColumn: isFullRow ? "1 / -1" : undefined, borderRadius: 18, border: active ? "5px solid #4e9cff" : "2px solid #3a4352", background: participant.cameraOff ? "#303846" : "linear-gradient(135deg,#496985,#172534)", display: "flex", alignItems: "center", justifyContent: "center"}}>
-              {!participant.cameraOff && main ? <div style={{transform: `scale(${isFocusTile ? ".98" : ".72"})`, transformOrigin: "bottom center", alignSelf: "end"}}><Avatar dir={main.avatar} manifest={manifest?.[main.avatar]} fallbackGender={main.gender} active={active} activatedAtFrame={Math.round((turn.start ?? 0) * fps)} amplitude={participant.instanceId === turn.speaker ? speakerMouthAmplitude : 0} emotion="normal" emotionAtFrame={Math.round((turn.start ?? 0) * fps)} expressive={!!main.expressive} flip={resolvedFlip(stageInstance)} popScale={false} expressionCfg={expression} poseName={stageInstance?.pose as ExpressionCfg["pose"]} /></div> : <div style={{width: isFocusTile ? 180 : 140, height: isFocusTile ? 180 : 140, borderRadius: "50%", background: "#66758b", display: "grid", placeItems: "center", fontSize: isFocusTile ? 82 : 64}}>{participant.cameraOff ? "◉" : "?"}</div>}
+              {!participant.cameraOff && main ? <div style={{transform: `scale(${isFocusTile ? ".98" : ".72"})`, transformOrigin: "bottom center", alignSelf: "end"}}><Avatar dir={main.avatar} manifest={manifest?.[main.avatar]} fallbackGender={main.gender} active={active} activatedAtFrame={Math.round((turn.start ?? 0) * fps)} amplitude={participant.instanceId === turn.speaker ? speakerMouthAmplitude : 0} emotion="normal" emotionAtFrame={Math.round((turn.start ?? 0) * fps)} expressive={!!main.expressive} flip={resolvedFlip(stageInstance)} popScale={false} expressionCfg={expression} poseName={stageInstance?.pose as ExpressionCfg["pose"]} /></div> : !participant.cameraOff && mob ? <Img src={staticFile(mobImageForState(mob, stageInstance?.expression, participant.instanceId === turn.speaker, speakerMouthAmplitude) ?? mob.images.normal?.closed)} style={{width: "auto", height: isFocusTile ? 560 : 260, maxWidth: "70%", objectFit: "contain", alignSelf: "end", transform: `scaleX(${resolvedFlip(stageInstance, mob.flip ?? false) ? -1 : 1})`, transformOrigin: "bottom center"}} /> : <div style={{width: isFocusTile ? 180 : 140, height: isFocusTile ? 180 : 140, borderRadius: "50%", background: "#66758b", display: "grid", placeItems: "center", fontSize: isFocusTile ? 82 : 64}}>{participant.cameraOff ? "◉" : "?"}</div>}
               <div style={{position: "absolute", left: 14, right: 14, bottom: 14, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 700, textShadow: "0 2px 4px #000"}}><span>{participant.name || definition?.label || participant.instanceId}</span><span>{participant.muted ? "🔇" : "🎙"}</span></div>
             </div>;
           })}
@@ -431,13 +448,13 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       }
 
       const mob = mobs?.[characterId];
-      const expressionImages = mob?.images[instance.expression ?? "normal"] ?? mob?.images.normal;
-      const image = isSpeaker && speakerMouthAmplitude > MOUTH_HALF
-        ? expressionImages?.open ?? expressionImages?.closed
-        : expressionImages?.closed ?? expressionImages?.open;
+      const image = mobImageForState(mob, instance.expression, isSpeaker, speakerMouthAmplitude);
       if (!mob || !image) return null;
+      // face は向きの明示指定として最優先。未指定なら個体のflip、さらに未指定なら
+      // モブ素材の既定flip（なければ主役と同じ左右slotの既定）を使う。
+      const flip = resolvedFlip(instance, mob.flip ?? (origin.x < 0.5));
       return (
-        <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: `translate(-50%, -100%) scale(${mob.flip || instance.flip ? -1 : 1}, 1)`}}>
+        <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: `translate(-50%, -100%) scale(${flip ? -1 : 1}, 1)`}}>
           <Img src={staticFile(image)} style={{height: 760 * (mob.scale ?? 1) * scale, width: "auto", display: "block"}} />
         </div>
       );

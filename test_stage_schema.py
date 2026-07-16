@@ -98,6 +98,14 @@ class StageSchemaTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "bg または bgVideo"):
             validate_scene_library_v2(scenes)
 
+    def test_scene_figure_allows_bust_or_full(self):
+        scenes = copy.deepcopy(SCENES)
+        scenes["scenes"]["office"]["figure"] = "full"
+        validate_scene_library_v2(scenes)
+        scenes["scenes"]["office"]["figure"] = "portrait"
+        with self.assertRaisesRegex(ValueError, "bust または full"):
+            validate_scene_library_v2(scenes)
+
     def test_slot_preview_character_must_be_a_nonempty_string(self):
         scenes = copy.deepcopy(SCENES)
         scenes["scenes"]["office"]["layouts"]["standard"]["slots"]["speakerLeft"]["previewCharacterId"] = ""

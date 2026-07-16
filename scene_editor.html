@@ -203,6 +203,12 @@
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: contain; display: block;
   }
+  .slot-preview-mob {
+    display: block;
+    height: 760px;
+    width: auto;
+    transform-origin: bottom center;
+  }
   .char-missing {
     position: absolute; inset: 0;
     display: flex; align-items: flex-end; justify-content: center;
@@ -519,6 +525,14 @@
         <label class="field-label">前景画像 (front)</label>
         <select class="field-select" id="fFront"></select>
       </div>
+      <div class="field-row" id="v2FigureRow" style="display:none">
+        <label class="field-label">主役立ち絵の表示範囲</label>
+        <select class="field-select" id="fFigure">
+          <option value="full">全身 (full)</option>
+          <option value="bust">バストアップ (bust)</option>
+        </select>
+        <div class="slider-hint">通常slotに置く主役だけに適用します。モブは素材本来の比率で表示します。</div>
+      </div>
       <div class="field-row" id="legacyCameraModeRow">
         <label class="field-label">カメラ</label>
         <select class="field-select" id="fCamera">
@@ -642,6 +656,14 @@
           <option value="rightFocus">rightFocus（right話者）</option>
         </select>
       </div>
+      <div class="field-row" id="v2CameraPresetActions" style="display:none">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" id="btnAddCameraPreset" type="button">＋ 構図追加</button>
+          <button class="btn btn-secondary btn-sm" id="btnRenameCameraPreset" type="button">名前変更</button>
+          <button class="btn btn-danger btn-sm" id="btnDeleteCameraPreset" type="button">削除</button>
+        </div>
+        <div class="slider-hint">使用中の構図は削除できません。slotの「構図」で割り当ててから台本のslot framingに使います。</div>
+      </div>
       <div class="field-label" id="cameraFrameInfo">center(0.500, 0.500) / width 1.000</div>
       <div class="slider-hint" id="cameraFrameHint">default / leftFocus / rightFocus の3枠をシーン共通の構図として保存します。話者フォーカスONのターンでは、話者の立ち位置に応じて枠が切り替わります。</div>
     </div>
@@ -750,12 +772,22 @@ function v2Slots(sc = currentScene()) {
 }
 
 function v2SlotPreviewCharacter(slot) {
-  return slot?.previewCharacterId || null;
+  const previewId = slot?.previewCharacterId || null;
+  return previewId && !previewId.startsWith('mob:') ? previewId : null;
+}
+
+function v2SlotPreviewMob(slot) {
+  const previewId = slot?.previewCharacterId || '';
+  if (!previewId.startsWith('mob:')) return null;
+  const mobId = previewId.slice('mob:'.length);
+  return (assets?.mobs ?? []).find(mob => mob.id === mobId) || null;
 }
 
 function v2SlotGrabOffset(sc, slotId, slot) {
   const charId = v2SlotPreviewCharacter(slot);
-  if (!charId) return 0;
+  const mob = v2SlotPreviewMob(slot);
+  if (!charId && !mob) return 0;
+  if (mob) return (MOB_BASE_H * (slot?.scale ?? 1)) / (2 * STAGE_H);
   const isFull = (sc.figure ?? 'bust') === 'full';
   const box = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
   return (box.h * (slot?.scale ?? 1)) / (2 * STAGE_H);
@@ -766,6 +798,35 @@ function cameraPresetKey(key = currentCameraFrameKey, sc = currentScene()) {
   if (key === 'leftFocus') return 'left';
   if (key === 'rightFocus') return 'right';
   return key || 'default';
+}
+
+function isCameraPresetId(value) {
+  return /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(value);
+}
+
+function syncV2CameraPresetUi(sc = currentScene()) {
+  const select = document.getElementById('cameraFrameKey');
+  if (!isV2Scene(sc)) {
+    select.innerHTML = '';
+    for (const [value, label] of [
+      ['default', 'default（標準構図）'],
+      ['leftFocus', 'leftFocus（left話者）'],
+      ['rightFocus', 'rightFocus（right話者）'],
+    ]) {
+      const option = document.createElement('option'); option.value = value; option.textContent = label; select.appendChild(option);
+    }
+    return;
+  }
+  ensureV2Layout(sc);
+  const presetIds = sortedStrings(Object.keys(sc.cameraPresets));
+  if (!presetIds.includes(currentCameraFrameKey)) currentCameraFrameKey = 'default';
+  select.innerHTML = '';
+  for (const presetId of presetIds) {
+    const option = document.createElement('option');
+    option.value = presetId;
+    option.textContent = presetId === 'default' ? 'default（標準構図）' : presetId;
+    select.appendChild(option);
+  }
 }
 
 function syncV2LayoutUi() {
@@ -780,21 +841,21 @@ function syncV2LayoutUi() {
   document.getElementById('legacyAnchorSection').style.display = v2 ? 'none' : '';
   document.getElementById('legacyMobSection').style.display = v2 ? 'none' : '';
   document.getElementById('v2SlotSection').style.display = v2 ? '' : 'none';
+  document.getElementById('v2FigureRow').style.display = v2 ? '' : 'none';
+  document.getElementById('v2CameraPresetActions').style.display = v2 ? '' : 'none';
   document.getElementById('focusPreviewRow').style.display = v2 ? 'none' : '';
   const select = document.getElementById('cameraFrameKey');
   const hint = document.getElementById('cameraFrameHint');
   const buttons = document.querySelectorAll('[data-camera-frame-key]');
   if (v2) {
-    select.options[1].textContent = 'left（左slot用の構図）';
-    select.options[2].textContent = 'right（右slot用の構図）';
-    hint.textContent = 'default / left / right の構図を編集します。台本の「話者を主役にする」は、話者が置かれたslotのcamera presetを使います。';
+    syncV2CameraPresetUi();
+    hint.textContent = '構図を追加・名前変更できます。台本の「話者を主役にする」は、話者が置かれたslotのcamera presetを使います。';
     buttons.forEach(btn => {
       if (btn.dataset.cameraFrameKey === 'leftFocus') btn.textContent = 'left';
       if (btn.dataset.cameraFrameKey === 'rightFocus') btn.textContent = 'right';
     });
   } else {
-    select.options[1].textContent = 'leftFocus（left話者）';
-    select.options[2].textContent = 'rightFocus（right話者）';
+    syncV2CameraPresetUi();
     hint.textContent = 'default / leftFocus / rightFocus の3枠をシーン共通の構図として保存します。話者フォーカスONのターンでは、話者の立ち位置に応じて枠が切り替わります。';
     buttons.forEach(btn => {
       if (btn.dataset.cameraFrameKey === 'leftFocus') btn.textContent = 'leftFocus';
@@ -912,14 +973,15 @@ function updateCameraFrameInfo() {
 function syncCameraFrameKeyUi() {
   const frameKeySel = document.getElementById('cameraFrameKey');
   if (frameKeySel) frameKeySel.value = currentCameraFrameKey;
+  const sc = currentScene();
   for (const btn of document.querySelectorAll('[data-camera-frame-key]')) {
-    btn.classList.toggle('active', btn.dataset.cameraFrameKey === currentCameraFrameKey);
+    btn.classList.toggle('active', cameraPresetKey(btn.dataset.cameraFrameKey, sc) === currentCameraFrameKey);
   }
 }
 
 function setCameraFrameKey(key) {
-  currentCameraFrameKey = key || 'default';
   const sc = currentScene();
+  currentCameraFrameKey = isV2Scene(sc) ? cameraPresetKey(key, sc) : (key || 'default');
   if (sc) ensureCameraFrame(sc, currentCameraFrameKey);
   syncCameraFrameKeyUi();
   updateCameraFrameInfo();
@@ -1094,6 +1156,9 @@ function selectScene(id) {
   document.getElementById('sceneSelect').value = id;
   const sc = currentScene();
   if (!sc) return;
+  if (!isV2Scene(sc) && !['default', 'leftFocus', 'rightFocus'].includes(currentCameraFrameKey)) {
+    currentCameraFrameKey = 'default';
+  }
   ensureCameraFrames(sc);
   syncV2LayoutUi();
   syncCameraFrameKeyUi();
@@ -1117,6 +1182,7 @@ function selectScene(id) {
   setSelectValue('fBgVideo', sc.bgVideo || '__none__');
   document.getElementById('fBgVideoLoop').checked = !!sc.bgVideoLoop;
   setSelectValue('fFront', sc.front || '__none__');
+  setSelectValue('fFigure', sc.figure === 'full' ? 'full' : 'bust');
   showFront = document.getElementById('frontToggle').checked;
   selectedMobId = null;
   buildCastRows();
@@ -1284,6 +1350,9 @@ function buildSlotList() {
     const previewNone = document.createElement('option'); previewNone.value = ''; previewNone.textContent = '表示キャラ: なし'; preview.appendChild(previewNone);
     for (const characterId of sortedStrings(assets?.characters ?? [])) {
       const option = document.createElement('option'); option.value = characterId; option.textContent = `表示: ${characterId}`; preview.appendChild(option);
+    }
+    for (const mob of [...(assets?.mobs ?? [])].sort((a, b) => compareUiText(a.id, b.id))) {
+      const option = document.createElement('option'); option.value = `mob:${mob.id}`; option.textContent = `表示: モブ ${mob.id}`; preview.appendChild(option);
     }
     preview.value = slot.previewCharacterId || '';
     preview.addEventListener('change', () => {
@@ -1519,6 +1588,7 @@ function renderPreview() {
     const ay = coord.y * STAGE_H;
     const slot = v2 ? v2Slots(sc)[name] : null;
     const charId = v2 ? v2SlotPreviewCharacter(slot) : anchorToChar[name];
+    const previewMob = v2 ? v2SlotPreviewMob(slot) : null;
     const scale = v2 ? (slot?.scale ?? 1) : (sc.scale != null ? sc.scale : 1.9);
     const flip = coord.x < 0.5;
 
@@ -1534,25 +1604,34 @@ function renderPreview() {
     container.style.transformOrigin = v2 ? 'bottom center' : 'center center';
     container.style.zIndex = String(v2 ? (slot?.zIndex ?? 0) : 10);
 
-    const parts = document.createElement('div');
-    parts.className = 'char-parts';
-    if (flip) {
-      parts.style.transform = 'scaleX(-1)';
-    }
+    if (previewMob) {
+      const mobImage = document.createElement('img');
+      mobImage.className = 'slot-preview-mob';
+      mobImage.src = IMG_BASE + encodePathSegs(previewMob.image);
+      mobImage.alt = previewMob.id;
+      mobImage.style.transform = flip ? 'scaleX(-1)' : '';
+      mobImage.onerror = () => { mobImage.style.display = 'none'; };
+      container.appendChild(mobImage);
+    } else {
+      const parts = document.createElement('div');
+      parts.className = 'char-parts';
+      if (flip) {
+        parts.style.transform = 'scaleX(-1)';
+      }
 
-    // figure に応じて manifest キーとパスを切り替える
-    const isFull = (sc.figure ?? 'bust') === 'full';
-    const manifestKey = isFull ? charId + '_full' : charId;
-    const avatarBasePath = isFull
-      ? `${IMG_BASE}avatars/${charId}/full/`
-      : `${IMG_BASE}avatars/${charId}/`;
+      // figure に応じて manifest キーとパスを切り替える
+      const isFull = (sc.figure ?? 'bust') === 'full';
+      const manifestKey = isFull ? charId + '_full' : charId;
+      const avatarBasePath = isFull
+        ? `${IMG_BASE}avatars/${charId}/full/`
+        : `${IMG_BASE}avatars/${charId}/`;
 
-    // char-parts のサイズを figure に応じて設定（全身はキャラ別アスペクト＝renderと一致）
-    const pbox = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
-    parts.style.width = pbox.w + 'px';
-    parts.style.height = pbox.h + 'px';
+      // char-parts のサイズを figure に応じて設定（全身はキャラ別アスペクト＝renderと一致）
+      const pbox = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
+      parts.style.width = pbox.w + 'px';
+      parts.style.height = pbox.h + 'px';
 
-    if (charId && manifestData && manifestData[manifestKey]) {
+      if (charId && manifestData && manifestData[manifestKey]) {
       // StoryVideo の Avatar と同じ重ね順: base → cheek → arm → eye → mouth → bangs → brow。
       // cheek/brow はキャラ別id(brow_normal等)なので manifest から代表stemを拾う。
       // arm_normal/bangs が無いキャラは manifest に無いのでスキップされる。
@@ -1576,20 +1655,20 @@ function renderPreview() {
           parts.appendChild(img);
         }
       }
-    } else if (charId) {
+      } else if (charId) {
       // manifest未読込でもbase.pngを試みる
       const img = document.createElement('img');
       img.src = avatarBasePath + 'base.png';
       img.onerror = () => { img.style.display = 'none'; };
       parts.appendChild(img);
-    } else if (!v2) {
+      } else if (!v2) {
       const miss = document.createElement('div');
       miss.className = 'char-missing';
       miss.textContent = name;
       parts.appendChild(miss);
+      }
+      container.appendChild(parts);
     }
-
-    container.appendChild(parts);
     peopleLayer.appendChild(container);
 
     // v2 slotは足元を保存するが、画面外へ足元を逃がしても掴めるよう身体中央にドラッグ点を置く。
@@ -1606,7 +1685,7 @@ function renderPreview() {
     dotLabel.className = 'anchor-label';
     dotLabel.style.left = ax + 'px';
     dotLabel.style.top = (grabY * STAGE_H) + 'px';
-    dotLabel.textContent = name + (charId ? ` (${charId})` : v2 ? ' (slot)' : '');
+    dotLabel.textContent = name + (charId ? ` (${charId})` : previewMob ? ` (mob:${previewMob.id})` : v2 ? ' (slot)' : '');
     stage.appendChild(dotLabel);
   }
 
@@ -1856,6 +1935,66 @@ function setupEvents() {
     renderPreview();
   });
 
+  document.getElementById('fFigure').addEventListener('change', e => {
+    const sc = currentScene();
+    if (!isV2Scene(sc)) return;
+    sc.figure = e.target.value === 'full' ? 'full' : 'bust';
+    renderPreview();
+  });
+
+  document.getElementById('btnAddCameraPreset').addEventListener('click', () => {
+    const sc = currentScene();
+    if (!isV2Scene(sc)) return;
+    const raw = prompt('構図ID（半角英数字・ハイフン-・アンダースコア_。先頭は英字）\n例: presenter, background-left');
+    if (raw === null) return;
+    const presetId = raw.trim();
+    if (!isCameraPresetId(presetId)) {
+      alert('不正な構図IDです。先頭を英字にし、半角英数字・ハイフン・アンダースコアだけを使ってください。');
+      return;
+    }
+    ensureV2Layout(sc);
+    if (sc.cameraPresets[presetId]) { alert('同名の構図が既にあります'); return; }
+    const base = normalizedCameraFrame(sc, currentCameraFrameKey);
+    sc.cameraPresets[presetId] = {cx: base.cx, cy: base.cy, width: base.width};
+    currentCameraFrameKey = presetId;
+    syncV2LayoutUi(); syncCameraFrameKeyUi(); updateCameraFrameInfo(); applyStageTransform(); renderPreview();
+  });
+
+  document.getElementById('btnRenameCameraPreset').addEventListener('click', () => {
+    const sc = currentScene();
+    if (!isV2Scene(sc)) return;
+    const oldId = currentCameraFrameKey;
+    if (oldId === 'default') { alert('defaultは標準構図として必要なため名前変更できません'); return; }
+    const raw = prompt(`構図「${oldId}」の新しいID`, oldId);
+    if (raw === null) return;
+    const presetId = raw.trim();
+    if (!isCameraPresetId(presetId)) {
+      alert('不正な構図IDです。先頭を英字にし、半角英数字・ハイフン・アンダースコアだけを使ってください。');
+      return;
+    }
+    if (presetId !== oldId && sc.cameraPresets[presetId]) { alert('同名の構図が既にあります'); return; }
+    if (presetId === oldId) return;
+    sc.cameraPresets[presetId] = sc.cameraPresets[oldId];
+    delete sc.cameraPresets[oldId];
+    for (const slot of Object.values(v2Slots(sc))) {
+      if (slot.cameraPresetId === oldId) slot.cameraPresetId = presetId;
+    }
+    currentCameraFrameKey = presetId;
+    buildSlotList(); syncV2LayoutUi(); syncCameraFrameKeyUi(); updateCameraFrameInfo(); applyStageTransform(); renderPreview();
+  });
+
+  document.getElementById('btnDeleteCameraPreset').addEventListener('click', () => {
+    const sc = currentScene();
+    if (!isV2Scene(sc)) return;
+    const presetId = currentCameraFrameKey;
+    if (presetId === 'default') { alert('defaultは標準構図として必要なため削除できません'); return; }
+    const usedBy = Object.entries(v2Slots(sc)).filter(([, slot]) => slot.cameraPresetId === presetId).map(([slotId]) => slotId);
+    if (usedBy.length > 0) { alert(`構図「${presetId}」はslot ${usedBy.join(', ')} で使用中のため削除できません`); return; }
+    delete sc.cameraPresets[presetId];
+    currentCameraFrameKey = 'default';
+    buildSlotList(); syncV2LayoutUi(); syncCameraFrameKeyUi(); updateCameraFrameInfo(); applyStageTransform(); renderPreview();
+  });
+
   document.getElementById('fLabel').addEventListener('input', e => {
     const sc = currentScene();
     if (sc) { sc.label = e.target.value; refreshSceneSelectLabel(); }
@@ -2068,6 +2207,7 @@ function addScene() {
     label: id,
     bg: bgs[0] || '',
     front: null,
+    figure: 'full',
     layouts: {
       standard: {
         slots: {
