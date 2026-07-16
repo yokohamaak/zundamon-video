@@ -8805,6 +8805,33 @@ function v2EffectInputId(group, key) {
   return `fV2Effect_${group}_${key}`;
 }
 
+function armV2ImpactLinesPositionPick(turn) {
+  const wrap = document.getElementById("playerWrap");
+  if (!wrap) return;
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:absolute; inset:0; z-index:80; cursor:crosshair; background:rgba(255,255,255,0.06); display:flex; align-items:flex-start; justify-content:center; pointer-events:auto;";
+  overlay.title = "クリックで集中線の中心位置を指定";
+  const hint = document.createElement("div");
+  hint.style.cssText = "margin-top:12px; padding:8px 12px; border-radius:999px; background:rgba(8,10,14,0.82); color:white; font-size:12px; font-weight:700; box-shadow:0 8px 22px rgba(0,0,0,.35);";
+  hint.textContent = "集中線の中心にしたい位置をクリック";
+  overlay.appendChild(hint);
+  overlay.addEventListener("click", (e) => {
+    const rect = wrap.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    const cxInput = document.getElementById(v2EffectInputId("impactLines", "cx"));
+    const cyInput = document.getElementById(v2EffectInputId("impactLines", "cy"));
+    if (cxInput) cxInput.value = x.toFixed(2);
+    if (cyInput) cyInput.value = y.toFixed(2);
+    document.getElementById("fV2ImpactLines").checked = true;
+    collectV2Basic();
+    renderV2Detail(turn);
+    notifyPlayerUpdate();
+    overlay.remove();
+  });
+  wrap.appendChild(overlay);
+}
+
 function collectV2EffectsFromUi() {
   const effects = {};
   for (const [group, meta] of Object.entries(V2_EFFECT_GROUPS)) {
@@ -8845,6 +8872,21 @@ function renderV2EffectParams(turn) {
     title.textContent = `${meta.title}のパラメータ`;
     const grid = document.createElement("div");
     grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;";
+    if (group === "impactLines") {
+      const action = document.createElement("div");
+      action.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap;";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn btn-secondary btn-sm";
+      button.textContent = "中心をプレビュークリックで指定";
+      button.addEventListener("click", () => armV2ImpactLinesPositionPick(turn));
+      const help = document.createElement("span");
+      help.className = "field-help";
+      help.style.margin = "0";
+      help.textContent = "クリック位置を中心X/Yへ反映します。";
+      action.append(button, help);
+      card.appendChild(action);
+    }
     for (const spec of v2EffectSpecs(group)) {
       const label = document.createElement("label");
       label.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
