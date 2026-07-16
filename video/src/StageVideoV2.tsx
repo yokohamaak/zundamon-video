@@ -45,6 +45,11 @@ const FULL_CANVAS = {
 const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
 const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
+// 手動配置(placement)がターン間で変わったときの移動遷移秒数。旧StoryVideoのMANUAL_POS_TRANSと同値。
+const MANUAL_POS_TRANSITION_SECONDS = 0.6;
+// 単発吹き出しを話者の足元より少し上へ浮かせるオフセット。旧bubbleBottomOffsetと同値。
+const BUBBLE_BOTTOM_OFFSET = 36;
+const BUBBLE_CONTINUE_BOTTOM_OFFSET = 12;
 const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
 const FLASHBACK_SATURATE = 0.4;
 const FLASHBACK_BRIGHTNESS = 1.02;
@@ -824,9 +829,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const tiltedTransform = `${transform ?? ""}${cameraTilt ? ` rotate(${cameraTilt}deg)` : ""}` || undefined;
   const enterById = new Map((turn.stage?.enter ?? []).map((item) => [item.instanceId, item]));
   const exitById = new Map((turn.stage?.exit ?? []).map((item) => [stageExitId(item), item]));
-  const previousStateForExit = turnIndex > 0 ? resolveStageStateAtTurn(story, turnIndex - 1) : undefined;
-  const exitingInstances: ResolvedInstanceV2[] = previousStateForExit
-    ? Object.entries(previousStateForExit.instances)
+  const previousState = turnIndex > 0 ? resolveStageStateAtTurn(story, turnIndex - 1) : undefined;
+  const exitingInstances: ResolvedInstanceV2[] = previousState
+    ? Object.entries(previousState.instances)
       .filter(([instanceId]) => {
         const exitItem = exitById.get(instanceId);
         if (!exitItem || state.instances[instanceId]) return false;
@@ -988,6 +993,18 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       if (!origin) return null;
       const exitItem = exitById.get(instance.instanceId);
       const enterItem = enterById.get(instance.instanceId);
+      // 配置(manualPos相当)がターン間で変わった個体だけ、旧レンダラーと同じ0.6秒補間で新位置へ寄せる。
+      // 新規登場・退場中の個体は対象外（!exitItem && !enterItemで自然に排他になる。登場/退場アニメと二重にしない）。
+      const previousInstance = !exitItem && !enterItem && previousState?.scene === state.scene
+        ? previousState.instances[instance.instanceId]
+        : undefined;
+      const previousOrigin = previousInstance ? placementOrigin(previousInstance.placement, scene.layouts.standard) : undefined;
+      const displayOrigin = previousOrigin && typeof turn.start === "number" && (previousOrigin.x !== origin.x || previousOrigin.y !== origin.y)
+        ? {
+          x: lerp(previousOrigin.x, origin.x, easeInOutCubic((seconds - turn.start) / MANUAL_POS_TRANSITION_SECONDS)),
+          y: lerp(previousOrigin.y, origin.y, easeInOutCubic((seconds - turn.start) / MANUAL_POS_TRANSITION_SECONDS)),
+        }
+        : origin;
       const animationOffset = exitItem
         ? stageAnimationOffset({
           direction: stageAnimationDirection(exitItem),
@@ -1032,7 +1049,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           ?? null;
         const pose = instance.pose ? poses?.[main.avatar]?.[instance.pose] : undefined;
         return (
-          <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: baseTransform}}>
+          <div key={instance.instanceId} style={{position: "absolute", left: displayOrigin.x * width, top: displayOrigin.y * height, zIndex, transform: baseTransform}}>
             <div style={{transform: `scale(${scale})`, transformOrigin: "bottom center"}}>
               <Avatar
                 dir={avatarDir}
@@ -1066,7 +1083,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       // モブ素材の既定flip（なければ主役と同じ左右slotの既定）を使う。
       const flip = resolvedFlip(instance, mob.flip ?? (origin.x < 0.5));
       return (
-        <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: baseTransform}}>
+        <div key={instance.instanceId} style={{position: "absolute", left: displayOrigin.x * width, top: displayOrigin.y * height, zIndex, transform: baseTransform}}>
           <div style={{transform: `scale(${flip ? -1 : 1}, 1)`, transformOrigin: "bottom center"}}>
             <Img src={staticFile(image)} style={{height: 760 * (mob.scale ?? 1) * scale, width: "auto", display: "block"}} />
           </div>
@@ -1120,10 +1137,19 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
         const visibleCount = usingContinuation ? turnIndex - continueRange.start + 1 : visibleSentenceGroupCount(turn, seconds);
         const charLimit = turn.bubbleMaxChars ?? displaySettings.bubble.maxChars;
-        const metrics = texts.map((text) => bubbleMetricsV2(text, displaySettings.bubble.fontSize, width * 0.48, charLimit));
         const stacked = texts.length > 1;
+        // 複数段（連結/自動分割）のときは旧と同じく少し縮小する。箱幅の見積もりと実描画で必ず同じ値を使うこと。
+        const bubbleFontSize = stacked ? Math.max(20, displaySettings.bubble.fontSize - 2) : displaySettings.bubble.fontSize;
+        const metrics = texts.map((text) => bubbleMetricsV2(text, bubbleFontSize, width * 0.48, charLimit));
         const groupWidth = metrics.reduce((largest, item) => Math.max(largest, item.width), 120);
-        const bubbleTransform = cameraTurnIndex !== turnIndex ? previousTransform : targetTransform;
+        // カメラ遷移中はステージ本体のtransformと同じ式でtx/ty/scaleを補間し、吹き出しを追従させる（旧のfollowK相当）。
+        const bubbleTransform = canSmoothCamera && previousTransform && targetTransform
+          ? {
+            tx: previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress,
+            ty: previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress,
+            scale: previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress,
+          }
+          : cameraTurnIndex !== turnIndex ? previousTransform : targetTransform;
         const screenX = bubbleTransform
           ? bubbleTransform.tx + speakerPosition.x * width * bubbleTransform.scale
           : speakerPosition.x * width;
@@ -1132,10 +1158,14 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const bubbleStepX = side === "right" ? -18 : 18;
         const singleWidth = metrics[0].width;
         const singleLeft = side === "right" ? groupCenterX + singleWidth / 2 : groupCenterX - singleWidth / 2;
+        // ズームが深いほど旧のzoomBubbleKと同じ式で吹き出しを上へ逃がす。
+        const zoomBubbleK = bubbleTransform ? clamp((bubbleTransform.scale - 1) / 0.6, 0, 1) : 0;
+        const bubbleTop = height * lerp(0.95, 0.9, zoomBubbleK);
+        const singleBottomOffset = turn.continueBubble ? BUBBLE_CONTINUE_BOTTOM_OFFSET : BUBBLE_BOTTOM_OFFSET;
         return <div style={stacked
-          ? {position: "absolute", zIndex: 30, left: groupCenterX, top: height * 0.95, width: groupWidth, transform: "translate(-50%, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start", gap: 6}
-          : {position: "absolute", zIndex: 30, left: singleLeft, top: height * 0.95, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
-          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
+          ? {position: "absolute", zIndex: 30, left: groupCenterX, top: bubbleTop, width: groupWidth, transform: "translate(-50%, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start", gap: 6}
+          : {position: "absolute", zIndex: 30, left: singleLeft, top: bubbleTop - singleBottomOffset, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
+          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 28px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: bubbleFontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
         </div>;
       })() : null}
       <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines />
