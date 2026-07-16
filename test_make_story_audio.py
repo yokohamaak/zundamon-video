@@ -54,6 +54,21 @@ def test_build_script_turns_resolves_v2_instance_voice_id():
     print("  script-turns: v2個体IDをvoiceIdへ解決 OK")
 
 
+def test_v2_rejects_per_turn_voice_override():
+    data = {
+        "schemaVersion": 2,
+        "instances": {"boss": {"voiceId": "部長", "role": "stage", "characterId": "boss_mob"}},
+        "script": [{"speaker": "boss", "text": "報告して。", "voice": {"speedScale": 1.2}}],
+    }
+    try:
+        msa.resolve_turn_voice_id(data, data["script"][0])
+    except ValueError as error:
+        assert "個別音声上書き" in str(error)
+    else:
+        raise AssertionError("v2の個別音声上書きが拒否されなかった")
+    print("  v2: 個別音声上書きを黙って無視しない OK")
+
+
 def test_build_tts_config_maps_profiles_to_speakers():
     profiles = {
         "troublemaker_male_normal": {
@@ -91,6 +106,7 @@ if __name__ == "__main__":
     test_load_voice_profiles_includes_troublemakers()
     test_build_script_turns_uses_profile_fx_and_narration_defaults()
     test_build_script_turns_resolves_v2_instance_voice_id()
+    test_v2_rejects_per_turn_voice_override()
     test_build_tts_config_maps_profiles_to_speakers()
     test_load_voice_profiles_merges_override_file()
     print("OK")

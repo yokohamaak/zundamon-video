@@ -4,6 +4,39 @@ import type {BgmRegion, StoryOverlay, TurnSe} from "./StoryVideo";
 export type Point = {x: number; y: number};
 export type CameraFrameV2 = {cx: number; cy: number; width: number};
 
+export type StorySentenceV2 = {text: string; start: number; end: number};
+export type SubtitleStyleV2 = {
+  fontSize?: number;
+  textColor?: string;
+  boxBorder?: boolean;
+  boxBorderColor?: string;
+  boxBorderWidth?: number;
+};
+export type StoryDisplaySettingsV2 = {
+  bubble?: {
+    maxChars?: number | null;
+    fontSize?: number;
+    fontFamily?: string;
+    textColor?: string;
+    bgColor?: string;
+    borderWidth?: number;
+    radius?: number;
+  };
+  subtitle?: {
+    fontSize?: number;
+    fontFamily?: string;
+    textColor?: string;
+    bgColor?: string;
+    bgOpacity?: number;
+    border?: boolean;
+    borderColor?: string;
+    borderWidth?: number;
+    bottom?: number;
+    width?: number;
+  };
+  speakerColors?: Record<string, string | undefined>;
+};
+
 export type WhiteboardDisplayV2 = {
   kind: "whiteboard";
   /** 画面に出す解説役。省略時は立ち絵を出さない。 */
@@ -88,6 +121,21 @@ export type StageTurnV2 = {
   pause?: number;
   /** 心の声など、発話中でも口パクを止めるターン。 */
   noLipSync?: boolean;
+  /** 通常stageの人物だけを隠し、台詞表示は維持する。 */
+  hideCharacters?: boolean;
+  /** 話者吹き出しを隠す。 */
+  hideBubble?: boolean;
+  /** 吹き出しではなく字幕帯として表示する。 */
+  subtitleMode?: "subtitle";
+  subtitleStyle?: SubtitleStyleV2;
+  /** 同じ話者・同じsceneの直前ターンと吹き出しを連結する。 */
+  continueBubble?: boolean;
+  bubbleMaxChars?: number;
+  disableAutoBubbleSplit?: boolean;
+  /** 音声生成済みの文ごとの絶対時刻。 */
+  sentences?: StorySentenceV2[];
+  /** v2では即時切替のみ対応する旧場面転換指定。 */
+  transition?: "cut";
   /** ターン開始からの相対時刻で鳴らす手動SE。 */
   se?: TurnSe[];
   /** 構図が変わるターンのカメラ接続。省略時は smooth。 */
@@ -104,6 +152,10 @@ export type StoryV2 = {
   bgm?: BgmRegion[];
   /** 既存タイムラインと共通の補助画像・テキスト。 */
   overlays?: StoryOverlay[];
+  /** 旧と共通の動画全体表示設定。 */
+  displaySettings?: StoryDisplaySettingsV2;
+  /** 非話者の表情を保持するか、各ターンで通常状態へ戻すか。 */
+  idleFace?: "normal" | "hold";
   instances: Record<string, StoryInstanceV2>;
   script: StageTurnV2[];
 };
@@ -197,6 +249,11 @@ function resetInstance(instance: MutableInstance): MutableInstance {
   };
 }
 
+function resetIdleExpression(instance: MutableInstance): MutableInstance {
+  const {expression: _expression, ...rest} = instance;
+  return rest;
+}
+
 /**
  * 指定turnの開始時点における完全な舞台状態を返す。sceneが変わると在席状態は必ずリセットする。
  * 入力の整合性は保存時validatorが保証する想定であり、この関数は描画・プレビュー用の純粋解決器である。
@@ -254,10 +311,15 @@ export function resolveStageStateAtTurn(
       const instance = instances[instanceId];
       if (instance) instances[instanceId] = applyPatch(instance, patch);
     }
+    if (story.idleFace === "normal") {
+      for (const [instanceId, instance] of Object.entries(instances)) {
+        if (instanceId !== turn.speaker) instances[instanceId] = resetIdleExpression(instance);
+      }
+    }
     if (event.framing) framing = event.framing;
   }
 
-  const visible = displayMode.kind === "standard";
+  const visible = displayMode.kind === "standard" && !story.script[turnIndex].hideCharacters;
   const resolved: Record<string, ResolvedInstanceV2> = {};
   for (const [instanceId, instance] of Object.entries(instances)) {
     resolved[instanceId] = {...instance, visible};

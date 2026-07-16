@@ -84,6 +84,35 @@ class StageSchemaTest(unittest.TestCase):
         validate_scene_library_v2(SCENES)
         validate_story_v2(STORY, SCENES)
 
+    def test_v2_accepts_display_contract_fields(self):
+        story = copy.deepcopy(STORY)
+        story["idleFace"] = "hold"
+        story["displaySettings"] = {
+            "bubble": {"fontSize": 48, "bgColor": "#ffffff", "textColor": "#111111", "borderWidth": 4, "radius": 14},
+            "subtitle": {"fontSize": 42, "bgColor": "#111111", "textColor": "#ffffff", "border": True, "borderColor": "#ffffff"},
+            "speakerColors": {"zundamon": "#5fb84f", "default": "#9aa0a6"},
+        }
+        story["script"][0].update({
+            "hideCharacters": True,
+            "hideBubble": False,
+            "subtitleMode": "subtitle",
+            "subtitleStyle": {"fontSize": 40, "textColor": "#ffffff", "boxBorder": True, "boxBorderColor": "#ffffff", "boxBorderWidth": 2},
+            "bubbleMaxChars": 20,
+            "sentences": [{"text": "始めるのだ。", "start": 0, "end": 1}],
+            "transition": "cut",
+        })
+        validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_legacy_fields_instead_of_ignoring_them(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["flashback"] = True
+        with self.assertRaisesRegex(ValueError, "未対応の項目"):
+            validate_story_v2(story, SCENES)
+        story = copy.deepcopy(STORY)
+        story["script"][0]["transition"] = "fade-black"
+        with self.assertRaisesRegex(ValueError, "v2では cut のみ"):
+            validate_story_v2(story, SCENES)
+
     def test_scene_accepts_background_video(self):
         scenes = copy.deepcopy(SCENES)
         scene = scenes["scenes"]["office"]

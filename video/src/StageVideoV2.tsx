@@ -10,7 +10,9 @@ import {
   resolveFraming,
   resolveStageStateAtTurn,
   type SceneLibraryV2,
+  type StoryDisplaySettingsV2,
   type StoryV2,
+  type StageTurnV2,
 } from "./stage-v2";
 import type {BgmRegion, ExpressionsMap, MobDef, MobsMap, PosesMap, SeMap, SeMapEntry, StoryOverlay, TurnSe} from "./StoryVideo";
 
@@ -38,6 +40,12 @@ const FULL_CANVAS = {
 } as const;
 const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
+
+const DEFAULT_DISPLAY_SETTINGS = {
+  bubble: {maxChars: null as number | null, fontSize: 54, fontFamily: "sans-serif", textColor: "#1b1b1f", bgColor: "#ffffff", borderWidth: 5, radius: 18},
+  subtitle: {fontSize: 46, fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif', textColor: "#ffffff", bgColor: "#080a0e", bgOpacity: 0.84, border: true, borderColor: "#ffffff", borderWidth: 2, bottom: 42, width: 0.84},
+  speakerColors: {zundamon: "#5fb84f", metan: "#e87bb0", default: "#9aa0a6"},
+};
 
 function fullBoxSize(avatar: string) {
   const canvas = FULL_CANVAS[avatar as keyof typeof FULL_CANVAS];
@@ -112,6 +120,93 @@ function mediaStaticSrc(path: string): string {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function validHex(value: unknown, fallback: string) {
+  return /^#([0-9a-fA-F]{6})$/.test(String(value || "")) ? String(value) : fallback;
+}
+
+function displaySettingsOf(settings?: StoryDisplaySettingsV2) {
+  const bubble = settings?.bubble ?? {};
+  const subtitle = settings?.subtitle ?? {};
+  const colors = settings?.speakerColors ?? {};
+  const number = (value: unknown, fallback: number, min: number, max: number) => Number.isFinite(Number(value)) ? clamp(Number(value), min, max) : fallback;
+  const maxChars = Number(bubble.maxChars);
+  return {
+    bubble: {
+      maxChars: Number.isFinite(maxChars) && maxChars > 0 ? Math.round(maxChars) : DEFAULT_DISPLAY_SETTINGS.bubble.maxChars,
+      fontSize: Math.round(number(bubble.fontSize, DEFAULT_DISPLAY_SETTINGS.bubble.fontSize, 24, 96)),
+      fontFamily: bubble.fontFamily || DEFAULT_DISPLAY_SETTINGS.bubble.fontFamily,
+      textColor: validHex(bubble.textColor, DEFAULT_DISPLAY_SETTINGS.bubble.textColor),
+      bgColor: validHex(bubble.bgColor, DEFAULT_DISPLAY_SETTINGS.bubble.bgColor),
+      borderWidth: number(bubble.borderWidth, DEFAULT_DISPLAY_SETTINGS.bubble.borderWidth, 1, 12),
+      radius: Math.round(number(bubble.radius, DEFAULT_DISPLAY_SETTINGS.bubble.radius, 4, 40)),
+    },
+    subtitle: {
+      fontSize: Math.round(number(subtitle.fontSize, DEFAULT_DISPLAY_SETTINGS.subtitle.fontSize, 24, 96)),
+      fontFamily: subtitle.fontFamily || DEFAULT_DISPLAY_SETTINGS.subtitle.fontFamily,
+      textColor: validHex(subtitle.textColor, DEFAULT_DISPLAY_SETTINGS.subtitle.textColor),
+      bgColor: validHex(subtitle.bgColor, DEFAULT_DISPLAY_SETTINGS.subtitle.bgColor),
+      bgOpacity: number(subtitle.bgOpacity, DEFAULT_DISPLAY_SETTINGS.subtitle.bgOpacity, 0, 1),
+      border: subtitle.border !== false,
+      borderColor: validHex(subtitle.borderColor, DEFAULT_DISPLAY_SETTINGS.subtitle.borderColor),
+      borderWidth: number(subtitle.borderWidth, DEFAULT_DISPLAY_SETTINGS.subtitle.borderWidth, 0.5, 6),
+      bottom: Math.round(number(subtitle.bottom, DEFAULT_DISPLAY_SETTINGS.subtitle.bottom, 0, 200)),
+      width: number(subtitle.width, DEFAULT_DISPLAY_SETTINGS.subtitle.width, 0.4, 1),
+    },
+    speakerColors: {
+      zundamon: validHex(colors.zundamon, DEFAULT_DISPLAY_SETTINGS.speakerColors.zundamon),
+      metan: validHex(colors.metan, DEFAULT_DISPLAY_SETTINGS.speakerColors.metan),
+      default: validHex(colors.default, DEFAULT_DISPLAY_SETTINGS.speakerColors.default),
+    },
+  };
+}
+
+function hexToRgba(hex: string, opacity: number) {
+  const raw = hex.slice(1);
+  const value = parseInt(raw, 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${opacity})`;
+}
+
+function sentenceGroups(turn: StageTurnV2) {
+  if (turn.disableAutoBubbleSplit || /\r?\n/.test(turn.text) || !turn.sentences?.length) return [{text: turn.text, start: -Infinity, end: Infinity}];
+  const joined = turn.sentences.map((sentence) => sentence.text).join("");
+  if (joined !== turn.text.replace(/\s+/g, "")) return [{text: turn.text, start: -Infinity, end: Infinity}];
+  const groups: Array<{text: string; start: number; end: number}> = [];
+  for (const sentence of turn.sentences) {
+    const previous = groups[groups.length - 1];
+    if (previous && /[、，,]$/.test(previous.text.trim())) {
+      previous.text += sentence.text;
+      previous.end = sentence.end;
+    } else {
+      groups.push({text: sentence.text, start: sentence.start, end: sentence.end});
+    }
+  }
+  return groups.length ? groups : [{text: turn.text, start: -Infinity, end: Infinity}];
+}
+
+function visibleSentenceGroupCount(turn: StageTurnV2, seconds: number) {
+  const groups = sentenceGroups(turn);
+  if (groups.length <= 1) return 1;
+  const active = groups.findIndex((group) => group.start <= seconds && seconds < group.end);
+  return active >= 0 ? active + 1 : groups.length;
+}
+
+function bubbleTextAt(turn: StageTurnV2, seconds: number) {
+  const groups = sentenceGroups(turn);
+  const active = groups.find((group) => group.start <= seconds && seconds < group.end);
+  return active?.text ?? groups[groups.length - 1]?.text ?? turn.text;
+}
+
+function continuedBubbleRange(script: StageTurnV2[], activeIndex: number) {
+  let start = activeIndex;
+  while (start > 0) {
+    const current = script[start];
+    const previous = script[start - 1];
+    if (!current.continueBubble || current.scene !== previous.scene || current.speaker !== previous.speaker) break;
+    start -= 1;
+  }
+  return {start, end: activeIndex};
 }
 
 function overlayAnchorTime(story: StoryV2, anchor: StoryOverlay["start"] | undefined) {
@@ -302,9 +397,22 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const shakeOffset = cameraShakeOffset(motion?.shake, seconds, turn.start ?? 0);
   const tiltedTransform = `${transform ?? ""}${motion?.tilt ? ` rotate(${motion.tilt}deg)` : ""}` || undefined;
   const currentSpeaker = state.instances[turn.speaker];
+  const speakerDefinition = story.instances[turn.speaker];
   const speakerPosition = currentSpeaker
     ? placementOrigin(currentSpeaker.placement, scene.layouts.standard)
     : undefined;
+  const displaySettings = displaySettingsOf(story.displaySettings);
+  const speakerCharacterId = speakerDefinition?.characterId;
+  const speakerBubbleColor = speakerCharacterId === "zundamon"
+    ? displaySettings.speakerColors.zundamon
+    : speakerCharacterId === "metan"
+      ? displaySettings.speakerColors.metan
+      : displaySettings.speakerColors.default;
+  const continueRange = continuedBubbleRange(story.script, turnIndex);
+  const continuedTurns = story.script.slice(continueRange.start, continueRange.end + 1);
+  const hasBubbleText = !!turn.text.trim();
+  const isSubtitle = turn.subtitleMode === "subtitle";
+  const isStandardDialogue = state.displayMode.kind === "standard" && !turn.hideBubble && hasBubbleText;
   let speakerAmp = 0;
   if (audioData) {
     const wave = audioData.channelWaveforms[0];
@@ -505,11 +613,25 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         </AbsoluteFill>
       )}
       {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
-      {state.displayMode.kind === "standard" && speakerPosition && currentSpeaker?.definition.role !== "voiceOnly" ? (
-        <div style={{position: "absolute", zIndex: 30, left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", padding: "14px 22px", borderRadius: 18, background: "white", color: "#222", fontSize: 42, fontWeight: 700, lineHeight: 1.3, textAlign: "center", boxShadow: "0 6px 18px rgba(0,0,0,.35)"}}>
-          {turn.text}
-        </div>
-      ) : null}
+      {isStandardDialogue && isSubtitle ? (() => {
+        const style = turn.subtitleStyle ?? {};
+        const fontSize = Number.isFinite(Number(style.fontSize)) ? clamp(Math.round(Number(style.fontSize)), 24, 96) : displaySettings.subtitle.fontSize;
+        const textColor = validHex(style.textColor, displaySettings.subtitle.textColor);
+        const borderColor = validHex(style.boxBorderColor, displaySettings.subtitle.borderColor);
+        const borderWidth = Number.isFinite(Number(style.boxBorderWidth)) ? clamp(Number(style.boxBorderWidth), 0.5, 6) : displaySettings.subtitle.borderWidth;
+        const texts = continuedTurns.map((item) => bubbleTextAt(item, seconds));
+        return <div style={{position: "absolute", zIndex: 30, left: "50%", bottom: displaySettings.subtitle.bottom, width: Math.min(width * displaySettings.subtitle.width, 1360), transform: "translateX(-50%)", padding: "16px 28px 18px", borderRadius: 18, background: hexToRgba(displaySettings.subtitle.bgColor, displaySettings.subtitle.bgOpacity), border: (style.boxBorder ?? displaySettings.subtitle.border) ? `${borderWidth}px solid ${borderColor}` : "none", boxShadow: "0 14px 34px rgba(0,0,0,.4)", color: textColor, fontSize, lineHeight: 1.45, fontWeight: 700, fontFamily: displaySettings.subtitle.fontFamily, textAlign: "center", whiteSpace: "pre-wrap", textShadow: "0 2px 6px rgba(0,0,0,.4)"}}>{texts.join("\n")}</div>;
+      })() : null}
+      {isStandardDialogue && !isSubtitle && speakerPosition && speakerDefinition?.role !== "voiceOnly" ? (() => {
+        const autoGroups = sentenceGroups(turn);
+        const usingContinuation = continuedTurns.length > 1;
+        const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
+        const visibleCount = usingContinuation ? texts.length : visibleSentenceGroupCount(turn, seconds);
+        const charLimit = turn.bubbleMaxChars ?? displaySettings.bubble.maxChars;
+        return <div style={{position: "absolute", zIndex: 30, left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10}}>
+          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", maxWidth: width * 0.48, padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere", boxShadow: "0 6px 18px rgba(0,0,0,.35)", ...(charLimit ? {maxWidth: `${Math.max(8, charLimit) + 4}em`} : {})}}>{text}</div>)}
+        </div>;
+      })() : null}
     </AbsoluteFill>
   );
 };

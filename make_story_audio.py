@@ -156,6 +156,9 @@ def resolve_turn_voice_id(data, turn):
     """v2では台本のspeaker個体IDを、個体定義のvoiceIdへ解決する。"""
     if data.get("schemaVersion") != 2:
         return turn.get("narrationVoice") or turn["speaker"]
+    unsupported = [key for key in ("voice", "narrationVoice", "audioFx", "chorus") if key in turn]
+    if unsupported:
+        raise ValueError(f"v2 turnには個別音声上書きを指定できません: {', '.join(unsupported)}。instances.<id>.voiceId を使用してください")
     instance_id = turn["speaker"]
     instance = (data.get("instances") or {}).get(instance_id)
     voice_id = instance.get("voiceId") if isinstance(instance, dict) else None

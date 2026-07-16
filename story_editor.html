@@ -1679,6 +1679,20 @@
               <label class="field-label">セリフ</label>
               <textarea class="field-textarea" id="fV2Text"></textarea>
             </div>
+            <div class="section-divider">台詞表示</div>
+            <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
+              <label class="toggle-row"><input type="checkbox" id="fV2HideCharacters"> 人物を隠す</label>
+              <label class="toggle-row"><input type="checkbox" id="fV2HideBubble"> 台詞を隠す</label>
+              <label class="toggle-row"><input type="checkbox" id="fV2ContinueBubble"> 前の吹き出しに連結</label>
+              <label class="toggle-row"><input type="checkbox" id="fV2DisableAutoBubbleSplit"> 文ごとの自動分割をしない</label>
+            </div>
+            <div class="field-row">
+              <label class="field-label">台詞の表示方法</label>
+              <select class="field-select" id="fV2SubtitleMode"><option value="bubble">吹き出し</option><option value="subtitle">字幕帯</option></select>
+              <label class="field-label" style="min-width:auto;">最大文字数</label>
+              <input class="field-input" id="fV2BubbleMaxChars" type="number" min="1" max="99" step="1" placeholder="動画全体の既定値" style="width:150px;">
+              <div class="field-help">動画全体の色・フォント・字幕帯は「表示」タブで設定します。</div>
+            </div>
             <div class="field-row">
               <label class="field-label">シーン</label>
               <select class="field-select" id="fV2Scene"></select>
@@ -6254,7 +6268,7 @@ function collectDisplaySettings() {
     const el = document.getElementById(id);
     return el ? !!el.checked : fallback;
   };
-  storyData.displaySettings = {
+  const displaySettings = {
     bubble: {
       maxChars: (() => {
         const el = document.getElementById("dsBubbleMaxChars");
@@ -6287,12 +6301,15 @@ function collectDisplaySettings() {
       metan: normalizeHexColor(readString("dsSpeakerColorMetanHex", DISPLAY_DEFAULTS.speakerColors.metan), DISPLAY_DEFAULTS.speakerColors.metan),
       default: normalizeHexColor(readString("dsSpeakerColorDefaultHex", DISPLAY_DEFAULTS.speakerColors.default), DISPLAY_DEFAULTS.speakerColors.default),
     },
-    telop: {
+  };
+  if (!isV2StoryEditor()) {
+    displaySettings.telop = {
       x: Math.max(0, Math.min(1, readNumber("dsTelopX", DISPLAY_DEFAULTS.telop.x) || DISPLAY_DEFAULTS.telop.x)),
       y: Math.max(0, Math.min(1, readNumber("dsTelopY", DISPLAY_DEFAULTS.telop.y) || DISPLAY_DEFAULTS.telop.y)),
       size: Math.max(0.5, Math.min(3, readNumber("dsTelopSize", DISPLAY_DEFAULTS.telop.size) || DISPLAY_DEFAULTS.telop.size)),
-    },
-  };
+    };
+  }
+  storyData.displaySettings = displaySettings;
   markDirty();
   notifyPlayerUpdate();
   renderList();
@@ -6485,7 +6502,10 @@ async function updateDisplaySettingsPreview() {
 }
 
 function transitionOptionsHtml(selected, allowNone = false) {
-  const options = [
+  const options = isV2StoryEditor() ? [
+    ...(allowNone ? [["", "なし"]] : []),
+    ["cut", "cut（カット）"],
+  ] : [
     ...(allowNone ? [["", "なし"]] : []),
     ["cut", "cut（カット）"],
     ["fade-black", "fade-black（暗転）"],
@@ -8526,6 +8546,12 @@ function renderV2Detail(turn) {
   }
   speaker.value = turn.speaker || "";
   document.getElementById("fV2Text").value = turn.text || "";
+  document.getElementById("fV2HideCharacters").checked = !!turn.hideCharacters;
+  document.getElementById("fV2HideBubble").checked = !!turn.hideBubble;
+  document.getElementById("fV2ContinueBubble").checked = !!turn.continueBubble;
+  document.getElementById("fV2DisableAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
+  document.getElementById("fV2SubtitleMode").value = turn.subtitleMode === "subtitle" ? "subtitle" : "bubble";
+  document.getElementById("fV2BubbleMaxChars").value = turn.bubbleMaxChars ?? "";
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
   for (const sceneId of sortedKeysBySceneLabel(sceneDefs?.scenes || {})) {
@@ -8710,6 +8736,22 @@ function collectV2Basic() {
   const oldText = turn.text;
   turn.speaker = document.getElementById("fV2Speaker").value;
   turn.text = document.getElementById("fV2Text").value;
+  if (document.getElementById("fV2HideCharacters").checked) turn.hideCharacters = true;
+  else delete turn.hideCharacters;
+  if (document.getElementById("fV2HideBubble").checked) turn.hideBubble = true;
+  else delete turn.hideBubble;
+  if (document.getElementById("fV2ContinueBubble").checked) turn.continueBubble = true;
+  else delete turn.continueBubble;
+  if (document.getElementById("fV2DisableAutoBubbleSplit").checked) turn.disableAutoBubbleSplit = true;
+  else delete turn.disableAutoBubbleSplit;
+  if (document.getElementById("fV2SubtitleMode").value === "subtitle") turn.subtitleMode = "subtitle";
+  else {
+    delete turn.subtitleMode;
+    delete turn.subtitleStyle;
+  }
+  const bubbleMaxChars = Number(document.getElementById("fV2BubbleMaxChars").value);
+  if (document.getElementById("fV2BubbleMaxChars").value !== "" && Number.isFinite(bubbleMaxChars) && bubbleMaxChars > 0) turn.bubbleMaxChars = Math.round(bubbleMaxChars);
+  else delete turn.bubbleMaxChars;
   const nextScene = document.getElementById("fV2Scene").value;
   if (turn.scene !== nextScene) delete turn.stage;
   turn.scene = nextScene;
@@ -12021,7 +12063,7 @@ function setupEvents() {
     el.addEventListener(evt, collectBasic);
   }
   const v2BasicIds = [
-    "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
+    "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",
