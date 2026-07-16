@@ -1730,6 +1730,7 @@
                 <label class="toggle-row"><input type="checkbox" id="fV2ZoomPunch"> <span>ズームパンチ</span></label>
                 <label class="toggle-row"><input type="checkbox" id="fV2QuoteFreeze"> <span>引用止め</span></label>
               </div>
+              <div id="v2EffectParams" style="display:none; width:100%; margin-top:10px;"></div>
               <div class="field-help">V2用の軽量演出です。旧方式のturn直下キーではなく、effectsとして保存します。</div>
             </div>
             <div class="field-row">
@@ -8776,6 +8777,99 @@ function renderV2MeetParticipants(turn) {
   active.value = meeting.activeSpeakerId || "";
 }
 
+const V2_EFFECT_GROUPS = {
+  impactLines: { checkboxId: "fV2ImpactLines", title: "集中線" },
+  zoomPunch: { checkboxId: "fV2ZoomPunch", title: "ズームパンチ" },
+  quoteFreeze: { checkboxId: "fV2QuoteFreeze", title: "引用止め" },
+};
+const V2_EFFECT_SPEC_KEYS = {
+  impactLines: new Set(["cx", "cy", "count", "thickness", "opacity", "innerRadius", "start", "end"]),
+  zoomPunch: new Set(["scale", "duration", "borderStrength"]),
+  quoteFreeze: new Set(["fadeIn", "fadeOutDuration", "backdropOpacity"]),
+};
+
+function v2EffectSpecs(group) {
+  const allowed = V2_EFFECT_SPEC_KEYS[group];
+  return EFFECT_SETTING_SPECS.filter((spec) => spec.group === group && allowed?.has(spec.key));
+}
+
+function v2EffectIsEnabled(raw) {
+  return raw === true || (!!raw && typeof raw === "object" && raw.enabled !== false);
+}
+
+function v2EffectParams(raw) {
+  return raw && typeof raw === "object" ? raw : {};
+}
+
+function v2EffectInputId(group, key) {
+  return `fV2Effect_${group}_${key}`;
+}
+
+function collectV2EffectsFromUi() {
+  const effects = {};
+  for (const [group, meta] of Object.entries(V2_EFFECT_GROUPS)) {
+    const checkbox = document.getElementById(meta.checkboxId);
+    if (!checkbox?.checked) continue;
+    const config = { enabled: true };
+    for (const spec of v2EffectSpecs(group)) {
+      const input = document.getElementById(v2EffectInputId(group, spec.key));
+      const rawValue = input?.value;
+      const parsed = Number(rawValue);
+      if (rawValue !== "" && Number.isFinite(parsed)) {
+        const clamped = Math.max(spec.min, Math.min(spec.max, parsed));
+        config[spec.key] = spec.digits === 0 ? Math.round(clamped) : Number(clamped.toFixed(spec.digits));
+      }
+    }
+    effects[group] = config;
+  }
+  return effects;
+}
+
+function renderV2EffectParams(turn) {
+  const container = document.getElementById("v2EffectParams");
+  if (!container) return;
+  container.innerHTML = "";
+  const effects = turn?.effects || {};
+  const enabledGroups = Object.entries(V2_EFFECT_GROUPS).filter(([group, meta]) => {
+    const checked = document.getElementById(meta.checkboxId)?.checked;
+    return checked || v2EffectIsEnabled(effects[group]);
+  });
+  container.style.display = enabledGroups.length ? "grid" : "none";
+  container.style.gap = "10px";
+  for (const [group, meta] of enabledGroups) {
+    const params = v2EffectParams(effects[group]);
+    const card = document.createElement("div");
+    card.style.cssText = "display:grid; gap:8px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--panel2);";
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight:700; color:var(--text);";
+    title.textContent = `${meta.title}のパラメータ`;
+    const grid = document.createElement("div");
+    grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;";
+    for (const spec of v2EffectSpecs(group)) {
+      const label = document.createElement("label");
+      label.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+      const text = document.createElement("span");
+      text.textContent = spec.label.replace(`${meta.title} `, "") + (spec.unit ? `（${spec.unit}）` : "");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.className = "field-input";
+      input.id = v2EffectInputId(group, spec.key);
+      input.min = String(spec.min);
+      input.max = String(spec.max);
+      input.step = String(spec.step);
+      input.value = params[spec.key] ?? spec.defaultValue;
+      input.addEventListener("change", () => {
+        collectV2Basic();
+        notifyPlayerUpdate();
+      });
+      label.append(text, input);
+      grid.appendChild(label);
+    }
+    card.append(title, grid);
+    container.appendChild(card);
+  }
+}
+
 function renderV2Detail(turn) {
   v2SetEditorVisibility();
   const speaker = document.getElementById("fV2Speaker");
@@ -8806,9 +8900,10 @@ function renderV2Detail(turn) {
   document.getElementById("fV2CaptionY").value = caption.y ?? "";
   document.getElementById("fV2CaptionSize").value = caption.size ?? "";
   const effects = turn.effects || {};
-  document.getElementById("fV2ImpactLines").checked = !!effects.impactLines;
-  document.getElementById("fV2ZoomPunch").checked = !!effects.zoomPunch;
-  document.getElementById("fV2QuoteFreeze").checked = !!effects.quoteFreeze;
+  document.getElementById("fV2ImpactLines").checked = v2EffectIsEnabled(effects.impactLines);
+  document.getElementById("fV2ZoomPunch").checked = v2EffectIsEnabled(effects.zoomPunch);
+  document.getElementById("fV2QuoteFreeze").checked = v2EffectIsEnabled(effects.quoteFreeze);
+  renderV2EffectParams(turn);
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
   for (const sceneId of sortedKeysBySceneLabel(sceneDefs?.scenes || {})) {
@@ -9062,10 +9157,7 @@ function collectV2Basic() {
   } else {
     delete turn.caption;
   }
-  const effects = {};
-  if (document.getElementById("fV2ImpactLines").checked) effects.impactLines = true;
-  if (document.getElementById("fV2ZoomPunch").checked) effects.zoomPunch = true;
-  if (document.getElementById("fV2QuoteFreeze").checked) effects.quoteFreeze = true;
+  const effects = collectV2EffectsFromUi();
   if (Object.keys(effects).length) turn.effects = effects;
   else delete turn.effects;
   const nextScene = document.getElementById("fV2Scene").value;
@@ -12513,6 +12605,7 @@ function setupEvents() {
   }
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
+    "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",

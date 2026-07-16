@@ -46,6 +46,11 @@ const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
 const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
 const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+const DEFAULT_STAGE_EFFECT_SETTINGS = {
+  zoomPunch: {scale: 1.14, duration: 0.18, borderStrength: 1},
+  quoteFreeze: {fadeIn: 0.14, fadeOutStart: 0.72, fadeOutDuration: 0.18, backdropOpacity: 0.22},
+  impactLines: {cx: 0.5, cy: 0.48, count: 72, thickness: 1.25, opacity: 0.72, innerRadius: 0.17, start: 0, end: 0},
+};
 
 const DEFAULT_DISPLAY_SETTINGS = {
   bubble: {maxChars: null as number | null, fontSize: 54, fontFamily: "sans-serif", textColor: "#1b1b1f", bgColor: "#ffffff", borderWidth: 5, radius: 18},
@@ -137,6 +142,20 @@ function mediaStaticSrc(path: string): string {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function stageEffectEnabled(raw: unknown) {
+  return raw === true || (!!raw && typeof raw === "object" && (raw as {enabled?: unknown}).enabled !== false);
+}
+
+function stageEffectConfig<T extends Record<string, number>>(raw: unknown, defaults: T): T {
+  if (!raw || typeof raw !== "object") return defaults;
+  const merged = {...defaults};
+  for (const key of Object.keys(defaults) as Array<keyof T>) {
+    const value = (raw as Record<string, unknown>)[String(key)];
+    if (Number.isFinite(Number(value))) merged[key] = Number(value) as T[keyof T];
+  }
+  return merged;
 }
 
 function stageExitId(item: StageExitV2) {
@@ -455,25 +474,32 @@ const V2EffectsLayer: React.FC<{
 }> = ({turn, elapsed, progress, width, height, onlyImpactLines, hideImpactLines}) => {
   const effects = turn.effects ?? {};
   const layers: React.ReactNode[] = [];
-  const hasImpactLines = !!effects.impactLines;
+  const hasImpactLines = stageEffectEnabled(effects.impactLines);
   if (onlyImpactLines && !hasImpactLines) return null;
 
   if (!hideImpactLines && hasImpactLines) {
-    const burstIn = clamp(progress / 0.18, 0, 1);
-    const burstOut = 1 - clamp((progress - 0.58) / 0.22, 0, 1);
+    const impactLinesCfg = stageEffectConfig(effects.impactLines, DEFAULT_STAGE_EFFECT_SETTINGS.impactLines);
+    const lineStart = Math.max(0, impactLinesCfg.start);
+    const lineEnd = Math.max(0, impactLinesCfg.end);
+    const hasManualWindow = lineEnd > lineStart;
+    const localProgress = hasManualWindow ? clamp((elapsed - lineStart) / Math.max(lineEnd - lineStart, 0.001), 0, 1) : progress;
+    const burstIn = clamp(localProgress / DEFAULT_STAGE_EFFECT_SETTINGS.zoomPunch.duration, 0, 1);
+    const burstOut = hasManualWindow
+      ? 1 - clamp((elapsed - (lineEnd - 0.22)) / 0.22, 0, 1)
+      : 1 - clamp((progress - 0.58) / 0.22, 0, 1);
     const opacity = clamp(Math.min(burstIn * 1.1, burstOut), 0, 1);
-    const count = 72;
+    const count = clamp(Math.round(impactLinesCfg.count), 12, 180);
     const gapDeg = 360 / count;
-    const lineDeg = Math.min(gapDeg * 0.72, 1.25);
-    const originX = 50;
-    const originY = 48;
-    const inner = 17;
+    const lineDeg = Math.min(gapDeg * 0.72, Math.max(0.35, impactLinesCfg.thickness));
+    const originX = clamp(impactLinesCfg.cx, 0, 1) * 100;
+    const originY = clamp(impactLinesCfg.cy, 0, 1) * 100;
+    const inner = clamp(impactLinesCfg.innerRadius, 0, 0.8) * 100;
     const scale = lerp(1.08, 1, easeOutCubic(burstIn));
     layers.push(
       <AbsoluteFill key="impactLines" style={{pointerEvents: "none", overflow: "hidden"}}>
         <AbsoluteFill
           style={{
-            opacity: opacity * 0.72,
+            opacity: hasManualWindow && (elapsed < lineStart || elapsed >= lineEnd) ? 0 : opacity * clamp(impactLinesCfg.opacity, 0, 1),
             background:
               `repeating-conic-gradient(from -8deg at ${originX}% ${originY}%, rgba(5,7,12,0.9) 0deg ${lineDeg}deg, transparent ${lineDeg}deg ${gapDeg}deg)`,
             WebkitMaskImage:
@@ -488,30 +514,32 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
-  if (!onlyImpactLines && effects.zoomPunch) {
-    const local = clamp(elapsed / 0.18, 0, 1);
+  if (!onlyImpactLines && stageEffectEnabled(effects.zoomPunch)) {
+    const zoomPunchCfg = stageEffectConfig(effects.zoomPunch, DEFAULT_STAGE_EFFECT_SETTINGS.zoomPunch);
+    const local = clamp(elapsed / Math.max(zoomPunchCfg.duration, 0.001), 0, 1);
     const punch = Math.sin(local * Math.PI);
     layers.push(
       <AbsoluteFill
         key="zoomPunch"
         style={{
           pointerEvents: "none",
-          boxShadow: `inset 0 0 0 ${Math.round(18 * punch)}px rgba(255,255,255,${0.11 * punch})`,
+          boxShadow: `inset 0 0 0 ${Math.round(18 * punch * zoomPunchCfg.borderStrength)}px rgba(255,255,255,${0.11 * punch * zoomPunchCfg.borderStrength})`,
         }}
       />,
     );
   }
 
-  if (!onlyImpactLines && effects.quoteFreeze) {
-    const hold = clamp(progress / 0.14, 0, 1);
-    const fade = 1 - clamp((progress - 0.72) / 0.18, 0, 1);
+  if (!onlyImpactLines && stageEffectEnabled(effects.quoteFreeze)) {
+    const quoteFreezeCfg = stageEffectConfig(effects.quoteFreeze, DEFAULT_STAGE_EFFECT_SETTINGS.quoteFreeze);
+    const hold = clamp(progress / Math.max(quoteFreezeCfg.fadeIn, 0.001), 0, 1);
+    const fade = 1 - clamp((progress - quoteFreezeCfg.fadeOutStart) / Math.max(quoteFreezeCfg.fadeOutDuration, 0.001), 0, 1);
     const opacity = clamp(Math.min(hold, fade), 0, 1);
     layers.push(
       <AbsoluteFill
         key="quoteFreeze"
         style={{
           pointerEvents: "none",
-          background: `rgba(10, 12, 18, ${0.22 * opacity})`,
+          background: `rgba(10, 12, 18, ${quoteFreezeCfg.backdropOpacity * opacity})`,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -704,8 +732,10 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const effectEnd = typeof turn.end === "number" ? turn.end : effectStart + 1;
   const effectElapsed = Math.max(0, seconds - effectStart);
   const effectProgress = clamp(effectElapsed / Math.max(effectEnd - effectStart, 0.001), 0, 1);
-  const zoomPunchLocal = turn.effects?.zoomPunch ? clamp(effectElapsed / 0.18, 0, 1) : 1;
-  const zoomPunchScale = turn.effects?.zoomPunch ? 1 + Math.sin(zoomPunchLocal * Math.PI) * 0.12 : 1;
+  const hasZoomPunch = stageEffectEnabled(turn.effects?.zoomPunch);
+  const zoomPunchCfg = stageEffectConfig(turn.effects?.zoomPunch, DEFAULT_STAGE_EFFECT_SETTINGS.zoomPunch);
+  const zoomPunchLocal = hasZoomPunch ? clamp(effectElapsed / Math.max(zoomPunchCfg.duration, 0.001), 0, 1) : 1;
+  const zoomPunchScale = hasZoomPunch ? 1 + Math.sin(zoomPunchLocal * Math.PI) * Math.max(0, zoomPunchCfg.scale - 1) : 1;
   const stageShellTransform = [
     shakeOffset.x || shakeOffset.y ? `translate(${shakeOffset.x}px, ${shakeOffset.y}px)` : "",
     zoomPunchScale !== 1 ? `scale(${zoomPunchScale})` : "",

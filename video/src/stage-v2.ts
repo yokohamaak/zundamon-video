@@ -49,10 +49,32 @@ export type CaptionV2 = {
   size?: number;
 };
 
+export type EffectToggleV2<T extends object = Record<string, never>> = boolean | ({enabled?: boolean} & T);
+export type ImpactLinesEffectV2 = {
+  cx?: number;
+  cy?: number;
+  count?: number;
+  thickness?: number;
+  opacity?: number;
+  innerRadius?: number;
+  start?: number;
+  end?: number;
+};
+export type ZoomPunchEffectV2 = {
+  scale?: number;
+  duration?: number;
+  borderStrength?: number;
+};
+export type QuoteFreezeEffectV2 = {
+  fadeIn?: number;
+  fadeOutStart?: number;
+  fadeOutDuration?: number;
+  backdropOpacity?: number;
+};
 export type StageEffectsV2 = {
-  impactLines?: boolean;
-  zoomPunch?: boolean;
-  quoteFreeze?: boolean;
+  impactLines?: EffectToggleV2<ImpactLinesEffectV2>;
+  zoomPunch?: EffectToggleV2<ZoomPunchEffectV2>;
+  quoteFreeze?: EffectToggleV2<QuoteFreezeEffectV2>;
 };
 
 export type WhiteboardDisplayV2 = {

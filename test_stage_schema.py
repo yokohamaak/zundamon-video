@@ -138,10 +138,23 @@ class StageSchemaTest(unittest.TestCase):
         story["script"][0]["effects"] = {"impactLines": True, "zoomPunch": True, "quoteFreeze": True}
         validate_story_v2(story, SCENES)
 
+    def test_v2_accepts_lightweight_effect_parameters(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["effects"] = {
+            "impactLines": {"enabled": True, "cx": 0.42, "cy": 0.55, "count": 96, "thickness": 1.5, "opacity": 0.8, "innerRadius": 0.2, "start": 0.1, "end": 1.2},
+            "zoomPunch": {"enabled": True, "scale": 1.2, "duration": 0.24, "borderStrength": 1.2},
+            "quoteFreeze": {"enabled": True, "fadeIn": 0.12, "fadeOutStart": 0.65, "fadeOutDuration": 0.2, "backdropOpacity": 0.3},
+        }
+        validate_story_v2(story, SCENES)
+
     def test_v2_rejects_invalid_effects(self):
         story = copy.deepcopy(STORY)
         story["script"][0]["effects"] = {"impactLines": "yes"}
         with self.assertRaisesRegex(ValueError, "effects.impactLines"):
+            validate_story_v2(story, SCENES)
+        story = copy.deepcopy(STORY)
+        story["script"][0]["effects"] = {"zoomPunch": {"scale": 9}}
+        with self.assertRaisesRegex(ValueError, "effects.zoomPunch.scale"):
             validate_story_v2(story, SCENES)
 
     def test_v2_rejects_legacy_fields_instead_of_ignoring_them(self):

@@ -207,9 +207,43 @@ def _stage_effects(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
     _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze"}, path)
-    for key in ("impactLines", "zoomPunch", "quoteFreeze"):
-        if key in value and not isinstance(value[key], bool):
-            _error(f"{path}.{key}", "true/falseが必要です")
+    specs = {
+        "impactLines": {
+            "keys": {"enabled", "cx", "cy", "count", "thickness", "opacity", "innerRadius", "start", "end"},
+            "ranges": {
+                "cx": (0, 1), "cy": (0, 1), "count": (12, 180), "thickness": (0.3, 5),
+                "opacity": (0, 1), "innerRadius": (0, 0.5), "start": (0, 8), "end": (0, 8),
+            },
+        },
+        "zoomPunch": {
+            "keys": {"enabled", "scale", "duration", "borderStrength"},
+            "ranges": {"scale": (1.02, 1.4), "duration": (0.08, 0.5), "borderStrength": (0, 2)},
+        },
+        "quoteFreeze": {
+            "keys": {"enabled", "fadeIn", "fadeOutStart", "fadeOutDuration", "backdropOpacity"},
+            "ranges": {"fadeIn": (0.05, 0.4), "fadeOutStart": (0, 1), "fadeOutDuration": (0.05, 0.4), "backdropOpacity": (0, 0.6)},
+        },
+    }
+    for key, spec in specs.items():
+        if key not in value:
+            continue
+        item = value[key]
+        item_path = f"{path}.{key}"
+        if isinstance(item, bool):
+            continue
+        if not isinstance(item, dict):
+            _error(item_path, "true/falseまたはobjectが必要です")
+        _only_keys(item, spec["keys"], item_path)
+        if "enabled" in item and not isinstance(item["enabled"], bool):
+            _error(f"{item_path}.enabled", "true/falseが必要です")
+        for param, bounds in spec["ranges"].items():
+            if param not in item:
+                continue
+            if not _is_number(item[param]):
+                _error(f"{item_path}.{param}", "有限数値が必要です")
+            low, high = bounds
+            if not low <= item[param] <= high:
+                _error(f"{item_path}.{param}", f"{low}〜{high}の値が必要です")
 
 
 def _subtitle_style(value, path):
