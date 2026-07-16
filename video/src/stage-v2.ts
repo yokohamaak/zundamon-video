@@ -363,6 +363,13 @@ export function resolveStageStateAtTurn(
     const event = turn.stage;
     // 動きはそのターンだけに重ねる演出であり、次ターンへ状態として継承しない。
     cameraMotion = event?.cameraMotion;
+    // 非話者の表情はstageイベントの有無に関わらず毎ターン既定へ戻す。
+    // このターンのupdateで明示した表情を消さないよう、イベント適用前に戻す。
+    if (story.idleFace === "normal") {
+      for (const [instanceId, instance] of Object.entries(instances)) {
+        if (instanceId !== turn.speaker) instances[instanceId] = resetIdleExpression(instance);
+      }
+    }
     if (!event) continue;
 
     for (const item of event.enter ?? []) {
@@ -386,11 +393,6 @@ export function resolveStageStateAtTurn(
     for (const [instanceId, patch] of Object.entries(event.update ?? {})) {
       const instance = instances[instanceId];
       if (instance) instances[instanceId] = applyPatch(instance, patch);
-    }
-    if (story.idleFace === "normal") {
-      for (const [instanceId, instance] of Object.entries(instances)) {
-        if (instanceId !== turn.speaker) instances[instanceId] = resetIdleExpression(instance);
-      }
     }
     if (event.framing) framing = event.framing;
   }

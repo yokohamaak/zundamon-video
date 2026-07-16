@@ -8002,6 +8002,15 @@ function v2StateAt(index, includeCurrent = true) {
       scene = turn.scene;
       for (const id of Object.keys(state)) delete state[id];
     }
+    // stage-v2.ts resolveStageStateAtTurn と同じ順序: idleFace=normal では
+    // 非話者の継承表情をイベント適用前に既定へ戻す（当ターンの明示指定は残る）。
+    if (storyData.idleFace === "normal") {
+      for (const [id, current] of Object.entries(state)) {
+        if (id === turn.speaker || current.expression == null) continue;
+        const { expression: _expression, ...rest } = current;
+        state[id] = rest;
+      }
+    }
     const stage = turn.stage || {};
     for (const item of stage.enter || []) {
       const definition = storyData.instances[item.instanceId];
