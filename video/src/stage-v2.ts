@@ -1,5 +1,5 @@
 import type {WhiteboardExplainInsertConfig} from "./inserts/whiteboardExplain";
-import type {BgmRegion, StoryOverlay, TurnSe} from "./StoryVideo";
+import type {BgmRegion, StoryInsert, StoryOverlay, TurnSe} from "./StoryVideo";
 
 export type Point = {x: number; y: number};
 export type CameraFrameV2 = {cx: number; cy: number; width: number};
@@ -122,10 +122,34 @@ export type ZunMeetDisplayV2 = {
   };
 };
 
+export type ZunMonitorDisplayV2 = {
+  kind: "zunMonitor";
+  monitor: Extract<StoryInsert, {kind: "warning"}> | Extract<StoryInsert, {kind: "ok"}>;
+};
+
+export type ZunAiDisplayV2 = {
+  kind: "zunAi";
+  chat: Extract<StoryInsert, {kind: "chat"}>;
+};
+
+export type ZunChatDisplayV2 = {
+  kind: "zunChat";
+  teamchat: Extract<StoryInsert, {kind: "teamchat"}>;
+};
+
+export type ZunMailDisplayV2 = {
+  kind: "zunMail";
+  mailer: Extract<StoryInsert, {kind: "mailer"}>;
+};
+
 export type DisplayModeV2 =
   | {kind: "standard"}
   | WhiteboardDisplayV2
-  | ZunMeetDisplayV2;
+  | ZunMeetDisplayV2
+  | ZunMonitorDisplayV2
+  | ZunAiDisplayV2
+  | ZunChatDisplayV2
+  | ZunMailDisplayV2;
 
 export type StoryInstanceV2 = {
   characterId?: string;

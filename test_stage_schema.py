@@ -325,6 +325,28 @@ class StageSchemaTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "name"):
             validate_story_v2(story, SCENES)
 
+    def test_v2_accepts_insert_display_modes(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "zunMonitor",
+            "monitor": {"kind": "warning", "title": "警告", "text": "CPU使用率が高い"},
+        }
+        story["script"][1]["displayMode"] = {
+            "kind": "zunAi",
+            "chat": {"kind": "chat", "user": "原因は？", "ai": ["ログを確認します"], "highlight": 0},
+        }
+        validate_story_v2(story, SCENES)
+
+        story["script"][0]["displayMode"] = {
+            "kind": "zunChat",
+            "teamchat": {"kind": "teamchat", "channel": "障害対応", "messages": [{"from": "metan", "text": "確認します", "highlight": True}]},
+        }
+        story["script"][1]["displayMode"] = {
+            "kind": "zunMail",
+            "mailer": {"kind": "mailer", "from": "管理部", "subject": "連絡", "body": "至急確認してください"},
+        }
+        validate_story_v2(story, SCENES)
+
     def test_slot_camera_preset_must_exist(self):
         scenes = copy.deepcopy(SCENES)
         scenes["scenes"]["office"]["layouts"]["standard"]["slots"]["speakerLeft"]["cameraPresetId"] = "missing"

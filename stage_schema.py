@@ -7,7 +7,7 @@ import math
 import re
 
 
-DISPLAY_MODES = {"standard", "whiteboard", "zunMeet"}
+DISPLAY_MODES = {"standard", "whiteboard", "zunMeet", "zunMonitor", "zunAi", "zunChat", "zunMail"}
 KNOWN_STAGE_CHARACTER_IDS = {"zundamon", "metan"}
 CAMERA_FRAME_MIN = 0.35
 CAMERA_FRAME_MAX = 1.0
@@ -373,6 +373,79 @@ def _display_mode(value, path):
         _error(path, f"kind は {', '.join(sorted(DISPLAY_MODES))} のいずれかが必要です")
     if value["kind"] == "standard":
         _only_keys(value, {"kind"}, path)
+    if value["kind"] == "zunMonitor":
+        _only_keys(value, {"kind", "monitor"}, path)
+        monitor = value.get("monitor")
+        if not isinstance(monitor, dict) or monitor.get("kind") not in {"warning", "ok"}:
+            _error(f"{path}.monitor", "kind=warning/ok のobjectが必要です")
+        _only_keys(monitor, {"kind", "width", "fontScale", "bg", "backdropBg", "backdropImage", "title", "text"}, f"{path}.monitor")
+        if monitor["kind"] == "warning" and "text" not in monitor:
+            _error(f"{path}.monitor.text", "warningにはtextが必要です")
+        for key in ("title", "text", "bg", "backdropBg", "backdropImage"):
+            if key in monitor and not isinstance(monitor[key], str):
+                _error(f"{path}.monitor.{key}", "文字列が必要です")
+        for key in ("width", "fontScale"):
+            if key in monitor and not _is_number(monitor[key]):
+                _error(f"{path}.monitor.{key}", "有限数値が必要です")
+    if value["kind"] == "zunAi":
+        _only_keys(value, {"kind", "chat"}, path)
+        chat = value.get("chat")
+        if not isinstance(chat, dict) or chat.get("kind") != "chat":
+            _error(f"{path}.chat", "kind=chat のobjectが必要です")
+        _only_keys(chat, {"kind", "width", "fontScale", "bg", "backdropBg", "backdropImage", "user", "ai", "highlight"}, f"{path}.chat")
+        if not isinstance(chat.get("user"), str):
+            _error(f"{path}.chat.user", "文字列が必要です")
+        if not isinstance(chat.get("ai"), list) or not all(isinstance(item, str) for item in chat["ai"]):
+            _error(f"{path}.chat.ai", "文字列配列が必要です")
+        if "highlight" in chat and (not isinstance(chat["highlight"], int) or chat["highlight"] < 0):
+            _error(f"{path}.chat.highlight", "0以上の整数が必要です")
+        for key in ("bg", "backdropBg", "backdropImage"):
+            if key in chat and not isinstance(chat[key], str):
+                _error(f"{path}.chat.{key}", "文字列が必要です")
+        for key in ("width", "fontScale"):
+            if key in chat and not _is_number(chat[key]):
+                _error(f"{path}.chat.{key}", "有限数値が必要です")
+    if value["kind"] == "zunChat":
+        _only_keys(value, {"kind", "teamchat"}, path)
+        teamchat = value.get("teamchat")
+        if not isinstance(teamchat, dict) or teamchat.get("kind") != "teamchat":
+            _error(f"{path}.teamchat", "kind=teamchat のobjectが必要です")
+        _only_keys(teamchat, {"kind", "width", "fontScale", "bg", "backdropBg", "backdropImage", "channel", "messages"}, f"{path}.teamchat")
+        if "channel" in teamchat and not isinstance(teamchat["channel"], str):
+            _error(f"{path}.teamchat.channel", "文字列が必要です")
+        messages = teamchat.get("messages")
+        if not isinstance(messages, list):
+            _error(f"{path}.teamchat.messages", "配列が必要です")
+        for index, message in enumerate(messages):
+            message_path = f"{path}.teamchat.messages[{index}]"
+            if not isinstance(message, dict):
+                _error(message_path, "objectが必要です")
+            _only_keys(message, {"from", "text", "highlight"}, message_path)
+            if not isinstance(message.get("from"), str) or not isinstance(message.get("text"), str):
+                _error(message_path, "from/text文字列が必要です")
+            if "highlight" in message and not isinstance(message["highlight"], bool):
+                _error(f"{message_path}.highlight", "true/falseが必要です")
+        for key in ("bg", "backdropBg", "backdropImage"):
+            if key in teamchat and not isinstance(teamchat[key], str):
+                _error(f"{path}.teamchat.{key}", "文字列が必要です")
+        for key in ("width", "fontScale"):
+            if key in teamchat and not _is_number(teamchat[key]):
+                _error(f"{path}.teamchat.{key}", "有限数値が必要です")
+    if value["kind"] == "zunMail":
+        _only_keys(value, {"kind", "mailer"}, path)
+        mailer = value.get("mailer")
+        if not isinstance(mailer, dict) or mailer.get("kind") != "mailer":
+            _error(f"{path}.mailer", "kind=mailer のobjectが必要です")
+        _only_keys(mailer, {"kind", "width", "fontScale", "bg", "backdropBg", "backdropImage", "from", "fromAddr", "subject", "body", "time"}, f"{path}.mailer")
+        for key in ("subject", "body"):
+            if not isinstance(mailer.get(key), str):
+                _error(f"{path}.mailer.{key}", "文字列が必要です")
+        for key in ("from", "fromAddr", "time", "bg", "backdropBg", "backdropImage"):
+            if key in mailer and not isinstance(mailer[key], str):
+                _error(f"{path}.mailer.{key}", "文字列が必要です")
+        for key in ("width", "fontScale"):
+            if key in mailer and not _is_number(mailer[key]):
+                _error(f"{path}.mailer.{key}", "有限数値が必要です")
     if value["kind"] == "whiteboard":
         _only_keys(value, {"kind", "presenterId", "whiteboard"}, path)
         board = value.get("whiteboard")

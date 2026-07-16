@@ -1087,6 +1087,12 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         ' sections は必ず3件。presenterId は登場中の個体のみ（省略すると立ち絵なし）。',
         '- ビデオ会議: "displayMode": {"kind": "zunMeet", "zunMeet": {"room": "定例会議", "layout": "focus",'
         ' "participants": [{"instanceId": "zundamon"}, {"instanceId": "metan", "muted": true}]}}。participants は1〜4件・instances のID。',
+        '- ZunMonitor: "displayMode": {"kind": "zunMonitor", "monitor": {"kind": "warning", "title": "警告", "text": "..."}}。'
+        ' 正常表示は monitor.kind を "ok" にする。',
+        '- ZunAI: "displayMode": {"kind": "zunAi", "chat": {"kind": "chat", "user": "...", "ai": ["...", "..."]}}。',
+        '- ZunChat: "displayMode": {"kind": "zunChat", "teamchat": {"kind": "teamchat", "channel": "障害対応",'
+        ' "messages": [{"from": "metan", "text": "..."}, {"from": "zundamon", "text": "...", "highlight": true}]}}。',
+        '- ZunMail: "displayMode": {"kind": "zunMail", "mailer": {"kind": "mailer", "from": "管理部", "subject": "...", "body": "..."}}。',
         "- 特殊表示の間も stage の enter/exit/update は裏で効き、通常表示に戻ると反映されている。",
         "",
         "━━━ 旧形式のキー【絶対に書かない・検証で拒否される】━━━",

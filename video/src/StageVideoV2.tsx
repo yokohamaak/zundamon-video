@@ -5,6 +5,7 @@ import {Avatar, MOUTH_HALF} from "./Avatar";
 import type {ExpressionCfg} from "./Avatar";
 import type {Gender} from "./types";
 import {WhiteboardExplainInsert, getWhiteboardExplainLayout} from "./inserts/whiteboardExplain";
+import {InsertOverlay} from "./StoryVideo";
 import {
   placementOrigin,
   resolveFraming,
@@ -18,7 +19,7 @@ import {
   type StageExitV2,
   type StageTurnV2,
 } from "./stage-v2";
-import type {BgmRegion, ExpressionsMap, MobDef, MobsMap, PosesMap, SeMap, SeMapEntry, StoryOverlay, TurnSe} from "./StoryVideo";
+import type {BgmRegion, ExpressionsMap, MobDef, MobsMap, PosesMap, SeMap, SeMapEntry, StoryInsert, StoryOverlay, TurnSe} from "./StoryVideo";
 
 type Manifest = Record<string, Record<string, string>>;
 
@@ -424,6 +425,25 @@ function activeOverlays(story: StoryV2, seconds: number) {
     .sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
 }
 
+function isStandardDisplayMode(kind: string | undefined) {
+  return !kind || kind === "standard";
+}
+
+function displayModeInsert(displayMode: ReturnType<typeof resolveStageStateAtTurn>["displayMode"]): StoryInsert | null {
+  switch (displayMode.kind) {
+    case "zunMonitor":
+      return displayMode.monitor;
+    case "zunAi":
+      return displayMode.chat;
+    case "zunChat":
+      return displayMode.teamchat;
+    case "zunMail":
+      return displayMode.mailer;
+    default:
+      return null;
+  }
+}
+
 function mobImageForState(mob: MobDef | undefined, expression: string | undefined, speaking: boolean, amplitude: number) {
   const expressionImages = mob?.images[expression ?? "normal"] ?? mob?.images.normal;
   return speaking && amplitude > MOUTH_HALF
@@ -807,10 +827,8 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     : undefined;
   const canSmoothCamera = !!previousCameraTurn
     && previousCameraTurn.scene === cameraTurn.scene
-    && previousCameraTurn.displayMode?.kind !== "whiteboard"
-    && previousCameraTurn.displayMode?.kind !== "zunMeet"
-    && cameraTurn.displayMode?.kind !== "whiteboard"
-    && cameraTurn.displayMode?.kind !== "zunMeet"
+    && isStandardDisplayMode(previousCameraTurn.displayMode?.kind)
+    && isStandardDisplayMode(cameraTurn.displayMode?.kind)
     && cameraTurn.cameraTransition !== "cut";
   const transitionStart = previousCameraTurn?.end ?? cameraTurn.start ?? seconds;
   const transitionEnd = (cameraTurn.start ?? transitionStart) + 0.8;
@@ -899,6 +917,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     shakeOffset.x || shakeOffset.y ? `translate(${shakeOffset.x}px, ${shakeOffset.y}px)` : "",
     zoomPunchScale !== 1 ? `scale(${zoomPunchScale})` : "",
   ].filter(Boolean).join(" ") || undefined;
+  const insertDisplay = displayModeInsert(state.displayMode);
 
   const renderWhiteboardPresenter = () => {
     if (state.displayMode.kind !== "whiteboard") return undefined;
@@ -1110,7 +1129,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       <V2BgmLayer regions={story.bgm} fps={fps} />
       <V2SeLayer script={story.script} seMap={seMap} fps={fps} />
       <AbsoluteFill style={{filter: flashbackFilter}}>
-        {state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
+        {insertDisplay ? (
+          <InsertOverlay insert={insertDisplay} bgOpacity={1} opacity={1} />
+        ) : state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
           <WhiteboardExplainInsert
             config={state.displayMode.whiteboard}
             width={width}

@@ -1717,6 +1717,10 @@
               <label class="field-label">表示種別</label>
               <select class="field-select" id="fV2DisplayMode">
                 <option value="standard">通常表示</option>
+                <option value="zunMonitor">ZunMonitor（警告 / 正常）</option>
+                <option value="zunAi">ZunAI（AIチャット）</option>
+                <option value="zunChat">ZunChat（チームチャット）</option>
+                <option value="zunMail">ZunMail（メール）</option>
                 <option value="whiteboard">ホワイトボード解説</option>
                 <option value="zunMeet">ZunMeet（ビデオ会議）</option>
               </select>
@@ -1820,6 +1824,42 @@
               <div class="field-row"><label class="field-label">話者を大きく</label><select class="field-select" id="fV2MeetActiveSpeaker"></select></div>
               <div id="v2MeetParticipants" style="display:flex; flex-direction:column; gap:8px;"></div>
               <button type="button" class="btn btn-secondary btn-sm" id="btnV2MeetAddParticipant">＋ 参加者を追加</button>
+            </div>
+            <div id="v2ZunMonitorControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">ZunMonitor</div>
+              <div class="field-row"><label class="field-label">状態</label><select class="field-select" id="fV2MonitorState"><option value="warning">警告（赤）</option><option value="ok">正常 / OK（緑）</option></select></div>
+              <div class="field-row"><label class="field-label">タイトル</label><input class="field-input" id="fV2MonitorTitle" type="text" placeholder="警告"></div>
+              <div class="field-row"><label class="field-label">本文</label><textarea class="field-textarea" id="fV2MonitorText"></textarea></div>
+            </div>
+            <div id="v2ZunAiControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">ZunAI</div>
+              <div class="field-row"><label class="field-label">ユーザー発言</label><textarea class="field-textarea" id="fV2ChatUser"></textarea></div>
+              <div class="field-row"><label class="field-label">AI返答</label><textarea class="field-textarea" id="fV2ChatAi" placeholder="1行ごとに吹き出し"></textarea></div>
+              <div class="field-row"><label class="field-label">強調番号</label><input class="field-input" id="fV2ChatHighlight" type="number" min="1" step="1" placeholder="1始まり・任意"></div>
+            </div>
+            <div id="v2ZunChatControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">ZunChat</div>
+              <div class="field-row"><label class="field-label">チャンネル</label><input class="field-input" id="fV2TeamChannel" type="text" placeholder="障害対応"></div>
+              <div class="field-row"><label class="field-label">メッセージ</label><textarea class="field-textarea" id="fV2TeamMessages" placeholder="from: text を1行ずつ"></textarea><div class="field-help">例: zundamon: まずいのだ</div></div>
+              <div class="field-row"><label class="field-label">強調行</label><input class="field-input" id="fV2TeamHighlight" type="number" min="1" step="1" placeholder="1始まり・任意"></div>
+            </div>
+            <div id="v2ZunMailControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">ZunMail</div>
+              <div class="field-row"><label class="field-label">差出人</label><input class="field-input" id="fV2MailFrom" type="text"></div>
+              <div class="field-row"><label class="field-label">メールアドレス</label><input class="field-input" id="fV2MailFromAddr" type="text"></div>
+              <div class="field-row"><label class="field-label">件名</label><input class="field-input" id="fV2MailSubject" type="text"></div>
+              <div class="field-row"><label class="field-label">本文</label><textarea class="field-textarea" id="fV2MailBody"></textarea></div>
+              <div class="field-row"><label class="field-label">時刻</label><input class="field-input" id="fV2MailTime" type="text" placeholder="14:32"></div>
+            </div>
+            <div id="v2InsertCommonControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">表示調整</div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px;">
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">幅</span><input class="field-input" id="fV2InsertWidth" type="number" min="0.6" max="2.2" step="0.05" placeholder="1"></label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">文字倍率</span><input class="field-input" id="fV2InsertFontScale" type="number" min="0.6" max="1.6" step="0.05" placeholder="1"></label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">パネル色</span><input class="field-input" id="fV2InsertBg" type="text" placeholder="#..."></label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">背景色</span><input class="field-input" id="fV2InsertBackdropBg" type="text" placeholder="#..."></label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">背景画像</span><input class="field-input" id="fV2InsertBackdropImage" type="text" placeholder="background/..."></label>
+              </div>
             </div>
             <div class="section-divider">登場退場</div>
             <div class="field-help">登場・退場はこのターンの明示イベントです。話者を選んでも自動では登場しません。</div>
@@ -7396,7 +7436,9 @@ function renderList() {
       const clearFaceText = clearFaceSummary(turn.clearFace);
       if (clearFaceText) badges.appendChild(makeBadge("向き解除:" + clearFaceText, "warn"));
     }
-    if (effDisp.id) {
+    if (isV2StoryEditor() && turn.displayMode?.kind && turn.displayMode.kind !== "standard") {
+      badges.appendChild(makeBadge(v2DisplayModeLabel(turn.displayMode.kind), "insert"));
+    } else if (effDisp.id) {
       badges.appendChild(makeBadge(
         displayTypeDefOf(effDisp.id).label + (effDisp.inherited ? "（継続）" : ""),
         "insert"
@@ -8956,10 +8998,129 @@ function v2WhiteboardForTurn(turn) {
   return display?.kind === "whiteboard" && display.whiteboard ? display.whiteboard : v2DefaultWhiteboard();
 }
 
+function v2InsertDisplayKind(kind) {
+  return ["zunMonitor", "zunAi", "zunChat", "zunMail"].includes(kind);
+}
+
+function v2DisplayModeLabel(kind) {
+  return {
+    standard: "通常表示",
+    zunMonitor: "ZunMonitor",
+    zunAi: "ZunAI",
+    zunChat: "ZunChat",
+    zunMail: "ZunMail",
+    whiteboard: "ホワイトボード解説",
+    zunMeet: "ZunMeet",
+  }[kind] || kind || "表示種別";
+}
+
+function v2ApplyCommonInsertFields(insert) {
+  const width = Number(document.getElementById("fV2InsertWidth").value);
+  const fontScale = Number(document.getElementById("fV2InsertFontScale").value);
+  const bg = document.getElementById("fV2InsertBg").value.trim();
+  const backdropBg = document.getElementById("fV2InsertBackdropBg").value.trim();
+  const backdropImage = document.getElementById("fV2InsertBackdropImage").value.trim();
+  if (document.getElementById("fV2InsertWidth").value !== "" && Number.isFinite(width)) insert.width = width;
+  if (document.getElementById("fV2InsertFontScale").value !== "" && Number.isFinite(fontScale)) insert.fontScale = fontScale;
+  if (bg) insert.bg = bg;
+  if (backdropBg) insert.backdropBg = backdropBg;
+  if (backdropImage) insert.backdropImage = backdropImage;
+  return insert;
+}
+
+function v2SetCommonInsertFields(insert) {
+  document.getElementById("fV2InsertWidth").value = insert?.width ?? "";
+  document.getElementById("fV2InsertFontScale").value = insert?.fontScale ?? "";
+  document.getElementById("fV2InsertBg").value = insert?.bg || "";
+  document.getElementById("fV2InsertBackdropBg").value = insert?.backdropBg || "";
+  document.getElementById("fV2InsertBackdropImage").value = insert?.backdropImage || "";
+}
+
+function v2DefaultMonitor() {
+  return { kind: "warning", title: "警告", text: "アラート内容を入力" };
+}
+
+function v2MonitorForTurn(turn) {
+  const display = turn.displayMode;
+  return display?.kind === "zunMonitor" && display.monitor ? display.monitor : v2DefaultMonitor();
+}
+
+function v2ChatForTurn(turn) {
+  const display = turn.displayMode;
+  return display?.kind === "zunAi" && display.chat ? display.chat : { kind: "chat", user: turn.text || "", ai: ["返答を入力"] };
+}
+
+function v2TeamChatForTurn(turn) {
+  const display = turn.displayMode;
+  return display?.kind === "zunChat" && display.teamchat ? display.teamchat : { kind: "teamchat", channel: "障害対応", messages: [{ from: turn.speaker || "", text: turn.text || "" }] };
+}
+
+function v2MailerForTurn(turn) {
+  const display = turn.displayMode;
+  return display?.kind === "zunMail" && display.mailer ? display.mailer : { kind: "mailer", from: "", fromAddr: "", subject: "件名", body: turn.text || "", time: "" };
+}
+
+function v2CurrentInsertForTurn(turn) {
+  const kind = turn.displayMode?.kind;
+  if (kind === "zunMonitor") return v2MonitorForTurn(turn);
+  if (kind === "zunAi") return v2ChatForTurn(turn);
+  if (kind === "zunChat") return v2TeamChatForTurn(turn);
+  if (kind === "zunMail") return v2MailerForTurn(turn);
+  return null;
+}
+
+function v2RenderInsertDisplayFields(turn) {
+  const kind = turn.displayMode?.kind || "standard";
+  const insert = v2CurrentInsertForTurn(turn);
+  v2SetCommonInsertFields(insert);
+  const monitor = v2MonitorForTurn(turn);
+  document.getElementById("fV2MonitorState").value = monitor.kind === "ok" ? "ok" : "warning";
+  document.getElementById("fV2MonitorTitle").value = monitor.title || "";
+  document.getElementById("fV2MonitorText").value = monitor.text || "";
+  const chat = v2ChatForTurn(turn);
+  document.getElementById("fV2ChatUser").value = chat.user || "";
+  document.getElementById("fV2ChatAi").value = (chat.ai || []).join("\n");
+  document.getElementById("fV2ChatHighlight").value = typeof chat.highlight === "number" ? String(chat.highlight + 1) : "";
+  const teamchat = v2TeamChatForTurn(turn);
+  document.getElementById("fV2TeamChannel").value = teamchat.channel || "";
+  document.getElementById("fV2TeamMessages").value = (teamchat.messages || []).map((message) => `${message.from || ""}: ${message.text || ""}`).join("\n");
+  const teamHighlight = (teamchat.messages || []).findIndex((message) => message.highlight);
+  document.getElementById("fV2TeamHighlight").value = teamHighlight >= 0 ? String(teamHighlight + 1) : "";
+  const mailer = v2MailerForTurn(turn);
+  document.getElementById("fV2MailFrom").value = mailer.from || "";
+  document.getElementById("fV2MailFromAddr").value = mailer.fromAddr || "";
+  document.getElementById("fV2MailSubject").value = mailer.subject || "";
+  document.getElementById("fV2MailBody").value = mailer.body || "";
+  document.getElementById("fV2MailTime").value = mailer.time || "";
+  document.getElementById("v2InsertCommonControls").style.display = v2InsertDisplayKind(kind) ? "flex" : "none";
+}
+
+function v2CollectTeamMessages() {
+  const highlightLine = Number(document.getElementById("fV2TeamHighlight").value);
+  return document.getElementById("fV2TeamMessages").value
+    .split("\n")
+    .map((line, index) => {
+      const text = line.trim();
+      if (!text) return null;
+      const colon = text.indexOf(":");
+      const from = colon >= 0 ? text.slice(0, colon).trim() : "";
+      const body = colon >= 0 ? text.slice(colon + 1).trim() : text;
+      const message = { from: from || "system", text: body };
+      if (Number.isFinite(highlightLine) && highlightLine === index + 1) message.highlight = true;
+      return message;
+    })
+    .filter(Boolean);
+}
+
 function v2UpdateDisplayModeFields() {
   const kind = document.getElementById("fV2DisplayMode").value;
   document.getElementById("v2WhiteboardControls").style.display = kind === "whiteboard" ? "flex" : "none";
   document.getElementById("v2ZunMeetControls").style.display = kind === "zunMeet" ? "flex" : "none";
+  document.getElementById("v2ZunMonitorControls").style.display = kind === "zunMonitor" ? "flex" : "none";
+  document.getElementById("v2ZunAiControls").style.display = kind === "zunAi" ? "flex" : "none";
+  document.getElementById("v2ZunChatControls").style.display = kind === "zunChat" ? "flex" : "none";
+  document.getElementById("v2ZunMailControls").style.display = kind === "zunMail" ? "flex" : "none";
+  document.getElementById("v2InsertCommonControls").style.display = v2InsertDisplayKind(kind) ? "flex" : "none";
 }
 
 function v2UpdateDialogueFields() {
@@ -9314,6 +9475,7 @@ function renderV2Detail(turn) {
   sceneSelect.value = turn.scene || "";
   const displayMode = turn.displayMode?.kind || "standard";
   document.getElementById("fV2DisplayMode").value = displayMode;
+  v2RenderInsertDisplayFields(turn);
 
   const slots = v2SlotsForScene(turn.scene);
   const framingSlot = document.getElementById("fV2FramingSlot");
@@ -9564,7 +9726,41 @@ function collectV2Basic() {
   if (turn.scene !== nextScene) delete turn.stage;
   turn.scene = nextScene;
   const displayKind = document.getElementById("fV2DisplayMode").value;
-  if (displayKind === "whiteboard") {
+  if (displayKind === "zunMonitor") {
+    const state = document.getElementById("fV2MonitorState").value === "ok" ? "ok" : "warning";
+    const monitor = v2ApplyCommonInsertFields({
+      kind: state,
+      ...(state === "warning" ? { title: document.getElementById("fV2MonitorTitle").value.trim() || "警告" } : {}),
+      text: document.getElementById("fV2MonitorText").value,
+    });
+    turn.displayMode = { kind: "zunMonitor", monitor };
+  } else if (displayKind === "zunAi") {
+    const highlightLine = Number(document.getElementById("fV2ChatHighlight").value);
+    const chat = v2ApplyCommonInsertFields({
+      kind: "chat",
+      user: document.getElementById("fV2ChatUser").value,
+      ai: document.getElementById("fV2ChatAi").value.split("\n").map((line) => line.trim()).filter(Boolean),
+    });
+    if (Number.isFinite(highlightLine) && highlightLine > 0) chat.highlight = Math.round(highlightLine) - 1;
+    turn.displayMode = { kind: "zunAi", chat };
+  } else if (displayKind === "zunChat") {
+    const teamchat = v2ApplyCommonInsertFields({
+      kind: "teamchat",
+      channel: document.getElementById("fV2TeamChannel").value.trim(),
+      messages: v2CollectTeamMessages(),
+    });
+    turn.displayMode = { kind: "zunChat", teamchat };
+  } else if (displayKind === "zunMail") {
+    const mailer = v2ApplyCommonInsertFields({
+      kind: "mailer",
+      from: document.getElementById("fV2MailFrom").value.trim(),
+      fromAddr: document.getElementById("fV2MailFromAddr").value.trim(),
+      subject: document.getElementById("fV2MailSubject").value.trim(),
+      body: document.getElementById("fV2MailBody").value,
+      time: document.getElementById("fV2MailTime").value.trim(),
+    });
+    turn.displayMode = { kind: "zunMail", mailer };
+  } else if (displayKind === "whiteboard") {
     const sections = [0, 1, 2].map((index) => ({
       heading: document.getElementById(`fV2WhiteboardHeading${index}`).value.trim(),
       bullets: document.getElementById(`fV2WhiteboardBullets${index}`).value.split("\n").map((line) => line.trim()).filter(Boolean),
@@ -13022,6 +13218,11 @@ function setupEvents() {
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",
     "fV2MeetRoom", "fV2MeetLayout", "fV2MeetActiveSpeaker",
+    "fV2MonitorState", "fV2MonitorTitle", "fV2MonitorText",
+    "fV2ChatUser", "fV2ChatAi", "fV2ChatHighlight",
+    "fV2TeamChannel", "fV2TeamMessages", "fV2TeamHighlight",
+    "fV2MailFrom", "fV2MailFromAddr", "fV2MailSubject", "fV2MailBody", "fV2MailTime",
+    "fV2InsertWidth", "fV2InsertFontScale", "fV2InsertBg", "fV2InsertBackdropBg", "fV2InsertBackdropImage",
   ];
   for (const id of v2BasicIds) {
     const el = document.getElementById(id);

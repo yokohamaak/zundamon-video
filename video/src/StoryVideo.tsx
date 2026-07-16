@@ -2885,7 +2885,7 @@ const InsertVideoCall: React.FC<{
  */
 // bgOpacity = 背景（シーンを隠す全画面）の不透明度。opacity = パネル本体の不透明度。
 // 背景はフェードイン無しで即カバーし「インサート中に通常画面が一瞬透ける」のを防ぐ。
-const InsertOverlay: React.FC<{
+export const InsertOverlay: React.FC<{
   insert: StoryInsert;
   bgOpacity: number;
   opacity: number;
