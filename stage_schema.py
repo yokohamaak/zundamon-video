@@ -192,6 +192,10 @@ def validate_scene_library_v2(data):
                 _error(f"scenes.{scene_id}.slots.{slot_id}.scale", "0より大きい有限数値が必要です")
             if "zIndex" in slot and not _is_number(slot["zIndex"]):
                 _error(f"scenes.{scene_id}.slots.{slot_id}.zIndex", "有限数値が必要です")
+            if "previewCharacterId" in slot and (
+                not isinstance(slot["previewCharacterId"], str) or not slot["previewCharacterId"]
+            ):
+                _error(f"scenes.{scene_id}.slots.{slot_id}.previewCharacterId", "省略または空でない文字列が必要です")
         presets = scene.get("cameraPresets", {})
         if not isinstance(presets, dict):
             _error(f"scenes.{scene_id}.cameraPresets", "objectが必要です")

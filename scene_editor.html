@@ -690,11 +690,6 @@ const BUST_H = 445; // 820×780はほぼ正方形なので正方形枠で object
 const FULL_BOX_W = 445; // 全身の基準幅。render(StoryVideo.FULL_BOX_W)と同値にする。
 // 全身キャンバス寸法（assets/avatars/<char>/full/_box.json と一致）。キャラ別アスペクトで高さを出す。
 const FULL_CANVAS = { zundamon: { w: 783, h: 1473 }, metan: { w: 858, h: 1769 } };
-const V2_SLOT_PREVIEW_CHARACTERS = {
-  speakerLeft: 'metan',
-  speakerRight: 'zundamon',
-  center: 'zundamon',
-};
 const V2_SLOT_ORIGIN_BOUNDS = { xMin: -0.2, xMax: 1.2, yMin: -0.2, yMax: 1.4 };
 function fullBoxSize(charId) {
   const c = FULL_CANVAS[charId];
@@ -748,12 +743,13 @@ function v2Slots(sc = currentScene()) {
   return sc.layouts.standard.slots;
 }
 
-function v2SlotPreviewCharacter(slotId) {
-  return V2_SLOT_PREVIEW_CHARACTERS[slotId] || 'zundamon';
+function v2SlotPreviewCharacter(slot) {
+  return slot?.previewCharacterId || null;
 }
 
 function v2SlotGrabOffset(sc, slotId, slot) {
-  const charId = v2SlotPreviewCharacter(slotId);
+  const charId = v2SlotPreviewCharacter(slot);
+  if (!charId) return 0;
   const isFull = (sc.figure ?? 'bust') === 'full';
   const box = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
   return (box.h * (slot?.scale ?? 1)) / (2 * STAGE_H);
@@ -1277,6 +1273,18 @@ function buildSlotList() {
     const coords = document.createElement('span');
     coords.className = 'anchor-coord'; coords.id = `slot-coord-${slotId}`;
     coords.textContent = `x: ${slot.origin.x.toFixed(3)} / y: ${slot.origin.y.toFixed(3)}`;
+    const preview = document.createElement('select');
+    preview.className = 'cast-select'; preview.style.width = '112px'; preview.title = 'プレビュー表示キャラ';
+    const previewNone = document.createElement('option'); previewNone.value = ''; previewNone.textContent = '表示キャラ: なし'; preview.appendChild(previewNone);
+    for (const characterId of sortedStrings(assets?.characters ?? [])) {
+      const option = document.createElement('option'); option.value = characterId; option.textContent = `表示: ${characterId}`; preview.appendChild(option);
+    }
+    preview.value = slot.previewCharacterId || '';
+    preview.addEventListener('change', () => {
+      if (preview.value) slot.previewCharacterId = preview.value;
+      else delete slot.previewCharacterId;
+      renderPreview();
+    });
     const scale = document.createElement('input');
     scale.type = 'number'; scale.step = '0.05'; scale.min = '0.1'; scale.value = slot.scale ?? 1;
     scale.title = 'scale'; scale.style.width = '58px';
@@ -1322,7 +1330,7 @@ function buildSlotList() {
       else delete slot.allowOverlap;
     });
     overlapLabel.append(overlap, ' 重なり');
-    item.append(name, coords, scale, zIndex, preset, overlapLabel);
+    item.append(name, coords, preview, scale, zIndex, preset, overlapLabel);
     container.appendChild(item);
   }
 }
@@ -1504,7 +1512,7 @@ function renderPreview() {
     const ax = coord.x * STAGE_W;
     const ay = coord.y * STAGE_H;
     const slot = v2 ? v2Slots(sc)[name] : null;
-    const charId = v2 ? v2SlotPreviewCharacter(name) : anchorToChar[name];
+    const charId = v2 ? v2SlotPreviewCharacter(slot) : anchorToChar[name];
     const scale = v2 ? (slot?.scale ?? 1) : (sc.scale != null ? sc.scale : 1.9);
     const flip = coord.x < 0.5;
 

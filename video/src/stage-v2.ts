@@ -103,6 +103,8 @@ export type SlotV2 = {
   zIndex?: number;
   cameraPresetId?: string;
   allowOverlap?: boolean;
+  /** シーンエディタだけで使う確認用立ち絵。台本の配置対象は決めない。 */
+  previewCharacterId?: string;
 };
 
 export type StandardLayoutV2 = {slots: Record<string, SlotV2>};

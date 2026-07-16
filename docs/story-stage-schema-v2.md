@@ -105,7 +105,8 @@ type DisplayMode =
           "origin": { "x": 0.28, "y": 0.96 },
           "scale": 1.9,
           "zIndex": 20,
-          "cameraPresetId": "left"
+          "cameraPresetId": "left",
+          "previewCharacterId": "metan"
         },
         "speakerRight": {
           "origin": { "x": 0.72, "y": 0.96 },
@@ -148,6 +149,8 @@ type CameraMotion = {
 ```
 
 `framing` は構図の唯一の入口である。`speaker` は「話者のslotに結び付いたcamera presetを選ぶ」だけで、話者・在席・人物配置を変更しない。`cameraMotion` は解決済み構図に一時的に重ねる演出であり、配置の補正には使わない。`cameraMotion` は指定したターンだけに効き、次ターンへ継承しない。
+
+`previewCharacterId` はシーンエディタだけで使う確認用立ち絵であり、台本でそのslotへ配置できる個体・実際に配置された個体を制限しない。未指定ならシーンエディタは人物を描かない。
 
 ## エディタでの操作
 

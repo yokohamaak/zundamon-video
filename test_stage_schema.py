@@ -98,6 +98,12 @@ class StageSchemaTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "bg または bgVideo"):
             validate_scene_library_v2(scenes)
 
+    def test_slot_preview_character_must_be_a_nonempty_string(self):
+        scenes = copy.deepcopy(SCENES)
+        scenes["scenes"]["office"]["layouts"]["standard"]["slots"]["speakerLeft"]["previewCharacterId"] = ""
+        with self.assertRaisesRegex(ValueError, "previewCharacterId"):
+            validate_scene_library_v2(scenes)
+
     def test_speaker_does_not_implicitly_enter(self):
         story = copy.deepcopy(STORY)
         story["script"][0]["stage"].pop("enter")
