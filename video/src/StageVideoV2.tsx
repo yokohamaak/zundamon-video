@@ -443,7 +443,8 @@ const V2BgmLayer: React.FC<{regions?: BgmRegion[]; fps: number}> = ({regions, fp
       const fadeInFrames = Math.max(0, Math.round((region.fadeIn ?? 0.6) * fps));
       const fadeOutFrames = Math.max(0, Math.round((region.fadeOut ?? 0.6) * fps));
       const volume = region.volume ?? 0.1;
-      return <Sequence key={`${region.file}-${index}`} from={Math.round(region.start * fps)} durationInFrames={durationInFrames}>
+      const audioKey = `${region.file}-${index}-${region.start}-${region.end}-${volume}-${region.fadeIn ?? ""}-${region.fadeOut ?? ""}`;
+      return <Sequence key={audioKey} from={Math.round(region.start * fps)} durationInFrames={durationInFrames}>
         <Audio
           src={staticFile(region.file)}
           loop

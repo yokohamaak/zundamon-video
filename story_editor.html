@@ -4855,8 +4855,10 @@ function _setupBgmRegionEditorEvents() {
   const volDisp = document.getElementById("bgmRegionVolDisp");
   if (volSlider) {
     volSlider.addEventListener("input", () => {
-      if (volDisp) volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
+      const volume = parseFloat(volSlider.value);
+      if (volDisp) volDisp.textContent = volume.toFixed(2);
       _collectBgmRegionEditor();
+      if (fileSel && _previewAudioFile === fileSel.value) setPreviewAudioVolume(volume);
       flushPlayerUpdate();
     });
   }
@@ -13995,6 +13997,11 @@ function previewAudioFile(file, btn = null, volume = 0.9) {
     _previewAudioEl.addEventListener("ended", stopPreviewAudio, { once: true });
     _previewAudioEl.play().catch(() => {});
   } catch (e) { /* 無視 */ }
+}
+
+function setPreviewAudioVolume(volume) {
+  if (!_previewAudioEl) return;
+  _previewAudioEl.volume = Math.max(0, Math.min(1, Number.isFinite(volume) ? volume : 0.9));
 }
 // クリックで getFile() のファイルを試聴する小さな▶ボタンを作る。
 function makeAudioPlayBtn(getFile, getVolume = null) {

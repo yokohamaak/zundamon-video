@@ -3447,8 +3447,9 @@ const BgmLayer: React.FC<{
           return vol * Math.max(0, Math.min(inK, outK));
         };
 
+        const audioKey = `${seg.file}-${i}-${seg.startSec}-${seg.endSec}-${seg.volume}-${seg.fadeIn}-${seg.fadeOut}`;
         return (
-          <Sequence key={i} from={startFrame} durationInFrames={durFrames}>
+          <Sequence key={audioKey} from={startFrame} durationInFrames={durFrames}>
             <Audio
               src={staticFile(seg.file)}
               loop
