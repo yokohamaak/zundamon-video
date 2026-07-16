@@ -8115,6 +8115,10 @@ function v2ExpressionNamesForInstance(definition) {
     .map(([name]) => name));
 }
 
+function v2PoseNamesForInstance(definition) {
+  return KNOWN_CHARS.includes(definition?.characterId) ? POSE_KEYS : [];
+}
+
 function v2InstanceIsReferenced(instanceId) {
   return storyData.script.some((turn) => {
     if (turn.speaker === instanceId || turn.displayMode?.presenterId === instanceId) return true;
@@ -8844,7 +8848,12 @@ function renderV2Detail(turn) {
     const face = document.createElement("select"); face.className = "field-select";
     v2Option(face, "", "向き: 継承"); v2Option(face, "left", "向き: 左"); v2Option(face, "right", "向き: 右");
     face.value = state.face || "";
-    const pose = document.createElement("input"); pose.type = "text"; pose.className = "field-input"; pose.value = state.pose || ""; pose.placeholder = "ポーズ（任意）";
+    const pose = document.createElement("select"); pose.className = "field-select";
+    v2Option(pose, "", "ポーズ: 継承/既定");
+    const poseNames = v2PoseNamesForInstance(state.definition);
+    for (const name of poseNames) v2Option(pose, name, `ポーズ: ${poseLabel(name)}`);
+    if (state.pose && !poseNames.includes(state.pose)) v2Option(pose, state.pose, `ポーズ: ${state.pose}（未登録）`);
+    pose.value = state.pose || "";
     const zIndex = document.createElement("input"); zIndex.type = "number"; zIndex.step = "1"; zIndex.className = "field-input"; zIndex.value = state.zIndex ?? (placement.mode === "manual" ? placement.zIndex ?? "" : ""); zIndex.placeholder = "重なり順（任意）"; zIndex.title = "数値が大きいほど手前。空欄にするとスロットまたは手動配置の既定値を使います";
     const flipLabel = document.createElement("label"); flipLabel.className = "toggle-row";
     const flip = document.createElement("input"); flip.type = "checkbox"; flip.checked = !!state.flip; flipLabel.append(flip, " 左右反転");
