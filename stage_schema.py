@@ -244,6 +244,8 @@ def validate_story_v2(data, scenes, mobs=None):
         speaker = turn["speaker"]
         if speaker not in instances:
             _error(f"{path}.speaker", f"instancesにありません: {speaker}")
+        if "cameraTransition" in turn and turn["cameraTransition"] not in {"smooth", "cut"}:
+            _error(f"{path}.cameraTransition", "smooth または cut が必要です")
         slots = _scene_slots(scenes, turn["scene"], f"{path}.scene")
         if turn["scene"] != active_scene:
             active_scene = turn["scene"]

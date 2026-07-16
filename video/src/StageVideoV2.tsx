@@ -59,11 +59,31 @@ function activeTurnIndex(story: StoryV2, seconds: number): number {
 }
 
 function stageTransform(width: number, height: number, frame: {cx: number; cy: number; width: number} | undefined) {
+  const values = stageTransformValues(width, height, frame);
+  return values ? `translate(${values.tx}px, ${values.ty}px) scale(${values.scale})` : undefined;
+}
+
+function stageTransformValues(width: number, height: number, frame: {cx: number; cy: number; width: number} | undefined) {
   if (!frame) return undefined;
   const scale = Math.max(1, 1 / frame.width);
   const tx = Math.min(0, Math.max(width * (1 - scale), width / 2 - frame.cx * width * scale));
   const ty = Math.min(0, Math.max(height * (1 - scale), height / 2 - frame.cy * height * scale));
-  return `translate(${tx}px, ${ty}px) scale(${scale})`;
+  return {tx, ty, scale};
+}
+
+function easeInOutCubic(value: number) {
+  const t = Math.max(0, Math.min(1, value));
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function applyCameraMotion(frame: {cx: number; cy: number; width: number} | undefined, motion: ReturnType<typeof resolveStageStateAtTurn>["cameraMotion"]) {
+  if (!frame || !motion) return frame;
+  return {
+    ...frame,
+    cx: frame.cx + (motion.pan?.x ?? 0),
+    cy: frame.cy + (motion.pan?.y ?? 0),
+    width: frame.width / Math.max(0.2, 1 + (motion.zoom ?? 0)),
+  };
 }
 
 function mediaStaticSrc(path: string): string {
@@ -96,17 +116,50 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     </AbsoluteFill>;
   }
 
-  const framing = resolveFraming(state.framing, scene, state, turn.speaker);
+  const nextTurn = story.script[turnIndex + 1];
+  const cameraTurnIndex = nextTurn
+    && typeof turn.end === "number"
+    && typeof nextTurn.start === "number"
+    && seconds >= turn.end
+    && seconds < nextTurn.start
+    && nextTurn.scene === turn.scene
+    && nextTurn.cameraTransition !== "cut"
+    ? turnIndex + 1
+    : turnIndex;
+  const cameraTurn = story.script[cameraTurnIndex];
+  const cameraState = cameraTurnIndex === turnIndex ? state : resolveStageStateAtTurn(story, cameraTurnIndex);
+  const cameraScene = scenes.scenes[cameraState.scene];
+  const framing = cameraScene
+    ? resolveFraming(cameraState.framing, cameraScene, cameraState, cameraTurn.speaker)
+    : undefined;
+  const motionFrame = applyCameraMotion(framing, cameraState.cameraMotion);
+  const previousCameraTurn = cameraTurnIndex > 0 ? story.script[cameraTurnIndex - 1] : undefined;
+  const previousCameraState = cameraTurnIndex > 0 ? resolveStageStateAtTurn(story, cameraTurnIndex - 1) : undefined;
+  const previousCameraScene = previousCameraState ? scenes.scenes[previousCameraState.scene] : undefined;
+  const previousFrame = previousCameraState && previousCameraScene
+    ? applyCameraMotion(
+      resolveFraming(previousCameraState.framing, previousCameraScene, previousCameraState, previousCameraTurn!.speaker),
+      previousCameraState.cameraMotion,
+    )
+    : undefined;
+  const canSmoothCamera = !!previousCameraTurn
+    && previousCameraTurn.scene === cameraTurn.scene
+    && previousCameraTurn.displayMode?.kind !== "whiteboard"
+    && previousCameraTurn.displayMode?.kind !== "zunMeet"
+    && cameraTurn.displayMode?.kind !== "whiteboard"
+    && cameraTurn.displayMode?.kind !== "zunMeet"
+    && cameraTurn.cameraTransition !== "cut";
+  const transitionStart = previousCameraTurn?.end ?? cameraTurn.start ?? seconds;
+  const transitionEnd = (cameraTurn.start ?? transitionStart) + 0.8;
+  const previousTransform = stageTransformValues(width, height, previousFrame);
+  const targetTransform = stageTransformValues(width, height, motionFrame);
+  const transitionProgress = canSmoothCamera && previousTransform && targetTransform
+    ? easeInOutCubic((seconds - transitionStart) / Math.max(transitionEnd - transitionStart, 0.001))
+    : 1;
+  const transform = canSmoothCamera && previousTransform && targetTransform
+    ? `translate(${previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress}px, ${previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress}px) scale(${previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress})`
+    : stageTransform(width, height, motionFrame);
   const motion = state.cameraMotion;
-  const motionFrame = framing && motion
-    ? {
-      ...framing,
-      cx: framing.cx + (motion.pan?.x ?? 0),
-      cy: framing.cy + (motion.pan?.y ?? 0),
-      width: framing.width / Math.max(0.2, 1 + (motion.zoom ?? 0)),
-    }
-    : framing;
-  const transform = stageTransform(width, height, motionFrame);
   const currentSpeaker = state.instances[turn.speaker];
   const speakerPosition = currentSpeaker
     ? placementOrigin(currentSpeaker.placement, scene.layouts.standard)

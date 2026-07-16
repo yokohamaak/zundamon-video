@@ -1735,6 +1735,14 @@
                 <option value="manual">手動構図</option>
               </select>
             </div>
+            <div class="field-row">
+              <label class="field-label">構図の切替</label>
+              <select class="field-select" id="fV2CameraTransition">
+                <option value="smooth">滑らかにつなぐ</option>
+                <option value="cut">即時に切替（カット）</option>
+              </select>
+              <div class="field-help">同じシーン内で構図が変わる時の動きです。省略時は滑らかにつなぎます。</div>
+            </div>
             <div class="field-row" id="v2FramingSlotRow">
               <label class="field-label">構図に使うslot</label>
               <select class="field-select" id="fV2FramingSlot"></select>
@@ -8508,6 +8516,7 @@ function renderV2Detail(turn) {
   const stage = turn.stage || {};
   const framing = stage.framing || null;
   document.getElementById("fV2FramingMode").value = framing?.mode || "inherit";
+  document.getElementById("fV2CameraTransition").value = turn.cameraTransition === "cut" ? "cut" : "smooth";
   framingSlot.value = framing?.mode === "slot" ? framing.slotId : (Object.keys(slots)[0] || "");
   document.getElementById("fV2FrameCx").value = framing?.mode === "manual" ? framing.frame.cx : "";
   document.getElementById("fV2FrameCy").value = framing?.mode === "manual" ? framing.frame.cy : "";
@@ -8697,6 +8706,8 @@ function collectV2Basic() {
     turn.displayMode = { kind: "standard" };
   }
   const stage = v2StageEvent(turn);
+  if (document.getElementById("fV2CameraTransition").value === "cut") turn.cameraTransition = "cut";
+  else delete turn.cameraTransition;
   const framingMode = document.getElementById("fV2FramingMode").value;
   if (framingMode === "inherit") delete stage.framing;
   else if (framingMode === "slot") stage.framing = { mode: "slot", slotId: document.getElementById("fV2FramingSlot").value };
@@ -11966,7 +11977,7 @@ function setupEvents() {
     el.addEventListener(evt, collectBasic);
   }
   const v2BasicIds = [
-    "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Scene", "fV2FramingMode", "fV2FramingSlot",
+    "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",

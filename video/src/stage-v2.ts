@@ -85,6 +85,8 @@ export type StageTurnV2 = {
   start?: number;
   end?: number;
   pause?: number;
+  /** 構図が変わるターンのカメラ接続。省略時は smooth。 */
+  cameraTransition?: "smooth" | "cut";
   displayMode?: DisplayModeV2;
   stage?: StageEventV2;
 };

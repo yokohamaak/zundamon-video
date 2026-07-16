@@ -110,6 +110,14 @@ class StageSchemaTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "speaker framing"):
             validate_story_v2(story, SCENES)
 
+    def test_camera_transition_accepts_smooth_or_cut(self):
+        story = copy.deepcopy(STORY)
+        story["script"][1]["cameraTransition"] = "cut"
+        validate_story_v2(story, SCENES)
+        story["script"][1]["cameraTransition"] = "wipe"
+        with self.assertRaisesRegex(ValueError, "cameraTransition"):
+            validate_story_v2(story, SCENES)
+
     def test_standard_slot_rejects_overlap(self):
         story = copy.deepcopy(STORY)
         story["script"][1]["stage"]["enter"][0]["placement"]["slotId"] = "speakerLeft"
