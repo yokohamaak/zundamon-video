@@ -1463,6 +1463,56 @@
         </div>
       </div>
     </div>
+    <div class="bulk-edit-panel" id="v2BulkEditPanel" style="display:none;">
+      <div class="bulk-edit-panel-header">
+        <span>選択セリフを一括変更</span>
+        <button class="btn btn-secondary btn-sm" id="btnV2BulkPanelClose" type="button">閉じる</button>
+      </div>
+      <div class="bulk-edit-panel-grid">
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">話者</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <select class="field-select" id="v2BulkSpeakerSelect" style="width:auto; max-width:160px;"></select>
+      <button class="btn btn-secondary btn-sm" id="btnV2BulkSpeakerApply">話者適用</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">構図</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <select class="field-select" id="v2BulkFramingSelect" style="width:auto; max-width:200px;">
+        <option value="speaker">話者を主役にする</option>
+        <option value="sceneDefault">シーン既定（引き）</option>
+        <option value="clear">構図指定を削除（継承に戻す）</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" id="btnV2BulkFramingApply">構図適用</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">テロップ</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <input class="field-input" id="v2BulkCaptionText" type="text" placeholder="例: ― 前日 ―" style="width:160px;">
+      <button class="btn btn-secondary btn-sm" id="btnV2BulkCaptionApply">テロップ適用</button>
+      <button class="btn btn-secondary btn-sm" id="btnV2BulkCaptionClear">解除</button>
+          </div>
+        </div>
+        <div class="bulk-edit-panel-row">
+          <div class="bulk-edit-panel-label">演出</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+      <select class="field-select" id="v2BulkEffectSelect" style="width:auto; max-width:160px;">
+        <option value="flashback">回想</option>
+        <option value="visionNoise">ノイズ</option>
+        <option value="impactLines">集中線</option>
+        <option value="zoomPunch">ズームパンチ</option>
+        <option value="quoteFreeze">引用止め</option>
+        <option value="irisOut">アイリスアウト</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" id="btnV2BulkEffectOn">ON適用</button>
+      <button class="btn btn-secondary btn-sm" id="btnV2BulkEffectOff">解除</button>
+          </div>
+        </div>
+      </div>
+      <div class="field-help" style="margin-top:8px;">連続するターンに同じ回想・テロップを付けると、1つの区間として扱われます。</div>
+    </div>
     <div class="script-list" id="scriptList"></div>
   </div>
 
@@ -6979,11 +7029,6 @@ function cancelTurnLongPress() {
 function updateBulkSceneBar() {
   const bar = document.getElementById("bulkSceneBar");
   if (!bar) return;
-  if (isV2StoryEditor()) {
-    bar.style.display = "none";
-    closeBulkEditPanel();
-    return;
-  }
   const n = selectedIndices.size;
   if (n > 1 || (_mobileSelectMode && n > 0)) {
     bar.style.display = "flex";
@@ -6995,20 +7040,26 @@ function updateBulkSceneBar() {
 }
 
 function openBulkEditPanel() {
-  if (isV2StoryEditor()) return;
+  if (isV2StoryEditor()) {
+    v2RenderBulkPanel();
+    const panel = document.getElementById("v2BulkEditPanel");
+    if (panel) panel.style.display = "block";
+    return;
+  }
   const panel = document.getElementById("bulkEditPanel");
   if (!panel) return;
   panel.style.display = "block";
 }
 
 function closeBulkEditPanel() {
-  const panel = document.getElementById("bulkEditPanel");
-  if (!panel) return;
-  panel.style.display = "none";
+  for (const id of ["bulkEditPanel", "v2BulkEditPanel"]) {
+    const panel = document.getElementById(id);
+    if (panel) panel.style.display = "none";
+  }
 }
 
 function applyBulkScene() {
-  if (isV2StoryEditor()) return;
+  if (isV2StoryEditor()) { v2ApplyBulkScene(); return; }
   if (selectedIndices.size < 2 || !storyData) return;
   const scene = document.getElementById("bulkSceneSelect").value;
   for (const idx of selectedIndices) {
@@ -8083,6 +8134,133 @@ function v2DefaultPlacement(sceneId) {
   const slots = v2SlotsForScene(sceneId);
   const slotId = ["speakerLeft", "speakerRight", "center", ...Object.keys(slots)].find((id, pos, all) => !!slots[id] && all.indexOf(id) === pos);
   return { mode: "slot", slotId: slotId || "center" };
+}
+
+function v2BulkSelectedIndices() {
+  if (!isV2StoryEditor() || !storyData || selectedIndices.size < 2) return [];
+  return [...selectedIndices].filter((idx) => storyData.script[idx]).sort((a, b) => a - b);
+}
+
+// 一括変更用のコミット。v2ApplyTurnOrderChangeと同じ検証を通すが、
+// 続けて別の一括操作を行えるよう複数選択は維持する。
+function v2ApplyBulkChange(candidate) {
+  const error = v2TurnOrderError(candidate.script);
+  if (error) {
+    alert(`この一括変更を行うとV2の舞台状態が壊れるため、変更しません。\n${error}`);
+    return false;
+  }
+  storyData = candidate;
+  markDirty();
+  v2RecordHistory();
+  renderList();
+  if (selectedIdx >= 0) renderDetail();
+  notifyPlayerUpdate();
+  return true;
+}
+
+function v2ApplyBulkScene() {
+  const targets = v2BulkSelectedIndices();
+  if (!targets.length) return;
+  const scene = document.getElementById("bulkSceneSelect").value;
+  if (!scene) return;
+  const candidate = v2Clone(storyData);
+  let dropped = 0;
+  let changed = false;
+  for (const idx of targets) {
+    const turn = candidate.script[idx];
+    if (turn.scene === scene) continue;
+    turn.scene = scene;
+    changed = true;
+    // 単体編集(collectV2Basic)と同じ規則: sceneが変わるとslot参照が無効になるため舞台操作を消す。
+    if (turn.stage) { delete turn.stage; dropped += 1; }
+  }
+  if (!changed) return;
+  if (dropped > 0 && !confirm(`sceneが変わる${dropped}件のターンから舞台操作（登場退場・配置・構図）を削除します。よろしいですか？`)) return;
+  v2ApplyBulkChange(candidate);
+}
+
+function v2ApplyBulkFraming() {
+  const targets = v2BulkSelectedIndices();
+  if (!targets.length) return;
+  const value = document.getElementById("v2BulkFramingSelect").value;
+  const candidate = v2Clone(storyData);
+  for (const idx of targets) {
+    const turn = candidate.script[idx];
+    if (value === "clear") {
+      if (turn.stage?.framing) {
+        delete turn.stage.framing;
+        v2PruneStageEvent(turn);
+      }
+    } else {
+      const stage = turn.stage || (turn.stage = {});
+      stage.framing = { mode: value };
+    }
+  }
+  v2ApplyBulkChange(candidate);
+}
+
+function v2ApplyBulkCaption(clear) {
+  const targets = v2BulkSelectedIndices();
+  if (!targets.length) return;
+  const text = document.getElementById("v2BulkCaptionText").value.trim();
+  if (!clear && !text) return;
+  const candidate = v2Clone(storyData);
+  for (const idx of targets) {
+    const turn = candidate.script[idx];
+    if (clear) delete turn.caption;
+    else turn.caption = { ...(turn.caption || {}), text };
+  }
+  v2ApplyBulkChange(candidate);
+}
+
+function v2ApplyBulkEffect(on) {
+  const targets = v2BulkSelectedIndices();
+  if (!targets.length) return;
+  const key = document.getElementById("v2BulkEffectSelect").value;
+  if (!key) return;
+  const candidate = v2Clone(storyData);
+  for (const idx of targets) {
+    const turn = candidate.script[idx];
+    if (on) {
+      const effects = turn.effects || (turn.effects = {});
+      const current = effects[key];
+      // 個別ターンで調整済みのパラメータは残し、有効化だけ行う。
+      if (current && typeof current === "object") current.enabled = true;
+      else effects[key] = true;
+    } else if (turn.effects) {
+      delete turn.effects[key];
+      if (Object.keys(turn.effects).length === 0) delete turn.effects;
+    }
+  }
+  v2ApplyBulkChange(candidate);
+}
+
+function v2ApplyBulkSpeaker() {
+  const targets = v2BulkSelectedIndices();
+  if (!targets.length) return;
+  const speaker = document.getElementById("v2BulkSpeakerSelect").value;
+  if (!speaker || !storyData.instances?.[speaker]) return;
+  const candidate = v2Clone(storyData);
+  let changed = false;
+  for (const idx of targets) {
+    if (candidate.script[idx].speaker !== speaker) {
+      candidate.script[idx].speaker = speaker;
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  if (v2ApplyBulkChange(candidate)) markAudioDirty();
+}
+
+function v2RenderBulkPanel() {
+  const speakerSelect = document.getElementById("v2BulkSpeakerSelect");
+  if (!speakerSelect) return;
+  const previous = speakerSelect.value;
+  speakerSelect.innerHTML = "";
+  for (const [id, definition] of Object.entries(storyData?.instances || {})) {
+    v2Option(speakerSelect, id, definition.label || id);
+  }
+  if (previous && storyData?.instances?.[previous]) speakerSelect.value = previous;
 }
 
 function v2SetEditorVisibility() {
@@ -12560,6 +12738,13 @@ function setupEvents() {
   document.getElementById("btnBulkTelopClear").addEventListener("click", clearBulkTelop);
   document.getElementById("btnBulkManualCameraApply").addEventListener("click", applyBulkManualCamera);
   document.getElementById("btnBulkManualCameraClear").addEventListener("click", clearBulkManualCamera);
+  document.getElementById("btnV2BulkPanelClose").addEventListener("click", closeBulkEditPanel);
+  document.getElementById("btnV2BulkSpeakerApply").addEventListener("click", v2ApplyBulkSpeaker);
+  document.getElementById("btnV2BulkFramingApply").addEventListener("click", v2ApplyBulkFraming);
+  document.getElementById("btnV2BulkCaptionApply").addEventListener("click", () => v2ApplyBulkCaption(false));
+  document.getElementById("btnV2BulkCaptionClear").addEventListener("click", () => v2ApplyBulkCaption(true));
+  document.getElementById("btnV2BulkEffectOn").addEventListener("click", () => v2ApplyBulkEffect(true));
+  document.getElementById("btnV2BulkEffectOff").addEventListener("click", () => v2ApplyBulkEffect(false));
   document.getElementById("btnBulkSceneClear").addEventListener("click", () => { clearMultiSelection(); renderList(); });
   document.getElementById("btnSelectMode").addEventListener("click", () => {
     if (_mobileSelectMode) {
