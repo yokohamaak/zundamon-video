@@ -97,6 +97,7 @@
     position: absolute; inset: 0;
     background-size: cover; background-position: center;
     background-color: #222;
+    z-index: 0;
   }
   .stage-bg-video {
     position: absolute; inset: 0;
@@ -105,11 +106,13 @@
     object-fit: cover;
     display: none;
     pointer-events: none;
+    z-index: 0;
   }
   .stage-front {
     position: absolute; inset: 0;
     background-size: cover; background-position: center;
     pointer-events: none;
+    z-index: 20;
   }
   .camera-frame {
     position: absolute;
@@ -184,6 +187,7 @@
   }
   .char-container {
     position: absolute;
+    z-index: 10;
     /* bottom-centerをanchorに合わせる: left=ax*1920, top=ay*1080, transform=translate(-50%,-100%) */
     transform-origin: bottom center;
   }

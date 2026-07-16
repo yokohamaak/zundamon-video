@@ -30,6 +30,19 @@ const MAIN_CHARACTERS: Record<string, {avatar: string; gender: Gender; expressiv
   metan: {avatar: "metan", gender: "female", color: "#e87bb0"},
 };
 
+const FULL_CANVAS = {
+  zundamon: {w: 783, h: 1473},
+  metan: {w: 858, h: 1769},
+} as const;
+const FULL_BOX_WIDTH = 445;
+
+function fullBoxSize(avatar: string) {
+  const canvas = FULL_CANVAS[avatar as keyof typeof FULL_CANVAS];
+  return canvas
+    ? {w: FULL_BOX_WIDTH, h: Math.round(FULL_BOX_WIDTH * (canvas.h / canvas.w))}
+    : {w: FULL_BOX_WIDTH, h: Math.round(FULL_BOX_WIDTH * 1.8)};
+}
+
 function resolvedFlip(instance: {face?: "left" | "right"; flip?: boolean} | undefined, fallback = false) {
   if (instance?.face === "left") return false;
   if (instance?.face === "right") return true;
@@ -188,6 +201,10 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       const isSpeaker = instance.instanceId === turn.speaker;
 
       if (main) {
+        const fullFigure = scene.figure === "full";
+        const avatarDir = fullFigure ? `${main.avatar}/full` : main.avatar;
+        const manifestKey = fullFigure ? `${main.avatar}_full` : main.avatar;
+        const box = fullFigure ? fullBoxSize(main.avatar) : undefined;
         const expression: ExpressionCfg | null = expressions?.[main.avatar]?.[instance.expression ?? "normal"]
           ?? expressions?.[main.avatar]?.normal
           ?? null;
@@ -196,8 +213,8 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: "translate(-50%, -100%)"}}>
             <div style={{transform: `scale(${scale})`, transformOrigin: "bottom center"}}>
               <Avatar
-                dir={main.avatar}
-                manifest={manifest?.[main.avatar]}
+                dir={avatarDir}
+                manifest={manifest?.[manifestKey]}
                 fallbackGender={main.gender}
                 active={isSpeaker}
                 activatedAtFrame={Math.round((turn.start ?? 0) * fps)}
@@ -212,6 +229,8 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
                 poseArmStem={pose?.arm ?? null}
                 poseSpeed={pose?.speed ?? null}
                 poseStrength={pose?.strength ?? null}
+                boxWidth={box?.w}
+                boxHeight={box?.h}
               />
             </div>
           </div>
@@ -242,13 +261,13 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         />
       ) : (
         <AbsoluteFill style={{transform, transformOrigin: "0 0", overflow: "hidden", rotate: motion?.tilt ? `${motion.tilt}deg` : undefined}}>
-          {scene.bg ? <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover"}} /> : null}
-          {people}
-          {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+          {scene.bg ? <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} /> : null}
+          <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
+          {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
         </AbsoluteFill>
       )}
       {state.displayMode.kind === "standard" && speakerPosition && currentSpeaker?.definition.role !== "voiceOnly" ? (
-        <div style={{position: "absolute", left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", padding: "14px 22px", borderRadius: 18, background: "white", color: "#222", fontSize: 42, fontWeight: 700, lineHeight: 1.3, textAlign: "center", boxShadow: "0 6px 18px rgba(0,0,0,.35)"}}>
+        <div style={{position: "absolute", zIndex: 30, left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", padding: "14px 22px", borderRadius: 18, background: "white", color: "#222", fontSize: 42, fontWeight: 700, lineHeight: 1.3, textAlign: "center", boxShadow: "0 6px 18px rgba(0,0,0,.35)"}}>
           {turn.text}
         </div>
       ) : null}

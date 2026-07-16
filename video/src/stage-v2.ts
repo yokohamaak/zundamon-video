@@ -109,6 +109,7 @@ export type StandardLayoutV2 = {slots: Record<string, SlotV2>};
 export type SceneV2 = {
   bg?: string;
   front?: string | null;
+  figure?: "bust" | "full";
   layouts: {standard: StandardLayoutV2};
   cameraPresets?: Record<string, CameraFrameV2>;
 };
