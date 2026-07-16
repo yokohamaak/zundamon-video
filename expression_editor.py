@@ -2,7 +2,7 @@
 表情エディタ（ローカルWebアプリ・標準ライブラリのみ）。
 
 video/public/expressions.json をブラウザでビジュアル編集する。
-各スロット(cheek/brow/eye/mouth/fx)の候補をクリックで割当し、
+各スロット(edamame/cheek/brow/eye/mouth/fx)の候補をクリックで割当し、
 合成プレビューを即時更新→保存→書き出しまで。
 
 使い方: python expression_editor.py [--port 8772]
@@ -25,6 +25,10 @@ AVATARS_PUBLIC_DIR = os.path.join(VIDEO_PUBLIC_DIR, "avatars")
 # ─── スロットID → ラベル（psd-export.mjs の SLOTS 定義と一致） ──────────────
 SLOT_LABELS = {
     "zundamon": {
+        "edamame": {
+            "normal": "枝豆通常",
+            "wilt":   "枝豆萎え",
+        },
         "cheek": {
             "hoppe":     "ほっぺ",
             "hoppe2":    "ほっぺ2",
@@ -129,8 +133,8 @@ SLOT_LABELS = {
     },
 }
 
-# スロット列挙順（タスクA: shadow 追加）
-SLOTS_ORDER = ["cheek", "shadow", "brow", "eye", "mouth", "fx"]
+# スロット列挙順（タスクA: shadow 追加、ずんだもん枝豆差分）
+SLOTS_ORDER = ["edamame", "cheek", "shadow", "brow", "eye", "mouth", "fx"]
 
 # 表情キー一覧
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
@@ -202,6 +206,8 @@ def _build_catalog():
         for slot in SLOTS_ORDER:
             items = []
             slot_labels = char_labels.get(slot, {})
+            if not slot_labels:
+                continue
 
             # mouth スロットは mouth_close/mouth_half/mouth_open として返す
             # ただし内部 slot 名は "mouth" なのでキーは mouth_close 等にまとめる

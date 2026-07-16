@@ -419,8 +419,9 @@ let isDirty = false;
 
 // スロット表示順 (mouthはclose/half/openをまとめて表示)
 // タスクA: shadow スロット追加（cheekの直後、fxと同様になし選択可）
-const SLOTS_ORDER = ["cheek", "shadow", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
+const SLOTS_ORDER = ["edamame", "cheek", "shadow", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
 const SLOT_LABELS = {
+  "edamame": "枝豆 (edamame)",
   "cheek": "顔色 (cheek)",
   "shadow": "影・かげり (shadow)",
   "brow": "眉 (brow)",
@@ -504,9 +505,9 @@ function updateExpressionListLabel(expr) {
   label.title = expr;
 }
 
-// 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+// 重ね順: base → edamame → shadow → cheek → arm → brow → eye → mouth → bangs → fx
 // !顔色グループ内は下→上が かげり→青ざめ（shadowをcheekより下に）。bangsはmouthの後。
-const LAYER_KEYS = ["base", "shadow", "cheek", "arm", "brow", "eye", "mouth", "bangs", "fx"];
+const LAYER_KEYS = ["base", "edamame", "shadow", "cheek", "arm", "brow", "eye", "mouth", "bangs", "fx"];
 
 function isMultiSlot(slot) {
   return slot === "fx";
@@ -520,6 +521,7 @@ function normalizeSlotValue(slot, value) {
 }
 
 function currentSlotValue(cfg, slot) {
+  if (slot === "edamame") return cfg?.[slot] || "normal";
   return normalizeSlotValue(slot, cfg?.[slot]);
 }
 
@@ -740,6 +742,7 @@ function buildSlotPanel() {
 
     const catalogKey = slotToCatalogKey(slot);
     const candidates = charSlots[catalogKey] || [];
+    if (candidates.length === 0 && slot === "edamame") continue;
     const currentValue = currentSlotValue(cfg, slot);
 
     if (candidates.length === 0) {
@@ -978,11 +981,12 @@ function renderPreview() {
 
   const fxSrcs = _candidateSrcs(charCat, "fx", cfg["fx"]);
 
-  // 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+  // 重ね順: base → edamame → shadow → cheek → arm → brow → eye → mouth → bangs → fx
   // !顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に。
   // mouth は currentMouthSlot の値を使う
   const layers = [
     { key: "base",   src: charCat?.base ? IMG_BASE + charCat.base : null },
+    { key: "edamame", src: _candidateSrc(charCat, "edamame", cfg["edamame"] || "normal") },
     { key: "shadow", src: _candidateSrc(charCat, "shadow", cfg["shadow"]) },
     { key: "cheek",  src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
     { key: "arm",    src: charCat?.arm  ? "/img/" + charCat.arm  : null },

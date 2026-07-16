@@ -256,12 +256,13 @@ const POSES = [
   ["step_back", "一歩引く"],
   ["listening", "聞き耳"],
   ["sneak", "こそこそ"],
+  ["whisper", "ひそひそ"],
   ["wobble", "ぐらぐら"],
   ["point", "指差し"],
 ];
 const POSE_LABELS = Object.fromEntries(POSES);
 const FACE_ORDER = ["normal", "happy", "surprise", "trouble", "panic"];
-const PREVIEW_LAYERS = ["base", "shadow", "cheek", "arm", "eye", "mouth", "bangs", "brow", "fx"];
+const PREVIEW_LAYERS = ["base", "edamame", "shadow", "cheek", "arm", "eye", "mouth", "bangs", "brow", "fx"];
 const previewImgs = {};
 
 async function init() {
@@ -398,6 +399,7 @@ function renderPreview() {
 
   const layers = {
     base: charCat?.base ? IMG_BASE + charCat.base : null,
+    edamame: currentChar === "zundamon" ? runtimePartSrc(currentChar, "edamame_" + (expr.edamame || "normal")) : null,
     shadow: expr.shadow ? runtimePartSrc(currentChar, "shadow_" + expr.shadow) : null,
     cheek: expr.cheek ? runtimePartSrc(currentChar, "cheek_" + expr.cheek) : null,
     arm: armSrc,
@@ -509,7 +511,7 @@ function animatePreview(time) {
     translateY -= nod;
     rotate += flip * 4.2 * motionStrength;
     scale *= 1 + 0.008 * motionStrength;
-  } else if (p === "sneak") {
+  } else if (p === "sneak" || p === "whisper") {
     translateX += flip * 9 * motionStrength;
     translateY += 8 * motionStrength;
     rotate += flip * 5.2 * motionStrength;

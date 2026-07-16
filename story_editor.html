@@ -5284,7 +5284,7 @@ const STAGE_H_JS = 1080;
 const FULL_CANVAS_JS = { zundamon: { w: 783, h: 1473 }, metan: { w: 858, h: 1769 } };
 const FACE_RATIO_JS = { bust: 0.3, full: 0.12 };
 const PLACEMENT_PREVIEW_PARTS = {
-  zundamon: ["base", "cheek_hoppe", "arm_normal", "eye_open", "mouth_close", "brow_normal"],
+  zundamon: ["base", "edamame_normal", "cheek_hoppe", "arm_normal", "eye_open", "mouth_close", "brow_normal"],
   metan: ["base", "cheek_normal2", "arm_normal", "eye_open", "mouth_close", "bangs", "brow_futo_gokigen"],
 };
 function fullBoxHeightJS(charId) {
@@ -6839,7 +6839,7 @@ function buildExpressionSelect() {
 const POSE_KEYS = [
   "idle", "cheer", "recoil", "lean", "droop", "flustered",
   "proud", "step_in", "step_back", "listening", "sneak", "wobble",
-  "point",
+  "whisper", "point",
 ];
 const FACE_LABELS = {
   left: "left",
@@ -6866,6 +6866,7 @@ function poseLabel(pose) {
     step_back: "一歩引く",
     listening: "聞き耳",
     sneak: "こそこそ",
+    whisper: "ひそひそ",
     wobble: "ぐらぐら",
     point: "指差し",
   };

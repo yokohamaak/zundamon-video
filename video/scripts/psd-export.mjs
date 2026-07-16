@@ -19,6 +19,10 @@ const root = resolve(import.meta.dirname, "..");
 // expressions.json の id と一致させること。
 const SLOTS = {
   zundamon: {
+    edamame: {
+      normal: [["!枝豆", "*枝豆通常"]],
+      wilt:   [["!枝豆", "*枝豆萎え"]],
+    },
     cheek: {
       hoppe:     [["!顔色", "*ほっぺ"]],
       hoppe2:    [["!顔色", "*ほっぺ2"]],
@@ -133,9 +137,9 @@ const CHARS = {
     body: [
       ["尻尾的なアレ"],
       ["*服装1", "*いつもの服"],
-      ["!枝豆", "*枝豆通常"],
       // 注: 以前の body には ["!顔色","*ほっぺ"] と ["!眉","*普通眉"] が含まれていたが
       // Stage1 以降は cheek/brow を SLOTS から独立書き出しするため除去。
+      // 注: 枝豆は edamame スロットとして独立。未指定時は描画側で normal を重ねる。
     ],
     // arm: body とは別に書き出す腕パーツ。
     arm: {
@@ -219,6 +223,7 @@ const mode = process.argv[2] || "preview";
 const charName = process.argv[3] || "zundamon";
 const cfg = CHARS[charName];
 if (!cfg) throw new Error("未知のキャラ: " + charName + " (zundamon|metan)");
+const PART_SLOTS = ["edamame", "cheek", "shadow", "brow", "eye", "mouth", "fx"];
 
 const psd = readPsd(readFileSync(resolve(root, cfg.psd)), {
   skipCompositeImageData: true,
@@ -298,6 +303,12 @@ function collectUsedIds(charKey) {
   if (!charExprs) return {};
   const used = {}; // { slot: Set<id> }
   for (const exprCfg of Object.values(charExprs)) {
+    if (charKey === "zundamon") {
+      if (!used.edamame) used.edamame = new Set();
+      used.edamame.add("normal");
+      used.edamame.add("wilt");
+      if (exprCfg.edamame) used.edamame.add(exprCfg.edamame);
+    }
     if (exprCfg.brow) {
       if (!used.brow) used.brow = new Set();
       used.brow.add(exprCfg.brow);
@@ -327,7 +338,8 @@ function collectUsedIds(charKey) {
     }
     if (exprCfg.fx) {
       if (!used.fx) used.fx = new Set();
-      used.fx.add(exprCfg.fx);
+      const fxIds = Array.isArray(exprCfg.fx) ? exprCfg.fx : [exprCfg.fx];
+      for (const fxId of fxIds) if (fxId) used.fx.add(fxId);
     }
   }
   return used;
@@ -370,7 +382,7 @@ if (mode === "build") {
   }
 
   // 各スロット：使用 id のみ書き出す（タスクA: shadow スロット追加）
-  for (const slot of ["cheek", "shadow", "brow", "eye", "mouth", "fx"]) {
+  for (const slot of PART_SLOTS) {
     const slotDef = slots[slot];
     if (!slotDef) continue;
     const usedSet = usedIds[slot] ?? new Set();
@@ -387,7 +399,7 @@ if (mode === "build") {
   }
 
   const total = 1 + Object.keys(armParts).length + Object.keys(cfg.extra || {}).length +
-    ["cheek", "shadow", "brow", "eye", "mouth", "fx"].reduce((n, slot) => {
+    PART_SLOTS.reduce((n, slot) => {
       return n + (usedIds[slot]?.size ?? 0);
     }, 0);
   console.log(`[build] done: ${total}部位 → ${dir}`);
@@ -409,7 +421,7 @@ if (mode === "build-full") {
   for (const [partName, paths] of Object.entries(cfg.extra || {})) {
     allParts.push({ stem: partName, paths });
   }
-  for (const slot of ["cheek", "shadow", "brow", "eye", "mouth", "fx"]) {
+  for (const slot of PART_SLOTS) {
     const slotDef = slots[slot];
     if (!slotDef) continue;
     const usedSet = usedIds[slot] ?? new Set();
@@ -484,7 +496,7 @@ if (mode === "candidates") {
     count++;
   }
 
-  for (const slot of ["cheek", "shadow", "brow", "eye", "mouth", "fx"]) {
+  for (const slot of PART_SLOTS) {
     const slotDef = slots[slot];
     if (!slotDef) continue;
     for (const [id, layerPaths] of Object.entries(slotDef)) {

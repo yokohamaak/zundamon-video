@@ -51,6 +51,8 @@ const LAYER_NAMES = {
     fx_sweat2:    '汗2',
     fx_sweat3:    '汗3',
     arm_normal:   '腕(通常)',
+    edamame_normal: '枝豆通常',
+    edamame_wilt:   '枝豆萎え',
   },
   metan: {
     eye_open:     '目セット普通',
@@ -142,6 +144,8 @@ async function resolveExpression(charDir, expr) {
   // arm_normal (あれば)
   const armPath = join(charDir, 'arm_normal.png');
   const hasArm = existsSync(armPath);
+  const edamamePath = join(charDir, 'edamame_normal.png');
+  const hasEdamame = existsSync(edamamePath);
 
   // eye
   const eyeResult = resolveFirst(charDir, expr.eye);
@@ -174,6 +178,7 @@ async function resolveExpression(charDir, expr) {
     // catalog は簡易版のため cheek/shadow/brow は省略（目口fxのみ確認）
     const layers = [];
     layers.push({ path: basePath, stem: 'base' });
+    if (hasEdamame) layers.push({ path: edamamePath, stem: 'edamame_normal' });
     if (hasArm) layers.push({ path: armPath, stem: 'arm_normal' });
     layers.push({ path: eyeResult.path, stem: eyeResult.stem });
     layers.push({ path: mouthResult.path, stem: mouthResult.stem });
