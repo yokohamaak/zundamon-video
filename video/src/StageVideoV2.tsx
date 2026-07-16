@@ -200,13 +200,20 @@ function bubbleTextAt(turn: StageTurnV2, seconds: number) {
 
 function continuedBubbleRange(script: StageTurnV2[], activeIndex: number) {
   let start = activeIndex;
+  let end = activeIndex;
   while (start > 0) {
     const current = script[start];
     const previous = script[start - 1];
     if (!current.continueBubble || current.scene !== previous.scene || current.speaker !== previous.speaker) break;
     start -= 1;
   }
-  return {start, end: activeIndex};
+  while (end < script.length - 1) {
+    const current = script[end];
+    const next = script[end + 1];
+    if (!next.continueBubble || next.scene !== current.scene || next.speaker !== current.speaker) break;
+    end += 1;
+  }
+  return {start, end};
 }
 
 function characterDisplayWidth(fontSize: number, character: string) {
@@ -659,7 +666,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const autoGroups = sentenceGroups(turn);
         const usingContinuation = continuedTurns.length > 1;
         const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
-        const visibleCount = usingContinuation ? texts.length : visibleSentenceGroupCount(turn, seconds);
+        const visibleCount = usingContinuation ? turnIndex - continueRange.start + 1 : visibleSentenceGroupCount(turn, seconds);
         const charLimit = turn.bubbleMaxChars ?? displaySettings.bubble.maxChars;
         const metrics = texts.map((text) => bubbleMetricsV2(text, displaySettings.bubble.fontSize, width * 0.48, charLimit));
         const stacked = texts.length > 1;
@@ -670,10 +677,12 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const side = screenX >= width * 0.52 ? "right" : "left";
         const groupCenterX = clamp(screenX, groupWidth / 2 + 20, width - groupWidth / 2 - 20);
         const bubbleStepX = side === "right" ? -18 : 18;
+        const singleWidth = metrics[0].width;
+        const singleLeft = side === "right" ? groupCenterX + singleWidth / 2 : groupCenterX - singleWidth / 2;
         return <div style={stacked
           ? {position: "absolute", zIndex: 30, left: groupCenterX, top: height * 0.95, width: groupWidth, transform: "translate(-50%, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start", gap: 6}
-          : {position: "absolute", zIndex: 30, left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10}}>
-          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: stacked ? side : "center", whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
+          : {position: "absolute", zIndex: 30, left: singleLeft, top: height * 0.95, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
+          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
         </div>;
       })() : null}
     </AbsoluteFill>
