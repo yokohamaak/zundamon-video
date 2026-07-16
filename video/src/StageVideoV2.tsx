@@ -1,5 +1,5 @@
 import React from "react";
-import {AbsoluteFill, Audio, Img, staticFile, useCurrentFrame, useVideoConfig} from "remotion";
+import {AbsoluteFill, Audio, Img, staticFile, useCurrentFrame, useVideoConfig, Video} from "remotion";
 import {Avatar} from "./Avatar";
 import type {ExpressionCfg} from "./Avatar";
 import type {Gender} from "./types";
@@ -261,7 +261,11 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         />
       ) : (
         <AbsoluteFill style={{transform, transformOrigin: "0 0", overflow: "hidden", rotate: motion?.tilt ? `${motion.tilt}deg` : undefined}}>
-          {scene.bg ? <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} /> : null}
+          {scene.bgVideo ? (
+            <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+          ) : scene.bg ? (
+            <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+          ) : null}
           <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
           {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
         </AbsoluteFill>

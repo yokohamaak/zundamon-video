@@ -108,6 +108,11 @@
     pointer-events: none;
     z-index: 0;
   }
+  .stage-people {
+    position: absolute; inset: 0;
+    z-index: 10;
+    pointer-events: none;
+  }
   .stage-front {
     position: absolute; inset: 0;
     background-size: cover; background-position: center;
@@ -187,7 +192,6 @@
   }
   .char-container {
     position: absolute;
-    z-index: 10;
     /* bottom-centerをanchorに合わせる: left=ax*1920, top=ay*1080, transform=translate(-50%,-100%) */
     transform-origin: bottom center;
   }
@@ -463,6 +467,7 @@
       <div class="stage" id="stage">
         <div class="stage-bg" id="stageBg"></div>
         <video class="stage-bg-video" id="stageBgVideo" muted loop autoplay playsinline></video>
+        <div class="stage-people" id="stagePeople"></div>
         <div class="camera-frame" id="cameraFrameBox">
           <div class="camera-frame-center"></div>
           <div class="camera-frame-handle" id="cameraFrameHandle"></div>
@@ -535,7 +540,7 @@
           <input type="checkbox" id="cameraPreviewToggle">
           <span>カメラ枠プレビュー</span>
         </label>
-        <label class="toggle-row" style="margin-top:6px">
+        <label class="toggle-row" id="focusPreviewRow" style="margin-top:6px">
           <input type="checkbox" id="focusPreviewToggle">
           <span>＋ズーム</span>
         </label>
@@ -773,6 +778,7 @@ function syncV2LayoutUi() {
   document.getElementById('legacyAnchorSection').style.display = v2 ? 'none' : '';
   document.getElementById('legacyMobSection').style.display = v2 ? 'none' : '';
   document.getElementById('v2SlotSection').style.display = v2 ? '' : 'none';
+  document.getElementById('focusPreviewRow').style.display = v2 ? 'none' : '';
   const select = document.getElementById('cameraFrameKey');
   const hint = document.getElementById('cameraFrameHint');
   const buttons = document.querySelectorAll('[data-camera-frame-key]');
@@ -1042,6 +1048,7 @@ function currentPreviewTf() {
   const previewBase = document.getElementById('cameraPreviewToggle').checked;
   if (!previewBase) return { tx: 0, ty: 0, s: 1 };
   const base = previewBaseCamTf(sc);
+  if (isV2Scene(sc)) return base;
   if (!document.getElementById('focusPreviewToggle').checked) return base;
   const ch = sortedStrings(Object.keys(sc.cast || {}))[0];
   if (!ch) return base;
@@ -1273,19 +1280,29 @@ function buildSlotList() {
     const scale = document.createElement('input');
     scale.type = 'number'; scale.step = '0.05'; scale.min = '0.1'; scale.value = slot.scale ?? 1;
     scale.title = 'scale'; scale.style.width = '58px';
-    scale.addEventListener('change', () => {
+    const applyScale = (restoreInvalid) => {
       const value = parseFloat(scale.value);
-      if (Number.isFinite(value) && value > 0) slot.scale = value;
-      else scale.value = slot.scale ?? 1;
-    });
+      if (Number.isFinite(value) && value > 0) {
+        slot.scale = value;
+        renderPreview();
+      }
+      else if (restoreInvalid) scale.value = slot.scale ?? 1;
+    };
+    scale.addEventListener('input', () => applyScale(false));
+    scale.addEventListener('change', () => applyScale(true));
     const zIndex = document.createElement('input');
     zIndex.type = 'number'; zIndex.step = '1'; zIndex.value = slot.zIndex ?? 0;
     zIndex.title = 'z-index'; zIndex.style.width = '52px';
-    zIndex.addEventListener('change', () => {
+    const applyZIndex = (restoreInvalid) => {
       const value = parseFloat(zIndex.value);
-      if (Number.isFinite(value)) slot.zIndex = value;
-      else zIndex.value = slot.zIndex ?? 0;
-    });
+      if (Number.isFinite(value)) {
+        slot.zIndex = value;
+        renderPreview();
+      }
+      else if (restoreInvalid) zIndex.value = slot.zIndex ?? 0;
+    };
+    zIndex.addEventListener('input', () => applyZIndex(false));
+    zIndex.addEventListener('change', () => applyZIndex(true));
     const preset = document.createElement('select');
     preset.className = 'cast-select'; preset.style.width = '92px';
     const none = document.createElement('option'); none.value = ''; none.textContent = '構図なし'; preset.appendChild(none);
@@ -1413,6 +1430,7 @@ function updateMobCoordsPanel(mobId) {
 function renderPreview() {
   const sc = currentScene();
   const stage = document.getElementById('stage');
+  const peopleLayer = document.getElementById('stagePeople');
 
   // 古いキャラ・アンカー・モブを消す
   for (const el of stage.querySelectorAll('.char-container,.anchor-dot,.anchor-label,.mob-image')) {
@@ -1500,6 +1518,7 @@ function renderPreview() {
       ? `translate(-50%, -100%) scale(${scale})`
       : `translate(-50%, -50%) scale(${scale})`;
     container.style.transformOrigin = v2 ? 'bottom center' : 'center center';
+    container.style.zIndex = String(v2 ? (slot?.zIndex ?? 0) : 10);
 
     const parts = document.createElement('div');
     parts.className = 'char-parts';
@@ -1557,9 +1576,7 @@ function renderPreview() {
     }
 
     container.appendChild(parts);
-    // frontの前に挿入（frontはstageの最後）
-    const frontEl2 = document.getElementById('stageFront');
-    stage.insertBefore(container, frontEl2);
+    peopleLayer.appendChild(container);
 
     // v2 slotは足元を保存するが、画面外へ足元を逃がしても掴めるよう身体中央にドラッグ点を置く。
     const grabY = v2 ? coord.y - v2SlotGrabOffset(sc, name, slot) : coord.y;

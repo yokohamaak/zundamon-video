@@ -171,6 +171,16 @@ def validate_scene_library_v2(data):
     for scene_id, scene in scenes.items():
         if not isinstance(scene_id, str) or not scene_id or not isinstance(scene, dict):
             _error("scenes", "scene IDとscene objectが必要です")
+        bg = scene.get("bg")
+        bg_video = scene.get("bgVideo")
+        if bg is not None and (not isinstance(bg, str) or not bg):
+            _error(f"scenes.{scene_id}.bg", "省略または空でない文字列が必要です")
+        if bg_video is not None and (not isinstance(bg_video, str) or not bg_video):
+            _error(f"scenes.{scene_id}.bgVideo", "省略または空でない文字列が必要です")
+        if not bg and not bg_video:
+            _error(f"scenes.{scene_id}", "bg または bgVideo のどちらかが必要です")
+        if "bgVideoLoop" in scene and not isinstance(scene["bgVideoLoop"], bool):
+            _error(f"scenes.{scene_id}.bgVideoLoop", "true/falseが必要です")
         slots = ((scene.get("layouts") or {}).get("standard") or {}).get("slots")
         if not isinstance(slots, dict):
             _error(f"scenes.{scene_id}.layouts.standard.slots", "objectが必要です")

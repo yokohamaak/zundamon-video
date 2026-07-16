@@ -108,6 +108,8 @@ export type SlotV2 = {
 export type StandardLayoutV2 = {slots: Record<string, SlotV2>};
 export type SceneV2 = {
   bg?: string;
+  bgVideo?: string;
+  bgVideoLoop?: boolean;
   front?: string | null;
   figure?: "bust" | "full";
   layouts: {standard: StandardLayoutV2};

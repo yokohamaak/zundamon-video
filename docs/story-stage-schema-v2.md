@@ -94,6 +94,8 @@ type DisplayMode =
 
 ## シーンのレイアウト
 
+シーンは `bg`（静止画）または `bgVideo`（動画）のどちらかを必ず持つ。両方がある場合は `bgVideo` を描画し、`bgVideoLoop: true` で動画をループする。`front` は人物レイヤーの前に描画する前景画像である。
+
 ```json
 {
   "layouts": {
@@ -168,5 +170,6 @@ type CameraMotion = {
 5. slot指定・slot framingは、そのsceneの `layouts.standard.slots` に存在するslotだけを参照する。
 6. `framing: speaker` は、話者が画面上の在席個体である時だけ使える。
 7. `manual` の座標・カメラ枠・scaleは有限数値かつ画面操作で扱える範囲に収める。
+8. 各sceneは空でない `bg` または `bgVideo` を持つ。`bgVideoLoop` は指定時にbooleanである。
 
 モブに表情を指定する時は、モブ定義に口閉じ／口開き画像の両方が存在する表情だけを使う。UIとvalidatorの両方で確認し、描画時に別表情へ暗黙フォールバックしない。

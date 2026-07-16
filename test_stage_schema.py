@@ -84,6 +84,20 @@ class StageSchemaTest(unittest.TestCase):
         validate_scene_library_v2(SCENES)
         validate_story_v2(STORY, SCENES)
 
+    def test_scene_accepts_background_video(self):
+        scenes = copy.deepcopy(SCENES)
+        scene = scenes["scenes"]["office"]
+        del scene["bg"]
+        scene["bgVideo"] = "background/money.mp4"
+        scene["bgVideoLoop"] = True
+        validate_scene_library_v2(scenes)
+
+    def test_scene_requires_background_image_or_video(self):
+        scenes = copy.deepcopy(SCENES)
+        del scenes["scenes"]["office"]["bg"]
+        with self.assertRaisesRegex(ValueError, "bg または bgVideo"):
+            validate_scene_library_v2(scenes)
+
     def test_speaker_does_not_implicitly_enter(self):
         story = copy.deepcopy(STORY)
         story["script"][0]["stage"].pop("enter")
