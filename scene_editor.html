@@ -644,7 +644,7 @@
 
     <div class="side-section" id="v2SlotSection" style="display:none">
       <div class="section-title">通常表示の配置スロット</div>
-      <div class="slider-hint" style="margin-bottom:8px">ステージ上の点をドラッグして位置を調整します。slotは画面内の場所であり、話者役ではありません。</div>
+      <div class="slider-hint" style="margin-bottom:8px">青い点（表示キャラの身体中央）をドラッグして位置を調整します。保存する座標は足元基準なので、足元を画面外へ出す配置も可能です。</div>
       <div class="anchor-list" id="slotList"></div>
       <button class="btn btn-secondary" id="btnAddSlot" style="margin-top:8px;width:100%;font-size:12px">＋ スロット追加</button>
     </div>
@@ -686,6 +686,7 @@ const V2_SLOT_PREVIEW_CHARACTERS = {
   speakerRight: 'zundamon',
   center: 'zundamon',
 };
+const V2_SLOT_ORIGIN_BOUNDS = { xMin: -0.2, xMax: 1.2, yMin: -0.2, yMax: 1.4 };
 function fullBoxSize(charId) {
   const c = FULL_CANVAS[charId];
   const h = c ? Math.round(FULL_BOX_W * (c.h / c.w)) : Math.round(FULL_BOX_W * 1.8);
@@ -736,6 +737,17 @@ function v2Slots(sc = currentScene()) {
   if (!isV2Scene(sc)) return {};
   ensureV2Layout(sc);
   return sc.layouts.standard.slots;
+}
+
+function v2SlotPreviewCharacter(slotId) {
+  return V2_SLOT_PREVIEW_CHARACTERS[slotId] || 'zundamon';
+}
+
+function v2SlotGrabOffset(sc, slotId, slot) {
+  const charId = v2SlotPreviewCharacter(slotId);
+  const isFull = (sc.figure ?? 'bust') === 'full';
+  const box = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
+  return (box.h * (slot?.scale ?? 1)) / (2 * STAGE_H);
 }
 
 function cameraPresetKey(key = currentCameraFrameKey, sc = currentScene()) {
@@ -1470,7 +1482,7 @@ function renderPreview() {
     const ax = coord.x * STAGE_W;
     const ay = coord.y * STAGE_H;
     const slot = v2 ? v2Slots(sc)[name] : null;
-    const charId = v2 ? V2_SLOT_PREVIEW_CHARACTERS[name] : anchorToChar[name];
+    const charId = v2 ? v2SlotPreviewCharacter(name) : anchorToChar[name];
     const scale = v2 ? (slot?.scale ?? 1) : (sc.scale != null ? sc.scale : 1.9);
     const flip = coord.x < 0.5;
 
@@ -1545,19 +1557,20 @@ function renderPreview() {
     const frontEl2 = document.getElementById('stageFront');
     stage.insertBefore(container, frontEl2);
 
-    // アンカードット（ステージ座標でそのまま配置）
+    // v2 slotは足元を保存するが、画面外へ足元を逃がしても掴めるよう身体中央にドラッグ点を置く。
+    const grabY = v2 ? coord.y - v2SlotGrabOffset(sc, name, slot) : coord.y;
     const dot = document.createElement('div');
     dot.className = 'anchor-dot';
     dot.dataset.anchorName = name;
     dot.style.left = ax + 'px';
-    dot.style.top = ay + 'px';
+    dot.style.top = (grabY * STAGE_H) + 'px';
     dot.title = name;
     stage.appendChild(dot);
 
     const dotLabel = document.createElement('div');
     dotLabel.className = 'anchor-label';
     dotLabel.style.left = ax + 'px';
-    dotLabel.style.top = ay + 'px';
+    dotLabel.style.top = (grabY * STAGE_H) + 'px';
     dotLabel.textContent = name + (charId ? ` (${charId})` : v2 ? ' (slot)' : '');
     stage.appendChild(dotLabel);
   }
@@ -1663,7 +1676,9 @@ function setupDrag() {
     e.preventDefault();
     const name = dot.dataset.anchorName;
     dot.classList.add('dragging');
-    dragging = { name, dot };
+    const sc = currentScene();
+    const slot = isV2Scene(sc) ? v2Slots(sc)[name] : null;
+    dragging = { name, dot, v2GrabOffset: slot ? v2SlotGrabOffset(sc, name, slot) : 0 };
   });
 
   window.addEventListener('mousemove', e => {
@@ -1724,15 +1739,21 @@ function setupDrag() {
     if (dragging) {
       const sc = currentScene();
       if (!sc) return;
-      const nx = Math.max(0, Math.min(1, sx / STAGE_W));
-      const ny = Math.max(0, Math.min(1, sy / STAGE_H));
       if (isV2Scene(sc)) {
         const slot = v2Slots(sc)[dragging.name];
         if (!slot) return;
+        const nx = clampN(sx / STAGE_W, V2_SLOT_ORIGIN_BOUNDS.xMin, V2_SLOT_ORIGIN_BOUNDS.xMax);
+        const ny = clampN(
+          sy / STAGE_H + (dragging.v2GrabOffset ?? v2SlotGrabOffset(sc, dragging.name, slot)),
+          V2_SLOT_ORIGIN_BOUNDS.yMin,
+          V2_SLOT_ORIGIN_BOUNDS.yMax
+        );
         slot.origin.x = Math.round(nx * 1000) / 1000;
         slot.origin.y = Math.round(ny * 1000) / 1000;
         updateSlotCoords(dragging.name, slot.origin);
       } else {
+        const nx = Math.max(0, Math.min(1, sx / STAGE_W));
+        const ny = Math.max(0, Math.min(1, sy / STAGE_H));
         if (!sc.anchors[dragging.name]) return;
         sc.anchors[dragging.name].x = Math.round(nx * 1000) / 1000;
         sc.anchors[dragging.name].y = Math.round(ny * 1000) / 1000;
