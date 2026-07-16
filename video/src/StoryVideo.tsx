@@ -3401,7 +3401,7 @@ const BgmLayer: React.FC<{
   bgmRegions?: BgmRegion[];
   fps: number;
 }> = ({ bgmRegions, fps }) => {
-  const BGM_DEFAULT_VOL = 0.25;
+  const BGM_DEFAULT_VOL = 0.1;
   const BGM_DEFAULT_FADE = 0.6;
   const isFiniteNumber = (value: unknown): value is number =>
     typeof value === "number" && Number.isFinite(value);

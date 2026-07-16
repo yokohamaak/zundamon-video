@@ -1578,8 +1578,8 @@
         <select id="bgmRegionFile" class="field-select" style="flex:1; min-width:140px; max-width:220px;"></select>
         <button id="bgmRegionPlay" class="btn btn-secondary btn-sm" style="flex-shrink:0; padding:2px 9px;" title="試聴">▶</button>
         <label style="font-size:12px; color:var(--text2); flex-shrink:0;">音量</label>
-        <input type="range" id="bgmRegionVolume" min="0" max="1" step="0.05" value="0.25" style="width:80px; accent-color:var(--accent); flex-shrink:0;">
-        <span id="bgmRegionVolDisp" style="font-size:12px; color:var(--text2); flex-shrink:0; min-width:30px;">0.25</span>
+        <input type="range" id="bgmRegionVolume" min="0" max="1" step="0.05" value="0.10" style="width:80px; accent-color:var(--accent); flex-shrink:0;">
+        <span id="bgmRegionVolDisp" style="font-size:12px; color:var(--text2); flex-shrink:0; min-width:30px;">0.10</span>
         <label style="font-size:12px; color:var(--text2); flex-shrink:0;">start</label>
         <input type="number" id="bgmRegionStart" class="field-input" min="0" step="0.1" style="width:64px; flex-shrink:0;">
         <label style="font-size:12px; color:var(--text2); flex-shrink:0;">end</label>
@@ -3852,6 +3852,8 @@ window.addEventListener("story-player-frame", (e) => {
 // ============================================================
 let _playheadTime = 0;     // 現在の再生位置(秒)
 const _SPK_COLORS = { zundamon: "#5fb84f", metan: "#e87bb0", "営業": "#9aa0a6", "部長": "#7a8190", "AI": "#5b8dee" };
+const BGM_DEFAULT_VOLUME = 0.10;
+const BGM_DEFAULT_FADE = 0.6;
 
 // BGMレーンD&D 状態
 let _selectedBgmIdx = -1;  // 選択中の storyData.bgm インデックス
@@ -4485,9 +4487,9 @@ function materializeFallbackBgmRegion(region) {
     start: region.start,
     end: region.end,
     file: region.file,
-    volume: typeof region.volume === "number" ? region.volume : 0.25,
-    fadeIn: typeof region.fadeIn === "number" ? region.fadeIn : 0.6,
-    fadeOut: typeof region.fadeOut === "number" ? region.fadeOut : 0.6,
+    volume: typeof region.volume === "number" ? region.volume : BGM_DEFAULT_VOLUME,
+    fadeIn: typeof region.fadeIn === "number" ? region.fadeIn : BGM_DEFAULT_FADE,
+    fadeOut: typeof region.fadeOut === "number" ? region.fadeOut : BGM_DEFAULT_FADE,
   });
   markDirty();
   notifyPlayerUpdate();
@@ -4556,7 +4558,7 @@ function _updateBgmRegionEditor() {
   const volSlider = document.getElementById("bgmRegionVolume");
   const volDisp = document.getElementById("bgmRegionVolDisp");
   if (volSlider) {
-    volSlider.value = r.volume != null ? r.volume : 0.25;
+    volSlider.value = r.volume != null ? r.volume : BGM_DEFAULT_VOLUME;
     if (volDisp) volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
   }
   const startInp = document.getElementById("bgmRegionStart");
@@ -4564,9 +4566,9 @@ function _updateBgmRegionEditor() {
   const endInp = document.getElementById("bgmRegionEnd");
   if (endInp) endInp.value = r.end != null ? r.end.toFixed(2) : "0";
   const fadeInInp = document.getElementById("bgmRegionFadeIn");
-  if (fadeInInp) fadeInInp.value = r.fadeIn != null ? r.fadeIn : 0.6;
+  if (fadeInInp) fadeInInp.value = r.fadeIn != null ? r.fadeIn : BGM_DEFAULT_FADE;
   const fadeOutInp = document.getElementById("bgmRegionFadeOut");
-  if (fadeOutInp) fadeOutInp.value = r.fadeOut != null ? r.fadeOut : 0.6;
+  if (fadeOutInp) fadeOutInp.value = r.fadeOut != null ? r.fadeOut : BGM_DEFAULT_FADE;
 }
 
 // BGMエディタの各コントロールから storyData.bgm[idx] へ反映
@@ -4855,6 +4857,7 @@ function _setupBgmRegionEditorEvents() {
     volSlider.addEventListener("input", () => {
       if (volDisp) volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
       _collectBgmRegionEditor();
+      flushPlayerUpdate();
     });
   }
   const startInp = document.getElementById("bgmRegionStart");
@@ -4873,7 +4876,7 @@ function _setupBgmRegionEditorEvents() {
   if (playBtn) playBtn.addEventListener("click", () => {
     const f = document.getElementById("bgmRegionFile");
     const volSlider = document.getElementById("bgmRegionVolume");
-    if (f) previewAudioFile(f.value, playBtn, volSlider ? parseFloat(volSlider.value) : 0.25);
+    if (f) previewAudioFile(f.value, playBtn, volSlider ? parseFloat(volSlider.value) : BGM_DEFAULT_VOLUME);
   });
   const delBtn = document.getElementById("bgmRegionDelete");
   if (delBtn) delBtn.addEventListener("click", () => {
@@ -4894,7 +4897,7 @@ function _setupBgmRegionEditorEvents() {
     const s = _snapT(Math.min(_playheadTime, total - MIN_LEN));
     const e2 = _snapT(Math.min(s + 5, total));
     const file = (audioAssets && audioAssets.bgm && audioAssets.bgm.length > 0) ? audioAssets.bgm[0] : "";
-    storyData.bgm.push({ start: s, end: Math.max(s + MIN_LEN, e2), file, volume: 0.25, fadeIn: 0.6, fadeOut: 0.6 });
+    storyData.bgm.push({ start: s, end: Math.max(s + MIN_LEN, e2), file, volume: BGM_DEFAULT_VOLUME, fadeIn: BGM_DEFAULT_FADE, fadeOut: BGM_DEFAULT_FADE });
     _selectedBgmIdx = storyData.bgm.length - 1;
     markDirty();
     notifyPlayerUpdate();
@@ -5224,7 +5227,7 @@ function setupScriptTimeline() {
       s = Math.max(0, s);
       if (!storyData.bgm) storyData.bgm = [];
       const file = (audioAssets && audioAssets.bgm && audioAssets.bgm.length > 0) ? audioAssets.bgm[0] : "";
-      storyData.bgm.push({ start: s, end: en, file, volume: 0.25, fadeIn: 0.6, fadeOut: 0.6 });
+      storyData.bgm.push({ start: s, end: en, file, volume: BGM_DEFAULT_VOLUME, fadeIn: BGM_DEFAULT_FADE, fadeOut: BGM_DEFAULT_FADE });
       _selectedBgmIdx = storyData.bgm.length - 1;
       markDirty();
       notifyPlayerUpdate();
@@ -14030,7 +14033,8 @@ async function toggleAudioPreview() {
     return;
   }
   if (st) { st.textContent = "最新の設定を反映中..."; st.className = "status"; }
-  await sp.reloadAudio();   // 保存済みのBGM/SE/シーンを反映
+  await sp.reloadAudio();   // 音声ファイル・SEマップ等の外部アセットを最新化
+  flushPlayerUpdate();      // 未保存のBGM音量/区間を保存済みstoryで上書きしない
   sp.play();
   _setAudioPlayBtn(true);
   if (st) st.textContent = "再生中";

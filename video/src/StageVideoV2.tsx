@@ -442,7 +442,7 @@ const V2BgmLayer: React.FC<{regions?: BgmRegion[]; fps: number}> = ({regions, fp
       const durationInFrames = Math.max(1, Math.round((region.end - region.start) * fps));
       const fadeInFrames = Math.max(0, Math.round((region.fadeIn ?? 0.6) * fps));
       const fadeOutFrames = Math.max(0, Math.round((region.fadeOut ?? 0.6) * fps));
-      const volume = region.volume ?? 0.25;
+      const volume = region.volume ?? 0.1;
       return <Sequence key={`${region.file}-${index}`} from={Math.round(region.start * fps)} durationInFrames={durationInFrames}>
         <Audio
           src={staticFile(region.file)}
