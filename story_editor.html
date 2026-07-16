@@ -1340,6 +1340,7 @@
         <button class="menu-item" id="tabExpr" data-view="expr">表情編集</button>
         <button class="menu-item" id="tabPose" data-view="pose">ポーズ編集</button>
         <button class="menu-item" id="tabGen" data-view="gen">台本生成</button>
+        <button class="menu-item" id="tabCast" data-view="cast">登場人物</button>
         <button class="menu-item" id="tabAudio" data-view="audio">音（BGM/SE）</button>
         <button class="menu-item" id="tabMobs" data-view="mobs">モブキャラ</button>
         <button class="menu-item" id="tabDisplay" data-view="display">表示共通設定</button>
@@ -1724,18 +1725,6 @@
               <select class="field-select" id="fV2Scene"></select>
               <div class="field-help">シーンが変わると舞台上の人物はリセットされます。</div>
             </div>
-            <div class="section-divider">個体管理</div>
-            <div class="field-help">同じ素材を複数の個体として追加できます。モブの画像・声そのものは「モブ」タブで管理します。</div>
-            <div id="v2InstanceRegistry" style="display:flex; flex-direction:column; gap:8px;"></div>
-            <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
-              <select class="field-select" id="fV2NewInstanceRole"><option value="stage">画面に出す</option><option value="voiceOnly">声のみ</option></select>
-              <select class="field-select" id="fV2NewInstanceCharacter"></select>
-              <select class="field-select" id="fV2NewInstanceVoice"></select>
-            </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <input class="field-input" id="fV2NewInstanceLabel" type="text" placeholder="表示名（任意）">
-              <button type="button" class="btn btn-secondary btn-sm" id="btnV2AddInstance">＋ 個体を追加</button>
-            </div>
             <div id="v2WhiteboardControls" style="display:none; gap:10px; flex-direction:column;">
               <div class="section-divider">ホワイトボード解説</div>
               <div class="field-row">
@@ -1759,7 +1748,7 @@
               <div id="v2MeetParticipants" style="display:flex; flex-direction:column; gap:8px;"></div>
               <button type="button" class="btn btn-secondary btn-sm" id="btnV2MeetAddParticipant">＋ 参加者を追加</button>
             </div>
-            <div class="section-divider">登場人物</div>
+            <div class="section-divider">登場退場</div>
             <div class="field-help">登場・退場はこのターンの明示イベントです。話者を選んでも自動では登場しません。</div>
             <div id="v2InstanceActions" style="display:flex; flex-direction:column; gap:8px;"></div>
             <div class="section-divider">在席中の状態</div>
@@ -2218,6 +2207,26 @@
 <!-- ポーズ編集（story_editor.py 配下で同居配信） -->
 <div class="expr-view" id="viewPose" style="display:none;">
   <iframe id="poseFrame" title="ポーズ編集"></iframe>
+</div>
+
+<!-- 登場人物管理（V2台本内のキャスト定義） -->
+<div id="viewCast" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
+  <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+    <div style="font-size:12px; color:var(--text2); line-height:1.6;">
+      V2台本内で使う登場人物です。同じ素材を複数の登場人物として追加できます。
+      モブの画像・声そのものは「モブキャラ」画面で管理します。
+    </div>
+    <div id="v2InstanceRegistry" style="display:flex; flex-direction:column; gap:8px;"></div>
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
+      <select class="field-select" id="fV2NewInstanceRole"><option value="stage">画面に出す</option><option value="voiceOnly">声のみ</option></select>
+      <select class="field-select" id="fV2NewInstanceCharacter"></select>
+      <select class="field-select" id="fV2NewInstanceVoice"></select>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input class="field-input" id="fV2NewInstanceLabel" type="text" placeholder="表示名（任意）">
+      <button type="button" class="btn btn-secondary btn-sm" id="btnV2AddInstance">＋ 登場人物を追加</button>
+    </div>
+  </div>
 </div>
 
 <!-- 音(BGM/SE)タブ -->
@@ -8139,6 +8148,14 @@ function renderV2InstanceRegistry() {
   const characterSelect = document.getElementById("fV2NewInstanceCharacter");
   const voiceSelect = document.getElementById("fV2NewInstanceVoice");
   if (!registry || !characterSelect || !voiceSelect) return;
+  if (!isV2StoryEditor()) {
+    registry.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">登場人物管理はV2台本で使用します。</div>";
+    characterSelect.innerHTML = "";
+    voiceSelect.innerHTML = "";
+    document.getElementById("btnV2AddInstance")?.setAttribute("disabled", "disabled");
+    return;
+  }
+  document.getElementById("btnV2AddInstance")?.removeAttribute("disabled");
   const characterIds = v2CharacterIds();
   const voiceIds = v2VoiceIds();
   registry.innerHTML = "";
@@ -8161,8 +8178,7 @@ function renderV2InstanceRegistry() {
       definition.label = label.value.trim() || undefined;
       definition.voiceId = voice.value;
       if (character) definition.characterId = character.value;
-      v2Commit(storyData.script[selectedIdx]);
-      renderV2Detail(storyData.script[selectedIdx]);
+      v2CommitInstanceRegistryChange();
     };
     label.addEventListener("change", update); voice.addEventListener("change", update); character?.addEventListener("change", update);
     const remove = document.createElement("button"); remove.type = "button"; remove.className = "btn btn-secondary btn-sm"; remove.textContent = "削除";
@@ -8171,8 +8187,7 @@ function renderV2InstanceRegistry() {
     remove.addEventListener("click", () => {
       if (v2InstanceIsReferenced(instanceId)) return;
       delete storyData.instances[instanceId];
-      v2Commit(storyData.script[selectedIdx]);
-      renderV2Detail(storyData.script[selectedIdx]);
+      v2CommitInstanceRegistryChange();
     });
     card.append(title, label, character || voice, character ? voice : remove);
     if (character) card.appendChild(remove);
@@ -8192,8 +8207,18 @@ function renderV2InstanceRegistry() {
   }
 }
 
+function v2CommitInstanceRegistryChange() {
+  v2RecordHistory();
+  markDirty();
+  renderList();
+  drawScriptTimeline();
+  notifyPlayerUpdate();
+  if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
+  else renderV2InstanceRegistry();
+}
+
 function v2AddInstance() {
-  if (!isV2StoryEditor() || selectedIdx < 0) return;
+  if (!isV2StoryEditor()) return;
   const role = document.getElementById("fV2NewInstanceRole").value;
   const characterId = document.getElementById("fV2NewInstanceCharacter").value;
   const voiceId = document.getElementById("fV2NewInstanceVoice").value;
@@ -8206,8 +8231,7 @@ function v2AddInstance() {
     ...(label ? { label } : {}),
   };
   document.getElementById("fV2NewInstanceLabel").value = "";
-  v2Commit(storyData.script[selectedIdx]);
-  renderV2Detail(storyData.script[selectedIdx]);
+  v2CommitInstanceRegistryChange();
 }
 
 function v2Commit(turn, audioChanged = false) {
@@ -11982,6 +12006,7 @@ function setupTabs() {
   const tExpr = document.getElementById("tabExpr");
   const tPose = document.getElementById("tabPose");
   const tGen = document.getElementById("tabGen");
+  const tCast = document.getElementById("tabCast");
   const tAudio = document.getElementById("tabAudio");
   const tMobs = document.getElementById("tabMobs");
   const tDisplay = document.getElementById("tabDisplay");
@@ -11991,6 +12016,7 @@ function setupTabs() {
   const vExpr = document.getElementById("viewExpr");
   const vPose = document.getElementById("viewPose");
   const vGen = document.getElementById("viewGen");
+  const vCast = document.getElementById("viewCast");
   const vAudio = document.getElementById("viewAudio");
   const vMobs = document.getElementById("viewMobs");
   const vDisplay = document.getElementById("viewDisplay");
@@ -12001,7 +12027,7 @@ function setupTabs() {
 
   function activateTab(active) {
     // タブボタンのactive切替
-    [tScript, tScene, tExpr, tPose, tGen, tAudio, tMobs, tDisplay, tEffects].forEach(t => t.classList.toggle("active", t === active));
+    [tScript, tScene, tExpr, tPose, tGen, tCast, tAudio, tMobs, tDisplay, tEffects].forEach(t => t.classList.toggle("active", t === active));
     // メニュー内の画面が選ばれていればメニューボタンを強調。
     const mb = document.getElementById("menuBtn");
     if (mb) mb.classList.toggle("has-active", active !== tScript);
@@ -12011,6 +12037,7 @@ function setupTabs() {
     vExpr.style.display = active === tExpr ? "" : "none";
     vPose.style.display = active === tPose ? "" : "none";
     vGen.style.display = active === tGen ? "flex" : "none";
+    vCast.style.display = active === tCast ? "flex" : "none";
     vAudio.style.display = active === tAudio ? "flex" : "none";
     vMobs.style.display = active === tMobs ? "flex" : "none";
     vDisplay.style.display = active === tDisplay ? "flex" : "none";
@@ -12044,6 +12071,10 @@ function setupTabs() {
   });
   tGen.addEventListener("click", () => {
     activateTab(tGen);
+  });
+  tCast.addEventListener("click", () => {
+    activateTab(tCast);
+    renderV2InstanceRegistry();
   });
   tAudio.addEventListener("click", () => {
     activateTab(tAudio);
