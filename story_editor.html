@@ -2239,14 +2239,26 @@
       V2台本内で使う登場人物です。同じ素材を複数の登場人物として追加できます。
       モブの画像・声そのものは「モブキャラ」画面で管理します。
     </div>
-    <div id="v2InstanceRegistry" style="display:flex; flex-direction:column; gap:8px;"></div>
-    <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
-      <select class="field-select" id="fV2NewInstanceRole"><option value="stage">画面に出す</option><option value="voiceOnly">声のみ</option></select>
-      <select class="field-select" id="fV2NewInstanceCharacter"></select>
-      <select class="field-select" id="fV2NewInstanceVoice"></select>
+    <div style="overflow-x:auto;">
+      <div id="v2InstanceRegistry" style="display:flex; flex-direction:column; gap:8px; min-width:760px;"></div>
     </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <input class="field-input" id="fV2NewInstanceLabel" type="text" placeholder="表示名（任意）">
+    <div style="display:grid; grid-template-columns:minmax(140px,0.9fr) minmax(180px,1.1fr) minmax(180px,1.1fr) minmax(180px,1.2fr) minmax(170px,auto); gap:8px; align-items:end; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--panel); overflow-x:auto; min-width:760px;">
+      <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text2);">
+        種類
+        <select class="field-select" id="fV2NewInstanceRole"><option value="stage">画面に出す</option><option value="voiceOnly">声のみ</option></select>
+      </label>
+      <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text2);">
+        見た目・素材
+        <select class="field-select" id="fV2NewInstanceCharacter"></select>
+      </label>
+      <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text2);">
+        声
+        <select class="field-select" id="fV2NewInstanceVoice"></select>
+      </label>
+      <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text2);">
+        表示名
+        <input class="field-input" id="fV2NewInstanceLabel" type="text" placeholder="任意">
+      </label>
       <button type="button" class="btn btn-secondary btn-sm" id="btnV2AddInstance">＋ 登場人物を追加</button>
     </div>
   </div>
@@ -8229,8 +8241,16 @@ function renderV2InstanceRegistry() {
   const characterIds = v2CharacterIds();
   const voiceIds = v2VoiceIds();
   registry.innerHTML = "";
+  const header = document.createElement("div");
+  header.style.cssText = "display:grid; grid-template-columns:minmax(120px,0.9fr) minmax(180px,1.2fr) minmax(180px,1.1fr) minmax(180px,1.1fr) auto; gap:8px; padding:0 8px; color:var(--text2); font-size:12px; font-weight:700;";
+  for (const text of ["個体ID / 種類", "表示名", "見た目・素材", "声", "操作"]) {
+    const cell = document.createElement("div");
+    cell.textContent = text;
+    header.appendChild(cell);
+  }
+  registry.appendChild(header);
   for (const [instanceId, definition] of Object.entries(storyData.instances || {})) {
-    const card = document.createElement("div"); card.style.cssText = "display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto; gap:8px; align-items:center; padding:8px; border:1px solid var(--border); border-radius:8px;";
+    const card = document.createElement("div"); card.style.cssText = "display:grid; grid-template-columns:minmax(120px,0.9fr) minmax(180px,1.2fr) minmax(180px,1.1fr) minmax(180px,1.1fr) auto; gap:8px; align-items:center; padding:8px; border:1px solid var(--border); border-radius:8px;";
     const title = document.createElement("span"); title.style.cssText = "font-size:12px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"; title.textContent = `${instanceId}（${definition.role === "voiceOnly" ? "声のみ" : "画面"}）`;
     const label = document.createElement("input"); label.type = "text"; label.className = "field-input"; label.placeholder = "表示名"; label.value = definition.label || "";
     const voice = document.createElement("select"); voice.className = "field-select";
@@ -8243,6 +8263,11 @@ function renderV2InstanceRegistry() {
       for (const characterId of characterIds) v2Option(character, characterId, characterId);
       if (!character.querySelector(`option[value="${CSS.escape(definition.characterId || "")}"]`)) v2Option(character, definition.characterId || "", definition.characterId || "（素材未設定）");
       character.value = definition.characterId || "";
+    }
+    const characterCell = character || document.createElement("span");
+    if (!character) {
+      characterCell.style.cssText = "font-size:12px; color:var(--text2); padding:0 8px;";
+      characterCell.textContent = "なし（声のみ）";
     }
     const update = () => {
       definition.label = label.value.trim() || undefined;
@@ -8259,9 +8284,14 @@ function renderV2InstanceRegistry() {
       delete storyData.instances[instanceId];
       v2CommitInstanceRegistryChange();
     });
-    card.append(title, label, character || voice, character ? voice : remove);
-    if (character) card.appendChild(remove);
+    card.append(title, label, characterCell, voice, remove);
     registry.appendChild(card);
+  }
+  if (!Object.keys(storyData.instances || {}).length) {
+    const empty = document.createElement("div");
+    empty.style.cssText = "font-size:12px; color:var(--text2); padding:12px; border:1px dashed var(--border); border-radius:8px;";
+    empty.textContent = "登場人物がまだありません。下の入力欄から追加してください。";
+    registry.appendChild(empty);
   }
   characterSelect.innerHTML = "";
   for (const characterId of characterIds) v2Option(characterSelect, characterId, characterId);
