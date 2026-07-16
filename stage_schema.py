@@ -7,6 +7,9 @@ import math
 
 
 DISPLAY_MODES = {"standard", "whiteboard", "zunMeet"}
+KNOWN_STAGE_CHARACTER_IDS = {"zundamon", "metan"}
+CAMERA_FRAME_MIN = 0.35
+CAMERA_FRAME_MAX = 1.0
 
 
 def _error(path, message):
@@ -17,19 +20,31 @@ def _is_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+def _only_keys(value, allowed, path):
+    unknown = sorted(set(value) - set(allowed))
+    if unknown:
+        _error(path, f"未対応の項目があります: {', '.join(unknown)}")
+
+
 def _point(value, path):
     if not isinstance(value, dict) or not _is_number(value.get("x")) or not _is_number(value.get("y")):
         _error(path, "x/y が有限数値のobjectである必要があります")
+    _only_keys(value, {"x", "y"}, path)
 
 
 def _frame(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
+    _only_keys(value, {"cx", "cy", "width"}, path)
     for key in ("cx", "cy", "width"):
         if not _is_number(value.get(key)):
             _error(f"{path}.{key}", "有限数値が必要です")
-    if value["width"] <= 0:
-        _error(f"{path}.width", "0より大きい値が必要です")
+    if not CAMERA_FRAME_MIN <= value["width"] <= CAMERA_FRAME_MAX:
+        _error(f"{path}.width", f"{CAMERA_FRAME_MIN}〜{CAMERA_FRAME_MAX}の値が必要です")
+    half = value["width"] / 2
+    for key in ("cx", "cy"):
+        if not half <= value[key] <= 1 - half:
+            _error(f"{path}.{key}", "構図が画面内に収まる値が必要です")
 
 
 def _placement(value, path, slots):
@@ -37,6 +52,7 @@ def _placement(value, path, slots):
         _error(path, "objectである必要があります")
     mode = value.get("mode")
     if mode == "slot":
+        _only_keys(value, {"mode", "slotId", "offset"}, path)
         slot_id = value.get("slotId")
         if not isinstance(slot_id, str) or not slot_id:
             _error(f"{path}.slotId", "文字列が必要です")
@@ -46,6 +62,7 @@ def _placement(value, path, slots):
             _point(value["offset"], f"{path}.offset")
         return
     if mode == "manual":
+        _only_keys(value, {"mode", "origin", "scale", "zIndex"}, path)
         _point(value.get("origin"), f"{path}.origin")
         for key in ("scale", "zIndex"):
             if key in value and not _is_number(value[key]):
@@ -61,15 +78,18 @@ def _framing(value, path, slots, present, speaker):
         _error(path, "objectである必要があります")
     mode = value.get("mode")
     if mode in {"sceneDefault", "speaker"}:
+        _only_keys(value, {"mode"}, path)
         if mode == "speaker" and speaker not in present:
             _error(path, "speaker framingには在席中の話者個体が必要です")
         return
     if mode == "slot":
+        _only_keys(value, {"mode", "slotId"}, path)
         slot_id = value.get("slotId")
         if not isinstance(slot_id, str) or slot_id not in slots:
             _error(f"{path}.slotId", "sceneに存在するslotが必要です")
         return
     if mode == "manual":
+        _only_keys(value, {"mode", "frame"}, path)
         _frame(value.get("frame"), f"{path}.frame")
         return
     _error(f"{path}.mode", "sceneDefault/speaker/slot/manual のいずれかが必要です")
@@ -78,6 +98,7 @@ def _framing(value, path, slots, present, speaker):
 def _camera_motion(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
+    _only_keys(value, {"zoom", "pan", "tilt", "shake"}, path)
     if "zoom" in value and not _is_number(value["zoom"]):
         _error(f"{path}.zoom", "有限数値が必要です")
     if "pan" in value:
@@ -88,6 +109,7 @@ def _camera_motion(value, path):
         shake = value["shake"]
         if not isinstance(shake, dict):
             _error(f"{path}.shake", "objectである必要があります")
+        _only_keys(shake, {"strength", "duration"}, f"{path}.shake")
         for key in ("strength", "duration"):
             if not _is_number(shake.get(key)) or shake[key] < 0:
                 _error(f"{path}.shake.{key}", "0以上の有限数値が必要です")
@@ -98,10 +120,14 @@ def _display_mode(value, path):
         return "standard"
     if not isinstance(value, dict) or value.get("kind") not in DISPLAY_MODES:
         _error(path, f"kind は {', '.join(sorted(DISPLAY_MODES))} のいずれかが必要です")
+    if value["kind"] == "standard":
+        _only_keys(value, {"kind"}, path)
     if value["kind"] == "whiteboard":
+        _only_keys(value, {"kind", "presenterId", "whiteboard"}, path)
         board = value.get("whiteboard")
         if not isinstance(board, dict):
             _error(f"{path}.whiteboard", "objectが必要です")
+        _only_keys(board, {"title", "theme", "sections", "conclusion", "layout"}, f"{path}.whiteboard")
         for key in ("title", "theme", "conclusion"):
             if not isinstance(board.get(key), str) or not board[key]:
                 _error(f"{path}.whiteboard.{key}", "空でない文字列が必要です")
@@ -112,17 +138,22 @@ def _display_mode(value, path):
             section_path = f"{path}.whiteboard.sections[{index}]"
             if not isinstance(section, dict) or not isinstance(section.get("heading"), str):
                 _error(section_path, "headingを持つobjectが必要です")
+            _only_keys(section, {"heading", "bullets"}, section_path)
             if not isinstance(section.get("bullets"), list) or not all(isinstance(item, str) for item in section["bullets"]):
                 _error(f"{section_path}.bullets", "文字列配列が必要です")
         if "character" in board:
             _error(f"{path}.whiteboard.character", "presenterIdを使用してください")
+        if "layout" in board and board["layout"] not in {"default", "compact"}:
+            _error(f"{path}.whiteboard.layout", "default/compact のいずれかが必要です")
         presenter_id = value.get("presenterId")
         if presenter_id is not None and (not isinstance(presenter_id, str) or not presenter_id):
             _error(f"{path}.presenterId", "省略または個体ID文字列が必要です")
     if value["kind"] == "zunMeet":
+        _only_keys(value, {"kind", "zunMeet"}, path)
         meeting = value.get("zunMeet")
         if not isinstance(meeting, dict):
             _error(f"{path}.zunMeet", "objectが必要です")
+        _only_keys(meeting, {"room", "layout", "activeSpeakerId", "participants"}, f"{path}.zunMeet")
         if "room" in meeting and not isinstance(meeting["room"], str):
             _error(f"{path}.zunMeet.room", "文字列が必要です")
         participants = meeting.get("participants")
@@ -133,6 +164,7 @@ def _display_mode(value, path):
             participant_path = f"{path}.zunMeet.participants[{index}]"
             if not isinstance(participant, dict) or not isinstance(participant.get("instanceId"), str) or not participant["instanceId"]:
                 _error(participant_path, "instanceIdを持つobjectが必要です")
+            _only_keys(participant, {"instanceId", "name", "cameraOff", "muted"}, participant_path)
             participant_ids.append(participant["instanceId"])
             if "name" in participant and not isinstance(participant["name"], str):
                 _error(f"{participant_path}.name", "文字列が必要です")
@@ -168,9 +200,14 @@ def validate_scene_library_v2(data):
     scenes = data.get("scenes")
     if not isinstance(scenes, dict):
         _error("scenes", "objectが必要です")
+    _only_keys(data, {"schemaVersion", "scenes"}, "scene library")
     for scene_id, scene in scenes.items():
         if not isinstance(scene_id, str) or not scene_id or not isinstance(scene, dict):
             _error("scenes", "scene IDとscene objectが必要です")
+        scene_path = f"scenes.{scene_id}"
+        _only_keys(scene, {"label", "bg", "bgVideo", "bgVideoLoop", "front", "figure", "layouts", "cameraPresets"}, scene_path)
+        if "label" in scene and (not isinstance(scene["label"], str) or not scene["label"]):
+            _error(f"{scene_path}.label", "省略または空でない文字列が必要です")
         bg = scene.get("bg")
         bg_video = scene.get("bgVideo")
         if bg is not None and (not isinstance(bg, str) or not bg):
@@ -181,19 +218,33 @@ def validate_scene_library_v2(data):
             _error(f"scenes.{scene_id}", "bg または bgVideo のどちらかが必要です")
         if "bgVideoLoop" in scene and not isinstance(scene["bgVideoLoop"], bool):
             _error(f"scenes.{scene_id}.bgVideoLoop", "true/falseが必要です")
+        if "front" in scene and scene["front"] is not None and (not isinstance(scene["front"], str) or not scene["front"]):
+            _error(f"scenes.{scene_id}.front", "省略、null、または空でない文字列が必要です")
         if "figure" in scene and scene["figure"] not in {"bust", "full"}:
             _error(f"scenes.{scene_id}.figure", "bust または full が必要です")
-        slots = ((scene.get("layouts") or {}).get("standard") or {}).get("slots")
+        layouts = scene.get("layouts")
+        if not isinstance(layouts, dict):
+            _error(f"scenes.{scene_id}.layouts", "objectが必要です")
+        _only_keys(layouts, {"standard"}, f"scenes.{scene_id}.layouts")
+        standard = layouts.get("standard")
+        if not isinstance(standard, dict):
+            _error(f"scenes.{scene_id}.layouts.standard", "objectが必要です")
+        _only_keys(standard, {"slots"}, f"scenes.{scene_id}.layouts.standard")
+        slots = standard.get("slots")
         if not isinstance(slots, dict):
             _error(f"scenes.{scene_id}.layouts.standard.slots", "objectが必要です")
         for slot_id, slot in slots.items():
             if not isinstance(slot_id, str) or not slot_id or not isinstance(slot, dict):
                 _error(f"scenes.{scene_id}.slots", "slot IDとobjectが必要です")
+            slot_path = f"scenes.{scene_id}.slots.{slot_id}"
+            _only_keys(slot, {"origin", "scale", "zIndex", "cameraPresetId", "allowOverlap", "previewCharacterId"}, slot_path)
             _point(slot.get("origin"), f"scenes.{scene_id}.slots.{slot_id}.origin")
             if "scale" in slot and (not _is_number(slot["scale"]) or slot["scale"] <= 0):
                 _error(f"scenes.{scene_id}.slots.{slot_id}.scale", "0より大きい有限数値が必要です")
             if "zIndex" in slot and not _is_number(slot["zIndex"]):
                 _error(f"scenes.{scene_id}.slots.{slot_id}.zIndex", "有限数値が必要です")
+            if "allowOverlap" in slot and not isinstance(slot["allowOverlap"], bool):
+                _error(f"scenes.{scene_id}.slots.{slot_id}.allowOverlap", "true/falseが必要です")
             if "previewCharacterId" in slot and (
                 not isinstance(slot["previewCharacterId"], str) or not slot["previewCharacterId"]
             ):
@@ -202,6 +253,8 @@ def validate_scene_library_v2(data):
         if not isinstance(presets, dict):
             _error(f"scenes.{scene_id}.cameraPresets", "objectが必要です")
         for preset_id, frame in presets.items():
+            if not isinstance(preset_id, str) or not preset_id:
+                _error(f"scenes.{scene_id}.cameraPresets", "構図IDは空でない文字列が必要です")
             _frame(frame, f"scenes.{scene_id}.cameraPresets.{preset_id}")
         for slot_id, slot in slots.items():
             preset_id = slot.get("cameraPresetId")
@@ -224,6 +277,7 @@ def validate_story_v2(data, scenes, mobs=None):
         path = f"instances.{instance_id}"
         if not isinstance(instance_id, str) or not instance_id or not isinstance(definition, dict):
             _error(path, "個体IDとobjectが必要です")
+        _only_keys(definition, {"characterId", "voiceId", "role", "label"}, path)
         if not isinstance(definition.get("voiceId"), str) or not definition["voiceId"]:
             _error(f"{path}.voiceId", "文字列が必要です")
         role = definition.get("role", "stage")
@@ -231,8 +285,14 @@ def validate_story_v2(data, scenes, mobs=None):
             _error(f"{path}.role", "stage または voiceOnly が必要です")
         if role == "stage" and (not isinstance(definition.get("characterId"), str) or not definition["characterId"]):
             _error(f"{path}.characterId", "stage個体には文字列が必要です")
+        if role == "stage" and definition["characterId"] not in KNOWN_STAGE_CHARACTER_IDS and (
+            not isinstance(mobs, dict) or definition["characterId"] not in mobs
+        ):
+            _error(f"{path}.characterId", f"描画素材がありません: {definition['characterId']}")
         if role == "voiceOnly" and definition.get("characterId") is not None:
             _error(f"{path}.characterId", "voiceOnly個体には指定できません")
+        if "label" in definition and (not isinstance(definition["label"], str) or not definition["label"]):
+            _error(f"{path}.label", "省略または空でない文字列が必要です")
 
     active_scene = None
     present = {}
@@ -261,11 +321,16 @@ def validate_story_v2(data, scenes, mobs=None):
         if event is not None and not isinstance(event, dict):
             _error(f"{path}.stage", "objectである必要があります")
         event = event or {}
+        _only_keys(event, {"enter", "exit", "update", "reset", "framing", "cameraMotion"}, f"{path}.stage")
 
-        for enter_index, item in enumerate(event.get("enter", [])):
+        enter = event.get("enter", [])
+        if not isinstance(enter, list):
+            _error(f"{path}.stage.enter", "配列が必要です")
+        for enter_index, item in enumerate(enter):
             enter_path = f"{path}.stage.enter[{enter_index}]"
             if not isinstance(item, dict) or not isinstance(item.get("instanceId"), str):
                 _error(enter_path, "instanceIdを持つobjectが必要です")
+            _only_keys(item, {"instanceId", "placement"}, enter_path)
             instance_id = item["instanceId"]
             definition = instances.get(instance_id)
             if definition is None:
@@ -277,7 +342,10 @@ def validate_story_v2(data, scenes, mobs=None):
             _placement(item.get("placement"), f"{enter_path}.placement", slots)
             present[instance_id] = item["placement"]
 
-        for exit_index, instance_id in enumerate(event.get("exit", [])):
+        exit_ids = event.get("exit", [])
+        if not isinstance(exit_ids, list):
+            _error(f"{path}.stage.exit", "配列が必要です")
+        for exit_index, instance_id in enumerate(exit_ids):
             exit_path = f"{path}.stage.exit[{exit_index}]"
             if not isinstance(instance_id, str) or instance_id not in instances:
                 _error(exit_path, "instancesにある個体IDが必要です")
@@ -286,7 +354,10 @@ def validate_story_v2(data, scenes, mobs=None):
             del present[instance_id]
             present_z_indexes.pop(instance_id, None)
 
-        for instance_id in event.get("reset", []):
+        reset_ids = event.get("reset", [])
+        if not isinstance(reset_ids, list):
+            _error(f"{path}.stage.reset", "配列が必要です")
+        for instance_id in reset_ids:
             if not isinstance(instance_id, str) or instance_id not in present:
                 _error(f"{path}.stage.reset", "在席中の個体IDだけを指定できます")
             # resolverのresetと同じく、明示した見た目上書きは解除する。
@@ -301,6 +372,7 @@ def validate_story_v2(data, scenes, mobs=None):
                 _error(update_path, "在席中の個体だけを更新できます")
             if not isinstance(patch, dict):
                 _error(update_path, "objectが必要です")
+            _only_keys(patch, {"placement", "expression", "pose", "face", "flip", "zIndex"}, update_path)
             definition = instances[instance_id]
             if "placement" in patch:
                 _placement(patch["placement"], f"{update_path}.placement", slots)

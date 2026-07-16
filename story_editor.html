@@ -1742,6 +1742,7 @@
                 <option value="cut">即時に切替（カット）</option>
               </select>
               <div class="field-help">同じシーン内で構図が変わる時の動きです。省略時は滑らかにつなぎます。</div>
+              <div class="field-help" id="v2CameraTimingHelp"></div>
             </div>
             <div class="field-row" id="v2FramingSlotRow">
               <label class="field-label">構図に使うslot</label>
@@ -1752,7 +1753,7 @@
               <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
                 <input class="field-input" id="fV2FrameCx" type="number" step="0.01" placeholder="中心X">
                 <input class="field-input" id="fV2FrameCy" type="number" step="0.01" placeholder="中心Y">
-                <input class="field-input" id="fV2FrameWidth" type="number" step="0.01" min="0.1" placeholder="幅">
+                <input class="field-input" id="fV2FrameWidth" type="number" step="0.01" min="0.35" placeholder="幅">
               </div>
               <div class="field-help">ステージマップの黄色い枠をドラッグして移動し、右下のハンドルで大きさを変えます。ここでの操作は構図だけを変え、下のカメラ演出には影響しません。</div>
               <div class="v2-camera-map" id="v2ManualCameraMap" aria-label="手動構図のステージマップ"></div>
@@ -1763,8 +1764,11 @@
                 <input class="field-input" id="fV2MotionZoom" type="number" step="0.01" placeholder="zoom">
                 <input class="field-input" id="fV2MotionPanX" type="number" step="0.01" placeholder="pan X">
                 <input class="field-input" id="fV2MotionPanY" type="number" step="0.01" placeholder="pan Y">
+                <input class="field-input" id="fV2MotionTilt" type="number" step="0.1" placeholder="tilt（度）">
+                <input class="field-input" id="fV2MotionShakeStrength" type="number" min="0" step="1" placeholder="shake（px）">
+                <input class="field-input" id="fV2MotionShakeDuration" type="number" min="0" step="0.05" placeholder="shake時間（秒）">
               </div>
-              <div class="field-help">構図に一時的に重ねる演出です。人物の位置や在席は変えません。</div>
+              <div class="field-help">構図に一時的に重ねる演出です。tiltはプレビュー上の配置マーカーにも反映されます。shakeはターン開始から指定秒数だけ画面を揺らします。人物の位置や在席は変えません。</div>
             </div>
           </div>
           <div class="section-divider">表示種別</div>
@@ -3731,6 +3735,7 @@ const OVERLAY_MIN_W = 0.06;
 const OVERLAY_MAX_W = 1.0;
 
 function ensureOverlayArray() {
+  if (!storyData) return [];
   if (!storyData.overlays) storyData.overlays = [];
   return storyData.overlays;
 }
@@ -8179,7 +8184,7 @@ function v2CameraFrameForEditor(index, state) {
 
 function v2PreviewTransform(rect, index, state) {
   const frame = v2CameraFrameForEditor(index, state);
-  if (!frame) return { tx: 0, ty: 0, s: 1 };
+  if (!frame) return { tx: 0, ty: 0, s: 1, tilt: 0 };
   const motion = storyData.script[index].stage?.cameraMotion;
   const width = frame.width / Math.max(0.2, 1 + (motion?.zoom ?? 0));
   const cx = frame.cx + (motion?.pan?.x ?? 0);
@@ -8189,6 +8194,27 @@ function v2PreviewTransform(rect, index, state) {
     tx: Math.min(0, Math.max(rect.width * (1 - s), rect.width / 2 - cx * rect.width * s)),
     ty: Math.min(0, Math.max(rect.height * (1 - s), rect.height / 2 - cy * rect.height * s)),
     s,
+    tilt: motion?.tilt ?? 0,
+  };
+}
+
+function v2PreviewStageToScreen(rect, point, tf) {
+  const x = point.x * rect.width * tf.s;
+  const y = point.y * rect.height * tf.s;
+  const rad = (tf.tilt || 0) * Math.PI / 180;
+  return {
+    x: x * Math.cos(rad) - y * Math.sin(rad) + tf.tx,
+    y: x * Math.sin(rad) + y * Math.cos(rad) + tf.ty,
+  };
+}
+
+function v2PreviewScreenToStage(rect, sx, sy, tf) {
+  const x = sx - tf.tx;
+  const y = sy - tf.ty;
+  const rad = -(tf.tilt || 0) * Math.PI / 180;
+  return {
+    x: clampJS((x * Math.cos(rad) - y * Math.sin(rad)) / Math.max(1e-6, rect.width * tf.s), 0, 1),
+    y: clampJS((x * Math.sin(rad) + y * Math.cos(rad)) / Math.max(1e-6, rect.height * tf.s), 0, 1),
   };
 }
 
@@ -8205,6 +8231,7 @@ function v2BeginManualPlacementDrag(e, instanceId) {
   const grabOffsetY = v2BodyCenterOffset(instance, instance.placement, storyData.script[selectedIdx].scene);
   const grab = { x: origin.x, y: clampJS(origin.y - grabOffsetY, 0, 1) };
   const dragTf = v2PreviewTransform(rect, selectedIdx, state);
+  const screen = v2PreviewStageToScreen(rect, grab, dragTf);
   _placementDrag = {
     id: instanceId,
     v2InstanceId: instanceId,
@@ -8213,8 +8240,8 @@ function v2BeginManualPlacementDrag(e, instanceId) {
     wrapId: "playerWrap",
     origX: origin.x,
     origY: origin.y,
-    origScreenX: grab.x * rect.width * dragTf.s + dragTf.tx,
-    origScreenY: grab.y * rect.height * dragTf.s + dragTf.ty,
+    origScreenX: screen.x,
+    origScreenY: screen.y,
     originToGrabY: grabOffsetY,
     dragTf,
     draftStage: origin,
@@ -8238,10 +8265,11 @@ function renderV2ManualPlacementMarker(layer, wrap) {
     y: clampJS(origin.y - v2BodyCenterOffset(instance, instance.placement, turn.scene), 0, 1),
   };
   const tf = v2PreviewTransform(rect, selectedIdx, state);
+  const screen = v2PreviewStageToScreen(rect, grab, tf);
   const marker = document.createElement("div");
   marker.className = "placement-marker placement-marker-v2";
-  marker.style.left = (grab.x * rect.width * tf.s + tf.tx) + "px";
-  marker.style.top = (grab.y * rect.height * tf.s + tf.ty) + "px";
+  marker.style.left = screen.x + "px";
+  marker.style.top = screen.y + "px";
   const label = document.createElement("div");
   label.className = "placement-marker-label";
   label.textContent = `${instance.definition.label || instanceId}（身体中央）`;
@@ -8315,7 +8343,7 @@ function v2UpdateFramingFields() {
 }
 
 function v2NormalizeManualFrame(frame) {
-  const width = clampJS(typeof frame?.width === "number" ? frame.width : 1, 0.1, 1);
+  const width = clampJS(typeof frame?.width === "number" ? frame.width : 1, 0.35, 1);
   return {
     cx: clampJS(typeof frame?.cx === "number" ? frame.cx : 0.5, width / 2, 1 - width / 2),
     cy: clampJS(typeof frame?.cy === "number" ? frame.cy : 0.5, width / 2, 1 - width / 2),
@@ -8517,6 +8545,12 @@ function renderV2Detail(turn) {
   const framing = stage.framing || null;
   document.getElementById("fV2FramingMode").value = framing?.mode || "inherit";
   document.getElementById("fV2CameraTransition").value = turn.cameraTransition === "cut" ? "cut" : "smooth";
+  const previousTurn = selectedIdx > 0 ? storyData.script[selectedIdx - 1] : null;
+  const timingHelp = document.getElementById("v2CameraTimingHelp");
+  timingHelp.textContent = turn.cameraTransition !== "cut" && previousTurn?.scene === turn.scene
+    && (typeof previousTurn.end !== "number" || typeof turn.start !== "number")
+    ? "音声時刻が未生成のため、滑らか接続は書き出し・プレビューでまだ確認できません。音声生成後に有効になります。"
+    : "";
   framingSlot.value = framing?.mode === "slot" ? framing.slotId : (Object.keys(slots)[0] || "");
   document.getElementById("fV2FrameCx").value = framing?.mode === "manual" ? framing.frame.cx : "";
   document.getElementById("fV2FrameCy").value = framing?.mode === "manual" ? framing.frame.cy : "";
@@ -8524,6 +8558,9 @@ function renderV2Detail(turn) {
   document.getElementById("fV2MotionZoom").value = stage.cameraMotion?.zoom ?? "";
   document.getElementById("fV2MotionPanX").value = stage.cameraMotion?.pan?.x ?? "";
   document.getElementById("fV2MotionPanY").value = stage.cameraMotion?.pan?.y ?? "";
+  document.getElementById("fV2MotionTilt").value = stage.cameraMotion?.tilt ?? "";
+  document.getElementById("fV2MotionShakeStrength").value = stage.cameraMotion?.shake?.strength ?? "";
+  document.getElementById("fV2MotionShakeDuration").value = stage.cameraMotion?.shake?.duration ?? "";
   v2UpdateFramingFields();
 
   const before = v2StateAt(selectedIdx, false);
@@ -8721,9 +8758,14 @@ function collectV2Basic() {
   const zoom = Number(document.getElementById("fV2MotionZoom").value);
   const panX = Number(document.getElementById("fV2MotionPanX").value);
   const panY = Number(document.getElementById("fV2MotionPanY").value);
+  const tilt = Number(document.getElementById("fV2MotionTilt").value);
+  const shakeStrength = Number(document.getElementById("fV2MotionShakeStrength").value);
+  const shakeDuration = Number(document.getElementById("fV2MotionShakeDuration").value);
   const motion = {};
   if (document.getElementById("fV2MotionZoom").value !== "" && Number.isFinite(zoom)) motion.zoom = zoom;
   if ((document.getElementById("fV2MotionPanX").value !== "" && Number.isFinite(panX)) || (document.getElementById("fV2MotionPanY").value !== "" && Number.isFinite(panY))) motion.pan = { x: Number.isFinite(panX) ? panX : 0, y: Number.isFinite(panY) ? panY : 0 };
+  if (document.getElementById("fV2MotionTilt").value !== "" && Number.isFinite(tilt)) motion.tilt = tilt;
+  if (document.getElementById("fV2MotionShakeStrength").value !== "" && Number.isFinite(shakeStrength) && document.getElementById("fV2MotionShakeDuration").value !== "" && Number.isFinite(shakeDuration)) motion.shake = { strength: shakeStrength, duration: shakeDuration };
   if (Object.keys(motion).length) stage.cameraMotion = motion; else delete stage.cameraMotion;
   v2Commit(turn, oldSpeaker !== turn.speaker || oldText !== turn.text);
 }
@@ -11881,7 +11923,9 @@ function setupEvents() {
     } else {
       const sx = _placementDrag.origScreenX + (e.clientX - _placementDrag.startX);
       const sy = _placementDrag.origScreenY + (e.clientY - _placementDrag.startY);
-      stage = placementScreenToStage(rect, sx, sy, dragTf);
+      stage = _placementDrag.v2InstanceId
+        ? v2PreviewScreenToStage(rect, sx, sy, dragTf)
+        : placementScreenToStage(rect, sx, sy, dragTf);
     }
     _placementDrag.draftStage = _placementDrag.v2InstanceId
       ? { x: stage.x, y: clampJS(stage.y + _placementDrag.originToGrabY, 0, 1) }
@@ -11978,7 +12022,7 @@ function setupEvents() {
   }
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
-    "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY",
+    "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",
     "fV2MeetRoom", "fV2MeetLayout", "fV2MeetActiveSpeaker",

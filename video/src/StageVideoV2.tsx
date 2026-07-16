@@ -89,6 +89,21 @@ function applyCameraMotion(frame: {cx: number; cy: number; width: number} | unde
   };
 }
 
+function cameraShakeOffset(
+  shake: {strength: number; duration: number} | undefined,
+  seconds: number,
+  turnStart: number,
+) {
+  if (!shake || shake.duration <= 0) return {x: 0, y: 0};
+  const elapsed = seconds - turnStart;
+  if (elapsed < 0 || elapsed >= shake.duration) return {x: 0, y: 0};
+  const strength = shake.strength * (1 - elapsed / shake.duration);
+  return {
+    x: strength * Math.sin(elapsed * Math.PI * 2 * 16),
+    y: strength * Math.sin(elapsed * Math.PI * 2 * 20 + 1),
+  };
+}
+
 function mediaStaticSrc(path: string): string {
   const qidx = path.indexOf("?");
   if (qidx < 0) return staticFile(path);
@@ -284,6 +299,8 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     ? `translate(${previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress}px, ${previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress}px) scale(${previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress})`
     : stageTransform(width, height, motionFrame);
   const motion = state.cameraMotion;
+  const shakeOffset = cameraShakeOffset(motion?.shake, seconds, turn.start ?? 0);
+  const tiltedTransform = `${transform ?? ""}${motion?.tilt ? ` rotate(${motion.tilt}deg)` : ""}` || undefined;
   const currentSpeaker = state.instances[turn.speaker];
   const speakerPosition = currentSpeaker
     ? placementOrigin(currentSpeaker.placement, scene.layouts.standard)
@@ -475,14 +492,16 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           characterSlot={renderWhiteboardPresenter()}
         />
       ) : (
-        <AbsoluteFill style={{transform, transformOrigin: "0 0", overflow: "hidden", rotate: motion?.tilt ? `${motion.tilt}deg` : undefined}}>
-          {scene.bgVideo ? (
-            <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
-          ) : scene.bg ? (
-            <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
-          ) : null}
-          <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
-          {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+        <AbsoluteFill style={{transform: shakeOffset.x || shakeOffset.y ? `translate(${shakeOffset.x}px, ${shakeOffset.y}px)` : undefined, overflow: "hidden"}}>
+          <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
+            {scene.bgVideo ? (
+              <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+            ) : scene.bg ? (
+              <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+            ) : null}
+            <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
+            {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+          </AbsoluteFill>
         </AbsoluteFill>
       )}
       {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}

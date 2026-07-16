@@ -36,7 +36,11 @@
             { "instanceId": "zundamon", "placement": { "mode": "slot", "slotId": "speakerLeft" } },
             { "instanceId": "elder", "placement": { "mode": "slot", "slotId": "speakerRight" } }
           ],
-          "framing": { "mode": "speaker" }
+          "framing": { "mode": "speaker" },
+          "cameraMotion": {
+            "tilt": -2,
+            "shake": { "strength": 10, "duration": 0.4 }
+          }
         }
       },
       {

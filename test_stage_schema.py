@@ -29,8 +29,8 @@ SCENES = {
             },
             "cameraPresets": {
                 "default": {"cx": 0.5, "cy": 0.5, "width": 1},
-                "left": {"cx": 0.3, "cy": 0.5, "width": 0.7},
-                "right": {"cx": 0.7, "cy": 0.5, "width": 0.7},
+                "left": {"cx": 0.35, "cy": 0.5, "width": 0.7},
+                "right": {"cx": 0.65, "cy": 0.5, "width": 0.7},
             },
         }
     },
@@ -110,6 +110,27 @@ class StageSchemaTest(unittest.TestCase):
         scenes = copy.deepcopy(SCENES)
         scenes["scenes"]["office"]["layouts"]["standard"]["slots"]["speakerLeft"]["previewCharacterId"] = ""
         with self.assertRaisesRegex(ValueError, "previewCharacterId"):
+            validate_scene_library_v2(scenes)
+
+    def test_scene_slot_rejects_unknown_keys_and_invalid_overlap_flag(self):
+        scenes = copy.deepcopy(SCENES)
+        slot = scenes["scenes"]["office"]["layouts"]["standard"]["slots"]["speakerLeft"]
+        slot["visible"] = False
+        with self.assertRaisesRegex(ValueError, "未対応の項目"):
+            validate_scene_library_v2(scenes)
+        del slot["visible"]
+        slot["allowOverlap"] = "yes"
+        with self.assertRaisesRegex(ValueError, "allowOverlap"):
+            validate_scene_library_v2(scenes)
+
+    def test_camera_frame_must_stay_within_editor_range(self):
+        scenes = copy.deepcopy(SCENES)
+        scenes["scenes"]["office"]["cameraPresets"]["left"]["width"] = 0.2
+        with self.assertRaisesRegex(ValueError, "0.35〜1.0"):
+            validate_scene_library_v2(scenes)
+        scenes = copy.deepcopy(SCENES)
+        scenes["scenes"]["office"]["cameraPresets"]["left"]["cx"] = 0.1
+        with self.assertRaisesRegex(ValueError, "画面内"):
             validate_scene_library_v2(scenes)
 
     def test_speaker_does_not_implicitly_enter(self):
@@ -237,6 +258,22 @@ class StageSchemaTest(unittest.TestCase):
             validate_story_v2(story, SCENES, mobs)
         story["script"][1]["stage"]["update"]["zundamon"]["expression"] = "normal"
         validate_story_v2(story, SCENES, mobs)
+
+    def test_stage_rejects_unknown_patch_and_camera_motion_keys(self):
+        story = copy.deepcopy(STORY)
+        story["script"][1]["stage"]["update"]["zundamon"]["visible"] = False
+        with self.assertRaisesRegex(ValueError, "未対応の項目"):
+            validate_story_v2(story, SCENES)
+        del story["script"][1]["stage"]["update"]["zundamon"]["visible"]
+        story["script"][1]["stage"]["cameraMotion"] = {"zoom": 0.1, "speed": 2}
+        with self.assertRaisesRegex(ValueError, "未対応の項目"):
+            validate_story_v2(story, SCENES)
+
+    def test_stage_character_requires_known_renderer_material(self):
+        story = copy.deepcopy(STORY)
+        story["instances"]["zundamon"]["characterId"] = "missing"
+        with self.assertRaisesRegex(ValueError, "描画素材がありません"):
+            validate_story_v2(story, SCENES)
 
 
 
