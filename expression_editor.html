@@ -419,9 +419,12 @@ let isDirty = false;
 
 // スロット表示順 (mouthはclose/half/openをまとめて表示)
 // タスクA: shadow スロット追加（cheekの直後、fxと同様になし選択可）
-const SLOTS_ORDER = ["edamame", "cheek", "shadow", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
+const SLOTS_ORDER = ["edamame", "hair_back", "head_dress", "hair_clip", "cheek", "shadow", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
 const SLOT_LABELS = {
   "edamame": "枝豆 (edamame)",
+  "hair_back": "後ろ髪 (hair_back)",
+  "head_dress": "ヘッドドレス (head_dress)",
+  "hair_clip": "髪留め (hair_clip)",
   "cheek": "顔色 (cheek)",
   "shadow": "影・かげり (shadow)",
   "brow": "眉 (brow)",
@@ -505,9 +508,14 @@ function updateExpressionListLabel(expr) {
   label.title = expr;
 }
 
-// 重ね順: base → edamame → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+// 重ね順: hair_back → base → edamame → head_dress → hair_clip → shadow → cheek → arm → brow → eye → mouth → bangs → fx
 // !顔色グループ内は下→上が かげり→青ざめ（shadowをcheekより下に）。bangsはmouthの後。
-const LAYER_KEYS = ["base", "edamame", "shadow", "cheek", "arm", "brow", "eye", "mouth", "bangs", "fx"];
+const LAYER_KEYS = ["hair_back", "base", "edamame", "head_dress", "hair_clip", "shadow", "cheek", "arm", "brow", "eye", "mouth", "bangs", "fx"];
+const DEFAULT_SLOT_VALUES = {
+  zundamon: { edamame: "normal" },
+  metan: { hair_back: "twin_drill", head_dress: "normal", hair_clip: "heart" },
+};
+const OPTIONAL_SINGLE_SLOTS = new Set(["shadow", "head_dress", "hair_clip"]);
 
 function isMultiSlot(slot) {
   return slot === "fx";
@@ -521,7 +529,9 @@ function normalizeSlotValue(slot, value) {
 }
 
 function currentSlotValue(cfg, slot) {
-  if (slot === "edamame") return cfg?.[slot] || "normal";
+  if (Object.prototype.hasOwnProperty.call(cfg || {}, slot)) return normalizeSlotValue(slot, cfg?.[slot]);
+  const defaultValue = DEFAULT_SLOT_VALUES[currentChar]?.[slot];
+  if (defaultValue) return defaultValue;
   return normalizeSlotValue(slot, cfg?.[slot]);
 }
 
@@ -765,8 +775,8 @@ function buildSlotPanel() {
     const grid = document.createElement("div");
     grid.className = "cand-grid";
 
-    // fx と shadow はnullを選べる（「なし」が既定）
-    if (slot === "fx" || slot === "shadow") {
+    // fx と任意単体スロットはnullを選べる
+    if (slot === "fx" || OPTIONAL_SINGLE_SLOTS.has(slot)) {
       const noneEl = document.createElement("div");
       const isSelected = isMultiSlot(slot) ? currentValue.length === 0 : currentValue === null;
       noneEl.className = "cand-none" + (isSelected ? " selected" : "");
@@ -981,12 +991,18 @@ function renderPreview() {
 
   const fxSrcs = _candidateSrcs(charCat, "fx", cfg["fx"]);
 
-  // 重ね順: base → edamame → shadow → cheek → arm → brow → eye → mouth → bangs → fx
+  // 重ね順: hair_back → base → edamame → head_dress → hair_clip → shadow → cheek → arm → brow → eye → mouth → bangs → fx
   // !顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に。
   // mouth は currentMouthSlot の値を使う
+  const withDefault = (slot) => Object.prototype.hasOwnProperty.call(cfg || {}, slot)
+    ? cfg[slot]
+    : DEFAULT_SLOT_VALUES[currentChar]?.[slot];
   const layers = [
+    { key: "hair_back", src: _candidateSrc(charCat, "hair_back", withDefault("hair_back")) },
     { key: "base",   src: charCat?.base ? IMG_BASE + charCat.base : null },
-    { key: "edamame", src: _candidateSrc(charCat, "edamame", cfg["edamame"] || "normal") },
+    { key: "edamame", src: _candidateSrc(charCat, "edamame", withDefault("edamame")) },
+    { key: "head_dress", src: _candidateSrc(charCat, "head_dress", withDefault("head_dress")) },
+    { key: "hair_clip", src: _candidateSrc(charCat, "hair_clip", withDefault("hair_clip")) },
     { key: "shadow", src: _candidateSrc(charCat, "shadow", cfg["shadow"]) },
     { key: "cheek",  src: _candidateSrc(charCat, "cheek",  cfg["cheek"]) },
     { key: "arm",    src: charCat?.arm  ? "/img/" + charCat.arm  : null },

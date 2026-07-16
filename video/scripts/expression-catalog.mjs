@@ -55,6 +55,11 @@ const LAYER_NAMES = {
     edamame_wilt:   '枝豆萎え',
   },
   metan: {
+    hair_back_twin_drill: 'ツインドリル',
+    hair_back_ponytail:   'ポニーテール',
+    head_dress_normal:    'ヘッドドレス',
+    hair_clip_heart:      '髪留めハート',
+    hair_clip_frill:      '髪留めフリル',
     eye_open:     '目セット普通',
     eye_close:    '目閉じ',
     eye_surprise: '○○',
@@ -146,6 +151,12 @@ async function resolveExpression(charDir, expr) {
   const hasArm = existsSync(armPath);
   const edamamePath = join(charDir, 'edamame_normal.png');
   const hasEdamame = existsSync(edamamePath);
+  const hairBackPath = join(charDir, 'hair_back_twin_drill.png');
+  const hasHairBack = existsSync(hairBackPath);
+  const headDressPath = join(charDir, 'head_dress_normal.png');
+  const hasHeadDress = existsSync(headDressPath);
+  const hairClipPath = join(charDir, 'hair_clip_heart.png');
+  const hasHairClip = existsSync(hairClipPath);
 
   // eye
   const eyeResult = resolveFirst(charDir, expr.eye);
@@ -177,8 +188,11 @@ async function resolveExpression(charDir, expr) {
     // 重ね順: base → cheek → shadow → arm → brow → eye → mouth → bangs → fx
     // catalog は簡易版のため cheek/shadow/brow は省略（目口fxのみ確認）
     const layers = [];
+    if (hasHairBack) layers.push({ path: hairBackPath, stem: 'hair_back_twin_drill' });
     layers.push({ path: basePath, stem: 'base' });
     if (hasEdamame) layers.push({ path: edamamePath, stem: 'edamame_normal' });
+    if (hasHeadDress) layers.push({ path: headDressPath, stem: 'head_dress_normal' });
+    if (hasHairClip) layers.push({ path: hairClipPath, stem: 'hair_clip_heart' });
     if (hasArm) layers.push({ path: armPath, stem: 'arm_normal' });
     layers.push({ path: eyeResult.path, stem: eyeResult.stem });
     layers.push({ path: mouthResult.path, stem: mouthResult.stem });

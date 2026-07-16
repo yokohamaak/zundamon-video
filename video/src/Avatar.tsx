@@ -16,11 +16,14 @@ import type { Emotion, Gender } from "./types";
 // ・expressive(ずんだもん)は驚き等でオーバーアクション
 // を行う。
 //
-// 重ね順: base → edamame → shadow → cheek → arm → eye → mouth → bangs(前髪) → brow(眉・最前面寄り) → fx
+// 重ね順: hair_back → base → edamame → head_dress → hair_clip → shadow → cheek → arm → eye → mouth → bangs(前髪) → brow(眉・最前面寄り) → fx
 //
 // 必要パーツ（assets/avatars/<キャラ>/、stem名で参照）:
 //   base                               … 口・目・眉・顔色を除いた土台（必須）
 //   edamame_normal / edamame_wilt      … ずんだもんの枝豆。未指定なら normal。
+//   hair_back_twin_drill / hair_back_ponytail … めたんの後ろ髪。未指定なら twin_drill。
+//   head_dress_normal                  … めたんのヘッドドレス。nullなら描かない。
+//   hair_clip_heart / hair_clip_frill  … めたんの髪留め。未指定なら heart、nullなら描かない。
 //   cheek_<id>                         … 顔色（Stage1から追加）
 //   shadow_<id>                        … かげり（独立スロット・TaskA）。null/未設定なら描かない。
 //   arm_normal / arm_raise             … 腕（zundaのみ）
@@ -44,6 +47,10 @@ export type ExpressionCfg = {
   cheek: string | null;
   // ずんだもんの枝豆差分。未定義なら通常枝豆。
   edamame?: "normal" | "wilt" | string | null;
+  // めたんの髪・頭部アクセサリ差分。
+  hair_back?: "twin_drill" | "ponytail" | string | null;
+  head_dress?: "normal" | string | null;
+  hair_clip?: "heart" | "frill" | string | null;
   // タスクA: かげり独立スロット。null/未定義なら描かない。
   shadow?: string | null;
   // StoryVideo 用のモーションポーズ指定。未指定時は emotion から自動決定。
@@ -467,8 +474,20 @@ export const Avatar: React.FC<{
     ? part(`brow_${expressionCfg!.brow}`) || null
     : null;
 
-  const edamameId = hasCfg ? expressionCfg!.edamame || "normal" : "normal";
-  const edamameSrc = part(`edamame_${edamameId}`) || null;
+  const cfgSlot = (key: keyof ExpressionCfg, fallback: string | null): string | null => {
+    if (!hasCfg) return fallback;
+    return Object.prototype.hasOwnProperty.call(expressionCfg!, key)
+      ? ((expressionCfg![key] as string | null | undefined) ?? null)
+      : fallback;
+  };
+  const hairBackId = cfgSlot("hair_back", "twin_drill");
+  const hairBackSrc = hairBackId ? part(`hair_back_${hairBackId}`) || null : null;
+  const edamameId = cfgSlot("edamame", "normal");
+  const edamameSrc = edamameId ? part(`edamame_${edamameId}`) || null : null;
+  const headDressId = cfgSlot("head_dress", "normal");
+  const headDressSrc = headDressId ? part(`head_dress_${headDressId}`) || null : null;
+  const hairClipId = cfgSlot("hair_clip", "heart");
+  const hairClipSrc = hairClipId ? part(`hair_clip_${hairClipId}`) || null : null;
 
   // ── bangs（前髪もみあげ）の解決（タスクB: metanのみ常時パーツ） ──
   // manifest に "bangs" があれば重ねる（zundaは無いのでスキップ）。
@@ -507,13 +526,16 @@ export const Avatar: React.FC<{
   }
   const armSrc = part(armStem);
 
-  // ③ 重ね順: base → edamame → shadow → cheek → arm → eye → mouth → bangs → brow → fx（眉は髪より前面）
+  // ③ 重ね順: hair_back → base → edamame → head_dress → hair_clip → shadow → cheek → arm → eye → mouth → bangs → brow → fx（眉は髪より前面）
   //    （!顔色グループ内は下→上が かげり→青ざめ。shadow(かげり)を cheek より下に）
   //    （タスクB: bangsをmouthの後・fxの前に追加。metanのみ、zundaはnull）
   return wrap(
     <>
+      {hairBackSrc ? layer(hairBackSrc, "hair-back") : null}
       {layer(part("base")!, "base")}
       {edamameSrc ? layer(edamameSrc, "edamame") : null}
+      {headDressSrc ? layer(headDressSrc, "head-dress") : null}
+      {hairClipSrc ? layer(hairClipSrc, "hair-clip") : null}
       {/* PSDの!顔色グループ内は下→上が かげり→青ざめ→…。よって shadow(かげり)を
           cheek(青ざめ/ほっぺ等)より下に描く。 */}
       {shadowSrc ? layer(shadowSrc, "shadow") : null}

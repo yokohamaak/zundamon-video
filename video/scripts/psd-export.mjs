@@ -77,6 +77,17 @@ const SLOTS = {
     },
   },
   metan: {
+    hair_back: {
+      twin_drill: [["ツインドリル右"], ["ツインドリル左"]],
+      ponytail: [["回転移動でポニテにするなど"]],
+    },
+    head_dress: {
+      normal: [["頭部アクセサリ", "ヘッドドレス"]],
+    },
+    hair_clip: {
+      heart: [["頭部アクセサリ", "髪留めハート"]],
+      frill: [["頭部アクセサリ", "髪留めフリル"]],
+    },
     cheek: {
       normal:   [["!顔色", "*普通"]],
       normal2:  [["!顔色", "*普通2"]],
@@ -177,13 +188,10 @@ const CHARS = {
     //          PSD z順: 顔色(5) < 口(6) < 目(7) < 眉(8) < アクセサリ(9) < 前髪もみあげ(10)
     //          → 顔色は前髪の下になるので bangs を最前面レイヤーで重ねる必要がある。
     body: [
-      ["ツインドリル右"],
-      ["ツインドリル左"],
       ["*白ロリ服", "!体"],
       // 注: 以前は ["!顔色","*普通2"] と ["!眉","*太眉ごきげん"] を body に含んでいたが除去。
       // 注: ["!前髪もみあげ"] は extra.bangs として独立（タスクB）。
-      ["頭部アクセサリ", "ヘッドドレス"],
-      ["頭部アクセサリ", "髪留めハート"],
+      // 注: ツインドリル/ポニーテール/ヘッドドレス/髪留めは表情スロットとして独立。
     ],
     arm: {
       arm_normal:   [["*白ロリ服", "!左腕", "*普通"], ["*白ロリ服", "!右腕", "*普通"]],
@@ -223,7 +231,7 @@ const mode = process.argv[2] || "preview";
 const charName = process.argv[3] || "zundamon";
 const cfg = CHARS[charName];
 if (!cfg) throw new Error("未知のキャラ: " + charName + " (zundamon|metan)");
-const PART_SLOTS = ["edamame", "cheek", "shadow", "brow", "eye", "mouth", "fx"];
+const PART_SLOTS = ["edamame", "hair_back", "head_dress", "hair_clip", "cheek", "shadow", "brow", "eye", "mouth", "fx"];
 
 const psd = readPsd(readFileSync(resolve(root, cfg.psd)), {
   skipCompositeImageData: true,
@@ -308,6 +316,19 @@ function collectUsedIds(charKey) {
       used.edamame.add("normal");
       used.edamame.add("wilt");
       if (exprCfg.edamame) used.edamame.add(exprCfg.edamame);
+    }
+    if (charKey === "metan") {
+      if (!used.hair_back) used.hair_back = new Set();
+      used.hair_back.add("twin_drill");
+      used.hair_back.add("ponytail");
+      if (exprCfg.hair_back) used.hair_back.add(exprCfg.hair_back);
+      if (!used.head_dress) used.head_dress = new Set();
+      used.head_dress.add("normal");
+      if (exprCfg.head_dress) used.head_dress.add(exprCfg.head_dress);
+      if (!used.hair_clip) used.hair_clip = new Set();
+      used.hair_clip.add("heart");
+      used.hair_clip.add("frill");
+      if (exprCfg.hair_clip) used.hair_clip.add(exprCfg.hair_clip);
     }
     if (exprCfg.brow) {
       if (!used.brow) used.brow = new Set();

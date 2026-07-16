@@ -83,6 +83,17 @@ SLOT_LABELS = {
         },
     },
     "metan": {
+        "hair_back": {
+            "twin_drill": "ツインドリル",
+            "ponytail":   "ポニーテール",
+        },
+        "head_dress": {
+            "normal": "ヘッドドレス",
+        },
+        "hair_clip": {
+            "heart": "髪留めハート",
+            "frill": "髪留めフリル",
+        },
         "cheek": {
             "normal":   "普通",
             "normal2":  "普通2",
@@ -133,8 +144,8 @@ SLOT_LABELS = {
     },
 }
 
-# スロット列挙順（タスクA: shadow 追加、ずんだもん枝豆差分）
-SLOTS_ORDER = ["edamame", "cheek", "shadow", "brow", "eye", "mouth", "fx"]
+# スロット列挙順（タスクA: shadow 追加、頭部差分）
+SLOTS_ORDER = ["edamame", "hair_back", "head_dress", "hair_clip", "cheek", "shadow", "brow", "eye", "mouth", "fx"]
 
 # 表情キー一覧
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]

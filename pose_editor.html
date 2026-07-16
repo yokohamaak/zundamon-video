@@ -262,7 +262,7 @@ const POSES = [
 ];
 const POSE_LABELS = Object.fromEntries(POSES);
 const FACE_ORDER = ["normal", "happy", "surprise", "trouble", "panic"];
-const PREVIEW_LAYERS = ["base", "edamame", "shadow", "cheek", "arm", "eye", "mouth", "bangs", "brow", "fx"];
+const PREVIEW_LAYERS = ["hair_back", "base", "edamame", "head_dress", "hair_clip", "shadow", "cheek", "arm", "eye", "mouth", "bangs", "brow", "fx"];
 const previewImgs = {};
 
 async function init() {
@@ -398,8 +398,11 @@ function renderPreview() {
   const avatar = document.getElementById("previewAvatar");
 
   const layers = {
+    hair_back: currentChar === "metan" ? runtimePartSrc(currentChar, "hair_back_" + (expr.hair_back || "twin_drill")) : null,
     base: charCat?.base ? IMG_BASE + charCat.base : null,
     edamame: currentChar === "zundamon" ? runtimePartSrc(currentChar, "edamame_" + (expr.edamame || "normal")) : null,
+    head_dress: currentChar === "metan" && expr.head_dress !== null ? runtimePartSrc(currentChar, "head_dress_" + (expr.head_dress || "normal")) : null,
+    hair_clip: currentChar === "metan" && expr.hair_clip !== null ? runtimePartSrc(currentChar, "hair_clip_" + (expr.hair_clip || "heart")) : null,
     shadow: expr.shadow ? runtimePartSrc(currentChar, "shadow_" + expr.shadow) : null,
     cheek: expr.cheek ? runtimePartSrc(currentChar, "cheek_" + expr.cheek) : null,
     arm: armSrc,
