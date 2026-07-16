@@ -45,6 +45,7 @@ const FULL_CANVAS = {
 const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
 const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
+const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
 
 const DEFAULT_DISPLAY_SETTINGS = {
   bubble: {maxChars: null as number | null, fontSize: 54, fontFamily: "sans-serif", textColor: "#1b1b1f", bgColor: "#ffffff", borderWidth: 5, radius: 18},
@@ -92,6 +93,15 @@ function stageTransformValues(width: number, height: number, frame: {cx: number;
 function easeInOutCubic(value: number) {
   const t = Math.max(0, Math.min(1, value));
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function easeOutCubic(value: number) {
+  const t = Math.max(0, Math.min(1, value));
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function lerp(a: number, b: number, k: number) {
+  return a + (b - a) * k;
 }
 
 function applyCameraMotion(frame: {cx: number; cy: number; width: number} | undefined, motion: ReturnType<typeof resolveStageStateAtTurn>["cameraMotion"]) {
@@ -434,6 +444,121 @@ const V2OverlayLayer: React.FC<{overlays: StoryOverlay[]}> = ({overlays}) => {
   </AbsoluteFill>;
 };
 
+const V2EffectsLayer: React.FC<{
+  turn: StageTurnV2;
+  elapsed: number;
+  progress: number;
+  width: number;
+  height: number;
+  onlyImpactLines?: boolean;
+  hideImpactLines?: boolean;
+}> = ({turn, elapsed, progress, width, height, onlyImpactLines, hideImpactLines}) => {
+  const effects = turn.effects ?? {};
+  const layers: React.ReactNode[] = [];
+  const hasImpactLines = !!effects.impactLines;
+  if (onlyImpactLines && !hasImpactLines) return null;
+
+  if (!hideImpactLines && hasImpactLines) {
+    const burstIn = clamp(progress / 0.18, 0, 1);
+    const burstOut = 1 - clamp((progress - 0.58) / 0.22, 0, 1);
+    const opacity = clamp(Math.min(burstIn * 1.1, burstOut), 0, 1);
+    const count = 72;
+    const gapDeg = 360 / count;
+    const lineDeg = Math.min(gapDeg * 0.72, 1.25);
+    const originX = 50;
+    const originY = 48;
+    const inner = 17;
+    const scale = lerp(1.08, 1, easeOutCubic(burstIn));
+    layers.push(
+      <AbsoluteFill key="impactLines" style={{pointerEvents: "none", overflow: "hidden"}}>
+        <AbsoluteFill
+          style={{
+            opacity: opacity * 0.72,
+            background:
+              `repeating-conic-gradient(from -8deg at ${originX}% ${originY}%, rgba(5,7,12,0.9) 0deg ${lineDeg}deg, transparent ${lineDeg}deg ${gapDeg}deg)`,
+            WebkitMaskImage:
+              `radial-gradient(circle at ${originX}% ${originY}%, transparent 0 ${inner}%, rgba(0,0,0,0.28) ${inner + 6}%, #000 ${inner + 18}% 100%)`,
+            maskImage:
+              `radial-gradient(circle at ${originX}% ${originY}%, transparent 0 ${inner}%, rgba(0,0,0,0.28) ${inner + 6}%, #000 ${inner + 18}% 100%)`,
+            transform: `scale(${scale})`,
+            mixBlendMode: "multiply",
+          }}
+        />
+      </AbsoluteFill>,
+    );
+  }
+
+  if (!onlyImpactLines && effects.zoomPunch) {
+    const local = clamp(elapsed / 0.18, 0, 1);
+    const punch = Math.sin(local * Math.PI);
+    layers.push(
+      <AbsoluteFill
+        key="zoomPunch"
+        style={{
+          pointerEvents: "none",
+          boxShadow: `inset 0 0 0 ${Math.round(18 * punch)}px rgba(255,255,255,${0.11 * punch})`,
+        }}
+      />,
+    );
+  }
+
+  if (!onlyImpactLines && effects.quoteFreeze) {
+    const hold = clamp(progress / 0.14, 0, 1);
+    const fade = 1 - clamp((progress - 0.72) / 0.18, 0, 1);
+    const opacity = clamp(Math.min(hold, fade), 0, 1);
+    layers.push(
+      <AbsoluteFill
+        key="quoteFreeze"
+        style={{
+          pointerEvents: "none",
+          background: `rgba(10, 12, 18, ${0.22 * opacity})`,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            width: Math.min(width * 0.8, 1180),
+            transform: `scale(${lerp(0.94, 1, easeOutCubic(hold))})`,
+            opacity,
+            borderLeft: "10px solid #f5c54c",
+            background: "rgba(18, 24, 35, 0.84)",
+            color: "#f8fafc",
+            padding: "28px 38px 24px",
+            borderRadius: 24,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.46)",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: EXTRA_EFFECT_FONT,
+              fontSize: 28,
+              letterSpacing: "0.12em",
+              color: "#f5c54c",
+              marginBottom: 14,
+            }}
+          >
+            PROBLEM QUOTE
+          </div>
+          <div
+            style={{
+              fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif',
+              fontWeight: 800,
+              fontSize: Math.round(Math.min(width * 0.042, 62)),
+              lineHeight: 1.45,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            「{turn.text}」
+          </div>
+        </div>
+      </AbsoluteFill>,
+    );
+  }
+
+  return layers.length ? <>{layers}</> : null;
+};
+
 export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   story,
   scenes,
@@ -575,6 +700,16 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     speakerAmp = Math.min(1, Math.sqrt(sum / Math.max(1, samples)) * LIPSYNC_GAIN);
   }
   const speakerMouthAmplitude = turn.noLipSync ? 0 : speakerAmp;
+  const effectStart = turn.start ?? seconds;
+  const effectEnd = typeof turn.end === "number" ? turn.end : effectStart + 1;
+  const effectElapsed = Math.max(0, seconds - effectStart);
+  const effectProgress = clamp(effectElapsed / Math.max(effectEnd - effectStart, 0.001), 0, 1);
+  const zoomPunchLocal = turn.effects?.zoomPunch ? clamp(effectElapsed / 0.18, 0, 1) : 1;
+  const zoomPunchScale = turn.effects?.zoomPunch ? 1 + Math.sin(zoomPunchLocal * Math.PI) * 0.12 : 1;
+  const stageShellTransform = [
+    shakeOffset.x || shakeOffset.y ? `translate(${shakeOffset.x}px, ${shakeOffset.y}px)` : "",
+    zoomPunchScale !== 1 ? `scale(${zoomPunchScale})` : "",
+  ].filter(Boolean).join(" ") || undefined;
 
   const renderWhiteboardPresenter = () => {
     if (state.displayMode.kind !== "whiteboard") return undefined;
@@ -771,7 +906,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           characterSlot={renderWhiteboardPresenter()}
         />
       ) : (
-        <AbsoluteFill style={{transform: shakeOffset.x || shakeOffset.y ? `translate(${shakeOffset.x}px, ${shakeOffset.y}px)` : undefined, overflow: "hidden"}}>
+        <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
           <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
             {scene.bgVideo ? (
               <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
@@ -784,6 +919,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         </AbsoluteFill>
       )}
       {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
+      <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyImpactLines />
       {isStandardDialogue && isSubtitle ? (() => {
         const style = turn.subtitleStyle ?? {};
         const fontSize = Number.isFinite(Number(style.fontSize)) ? clamp(Math.round(Number(style.fontSize)), 24, 96) : displaySettings.subtitle.fontSize;
@@ -817,6 +953,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
         </div>;
       })() : null}
+      <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines />
       {captionVisual && captionVisual.opacity > 0 ? (() => {
         const caption = captionVisual.caption;
         const telopX = typeof caption.x === "number" ? clamp(caption.x, 0, 1) : displaySettings.telop.x;

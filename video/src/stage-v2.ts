@@ -49,6 +49,12 @@ export type CaptionV2 = {
   size?: number;
 };
 
+export type StageEffectsV2 = {
+  impactLines?: boolean;
+  zoomPunch?: boolean;
+  quoteFreeze?: boolean;
+};
+
 export type WhiteboardDisplayV2 = {
   kind: "whiteboard";
   /** 画面に出す解説役。省略時は立ち絵を出さない。 */
@@ -163,6 +169,8 @@ export type StageTurnV2 = {
   se?: TurnSe[];
   /** そのターンに画面上へ重ねる短い場面ラベル。 */
   caption?: CaptionV2;
+  /** V2用の軽量画面演出。旧turn直下キーとは分離する。 */
+  effects?: StageEffectsV2;
   /** 構図が変わるターンのカメラ接続。省略時は smooth。 */
   cameraTransition?: "smooth" | "cut";
   displayMode?: DisplayModeV2;

@@ -203,6 +203,15 @@ def _caption(value, path):
         _error(f"{path}.size", "0.5〜3の値が必要です")
 
 
+def _stage_effects(value, path):
+    if not isinstance(value, dict):
+        _error(path, "objectである必要があります")
+    _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze"}, path)
+    for key in ("impactLines", "zoomPunch", "quoteFreeze"):
+        if key in value and not isinstance(value[key], bool):
+            _error(f"{path}.{key}", "true/falseが必要です")
+
+
 def _subtitle_style(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
@@ -508,7 +517,7 @@ def validate_story_v2(data, scenes, mobs=None):
         _only_keys(turn, {
             "id", "speaker", "text", "scene", "start", "end", "pause", "noLipSync", "se",
             "hideCharacters", "hideBubble", "subtitleMode", "subtitleStyle", "continueBubble",
-            "bubbleMaxChars", "disableAutoBubbleSplit", "sentences", "transition", "caption", "cameraTransition",
+            "bubbleMaxChars", "disableAutoBubbleSplit", "sentences", "transition", "caption", "effects", "cameraTransition",
             "displayMode", "stage",
         }, path)
         for key in ("speaker", "text", "scene"):
@@ -536,6 +545,8 @@ def validate_story_v2(data, scenes, mobs=None):
             _turn_se(turn["se"], f"{path}.se")
         if "caption" in turn:
             _caption(turn["caption"], f"{path}.caption")
+        if "effects" in turn:
+            _stage_effects(turn["effects"], f"{path}.effects")
         if "transition" in turn and turn["transition"] != "cut":
             _error(f"{path}.transition", "v2では cut のみ対応しています。フェード・ワイプはv2用の表示種別またはオーバーレイで表現してください")
         speaker = turn["speaker"]

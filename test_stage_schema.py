@@ -133,6 +133,17 @@ class StageSchemaTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "caption"):
             validate_story_v2(story, SCENES)
 
+    def test_v2_accepts_lightweight_effects(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["effects"] = {"impactLines": True, "zoomPunch": True, "quoteFreeze": True}
+        validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_invalid_effects(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["effects"] = {"impactLines": "yes"}
+        with self.assertRaisesRegex(ValueError, "effects.impactLines"):
+            validate_story_v2(story, SCENES)
+
     def test_v2_rejects_legacy_fields_instead_of_ignoring_them(self):
         story = copy.deepcopy(STORY)
         story["script"][0]["flashback"] = True

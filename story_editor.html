@@ -1724,6 +1724,15 @@
               <div class="field-help">短い場面ラベルを画面に重ねます。位置・サイズが未入力なら「表示」タブのテロップ既定値を使います。</div>
             </div>
             <div class="field-row">
+              <label class="field-label">演出</label>
+              <div class="fx-grid">
+                <label class="toggle-row"><input type="checkbox" id="fV2ImpactLines"> <span>集中線</span></label>
+                <label class="toggle-row"><input type="checkbox" id="fV2ZoomPunch"> <span>ズームパンチ</span></label>
+                <label class="toggle-row"><input type="checkbox" id="fV2QuoteFreeze"> <span>引用止め</span></label>
+              </div>
+              <div class="field-help">V2用の軽量演出です。旧方式のturn直下キーではなく、effectsとして保存します。</div>
+            </div>
+            <div class="field-row">
               <label class="field-label">手動SE</label>
               <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
                 <div id="fV2SeList"></div>
@@ -7863,9 +7872,9 @@ function collectBasicSummaryChips(turn) {
   if (camera.length) chips.push(camera.join(" / "));
   if (turn.caption || turn.telop) chips.push("テロップ");
   const effectLabels = [];
-  if (turn.impactLines || turn.impactText) effectLabels.push("集中線");
-  if (turn.zoomPunch) effectLabels.push("ズームパンチ");
-  if (turn.quoteFreeze) effectLabels.push("引用止め");
+  if (turn.effects?.impactLines || turn.impactLines || turn.impactText) effectLabels.push("集中線");
+  if (turn.effects?.zoomPunch || turn.zoomPunch) effectLabels.push("ズームパンチ");
+  if (turn.effects?.quoteFreeze || turn.quoteFreeze) effectLabels.push("引用止め");
   if (turn.typingFlood) effectLabels.push("通知洪水");
   if (turn.sparkleBurst) effectLabels.push("キラッ");
   if (turn.irisOut) effectLabels.push("アイリスアウト");
@@ -8796,6 +8805,10 @@ function renderV2Detail(turn) {
   document.getElementById("fV2CaptionX").value = caption.x ?? "";
   document.getElementById("fV2CaptionY").value = caption.y ?? "";
   document.getElementById("fV2CaptionSize").value = caption.size ?? "";
+  const effects = turn.effects || {};
+  document.getElementById("fV2ImpactLines").checked = !!effects.impactLines;
+  document.getElementById("fV2ZoomPunch").checked = !!effects.zoomPunch;
+  document.getElementById("fV2QuoteFreeze").checked = !!effects.quoteFreeze;
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
   for (const sceneId of sortedKeysBySceneLabel(sceneDefs?.scenes || {})) {
@@ -9049,6 +9062,12 @@ function collectV2Basic() {
   } else {
     delete turn.caption;
   }
+  const effects = {};
+  if (document.getElementById("fV2ImpactLines").checked) effects.impactLines = true;
+  if (document.getElementById("fV2ZoomPunch").checked) effects.zoomPunch = true;
+  if (document.getElementById("fV2QuoteFreeze").checked) effects.quoteFreeze = true;
+  if (Object.keys(effects).length) turn.effects = effects;
+  else delete turn.effects;
   const nextScene = document.getElementById("fV2Scene").value;
   if (turn.scene !== nextScene) delete turn.stage;
   turn.scene = nextScene;
