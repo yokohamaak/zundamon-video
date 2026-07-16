@@ -194,5 +194,41 @@
       "prePhonemeLength": 0.0,
       "postPhonemeLength": 0.1
     }
+  },
+  "AI_voice_1_10_low": {
+    "engine": "voicevox",
+    "speaker": 8,
+    "params": {
+      "speedScale": 1.1,
+      "pitchScale": -0.1,
+      "intonationScale": 0.18,
+      "volumeScale": 1.0,
+      "prePhonemeLength": 0.0,
+      "postPhonemeLength": 0.1
+    }
+  },
+  "AI_voice_1_11_low": {
+    "engine": "voicevox",
+    "speaker": 8,
+    "params": {
+      "speedScale": 1.11,
+      "pitchScale": -0.1,
+      "intonationScale": 0.18,
+      "volumeScale": 1.0,
+      "prePhonemeLength": 0.0,
+      "postPhonemeLength": 0.1
+    }
+  },
+  "おじいさんずんだもん_voice_0_80_low": {
+    "engine": "voicevox",
+    "speaker": 3,
+    "params": {
+      "speedScale": 0.8,
+      "pitchScale": -0.15,
+      "intonationScale": 1.0,
+      "volumeScale": 1.0,
+      "prePhonemeLength": 0.0,
+      "postPhonemeLength": 0.1
+    }
   }
 }
