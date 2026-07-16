@@ -9,9 +9,13 @@ import {
   placementOrigin,
   resolveFraming,
   resolveStageStateAtTurn,
+  type ResolvedInstanceV2,
   type SceneLibraryV2,
   type StoryDisplaySettingsV2,
   type StoryV2,
+  type StageAnimationDirectionV2,
+  type StageEnterV2,
+  type StageExitV2,
   type StageTurnV2,
 } from "./stage-v2";
 import type {BgmRegion, ExpressionsMap, MobDef, MobsMap, PosesMap, SeMap, SeMapEntry, StoryOverlay, TurnSe} from "./StoryVideo";
@@ -40,6 +44,7 @@ const FULL_CANVAS = {
 } as const;
 const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
+const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
 
 const DEFAULT_DISPLAY_SETTINGS = {
   bubble: {maxChars: null as number | null, fontSize: 54, fontFamily: "sans-serif", textColor: "#1b1b1f", bgColor: "#ffffff", borderWidth: 5, radius: 18},
@@ -120,6 +125,59 @@ function mediaStaticSrc(path: string): string {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function stageExitId(item: StageExitV2) {
+  return typeof item === "string" ? item : item.instanceId;
+}
+
+function stageAnimationDirection(item: StageEnterV2 | StageExitV2 | undefined): StageAnimationDirectionV2 {
+  if (!item || typeof item === "string") return "auto";
+  return item.animation?.direction ?? "auto";
+}
+
+function stageAnimationOffset({
+  direction,
+  phase,
+  originX,
+  seconds,
+  turn,
+  width,
+  height,
+}: {
+  direction: StageAnimationDirectionV2;
+  phase: "enter" | "exit";
+  originX: number;
+  seconds: number;
+  turn: StageTurnV2;
+  width: number;
+  height: number;
+}) {
+  if (direction === "instant") return {x: 0, y: 0};
+  const start = turn.start;
+  const end = turn.end;
+  if (typeof start !== "number") return {x: 0, y: 0};
+  const turnDuration = typeof end === "number" ? Math.max(0, end - start) : ENTER_EXIT_ANIMATION_SECONDS;
+  const duration = Math.max(0.001, Math.min(ENTER_EXIT_ANIMATION_SECONDS, turnDuration / 2 || ENTER_EXIT_ANIMATION_SECONDS));
+  let amount = 0;
+  if (phase === "enter") {
+    amount = 1 - easeInOutCubic((seconds - start) / duration);
+  } else {
+    if (typeof end !== "number") return {x: 0, y: 0};
+    amount = easeInOutCubic((seconds - (end - duration)) / duration);
+  }
+  if (amount <= 0) return {x: 0, y: 0};
+  const resolvedDirection = direction === "auto" ? (originX < 0.5 ? "left" : "right") : direction;
+  const distance = Math.max(width, height) * 1.2;
+  if (resolvedDirection === "left") return {x: -distance * amount, y: 0};
+  if (resolvedDirection === "right") return {x: distance * amount, y: 0};
+  if (resolvedDirection === "up") return {x: 0, y: -distance * amount};
+  if (resolvedDirection === "down") return {x: 0, y: distance * amount};
+  return {x: 0, y: 0};
+}
+
+function animationTranslate(offset: {x: number; y: number}) {
+  return offset.x || offset.y ? ` translate(${offset.x}px, ${offset.y}px)` : "";
 }
 
 function validHex(value: unknown, fallback: string) {
@@ -439,7 +497,23 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const motion = state.cameraMotion;
   const shakeOffset = cameraShakeOffset(motion?.shake, seconds, turn.start ?? 0);
   const tiltedTransform = `${transform ?? ""}${cameraTilt ? ` rotate(${cameraTilt}deg)` : ""}` || undefined;
-  const currentSpeaker = state.instances[turn.speaker];
+  const enterById = new Map((turn.stage?.enter ?? []).map((item) => [item.instanceId, item]));
+  const exitById = new Map((turn.stage?.exit ?? []).map((item) => [stageExitId(item), item]));
+  const previousStateForExit = turnIndex > 0 ? resolveStageStateAtTurn(story, turnIndex - 1) : undefined;
+  const exitingInstances: ResolvedInstanceV2[] = previousStateForExit
+    ? Object.entries(previousStateForExit.instances)
+      .filter(([instanceId]) => {
+        const exitItem = exitById.get(instanceId);
+        if (!exitItem || state.instances[instanceId]) return false;
+        return stageAnimationDirection(exitItem) !== "instant" || typeof turn.end !== "number" || seconds < turn.end;
+      })
+      .map(([, instance]) => ({
+        ...instance,
+        visible: state.displayMode.kind === "standard" && !turn.hideCharacters,
+      }))
+    : [];
+  const stagePeople = [...Object.values(state.instances), ...exitingInstances];
+  const currentSpeaker = state.instances[turn.speaker] ?? exitingInstances.find((instance) => instance.instanceId === turn.speaker);
   const speakerDefinition = story.instances[turn.speaker];
   const speakerPosition = currentSpeaker
     ? placementOrigin(currentSpeaker.placement, scene.layouts.standard)
@@ -561,11 +635,35 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     );
   };
 
-  const people = Object.values(state.instances)
+  const people = stagePeople
     .filter((instance) => instance.visible)
     .map((instance) => {
       const origin = placementOrigin(instance.placement, scene.layouts.standard);
       if (!origin) return null;
+      const exitItem = exitById.get(instance.instanceId);
+      const enterItem = enterById.get(instance.instanceId);
+      const animationOffset = exitItem
+        ? stageAnimationOffset({
+          direction: stageAnimationDirection(exitItem),
+          phase: "exit",
+          originX: origin.x,
+          seconds,
+          turn,
+          width,
+          height,
+        })
+        : enterItem
+          ? stageAnimationOffset({
+            direction: stageAnimationDirection(enterItem),
+            phase: "enter",
+            originX: origin.x,
+            seconds,
+            turn,
+            width,
+            height,
+          })
+          : {x: 0, y: 0};
+      const baseTransform = `translate(-50%, -100%)${animationTranslate(animationOffset)}`;
       const slot = instance.placement.mode === "slot" ? scene.layouts.standard.slots[instance.placement.slotId] : undefined;
       const scale = instance.placement.mode === "manual"
         ? instance.placement.scale ?? 1
@@ -588,7 +686,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           ?? null;
         const pose = instance.pose ? poses?.[main.avatar]?.[instance.pose] : undefined;
         return (
-          <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: "translate(-50%, -100%)"}}>
+          <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: baseTransform}}>
             <div style={{transform: `scale(${scale})`, transformOrigin: "bottom center"}}>
               <Avatar
                 dir={avatarDir}
@@ -622,8 +720,10 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       // モブ素材の既定flip（なければ主役と同じ左右slotの既定）を使う。
       const flip = resolvedFlip(instance, mob.flip ?? (origin.x < 0.5));
       return (
-        <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: `translate(-50%, -100%) scale(${flip ? -1 : 1}, 1)`}}>
-          <Img src={staticFile(image)} style={{height: 760 * (mob.scale ?? 1) * scale, width: "auto", display: "block"}} />
+        <div key={instance.instanceId} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: baseTransform}}>
+          <div style={{transform: `scale(${flip ? -1 : 1}, 1)`, transformOrigin: "bottom center"}}>
+            <Img src={staticFile(image)} style={{height: 760 * (mob.scale ?? 1) * scale, width: "auto", display: "block"}} />
+          </div>
         </div>
       );
     });

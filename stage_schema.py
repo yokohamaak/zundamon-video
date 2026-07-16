@@ -11,6 +11,7 @@ DISPLAY_MODES = {"standard", "whiteboard", "zunMeet"}
 KNOWN_STAGE_CHARACTER_IDS = {"zundamon", "metan"}
 CAMERA_FRAME_MIN = 0.35
 CAMERA_FRAME_MAX = 1.0
+STAGE_ANIMATION_DIRECTIONS = {"auto", "left", "right", "up", "down", "instant"}
 
 
 def _error(path, message):
@@ -114,6 +115,14 @@ def _camera_motion(value, path):
         for key in ("strength", "duration"):
             if not _is_number(shake.get(key)) or shake[key] < 0:
                 _error(f"{path}.shake.{key}", "0以上の有限数値が必要です")
+
+
+def _stage_animation(value, path):
+    if not isinstance(value, dict):
+        _error(path, "objectである必要があります")
+    _only_keys(value, {"direction"}, path)
+    if "direction" in value and value["direction"] not in STAGE_ANIMATION_DIRECTIONS:
+        _error(f"{path}.direction", "auto/left/right/up/down/instant のいずれかが必要です")
 
 
 def _hex(value, path):
@@ -522,7 +531,7 @@ def validate_story_v2(data, scenes, mobs=None):
             enter_path = f"{path}.stage.enter[{enter_index}]"
             if not isinstance(item, dict) or not isinstance(item.get("instanceId"), str):
                 _error(enter_path, "instanceIdを持つobjectが必要です")
-            _only_keys(item, {"instanceId", "placement"}, enter_path)
+            _only_keys(item, {"instanceId", "placement", "animation"}, enter_path)
             instance_id = item["instanceId"]
             definition = instances.get(instance_id)
             if definition is None:
@@ -532,13 +541,22 @@ def validate_story_v2(data, scenes, mobs=None):
             if instance_id in present:
                 _error(f"{enter_path}.instanceId", "すでに在席しています")
             _placement(item.get("placement"), f"{enter_path}.placement", slots)
+            if "animation" in item:
+                _stage_animation(item["animation"], f"{enter_path}.animation")
             present[instance_id] = item["placement"]
 
         exit_ids = event.get("exit", [])
         if not isinstance(exit_ids, list):
             _error(f"{path}.stage.exit", "配列が必要です")
-        for exit_index, instance_id in enumerate(exit_ids):
+        for exit_index, item in enumerate(exit_ids):
             exit_path = f"{path}.stage.exit[{exit_index}]"
+            if isinstance(item, dict):
+                _only_keys(item, {"instanceId", "animation"}, exit_path)
+                instance_id = item.get("instanceId")
+                if "animation" in item:
+                    _stage_animation(item["animation"], f"{exit_path}.animation")
+            else:
+                instance_id = item
             if not isinstance(instance_id, str) or instance_id not in instances:
                 _error(exit_path, "instancesにある個体IDが必要です")
             if instance_id not in present:

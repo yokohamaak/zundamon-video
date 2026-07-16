@@ -102,9 +102,20 @@ export type CameraMotionV2 = {
   shake?: {strength: number; duration: number};
 };
 
+export type StageAnimationDirectionV2 = "auto" | "left" | "right" | "up" | "down" | "instant";
+export type StageEnterV2 = {
+  instanceId: string;
+  placement: PlacementV2;
+  animation?: {direction?: StageAnimationDirectionV2};
+};
+export type StageExitV2 = string | {
+  instanceId: string;
+  animation?: {direction?: StageAnimationDirectionV2};
+};
+
 export type StageEventV2 = {
-  enter?: Array<{instanceId: string; placement: PlacementV2}>;
-  exit?: string[];
+  enter?: StageEnterV2[];
+  exit?: StageExitV2[];
   update?: Record<string, InstancePatchV2>;
   reset?: string[];
   framing?: FramingV2;
@@ -300,7 +311,8 @@ export function resolveStageStateAtTurn(
         placement: clonePlacement(item.placement),
       };
     }
-    for (const instanceId of event.exit ?? []) {
+    for (const item of event.exit ?? []) {
+      const instanceId = typeof item === "string" ? item : item.instanceId;
       delete instances[instanceId];
     }
     for (const instanceId of event.reset ?? []) {

@@ -7891,6 +7891,48 @@ function v2StageEvent(turn) {
   return turn.stage;
 }
 
+function v2ExitItemId(item) {
+  return typeof item === "string" ? item : item?.instanceId;
+}
+
+function v2ExitItemFor(stage, instanceId) {
+  return (stage.exit || []).find((item) => v2ExitItemId(item) === instanceId) || null;
+}
+
+function v2EnsureExitObjectFor(stage, instanceId) {
+  if (!stage.exit) stage.exit = [];
+  const index = stage.exit.findIndex((item) => v2ExitItemId(item) === instanceId);
+  if (index < 0) return null;
+  if (typeof stage.exit[index] === "string") stage.exit[index] = { instanceId: stage.exit[index] };
+  return stage.exit[index];
+}
+
+function v2StageAnimationDirection(item) {
+  return item?.animation?.direction || "";
+}
+
+function v2SetStageAnimationDirection(item, direction) {
+  if (!item || typeof item !== "object") return;
+  if (!direction || direction === "auto") delete item.animation;
+  else item.animation = { direction };
+}
+
+function v2StageDirectionSelect(value, labels) {
+  const select = document.createElement("select");
+  select.className = "field-select";
+  select.style.cssText = "width:auto; min-width:104px; padding:2px 6px; font-size:12px;";
+  for (const [direction, label] of [
+    ["", labels.auto],
+    ["left", labels.left],
+    ["right", labels.right],
+    ["up", labels.up],
+    ["down", labels.down],
+    ["instant", "即時"],
+  ]) v2Option(select, direction, label);
+  select.value = value === "auto" ? "" : (value || "");
+  return select;
+}
+
 function v2PruneStageEvent(turn) {
   const stage = turn.stage;
   if (!stage) return;
@@ -7931,7 +7973,7 @@ function v2StateAt(index, includeCurrent = true) {
       if (!definition) continue;
       state[item.instanceId] = { instanceId: item.instanceId, definition, placement: v2Clone(item.placement) };
     }
-    for (const id of stage.exit || []) delete state[id];
+    for (const item of stage.exit || []) delete state[v2ExitItemId(item)];
     for (const id of stage.reset || []) {
       const current = state[id];
       if (current) state[id] = { instanceId: id, definition: current.definition, placement: current.placement };
@@ -7959,7 +8001,8 @@ function v2TurnOrderError(script) {
       if (present.has(item.instanceId)) return `${index + 1}ターン目で、すでに在席中の ${item.instanceId} を再び登場させています。`;
       present.add(item.instanceId);
     }
-    for (const instanceId of stage.exit || []) {
+    for (const item of stage.exit || []) {
+      const instanceId = v2ExitItemId(item);
       if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${instanceId} を退場させています。`;
       present.delete(instanceId);
     }
@@ -8126,7 +8169,7 @@ function v2InstanceIsReferenced(instanceId) {
     if (meeting?.activeSpeakerId === instanceId || meeting?.participants?.some((participant) => participant.instanceId === instanceId)) return true;
     const stage = turn.stage || {};
     return (stage.enter || []).some((item) => item.instanceId === instanceId)
-      || (stage.exit || []).includes(instanceId)
+      || (stage.exit || []).some((item) => v2ExitItemId(item) === instanceId)
       || (stage.reset || []).includes(instanceId)
       || Object.prototype.hasOwnProperty.call(stage.update || {}, instanceId);
   });
@@ -8452,7 +8495,7 @@ function v2TogglePresence(instanceId) {
   const before = v2StateAt(selectedIdx, false);
   const stage = v2StageEvent(turn);
   const enterIndex = (stage.enter || []).findIndex((item) => item.instanceId === instanceId);
-  const exitIndex = (stage.exit || []).indexOf(instanceId);
+  const exitIndex = (stage.exit || []).findIndex((item) => v2ExitItemId(item) === instanceId);
   if (enterIndex >= 0) {
     stage.enter.splice(enterIndex, 1);
     if (stage.update) delete stage.update[instanceId];
@@ -8460,7 +8503,7 @@ function v2TogglePresence(instanceId) {
     stage.exit.splice(exitIndex, 1);
   } else if (before[instanceId]) {
     if (!stage.exit) stage.exit = [];
-    stage.exit.push(instanceId);
+    stage.exit.push({ instanceId });
     if (stage.update) delete stage.update[instanceId];
   } else {
     const definition = storyData.instances[instanceId];
@@ -8812,14 +8855,29 @@ function renderV2Detail(turn) {
     const text = document.createElement("span");
     const isOnStage = definition.role !== "voiceOnly";
     text.textContent = `${definition.label || instanceId}${isOnStage ? (now[instanceId] ? "（在席）" : "（不在）") : "（声のみ）"}`;
+    const controls = document.createElement("div");
+    controls.style.cssText = "display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;";
     const button = document.createElement("button");
     button.type = "button"; button.className = "btn btn-secondary btn-sm";
     if (!isOnStage) { button.disabled = true; button.textContent = "画面には出さない"; }
     else if ((stage.enter || []).some((item) => item.instanceId === instanceId)) button.textContent = "登場を取り消す";
-    else if ((stage.exit || []).includes(instanceId)) button.textContent = "退場を取り消す";
+    else if (v2ExitItemFor(stage, instanceId)) button.textContent = "退場を取り消す";
     else button.textContent = before[instanceId] ? "退場" : "登場";
     button.addEventListener("click", () => v2TogglePresence(instanceId));
-    row.append(text, button);
+    const enterItem = (stage.enter || []).find((item) => item.instanceId === instanceId);
+    const exitItem = v2ExitItemFor(stage, instanceId);
+    if (enterItem) {
+      const direction = v2StageDirectionSelect(v2StageAnimationDirection(enterItem), { auto: "自動", left: "左から", right: "右から", up: "上から", down: "下から" });
+      direction.addEventListener("change", () => { v2SetStageAnimationDirection(enterItem, direction.value); v2Commit(turn); renderV2Detail(turn); });
+      controls.appendChild(direction);
+    } else if (exitItem) {
+      const exitObject = v2EnsureExitObjectFor(stage, instanceId);
+      const direction = v2StageDirectionSelect(v2StageAnimationDirection(exitObject), { auto: "自動", left: "左へ", right: "右へ", up: "上へ", down: "下へ" });
+      direction.addEventListener("change", () => { v2SetStageAnimationDirection(exitObject, direction.value); v2Commit(turn); renderV2Detail(turn); });
+      controls.appendChild(direction);
+    }
+    controls.appendChild(button);
+    row.append(text, controls);
     actions.appendChild(row);
   }
 

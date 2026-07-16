@@ -84,6 +84,24 @@ class StageSchemaTest(unittest.TestCase):
         validate_scene_library_v2(SCENES)
         validate_story_v2(STORY, SCENES)
 
+    def test_v2_accepts_enter_exit_animation_direction(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["stage"]["enter"][0]["animation"] = {"direction": "up"}
+        story["script"][1]["stage"]["exit"] = [{"instanceId": "zundamon", "animation": {"direction": "down"}}]
+        story["script"][1]["stage"].pop("update", None)
+        story["script"][1]["stage"]["framing"] = {"mode": "slot", "slotId": "speakerRight"}
+        validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_invalid_enter_exit_animation_direction(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["stage"]["enter"][0]["animation"] = {"direction": "diagonal"}
+        with self.assertRaisesRegex(ValueError, "left/right/up/down/instant"):
+            validate_story_v2(story, SCENES)
+        story = copy.deepcopy(STORY)
+        story["script"][1]["stage"]["exit"] = [{"instanceId": "zundamon", "animation": {"direction": "diagonal"}}]
+        with self.assertRaisesRegex(ValueError, "left/right/up/down/instant"):
+            validate_story_v2(story, SCENES)
+
     def test_v2_accepts_display_contract_fields(self):
         story = copy.deepcopy(STORY)
         story["idleFace"] = "hold"
