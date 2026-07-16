@@ -742,6 +742,7 @@ let draggingMob = null;      // モブD&D: { mobId, el }
 let selectedMobId = null;    // スケールスライダー対象モブID
 let showFront = true;
 let manifestData = null;     // avatars/manifest.json キャッシュ
+let expressionData = null;   // expressions.json キャッシュ（確認用立ち絵のパーツ解決）
 let draggingFrame = null;    // カメラ枠D&D: { mode:'move'|'resize', offsetX?, offsetY?, left?, top? }
 let currentCameraFrameKey = 'default';
 
@@ -1017,9 +1018,65 @@ async function fetchAssets() {
 
 async function fetchManifest() {
   try {
-    const r = await fetch(IMG_BASE + 'avatars/manifest.json');
-    if (r.ok) manifestData = await r.json();
+    const [manifestRes, expressionRes] = await Promise.all([
+      fetch(IMG_BASE + 'avatars/manifest.json'),
+      fetch(IMG_BASE + 'expressions.json?t=' + Date.now()),
+    ]);
+    if (manifestRes.ok) manifestData = await manifestRes.json();
+    if (expressionRes.ok) expressionData = await expressionRes.json();
   } catch {}
+}
+
+function expressionConfigForScenePreview(charId, expressionName = 'normal') {
+  const charCfg = expressionData && expressionData[charId];
+  if (!charCfg || typeof charCfg !== 'object') return {};
+  return charCfg[expressionName] || charCfg.normal || {};
+}
+
+function hasSceneExprKey(cfg, key) {
+  return cfg && Object.prototype.hasOwnProperty.call(cfg, key);
+}
+
+function partStemFromSceneExpr(cfg, key, prefix, fallback) {
+  const raw = hasSceneExprKey(cfg, key) ? cfg[key] : fallback;
+  if (raw == null || raw === '') return null;
+  if (Array.isArray(raw)) return raw.filter(Boolean).map((item) => prefix + item);
+  return prefix + raw;
+}
+
+function scenePreviewPartLayers(charId) {
+  const cfg = expressionConfigForScenePreview(charId, 'normal');
+  if (charId === 'zundamon') {
+    return [
+      'base',
+      partStemFromSceneExpr(cfg, 'edamame', 'edamame_', 'normal'),
+      partStemFromSceneExpr(cfg, 'shadow', 'shadow_', null),
+      partStemFromSceneExpr(cfg, 'cheek', 'cheek_', 'hoppe'),
+      'arm_normal',
+      partStemFromSceneExpr(cfg, 'eye', 'eye_', 'open'),
+      partStemFromSceneExpr(cfg, 'mouth_close', 'mouth_', 'close'),
+      partStemFromSceneExpr(cfg, 'bangs', 'bangs_', null),
+      partStemFromSceneExpr(cfg, 'brow', 'brow_', 'normal'),
+      partStemFromSceneExpr(cfg, 'fx', 'fx_', null),
+    ].flat().filter(Boolean);
+  }
+  if (charId === 'metan') {
+    return [
+      partStemFromSceneExpr(cfg, 'hair_back', 'hair_back_', 'twin_drill'),
+      'base',
+      partStemFromSceneExpr(cfg, 'head_dress', 'head_dress_', 'normal'),
+      partStemFromSceneExpr(cfg, 'hair_clip', 'hair_clip_', 'heart'),
+      partStemFromSceneExpr(cfg, 'shadow', 'shadow_', null),
+      partStemFromSceneExpr(cfg, 'cheek', 'cheek_', 'normal2'),
+      'arm_normal',
+      partStemFromSceneExpr(cfg, 'eye', 'eye_', 'open'),
+      partStemFromSceneExpr(cfg, 'mouth_close', 'mouth_', 'close'),
+      'bangs',
+      partStemFromSceneExpr(cfg, 'brow', 'brow_', 'futo_gokigen'),
+      partStemFromSceneExpr(cfg, 'fx', 'fx_', null),
+    ].flat().filter(Boolean);
+  }
+  return ['base'];
 }
 
 // ============================================================
@@ -1632,29 +1689,15 @@ function renderPreview() {
       parts.style.height = pbox.h + 'px';
 
       if (charId && manifestData && manifestData[manifestKey]) {
-      // StoryVideo の Avatar と同じ重ね順: base → cheek → arm → eye → mouth → bangs → brow。
-      // cheek/brow はキャラ別id(brow_normal等)なので manifest から代表stemを拾う。
-      // arm_normal/bangs が無いキャラは manifest に無いのでスキップされる。
-      const m = manifestData[manifestKey];
-      const pickStem = (prefix, prefer) => {
-        const keys = Object.keys(m).filter((k) => k.startsWith(prefix));
-        for (const p of prefer) { const f = keys.find((k) => k.includes(p)); if (f) return f; }
-        return keys[0] || null;
-      };
-      const cheekStem = pickStem('cheek_', ['hoppe', 'normal']);
-      const browStem = pickStem('brow_', ['normal', 'gokigen']);
-      const layers = ['base', cheekStem, 'arm_normal', 'eye_open', 'mouth_close', 'bangs', browStem]
-        .filter(Boolean);
-      for (const layer of layers) {
-        if (manifestData[manifestKey][layer]) {
-          const img = document.createElement('img');
-          img.src = avatarBasePath + manifestData[manifestKey][layer];
-          img.alt = layer;
-          // エラー時は静かに無視
-          img.onerror = () => { img.style.display = 'none'; };
-          parts.appendChild(img);
+        for (const layer of scenePreviewPartLayers(charId)) {
+          if (manifestData[manifestKey][layer]) {
+            const img = document.createElement('img');
+            img.src = avatarBasePath + manifestData[manifestKey][layer];
+            img.alt = layer;
+            img.onerror = () => { img.style.display = 'none'; };
+            parts.appendChild(img);
+          }
         }
-      }
       } else if (charId) {
       // manifest未読込でもbase.pngを試みる
       const img = document.createElement('img');
