@@ -206,8 +206,12 @@ def _caption(value, path):
 def _stage_effects(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
-    _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze"}, path)
+    _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze", "flashback", "visionNoise", "irisOut"}, path)
     specs = {
+        "flashback": {
+            "keys": {"enabled"},
+            "ranges": {},
+        },
         "impactLines": {
             "keys": {"enabled", "cx", "cy", "count", "thickness", "opacity", "innerRadius", "start", "end"},
             "ranges": {
@@ -223,6 +227,14 @@ def _stage_effects(value, path):
             "keys": {"enabled", "fadeIn", "fadeOutStart", "fadeOutDuration", "backdropOpacity"},
             "ranges": {"fadeIn": (0.05, 0.4), "fadeOutStart": (0, 1), "fadeOutDuration": (0.05, 0.4), "backdropOpacity": (0, 0.6)},
         },
+        "visionNoise": {
+            "keys": {"enabled", "type", "strength", "scanline", "glitch", "flicker", "tint"},
+            "ranges": {"strength": (0, 1), "scanline": (0, 1), "glitch": (0, 1), "flicker": (0, 1)},
+        },
+        "irisOut": {
+            "keys": {"enabled", "cx", "cy", "startRadius", "closeStart", "closeEnd", "color"},
+            "ranges": {"cx": (0, 1), "cy": (0, 1), "startRadius": (0.15, 1.3), "closeStart": (0, 8), "closeEnd": (0, 8)},
+        },
     }
     for key, spec in specs.items():
         if key not in value:
@@ -236,6 +248,12 @@ def _stage_effects(value, path):
         _only_keys(item, spec["keys"], item_path)
         if "enabled" in item and not isinstance(item["enabled"], bool):
             _error(f"{item_path}.enabled", "true/falseが必要です")
+        if key == "visionNoise" and "type" in item and item["type"] not in {"future", "snow", "vhs", "glitch"}:
+            _error(f"{item_path}.type", "future/snow/vhs/glitch のいずれかが必要です")
+        if key == "visionNoise" and "tint" in item:
+            _hex(item["tint"], f"{item_path}.tint")
+        if key == "irisOut" and "color" in item:
+            _hex(item["color"], f"{item_path}.color")
         for param, bounds in spec["ranges"].items():
             if param not in item:
                 continue

@@ -71,10 +71,30 @@ export type QuoteFreezeEffectV2 = {
   fadeOutDuration?: number;
   backdropOpacity?: number;
 };
+export type FlashbackEffectV2 = Record<string, never>;
+export type VisionNoiseEffectV2 = {
+  type?: "future" | "snow" | "vhs" | "glitch";
+  strength?: number;
+  scanline?: number;
+  glitch?: number;
+  flicker?: number;
+  tint?: string;
+};
+export type IrisOutEffectV2 = {
+  cx?: number;
+  cy?: number;
+  startRadius?: number;
+  closeStart?: number;
+  closeEnd?: number;
+  color?: string;
+};
 export type StageEffectsV2 = {
   impactLines?: EffectToggleV2<ImpactLinesEffectV2>;
   zoomPunch?: EffectToggleV2<ZoomPunchEffectV2>;
   quoteFreeze?: EffectToggleV2<QuoteFreezeEffectV2>;
+  flashback?: EffectToggleV2<FlashbackEffectV2>;
+  visionNoise?: EffectToggleV2<VisionNoiseEffectV2>;
+  irisOut?: EffectToggleV2<IrisOutEffectV2>;
 };
 
 export type WhiteboardDisplayV2 = {

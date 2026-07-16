@@ -46,10 +46,16 @@ const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
 const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
 const EXTRA_EFFECT_FONT = '"Arial Black", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+const FLASHBACK_SATURATE = 0.4;
+const FLASHBACK_BRIGHTNESS = 1.02;
+const FLASHBACK_GRAIN_OPACITY = 0.06;
+const FLASHBACK_DISSOLVE_SECONDS = 0.3;
 const DEFAULT_STAGE_EFFECT_SETTINGS = {
   zoomPunch: {scale: 1.14, duration: 0.18, borderStrength: 1},
   quoteFreeze: {fadeIn: 0.14, fadeOutStart: 0.72, fadeOutDuration: 0.18, backdropOpacity: 0.22},
   impactLines: {cx: 0.5, cy: 0.48, count: 72, thickness: 1.25, opacity: 0.72, innerRadius: 0.17, start: 0, end: 0},
+  visionNoise: {type: "future" as "future" | "snow" | "vhs" | "glitch", strength: 0.68, scanline: 0.78, glitch: 0.36, flicker: 0.42, tint: "#7dd3fc"},
+  irisOut: {cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0},
 };
 
 const DEFAULT_DISPLAY_SETTINGS = {
@@ -213,6 +219,39 @@ function animationTranslate(offset: {x: number; y: number}) {
 
 function validHex(value: unknown, fallback: string) {
   return /^#([0-9a-fA-F]{6})$/.test(String(value || "")) ? String(value) : fallback;
+}
+
+function stageVisionNoiseConfig(raw: unknown) {
+  const base = DEFAULT_STAGE_EFFECT_SETTINGS.visionNoise;
+  if (!raw || typeof raw !== "object") return base;
+  const data = raw as Record<string, unknown>;
+  const type = data.type === "snow" || data.type === "vhs" || data.type === "glitch" || data.type === "future"
+    ? data.type
+    : base.type;
+  const number = (key: string, fallback: number) => Number.isFinite(Number(data[key])) ? Number(data[key]) : fallback;
+  return {
+    type,
+    strength: number("strength", base.strength),
+    scanline: number("scanline", base.scanline),
+    glitch: number("glitch", base.glitch),
+    flicker: number("flicker", base.flicker),
+    tint: validHex(data.tint, base.tint),
+  };
+}
+
+function stageIrisOutConfig(raw: unknown) {
+  const base = DEFAULT_STAGE_EFFECT_SETTINGS.irisOut;
+  if (!raw || typeof raw !== "object") return base;
+  const data = raw as Record<string, unknown>;
+  const number = (key: string, fallback: number) => Number.isFinite(Number(data[key])) ? Number(data[key]) : fallback;
+  return {
+    cx: number("cx", base.cx),
+    cy: number("cy", base.cy),
+    startRadius: number("startRadius", base.startRadius),
+    closeStart: number("closeStart", base.closeStart),
+    closeEnd: number("closeEnd", base.closeEnd),
+    color: validHex(data.color, base.color),
+  };
 }
 
 function displaySettingsOf(settings?: StoryDisplaySettingsV2) {
@@ -584,6 +623,112 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
+  if (!onlyImpactLines && stageEffectEnabled(effects.flashback)) {
+    const grainOffsetX = Math.round((elapsed * 31) % 64);
+    const grainOffsetY = Math.round((elapsed * 47) % 64);
+    layers.push(
+      <AbsoluteFill
+        key="flashbackGrain"
+        style={{
+          pointerEvents: "none",
+          backgroundImage: `url(${staticFile("noise.png")})`,
+          backgroundRepeat: "repeat",
+          backgroundPosition: `${grainOffsetX}px ${grainOffsetY}px`,
+          backgroundSize: "64px 64px",
+          opacity: FLASHBACK_GRAIN_OPACITY,
+          mixBlendMode: "luminosity",
+        }}
+      />,
+    );
+  }
+
+  if (!onlyImpactLines && stageEffectEnabled(effects.irisOut)) {
+    const irisOutCfg = stageIrisOutConfig(effects.irisOut);
+    const dur = Math.max((turn.end ?? 0) - (turn.start ?? 0), 0.001);
+    const diag = Math.sqrt(width * width + height * height) / 2;
+    const baseRadius = diag * clamp(irisOutCfg.startRadius, 0.15, 1.3);
+    const coverRadius = diag * 1.3;
+    const window = dur;
+    const rawCloseEnd = Math.max(irisOutCfg.closeEnd, 0.05);
+    const rawCloseStart = clamp(irisOutCfg.closeStart, 0, rawCloseEnd);
+    const closeDuration = Math.max(rawCloseEnd - rawCloseStart, 0.05);
+    const closeEnd = Math.min(rawCloseEnd, window);
+    const closeStart = Math.max(0, closeEnd - closeDuration);
+    const appearDur = Math.min(0.6, closeStart);
+    let radius: number;
+    if (appearDur > 0 && elapsed < appearDur) {
+      radius = lerp(coverRadius, baseRadius, easeInOutCubic(clamp(elapsed / appearDur, 0, 1)));
+    } else if (elapsed < closeStart) {
+      radius = baseRadius;
+    } else {
+      const p = clamp((elapsed - closeStart) / Math.max(closeEnd - closeStart, 0.05), 0, 1);
+      radius = lerp(baseRadius, 0, easeInOutCubic(p));
+    }
+    const cxPct = clamp(irisOutCfg.cx, 0, 1) * 100;
+    const cyPct = clamp(irisOutCfg.cy, 0, 1) * 100;
+    const color = validHex(irisOutCfg.color, "#000000");
+    layers.push(
+      <AbsoluteFill
+        key="irisOut"
+        style={{
+          pointerEvents: "none",
+          background: color,
+          maskImage: `radial-gradient(circle ${radius}px at ${cxPct}% ${cyPct}%, transparent 0, transparent ${Math.max(radius - 1, 0)}px, ${color} ${radius}px, ${color} 100%)`,
+          WebkitMaskImage: `radial-gradient(circle ${radius}px at ${cxPct}% ${cyPct}%, transparent 0, transparent ${Math.max(radius - 1, 0)}px, ${color} ${radius}px, ${color} 100%)`,
+        }}
+      />,
+    );
+  }
+
+  if (!onlyImpactLines && stageEffectEnabled(effects.visionNoise)) {
+    const visionNoiseCfg = stageVisionNoiseConfig(effects.visionNoise);
+    const strength = clamp(visionNoiseCfg.strength, 0, 1);
+    const scanline = clamp(visionNoiseCfg.scanline, 0, 1);
+    const glitch = clamp(visionNoiseCfg.glitch, 0, 1);
+    const flicker = clamp(visionNoiseCfg.flicker, 0, 1);
+    const noiseType = visionNoiseCfg.type || "future";
+    const jitter = Math.sin(elapsed * 53.7) * glitch;
+    const glitchBoost = noiseType === "glitch" ? 1.55 : noiseType === "vhs" ? 1.15 : 1;
+    const glitchShift = Math.round(jitter * 34 * glitchBoost);
+    const flickerOpacity = clamp(0.9 + Math.sin(elapsed * 41.0) * 0.12 * flicker + Math.sin(elapsed * 97.0) * 0.08 * flicker, 0.7, 1);
+    const noiseX = Math.round((elapsed * 97) % 48);
+    const noiseY = Math.round((elapsed * 131) % 48);
+    const tint = validHex(visionNoiseCfg.tint, DEFAULT_STAGE_EFFECT_SETTINGS.visionNoise.tint);
+    const showTint = noiseType !== "snow";
+    const scanlineOpacity = noiseType === "snow" ? 0.08 : noiseType === "vhs" ? 0.3 : 0.2;
+    const darkScanlineOpacity = noiseType === "snow" ? 0.04 : noiseType === "vhs" ? 0.24 : 0.16;
+    const dotWhite = noiseType === "snow" ? 0.92 : noiseType === "vhs" ? 0.32 : 0.55;
+    const dotBlack = noiseType === "snow" ? 0.78 : noiseType === "vhs" ? 0.36 : 0.48;
+    const dotSizeA = noiseType === "snow" ? "3px 3px" : noiseType === "vhs" ? "10px 10px" : "7px 7px";
+    const dotSizeB = noiseType === "snow" ? "4px 4px" : noiseType === "vhs" ? "14px 14px" : "9px 9px";
+    const scanlineSize = noiseType === "vhs" ? "100% 3px" : "100% 4px";
+    layers.push(
+      <AbsoluteFill key="visionNoise" style={{pointerEvents: "none", opacity: flickerOpacity}}>
+        {showTint ? <AbsoluteFill style={{background: hexToRgba(tint, (noiseType === "glitch" ? 0.34 : 0.28) * strength), mixBlendMode: "screen"}} /> : null}
+        <AbsoluteFill
+          style={{
+            backgroundImage: [
+              `repeating-linear-gradient(0deg, rgba(255,255,255,${scanlineOpacity * scanline}) 0px, rgba(255,255,255,${scanlineOpacity * scanline}) 1px, rgba(0,0,0,${darkScanlineOpacity * scanline}) 2px, transparent 4px)`,
+              `radial-gradient(circle at ${20 + noiseX}% ${30 + noiseY}%, rgba(255,255,255,${dotWhite * strength}) 0 1px, transparent 2px)`,
+              `radial-gradient(circle at ${80 - noiseY}% ${70 - noiseX}%, rgba(0,0,0,${dotBlack * strength}) 0 1px, transparent 2px)`,
+              `radial-gradient(circle at ${45 + noiseY}% ${15 + noiseX}%, rgba(0,0,0,${0.32 * strength}) 0 1px, transparent 2px)`,
+              noiseType === "snow"
+                ? `radial-gradient(circle at ${10 + noiseY}% ${85 - noiseX}%, rgba(255,255,255,${0.75 * strength}) 0 1px, transparent 2px)`
+                : `linear-gradient(90deg, transparent 0%, rgba(255,255,255,${0.08 * glitch}) 50%, transparent 100%)`,
+            ].join(", "),
+            backgroundSize: `${scanlineSize}, ${dotSizeA}, ${dotSizeB}, 13px 13px, ${noiseType === "snow" ? "5px 5px" : "100% 100%"}`,
+            backgroundPosition: `0 ${noiseY}px, ${noiseX}px ${noiseY}px, ${-noiseX}px ${noiseY}px, ${noiseY}px ${-noiseX}px, ${-noiseY}px ${noiseX}px`,
+            opacity: 0.55 + strength * 0.45,
+          }}
+        />
+        {glitch > 0 ? <>
+          <div style={{position: "absolute", left: -width * 0.02 + glitchShift, top: height * (0.18 + (Math.sin(elapsed * 3.1) + 1) * 0.08), width: width * 1.04, height: 24 + glitch * (noiseType === "glitch" ? 72 : 42), background: noiseType === "snow" ? `rgba(255,255,255,${0.18 * glitch})` : hexToRgba(tint, (noiseType === "glitch" ? 0.62 : 0.45) * glitch), transform: `translateX(${glitchShift}px)`, mixBlendMode: "screen"}} />
+          <div style={{position: "absolute", left: -width * 0.02 - glitchShift, top: height * (0.58 + (Math.sin(elapsed * 4.7) + 1) * 0.06), width: width * 1.04, height: 16 + glitch * (noiseType === "glitch" ? 58 : 34), background: noiseType === "vhs" ? `rgba(0,0,0,${0.28 * glitch})` : `rgba(255,80,130,${(noiseType === "glitch" ? 0.44 : 0.3) * glitch})`, transform: `translateX(${-glitchShift}px)`, mixBlendMode: noiseType === "vhs" ? "multiply" : "screen"}} />
+        </> : null}
+      </AbsoluteFill>,
+    );
+  }
+
   return layers.length ? <>{layers}</> : null;
 };
 
@@ -736,6 +881,14 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const zoomPunchCfg = stageEffectConfig(turn.effects?.zoomPunch, DEFAULT_STAGE_EFFECT_SETTINGS.zoomPunch);
   const zoomPunchLocal = hasZoomPunch ? clamp(effectElapsed / Math.max(zoomPunchCfg.duration, 0.001), 0, 1) : 1;
   const zoomPunchScale = hasZoomPunch ? 1 + Math.sin(zoomPunchLocal * Math.PI) * Math.max(0, zoomPunchCfg.scale - 1) : 1;
+  const flashbackAt = (item: StageTurnV2 | undefined) => stageEffectEnabled(item?.effects?.flashback);
+  const hasFlashback = flashbackAt(turn);
+  const flashbackFilter = hasFlashback ? `saturate(${FLASHBACK_SATURATE}) brightness(${FLASHBACK_BRIGHTNESS})` : undefined;
+  const prevFlashback = flashbackAt(story.script[turnIndex - 1]);
+  const nextFlashback = flashbackAt(story.script[turnIndex + 1]);
+  const flashbackInFade = hasFlashback !== prevFlashback ? 1 - clamp(effectElapsed / FLASHBACK_DISSOLVE_SECONDS, 0, 1) : 0;
+  const flashbackOutFade = hasFlashback !== nextFlashback ? 1 - clamp(((effectEnd - seconds) / FLASHBACK_DISSOLVE_SECONDS), 0, 1) : 0;
+  const flashbackWhiteFadeOpacity = clamp(Math.max(flashbackInFade, flashbackOutFade), 0, 1);
   const stageShellTransform = [
     shakeOffset.x || shakeOffset.y ? `translate(${shakeOffset.x}px, ${shakeOffset.y}px)` : "",
     zoomPunchScale !== 1 ? `scale(${zoomPunchScale})` : "",
@@ -926,28 +1079,30 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       <Audio src={mediaStaticSrc(audioSrc)} />
       <V2BgmLayer regions={story.bgm} fps={fps} />
       <V2SeLayer script={story.script} seMap={seMap} fps={fps} />
-      {state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
-        <WhiteboardExplainInsert
-          config={state.displayMode.whiteboard}
-          width={width}
-          height={height}
-          durationInFrames={Math.max(1, Math.round(((turn.end ?? turn.start ?? 0) - (turn.start ?? 0)) * fps))}
-          localFrame={Math.max(0, frame - Math.round((turn.start ?? 0) * fps))}
-          characterSlot={renderWhiteboardPresenter()}
-        />
-      ) : (
-        <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
-          <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
-            {scene.bgVideo ? (
-              <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
-            ) : scene.bg ? (
-              <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
-            ) : null}
-            <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
-            {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+      <AbsoluteFill style={{filter: flashbackFilter}}>
+        {state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
+          <WhiteboardExplainInsert
+            config={state.displayMode.whiteboard}
+            width={width}
+            height={height}
+            durationInFrames={Math.max(1, Math.round(((turn.end ?? turn.start ?? 0) - (turn.start ?? 0)) * fps))}
+            localFrame={Math.max(0, frame - Math.round((turn.start ?? 0) * fps))}
+            characterSlot={renderWhiteboardPresenter()}
+          />
+        ) : (
+          <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
+            <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
+              {scene.bgVideo ? (
+                <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+              ) : scene.bg ? (
+                <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+              ) : null}
+              <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
+              {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+            </AbsoluteFill>
           </AbsoluteFill>
-        </AbsoluteFill>
-      )}
+        )}
+      </AbsoluteFill>
       {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
       <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyImpactLines />
       {isStandardDialogue && isSubtitle ? (() => {
@@ -1008,6 +1163,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           }}>{caption.text}</div>
         </AbsoluteFill>;
       })() : null}
+      {flashbackWhiteFadeOpacity > 0 ? <AbsoluteFill style={{background: "#fff", opacity: flashbackWhiteFadeOpacity, pointerEvents: "none", zIndex: 60}} /> : null}
     </AbsoluteFill>
   );
 };

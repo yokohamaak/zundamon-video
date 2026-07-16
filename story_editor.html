@@ -1729,6 +1729,9 @@
                 <label class="toggle-row"><input type="checkbox" id="fV2ImpactLines"> <span>集中線</span></label>
                 <label class="toggle-row"><input type="checkbox" id="fV2ZoomPunch"> <span>ズームパンチ</span></label>
                 <label class="toggle-row"><input type="checkbox" id="fV2QuoteFreeze"> <span>引用止め</span></label>
+                <label class="toggle-row"><input type="checkbox" id="fV2Flashback"> <span>回想</span></label>
+                <label class="toggle-row"><input type="checkbox" id="fV2VisionNoise"> <span>ノイズ</span></label>
+                <label class="toggle-row"><input type="checkbox" id="fV2IrisOut"> <span>アイリスアウト</span></label>
               </div>
               <div id="v2EffectParams" style="display:none; width:100%; margin-top:10px;"></div>
               <div class="field-help">V2用の軽量演出です。旧方式のturn直下キーではなく、effectsとして保存します。</div>
@@ -8781,11 +8784,17 @@ const V2_EFFECT_GROUPS = {
   impactLines: { checkboxId: "fV2ImpactLines", title: "集中線" },
   zoomPunch: { checkboxId: "fV2ZoomPunch", title: "ズームパンチ" },
   quoteFreeze: { checkboxId: "fV2QuoteFreeze", title: "引用止め" },
+  flashback: { checkboxId: "fV2Flashback", title: "回想" },
+  visionNoise: { checkboxId: "fV2VisionNoise", title: "ノイズ" },
+  irisOut: { checkboxId: "fV2IrisOut", title: "アイリスアウト" },
 };
 const V2_EFFECT_SPEC_KEYS = {
   impactLines: new Set(["cx", "cy", "count", "thickness", "opacity", "innerRadius", "start", "end"]),
   zoomPunch: new Set(["scale", "duration", "borderStrength"]),
   quoteFreeze: new Set(["fadeIn", "fadeOutDuration", "backdropOpacity"]),
+  flashback: new Set([]),
+  visionNoise: new Set(["strength", "scanline", "glitch", "flicker"]),
+  irisOut: new Set(["cx", "cy", "startRadius", "closeStart", "closeEnd"]),
 };
 
 function v2EffectSpecs(group) {
@@ -8805,25 +8814,26 @@ function v2EffectInputId(group, key) {
   return `fV2Effect_${group}_${key}`;
 }
 
-function armV2ImpactLinesPositionPick(turn) {
+function armV2EffectPositionPick(turn, group, label) {
   const wrap = document.getElementById("playerWrap");
   if (!wrap) return;
   const overlay = document.createElement("div");
   overlay.style.cssText = "position:absolute; inset:0; z-index:80; cursor:crosshair; background:rgba(255,255,255,0.06); display:flex; align-items:flex-start; justify-content:center; pointer-events:auto;";
-  overlay.title = "クリックで集中線の中心位置を指定";
+  overlay.title = `クリックで${label}の中心位置を指定`;
   const hint = document.createElement("div");
   hint.style.cssText = "margin-top:12px; padding:8px 12px; border-radius:999px; background:rgba(8,10,14,0.82); color:white; font-size:12px; font-weight:700; box-shadow:0 8px 22px rgba(0,0,0,.35);";
-  hint.textContent = "集中線の中心にしたい位置をクリック";
+  hint.textContent = `${label}の中心にしたい位置をクリック`;
   overlay.appendChild(hint);
   overlay.addEventListener("click", (e) => {
     const rect = wrap.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    const cxInput = document.getElementById(v2EffectInputId("impactLines", "cx"));
-    const cyInput = document.getElementById(v2EffectInputId("impactLines", "cy"));
+    const cxInput = document.getElementById(v2EffectInputId(group, "cx"));
+    const cyInput = document.getElementById(v2EffectInputId(group, "cy"));
     if (cxInput) cxInput.value = x.toFixed(2);
     if (cyInput) cyInput.value = y.toFixed(2);
-    document.getElementById("fV2ImpactLines").checked = true;
+    const checkboxId = V2_EFFECT_GROUPS[group]?.checkboxId;
+    if (checkboxId) document.getElementById(checkboxId).checked = true;
     collectV2Basic();
     renderV2Detail(turn);
     notifyPlayerUpdate();
@@ -8847,9 +8857,79 @@ function collectV2EffectsFromUi() {
         config[spec.key] = spec.digits === 0 ? Math.round(clamped) : Number(clamped.toFixed(spec.digits));
       }
     }
+    if (group === "visionNoise") {
+      const type = document.getElementById("fV2Effect_visionNoise_type");
+      if (type?.value) config.type = type.value;
+      const tint = document.getElementById("fV2Effect_visionNoise_tint");
+      if (tint?.value) config.tint = tint.value;
+    }
+    if (group === "irisOut") {
+      const color = document.getElementById("fV2Effect_irisOut_color");
+      if (color?.value) config.color = color.value;
+    }
     effects[group] = config;
   }
   return effects;
+}
+
+function appendV2EffectPositionButton(card, turn, group, title) {
+  const action = document.createElement("div");
+  action.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap;";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "btn btn-secondary btn-sm";
+  button.textContent = "中心をプレビュークリックで指定";
+  button.addEventListener("click", () => armV2EffectPositionPick(turn, group, title));
+  const help = document.createElement("span");
+  help.className = "field-help";
+  help.style.margin = "0";
+  help.textContent = "クリック位置を中心X/Yへ反映します。";
+  action.append(button, help);
+  card.appendChild(action);
+}
+
+function appendV2VisionNoiseControls(card, params) {
+  const row = document.createElement("div");
+  row.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;";
+  const typeLabel = document.createElement("label");
+  typeLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const typeText = document.createElement("span");
+  typeText.textContent = "種類";
+  const select = document.createElement("select");
+  select.className = "field-select";
+  select.id = "fV2Effect_visionNoise_type";
+  for (const [value, label] of VISION_NOISE_TYPES) v2Option(select, value, label);
+  select.value = params.type || "future";
+  select.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  typeLabel.append(typeText, select);
+  const tintLabel = document.createElement("label");
+  tintLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const tintText = document.createElement("span");
+  tintText.textContent = "色";
+  const tint = document.createElement("input");
+  tint.type = "color";
+  tint.className = "color-picker";
+  tint.id = "fV2Effect_visionNoise_tint";
+  tint.value = normalizeHexColor(params.tint || VISION_NOISE_DEFAULT_TINT, VISION_NOISE_DEFAULT_TINT);
+  tint.addEventListener("input", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  tintLabel.append(tintText, tint);
+  row.append(typeLabel, tintLabel);
+  card.appendChild(row);
+}
+
+function appendV2IrisOutColorControl(card, params) {
+  const row = document.createElement("label");
+  row.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2); width:150px;";
+  const text = document.createElement("span");
+  text.textContent = "色";
+  const color = document.createElement("input");
+  color.type = "color";
+  color.className = "color-picker";
+  color.id = "fV2Effect_irisOut_color";
+  color.value = normalizeHexColor(params.color || IRIS_OUT_DEFAULT_COLOR, IRIS_OUT_DEFAULT_COLOR);
+  color.addEventListener("input", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  row.append(text, color);
+  card.appendChild(row);
 }
 
 function renderV2EffectParams(turn) {
@@ -8870,22 +8950,14 @@ function renderV2EffectParams(turn) {
     const title = document.createElement("div");
     title.style.cssText = "font-weight:700; color:var(--text);";
     title.textContent = `${meta.title}のパラメータ`;
+    card.appendChild(title);
     const grid = document.createElement("div");
     grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;";
-    if (group === "impactLines") {
-      const action = document.createElement("div");
-      action.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap;";
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "btn btn-secondary btn-sm";
-      button.textContent = "中心をプレビュークリックで指定";
-      button.addEventListener("click", () => armV2ImpactLinesPositionPick(turn));
-      const help = document.createElement("span");
-      help.className = "field-help";
-      help.style.margin = "0";
-      help.textContent = "クリック位置を中心X/Yへ反映します。";
-      action.append(button, help);
-      card.appendChild(action);
+    if (group === "impactLines") appendV2EffectPositionButton(card, turn, group, meta.title);
+    if (group === "visionNoise") appendV2VisionNoiseControls(card, params);
+    if (group === "irisOut") {
+      appendV2EffectPositionButton(card, turn, group, meta.title);
+      appendV2IrisOutColorControl(card, params);
     }
     for (const spec of v2EffectSpecs(group)) {
       const label = document.createElement("label");
@@ -8907,7 +8979,7 @@ function renderV2EffectParams(turn) {
       label.append(text, input);
       grid.appendChild(label);
     }
-    card.append(title, grid);
+    card.appendChild(grid);
     container.appendChild(card);
   }
 }
@@ -8945,6 +9017,9 @@ function renderV2Detail(turn) {
   document.getElementById("fV2ImpactLines").checked = v2EffectIsEnabled(effects.impactLines);
   document.getElementById("fV2ZoomPunch").checked = v2EffectIsEnabled(effects.zoomPunch);
   document.getElementById("fV2QuoteFreeze").checked = v2EffectIsEnabled(effects.quoteFreeze);
+  document.getElementById("fV2Flashback").checked = v2EffectIsEnabled(effects.flashback);
+  document.getElementById("fV2VisionNoise").checked = v2EffectIsEnabled(effects.visionNoise);
+  document.getElementById("fV2IrisOut").checked = v2EffectIsEnabled(effects.irisOut);
   renderV2EffectParams(turn);
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
@@ -12647,7 +12722,7 @@ function setupEvents() {
   }
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
-    "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze",
+    "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",

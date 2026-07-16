@@ -144,6 +144,9 @@ class StageSchemaTest(unittest.TestCase):
             "impactLines": {"enabled": True, "cx": 0.42, "cy": 0.55, "count": 96, "thickness": 1.5, "opacity": 0.8, "innerRadius": 0.2, "start": 0.1, "end": 1.2},
             "zoomPunch": {"enabled": True, "scale": 1.2, "duration": 0.24, "borderStrength": 1.2},
             "quoteFreeze": {"enabled": True, "fadeIn": 0.12, "fadeOutStart": 0.65, "fadeOutDuration": 0.2, "backdropOpacity": 0.3},
+            "flashback": {"enabled": True},
+            "visionNoise": {"enabled": True, "type": "vhs", "strength": 0.7, "scanline": 0.8, "glitch": 0.2, "flicker": 0.4, "tint": "#7dd3fc"},
+            "irisOut": {"enabled": True, "cx": 0.5, "cy": 0.5, "startRadius": 1.05, "closeStart": 1.2, "closeEnd": 1.8, "color": "#000000"},
         }
         validate_story_v2(story, SCENES)
 
@@ -155,6 +158,10 @@ class StageSchemaTest(unittest.TestCase):
         story = copy.deepcopy(STORY)
         story["script"][0]["effects"] = {"zoomPunch": {"scale": 9}}
         with self.assertRaisesRegex(ValueError, "effects.zoomPunch.scale"):
+            validate_story_v2(story, SCENES)
+        story = copy.deepcopy(STORY)
+        story["script"][0]["effects"] = {"visionNoise": {"type": "bad"}}
+        with self.assertRaisesRegex(ValueError, "effects.visionNoise.type"):
             validate_story_v2(story, SCENES)
 
     def test_v2_rejects_legacy_fields_instead_of_ignoring_them(self):

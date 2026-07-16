@@ -73,9 +73,9 @@ V2では、旧方式の項目をそのまま移植するのではなく、`insta
 | 通知洪水 `typingFlood` | V2では設定不可 | 未決定 | ZunChat等の表示種別と役割が近い。必要時に再設計。 |
 | スタンプ雨 `stampRain` | V2では設定不可 | 未決定 | 同上。 |
 | キラッ `sparkleBurst` | V2では設定不可 | 未決定 | 同上。 |
-| アイリスアウト `irisOut` | V2では設定不可 | 未決定 | 場面転換/演出レイヤーとして設計する。 |
-| 回想 `flashback` | V2では設定不可 | 未決定 | 画面全体フィルタとしてV2に移植するか判断が必要。 |
-| 映像ノイズ `visionNoise` | V2では設定不可 | 未決定 | 画面全体フィルタとしてV2に移植するか判断が必要。 |
+| アイリスアウト `irisOut` | `effects.irisOut` | 対応済み | V2用演出レイヤーとして移植。中心クリック指定・色・閉じ始め/終わりを設定可能。 |
+| 回想 `flashback` | `effects.flashback` | 対応済み | V2用画面フィルタとして移植。連続ターンでは区間として扱い、境界だけ白ディゾルブする。 |
+| 映像ノイズ `visionNoise` | `effects.visionNoise` | 対応済み | V2用演出レイヤーとして移植。種類・強さ・走査線・グリッチ・ちらつき・色を設定可能。 |
 | `effectSettings` のターン別上書き | V2では設定不可 | 未決定 | 旧演出を移植する場合だけ必要。 |
 | 配置タブの旧手動配置 | V2の在席中状態とステージマップへ置換 | 置換済み | 旧配置タブはV2で使わない。 |
 | 一括編集 | V2では危険な旧操作を流用しない | 未対応 | V2用に「scene」「slot」「framing」「speaker」など安全な対象だけ再設計する。 |
@@ -138,17 +138,20 @@ type CaptionV2 = {
 
 ### 3. 旧演出系
 
-集中線、ズームパンチ、引用止めは、V2の `effects` として対応済み。
+集中線、ズームパンチ、引用止め、回想、映像ノイズ、アイリスアウトは、V2の `effects` として対応済み。
 
 ```ts
 type StageEffectsV2 = {
-  impactLines?: boolean;
-  zoomPunch?: boolean;
-  quoteFreeze?: boolean;
+  impactLines?: EffectToggleV2<ImpactLinesEffectV2>;
+  zoomPunch?: EffectToggleV2<ZoomPunchEffectV2>;
+  quoteFreeze?: EffectToggleV2<QuoteFreezeEffectV2>;
+  flashback?: EffectToggleV2<FlashbackEffectV2>;
+  visionNoise?: EffectToggleV2<VisionNoiseEffectV2>;
+  irisOut?: EffectToggleV2<IrisOutEffectV2>;
 };
 ```
 
-通知洪水、スタンプ雨、キラッ、アイリスアウト、回想、映像ノイズは、旧rendererに強く結びついている。
+通知洪水、スタンプ雨、キラッは、旧rendererに強く結びついている。
 
 推奨:
 
