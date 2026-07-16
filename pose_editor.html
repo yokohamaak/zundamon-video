@@ -252,8 +252,6 @@ const POSES = [
   ["droop", "しょんぼり"],
   ["flustered", "あたふた"],
   ["proud", "得意げ"],
-  ["step_in", "一歩前へ"],
-  ["step_back", "一歩引く"],
   ["listening", "聞き耳"],
   ["sneak", "こそこそ"],
   ["wobble", "ぐらぐら"],
@@ -497,16 +495,6 @@ function animatePreview(time) {
     translateX += flip * 4 * motionStrength;
     rotate += flip * 3.2 * motionStrength;
     scale *= 1 + 0.026 * motionStrength;
-  } else if (p === "step_in") {
-    translateX += flip * 12 * motionStrength;
-    translateY -= 6 * motionStrength;
-    rotate += flip * -1.8 * motionStrength;
-    scale *= 1 + 0.02 * motionStrength;
-  } else if (p === "step_back") {
-    translateX += flip * -12 * motionStrength;
-    translateY += 3 * motionStrength;
-    rotate += flip * 2.6 * motionStrength;
-    scale *= 1 - 0.03 * motionStrength;
   } else if (p === "listening") {
     const nod = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.9)) * 4 * motionStrength;
     translateX += flip * 7 * motionStrength;

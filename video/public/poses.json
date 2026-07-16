@@ -35,16 +35,6 @@
       "speed": 0.4,
       "strength": 0.4
     },
-    "step_in": {
-      "arm": "arm_point",
-      "speed": 0.4,
-      "strength": 0.4
-    },
-    "step_back": {
-      "arm": "arm_waist",
-      "speed": 1,
-      "strength": 1
-    },
     "listening": {
       "arm": "arm_think",
       "speed": 1,
@@ -99,16 +89,6 @@
     },
     "proud": {
       "arm": "arm_present",
-      "speed": 1,
-      "strength": 1
-    },
-    "step_in": {
-      "arm": "arm_point",
-      "speed": 1,
-      "strength": 1
-    },
-    "step_back": {
-      "arm": "arm_hold",
       "speed": 1,
       "strength": 1
     },

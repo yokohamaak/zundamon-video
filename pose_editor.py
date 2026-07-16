@@ -25,7 +25,7 @@ AVATARS_PUBLIC_DIR = os.path.join(VIDEO_PUBLIC_DIR, "avatars")
 CHARS = ["zundamon", "metan"]
 POSES = [
     "idle", "cheer", "recoil", "lean", "droop", "flustered",
-    "proud", "step_in", "step_back", "listening", "sneak", "wobble",
+    "proud", "listening", "sneak", "wobble",
     "point",
 ]
 
@@ -37,8 +37,6 @@ POSE_LABELS = {
     "droop": "しょんぼり",
     "flustered": "あたふた",
     "proud": "得意げ",
-    "step_in": "一歩前へ",
-    "step_back": "一歩引く",
     "listening": "聞き耳",
     "sneak": "こそこそ",
     "wobble": "ぐらぐら",
@@ -93,8 +91,6 @@ def _default_poses():
             "droop": {"arm": "arm_waist", "speed": 1.0, "strength": 1.0},
             "flustered": {"arm": "arm_mouth", "speed": 1.0, "strength": 1.0},
             "proud": {"arm": "arm_point", "speed": 1.0, "strength": 1.0},
-            "step_in": {"arm": "arm_point", "speed": 1.0, "strength": 1.0},
-            "step_back": {"arm": "arm_waist", "speed": 1.0, "strength": 1.0},
             "listening": {"arm": "arm_think", "speed": 1.0, "strength": 1.0},
             "sneak": {"arm": "arm_whisper", "speed": 1.0, "strength": 1.0},
             "wobble": {"arm": "arm_suffering", "speed": 1.0, "strength": 1.0},
@@ -108,8 +104,6 @@ def _default_poses():
             "droop": {"arm": "arm_hold", "speed": 1.0, "strength": 1.0},
             "flustered": {"arm": "arm_mouth", "speed": 1.0, "strength": 1.0},
             "proud": {"arm": "arm_present", "speed": 1.0, "strength": 1.0},
-            "step_in": {"arm": "arm_point", "speed": 1.0, "strength": 1.0},
-            "step_back": {"arm": "arm_hold", "speed": 1.0, "strength": 1.0},
             "listening": {"arm": "arm_hush", "speed": 1.0, "strength": 1.0},
             "sneak": {"arm": "arm_hush", "speed": 1.0, "strength": 1.0},
             "wobble": {"arm": "arm_manju", "speed": 1.0, "strength": 1.0},

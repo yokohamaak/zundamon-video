@@ -2734,6 +2734,7 @@
 // ============================================================
 let storyData = null;    // story-01.json 全体 { title, audio, script, ... }
 let meta = null;         // /api/meta { speakers, speakerIcons, scenes, expressions, insertKinds }
+let expressionConfigs = {}; // /preview-assets/expressions.json 本体。配置プレビューのパーツ解決に使う。
 let sceneDefs = null;    // /api/scene/scenes 全体 { scenes: { key: { anchors, ... } } }
 let voiceProfiles = {};  // /api/voice-profiles（話者ごとのVOICEVOX既定値）
 let selectedIdx = -1;    // 選択中(＝詳細フォームの編集対象)ターンのインデックス
@@ -3769,17 +3770,19 @@ function renderCameraEffectSettings(turn) {
 // ============================================================
 async function init() {
   try {
-    const [storyRes, metaRes, sceneRes, voiceProfilesRes] = await Promise.all([
+    const [storyRes, metaRes, sceneRes, voiceProfilesRes, expressionRes] = await Promise.all([
       fetch("/api/story"),
       fetch("/api/meta"),
       fetch("/api/scene/scenes"),
       fetch("/api/voice-profiles"),
+      fetch("/preview-assets/expressions.json"),
     ]);
     storyData = await storyRes.json();
     clearMultiSelection();
     meta = await metaRes.json();
     sceneDefs = await sceneRes.json();
     voiceProfiles = await voiceProfilesRes.json();
+    expressionConfigs = await expressionRes.json();
     normalizeStoryTransitions(storyData);
     normalizeStoryVoicePresets(storyData);
     normalizeStoryIdleFace(storyData);
@@ -5287,6 +5290,61 @@ const PLACEMENT_PREVIEW_PARTS = {
   zundamon: ["base", "edamame_normal", "cheek_hoppe", "arm_normal", "eye_open", "mouth_close", "brow_normal"],
   metan: ["hair_back_twin_drill", "base", "head_dress_normal", "hair_clip_heart", "cheek_normal2", "arm_normal", "eye_open", "mouth_close", "bangs", "brow_futo_gokigen"],
 };
+function expressionConfigForPreview(charId, expressionName) {
+  const charCfg = expressionConfigs && expressionConfigs[charId];
+  if (!charCfg || typeof charCfg !== "object") return {};
+  return charCfg[expressionName || "normal"] || charCfg.normal || {};
+}
+function hasOwnPreviewCfg(cfg, key) {
+  return cfg && Object.prototype.hasOwnProperty.call(cfg, key);
+}
+function previewPartFromCfg(cfg, key, prefix, fallback) {
+  const raw = hasOwnPreviewCfg(cfg, key) ? cfg[key] : fallback;
+  if (raw == null || raw === "") return null;
+  return prefix + raw;
+}
+function placementPreviewPartStems(charId, expressionName) {
+  const cfg = expressionConfigForPreview(charId, expressionName);
+  if (charId === "zundamon") {
+    return [
+      "base",
+      previewPartFromCfg(cfg, "edamame", "edamame_", "normal"),
+      previewPartFromCfg(cfg, "shadow", "shadow_", null),
+      previewPartFromCfg(cfg, "cheek", "cheek_", "hoppe"),
+      "arm_normal",
+      previewPartFromCfg(cfg, "eye", "eye_", "open"),
+      previewPartFromCfg(cfg, "mouth_close", "mouth_", "close"),
+      previewPartFromCfg(cfg, "brow", "brow_", "normal"),
+      previewPartFromCfg(cfg, "fx", "fx_", null),
+    ].filter(Boolean);
+  }
+  if (charId === "metan") {
+    return [
+      previewPartFromCfg(cfg, "hair_back", "hair_back_", "twin_drill"),
+      "base",
+      previewPartFromCfg(cfg, "head_dress", "head_dress_", "normal"),
+      previewPartFromCfg(cfg, "hair_clip", "hair_clip_", "heart"),
+      previewPartFromCfg(cfg, "shadow", "shadow_", null),
+      previewPartFromCfg(cfg, "cheek", "cheek_", "normal2"),
+      "arm_normal",
+      previewPartFromCfg(cfg, "eye", "eye_", "open"),
+      previewPartFromCfg(cfg, "mouth_close", "mouth_", "close"),
+      "bangs",
+      previewPartFromCfg(cfg, "brow", "brow_", "futo_gokigen"),
+      previewPartFromCfg(cfg, "fx", "fx_", null),
+    ].filter(Boolean);
+  }
+  return PLACEMENT_PREVIEW_PARTS[charId] || ["base"];
+}
+function actorExpressionAtPreview(id) {
+  if (!storyData || selectedIdx < 0) return "normal";
+  if (isV2StoryEditor()) {
+    const state = v2StateAt(selectedIdx, true)?.[id];
+    return state?.expression || "normal";
+  }
+  const turn = storyData.script?.[selectedIdx];
+  return turn?.speaker === id ? (turn.expression || "normal") : "normal";
+}
 function fullBoxHeightJS(charId) {
   const c = FULL_CANVAS_JS[charId];
   if (!c) return Math.round(AVATAR_BOX_JS * 1.8);
@@ -5838,7 +5896,7 @@ function renderPlacementMiniPreview() {
       parts.style.height = boxH + "px";
       if (xy.x < 0.5) parts.style.transform = "scaleX(-1)";
       const baseDir = isFull ? `/preview-assets/avatars/${id}/full/` : `/preview-assets/avatars/${id}/`;
-      for (const stem of (PLACEMENT_PREVIEW_PARTS[id] || ["base"])) {
+      for (const stem of placementPreviewPartStems(id, actorExpressionAtPreview(id))) {
         const img = document.createElement("img");
         img.src = `${baseDir}${encodeURIComponent(stem)}.png`;
         img.alt = stem;
@@ -6838,7 +6896,7 @@ function buildExpressionSelect() {
 
 const POSE_KEYS = [
   "idle", "cheer", "recoil", "lean", "droop", "flustered",
-  "proud", "step_in", "step_back", "listening", "sneak", "wobble",
+  "proud", "listening", "sneak", "wobble",
   "point",
 ];
 const FACE_LABELS = {
@@ -6862,8 +6920,6 @@ function poseLabel(pose) {
     droop: "しょんぼり",
     flustered: "あたふた",
     proud: "得意げ",
-    step_in: "一歩前へ",
-    step_back: "一歩引く",
     listening: "聞き耳",
     sneak: "こそこそ",
     wobble: "ぐらぐら",
@@ -12670,8 +12726,12 @@ async function refreshScenes() {
 // 現在選択中の表情値を可能な限り維持する。
 async function refreshExpressions() {
   try {
-    const r = await fetch("/api/meta");
+    const [r, expressionRes] = await Promise.all([
+      fetch("/api/meta"),
+      fetch("/preview-assets/expressions.json?t=" + Date.now()),
+    ]);
     const m = await r.json();
+    expressionConfigs = await expressionRes.json();
     meta.expressions = m.expressions;
     meta.expressionLabels = m.expressionLabels || {};
     const prevExpr = selectedIdx >= 0 ? (storyData.script[selectedIdx].expression || "") : "";

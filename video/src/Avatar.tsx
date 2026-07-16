@@ -62,8 +62,6 @@ export type ExpressionCfg = {
     | "droop"
     | "flustered"
     | "proud"
-    | "step_in"
-    | "step_back"
     | "listening"
     | "sneak"
     | "wobble"
@@ -260,16 +258,6 @@ export const Avatar: React.FC<{
     translateX += facingSign * 4 * poseStrengthBase;
     rotate += facingSign * 3.2 * poseStrengthBase;
     scale *= 1 + 0.026 * poseStrengthBase;
-  } else if (pose === "step_in") {
-    translateX += facingSign * 12 * poseStrengthBase;
-    translateY -= 6 * poseStrengthBase;
-    rotate += facingSign * -1.8 * poseStrengthBase;
-    scale *= 1 + 0.02 * poseStrengthBase;
-  } else if (pose === "step_back") {
-    translateX += facingSign * -12 * poseStrengthBase;
-    translateY += 3 * poseStrengthBase;
-    rotate += facingSign * 2.6 * poseStrengthBase;
-    scale *= 1 - 0.03 * poseStrengthBase;
   } else if (pose === "listening") {
     const listenNod = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.9)) * 4 * poseStrengthBase;
     translateX += facingSign * 7 * poseStrengthBase;
@@ -510,7 +498,7 @@ export const Avatar: React.FC<{
   //    驚き中は arm_raise（手を上げる）。口パク・まばたきは継続したまま腕だけ替わる。
   //    腕レイヤーが無いキャラ(例:めたん)は base に腕が含まれる前提で何もしない。
   const autoArmStem =
-    surprised || pose === "cheer" || pose === "proud" || pose === "step_in" || pose === "point"
+    surprised || pose === "cheer" || pose === "proud" || pose === "point"
       ? "arm_raise"
       : "arm_normal";
   // 表情とポーズは連動しない。腕もturn.pose由来(poseArmStem)のみで、表情由来のarmは見ない。

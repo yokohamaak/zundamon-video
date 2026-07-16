@@ -176,8 +176,6 @@ export type StoryTurn = {
     | "droop"
     | "flustered"
     | "proud"
-    | "step_in"
-    | "step_back"
     | "listening"
     | "sneak"
     | "wobble"
