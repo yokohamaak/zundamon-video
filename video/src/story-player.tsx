@@ -41,6 +41,20 @@ function withAudioCacheBust(audio: string | undefined, token: number | string = 
   return `${audio}${audio.includes("?") ? "&" : "?"}v=${token}`;
 }
 
+function bgmSignature(story: StoryVideoRouterProps["story"] | undefined) {
+  const regions = story && Array.isArray(story.bgm) ? story.bgm : [];
+  return regions
+    .map((region) => [
+      region.file ?? "",
+      region.start ?? "",
+      region.end ?? "",
+      region.volume ?? "",
+      region.fadeIn ?? "",
+      region.fadeOut ?? "",
+    ].join(":"))
+    .join("|");
+}
+
 // Remotion の staticFile は window.remotion_staticBase が設定されていると
 // "staticBase/path" を返す。mount 前にこの値を /preview-assets に設定することで
 // StoryVideo.tsx 内の全 staticFile() 呼び出しが /preview-assets/ を指すようになる。
@@ -233,7 +247,9 @@ function createStoryPlayerApi(options?: {
 
     updateStory(story) {
       if (!setPropsState) return;
+      let shouldRefreshAudio = false;
       setPropsState((prev) => {
+        shouldRefreshAudio = bgmSignature(prev.story) !== bgmSignature(story);
         const duration = story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
         const prevDuration = prev.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
         const prevBase = (prev.audio || "").split("?")[0];
@@ -241,6 +257,12 @@ function createStoryPlayerApi(options?: {
         const audio = nextBase && nextBase !== prevBase ? withAudioCacheBust(nextBase) : prev.audio;
         return { ...prev, story, audio, _duration: Math.max(duration, prevDuration) } as Props;
       });
+      if (shouldRefreshAudio) {
+        requestAnimationFrame(() => {
+          const frame = playerRef?.getCurrentFrame();
+          if (typeof frame === "number") playerRef?.seekTo(frame);
+        });
+      }
     },
 
     async reloadScenes() {
