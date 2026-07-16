@@ -433,9 +433,12 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const transform = canSmoothCamera && previousTransform && targetTransform
     ? `translate(${previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress}px, ${previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress}px) scale(${previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress})`
     : stageTransform(width, height, motionFrame);
+  const cameraTilt = canSmoothCamera
+    ? (previousCameraState?.cameraMotion?.tilt ?? 0) + ((cameraState.cameraMotion?.tilt ?? 0) - (previousCameraState?.cameraMotion?.tilt ?? 0)) * transitionProgress
+    : (cameraState.cameraMotion?.tilt ?? 0);
   const motion = state.cameraMotion;
   const shakeOffset = cameraShakeOffset(motion?.shake, seconds, turn.start ?? 0);
-  const tiltedTransform = `${transform ?? ""}${motion?.tilt ? ` rotate(${motion.tilt}deg)` : ""}` || undefined;
+  const tiltedTransform = `${transform ?? ""}${cameraTilt ? ` rotate(${cameraTilt}deg)` : ""}` || undefined;
   const currentSpeaker = state.instances[turn.speaker];
   const speakerDefinition = story.instances[turn.speaker];
   const speakerPosition = currentSpeaker
