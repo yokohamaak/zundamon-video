@@ -66,7 +66,6 @@ export type ExpressionCfg = {
     | "step_back"
     | "listening"
     | "sneak"
-    | "whisper"
     | "wobble"
     | "point"
     | null;
@@ -240,12 +239,12 @@ export const Avatar: React.FC<{
     const surge = Math.sin(Math.min(Math.max(reactT, 0) / Math.max(REACT_DUR, 1), 1) * Math.PI);
     translateY -= surge * 16 * poseStrengthBase;
     translateX += facingSign * -10 * surge * poseStrengthBase;
-    rotate += facingSign * -4.2 * surge * poseStrengthBase;
+    rotate += facingSign * 4.2 * surge * poseStrengthBase;
     scale *= 1 + 0.025 * surge * poseStrengthBase;
   } else if (pose === "lean") {
     translateX += facingSign * 10 * poseStrengthBase;
     translateY -= 4 * poseStrengthBase;
-    rotate += facingSign * 2.4 * poseStrengthBase;
+    rotate += facingSign * -2.4 * poseStrengthBase;
     scale *= 1 + 0.012 * poseStrengthBase;
   } else if (pose === "droop") {
     translateY += 10 * poseStrengthBase;
@@ -264,12 +263,12 @@ export const Avatar: React.FC<{
   } else if (pose === "step_in") {
     translateX += facingSign * 12 * poseStrengthBase;
     translateY -= 6 * poseStrengthBase;
-    rotate += facingSign * 1.8 * poseStrengthBase;
+    rotate += facingSign * -1.8 * poseStrengthBase;
     scale *= 1 + 0.02 * poseStrengthBase;
   } else if (pose === "step_back") {
     translateX += facingSign * -12 * poseStrengthBase;
     translateY += 3 * poseStrengthBase;
-    rotate += facingSign * -2.6 * poseStrengthBase;
+    rotate += facingSign * 2.6 * poseStrengthBase;
     scale *= 1 - 0.03 * poseStrengthBase;
   } else if (pose === "listening") {
     const listenNod = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.9)) * 4 * poseStrengthBase;
@@ -277,7 +276,7 @@ export const Avatar: React.FC<{
     translateY -= listenNod;
     rotate += facingSign * 4.2 * poseStrengthBase;
     scale *= 1 + 0.008 * poseStrengthBase;
-  } else if (pose === "sneak" || pose === "whisper") {
+  } else if (pose === "sneak") {
     translateX += facingSign * 9 * poseStrengthBase;
     translateY += 8 * poseStrengthBase;
     rotate += facingSign * 5.2 * poseStrengthBase;

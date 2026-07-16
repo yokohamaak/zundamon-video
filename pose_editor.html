@@ -256,7 +256,6 @@ const POSES = [
   ["step_back", "一歩引く"],
   ["listening", "聞き耳"],
   ["sneak", "こそこそ"],
-  ["whisper", "ひそひそ"],
   ["wobble", "ぐらぐら"],
   ["point", "指差し"],
 ];
@@ -477,12 +476,12 @@ function animatePreview(time) {
     const surge = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.7));
     translateY -= surge * 14 * motionStrength;
     translateX += flip * -10 * surge * motionStrength;
-    rotate += flip * -4 * surge * motionStrength;
+    rotate += flip * 4 * surge * motionStrength;
     scale *= 1 + 0.02 * surge * motionStrength;
   } else if (p === "lean") {
     translateX += flip * 10 * motionStrength;
     translateY -= 4 * motionStrength;
-    rotate += flip * 2.4 * motionStrength;
+    rotate += flip * -2.4 * motionStrength;
     scale *= 1 + 0.012 * motionStrength;
   } else if (p === "droop") {
     translateY += 10 * motionStrength;
@@ -501,12 +500,12 @@ function animatePreview(time) {
   } else if (p === "step_in") {
     translateX += flip * 12 * motionStrength;
     translateY -= 6 * motionStrength;
-    rotate += flip * 1.8 * motionStrength;
+    rotate += flip * -1.8 * motionStrength;
     scale *= 1 + 0.02 * motionStrength;
   } else if (p === "step_back") {
     translateX += flip * -12 * motionStrength;
     translateY += 3 * motionStrength;
-    rotate += flip * -2.6 * motionStrength;
+    rotate += flip * 2.6 * motionStrength;
     scale *= 1 - 0.03 * motionStrength;
   } else if (p === "listening") {
     const nod = Math.max(0, Math.sin(motionTime * Math.PI * 2 * 0.9)) * 4 * motionStrength;
@@ -514,7 +513,7 @@ function animatePreview(time) {
     translateY -= nod;
     rotate += flip * 4.2 * motionStrength;
     scale *= 1 + 0.008 * motionStrength;
-  } else if (p === "sneak" || p === "whisper") {
+  } else if (p === "sneak") {
     translateX += flip * 9 * motionStrength;
     translateY += 8 * motionStrength;
     rotate += flip * 5.2 * motionStrength;

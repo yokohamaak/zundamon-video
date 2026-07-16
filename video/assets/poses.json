@@ -55,11 +55,6 @@
       "speed": 1,
       "strength": 1
     },
-    "whisper": {
-      "arm": "arm_whisper",
-      "speed": 1,
-      "strength": 1
-    },
     "wobble": {
       "arm": "arm_suffering",
       "speed": 0.45,
@@ -123,11 +118,6 @@
       "strength": 1
     },
     "sneak": {
-      "arm": "arm_hush",
-      "speed": 1,
-      "strength": 1
-    },
-    "whisper": {
       "arm": "arm_hush",
       "speed": 1,
       "strength": 1
