@@ -133,7 +133,7 @@ def _hex(value, path):
 def _display_settings(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
-    _only_keys(value, {"bubble", "subtitle", "speakerColors"}, path)
+    _only_keys(value, {"bubble", "subtitle", "telop", "speakerColors"}, path)
     bubble = value.get("bubble")
     if bubble is not None:
         if not isinstance(bubble, dict):
@@ -172,6 +172,35 @@ def _display_settings(value, path):
             if not isinstance(key, str) or not key:
                 _error(f"{path}.speakerColors", "空でない話者IDが必要です")
             _hex(color, f"{path}.speakerColors.{key}")
+    telop = value.get("telop")
+    if telop is not None:
+        if not isinstance(telop, dict):
+            _error(f"{path}.telop", "objectである必要があります")
+        _only_keys(telop, {"x", "y", "size"}, f"{path}.telop")
+        for key in ("x", "y", "size"):
+            if key in telop and not _is_number(telop[key]):
+                _error(f"{path}.telop.{key}", "有限数値が必要です")
+        for key in ("x", "y"):
+            if key in telop and not 0 <= telop[key] <= 1:
+                _error(f"{path}.telop.{key}", "0〜1の値が必要です")
+        if "size" in telop and not 0.5 <= telop["size"] <= 3:
+            _error(f"{path}.telop.size", "0.5〜3の値が必要です")
+
+
+def _caption(value, path):
+    if not isinstance(value, dict):
+        _error(path, "objectである必要があります")
+    _only_keys(value, {"text", "x", "y", "size"}, path)
+    if not isinstance(value.get("text"), str) or not value["text"].strip():
+        _error(f"{path}.text", "空でない文字列が必要です")
+    for key in ("x", "y", "size"):
+        if key in value and not _is_number(value[key]):
+            _error(f"{path}.{key}", "有限数値が必要です")
+    for key in ("x", "y"):
+        if key in value and not 0 <= value[key] <= 1:
+            _error(f"{path}.{key}", "0〜1の値が必要です")
+    if "size" in value and not 0.5 <= value["size"] <= 3:
+        _error(f"{path}.size", "0.5〜3の値が必要です")
 
 
 def _subtitle_style(value, path):
@@ -479,7 +508,7 @@ def validate_story_v2(data, scenes, mobs=None):
         _only_keys(turn, {
             "id", "speaker", "text", "scene", "start", "end", "pause", "noLipSync", "se",
             "hideCharacters", "hideBubble", "subtitleMode", "subtitleStyle", "continueBubble",
-            "bubbleMaxChars", "disableAutoBubbleSplit", "sentences", "transition", "cameraTransition",
+            "bubbleMaxChars", "disableAutoBubbleSplit", "sentences", "transition", "caption", "cameraTransition",
             "displayMode", "stage",
         }, path)
         for key in ("speaker", "text", "scene"):
@@ -505,6 +534,8 @@ def validate_story_v2(data, scenes, mobs=None):
             _sentences(turn["sentences"], f"{path}.sentences")
         if "se" in turn:
             _turn_se(turn["se"], f"{path}.se")
+        if "caption" in turn:
+            _caption(turn["caption"], f"{path}.caption")
         if "transition" in turn and turn["transition"] != "cut":
             _error(f"{path}.transition", "v2では cut のみ対応しています。フェード・ワイプはv2用の表示種別またはオーバーレイで表現してください")
         speaker = turn["speaker"]

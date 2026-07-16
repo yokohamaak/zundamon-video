@@ -34,7 +34,19 @@ export type StoryDisplaySettingsV2 = {
     bottom?: number;
     width?: number;
   };
+  telop?: {
+    x?: number;
+    y?: number;
+    size?: number;
+  };
   speakerColors?: Record<string, string | undefined>;
+};
+
+export type CaptionV2 = {
+  text: string;
+  x?: number;
+  y?: number;
+  size?: number;
 };
 
 export type WhiteboardDisplayV2 = {
@@ -149,6 +161,8 @@ export type StageTurnV2 = {
   transition?: "cut";
   /** ターン開始からの相対時刻で鳴らす手動SE。 */
   se?: TurnSe[];
+  /** そのターンに画面上へ重ねる短い場面ラベル。 */
+  caption?: CaptionV2;
   /** 構図が変わるターンのカメラ接続。省略時は smooth。 */
   cameraTransition?: "smooth" | "cut";
   displayMode?: DisplayModeV2;

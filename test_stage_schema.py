@@ -108,6 +108,7 @@ class StageSchemaTest(unittest.TestCase):
         story["displaySettings"] = {
             "bubble": {"fontSize": 48, "bgColor": "#ffffff", "textColor": "#111111", "borderWidth": 4, "radius": 14},
             "subtitle": {"fontSize": 42, "bgColor": "#111111", "textColor": "#ffffff", "border": True, "borderColor": "#ffffff"},
+            "telop": {"x": 0.05, "y": 0.08, "size": 1.2},
             "speakerColors": {"zundamon": "#5fb84f", "default": "#9aa0a6"},
         }
         story["script"][0].update({
@@ -120,6 +121,17 @@ class StageSchemaTest(unittest.TestCase):
             "transition": "cut",
         })
         validate_story_v2(story, SCENES)
+
+    def test_v2_accepts_caption(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["caption"] = {"text": "― 前日 ―", "x": 0.04, "y": 0.06, "size": 1.1}
+        validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_invalid_caption(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["caption"] = {"text": "", "x": 1.2}
+        with self.assertRaisesRegex(ValueError, "caption"):
+            validate_story_v2(story, SCENES)
 
     def test_v2_rejects_legacy_fields_instead_of_ignoring_them(self):
         story = copy.deepcopy(STORY)

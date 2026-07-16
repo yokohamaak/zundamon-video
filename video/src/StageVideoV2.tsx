@@ -49,8 +49,10 @@ const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
 const DEFAULT_DISPLAY_SETTINGS = {
   bubble: {maxChars: null as number | null, fontSize: 54, fontFamily: "sans-serif", textColor: "#1b1b1f", bgColor: "#ffffff", borderWidth: 5, radius: 18},
   subtitle: {fontSize: 46, fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif', textColor: "#ffffff", bgColor: "#080a0e", bgOpacity: 0.84, border: true, borderColor: "#ffffff", borderWidth: 2, bottom: 42, width: 0.84},
+  telop: {x: 0.045, y: 0.06, size: 1},
   speakerColors: {zundamon: "#5fb84f", metan: "#e87bb0", default: "#9aa0a6"},
 };
+const CAPTION_FADE_SECONDS = 0.25;
 
 function fullBoxSize(avatar: string) {
   const canvas = FULL_CANVAS[avatar as keyof typeof FULL_CANVAS];
@@ -187,6 +189,7 @@ function validHex(value: unknown, fallback: string) {
 function displaySettingsOf(settings?: StoryDisplaySettingsV2) {
   const bubble = settings?.bubble ?? {};
   const subtitle = settings?.subtitle ?? {};
+  const telop = settings?.telop ?? {};
   const colors = settings?.speakerColors ?? {};
   const number = (value: unknown, fallback: number, min: number, max: number) => Number.isFinite(Number(value)) ? clamp(Number(value), min, max) : fallback;
   const maxChars = Number(bubble.maxChars);
@@ -217,7 +220,31 @@ function displaySettingsOf(settings?: StoryDisplaySettingsV2) {
       metan: validHex(colors.metan, DEFAULT_DISPLAY_SETTINGS.speakerColors.metan),
       default: validHex(colors.default, DEFAULT_DISPLAY_SETTINGS.speakerColors.default),
     },
+    telop: {
+      x: number(telop.x, DEFAULT_DISPLAY_SETTINGS.telop.x, 0, 1),
+      y: number(telop.y, DEFAULT_DISPLAY_SETTINGS.telop.y, 0, 1),
+      size: number(telop.size, DEFAULT_DISPLAY_SETTINGS.telop.size, 0.5, 3),
+    },
   };
+}
+
+function captionVisualFor(script: StageTurnV2[], activeIndex: number, seconds: number) {
+  const active = script[activeIndex];
+  if (!active?.caption?.text?.trim()) return null;
+  let startIndex = activeIndex;
+  while (startIndex > 0 && !!script[startIndex - 1]?.caption?.text?.trim()) startIndex -= 1;
+  let endIndex = activeIndex;
+  while (endIndex < script.length - 1 && !!script[endIndex + 1]?.caption?.text?.trim()) endIndex += 1;
+  const start = script[startIndex]?.start ?? active.start;
+  const last = script[endIndex] ?? active;
+  const end = Math.max(last.end ?? active.end ?? seconds, script[endIndex + 1]?.start ?? last.end ?? active.end ?? seconds);
+  let opacity = 1;
+  if (typeof start === "number" && typeof end === "number" && end > start) {
+    const fade = Math.min(CAPTION_FADE_SECONDS, Math.max(0.001, (end - start) / 2));
+    if (seconds < start + fade) opacity = clamp((seconds - start) / fade, 0, 1);
+    else if (seconds >= end - fade) opacity = clamp((end - seconds) / fade, 0, 1);
+  }
+  return {caption: active.caption, opacity};
 }
 
 function hexToRgba(hex: string, opacity: number) {
@@ -519,6 +546,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     ? placementOrigin(currentSpeaker.placement, scene.layouts.standard)
     : undefined;
   const displaySettings = displaySettingsOf(story.displaySettings);
+  const captionVisual = captionVisualFor(story.script, turnIndex, seconds);
   const speakerCharacterId = speakerDefinition?.characterId;
   const speakerBubbleColor = speakerCharacterId === "zundamon"
     ? displaySettings.speakerColors.zundamon
@@ -788,6 +816,30 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           : {position: "absolute", zIndex: 30, left: singleLeft, top: height * 0.95, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
           {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
         </div>;
+      })() : null}
+      {captionVisual && captionVisual.opacity > 0 ? (() => {
+        const caption = captionVisual.caption;
+        const telopX = typeof caption.x === "number" ? clamp(caption.x, 0, 1) : displaySettings.telop.x;
+        const telopY = typeof caption.y === "number" ? clamp(caption.y, 0, 1) : displaySettings.telop.y;
+        const telopSize = typeof caption.size === "number" ? clamp(caption.size, 0.5, 3) : displaySettings.telop.size;
+        return <AbsoluteFill style={{pointerEvents: "none", zIndex: 40}}>
+          <div style={{
+            position: "absolute",
+            left: Math.round(width * telopX),
+            top: Math.round(height * telopY),
+            background: "rgba(8, 8, 8, 0.6)",
+            color: "#f4f0e8",
+            fontSize: 84 * telopSize,
+            fontWeight: 700,
+            fontFamily: "sans-serif",
+            letterSpacing: "0.12em",
+            padding: `${Math.round(18 * telopSize)}px ${Math.round(56 * telopSize)}px`,
+            borderRadius: 8,
+            borderLeft: "10px solid #f4f0e8",
+            boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
+            opacity: captionVisual.opacity,
+          }}>{caption.text}</div>
+        </AbsoluteFill>;
       })() : null}
     </AbsoluteFill>
   );

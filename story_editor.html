@@ -1714,6 +1714,16 @@
               </div>
             </div>
             <div class="field-row">
+              <label class="field-label">テロップ</label>
+              <input class="field-input" id="fV2CaptionText" type="text" placeholder="例: ― 前日 ―">
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                <input type="number" class="field-input" id="fV2CaptionX" min="0" max="1" step="0.01" placeholder="X 0..1" style="width:96px;">
+                <input type="number" class="field-input" id="fV2CaptionY" min="0" max="1" step="0.01" placeholder="Y 0..1" style="width:96px;">
+                <input type="number" class="field-input" id="fV2CaptionSize" min="0.5" max="3" step="0.1" placeholder="倍率" style="width:96px;">
+              </div>
+              <div class="field-help">短い場面ラベルを画面に重ねます。位置・サイズが未入力なら「表示」タブのテロップ既定値を使います。</div>
+            </div>
+            <div class="field-row">
               <label class="field-label">手動SE</label>
               <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
                 <div id="fV2SeList"></div>
@@ -7851,7 +7861,7 @@ function collectBasicSummaryChips(turn) {
   if (turn.visionNoise) chips.push("ノイズ");
   const camera = cameraEffectsSummary(turn);
   if (camera.length) chips.push(camera.join(" / "));
-  if (turn.telop) chips.push("テロップ");
+  if (turn.caption || turn.telop) chips.push("テロップ");
   const effectLabels = [];
   if (turn.impactLines || turn.impactText) effectLabels.push("集中線");
   if (turn.zoomPunch) effectLabels.push("ズームパンチ");
@@ -8781,6 +8791,11 @@ function renderV2Detail(turn) {
   document.getElementById("fV2SubtitleBoxBorder").checked = subtitleStyle.boxBorder ?? subtitleDefaults.border;
   document.getElementById("fV2SubtitleBoxBorderColor").value = subtitleStyle.boxBorderColor ?? subtitleDefaults.borderColor;
   document.getElementById("fV2SubtitleBoxBorderWidth").value = subtitleStyle.boxBorderWidth ?? subtitleDefaults.borderWidth;
+  const caption = turn.caption || {};
+  document.getElementById("fV2CaptionText").value = caption.text || "";
+  document.getElementById("fV2CaptionX").value = caption.x ?? "";
+  document.getElementById("fV2CaptionY").value = caption.y ?? "";
+  document.getElementById("fV2CaptionSize").value = caption.size ?? "";
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
   for (const sceneId of sortedKeysBySceneLabel(sceneDefs?.scenes || {})) {
@@ -9021,6 +9036,19 @@ function collectV2Basic() {
   const bubbleMaxChars = Number(document.getElementById("fV2BubbleMaxChars").value);
   if (document.getElementById("fV2BubbleMaxChars").value !== "" && Number.isFinite(bubbleMaxChars) && bubbleMaxChars > 0) turn.bubbleMaxChars = Math.round(bubbleMaxChars);
   else delete turn.bubbleMaxChars;
+  const captionText = document.getElementById("fV2CaptionText").value.trim();
+  if (captionText) {
+    const caption = { text: captionText };
+    const captionX = Number(document.getElementById("fV2CaptionX").value);
+    const captionY = Number(document.getElementById("fV2CaptionY").value);
+    const captionSize = Number(document.getElementById("fV2CaptionSize").value);
+    if (document.getElementById("fV2CaptionX").value !== "" && Number.isFinite(captionX)) caption.x = Math.max(0, Math.min(1, captionX));
+    if (document.getElementById("fV2CaptionY").value !== "" && Number.isFinite(captionY)) caption.y = Math.max(0, Math.min(1, captionY));
+    if (document.getElementById("fV2CaptionSize").value !== "" && Number.isFinite(captionSize)) caption.size = Math.max(0.5, Math.min(3, captionSize));
+    turn.caption = caption;
+  } else {
+    delete turn.caption;
+  }
   const nextScene = document.getElementById("fV2Scene").value;
   if (turn.scene !== nextScene) delete turn.stage;
   turn.scene = nextScene;
