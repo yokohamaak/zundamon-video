@@ -1,4 +1,5 @@
 import type {WhiteboardExplainInsertConfig} from "./inserts/whiteboardExplain";
+import type {BgmRegion, StoryOverlay, TurnSe} from "./StoryVideo";
 
 export type Point = {x: number; y: number};
 export type CameraFrameV2 = {cx: number; cy: number; width: number};
@@ -85,6 +86,10 @@ export type StageTurnV2 = {
   start?: number;
   end?: number;
   pause?: number;
+  /** 心の声など、発話中でも口パクを止めるターン。 */
+  noLipSync?: boolean;
+  /** ターン開始からの相対時刻で鳴らす手動SE。 */
+  se?: TurnSe[];
   /** 構図が変わるターンのカメラ接続。省略時は smooth。 */
   cameraTransition?: "smooth" | "cut";
   displayMode?: DisplayModeV2;
@@ -95,6 +100,10 @@ export type StoryV2 = {
   schemaVersion: 2;
   title?: string;
   audio?: string;
+  /** 既存タイムラインと共通の時間ベースBGM区間。 */
+  bgm?: BgmRegion[];
+  /** 既存タイムラインと共通の補助画像・テキスト。 */
+  overlays?: StoryOverlay[];
   instances: Record<string, StoryInstanceV2>;
   script: StageTurnV2[];
 };

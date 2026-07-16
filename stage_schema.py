@@ -234,6 +234,9 @@ def validate_story_v2(data, scenes, mobs=None):
 
     active_scene = None
     present = {}
+    # slot重なりの前後関係は個体状態として継承する。各turnのupdateだけを
+    # 見ると、重なり始めた次のturnでzIndexが「消えた」扱いになるため。
+    present_z_indexes = {}
     for index, turn in enumerate(turns):
         path = f"script[{index}]"
         if not isinstance(turn, dict):
@@ -250,6 +253,7 @@ def validate_story_v2(data, scenes, mobs=None):
         if turn["scene"] != active_scene:
             active_scene = turn["scene"]
             present = {}
+            present_z_indexes = {}
         display_kind = _display_mode(turn.get("displayMode"), f"{path}.displayMode")
         event = turn.get("stage")
         if event is not None and not isinstance(event, dict):
@@ -278,10 +282,13 @@ def validate_story_v2(data, scenes, mobs=None):
             if instance_id not in present:
                 _error(exit_path, "在席していない個体は退場できません")
             del present[instance_id]
+            present_z_indexes.pop(instance_id, None)
 
         for instance_id in event.get("reset", []):
             if not isinstance(instance_id, str) or instance_id not in present:
                 _error(f"{path}.stage.reset", "在席中の個体IDだけを指定できます")
+            # resolverのresetと同じく、明示した見た目上書きは解除する。
+            present_z_indexes.pop(instance_id, None)
 
         update = event.get("update", {})
         if not isinstance(update, dict):
@@ -314,6 +321,8 @@ def validate_story_v2(data, scenes, mobs=None):
                 _error(f"{update_path}.flip", "true/falseが必要です")
             if "zIndex" in patch and not _is_number(patch["zIndex"]):
                 _error(f"{update_path}.zIndex", "有限数値が必要です")
+            if "zIndex" in patch:
+                present_z_indexes[instance_id] = patch["zIndex"]
 
         if "framing" in event:
             _framing(event["framing"], f"{path}.stage.framing", slots, present, speaker)
@@ -332,9 +341,7 @@ def validate_story_v2(data, scenes, mobs=None):
                 _error(path, f"slot {slot_id} は複数個体を許可しません: {', '.join(instance_ids)}")
             if len(instance_ids) > 1 and slot.get("allowOverlap"):
                 for instance_id in instance_ids:
-                    patch = update.get(instance_id, {})
-                    placement = present[instance_id]
-                    if "zIndex" not in patch and "zIndex" not in placement:
+                    if instance_id not in present_z_indexes:
                         _error(path, f"slot {slot_id} の重なりには {instance_id} のzIndexが必要です")
 
         if display_kind != "standard" and "framing" in event:

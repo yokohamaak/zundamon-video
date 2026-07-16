@@ -1,6 +1,21 @@
 {
   "story": {
     "schemaVersion": 2,
+    "bgm": [
+      { "start": 0, "end": 9, "file": "bgm/bgm.mp3", "volume": 0.05, "fadeIn": 0.2, "fadeOut": 0.2 }
+    ],
+    "overlays": [
+      {
+        "id": "v2-media-check",
+        "kind": "text",
+        "text": "Overlay確認",
+        "x": 0.5,
+        "y": 0.12,
+        "w": 0.28,
+        "start": { "turnId": "turn-0001", "at": 0 },
+        "end": { "turnId": "turn-0001", "at": 3 }
+      }
+    ],
     "instances": {
       "zundamon": { "characterId": "zundamon", "voiceId": "zundamon" },
       "metan": { "characterId": "metan", "voiceId": "metan" }
@@ -13,6 +28,7 @@
         "scene": "office",
         "start": 0,
         "end": 3,
+        "se": [{ "file": "se/surprise.mp3", "at": 0.5, "volume": 0.1 }],
         "displayMode": { "kind": "standard" },
         "stage": {
           "enter": [

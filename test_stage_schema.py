@@ -124,6 +124,22 @@ class StageSchemaTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "複数個体"):
             validate_story_v2(story, SCENES)
 
+    def test_overlap_z_index_is_inherited_on_following_turns(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["stage"]["enter"][0]["placement"]["slotId"] = "backgroundLeft"
+        story["script"][1]["stage"]["enter"][0]["placement"]["slotId"] = "backgroundLeft"
+        story["script"][1]["stage"]["update"] = {
+            "zundamon": {"zIndex": 10},
+            "metan": {"zIndex": 20},
+        }
+        story["script"].append({
+            "id": "turn-0003",
+            "speaker": "zundamon",
+            "text": "重なりを維持するのだ。",
+            "scene": "office",
+        })
+        validate_story_v2(story, SCENES)
+
     def test_voice_only_cannot_enter(self):
         story = copy.deepcopy(STORY)
         story["script"][0]["stage"]["enter"][0]["instanceId"] = "narrator"

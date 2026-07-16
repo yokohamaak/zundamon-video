@@ -8,6 +8,16 @@
 
 この監査では実装は変更していない。`story_editor.html`、`scene_editor.html`、保存validator、v2 resolver、Remotion、プレイヤーを、設定値が保存・解決・描画まで到達するかで照合した。
 
+## 対応状況（監査後の追記）
+
+P0は対応済み。v2では次の既存台本項目をそのまま利用する。
+
+- **P0-1:** `StoryV2`に`bgm`・`overlays`、`StageTurnV2`に`se`を定義し、`StageVideoV2`で主音声・BGM・手動SE・自動SE（表情・shake）・Overlayを描画するようにした。`video/test-fixtures/stage-v2-props.json`に回帰確認用のBGM/SE/Overlayを追加し、Remotion静止画でOverlayとメディア参照を確認した。
+- **P0-2:** `@remotion/media-utils`の`useWindowedAudioData`による既存と同じ波形RMS計算をv2に接続した。主役の通常表示・ホワイトボード・ZunMeet、およびモブの`open`/`closed`素材が、実際の話者の音量に連動する。`noLipSync`もv2ターンで利用できる。
+- **P0-3:** 保存validatorがslot配置だけでなく個体ごとの`zIndex`状態もturnをまたいで追跡するようにした。重なりを設定した次ターンに何も指定しなくても保存できる回帰テストを追加した。
+
+P1以降は未対応であり、以下の優先度は引き続き有効である。
+
 ## 監査対象と確認済み経路
 
 ```text
