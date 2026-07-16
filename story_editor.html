@@ -1678,6 +1678,15 @@
             <div class="field-row">
               <label class="field-label">セリフ</label>
               <textarea class="field-textarea" id="fV2Text"></textarea>
+              <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnV2SplitDialogue">セリフ分割</button>
+                <div class="field-help">カーソル位置で後半を新しいターンにします。舞台の在席状態はそのまま引き継がれます。</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
+              <label class="field-label" style="min-width:auto;">間（秒）</label>
+              <input class="field-input" id="fV2Pause" type="number" min="0" step="0.1" placeholder="なし" style="width:120px;">
+              <label class="toggle-row"><input type="checkbox" id="fV2NoLipSync"> 口パクをしない</label>
             </div>
             <div class="section-divider">台詞表示</div>
             <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
@@ -1692,6 +1701,23 @@
               <label class="field-label" style="min-width:auto;">最大文字数</label>
               <input class="field-input" id="fV2BubbleMaxChars" type="number" min="1" max="99" step="1" placeholder="動画全体の既定値" style="width:150px;">
               <div class="field-help">動画全体の色・フォント・字幕帯は「表示」タブで設定します。</div>
+            </div>
+            <div class="field-row" id="v2SubtitleStyleControls" style="display:none;">
+              <label class="field-label">この行の字幕スタイル</label>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; width:100%;">
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">文字サイズ</span><input class="field-input" id="fV2SubtitleFontSize" type="number" min="24" max="96" step="1"></label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">文字色</span><input class="field-input" id="fV2SubtitleTextColor" type="text" placeholder="#ffffff"></label>
+                <label class="toggle-row" style="align-self:end;"><input type="checkbox" id="fV2SubtitleBoxBorder"> 字幕枠を表示</label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">枠色</span><input class="field-input" id="fV2SubtitleBoxBorderColor" type="text" placeholder="#ffffff"></label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">枠太さ</span><input class="field-input" id="fV2SubtitleBoxBorderWidth" type="number" min="0.5" max="6" step="0.1"></label>
+              </div>
+            </div>
+            <div class="field-row">
+              <label class="field-label">手動SE</label>
+              <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+                <div id="fV2SeList"></div>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnV2AddSe" style="align-self:flex-start;">＋ SEを追加</button>
+              </div>
             </div>
             <div class="field-row">
               <label class="field-label">シーン</label>
@@ -6909,6 +6935,11 @@ function cancelTurnLongPress() {
 function updateBulkSceneBar() {
   const bar = document.getElementById("bulkSceneBar");
   if (!bar) return;
+  if (isV2StoryEditor()) {
+    bar.style.display = "none";
+    closeBulkEditPanel();
+    return;
+  }
   const n = selectedIndices.size;
   if (n > 1 || (_mobileSelectMode && n > 0)) {
     bar.style.display = "flex";
@@ -6920,6 +6951,7 @@ function updateBulkSceneBar() {
 }
 
 function openBulkEditPanel() {
+  if (isV2StoryEditor()) return;
   const panel = document.getElementById("bulkEditPanel");
   if (!panel) return;
   panel.style.display = "block";
@@ -6932,6 +6964,7 @@ function closeBulkEditPanel() {
 }
 
 function applyBulkScene() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   const scene = document.getElementById("bulkSceneSelect").value;
   for (const idx of selectedIndices) {
@@ -6945,6 +6978,7 @@ function applyBulkScene() {
 }
 
 function applyBulkFocusSpeaker(enabled) {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   for (const idx of selectedIndices) {
     const turn = storyData.script[idx];
@@ -6959,6 +6993,7 @@ function applyBulkFocusSpeaker(enabled) {
 }
 
 function applyBulkExpression() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   const expression = document.getElementById("bulkExpressionSelect").value;
   for (const idx of selectedIndices) {
@@ -6974,6 +7009,7 @@ function applyBulkExpression() {
 }
 
 function applyBulkCameraEffect() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   const value = document.getElementById("bulkCameraEffectSelect").value;
   if (!value) return;
@@ -7008,6 +7044,7 @@ function applyBulkCameraEffect() {
 }
 
 function applyBulkVoice() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   const value = document.getElementById("bulkVoiceSelect").value;
   if (!value) return;
@@ -7036,6 +7073,7 @@ function applyBulkVoice() {
 }
 
 function applyBulkTelop() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   const text = document.getElementById("bulkTelopText").value;
   const xRaw = document.getElementById("bulkTelopX").value;
@@ -7065,6 +7103,7 @@ function applyBulkTelop() {
 }
 
 function clearBulkTelop() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   for (const idx of selectedIndices) {
     const turn = storyData.script[idx];
@@ -7081,6 +7120,7 @@ function clearBulkTelop() {
 }
 
 function applyBulkManualCamera() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData || selectedIdx < 0) return;
   const src = storyData.script[selectedIdx]?.manualCameraFrame;
   if (!src) {
@@ -7098,6 +7138,7 @@ function applyBulkManualCamera() {
 }
 
 function clearBulkManualCamera() {
+  if (isV2StoryEditor()) return;
   if (selectedIndices.size < 2 || !storyData) return;
   for (const idx of selectedIndices) {
     const turn = storyData.script[idx];
@@ -7895,6 +7936,53 @@ function v2StateAt(index, includeCurrent = true) {
   return state;
 }
 
+function v2TurnOrderError(script) {
+  let sceneId = null;
+  const present = new Set();
+  for (let index = 0; index < script.length; index += 1) {
+    const turn = script[index];
+    if (turn.scene !== sceneId) {
+      sceneId = turn.scene;
+      present.clear();
+    }
+    const stage = turn.stage || {};
+    for (const item of stage.enter || []) {
+      if (present.has(item.instanceId)) return `${index + 1}ターン目で、すでに在席中の ${item.instanceId} を再び登場させています。`;
+      present.add(item.instanceId);
+    }
+    for (const instanceId of stage.exit || []) {
+      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${instanceId} を退場させています。`;
+      present.delete(instanceId);
+    }
+    for (const instanceId of [...Object.keys(stage.update || {}), ...(stage.reset || [])]) {
+      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${instanceId} の状態を変更しています。`;
+    }
+    if (stage.framing?.mode === "speaker" && !present.has(turn.speaker)) {
+      return `${index + 1}ターン目の「話者を主役にする」構図では、話者 ${turn.speaker} が在席している必要があります。`;
+    }
+  }
+  return "";
+}
+
+function v2ApplyTurnOrderChange(candidate, nextSelectedIdx, audioChanged = false) {
+  const error = v2TurnOrderError(candidate.script);
+  if (error) {
+    alert(`この操作を行うとV2の舞台状態が壊れるため、変更しません。\n${error}`);
+    return false;
+  }
+  storyData = candidate;
+  selectedIdx = nextSelectedIdx;
+  clearMultiSelection();
+  markDirty();
+  if (audioChanged) markAudioDirty();
+  v2RecordHistory();
+  renderList();
+  renderDetail();
+  notifyPlayerUpdate();
+  seekPlayer(selectedIdx);
+  return true;
+}
+
 function v2DefaultPlacement(sceneId) {
   const slots = v2SlotsForScene(sceneId);
   const slotId = ["speakerLeft", "speakerRight", "center", ...Object.keys(slots)].find((id, pos, all) => !!slots[id] && all.indexOf(id) === pos);
@@ -8497,6 +8585,67 @@ function v2UpdateDisplayModeFields() {
   document.getElementById("v2ZunMeetControls").style.display = kind === "zunMeet" ? "flex" : "none";
 }
 
+function v2UpdateDialogueFields() {
+  const subtitle = document.getElementById("fV2SubtitleMode").value === "subtitle";
+  document.getElementById("v2SubtitleStyleControls").style.display = subtitle ? "" : "none";
+}
+
+function renderV2ManualSe() {
+  const list = document.getElementById("fV2SeList");
+  if (!list) return;
+  list.innerHTML = "";
+  const turn = selectedIdx >= 0 ? storyData?.script?.[selectedIdx] : null;
+  if (!turn) return;
+  for (const [index, item] of (turn.se || []).entries()) {
+    const row = document.createElement("div");
+    row.className = "se-manual-row";
+    const file = document.createElement("select");
+    file.className = "field-select se-manual-sel";
+    v2Option(file, "", "なし");
+    const files = audioAssets ? sortedStrings(audioAssets.se || []) : [];
+    for (const value of files) v2Option(file, value, value.replace(/^se\//, ""));
+    if (item.file && !files.includes(item.file)) v2Option(file, item.file, item.file);
+    file.value = item.file || "";
+    const at = document.createElement("input");
+    at.type = "number"; at.className = "field-input se-manual-at"; at.min = "0"; at.step = "0.1"; at.placeholder = "at"; at.value = item.at ?? "";
+    const volume = document.createElement("input");
+    volume.type = "number"; volume.className = "field-input se-manual-vol"; volume.min = "0"; volume.max = "1"; volume.step = "0.05"; volume.placeholder = "vol"; volume.value = item.volume ?? "";
+    const remove = document.createElement("button");
+    remove.type = "button"; remove.className = "btn btn-danger btn-sm"; remove.textContent = "×";
+    const collect = () => collectV2ManualSe();
+    file.addEventListener("change", collect); at.addEventListener("change", collect); volume.addEventListener("change", collect);
+    remove.addEventListener("click", () => {
+      const current = storyData.script[selectedIdx];
+      current.se.splice(index, 1);
+      if (!current.se.length) delete current.se;
+      v2Commit(current);
+      renderV2ManualSe();
+    });
+    row.append(file, at, volume, remove);
+    list.appendChild(row);
+  }
+}
+
+function collectV2ManualSe() {
+  if (!isV2StoryEditor() || selectedIdx < 0) return;
+  const list = document.getElementById("fV2SeList");
+  if (!list) return;
+  const items = [];
+  for (const row of list.querySelectorAll(".se-manual-row")) {
+    const file = row.querySelector(".se-manual-sel");
+    const at = row.querySelector(".se-manual-at");
+    const volume = row.querySelector(".se-manual-vol");
+    if (!file?.value) continue;
+    const item = {file: file.value};
+    if (at?.value !== "" && Number.isFinite(Number(at.value))) item.at = Number(at.value);
+    if (volume?.value !== "" && Number.isFinite(Number(volume.value))) item.volume = Number(volume.value);
+    items.push(item);
+  }
+  const turn = storyData.script[selectedIdx];
+  if (items.length) turn.se = items; else delete turn.se;
+  v2Commit(turn);
+}
+
 function v2ZunMeetForTurn(turn) {
   const display = turn.displayMode;
   return display?.kind === "zunMeet" && display.zunMeet ? display.zunMeet : { room: "", layout: "focus", participants: [] };
@@ -8550,8 +8699,17 @@ function renderV2Detail(turn) {
   document.getElementById("fV2HideBubble").checked = !!turn.hideBubble;
   document.getElementById("fV2ContinueBubble").checked = !!turn.continueBubble;
   document.getElementById("fV2DisableAutoBubbleSplit").checked = !!turn.disableAutoBubbleSplit;
+  document.getElementById("fV2Pause").value = turn.pause ?? "";
+  document.getElementById("fV2NoLipSync").checked = !!turn.noLipSync;
   document.getElementById("fV2SubtitleMode").value = turn.subtitleMode === "subtitle" ? "subtitle" : "bubble";
   document.getElementById("fV2BubbleMaxChars").value = turn.bubbleMaxChars ?? "";
+  const subtitleDefaults = getDisplaySettingsData().subtitle;
+  const subtitleStyle = turn.subtitleStyle || {};
+  document.getElementById("fV2SubtitleFontSize").value = subtitleStyle.fontSize ?? subtitleDefaults.fontSize;
+  document.getElementById("fV2SubtitleTextColor").value = subtitleStyle.textColor ?? subtitleDefaults.textColor;
+  document.getElementById("fV2SubtitleBoxBorder").checked = subtitleStyle.boxBorder ?? subtitleDefaults.border;
+  document.getElementById("fV2SubtitleBoxBorderColor").value = subtitleStyle.boxBorderColor ?? subtitleDefaults.borderColor;
+  document.getElementById("fV2SubtitleBoxBorderWidth").value = subtitleStyle.boxBorderWidth ?? subtitleDefaults.borderWidth;
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
   for (const sceneId of sortedKeysBySceneLabel(sceneDefs?.scenes || {})) {
@@ -8615,6 +8773,8 @@ function renderV2Detail(turn) {
   if (addMeetParticipant) addMeetParticipant.disabled = (meeting.participants || []).length >= 4;
   renderV2MeetParticipants(turn);
   v2UpdateDisplayModeFields();
+  v2UpdateDialogueFields();
+  renderV2ManualSe();
   renderV2InstanceRegistry();
   const actions = document.getElementById("v2InstanceActions");
   actions.innerHTML = "";
@@ -8734,6 +8894,7 @@ function collectV2Basic() {
   const turn = storyData.script[selectedIdx];
   const oldSpeaker = turn.speaker;
   const oldText = turn.text;
+  const oldPause = turn.pause;
   turn.speaker = document.getElementById("fV2Speaker").value;
   turn.text = document.getElementById("fV2Text").value;
   if (document.getElementById("fV2HideCharacters").checked) turn.hideCharacters = true;
@@ -8744,10 +8905,27 @@ function collectV2Basic() {
   else delete turn.continueBubble;
   if (document.getElementById("fV2DisableAutoBubbleSplit").checked) turn.disableAutoBubbleSplit = true;
   else delete turn.disableAutoBubbleSplit;
+  const pause = Number(document.getElementById("fV2Pause").value);
+  if (document.getElementById("fV2Pause").value !== "" && Number.isFinite(pause) && pause >= 0) turn.pause = pause;
+  else delete turn.pause;
+  if (document.getElementById("fV2NoLipSync").checked) turn.noLipSync = true;
+  else delete turn.noLipSync;
   if (document.getElementById("fV2SubtitleMode").value === "subtitle") turn.subtitleMode = "subtitle";
   else {
     delete turn.subtitleMode;
     delete turn.subtitleStyle;
+  }
+  if (turn.subtitleMode === "subtitle") {
+    const defaults = getDisplaySettingsData().subtitle;
+    const fontSize = Number(document.getElementById("fV2SubtitleFontSize").value);
+    const borderWidth = Number(document.getElementById("fV2SubtitleBoxBorderWidth").value);
+    turn.subtitleStyle = {
+      fontSize: Number.isFinite(fontSize) ? Math.max(24, Math.min(96, Math.round(fontSize))) : defaults.fontSize,
+      textColor: normalizeHexColor(document.getElementById("fV2SubtitleTextColor").value, defaults.textColor),
+      boxBorder: document.getElementById("fV2SubtitleBoxBorder").checked,
+      boxBorderColor: normalizeHexColor(document.getElementById("fV2SubtitleBoxBorderColor").value, defaults.borderColor),
+      boxBorderWidth: Number.isFinite(borderWidth) ? Math.max(0.5, Math.min(6, borderWidth)) : defaults.borderWidth,
+    };
   }
   const bubbleMaxChars = Number(document.getElementById("fV2BubbleMaxChars").value);
   if (document.getElementById("fV2BubbleMaxChars").value !== "" && Number.isFinite(bubbleMaxChars) && bubbleMaxChars > 0) turn.bubbleMaxChars = Math.round(bubbleMaxChars);
@@ -8809,7 +8987,7 @@ function collectV2Basic() {
   if (document.getElementById("fV2MotionTilt").value !== "" && Number.isFinite(tilt)) motion.tilt = tilt;
   if (document.getElementById("fV2MotionShakeStrength").value !== "" && Number.isFinite(shakeStrength) && document.getElementById("fV2MotionShakeDuration").value !== "" && Number.isFinite(shakeDuration)) motion.shake = { strength: shakeStrength, duration: shakeDuration };
   if (Object.keys(motion).length) stage.cameraMotion = motion; else delete stage.cameraMotion;
-  v2Commit(turn, oldSpeaker !== turn.speaker || oldText !== turn.text);
+  v2Commit(turn, oldSpeaker !== turn.speaker || oldText !== turn.text || oldPause !== turn.pause);
 }
 
 function renderBasicSectionNav(sections) {
@@ -10909,6 +11087,49 @@ function addTurnAfter(inheritScene = false) {
   const script = storyData.script;
   const refTurn = selectedIdx >= 0 && selectedIdx < script.length
     ? script[selectedIdx] : null;
+  if (isV2StoryEditor()) {
+    const sceneIds = sortedKeysBySceneLabel(sceneDefs?.scenes || {});
+    const instanceIds = Object.keys(storyData.instances || {});
+    const scene = refTurn?.scene || sceneIds[0] || "";
+    const speaker = refTurn?.speaker || instanceIds[0] || "";
+    if (!scene || !speaker) {
+      alert("V2ターンを追加するには、有効なシーンと話者個体が必要です。");
+      return;
+    }
+    let newTurn;
+    if (inheritScene && refTurn) {
+      newTurn = JSON.parse(JSON.stringify(refTurn));
+      newTurn.id = generateId(script);
+      newTurn.start = 0;
+      newTurn.end = 0;
+      delete newTurn.sentences;
+      delete newTurn.stage;
+      delete newTurn.se;
+      delete newTurn.transition;
+      delete newTurn.cameraTransition;
+    } else {
+      newTurn = {
+        id: generateId(script),
+        speaker,
+        text: "",
+        scene,
+        start: 0,
+        end: 0,
+        displayMode: {kind: "standard"},
+      };
+    }
+    const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : script.length;
+    script.splice(insertAt, 0, newTurn);
+    markDirty();
+    markAudioDirty();
+    v2RecordHistory();
+    selectedIdx = insertAt;
+    renderList();
+    renderDetail();
+    flushPlayerUpdate();
+    requestAnimationFrame(() => seekPlayer(selectedIdx));
+    return;
+  }
   let newTurn;
   if (inheritScene && refTurn) {
     // 「引継」＝選択ターンの丸ごとコピー。id/start/end は新規採番のためリセットし、
@@ -10954,6 +11175,10 @@ function addTurnAfter(inheritScene = false) {
 }
 
 function splitDialogueAtCursor() {
+  if (isV2StoryEditor()) {
+    splitV2DialogueAtCursor();
+    return;
+  }
   if (selectedIdx < 0 || !storyData || !Array.isArray(storyData.script)) return;
   const textEl = document.getElementById("fText");
   if (!textEl) return;
@@ -11007,10 +11232,72 @@ function splitDialogueAtCursor() {
   });
 }
 
+function splitV2DialogueAtCursor() {
+  if (selectedIdx < 0 || !storyData || !Array.isArray(storyData.script)) return;
+  const textEl = document.getElementById("fV2Text");
+  if (!textEl) return;
+  const text = String(textEl.value || "");
+  const cursor = Math.max(0, Math.min(textEl.selectionStart ?? text.length, text.length));
+  const before = text.slice(0, cursor).replace(/[ \t]+$/g, "");
+  const after = text.slice(cursor).replace(/^[ \t\r\n]+/g, "");
+  if (!before.trim() || !after.trim()) {
+    alert("前後どちらにもセリフが残る位置で分割してください。");
+    return;
+  }
+
+  collectV2Basic();
+  const script = storyData.script;
+  const turn = script[selectedIdx];
+  if (!turn) return;
+  const newTurn = JSON.parse(JSON.stringify(turn));
+  newTurn.id = generateId(script);
+  newTurn.start = 0;
+  newTurn.end = 0;
+  newTurn.text = after;
+  delete newTurn.sentences;
+  delete newTurn.stage;
+  delete newTurn.se;
+  delete newTurn.transition;
+  delete newTurn.cameraTransition;
+  if (newTurn.subtitleMode !== "subtitle") newTurn.continueBubble = true;
+
+  turn.text = before;
+  delete turn.sentences;
+  delete turn.pause;
+  const insertAt = selectedIdx + 1;
+  script.splice(insertAt, 0, newTurn);
+  markDirty();
+  markAudioDirty();
+  v2RecordHistory();
+  selectedIdx = insertAt;
+  renderList();
+  renderDetail();
+  flushPlayerUpdate();
+  requestAnimationFrame(() => {
+    seekPlayer(selectedIdx);
+    const nextTextEl = document.getElementById("fV2Text");
+    if (nextTextEl) {
+      nextTextEl.focus();
+      nextTextEl.setSelectionRange(0, 0);
+    }
+  });
+}
+
 function deleteTurn() {
   if (selectedIdx < 0) return;
   const script = storyData.script;
   if (!confirm("ターンを削除しますか？")) return;
+  if (isV2StoryEditor()) {
+    if (script.length <= 1) {
+      alert("V2台本では、最後の1ターンは削除できません。");
+      return;
+    }
+    const candidate = v2Clone(storyData);
+    candidate.script.splice(selectedIdx, 1);
+    const nextIdx = Math.min(selectedIdx, candidate.script.length - 1);
+    v2ApplyTurnOrderChange(candidate, nextIdx, true);
+    return;
+  }
   clearMultiSelection();
   script.splice(selectedIdx, 1);
   if (selectedIdx >= script.length) selectedIdx = script.length - 1;
@@ -11024,6 +11311,14 @@ function deleteTurn() {
 
 function moveUp() {
   if (selectedIdx <= 0) return;
+  if (isV2StoryEditor()) {
+    const candidate = v2Clone(storyData);
+    const tmp = candidate.script[selectedIdx - 1];
+    candidate.script[selectedIdx - 1] = candidate.script[selectedIdx];
+    candidate.script[selectedIdx] = tmp;
+    v2ApplyTurnOrderChange(candidate, selectedIdx - 1, false);
+    return;
+  }
   clearMultiSelection();
   const script = storyData.script;
   const tmp = script[selectedIdx - 1];
@@ -11040,6 +11335,14 @@ function moveUp() {
 function moveDown() {
   const script = storyData.script;
   if (selectedIdx < 0 || selectedIdx >= script.length - 1) return;
+  if (isV2StoryEditor()) {
+    const candidate = v2Clone(storyData);
+    const tmp = candidate.script[selectedIdx + 1];
+    candidate.script[selectedIdx + 1] = candidate.script[selectedIdx];
+    candidate.script[selectedIdx] = tmp;
+    v2ApplyTurnOrderChange(candidate, selectedIdx + 1, false);
+    return;
+  }
   clearMultiSelection();
   const tmp = script[selectedIdx + 1];
   script[selectedIdx + 1] = script[selectedIdx];
@@ -11848,6 +12151,7 @@ function setupEvents() {
   document.getElementById("btnAdd").addEventListener("click", () => addTurnAfter(false));
   document.getElementById("btnAddInherit").addEventListener("click", () => addTurnAfter(true));
   document.getElementById("btnSplitDialogue").addEventListener("click", splitDialogueAtCursor);
+  document.getElementById("btnV2SplitDialogue").addEventListener("click", splitV2DialogueAtCursor);
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
@@ -12063,7 +12367,7 @@ function setupEvents() {
     el.addEventListener(evt, collectBasic);
   }
   const v2BasicIds = [
-    "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
+    "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",
@@ -12084,6 +12388,7 @@ function setupEvents() {
       }
       if (id === "fV2FramingMode") v2UpdateFramingFields();
       if (id === "fV2DisplayMode") v2UpdateDisplayModeFields();
+      if (id === "fV2SubtitleMode") v2UpdateDialogueFields();
       collectV2Basic();
       if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
     });
@@ -12103,6 +12408,14 @@ function setupEvents() {
   });
   document.getElementById("btnV2Undo")?.addEventListener("click", v2Undo);
   document.getElementById("btnV2Redo")?.addEventListener("click", v2Redo);
+  document.getElementById("btnV2AddSe")?.addEventListener("click", () => {
+    if (!isV2StoryEditor() || selectedIdx < 0) return;
+    const turn = storyData.script[selectedIdx];
+    if (!turn.se) turn.se = [];
+    turn.se.push({file: ""});
+    v2Commit(turn);
+    renderV2ManualSe();
+  });
   window.addEventListener("keydown", (e) => {
     if (!isV2StoryEditor() || !(e.ctrlKey || e.metaKey) || e.altKey) return;
     const target = e.target;
