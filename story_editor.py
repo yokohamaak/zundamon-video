@@ -231,6 +231,13 @@ def _current_speakers_and_icons():
 EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
 # 組み込み5種（先頭順序固定用）
 BUILTIN_EXPRESSIONS = ["normal", "happy", "surprise", "trouble", "panic"]
+EXPRESSION_LABELS = {
+    "normal": "普通",
+    "happy": "喜び",
+    "surprise": "驚き",
+    "trouble": "困り",
+    "panic": "パニック",
+}
 INSERT_KINDS = ["warning", "ok", "chat", "teamchat", "mailer", "videocall", "whiteboard_explain"]
 
 _CT = {
@@ -395,6 +402,30 @@ def _load_expression_keys():
         return result if result else list(EXPRESSIONS)
     except Exception:
         return list(EXPRESSIONS)
+
+
+def _load_expression_labels():
+    """expressions.json の label を表情キーごとに返す。
+    label が無い組み込み表情は既定の和名を返す。
+    """
+    labels = dict(EXPRESSION_LABELS)
+    if not os.path.exists(EXPRESSIONS_JSON):
+        return labels
+    try:
+        with open(EXPRESSIONS_JSON, encoding="utf-8") as f:
+            data = json.load(f)
+        for char_data in data.values():
+            if not isinstance(char_data, dict):
+                continue
+            for expr_name, cfg in char_data.items():
+                if not isinstance(cfg, dict):
+                    continue
+                label = cfg.get("label")
+                if isinstance(label, str) and label.strip():
+                    labels[expr_name] = label.strip()
+        return labels
+    except Exception:
+        return labels
 
 
 def _list_audio_assets():
@@ -1513,6 +1544,7 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                     "scenes": _load_scenes_keys(),
                     # expressions.json のキーから動的生成。読み込み失敗時は定数にフォールバック。
                     "expressions": _load_expression_keys(),
+                    "expressionLabels": _load_expression_labels(),
                     "insertKinds": INSERT_KINDS,
                 }
                 self._send_json(meta)

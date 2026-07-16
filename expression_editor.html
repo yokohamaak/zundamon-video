@@ -125,6 +125,45 @@
     padding: 10px 14px; border-bottom: 1px solid var(--border);
   }
   .slot-section:last-child { border-bottom: none; }
+  .expr-info-grid {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+  }
+  .expr-info-label {
+    font-size: 11px;
+    color: var(--text2);
+    font-weight: 600;
+  }
+  .expr-info-value {
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text2);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .expr-info-input {
+    width: 100%;
+    padding: 7px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 13px;
+  }
+  .expr-info-help {
+    grid-column: 1 / -1;
+    color: var(--text2);
+    font-size: 11px;
+    line-height: 1.5;
+  }
   .slot-title {
     font-size: 11px; font-weight: 600; letter-spacing: .06em;
     color: var(--text2); text-transform: uppercase; margin-bottom: 8px;
@@ -421,6 +460,50 @@ const EXPR_LABEL = {
   "panic": "パニック (panic)",
 };
 
+function defaultExpressionLabel(expr) {
+  const label = EXPR_LABEL[expr] || "";
+  return label.replace(/\s*\([^)]*\)\s*$/, "").trim();
+}
+
+function storedExpressionLabel(expr) {
+  for (const charData of Object.values(expressions || {})) {
+    const raw = charData?.[expr]?.label;
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+  }
+  return "";
+}
+
+function expressionLabel(expr) {
+  return storedExpressionLabel(expr) || defaultExpressionLabel(expr);
+}
+
+function expressionDisplayLabel(expr) {
+  const label = expressionLabel(expr);
+  return label ? `${label} (${expr})` : expr;
+}
+
+function ensureExpressionCfg(charKey, expr) {
+  if (!expressions[charKey]) expressions[charKey] = {};
+  if (!expressions[charKey][expr]) expressions[charKey][expr] = {};
+  return expressions[charKey][expr];
+}
+
+function setExpressionLabel(expr, label) {
+  const clean = String(label || "").trim();
+  for (const charKey of Object.keys(expressions || {})) {
+    const cfg = ensureExpressionCfg(charKey, expr);
+    if (clean) cfg.label = clean;
+    else delete cfg.label;
+  }
+}
+
+function updateExpressionListLabel(expr) {
+  const label = document.querySelector(`.expr-item[data-expr="${CSS.escape(expr)}"] .expr-item-label`);
+  if (!label) return;
+  label.textContent = expressionDisplayLabel(expr);
+  label.title = expr;
+}
+
 // 重ね順: base → shadow → cheek → arm → brow → eye → mouth → bangs → fx
 // !顔色グループ内は下→上が かげり→青ざめ（shadowをcheekより下に）。bangsはmouthの後。
 const LAYER_KEYS = ["base", "shadow", "cheek", "arm", "brow", "eye", "mouth", "bangs", "fx"];
@@ -516,7 +599,7 @@ function buildExprList() {
 
     const label = document.createElement("span");
     label.className = "expr-item-label";
-    label.textContent = EXPR_LABEL[expr] || expr;
+    label.textContent = expressionDisplayLabel(expr);
     label.title = expr;
     item.appendChild(label);
 
@@ -584,7 +667,9 @@ function addExpression() {
   // 両キャラに追加（normal の設定を複製）
   for (const charKey of Object.keys(expressions)) {
     const normalCfg = expressions[charKey]["normal"] || {};
-    expressions[charKey][trimmed] = Object.assign({}, normalCfg);
+    const newCfg = Object.assign({}, normalCfg);
+    delete newCfg.label;
+    expressions[charKey][trimmed] = newCfg;
   }
 
   // リスト再構築 + 追加した表情を選択
@@ -641,6 +726,8 @@ function buildSlotPanel() {
   }
   const cfg = currentCfg();
   const charSlots = charCatalog.slots;
+
+  appendExpressionInfoSection(panel);
 
   for (const slot of SLOTS_ORDER) {
     const section = document.createElement("div");
@@ -778,6 +865,52 @@ function buildSlotPanel() {
     section.appendChild(sel);
     panel.appendChild(section);
   }
+}
+
+function appendExpressionInfoSection(panel) {
+  const section = document.createElement("div");
+  section.className = "slot-section";
+
+  const title = document.createElement("div");
+  title.className = "slot-title";
+  title.textContent = "表情情報";
+  section.appendChild(title);
+
+  const grid = document.createElement("div");
+  grid.className = "expr-info-grid";
+
+  const keyLabel = document.createElement("div");
+  keyLabel.className = "expr-info-label";
+  keyLabel.textContent = "表情キー";
+  const keyValue = document.createElement("div");
+  keyValue.className = "expr-info-value";
+  keyValue.textContent = currentExpr;
+  keyValue.title = currentExpr;
+
+  const nameLabel = document.createElement("label");
+  nameLabel.className = "expr-info-label";
+  nameLabel.htmlFor = "exprJapaneseLabel";
+  nameLabel.textContent = "表示名（和名）";
+  const nameInput = document.createElement("input");
+  nameInput.id = "exprJapaneseLabel";
+  nameInput.className = "expr-info-input";
+  nameInput.type = "text";
+  nameInput.value = expressionLabel(currentExpr);
+  const defaultLabel = defaultExpressionLabel(currentExpr);
+  nameInput.placeholder = defaultLabel ? `例: ${defaultLabel}` : "例: うれしい / 困り顔";
+  nameInput.addEventListener("input", () => {
+    setExpressionLabel(currentExpr, nameInput.value);
+    updateExpressionListLabel(currentExpr);
+    markDirty();
+  });
+
+  const help = document.createElement("div");
+  help.className = "expr-info-help";
+  help.textContent = "台本側の表情プルダウンに表示する名前です。表情キーは保存形式として残し、表示名は全キャラの同じ表情に同期します。";
+
+  grid.append(keyLabel, keyValue, nameLabel, nameInput, help);
+  section.appendChild(grid);
+  panel.appendChild(section);
 }
 
 // ============================================================

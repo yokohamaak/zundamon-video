@@ -6791,7 +6791,7 @@ function buildBulkExpressionSelect() {
   for (const ex of sortedStrings(meta.expressions)) {
     const o = document.createElement("option");
     o.value = ex;
-    o.textContent = ex;
+    o.textContent = expressionLabel(ex);
     sel.appendChild(o);
   }
 }
@@ -6888,6 +6888,11 @@ function faceModeLabel(mode) {
   return mode === "hold" ? "維持" : "";
 }
 
+function expressionLabel(expression) {
+  const label = meta?.expressionLabels?.[expression];
+  return label && label !== expression ? `${label} (${expression})` : (expression || "");
+}
+
 function clearFaceSummary(clearFace) {
   if (!Array.isArray(clearFace) || !clearFace.length) return "";
   const items = [];
@@ -6926,7 +6931,7 @@ function _buildExpressionOptions(prevValue) {
   sel.appendChild(none);
   for (const ex of sortedStrings(meta.expressions)) {
     const o = document.createElement("option");
-    o.value = ex; o.textContent = ex;
+    o.value = ex; o.textContent = expressionLabel(ex);
     sel.appendChild(o);
   }
   // 以前の選択値を復元（選択肢に存在する場合のみ）
@@ -9354,9 +9359,9 @@ function renderV2Detail(turn) {
     const expression = document.createElement("select"); expression.className = "field-select";
     v2Option(expression, "", "表情: 継承/既定");
     const expressionNames = v2ExpressionNamesForInstance(state.definition);
-    for (const name of expressionNames) v2Option(expression, name, `表情: ${name}`);
+    for (const name of expressionNames) v2Option(expression, name, `表情: ${expressionLabel(name)}`);
     if (state.expression && !expressionNames.includes(state.expression)) {
-      v2Option(expression, state.expression, `表情: ${state.expression}（素材なし）`);
+      v2Option(expression, state.expression, `表情: ${expressionLabel(state.expression)}（素材なし）`);
       expression.lastElementChild.disabled = true;
     }
     expression.value = state.expression || "";
@@ -10277,7 +10282,7 @@ function renderInsertFields(insert) {
     ];
     const EXPRESSION_OPTIONS = [
       { value: "", label: "自動（真顔）" },
-      ...sortedStrings(meta.expressions).map((v) => ({ value: v, label: v })),
+      ...sortedStrings(meta.expressions).map((v) => ({ value: v, label: expressionLabel(v) })),
     ];
     const ANIMATION_OPTIONS = [
       { value: "step", label: "step（1項目ずつ表示・推奨）" },
@@ -12668,6 +12673,7 @@ async function refreshExpressions() {
     const r = await fetch("/api/meta");
     const m = await r.json();
     meta.expressions = m.expressions;
+    meta.expressionLabels = m.expressionLabels || {};
     const prevExpr = selectedIdx >= 0 ? (storyData.script[selectedIdx].expression || "") : "";
     _buildExpressionOptions(prevExpr);
     buildBulkExpressionSelect();

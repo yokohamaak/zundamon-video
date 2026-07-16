@@ -34,6 +34,8 @@ type Manifest = Record<string, string>;
 
 // 表情設定（expressions.json の 1エントリ）。
 export type ExpressionCfg = {
+  // UI表示用の和名。描画には使わない。
+  label?: string | null;
   // 聞き役(非話者)になったときに切り替える表情キー（引き継ぎ先）。
   // 未設定なら従来既定＝surprise/panicはnormalへ、他はそのまま保持。
   holdAs?: string | null;
