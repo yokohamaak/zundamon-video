@@ -671,8 +671,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const metrics = texts.map((text) => bubbleMetricsV2(text, displaySettings.bubble.fontSize, width * 0.48, charLimit));
         const stacked = texts.length > 1;
         const groupWidth = metrics.reduce((largest, item) => Math.max(largest, item.width), 120);
-        const screenX = targetTransform
-          ? targetTransform.tx + speakerPosition.x * width * targetTransform.scale
+        const bubbleTransform = cameraTurnIndex !== turnIndex ? previousTransform : targetTransform;
+        const screenX = bubbleTransform
+          ? bubbleTransform.tx + speakerPosition.x * width * bubbleTransform.scale
           : speakerPosition.x * width;
         const side = screenX >= width * 0.52 ? "right" : "left";
         const groupCenterX = clamp(screenX, groupWidth / 2 + 20, width - groupWidth / 2 - 20);
