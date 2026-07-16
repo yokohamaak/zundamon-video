@@ -66,6 +66,12 @@ function stageTransform(width: number, height: number, frame: {cx: number; cy: n
   return `translate(${tx}px, ${ty}px) scale(${scale})`;
 }
 
+function mediaStaticSrc(path: string): string {
+  const qidx = path.indexOf("?");
+  if (qidx < 0) return staticFile(path);
+  return `${staticFile(path.slice(0, qidx))}${path.slice(qidx)}`;
+}
+
 export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   story,
   scenes,
@@ -85,7 +91,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
 
   if (!scene) {
     return <AbsoluteFill style={{background: "#1b1b1f", color: "white", alignItems: "center", justifyContent: "center", fontSize: 42}}>
-      {audio ? <Audio src={staticFile(audio)} /> : null}
+      {audio ? <Audio src={mediaStaticSrc(audio)} /> : null}
       未登録シーン: {state.scene}
     </AbsoluteFill>;
   }
@@ -249,7 +255,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
 
   return (
     <AbsoluteFill style={{background: "#111", overflow: "hidden"}}>
-      {audio ? <Audio src={staticFile(audio)} /> : null}
+      {audio ? <Audio src={mediaStaticSrc(audio)} /> : null}
       {state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
         <WhiteboardExplainInsert
           config={state.displayMode.whiteboard}
