@@ -661,11 +661,19 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
         const visibleCount = usingContinuation ? texts.length : visibleSentenceGroupCount(turn, seconds);
         const charLimit = turn.bubbleMaxChars ?? displaySettings.bubble.maxChars;
-        return <div style={{position: "absolute", zIndex: 30, left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10}}>
-          {texts.map((text, index) => {
-            const metrics = bubbleMetricsV2(text, displaySettings.bubble.fontSize, width * 0.48, charLimit);
-            return <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics.width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: "center", whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)"}}>{metrics.text}</div>;
-          })}
+        const metrics = texts.map((text) => bubbleMetricsV2(text, displaySettings.bubble.fontSize, width * 0.48, charLimit));
+        const stacked = texts.length > 1;
+        const groupWidth = metrics.reduce((largest, item) => Math.max(largest, item.width), 120);
+        const screenX = targetTransform
+          ? targetTransform.tx + speakerPosition.x * width * targetTransform.scale
+          : speakerPosition.x * width;
+        const side = screenX >= width * 0.52 ? "right" : "left";
+        const groupCenterX = clamp(screenX, groupWidth / 2 + 20, width - groupWidth / 2 - 20);
+        const bubbleStepX = side === "right" ? -18 : 18;
+        return <div style={stacked
+          ? {position: "absolute", zIndex: 30, left: groupCenterX, top: height * 0.95, width: groupWidth, transform: "translate(-50%, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start", gap: 6}
+          : {position: "absolute", zIndex: 30, left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10}}>
+          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: stacked ? side : "center", whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
         </div>;
       })() : null}
     </AbsoluteFill>
