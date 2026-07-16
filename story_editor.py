@@ -549,6 +549,28 @@ def _load_scenes_detail():
     return out
 
 
+def _load_scenes_detail_v2():
+    """V2 scene定義（layouts.standard.slots / cameraPresets）からプロンプト用情報を返す。"""
+    library = _load_scene_library()
+    out = []
+    for key, scene in (library.get("scenes") or {}).items():
+        if not isinstance(scene, dict):
+            continue
+        slots = ((scene.get("layouts") or {}).get("standard") or {}).get("slots") or {}
+        out.append({
+            "key": key,
+            "label": scene.get("label") or key,
+            "figure": scene.get("figure", "bust"),
+            "slots": [
+                name + ("（重なり可・zIndex必須）" if isinstance(slot, dict) and slot.get("allowOverlap") else "")
+                for name, slot in slots.items()
+            ],
+            "slotIds": list(slots.keys()),
+            "cameraPresets": list((scene.get("cameraPresets") or {}).keys()),
+        })
+    return out
+
+
 def _load_scene_library():
     """保存時のv2 validatorへ渡す、要約していないscene JSON。"""
     if not os.path.exists(SCENES_JSON):
@@ -839,6 +861,260 @@ def _build_script_prompt(theme, length, notes, mode="safe",
     return "\n".join(parts)
 
 
+def _build_script_prompt_v2(theme, length, notes, mode="safe",
+                            custom_world="", custom_example="", extra_rules=""):
+    """V2台本（schemaVersion: 2）用のAIプロンプトを組み立てて返す。
+
+    stage_schema.validate_story_v2 がそのまま受け入れるJSONを出させることが目的。
+    validatorの不変条件（在席簿・slot参照・旧キー拒否）を書き方ルールとして明文化する。
+    mode="experimental" では新演出・新シーンの考案を _proposals 限定で促す。
+    """
+    experimental = (mode == "experimental")
+    world = (custom_world or "").strip() or _load_story_world()
+    theme = (theme or "").strip() or "（ここに物語の題材・あらすじを入れてください）"
+    length = (length or "").strip() or "5〜10分・全体で30〜60ターンほど（起承転結のある一話）"
+    notes = (notes or "").strip() or "特になし"
+    extra_rules = (extra_rules or "").strip()
+
+    scenes = _load_scenes_detail_v2()
+    if scenes:
+        scene_lines = "\n".join(
+            "- %s … %s（%s / slot: %s / 構図プリセット: %s）" % (
+                s["key"], s["label"],
+                "全身" if s["figure"] == "full" else "バスト",
+                ", ".join(s["slots"]) or "なし",
+                ", ".join(s["cameraPresets"]) or "default",
+            ) for s in scenes
+        )
+        first = scenes[0]
+    else:
+        scene_lines = "-（シーン未登録。先にシーンエディタで作成してください）"
+        first = {"key": "office", "slotIds": []}
+
+    expr_list = ", ".join(_load_expression_keys())
+    mob_lines = []
+    for name, mob in _load_mobs().items():
+        images = mob.get("images") if isinstance(mob, dict) else {}
+        supported = [
+            expr for expr, pair in (images or {}).items()
+            if isinstance(pair, dict) and pair.get("closed") and pair.get("open")
+        ]
+        mob_lines.append("- %s（使える表情: %s）" % (name, ", ".join(supported) or "normal"))
+    voices = list(make_story_audio.load_voice_profiles().keys())
+    narrator_voice = "棒読み男" if "棒読み男" in voices else None
+
+    slot_ids = first.get("slotIds") or []
+    place_a = ('{"mode": "slot", "slotId": "%s"}' % slot_ids[0]) if slot_ids \
+        else '{"mode": "manual", "origin": {"x": 0.3, "y": 0.96}}'
+    place_b = ('{"mode": "slot", "slotId": "%s"}' % slot_ids[1]) if len(slot_ids) > 1 \
+        else '{"mode": "manual", "origin": {"x": 0.7, "y": 0.96}}'
+
+    example_lines = [
+        '{',
+        '  "schemaVersion": 2,',
+        '  "title": "【新人奮闘】ずんだもん、初めての障害対応【アニメ】",',
+        '  "instances": {',
+        '    "zundamon": {"characterId": "zundamon", "voiceId": "zundamon", "label": "ずんだもん"},',
+        '    "metan": {"characterId": "metan", "voiceId": "metan", "label": "四国めたん"}'
+        + (',' if narrator_voice else ''),
+    ]
+    if narrator_voice:
+        example_lines.append(
+            '    "narrator": {"role": "voiceOnly", "voiceId": "%s", "label": "ナレーション"}' % narrator_voice)
+    example_lines += [
+        '  },',
+        '  "script": [',
+    ]
+    if narrator_voice:
+        example_lines.append(
+            '    { "speaker": "narrator", "text": "これは、ある新人の物語である。", "scene": "%s",'
+            ' "caption": {"text": "― ある日の午後 ―"} },' % first["key"])
+    example_lines += [
+        '    { "speaker": "zundamon", "text": "今日こそ定時で帰るのだ！", "scene": "%s",' % first["key"],
+        '      "stage": { "enter": [{"instanceId": "zundamon", "placement": %s}],' % place_a,
+        '                 "update": {"zundamon": {"expression": "happy", "pose": "cheer"}},',
+        '                 "framing": {"mode": "speaker"} } },',
+        '    { "speaker": "metan", "text": "あら、フラグを立てたわね。", "scene": "%s",' % first["key"],
+        '      "stage": { "enter": [{"instanceId": "metan", "placement": %s, "animation": {"direction": "right"}}],' % place_b,
+        '                 "framing": {"mode": "speaker"} } },',
+        '    { "speaker": "zundamon", "text": "な、なんで不吉なことを言うのだ！？", "scene": "%s",' % first["key"],
+        '      "effects": {"impactLines": true},',
+        '      "stage": { "update": {"zundamon": {"expression": "panic", "pose": "recoil"}},',
+        '                 "cameraMotion": {"shake": {"strength": 10, "duration": 0.4}} } }',
+        '  ]',
+        '}',
+    ]
+    example = (custom_example or "").strip() or "\n".join(example_lines)
+
+    parts = [
+        "あなたは「ずんだもん」と「四国めたん」が登場するストーリー（会話劇）動画の脚本家です。",
+        "下記の【題材】をもとに、専用ツールでそのまま読み込めるV2形式のJSON台本（物語）を作成してください。",
+        "",
+        "━━━ 入力 ━━━",
+        "【題材・あらすじ】",
+        theme,
+        "",
+        "【長さ・構成の目安】",
+        length,
+        "",
+        "【トーン・補足】",
+        notes,
+        "",
+        "━━━ 世界観・キャラクター・シリーズ設定（厳守）━━━",
+        world if world else
+        "- 株式会社ずんだシステムズ（IT何でも屋）。ずんだもん(新人)＝主人公、四国めたん(先輩)＝導く役。",
+        "",
+        "━━━ 書き方の方針 ━━━",
+        "- これは解説動画ではなく『ストーリー（会話劇）』。上の世界観・キャラ設定・お約束に沿って一話完結の物語を書く。",
+        "- 上記キャラの口調・性格を厳守（ずんだもん=「〜のだ」善意の暴走、めたん=冷静・答えは教えずヒント）。",
+        "- 場面転換(scene)・登場/退場(stage.enter/exit)・表情(stage.update)・演出(effects)で物語を演出する。",
+        "- 1ターンは1〜2文。地の文はナレーション（voiceOnly個体）以外に使わず、すべてセリフ（text）で進める。教訓は短く・最後は軽いオチ。",
+        "",
+        "━━━ 出力の全体構造（V2形式）━━━",
+        '{ "schemaVersion": 2, "title": "動画タイトル", "instances": { 登場人物定義 }, "script": [ ターン, ... ]'
+        + (', "_proposals": [ ... ] }' if experimental else " }"),
+        "- schemaVersion は必ず数値の 2。旧形式（speaker直書き＋演出キー平置き）では絶対に書かない。",
+        "- bgm / overlays / displaySettings / idleFace / audio は書かない（エディタ側で管理する）。",
+        "",
+        "━━━ 登場人物（instances）の定義 ━━━",
+        '- instances のキー＝個体ID。script の speaker や stage の操作対象はすべてこのIDで指す。',
+        '- 画面に出す人物: {"characterId": "素材ID", "voiceId": "声ID", "label": "表示名(任意)"}',
+        '- 声だけの人物（ナレーション・電話越し等）: {"role": "voiceOnly", "voiceId": "声ID"}。characterId は書かない。画面には出せない。',
+        "- 同じ素材を複数人として使ってよい（例: \"営業A\" と \"営業B\" が同じ characterId を持つ）。",
+        "",
+        "【characterId に使える素材ID】",
+        "- zundamon … ずんだもん（主人公・立ち絵）",
+        "- metan … 四国めたん（先輩・立ち絵）",
+        "\n".join(mob_lines) if mob_lines else "-（モブ未登録）",
+        "",
+        "【voiceId に使える声ID（完全一致でコピー。翻訳・簡体字化・別名化は禁止）】",
+        "- " + " / ".join(voices),
+        "",
+        ("━━━ シーン（scene の値・既存のみ使用可。新シーン案は _proposals へ）━━━" if experimental
+         else "━━━ 使えるシーン（scene に使う値。リスト以外は使用不可）━━━"),
+        scene_lines,
+        "※ scene は各ターンの背景。slot はそのシーンで人物を置ける立ち位置の名前。",
+        "",
+        "━━━ 舞台操作（stage）のルール【最重要・検証で機械的に拒否される】━━━",
+        '- 登場: "stage": {"enter": [{"instanceId": "個体ID", "placement": {"mode":"slot","slotId":"スロット名"},'
+        ' "animation": {"direction": "auto"|"left"|"right"|"up"|"down"|"instant"}}]}。animation は省略可。',
+        "- 画面に出したい人物は必ず enter で登場させる。speaker にしただけでは画面に出ない（声だけになる）。",
+        '- 退場: "stage": {"exit": [{"instanceId": "個体ID", "animation": {"direction": "left"}}]}（文字列だけの "exit": ["個体ID"] も可）。',
+        '- 状態変更: "stage": {"update": {"個体ID": {"expression": "表情", "pose": "ポーズ", "face": "left"|"right",'
+        ' "flip": true, "placement": {...}}}}。話者以外の人物も変えられる。',
+        "- 在席簿の整合を必ず守る: すでに登場中の人物を再度 enter しない / 登場していない人物を exit・update しない / voiceOnly の人物は enter できない。",
+        "- scene が変わると全員の登場状態はリセットされる。新しい scene の最初のターンで、映したい人物を全員 enter し直すこと。",
+        "- 同じ slot に同時に2人置かない（「重なり可」と書かれた slot だけ例外で、その場合は各人物の update に zIndex を指定する）。",
+        '- 手動配置: "placement": {"mode": "manual", "origin": {"x": 0.5, "y": 0.96}}（x/y は画面比率0〜1、足元基準）。通常は slot を使う。',
+        "",
+        "━━━ カメラのルール ━━━",
+        '- 構図: "stage": {"framing": {"mode": "speaker"}} … 話者の立ち位置に応じた構図プリセットへ寄せる（話者が登場中のターンのみ有効）。',
+        '- その他の framing: {"mode": "sceneDefault"}（引き） / {"mode": "slot", "slotId": "スロット名"}（特定位置へ寄せる） /'
+        ' {"mode": "manual", "frame": {"cx": 0.5, "cy": 0.5, "width": 0.8}}（例外カット用）。',
+        "- framing は次のターンへ継承される。構図を戻したいターンで sceneDefault を明示する。",
+        '- 動き: "stage": {"cameraMotion": {"zoom": 0.15, "pan": {"x": 0.05, "y": 0}, "tilt": 4,'
+        ' "shake": {"strength": 10, "duration": 0.4}}} … そのターンだけの演出。継承されない。構図と混ぜない。',
+        '- "cameraTransition": "cut" は構図を即切り替えしたい例外だけに使う。未指定なら smooth（滑らかに移動）。',
+        "",
+        "━━━ 表情・ポーズ（stage.update で指定）━━━",
+        "【zundamon / metan の expression】" + expr_list,
+        '【pose】idle / cheer / recoil / lean / droop / flustered / proud / step_in / step_back / listening / sneak / wobble / point',
+        "※ モブの expression は上の素材一覧に書かれた名前のみ。無い表情を指定すると取り込みに失敗する。",
+        "",
+        "━━━ セリフ・吹き出し・音（turn直下・任意）━━━",
+        '- "pause": 0.5 … その台詞の後に入れる無音秒（間）',
+        '- "noLipSync": true … この行だけ口パクしない（心の声・モノローグ向け）',
+        '- "hideCharacters": true … この行では立ち絵を表示しない（登場状態は維持される）',
+        '- "hideBubble": true … この行では吹き出しだけ表示しない（音声は出る）',
+        '- "subtitleMode": "subtitle" … 吹き出しではなく画面下の字幕帯で出す',
+        '- "subtitleStyle": {"fontSize":46,"textColor":"#ffffff","boxBorder":true,"boxBorderColor":"#ffffff","boxBorderWidth":2.0} … 字幕モード時だけの見た目上書き',
+        '- "continueBubble": true … 直前の同話者セリフを上段に残して多段吹き出しにする（吹き出し分割用。単なる改行には使わない）',
+        '- "disableAutoBubbleSplit": true … 句点や ! ? があってもこの行だけ吹き出し自動分割を止める',
+        '- "bubbleMaxChars": 20 … この行だけ吹き出しの折り返し文字数を上書き（通常は不要）',
+        '- "se": [{"file":"se/alarm.mp3","at":0.0,"volume":0.9}] … この行だけ鳴らす手動SE',
+        '- text に "\\n" を入れる … 同じ吹き出しの中で改行する。別の吹き出しにしたい時は turn 自体を分ける。',
+        "",
+        "━━━ テロップ（caption・任意）━━━",
+        '- "caption": {"text": "― 前日 ―"} … 画面隅に出る短い場面ラベル。時代・場所の提示に使う。',
+        '- 位置・大きさを変えたい時だけ {"text": "...", "x": 0.05, "y": 0.06, "size": 1.2} と書く。',
+        "- 連続するターンに同じ caption を書くと1つのラベルとして出続ける。",
+        "",
+        "━━━ 画面演出（effects・任意。付けると良くなる）━━━",
+        '- "effects": {"impactLines": true} … 漫画の集中線（驚き・発覚・ツッコミの瞬間に）',
+        '- "effects": {"zoomPunch": true} … 話し始めに一瞬強く寄って戻る強調（短く鋭い）',
+        '- "effects": {"quoteFreeze": true} … 画面を暗くしてそのターンの text を大きな引用カードで見せる（名言・宣言向け）',
+        '- "effects": {"flashback": true} … 回想（彩度が落ちる。caption と併用推奨。回想の間、連続ターンすべてに付ける）',
+        '- "effects": {"visionNoise": {"type": "future"}} … 映像ノイズ。type は future（未来視）/ snow（砂嵐）/ vhs（VHS・防犯カメラ）/ glitch（デジタル異常）',
+        '- "effects": {"irisOut": true} … 円が閉じて暗転する締め演出。話の最後のターンでのみ使う。',
+        '- 細かい調整が必要な時だけ true の代わりに object を書く（例: {"impactLines": {"enabled": true, "cx": 0.4, "cy": 0.5}}）。通常は true でよい。',
+        "- 複数併用可（例: flashback + visionNoise で色あせた記録映像）。",
+        "",
+        "━━━ 表示種別（displayMode・任意）━━━",
+        "- 省略すると通常の舞台表示。displayMode は次のターンへ継承されないので、続けたいターンには毎ターン同じ displayMode を書く。",
+        '- ホワイトボード解説: "displayMode": {"kind": "whiteboard", "presenterId": "metan", "whiteboard": {"title": "...", "theme": "...",'
+        ' "sections": [{"heading": "...", "bullets": ["...", "..."]}, {…}, {…}], "conclusion": "...", "layout": "default"}}。'
+        ' sections は必ず3件。presenterId は登場中の個体のみ（省略すると立ち絵なし）。',
+        '- ビデオ会議: "displayMode": {"kind": "zunMeet", "zunMeet": {"room": "定例会議", "layout": "focus",'
+        ' "participants": [{"instanceId": "zundamon"}, {"instanceId": "metan", "muted": true}]}}。participants は1〜4件・instances のID。',
+        "- 特殊表示の間も stage の enter/exit/update は裏で効き、通常表示に戻ると反映されている。",
+        "",
+        "━━━ 旧形式のキー【絶対に書かない・検証で拒否される】━━━",
+        "- speakerAnchor / manualPos / focusSpeaker / manualCameraFrame / cameraEffects / cameraEffectSettings / zoomTarget / cameraCenter / emphasis",
+        "- enter / exit / enterDir / exitDir を turn 直下に書く（登場退場は必ず stage の中に書く）",
+        "- expression / pose / face を turn 直下に書く（必ず stage.update の中に書く）",
+        "- telop / telopX / telopY / telopSize（caption を使う） / insert（displayMode を使う） / narrationVoice / voice（instances の voiceId を使う）",
+        "- flashback / visionNoise / impactLines / zoomPunch / quoteFreeze / irisOut / stampRain / typingFlood / sparkleBurst を turn 直下に書く（対応済みの演出は effects の中に書く）",
+        '- transition は "cut" のみ可。fade / wipe / slide 系は存在しない。',
+        "- 上記以外でも、このプロンプトに書かれていないキーは検証エラーで取り込めない。",
+    ]
+
+    if extra_rules:
+        parts += [
+            "",
+            "━━━ 追加ルール（ユーザー指定・優先）━━━",
+            extra_rules,
+        ]
+
+    if experimental:
+        parts += [
+            "",
+            "━━━ 新しい演出の提案（このモードの主目的）━━━",
+            "- この動画に効果的だと思う『今は無い新しい演出・新しいシーン』を自由に考案してよい。",
+            "- ただしV2の検証は未知のキー・未知のsceneを拒否するため、script 本体は既存のシーン・キーだけで書くこと。",
+            '- 新演出・新シーンの案は、script には入れずトップレベルの "_proposals" 配列にだけまとめる:',
+            '    "_proposals": [',
+            '      { "type": "effect", "name": "colorFlash", "desc": "画面全体が一瞬色付きで光る", "example": {"effects": {"colorFlash": {"color": "#ff0000"}}} },',
+            '      { "type": "scene",  "name": "night_street", "desc": "夜の街並み（全身）" }',
+            '    ]',
+            "- 案に頼らなくても成立するよう、script 本体は既存機能だけで完結させる。",
+        ]
+
+    parts += [
+        "",
+        "━━━ 出力フォーマット（厳守）━━━",
+        "- 出力は厳密な JSON のみ（```json ... ``` で囲ってよい）。JSON 以外の説明文は書かない。",
+        "- script 配列の要素外に calendar_event などのラベル、注釈、ツール呼び出し風の語を絶対に書かない。",
+        "- 各ターンの必須キー: speaker, text, scene。どのターンでも scene を省略しない。speaker は instances のIDのみ。",
+        "- id / start / end / sentences / audio は書かない（ツールが自動生成する）。",
+        "- 出力直前に自己検査する: JSON.parse可能か / schemaVersion が 2 か / 全ターンの speaker が instances にあるか /"
+        " scene・slot・characterId・voiceId が許可リスト内か / enter していない人物を exit・update していないか /"
+        " scene 切替直後に必要な人物を enter し直しているか / 旧形式のキーが混ざっていないか。",
+        "",
+        "━━━ 出力例（最小）━━━",
+        example,
+        "",
+        "では、上記の【題材】をもとに物語の台本JSONを作成してください。まずタイトルを決め、導入から山場・結末まで一本の物語として構成すること。",
+    ]
+    return "\n".join(parts)
+
+
+def _script_prompt_builder():
+    """現在編集中の台本のschemaに合わせたプロンプト生成関数を返す。"""
+    if _load_story().get("schemaVersion") == 2:
+        return _build_script_prompt_v2
+    return _build_script_prompt
+
+
 # ツールが現在対応しているターンのキー（これ以外＝新演出として検出）
 _KNOWN_TURN_FIELDS = {
     "id", "speaker", "text", "scene", "expression", "pose", "enter", "enterDir", "face", "faceMode", "clearFace",
@@ -909,6 +1185,14 @@ def _import_script_text(raw):
     if not isinstance(data, dict) or not isinstance(data.get("script"), list):
         return False, "script 配列が見つかりません", {}
     is_v2 = data.get("schemaVersion") == 2
+    # V2台本の編集中に旧形式を取り込むと、V2台本ごと旧形式で上書きされて
+    # エディタも旧UIへ戻ってしまう。事故防止として保存前に拒否する。
+    if not is_v2 and _load_story().get("schemaVersion") == 2:
+        return False, (
+            "現在編集中の台本はV2形式（schemaVersion: 2）ですが、貼り付けられたJSONは旧形式です。"
+            "取り込むとV2台本が旧形式で上書きされるため中止しました。"
+            "外部AIで schemaVersion: 2 の形式へ変換してから取り込んでください"
+        ), {}
 
     existing_scenes = set(_load_scenes_keys())
     existing_expr = set(_load_expression_keys())
@@ -960,6 +1244,9 @@ def _import_script_text(raw):
 
     proposals = data.get("_proposals") if isinstance(data.get("_proposals"), list) else []
     data.pop("audio", None)
+    # v2 validatorは未知のトップレベルキーを拒否するため、提案リストは保存前に外す。
+    if is_v2:
+        data.pop("_proposals", None)
     try:
         _save_story(data)  # ここで speaker/text/scene の検証も走る
     except ValueError as ex:
@@ -1473,7 +1760,7 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
             try:
                 params = json.loads(body.decode("utf-8")) if body else {}
-                prompt = _build_script_prompt(
+                prompt = _script_prompt_builder()(
                     params.get("theme"), params.get("length"), params.get("notes"),
                     params.get("mode", "safe"),
                     params.get("customWorld", ""),

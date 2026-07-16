@@ -260,6 +260,111 @@ def test_import_v2_story_keeps_stage_and_instance_references():
     print("  import: v2個体/stageを未知項目・未知話者扱いせず保存する: OK")
 
 
+def test_prompt_v2_mentions_v2_contract():
+    with tempfile.TemporaryDirectory() as tmp:
+        scenes_path = os.path.join(tmp, "story-scenes.json")
+        with open(scenes_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "schemaVersion": 2,
+                "scenes": {"office": {"label": "オフィス", "layouts": {"standard": {"slots": {
+                    "speakerLeft": {"origin": {"x": 0.3, "y": 0.95}},
+                    "speakerRight": {"origin": {"x": 0.7, "y": 0.95}},
+                }}}, "cameraPresets": {"default": {"cx": 0.5, "cy": 0.5, "width": 1}}}},
+            }, f, ensure_ascii=False)
+        old_scenes = se.SCENES_JSON
+        try:
+            se.SCENES_JSON = scenes_path
+            prompt = se._build_script_prompt_v2("題材", "5分", "補足")
+        finally:
+            se.SCENES_JSON = old_scenes
+    for token in (
+        '"schemaVersion": 2',
+        '"instances"',
+        '"enter"',
+        '"exit"',
+        '"update"',
+        '"slotId"',
+        '"framing"',
+        '"cameraMotion"',
+        '"cameraTransition"',
+        '"displayMode"',
+        '"caption"',
+        '"effects"',
+        "voiceOnly",
+        "speakerLeft",
+        "在席簿",
+        "旧形式のキー",
+        "JSON.parse",
+    ):
+        assert token in prompt, f"{token} がV2プロンプトに無い"
+    # 旧形式キーは「禁止リスト」としてだけ登場し、使い方としては案内しない。
+    for legacy in ('"focusSpeaker": true', '"speakerAnchor":', '"telop":', '"enterDir":', '"insert":'):
+        assert legacy not in prompt, f"旧形式の使い方 {legacy} がV2プロンプトに残っている"
+    print("  V2プロンプトがV2契約を案内し旧形式を案内しない: OK")
+
+
+def test_prompt_v2_example_is_importable():
+    """プロンプトが教える出力例そのものが、実データの検証を通って取り込めること。"""
+    prompt = se._build_script_prompt_v2("題材", "5分", "補足")
+    marker = "━━━ 出力例（最小）━━━\n"
+    start = prompt.index(marker) + len(marker)
+    end = prompt.index("\n\nでは、上記の【題材】", start)
+    example = prompt[start:end]
+    with tempfile.TemporaryDirectory() as tmp:
+        old_story = se.STORY_JSON
+        try:
+            se.STORY_JSON = os.path.join(tmp, "story-01.json")
+            ok, msg, info = se._import_script_text(example)
+            assert ok, f"V2プロンプトの出力例が取り込めない: {msg}"
+            assert info["turns"] >= 3
+        finally:
+            se.STORY_JSON = old_story
+    print("  V2プロンプトの出力例が実データでそのまま取込可能: OK")
+
+
+def test_prompt_builder_dispatches_by_schema():
+    with tempfile.TemporaryDirectory() as tmp:
+        story_path = os.path.join(tmp, "story-01.json")
+        old_story = se.STORY_JSON
+        try:
+            se.STORY_JSON = story_path
+            assert se._script_prompt_builder() is se._build_script_prompt, "台本なし→旧ビルダーのはず"
+            with open(story_path, "w", encoding="utf-8") as f:
+                json.dump({"schemaVersion": 2, "instances": {}, "script": []}, f)
+            assert se._script_prompt_builder() is se._build_script_prompt_v2, "V2台本→V2ビルダーのはず"
+        finally:
+            se.STORY_JSON = old_story
+    print("  プロンプト生成が台本schemaで切り替わる: OK")
+
+
+def test_import_rejects_legacy_script_while_editing_v2_story():
+    """V2台本の編集中に旧形式を取り込むと、V2台本ごと旧形式で上書きされる事故を防ぐ。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        story_path = os.path.join(tmp, "story-01.json")
+        current_v2 = {
+            "schemaVersion": 2,
+            "instances": {"hero": {"characterId": "zundamon", "voiceId": "zundamon"}},
+            "script": [{"id": "turn-0001", "speaker": "hero", "text": "現行データ", "scene": "office"}],
+        }
+        with open(story_path, "w", encoding="utf-8") as f:
+            json.dump(current_v2, f, ensure_ascii=False)
+        old_story = se.STORY_JSON
+        try:
+            se.STORY_JSON = story_path
+            raw = json.dumps({
+                "title": "旧形式ドラフト",
+                "script": [{"speaker": "zundamon", "text": "旧形式なのだ", "scene": "office"}],
+            }, ensure_ascii=False)
+            ok, msg, _info = se._import_script_text(raw)
+            assert not ok, "V2編集中の旧形式取込を通してしまった"
+            assert "V2形式" in msg and "旧形式" in msg, f"エラーメッセージが案内になっていない: {msg}"
+            saved = json.load(open(story_path, encoding="utf-8"))
+            assert saved == current_v2, "拒否したのに story-01.json が書き換わっている"
+        finally:
+            se.STORY_JSON = old_story
+    print("  import: V2編集中は旧形式の取込を拒否する: OK")
+
+
 if __name__ == "__main__":
     test_prompt_mentions_current_story_fields()
     test_import_recognizes_supported_story_fields()
@@ -268,4 +373,8 @@ if __name__ == "__main__":
     test_validate_story_rejects_broken_insert()
     test_validate_story_v2_resolves_instance_voice_ids()
     test_import_v2_story_keeps_stage_and_instance_references()
+    test_prompt_v2_mentions_v2_contract()
+    test_prompt_v2_example_is_importable()
+    test_prompt_builder_dispatches_by_schema()
+    test_import_rejects_legacy_script_while_editing_v2_story()
     print("OK")
