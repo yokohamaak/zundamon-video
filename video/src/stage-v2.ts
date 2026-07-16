@@ -250,6 +250,7 @@ export type SceneV2 = {
   bg?: string;
   bgVideo?: string;
   bgVideoLoop?: boolean;
+  bgBlur?: number;
   front?: string | null;
   figure?: "bust" | "full";
   layouts: {standard: StandardLayoutV2};

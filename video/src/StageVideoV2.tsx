@@ -1090,6 +1090,18 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         </div>
       );
     });
+  const bgBlur = clamp(Number(scene.bgBlur ?? 0), 0, 64);
+  const bgStyle = {
+    position: "absolute" as const,
+    inset: 0,
+    zIndex: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover" as const,
+    filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+    transform: bgBlur > 0 ? `scale(${1 + Math.min(bgBlur, 32) / 180})` : undefined,
+    transformOrigin: "center center",
+  };
 
   return (
     <AbsoluteFill style={{background: "#111", overflow: "hidden"}}>
@@ -1110,9 +1122,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
             <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
               {scene.bgVideo ? (
-                <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+                <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={bgStyle} />
               ) : scene.bg ? (
-                <Img src={staticFile(scene.bg)} style={{position: "absolute", inset: 0, zIndex: 0, width: "100%", height: "100%", objectFit: "cover"}} />
+                <Img src={staticFile(scene.bg)} style={bgStyle} />
               ) : null}
               <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
               {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}

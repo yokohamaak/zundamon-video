@@ -836,7 +836,7 @@ function syncV2LayoutUi() {
   document.getElementById('legacyFocusDyRow').style.display = v2 ? 'none' : '';
   document.getElementById('legacyMotionSection').style.display = v2 ? 'none' : '';
   document.getElementById('legacyScaleSection').style.display = v2 ? 'none' : '';
-  document.getElementById('legacyBgBlurSection').style.display = v2 ? 'none' : '';
+  document.getElementById('legacyBgBlurSection').style.display = '';
   document.getElementById('legacyCastSection').style.display = v2 ? 'none' : '';
   document.getElementById('legacyAnchorSection').style.display = v2 ? 'none' : '';
   document.getElementById('legacyMobSection').style.display = v2 ? 'none' : '';
@@ -2207,6 +2207,7 @@ function addScene() {
     label: id,
     bg: bgs[0] || '',
     front: null,
+    bgBlur: 0,
     figure: 'full',
     layouts: {
       standard: {

@@ -456,7 +456,7 @@ def validate_scene_library_v2(data):
         if not isinstance(scene_id, str) or not scene_id or not isinstance(scene, dict):
             _error("scenes", "scene IDとscene objectが必要です")
         scene_path = f"scenes.{scene_id}"
-        _only_keys(scene, {"label", "bg", "bgVideo", "bgVideoLoop", "front", "figure", "layouts", "cameraPresets"}, scene_path)
+        _only_keys(scene, {"label", "bg", "bgVideo", "bgVideoLoop", "bgBlur", "front", "figure", "layouts", "cameraPresets"}, scene_path)
         if "label" in scene and (not isinstance(scene["label"], str) or not scene["label"]):
             _error(f"{scene_path}.label", "省略または空でない文字列が必要です")
         bg = scene.get("bg")
@@ -469,6 +469,8 @@ def validate_scene_library_v2(data):
             _error(f"scenes.{scene_id}", "bg または bgVideo のどちらかが必要です")
         if "bgVideoLoop" in scene and not isinstance(scene["bgVideoLoop"], bool):
             _error(f"scenes.{scene_id}.bgVideoLoop", "true/falseが必要です")
+        if "bgBlur" in scene and (not _is_number(scene["bgBlur"]) or scene["bgBlur"] < 0):
+            _error(f"scenes.{scene_id}.bgBlur", "0以上の有限数値が必要です")
         if "front" in scene and scene["front"] is not None and (not isinstance(scene["front"], str) or not scene["front"]):
             _error(f"scenes.{scene_id}.front", "省略、null、または空でない文字列が必要です")
         if "figure" in scene and scene["figure"] not in {"bust", "full"}:
