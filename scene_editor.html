@@ -212,12 +212,18 @@
   /* アンカー点 */
   .anchor-dot {
     position: absolute;
-    width: 18px; height: 18px; border-radius: 50%;
+    width: 28px; height: 28px; border-radius: 50%;
     background: rgba(91,141,238,.9);
     border: 2px solid #fff;
     transform: translate(-50%, -50%);
     cursor: grab; z-index: 140;
+    touch-action: none;
     transition: transform .1s;
+  }
+  .anchor-dot::after {
+    content: "";
+    position: absolute;
+    inset: -34px;
   }
   .anchor-dot:hover { transform: translate(-50%,-50%) scale(1.4); }
   .anchor-dot.dragging { cursor: grabbing; transform: translate(-50%,-50%) scale(1.5); }
@@ -1658,10 +1664,12 @@ function encodePathSegs(path) {
 function setupDrag() {
   const wrap = document.getElementById('previewWrap');
 
-  wrap.addEventListener('mousedown', e => {
+  wrap.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || draggingFrame || draggingMob || dragging) return;
     const handle = e.target.closest('.camera-frame-handle');
     if (handle) {
       e.preventDefault();
+      wrap.setPointerCapture?.(e.pointerId);
       const sc = currentScene();
       if (!sc) return;
       const frame = normalizedCameraFrame(sc);
@@ -1673,6 +1681,7 @@ function setupDrag() {
       || Array.from(document.elementsFromPoint(e.clientX, e.clientY)).find(el => el.classList?.contains('mob-image'));
     if (mobEl) {
       e.preventDefault();
+      wrap.setPointerCapture?.(e.pointerId);
       const mobId = mobEl.dataset.mobId;
       // 選択状態にする
       selectedMobId = mobId;
@@ -1685,6 +1694,7 @@ function setupDrag() {
     const frameBox = e.target.closest('.camera-frame');
     if (frameBox) {
       e.preventDefault();
+      wrap.setPointerCapture?.(e.pointerId);
       const sc = currentScene();
       if (!sc) return;
       const frame = normalizedCameraFrame(sc);
@@ -1703,6 +1713,7 @@ function setupDrag() {
     const dot = e.target.closest('.anchor-dot');
     if (!dot) return;
     e.preventDefault();
+    wrap.setPointerCapture?.(e.pointerId);
     const name = dot.dataset.anchorName;
     dot.classList.add('dragging');
     const sc = currentScene();
@@ -1710,7 +1721,9 @@ function setupDrag() {
     dragging = { name, dot, v2GrabOffset: slot ? v2SlotGrabOffset(sc, name, slot) : 0 };
   });
 
-  window.addEventListener('mousemove', e => {
+  window.addEventListener('pointermove', e => {
+    if (!draggingFrame && !draggingMob && !dragging) return;
+    e.preventDefault();
     const wrap = document.getElementById('previewWrap');
     const rect = wrap.getBoundingClientRect();
     // 仮想カメラプレビュー中は逆変換でステージ座標へ戻す
@@ -1793,19 +1806,24 @@ function setupDrag() {
     }
   });
 
-  window.addEventListener('mouseup', () => {
+  const finishDrag = e => {
+    if (e?.pointerId != null && wrap.hasPointerCapture?.(e.pointerId)) {
+      wrap.releasePointerCapture(e.pointerId);
+    }
     if (draggingFrame) {
       draggingFrame = null;
     }
     if (draggingMob) {
       draggingMob = null;
-      // renderPreview は mousemove 内で済んでいるので追加呼び出し不要
+      // renderPreview は pointermove 内で済んでいるので追加呼び出し不要
     }
     if (dragging) {
       dragging.dot.classList.remove('dragging');
       dragging = null;
     }
-  });
+  };
+  window.addEventListener('pointerup', finishDrag);
+  window.addEventListener('pointercancel', finishDrag);
 }
 
 // ============================================================
