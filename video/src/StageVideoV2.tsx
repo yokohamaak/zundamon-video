@@ -209,6 +209,39 @@ function continuedBubbleRange(script: StageTurnV2[], activeIndex: number) {
   return {start, end: activeIndex};
 }
 
+function characterDisplayWidth(fontSize: number, character: string) {
+  if (character === "…") return fontSize * 1.02;
+  if (/[?!！？]/.test(character)) return fontSize * 0.9;
+  if (/[?!！？、。，．,.・…「」『』（）()[\]【】]/.test(character)) return fontSize * 0.74;
+  return fontSize * (/[\u0000-\u00ff\uff61-\uff9f\uffe8-\uffee]/.test(character) ? 0.58 : 1.03);
+}
+
+function bubbleMetricsV2(text: string, fontSize: number, maxWidth: number, charLimit: number | null) {
+  let budget = Math.max(40, maxWidth - 66);
+  if (charLimit) budget = Math.min(budget, Math.max(40, characterDisplayWidth(fontSize, "あ") * charLimit));
+  const lines: string[] = [];
+  let widest = 0;
+  for (const paragraph of String(text || "").split("\n").map((item) => item.replace(/\s+/g, ""))) {
+    let line = "";
+    let lineWidth = 0;
+    for (const character of paragraph) {
+      const characterWidth = characterDisplayWidth(fontSize, character);
+      if (line && lineWidth + characterWidth > budget) {
+        lines.push(line);
+        widest = Math.max(widest, lineWidth);
+        line = character;
+        lineWidth = characterWidth;
+      } else {
+        line += character;
+        lineWidth += characterWidth;
+      }
+    }
+    lines.push(line);
+    widest = Math.max(widest, lineWidth);
+  }
+  return {text: lines.join("\n"), width: Math.min(maxWidth, Math.max(120, widest + 86))};
+}
+
 function overlayAnchorTime(story: StoryV2, anchor: StoryOverlay["start"] | undefined) {
   if (!anchor?.turnId) return undefined;
   const turn = story.script.find((item) => item.id === anchor.turnId);
@@ -629,7 +662,10 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const visibleCount = usingContinuation ? texts.length : visibleSentenceGroupCount(turn, seconds);
         const charLimit = turn.bubbleMaxChars ?? displaySettings.bubble.maxChars;
         return <div style={{position: "absolute", zIndex: 30, left: `${speakerPosition.x * 100}%`, bottom: 36, maxWidth: width * 0.48, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10}}>
-          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", maxWidth: width * 0.48, padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere", boxShadow: "0 6px 18px rgba(0,0,0,.35)", ...(charLimit ? {maxWidth: `${Math.max(8, charLimit) + 4}em`} : {})}}>{text}</div>)}
+          {texts.map((text, index) => {
+            const metrics = bubbleMetricsV2(text, displaySettings.bubble.fontSize, width * 0.48, charLimit);
+            return <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics.width, boxSizing: "border-box", padding: "14px 22px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: displaySettings.bubble.fontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: "center", whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)"}}>{metrics.text}</div>;
+          })}
         </div>;
       })() : null}
     </AbsoluteFill>
