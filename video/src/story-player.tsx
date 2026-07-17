@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { StoryVideoRouter } from "./StoryVideoRouter";
@@ -202,9 +203,27 @@ function createStoryPlayerApi(options?: {
   let playerRef: PlayerRef | null = null;
   let setPropsState: React.Dispatch<React.SetStateAction<Props>> | null = null;
   let onPlayerReady: (() => void) | null = null;
+  let currentBgmSignature = "";
   const controls = options?.controls ?? true;
   const emitFrameEvents = options?.emitFrameEvents ?? true;
   const loadProps = options?.initialPropsLoader ?? loadInitialProps;
+
+  const setPropsSync = (updater: React.SetStateAction<Props>) => {
+    const setProps = setPropsState;
+    if (!setProps) return;
+    flushSync(() => {
+      setProps(updater);
+    });
+  };
+
+  const refreshAudioAtCurrentFrame = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const frame = playerRef?.getCurrentFrame();
+        if (typeof frame === "number") playerRef?.seekTo(frame);
+      });
+    });
+  };
 
   return {
     async mount(element) {
@@ -217,6 +236,7 @@ function createStoryPlayerApi(options?: {
       patchStaticFilePrefix();
 
       const initialProps = await loadProps();
+      currentBgmSignature = bgmSignature(initialProps.story);
 
       root = createRoot(element);
       await new Promise<void>((resolve) => {
@@ -243,13 +263,15 @@ function createStoryPlayerApi(options?: {
       root = null;
       playerRef = null;
       setPropsState = null;
+      currentBgmSignature = "";
     },
 
     updateStory(story) {
       if (!setPropsState) return;
-      let shouldRefreshAudio = false;
-      setPropsState((prev) => {
-        shouldRefreshAudio = bgmSignature(prev.story) !== bgmSignature(story);
+      const nextBgmSignature = bgmSignature(story);
+      const shouldRefreshAudio = nextBgmSignature !== currentBgmSignature;
+      currentBgmSignature = nextBgmSignature;
+      setPropsSync((prev) => {
         const duration = story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
         const prevDuration = prev.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0);
         const prevBase = (prev.audio || "").split("?")[0];
@@ -258,10 +280,7 @@ function createStoryPlayerApi(options?: {
         return { ...prev, story, audio, _duration: Math.max(duration, prevDuration) } as Props;
       });
       if (shouldRefreshAudio) {
-        requestAnimationFrame(() => {
-          const frame = playerRef?.getCurrentFrame();
-          if (typeof frame === "number") playerRef?.seekTo(frame);
-        });
+        refreshAudioAtCurrentFrame();
       }
     },
 
@@ -352,12 +371,22 @@ function createStoryPlayerApi(options?: {
         const scenes = scenesRes.ok ? await scenesRes.json() : undefined;
         const story = storyRes.ok ? await storyRes.json() : undefined;
         const seMap = seRes.ok ? await seRes.json() : undefined;
-        setPropsState((prev) => ({
-          ...prev,
-          ...(scenes ? { scenes } : {}),
-          ...(story ? { story, audio: withAudioCacheBust(story.audio) ?? prev.audio } : {}),
-          ...(seMap ? { seMap } : {}),
-        } as Props));
+        let shouldRefreshAudio = false;
+        setPropsSync((prev) => {
+          const nextStory = story ?? prev.story;
+          const nextBgmSignature = bgmSignature(nextStory);
+          shouldRefreshAudio = nextBgmSignature !== currentBgmSignature;
+          currentBgmSignature = nextBgmSignature;
+          return {
+            ...prev,
+            ...(scenes ? { scenes } : {}),
+            ...(story ? { story, audio: withAudioCacheBust(story.audio) ?? prev.audio } : {}),
+            ...(seMap ? { seMap } : {}),
+          } as Props;
+        });
+        if (shouldRefreshAudio) {
+          refreshAudioAtCurrentFrame();
+        }
       } catch {
       }
     },
