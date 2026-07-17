@@ -3810,6 +3810,7 @@ async function init() {
     voiceProfiles = await voiceProfilesRes.json();
     expressionConfigs = await expressionRes.json();
     normalizeStoryTransitions(storyData);
+    normalizeV2Captions(storyData);
     normalizeStoryVoicePresets(storyData);
     normalizeStoryIdleFace(storyData);
     v2ResetHistory();
@@ -6337,6 +6338,32 @@ function normalizeStoryTransitions(data) {
         turn.transition = normalized;
         changed = true;
       }
+    }
+  }
+  return changed;
+}
+
+function normalizeV2Captions(data) {
+  if (!data || data.schemaVersion !== 2 || !Array.isArray(data.script)) return false;
+  let changed = false;
+  for (const turn of data.script) {
+    if (!turn || typeof turn !== "object") continue;
+    const hasCaption = typeof turn.caption?.text === "string" && turn.caption.text.trim();
+    const hasLegacyTelop = typeof turn.telop === "string" && turn.telop.trim();
+    if (!hasCaption && hasLegacyTelop) {
+      const caption = { text: turn.telop.trim() };
+      if (typeof turn.telopX === "number") caption.x = Math.max(0, Math.min(1, turn.telopX));
+      if (typeof turn.telopY === "number") caption.y = Math.max(0, Math.min(1, turn.telopY));
+      if (typeof turn.telopSize === "number") caption.size = Math.max(0.5, Math.min(3, turn.telopSize));
+      turn.caption = caption;
+      changed = true;
+    }
+    if ("telop" in turn || "telopX" in turn || "telopY" in turn || "telopSize" in turn) {
+      delete turn.telop;
+      delete turn.telopX;
+      delete turn.telopY;
+      delete turn.telopSize;
+      changed = true;
     }
   }
   return changed;
@@ -9555,7 +9582,16 @@ function renderV2Detail(turn) {
   document.getElementById("fV2SubtitleBoxBorder").checked = subtitleStyle.boxBorder ?? subtitleDefaults.border;
   document.getElementById("fV2SubtitleBoxBorderColor").value = subtitleStyle.boxBorderColor ?? subtitleDefaults.borderColor;
   document.getElementById("fV2SubtitleBoxBorderWidth").value = subtitleStyle.boxBorderWidth ?? subtitleDefaults.borderWidth;
-  const caption = turn.caption || {};
+  const caption = (turn.caption && typeof turn.caption.text === "string")
+    ? turn.caption
+    : (typeof turn.telop === "string" && turn.telop.trim()
+      ? {
+        text: turn.telop.trim(),
+        ...(typeof turn.telopX === "number" ? { x: turn.telopX } : {}),
+        ...(typeof turn.telopY === "number" ? { y: turn.telopY } : {}),
+        ...(typeof turn.telopSize === "number" ? { size: turn.telopSize } : {}),
+      }
+      : {});
   document.getElementById("fV2CaptionText").value = caption.text || "";
   document.getElementById("fV2CaptionX").value = caption.x ?? "";
   document.getElementById("fV2CaptionY").value = caption.y ?? "";
@@ -9822,6 +9858,10 @@ function collectV2Basic() {
   } else {
     delete turn.caption;
   }
+  delete turn.telop;
+  delete turn.telopX;
+  delete turn.telopY;
+  delete turn.telopSize;
   const effects = collectV2EffectsFromUi();
   if (Object.keys(effects).length) turn.effects = effects;
   else delete turn.effects;
@@ -11785,6 +11825,7 @@ function collectBasic() {
   if (exitDir) turn.exitDir = exitDir; else delete turn.exitDir;
 
   normalizeStoryTransitions(storyData);
+  normalizeV2Captions(storyData);
 
   markDirty();
   // 音声に影響する変更（話者/セリフ/間）なら「要・音声生成」にする。
@@ -12329,6 +12370,7 @@ function importStoryFromFile(file) {
       storyData = data;
       clearMultiSelection();
       normalizeStoryTransitions(storyData);
+      normalizeV2Captions(storyData);
       normalizeStoryVoicePresets(storyData);
       normalizeStoryIdleFace(storyData);
       v2ResetHistory();
@@ -12359,6 +12401,7 @@ async function saveStory() {
   // タイトル反映
   storyData.title = document.getElementById("storyTitle").value;
   normalizeStoryTransitions(storyData);
+  normalizeV2Captions(storyData);
   pruneAllTurnsForDisplayType();
   try {
     const r = await fetch("/api/story", {
@@ -12446,6 +12489,7 @@ async function generateAudio(confirmFirst = true) {
       storyData = await sres.json();
       clearMultiSelection();
       normalizeStoryTransitions(storyData);
+      normalizeV2Captions(storyData);
       normalizeStoryVoicePresets(storyData);
       v2ResetHistory();
       renderDisplaySettingsEditor();
@@ -13706,6 +13750,7 @@ function setupEvents() {
           storyData = await sRes.json();
           clearMultiSelection();
           normalizeStoryTransitions(storyData);
+          normalizeV2Captions(storyData);
           normalizeStoryVoicePresets(storyData);
           v2ResetHistory();
           renderDisplaySettingsEditor();

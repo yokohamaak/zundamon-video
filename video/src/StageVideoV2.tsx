@@ -337,13 +337,28 @@ function displaySettingsOf(settings?: StoryDisplaySettingsV2) {
   };
 }
 
+function captionOfTurn(turn: StageTurnV2 | undefined) {
+  const caption = turn?.caption;
+  if (caption?.text?.trim()) return caption;
+  if (!turn) return null;
+  const legacyText = turn.telop?.trim();
+  if (!legacyText) return null;
+  return {
+    text: legacyText,
+    ...(typeof turn.telopX === "number" ? {x: turn.telopX} : {}),
+    ...(typeof turn.telopY === "number" ? {y: turn.telopY} : {}),
+    ...(typeof turn.telopSize === "number" ? {size: turn.telopSize} : {}),
+  };
+}
+
 function captionVisualFor(script: StageTurnV2[], activeIndex: number, seconds: number) {
   const active = script[activeIndex];
-  if (!active?.caption?.text?.trim()) return null;
+  const activeCaption = captionOfTurn(active);
+  if (!activeCaption) return null;
   let startIndex = activeIndex;
-  while (startIndex > 0 && !!script[startIndex - 1]?.caption?.text?.trim()) startIndex -= 1;
+  while (startIndex > 0 && !!captionOfTurn(script[startIndex - 1])) startIndex -= 1;
   let endIndex = activeIndex;
-  while (endIndex < script.length - 1 && !!script[endIndex + 1]?.caption?.text?.trim()) endIndex += 1;
+  while (endIndex < script.length - 1 && !!captionOfTurn(script[endIndex + 1])) endIndex += 1;
   const start = script[startIndex]?.start ?? active.start;
   const last = script[endIndex] ?? active;
   const end = Math.max(last.end ?? active.end ?? seconds, script[endIndex + 1]?.start ?? last.end ?? active.end ?? seconds);
@@ -353,7 +368,7 @@ function captionVisualFor(script: StageTurnV2[], activeIndex: number, seconds: n
     if (seconds < start + fade) opacity = clamp((seconds - start) / fade, 0, 1);
     else if (seconds >= end - fade) opacity = clamp((end - seconds) / fade, 0, 1);
   }
-  return {caption: active.caption, opacity};
+  return {caption: activeCaption, opacity};
 }
 
 function hexToRgba(hex: string, opacity: number) {

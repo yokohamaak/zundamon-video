@@ -235,6 +235,11 @@ export type StageTurnV2 = {
   se?: TurnSe[];
   /** そのターンに画面上へ重ねる短い場面ラベル。 */
   caption?: CaptionV2;
+  /** 旧形式から残ったテロップ。保存時はcaptionへ正規化する。 */
+  telop?: string;
+  telopX?: number;
+  telopY?: number;
+  telopSize?: number;
   /** V2用の軽量画面演出。旧turn直下キーとは分離する。 */
   effects?: StageEffectsV2;
   /** 構図が変わるターンのカメラ接続。省略時は smooth。 */
