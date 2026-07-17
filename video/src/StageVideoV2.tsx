@@ -111,19 +111,21 @@ function sceneTransitionVisual(turn: StageTurnV2, seconds: number, stageWidth: n
     case "fade-black":
     case "fade-white":
       return {
+        kind: turn.transition,
+        progress: amount,
         cover: {
           color: turn.transition === "fade-white" ? "#fff" : "#000",
           opacity: 1 - amount,
         },
       };
     case "wipe-left":
-      return {contentStyle: {clipPath: `inset(0 ${(1 - amount) * 100}% 0 0)`}};
+      return {kind: turn.transition, progress: amount, contentStyle: {clipPath: `inset(0 ${(1 - amount) * 100}% 0 0)`}};
     case "wipe-right":
-      return {contentStyle: {clipPath: `inset(0 0 0 ${(1 - amount) * 100}%)`}};
+      return {kind: turn.transition, progress: amount, contentStyle: {clipPath: `inset(0 0 0 ${(1 - amount) * 100}%)`}};
     case "slide-left":
-      return {contentStyle: {transform: `translateX(${-stageWidth * (1 - amount)}px)`}};
+      return {kind: turn.transition, progress: amount, contentStyle: {transform: `translateX(${-stageWidth * (1 - amount)}px)`}};
     case "slide-right":
-      return {contentStyle: {transform: `translateX(${stageWidth * (1 - amount)}px)`}};
+      return {kind: turn.transition, progress: amount, contentStyle: {transform: `translateX(${stageWidth * (1 - amount)}px)`}};
     default:
       return null;
   }
@@ -1115,6 +1117,172 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     );
   };
 
+  const renderStaticPlateInstance = (
+    instance: ResolvedInstanceV2,
+    plateTurn: StageTurnV2,
+    plateScene: typeof scene,
+    mouthAmplitude: number,
+    keyPrefix: string,
+  ) => {
+    const origin = placementOrigin(instance.placement, plateScene.layouts.standard);
+    if (!origin) return null;
+    const slot = instance.placement.mode === "slot" ? plateScene.layouts.standard.slots[instance.placement.slotId] : undefined;
+    const scale = instance.placement.mode === "manual"
+      ? instance.placement.scale ?? 1
+      : slot?.scale ?? 1;
+    const zIndex = instance.zIndex ?? (instance.placement.mode === "manual"
+      ? instance.placement.zIndex ?? 0
+      : slot?.zIndex ?? 0);
+    const characterId = instance.definition.characterId;
+    if (!characterId) return null;
+    const main = MAIN_CHARACTERS[characterId];
+    const isSpeaker = instance.instanceId === plateTurn.speaker;
+
+    if (main) {
+      const fullFigure = plateScene.figure === "full";
+      const avatarDir = fullFigure ? `${main.avatar}/full` : main.avatar;
+      const manifestKey = fullFigure ? `${main.avatar}_full` : main.avatar;
+      const box = fullFigure ? fullBoxSize(main.avatar) : undefined;
+      const expression: ExpressionCfg | null = expressions?.[main.avatar]?.[instance.expression ?? "normal"]
+        ?? expressions?.[main.avatar]?.normal
+        ?? null;
+      const pose = instance.pose ? poses?.[main.avatar]?.[instance.pose] : undefined;
+      return (
+        <div key={`${keyPrefix}-${instance.instanceId}`} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: "translate(-50%, -100%)"}}>
+          <div style={{transform: `scale(${scale})`, transformOrigin: "bottom center"}}>
+            <Avatar
+              dir={avatarDir}
+              manifest={manifest?.[manifestKey]}
+              fallbackGender={main.gender}
+              active={isSpeaker}
+              activatedAtFrame={Math.round((plateTurn.start ?? 0) * fps)}
+              amplitude={isSpeaker ? mouthAmplitude : 0}
+              emotion="normal"
+              emotionAtFrame={Math.round((plateTurn.start ?? 0) * fps)}
+              expressive={!!main.expressive}
+              flip={resolvedFlip(instance, origin.x < 0.5)}
+              popScale={false}
+              expressionCfg={expression}
+              poseName={instance.pose as ExpressionCfg["pose"]}
+              poseArmStem={pose?.arm ?? null}
+              poseSpeed={pose?.speed ?? null}
+              poseStrength={pose?.strength ?? null}
+              boxWidth={box?.w}
+              boxHeight={box?.h}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    const mob = mobs?.[characterId];
+    const image = mobImageForState(mob, instance.expression, isSpeaker, mouthAmplitude);
+    if (!mob || !image) return null;
+    const flip = resolvedFlip(instance, mob.flip ?? (origin.x < 0.5));
+    return (
+      <div key={`${keyPrefix}-${instance.instanceId}`} style={{position: "absolute", left: origin.x * width, top: origin.y * height, zIndex, transform: "translate(-50%, -100%)"}}>
+        <div style={{transform: `scale(${flip ? -1 : 1}, 1)`, transformOrigin: "bottom center"}}>
+          <Img src={staticFile(image)} style={{height: 760 * (mob.scale ?? 1) * scale, width: "auto", display: "block"}} />
+        </div>
+      </div>
+    );
+  };
+
+  const renderStaticWhiteboardPresenter = (
+    plateTurn: StageTurnV2,
+    plateState: ReturnType<typeof resolveStageStateAtTurn>,
+    mouthAmplitude: number,
+  ) => {
+    if (plateState.displayMode.kind !== "whiteboard") return undefined;
+    const instance = plateState.instances[plateState.displayMode.presenterId ?? ""];
+    const characterId = instance?.definition.characterId;
+    const main = characterId ? MAIN_CHARACTERS[characterId] : undefined;
+    const mob = characterId ? mobs?.[characterId] : undefined;
+    if (!instance || (!main && !mob)) return undefined;
+    const layout = getWhiteboardExplainLayout(width, height, plateState.displayMode.whiteboard.layout === "compact" ? "compact" : "default");
+    const isSpeaker = instance.instanceId === plateTurn.speaker;
+    if (mob) {
+      const image = mobImageForState(mob, instance.expression, isSpeaker, mouthAmplitude);
+      if (!image) return undefined;
+      const flip = resolvedFlip(instance, mob.flip ?? false);
+      return <Img src={staticFile(image)} style={{position: "absolute", left: "50%", bottom: 0, width: "100%", height: "100%", objectFit: "contain", transform: `translateX(-50%) scaleX(${flip ? -1 : 1})`, transformOrigin: "bottom center"}} />;
+    }
+    if (!main) return undefined;
+    const expression: ExpressionCfg | null = expressions?.[main.avatar]?.[instance.expression ?? "normal"]
+      ?? expressions?.[main.avatar]?.normal
+      ?? null;
+    const pose = instance.pose ? poses?.[main.avatar]?.[instance.pose] : undefined;
+    return (
+      <div style={{position: "absolute", left: "50%", bottom: 0, transform: `translateX(-50%) scale(${layout.character.width / 445})`, transformOrigin: "bottom center"}}>
+        <Avatar
+          dir={main.avatar}
+          manifest={manifest?.[main.avatar]}
+          fallbackGender={main.gender}
+          active={isSpeaker}
+          activatedAtFrame={Math.round((plateTurn.start ?? 0) * fps)}
+          amplitude={isSpeaker ? mouthAmplitude : 0}
+          emotion="normal"
+          emotionAtFrame={Math.round((plateTurn.start ?? 0) * fps)}
+          expressive={!!main.expressive}
+          flip={resolvedFlip(instance)}
+          popScale={false}
+          expressionCfg={expression}
+          poseName={instance.pose as ExpressionCfg["pose"]}
+          poseArmStem={pose?.arm ?? null}
+          poseSpeed={pose?.speed ?? null}
+          poseStrength={pose?.strength ?? null}
+        />
+      </div>
+    );
+  };
+
+  const renderStaticZunMeet = (
+    plateTurn: StageTurnV2,
+    plateState: ReturnType<typeof resolveStageStateAtTurn>,
+    mouthAmplitude: number,
+  ) => {
+    if (plateState.displayMode.kind !== "zunMeet") return null;
+    const meeting = plateState.displayMode.zunMeet;
+    const requestedFocusId = meeting.activeSpeakerId ?? plateTurn.speaker;
+    const focusedId = meeting.layout === "focus"
+      ? meeting.participants.some((participant) => participant.instanceId === requestedFocusId)
+        ? requestedFocusId
+        : meeting.participants[0]?.instanceId
+      : undefined;
+    const ordered = focusedId
+      ? [...meeting.participants].sort((a, b) => Number(b.instanceId === focusedId) - Number(a.instanceId === focusedId))
+      : meeting.participants;
+    const columns = meeting.layout === "focus"
+      ? Math.max(2, ordered.length - 1)
+      : ordered.length <= 2 ? ordered.length : 2;
+    return (
+      <AbsoluteFill style={{background: "#171b24", padding: 42, gap: 22, color: "white", fontFamily: "sans-serif"}}>
+        <div style={{height: 58, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", borderRadius: 12, background: "#242b38", fontSize: 28, fontWeight: 700}}>
+          <span>{meeting.room || "ZunMeet"}</span><span style={{color: "#9fb2cf", fontSize: 20}}>● 録画中</span>
+        </div>
+        <div style={{flex: 1, display: "grid", gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: 22}}>
+          {ordered.map((participant, index) => {
+            const definition = story.instances[participant.instanceId];
+            const stageInstance = plateState.instances[participant.instanceId];
+            const characterId = definition?.characterId;
+            const main = characterId ? MAIN_CHARACTERS[characterId] : undefined;
+            const mob = characterId ? mobs?.[characterId] : undefined;
+            const active = participant.instanceId === (meeting.activeSpeakerId ?? plateTurn.speaker);
+            const expression: ExpressionCfg | null = main && stageInstance
+              ? expressions?.[main.avatar]?.[stageInstance.expression ?? "normal"] ?? expressions?.[main.avatar]?.normal ?? null
+              : null;
+            const isFocusTile = meeting.layout === "focus" && index === 0;
+            const isFullRow = isFocusTile || (meeting.layout === "focus" && ordered.length === 2 && index === 1);
+            return <div key={participant.instanceId} style={{position: "relative", overflow: "hidden", minHeight: 0, gridColumn: isFullRow ? "1 / -1" : undefined, borderRadius: 18, border: active ? "5px solid #4e9cff" : "2px solid #3a4352", background: participant.cameraOff ? "#303846" : "linear-gradient(135deg,#496985,#172534)", display: "flex", alignItems: "center", justifyContent: "center"}}>
+              {!participant.cameraOff && main ? <div style={{transform: `scale(${isFocusTile ? ".98" : ".72"})`, transformOrigin: "bottom center", alignSelf: "end"}}><Avatar dir={main.avatar} manifest={manifest?.[main.avatar]} fallbackGender={main.gender} active={active} activatedAtFrame={Math.round((plateTurn.start ?? 0) * fps)} amplitude={participant.instanceId === plateTurn.speaker ? mouthAmplitude : 0} emotion="normal" emotionAtFrame={Math.round((plateTurn.start ?? 0) * fps)} expressive={!!main.expressive} flip={resolvedFlip(stageInstance)} popScale={false} expressionCfg={expression} poseName={stageInstance?.pose as ExpressionCfg["pose"]} /></div> : !participant.cameraOff && mob ? <Img src={staticFile(mobImageForState(mob, stageInstance?.expression, participant.instanceId === plateTurn.speaker, mouthAmplitude) ?? mob.images.normal?.closed)} style={{width: "auto", height: isFocusTile ? 560 : 260, maxWidth: "70%", objectFit: "contain", alignSelf: "end", transform: `scaleX(${resolvedFlip(stageInstance, mob.flip ?? false) ? -1 : 1})`, transformOrigin: "bottom center"}} /> : <div style={{width: isFocusTile ? 180 : 140, height: isFocusTile ? 180 : 140, borderRadius: "50%", background: "#66758b", display: "grid", placeItems: "center", fontSize: isFocusTile ? 82 : 64}}>{participant.cameraOff ? "◉" : "?"}</div>}
+              <div style={{position: "absolute", left: 14, right: 14, bottom: 14, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 700, textShadow: "0 2px 4px #000"}}><span>{participant.name || definition?.label || participant.instanceId}</span><span>{participant.muted ? "🔇" : "🎙"}</span></div>
+            </div>;
+          })}
+        </div>
+      </AbsoluteFill>
+    );
+  };
+
   const people = stagePeople
     .filter((instance) => instance.visible)
     .map((instance) => {
@@ -1231,12 +1399,81 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     transform: bgBlur > 0 ? `scale(${1 + Math.min(bgBlur, 32) / 180})` : undefined,
     transformOrigin: "center center",
   };
+  const isPlateTransition = !!sceneTransition
+    && sceneTransition.progress < 1
+    && (
+      sceneTransition.kind === "wipe-left"
+      || sceneTransition.kind === "wipe-right"
+      || sceneTransition.kind === "slide-left"
+      || sceneTransition.kind === "slide-right"
+    );
+  const renderTransitionPreviousPlate = () => {
+    if (!isPlateTransition || turnIndex <= 0) return null;
+    const plateTurn = story.script[turnIndex - 1];
+    const plateState = resolveStageStateAtTurn(story, turnIndex - 1);
+    const plateScene = scenes.scenes[plateState.scene];
+    if (!plateScene) return null;
+    const plateFraming = resolveFraming(plateState.framing, plateScene, plateState, plateTurn.speaker);
+    const plateMotionFrame = applyCameraMotion(plateFraming, plateState.cameraMotion);
+    const plateTransform = stageTransform(width, height, plateMotionFrame);
+    const plateTilt = plateState.cameraMotion?.tilt ?? 0;
+    const plateTiltedTransform = `${plateTransform ?? ""}${plateTilt ? ` rotate(${plateTilt}deg)` : ""}` || undefined;
+    const plateBlur = clamp(Number(plateScene.bgBlur ?? 0), 0, 64);
+    const plateBgStyle = {
+      position: "absolute" as const,
+      inset: 0,
+      zIndex: 0,
+      width: "100%",
+      height: "100%",
+      objectFit: "cover" as const,
+      filter: plateBlur > 0 ? `blur(${plateBlur}px)` : undefined,
+      transform: plateBlur > 0 ? `scale(${1 + Math.min(plateBlur, 32) / 180})` : undefined,
+      transformOrigin: "center center",
+    };
+    const plateFilter = stageEffectEnabled(plateTurn.effects?.flashback)
+      ? `saturate(${FLASHBACK_SATURATE}) brightness(${FLASHBACK_BRIGHTNESS})`
+      : undefined;
+    const plateInsertDisplay = displayModeInsert(plateState.displayMode);
+    const platePeople = Object.values(plateState.instances)
+      .filter((instance) => instance.visible && plateState.displayMode.kind === "standard" && !plateTurn.hideCharacters)
+      .map((instance) => renderStaticPlateInstance(instance, plateTurn, plateScene, 0, "previous-plate"));
+    return (
+      <AbsoluteFill style={{filter: plateFilter}}>
+        {plateInsertDisplay ? (
+          <InsertOverlay insert={plateInsertDisplay} bgOpacity={1} opacity={1} />
+        ) : plateState.displayMode.kind === "zunMeet" ? renderStaticZunMeet(plateTurn, plateState, 0) : plateState.displayMode.kind === "whiteboard" ? (
+          <WhiteboardExplainInsert
+            config={plateState.displayMode.whiteboard}
+            width={width}
+            height={height}
+            durationInFrames={Math.max(1, Math.round(((plateTurn.end ?? plateTurn.start ?? 0) - (plateTurn.start ?? 0)) * fps))}
+            localFrame={Math.max(0, frame - Math.round((plateTurn.start ?? 0) * fps))}
+            characterSlot={renderStaticWhiteboardPresenter(plateTurn, plateState, 0)}
+          />
+        ) : (
+          <AbsoluteFill style={{overflow: "hidden"}}>
+            <AbsoluteFill style={{transform: plateTiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
+              {plateScene.bgVideo ? (
+                <Video src={staticFile(plateScene.bgVideo)} muted loop={plateScene.bgVideoLoop === true} style={plateBgStyle} />
+              ) : plateScene.bg ? (
+                <Img src={staticFile(plateScene.bg)} style={plateBgStyle} />
+              ) : null}
+              <AbsoluteFill style={{zIndex: 10}}>{platePeople}</AbsoluteFill>
+              {plateScene.front ? <Img src={staticFile(plateScene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+            </AbsoluteFill>
+          </AbsoluteFill>
+        )}
+      </AbsoluteFill>
+    );
+  };
+  const transitionPreviousPlate = renderTransitionPreviousPlate();
 
   return (
     <AbsoluteFill style={{background: "#111", overflow: "hidden"}}>
       <Audio src={mediaStaticSrc(audioSrc)} />
       <V2BgmLayer regions={story.bgm} fps={fps} />
       <V2SeLayer script={story.script} seMap={seMap} fps={fps} />
+      {transitionPreviousPlate}
       <AbsoluteFill style={sceneTransition?.contentStyle}>
         <AbsoluteFill style={{filter: flashbackFilter}}>
           {insertDisplay ? (
