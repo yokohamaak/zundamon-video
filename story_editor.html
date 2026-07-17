@@ -2376,7 +2376,7 @@
         声 共通設定
       </div>
       <div class="voice-profile-note">
-        話者ごとのVOICEVOX話者と既定パラメータです。各ターンの speed / pitch / intonation が空欄の場合、この共通設定が使われます。保存後、台本タブの「音声生成」で反映されます。
+        話者ごとのVOICEVOX話者と既定パラメータです。V2台本では登場人物の声（voiceId）ごとにこの設定が使われます。旧形式の台本では各ターンの speed / pitch / intonation が空欄の場合に使われます。保存後、台本タブの「音声生成」で反映されます。
       </div>
       <div id="voiceProfilesList" class="voice-profile-list">
         <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
@@ -3838,6 +3838,8 @@ async function init() {
     buildPoseSelect();
     buildMultiSpeakers();
     loadGenSettings();
+    // ターン未選択でもV2用のメニュー表示（演出共通設定の非表示等）を初期ロード時点で同期する
+    v2SetEditorVisibility();
     renderList();
     setupEvents();
     setupTabs();
@@ -6525,13 +6527,11 @@ function collectDisplaySettings() {
       default: normalizeHexColor(readString("dsSpeakerColorDefaultHex", DISPLAY_DEFAULTS.speakerColors.default), DISPLAY_DEFAULTS.speakerColors.default),
     },
   };
-  if (!isV2StoryEditor()) {
-    displaySettings.telop = {
-      x: Math.max(0, Math.min(1, readNumber("dsTelopX", DISPLAY_DEFAULTS.telop.x) || DISPLAY_DEFAULTS.telop.x)),
-      y: Math.max(0, Math.min(1, readNumber("dsTelopY", DISPLAY_DEFAULTS.telop.y) || DISPLAY_DEFAULTS.telop.y)),
-      size: Math.max(0.5, Math.min(3, readNumber("dsTelopSize", DISPLAY_DEFAULTS.telop.size) || DISPLAY_DEFAULTS.telop.size)),
-    };
-  }
+  displaySettings.telop = {
+    x: Math.max(0, Math.min(1, readNumber("dsTelopX", DISPLAY_DEFAULTS.telop.x) || DISPLAY_DEFAULTS.telop.x)),
+    y: Math.max(0, Math.min(1, readNumber("dsTelopY", DISPLAY_DEFAULTS.telop.y) || DISPLAY_DEFAULTS.telop.y)),
+    size: Math.max(0.5, Math.min(3, readNumber("dsTelopSize", DISPLAY_DEFAULTS.telop.size) || DISPLAY_DEFAULTS.telop.size)),
+  };
   storyData.displaySettings = displaySettings;
   markDirty();
   notifyPlayerUpdate();
@@ -8383,7 +8383,13 @@ function v2SetEditorVisibility() {
   controls.style.display = v2 ? "flex" : "none";
   const placementButton = document.getElementById("tabBtnPlacement");
   if (placementButton) placementButton.style.display = v2 ? "none" : "";
+  const effectsMenuItem = document.getElementById("tabEffects");
+  if (effectsMenuItem) effectsMenuItem.style.display = v2 ? "none" : "";
   if (v2) {
+    const viewEffects = document.getElementById("viewEffects");
+    if (viewEffects && viewEffects.style.display !== "none") {
+      document.getElementById("tabScript").click();
+    }
     document.querySelectorAll(".tab-btn").forEach((button) => button.classList.toggle("active", button.dataset.tab === "basic"));
     document.querySelectorAll(".tab-panel").forEach((tab) => tab.classList.toggle("active", tab.id === "tabBasic"));
   }
@@ -12220,6 +12226,9 @@ function importStoryFromFile(file) {
         if (!t || typeof t.speaker !== "string" || typeof t.text !== "string" || typeof t.scene !== "string")
           throw new Error("turn[" + i + "] に speaker/text/scene(文字列) が必要です");
       }
+      if (isV2StoryEditor() && data.schemaVersion !== 2) {
+        throw new Error("編集中の台本はV2形式です。旧形式のJSONを取り込むとV2台本が旧形式で上書きされるため中止しました。");
+      }
       storyData = data;
       clearMultiSelection();
       normalizeStoryTransitions(storyData);
@@ -12231,6 +12240,7 @@ function importStoryFromFile(file) {
       document.getElementById("idleFaceSel").value = storyData.idleFace || "hold";
       renderDisplaySettingsEditor();
       selectedIdx = -1;
+      v2SetEditorVisibility();
       renderList();
       renderDetail();
       if (window.storyPlayer && playerReady) window.storyPlayer.updateStory(buildPreviewStory());
