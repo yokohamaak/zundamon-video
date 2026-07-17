@@ -357,6 +357,13 @@ function bubbleTextAt(turn: StageTurnV2, seconds: number) {
   return active?.text ?? groups[groups.length - 1]?.text ?? turn.text;
 }
 
+function subtitleProgressiveText(turn: StageTurnV2, seconds: number) {
+  const groups = sentenceGroups(turn);
+  if (groups.length <= 1) return bubbleTextAt(turn, seconds);
+  const visible = visibleSentenceGroupCount(turn, seconds);
+  return groups.slice(0, Math.max(1, visible)).map((group) => group.text).join("\n");
+}
+
 function continuedBubbleRange(script: StageTurnV2[], activeIndex: number) {
   let start = activeIndex;
   let end = activeIndex;
@@ -380,6 +387,30 @@ function characterDisplayWidth(fontSize: number, character: string) {
   if (/[?!！？]/.test(character)) return fontSize * 0.9;
   if (/[?!！？、。，．,.・…「」『』（）()[\]【】]/.test(character)) return fontSize * 0.74;
   return fontSize * (/[\u0000-\u00ff\uff61-\uff9f\uffe8-\uffee]/.test(character) ? 0.58 : 1.03);
+}
+
+function bubbleFontSize(stacked: boolean, baseFontSize: number) {
+  return stacked ? Math.max(20, baseFontSize - 2) : baseFontSize;
+}
+
+function bubbleWrapCharLimit(turn: StageTurnV2, defaultMaxChars: number | null) {
+  const raw = Number(turn.bubbleMaxChars);
+  if (Number.isFinite(raw) && raw > 0) return Math.round(raw);
+  return defaultMaxChars;
+}
+
+function bubbleMaxWidthForTurn(
+  turn: StageTurnV2,
+  stageWidth: number,
+  stacked: boolean,
+  fallbackWidth: number,
+  bubbleSettings: ReturnType<typeof displaySettingsOf>["bubble"],
+) {
+  const charLimit = bubbleWrapCharLimit(turn, bubbleSettings.maxChars);
+  if (!charLimit) return fallbackWidth;
+  const fontSize = bubbleFontSize(stacked, bubbleSettings.fontSize);
+  const desiredWidth = characterDisplayWidth(fontSize, "あ") * charLimit + 66 + 12;
+  return clamp(desiredWidth, 120, stageWidth - 40);
 }
 
 function bubbleMetricsV2(text: string, fontSize: number, maxWidth: number, charLimit: number | null) {
@@ -1189,7 +1220,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const textColor = validHex(style.textColor, displaySettings.subtitle.textColor);
         const borderColor = validHex(style.boxBorderColor, displaySettings.subtitle.borderColor);
         const borderWidth = Number.isFinite(Number(style.boxBorderWidth)) ? clamp(Number(style.boxBorderWidth), 0.5, 6) : displaySettings.subtitle.borderWidth;
-        const texts = continuedTurns.map((item) => bubbleTextAt(item, seconds));
+        const texts = continuedTurns.length > 1
+          ? continuedTurns.map((item) => subtitleProgressiveText(item, seconds))
+          : [subtitleProgressiveText(turn, seconds)];
         return <div style={{position: "absolute", zIndex: 30, left: "50%", bottom: displaySettings.subtitle.bottom, width: Math.min(width * displaySettings.subtitle.width, 1360), transform: "translateX(-50%)", padding: "16px 28px 18px", borderRadius: 18, background: hexToRgba(displaySettings.subtitle.bgColor, displaySettings.subtitle.bgOpacity), border: (style.boxBorder ?? displaySettings.subtitle.border) ? `${borderWidth}px solid ${borderColor}` : "none", boxShadow: "0 14px 34px rgba(0,0,0,.4)", color: textColor, fontSize, lineHeight: 1.45, fontWeight: 700, fontFamily: displaySettings.subtitle.fontFamily, textAlign: "center", whiteSpace: "pre-wrap", textShadow: "0 2px 6px rgba(0,0,0,.4)"}}>{texts.join("\n")}</div>;
       })() : null}
       {isStandardDialogue && !isSubtitle && speakerPosition && speakerDefinition?.role !== "voiceOnly" ? (() => {
@@ -1197,11 +1230,13 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         const usingContinuation = continuedTurns.length > 1;
         const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
         const visibleCount = usingContinuation ? turnIndex - continueRange.start + 1 : visibleSentenceGroupCount(turn, seconds);
-        const charLimit = turn.bubbleMaxChars ?? displaySettings.bubble.maxChars;
         const stacked = texts.length > 1;
         // 複数段（連結/自動分割）のときは旧と同じく少し縮小する。箱幅の見積もりと実描画で必ず同じ値を使うこと。
-        const bubbleFontSize = stacked ? Math.max(20, displaySettings.bubble.fontSize - 2) : displaySettings.bubble.fontSize;
-        const metrics = texts.map((text) => bubbleMetricsV2(text, bubbleFontSize, width * 0.48, charLimit));
+        const bubbleFontSizeValue = bubbleFontSize(stacked, displaySettings.bubble.fontSize);
+        const bubbleBaseMaxWidth = width * 0.72;
+        const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, stacked, bubbleBaseMaxWidth, displaySettings.bubble);
+        const charLimit = bubbleWrapCharLimit(turn, displaySettings.bubble.maxChars);
+        const metrics = texts.map((text) => bubbleMetricsV2(text, bubbleFontSizeValue, bubbleMaxWidth, charLimit));
         const groupWidth = metrics.reduce((largest, item) => Math.max(largest, item.width), 120);
         // カメラ遷移中はステージ本体のtransformと同じ式でtx/ty/scaleを補間し、吹き出しを追従させる（旧のfollowK相当）。
         const bubbleTransform = canSmoothCamera && previousTransform && targetTransform
@@ -1226,7 +1261,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         return <div style={stacked
           ? {position: "absolute", zIndex: 30, left: groupCenterX, top: bubbleTop, width: groupWidth, transform: "translate(-50%, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start", gap: 6}
           : {position: "absolute", zIndex: 30, left: singleLeft, top: bubbleTop - singleBottomOffset, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
-          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 28px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: bubbleFontSize, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
+          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 28px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: bubbleFontSizeValue, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
         </div>;
       })() : null}
       <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines />
