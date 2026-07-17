@@ -451,35 +451,63 @@ function mobImageForState(mob: MobDef | undefined, expression: string | undefine
     : expressionImages?.closed ?? expressionImages?.open;
 }
 
-const V2BgmLayer: React.FC<{regions?: BgmRegion[]; fps: number}> = ({regions, fps}) => (
-  <>
-    {(regions ?? []).filter((region) => (
-      region.file
-      && Number.isFinite(region.start)
-      && Number.isFinite(region.end)
-      && region.end > region.start
-    )).map((region, index) => {
-      const durationInFrames = Math.max(1, Math.round((region.end - region.start) * fps));
-      const fadeInFrames = Math.max(0, Math.round((region.fadeIn ?? 0.6) * fps));
-      const fadeOutFrames = Math.max(0, Math.round((region.fadeOut ?? 0.6) * fps));
-      const volume = region.volume ?? 0.1;
-      const audioKey = `${region.file}-${index}-${region.start}-${region.end}-${volume}-${region.fadeIn ?? ""}-${region.fadeOut ?? ""}`;
-      return <Sequence key={audioKey} from={Math.round(region.start * fps)} durationInFrames={durationInFrames}>
-        <Audio
-          src={staticFile(region.file)}
-          loop
-          volume={(localFrame) => volume * Math.max(
-            0,
-            Math.min(
-              fadeInFrames > 0 ? localFrame / fadeInFrames : 1,
-              fadeOutFrames > 0 ? (durationInFrames - localFrame) / fadeOutFrames : 1,
-            ),
-          )}
-        />
-      </Sequence>;
-    })}
-  </>
-);
+const V2BgmLayer: React.FC<{regions?: BgmRegion[]; fps: number}> = ({regions, fps}) => {
+  const BGM_DEFAULT_VOL = 0.1;
+  const BGM_DEFAULT_FADE = 0.6;
+  const isFiniteNumber = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value);
+
+  type BgmSegment = {
+    file: string;
+    volume: number;
+    fadeIn: number;
+    fadeOut: number;
+    startSec: number;
+    endSec: number;
+  };
+
+  const validSegs: BgmSegment[] = (regions || [])
+    .filter((r) => r.file && isFiniteNumber(r.start) && isFiniteNumber(r.end) && r.end > r.start)
+    .map((r) => ({
+      file: r.file,
+      volume: r.volume ?? BGM_DEFAULT_VOL,
+      fadeIn: r.fadeIn ?? BGM_DEFAULT_FADE,
+      fadeOut: r.fadeOut ?? BGM_DEFAULT_FADE,
+      startSec: r.start,
+      endSec: r.end,
+    }));
+
+  return (
+    <>
+      {validSegs.map((seg, index) => {
+        const startFrame = Math.round(seg.startSec * fps);
+        const durationInFrames = Math.max(1, Math.round((seg.endSec - seg.startSec) * fps));
+        const fadeInFrames = Math.round(seg.fadeIn * fps);
+        const fadeOutFrames = Math.round(seg.fadeOut * fps);
+        const volume = seg.volume;
+        const volumeFn = (localFrame: number): number => {
+          const inK = fadeInFrames > 0 ? Math.min(localFrame / fadeInFrames, 1) : 1;
+          const outK =
+            fadeOutFrames > 0
+              ? Math.min((durationInFrames - localFrame) / fadeOutFrames, 1)
+              : 1;
+          return volume * Math.max(0, Math.min(inK, outK));
+        };
+        const audioKey = `${seg.file}-${index}-${seg.startSec}-${seg.endSec}-${seg.volume}-${seg.fadeIn}-${seg.fadeOut}`;
+        const src = `${staticFile(seg.file)}?v2bgm=${encodeURIComponent(audioKey)}`;
+        return (
+          <Sequence key={audioKey} from={startFrame} durationInFrames={durationInFrames}>
+            <Audio
+              src={src}
+              loop
+              volume={volumeFn}
+            />
+          </Sequence>
+        );
+      })}
+    </>
+  );
+};
 
 const V2SeLayer: React.FC<{script: StoryV2["script"]; seMap?: SeMap; fps: number}> = ({script, seMap, fps}) => {
   const events = script.flatMap((turn) => {
