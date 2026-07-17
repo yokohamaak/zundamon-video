@@ -13364,6 +13364,7 @@ function setupEvents() {
   }
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
+    "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
     "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
@@ -13393,6 +13394,14 @@ function setupEvents() {
       if (id === "fV2SubtitleMode") v2UpdateDialogueFields();
       collectV2Basic();
       if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
+    });
+  }
+  for (const id of ["fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize"]) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener("input", () => {
+      if (!isV2StoryEditor()) return;
+      collectV2Basic();
     });
   }
   document.getElementById("btnV2MeetAddParticipant")?.addEventListener("click", () => {
