@@ -2387,20 +2387,6 @@
       </div>
     </div>
 
-    <!-- セクションA: SE自動マッピング -->
-    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
-      <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
-        SE 自動マッピング
-      </div>
-      <div id="seMapContainer" style="display:flex; flex-direction:column; gap:6px;">
-        <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
-      </div>
-      <div style="display:flex; align-items:center; gap:12px; padding-top:4px; border-top:1px solid var(--border); margin-top:4px;">
-        <button class="btn btn-primary btn-sm" id="btnSaveSeMap">SEマッピングを保存</button>
-        <span id="seMapStatus" style="font-size:12px;"></span>
-      </div>
-    </div>
-
     <!-- セクションC: 読み替え辞書 -->
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
       <div style="font-size:13px; font-weight:700; letter-spacing:.04em; color:var(--text2); text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid var(--border);">
@@ -6597,9 +6583,114 @@ function displayPreviewSceneName() {
   return "";
 }
 
+function v2DisplayPreviewPlacement(scene) {
+  const slots = v2SlotsForScene(scene);
+  const entries = Object.entries(slots).filter(([, slot]) => slot && slot.origin);
+  if (entries.length > 0) {
+    entries.sort((a, b) => (b[1].origin.x ?? 0) - (a[1].origin.x ?? 0));
+    return { mode: "slot", slotId: entries[0][0] };
+  }
+  return { mode: "manual", origin: { x: 0.72, y: 0.989 } };
+}
+
+function buildDisplayPreviewStoryV2(state, scene) {
+  const speaker = state.speaker; // "zundamon" | "metan" | "other" ── instances のキーと一致させる
+  const isCharacter = speaker === "zundamon" || speaker === "metan";
+  const placement = v2DisplayPreviewPlacement(scene);
+  const instances = {
+    zundamon: { characterId: "zundamon", voiceId: "zundamon" },
+    metan: { characterId: "metan", voiceId: "metan" },
+    other: { characterId: "other", voiceId: "other" },
+  };
+  const parts = previewBubbleParts(state.text, state.mode, state.autoSplit)
+    .map(part => String(part || "").trim())
+    .filter(Boolean);
+  const sentenceParts = previewSentenceParts(state.text);
+  const script = [];
+  let at = 0;
+  if (state.mode !== "continued") {
+    const rawText = String(state.text || "").trim() || "右側の立ち位置と、寄り方を見たいのだ。";
+    const duration = Math.max(1.8, Math.min(5, Math.max(rawText.replace(/\s+/g, "").length, 1) * 0.14));
+    const turn = {
+      id: "display-preview-1",
+      speaker,
+      text: rawText,
+      scene,
+      start: 0,
+      end: duration,
+      ...(isCharacter ? { stage: { enter: [{ instanceId: speaker, placement }] } } : { hideCharacters: true }),
+    };
+    if (state.mode === "subtitle") {
+      turn.subtitleMode = "subtitle";
+    } else if (!state.autoSplit) {
+      turn.disableAutoBubbleSplit = true;
+    } else if (sentenceParts.length > 1 && !/\r?\n/.test(rawText)) {
+      const totalChars = sentenceParts.reduce((sum, part) => sum + Math.max(part.length, 1), 0);
+      let sentenceAt = 0;
+      turn.sentences = sentenceParts.map((part) => {
+        const weight = Math.max(part.length, 1) / Math.max(totalChars, 1);
+        const span = Math.max(0.35, duration * weight);
+        const sentence = { text: part, start: sentenceAt, end: Math.min(duration, sentenceAt + span) };
+        sentenceAt = sentence.end;
+        return sentence;
+      });
+      if (turn.sentences.length) turn.sentences[turn.sentences.length - 1].end = duration;
+    }
+    script.push(turn);
+    at = duration;
+  }
+  parts.forEach((part, idx) => {
+    if (state.mode !== "continued") return;
+    const duration = Math.max(1.4, Math.min(4.2, Math.max(part.replace(/\s+/g, "").length, 1) * 0.13));
+    const turn = {
+      id: `display-preview-${idx + 1}`,
+      speaker,
+      text: part,
+      scene,
+      start: at,
+      end: at + duration,
+      ...(!isCharacter ? { hideCharacters: true } : {}),
+    };
+    if (idx === 0 && isCharacter) turn.stage = { enter: [{ instanceId: speaker, placement }] };
+    if (state.mode === "subtitle") {
+      turn.subtitleMode = "subtitle";
+    } else {
+      if (!state.autoSplit || state.mode === "continued") turn.disableAutoBubbleSplit = true;
+      if (state.mode === "continued" && idx > 0) turn.continueBubble = true;
+    }
+    script.push(turn);
+    at += duration + (state.mode === "continued" ? 0.1 : 0.2);
+  });
+  if (!script.length) {
+    script.push({
+      id: "display-preview-1",
+      speaker,
+      text: "右側の立ち位置と、寄り方を見たいのだ。",
+      scene,
+      start: 0,
+      end: 2.2,
+      ...(!isCharacter ? { hideCharacters: true } : {}),
+      ...(isCharacter ? { stage: { enter: [{ instanceId: speaker, placement }] } } : {}),
+      ...(state.mode === "subtitle" ? { subtitleMode: "subtitle" } : { disableAutoBubbleSplit: true }),
+    });
+  }
+  return {
+    schemaVersion: 2,
+    title: storyData?.title || "表示設定プレビュー",
+    audio: undefined,
+    bgm: [],
+    idleFace: storyData?.idleFace || "hold",
+    displaySettings: getDisplaySettingsData(),
+    overlays: [],
+    instances,
+    script,
+  };
+}
+
 function buildDisplayPreviewStory() {
   const state = displayPreviewState();
   const scene = displayPreviewSceneName();
+  if (isV2StoryEditor()) return buildDisplayPreviewStoryV2(state, scene);
   const speaker = displayPreviewSpeakerValue(state.speaker);
   const parts = previewBubbleParts(state.text, state.mode, state.autoSplit)
     .map(part => String(part || "").trim())
@@ -13469,9 +13560,6 @@ function setupEvents() {
     notifyPlayerUpdate();
   });
 
-  // 音タブ: SEマッピング保存
-  document.getElementById("btnSaveSeMap").addEventListener("click", saveSeMap);
-
   // 音タブ: 声の共通設定
   document.getElementById("btnSaveVoiceProfiles").addEventListener("click", saveVoiceProfiles);
 
@@ -13922,7 +14010,6 @@ function buildDefaultInsert(kind, prev) {
 // 音タブ: 状態
 // ============================================================
 let audioAssets = null;   // { bgm: [...], se: [...] }
-let seMap = null;         // se-map.json の中身
 let readingsMap = null;   // config/readings.json の中身（_comment除く）
 let kanjiReadingsMap = null;  // config/kanji_readings.json の中身（_comment除く）
 let voiceProfileDefaults = null;  // /api/voice-profile-defaults（工場出荷時の声既定値）
@@ -14272,9 +14359,8 @@ async function loadAudioPanel() {
   // 毎回再取得したい場合は audioLoaded をリセットして呼べばよい。
   if (audioLoaded) return;
   try {
-    const [assetsRes, seRes, readingsRes, kanjiRes, voiceProfilesRes, voiceDefaultsRes] = await Promise.all([
+    const [assetsRes, readingsRes, kanjiRes, voiceProfilesRes, voiceDefaultsRes] = await Promise.all([
       fetch("/api/audio-assets"),
-      fetch("/api/se-map"),
       fetch("/api/readings"),
       fetch("/api/kanji-readings"),
       fetch("/api/voice-profiles"),
@@ -14282,160 +14368,18 @@ async function loadAudioPanel() {
       loadVoicevoxSpeakers(),
     ]);
     audioAssets = await assetsRes.json();
-    seMap = await seRes.json();
     readingsMap = await readingsRes.json();
     kanjiReadingsMap = await kanjiRes.json();
     voiceProfiles = await voiceProfilesRes.json();
     voiceProfileDefaults = await voiceDefaultsRes.json();
     audioLoaded = true;
     renderVoiceProfilesSection();
-    renderSeMapSection();
     renderReadingsSection();
     renderKanjiReadingsSection();
   } catch (e) {
-    const target = document.getElementById("voiceProfilesList") || document.getElementById("seMapContainer");
+    const target = document.getElementById("voiceProfilesList");
     target.innerHTML =
       "<div style=\"color:var(--danger);font-size:12px;\">読み込みエラー: " + e.message + "</div>";
-  }
-}
-
-// ============================================================
-// セクションA: SE自動マッピング
-// ============================================================
-function renderSeMapSection() {
-  const container = document.getElementById("seMapContainer");
-  container.innerHTML = "";
-
-  const CATEGORY_LABELS = {
-    expression: "表情",
-    effect: "エフェクト",
-    insert: "インサート",
-    transition: "場面転換",
-  };
-  // インサートのイベント名はZun○○ブランドで表示する。
-  const EVENT_LABELS = {
-    insert: {
-      warning: "ZunMonitor（警告）",
-      ok: "ZunMonitor（正常）",
-      chat: "ZunAI（AIチャット）",
-      teamchat: "ZunChat（チームチャット）",
-      mailer: "ZunMail（メール）",
-    },
-  };
-
-  const categories = sortedStrings(Object.keys(CATEGORY_LABELS));
-  for (const cat of categories) {
-    const events = seMap[cat] || {};
-    const eventKeys = sortedStrings(Object.keys(events));
-    if (eventKeys.length === 0) continue;
-
-    // カテゴリ見出し
-    const hdr = document.createElement("div");
-    hdr.className = "audio-section-header";
-    hdr.textContent = CATEGORY_LABELS[cat];
-    container.appendChild(hdr);
-
-    for (const evtKey of eventKeys) {
-      const ev = events[evtKey] || {};
-      const row = document.createElement("div");
-      row.className = "se-event-row";
-
-      // イベント名ラベル
-      const lbl = document.createElement("span");
-      lbl.className = "se-event-label";
-      lbl.textContent = (EVENT_LABELS[cat] && EVENT_LABELS[cat][evtKey]) || evtKey;
-      row.appendChild(lbl);
-
-      // SEファイル ドロップダウン
-      const sel = document.createElement("select");
-      sel.className = "field-select se-event-sel";
-      const noneOpt = document.createElement("option");
-      noneOpt.value = ""; noneOpt.textContent = "なし";
-      sel.appendChild(noneOpt);
-      for (const seFile of sortedStrings(audioAssets.se || [])) {
-        const opt = document.createElement("option");
-        opt.value = seFile; opt.textContent = seFile;
-        sel.appendChild(opt);
-      }
-      sel.value = ev.file || "";
-      sel.addEventListener("change", () => {
-        seMap[cat][evtKey].file = sel.value;
-      });
-      row.appendChild(sel);
-
-      // 有効(ON/OFF)チェックボックス＋ラベル
-      const TOOLTIP = "OFFにすると、ファイルを設定していてもこのSEは鳴りません（自動再生を無効化）";
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.className = "se-enabled-cb";
-      cb.checked = ev.enabled !== false;
-      cb.title = TOOLTIP;
-      cb.addEventListener("change", () => {
-        seMap[cat][evtKey].enabled = cb.checked;
-      });
-      const cbLabel = document.createElement("label");
-      cbLabel.style.cssText = "display:flex; align-items:center; gap:4px; flex-shrink:0; font-size:12px; color:var(--text2); cursor:pointer;";
-      cbLabel.title = TOOLTIP;
-      cbLabel.appendChild(cb);
-      cbLabel.appendChild(document.createTextNode("有効"));
-      row.appendChild(cbLabel);
-
-      // 音量スライダー
-      const volWrap = document.createElement("div");
-      volWrap.style.cssText = "display:flex; align-items:center; gap:4px; flex-shrink:0;";
-      const volSlider = document.createElement("input");
-      volSlider.type = "range"; volSlider.min = "0"; volSlider.max = "1"; volSlider.step = "0.05";
-      volSlider.value = ev.volume != null ? ev.volume : 0.8;
-      volSlider.className = "se-event-vol";
-      volSlider.style.cssText = "width:90px; accent-color:var(--accent);";
-      const volDisp = document.createElement("span");
-      volDisp.className = "vol-display";
-      volDisp.textContent = parseFloat(volSlider.value).toFixed(2);
-      volSlider.addEventListener("input", () => {
-        const v = parseFloat(volSlider.value);
-        volDisp.textContent = v.toFixed(2);
-        seMap[cat][evtKey].volume = v;
-      });
-      volWrap.appendChild(volSlider);
-      volWrap.appendChild(volDisp);
-      row.appendChild(volWrap);
-      row.appendChild(makeAudioPlayBtn(() => sel.value, () => parseFloat(volSlider.value)));
-
-      container.appendChild(row);
-    }
-  }
-
-  if (container.children.length === 0) {
-    container.innerHTML = "<div style=\"font-size:12px;color:var(--text2);\">SEマップが空です（se-map.json が未作成）</div>";
-  }
-}
-
-async function saveSeMap() {
-  const statusEl = document.getElementById("seMapStatus");
-  statusEl.style.color = "var(--text2)";
-  statusEl.textContent = "保存中...";
-  try {
-    const r = await fetch("/api/se-map", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(seMap),
-    });
-    const result = await r.json();
-    if (r.ok && result.ok) {
-      statusEl.style.color = "var(--green)";
-      statusEl.textContent = "保存しました（プレビュー反映済み）";
-      setTimeout(() => { statusEl.textContent = ""; }, 2500);
-      // プレビューのPlayerへ最新のse-mapを反映（再生すれば鳴る）。
-      if (window.storyPlayer && playerReady && window.storyPlayer.reloadAudio) {
-        window.storyPlayer.reloadAudio();
-      }
-    } else {
-      statusEl.style.color = "var(--danger)";
-      statusEl.textContent = "保存失敗: " + (result.error || r.status);
-    }
-  } catch (e) {
-    statusEl.style.color = "var(--danger)";
-    statusEl.textContent = "通信エラー";
   }
 }
 

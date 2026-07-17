@@ -491,7 +491,6 @@ const V2SeLayer: React.FC<{script: StoryV2["script"]; seMap?: SeMap; fps: number
     for (const patch of Object.values(turn.stage?.update ?? {})) {
       if (patch.expression) tryAdd(seMap?.expression?.[patch.expression]);
     }
-    if (turn.stage?.cameraMotion?.shake) tryAdd(seMap?.effect?.shake);
     const manual = (turn.se ?? []).flatMap((se: TurnSe) => {
     if (!se.file || typeof turn.start !== "number" || !Number.isFinite(se.at ?? 0)) return [];
     return [{file: se.file, volume: se.volume ?? 0.7, at: turn.start + (se.at ?? 0)}];
