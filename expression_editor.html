@@ -417,6 +417,12 @@ let currentExpr = "normal";
 let currentMouthSlot = "mouth_close"; // プレビューに使う口スロット
 let isDirty = false;
 
+// 表情連動SE（/api/se-map・/api/audio-assets。全キャラ共通、se-map.jsonのexpressionカテゴリ）
+let seMap = null;
+let audioAssets = null;
+let seMapAvailable = false; // 単独起動の古い環境等でAPI未対応なら false のままセクション非表示
+let seMapDirty = false;
+
 // スロット表示順 (mouthはclose/half/openをまとめて表示)
 // タスクA: shadow スロット追加（cheekの直後、fxと同様になし選択可）
 const SLOTS_ORDER = ["edamame", "hair_back", "head_dress", "hair_clip", "cheek", "shadow", "brow", "eye", "mouth_close", "mouth_half", "mouth_open", "fx"];
@@ -550,7 +556,7 @@ function currentSlotLabel(slot, candidates, value) {
 // 初期化
 // ============================================================
 async function init() {
-  await Promise.all([fetchCatalog(), fetchExpressions()]);
+  await Promise.all([fetchCatalog(), fetchExpressions(), fetchSeMap()]);
   buildCharTabs();
   buildExprList();
   buildSlotPanel();
@@ -567,6 +573,28 @@ async function fetchExpressions() {
   const r = await fetch(API_BASE + "/expressions");
   expressions = await r.json();
   rebuildExpressionList();
+}
+
+// 表情連動SEの設定・素材一覧を取得する。埋め込み時はstory_editor.pyの既存API、
+// 単独起動時はexpression_editor.py自前のAPIが絶対パスで応答する。
+// 未対応環境(古いstory_editor.py等)ではセクション自体を出さずスキップする。
+async function fetchSeMap() {
+  try {
+    const [seRes, assetsRes] = await Promise.all([
+      fetch("/api/se-map"),
+      fetch("/api/audio-assets"),
+    ]);
+    if (!seRes.ok || !assetsRes.ok) throw new Error("se-map/audio-assets unavailable");
+    const seData = await seRes.json();
+    const assetsData = await assetsRes.json();
+    seMap = (seData && typeof seData === "object") ? seData : {};
+    audioAssets = (assetsData && typeof assetsData === "object") ? assetsData : { bgm: [], se: [] };
+    seMapAvailable = true;
+  } catch (e) {
+    seMap = null;
+    audioAssets = null;
+    seMapAvailable = false;
+  }
 }
 
 // expressions のキーから expressionList を再構築する。
@@ -834,6 +862,97 @@ function buildSlotPanel() {
     section.appendChild(grid);
     panel.appendChild(section);
   }
+
+  appendExpressionSeSection(panel);
+}
+
+// ── 表情連動SE（全キャラ共通・se-map.jsonのexpressionカテゴリ） ──
+function appendExpressionSeSection(panel) {
+  if (!seMapAvailable) return;
+
+  const section = document.createElement("div");
+  section.className = "slot-section";
+
+  const title = document.createElement("div");
+  title.className = "slot-title";
+  title.textContent = "表情連動SE";
+  section.appendChild(title);
+
+  const help = document.createElement("div");
+  help.className = "expr-info-help";
+  help.style.cssText = "margin-bottom:8px";
+  help.textContent = "この表情に切り替わった瞬間に効果音を自動再生します。全キャラ共通の設定です。";
+  section.appendChild(help);
+
+  const entry = (seMap.expression && seMap.expression[currentExpr]) || {};
+  const enabled = entry.enabled === true;
+  const file = entry.file || "";
+  const volume = entry.volume != null ? entry.volume : 0.7;
+
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; align-items:center; gap:10px; flex-wrap:wrap;";
+
+  const cbLabel = document.createElement("label");
+  cbLabel.style.cssText = "display:flex; align-items:center; gap:4px; flex-shrink:0; font-size:12px; color:var(--text2); cursor:pointer;";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = enabled;
+  cb.addEventListener("change", () => {
+    ensureSeMapEntry(currentExpr).enabled = cb.checked;
+    markSeMapDirty();
+  });
+  cbLabel.appendChild(cb);
+  cbLabel.appendChild(document.createTextNode("有効"));
+  row.appendChild(cbLabel);
+
+  const sel = document.createElement("select");
+  sel.className = "expr-info-input";
+  sel.style.cssText = "width:auto; flex:1 1 160px;";
+  const noneOpt = document.createElement("option");
+  noneOpt.value = "";
+  noneOpt.textContent = "（なし）";
+  sel.appendChild(noneOpt);
+  for (const seFile of (audioAssets?.se || [])) {
+    const opt = document.createElement("option");
+    opt.value = seFile;
+    opt.textContent = seFile;
+    sel.appendChild(opt);
+  }
+  sel.value = file;
+  sel.addEventListener("change", () => {
+    ensureSeMapEntry(currentExpr).file = sel.value;
+    markSeMapDirty();
+  });
+  row.appendChild(sel);
+
+  const volInput = document.createElement("input");
+  volInput.type = "number";
+  volInput.min = "0";
+  volInput.max = "1";
+  volInput.step = "0.05";
+  volInput.value = volume;
+  volInput.className = "expr-info-input";
+  volInput.style.cssText = "width:72px; flex:0 0 auto;";
+  volInput.addEventListener("input", () => {
+    const v = parseFloat(volInput.value);
+    ensureSeMapEntry(currentExpr).volume = Number.isFinite(v) ? v : 0.7;
+    markSeMapDirty();
+  });
+  row.appendChild(volInput);
+
+  section.appendChild(row);
+  panel.appendChild(section);
+}
+
+function ensureSeMapEntry(expr) {
+  if (!seMap.expression) seMap.expression = {};
+  if (!seMap.expression[expr]) seMap.expression[expr] = { enabled: false, file: "", volume: 0.7 };
+  return seMap.expression[expr];
+}
+
+function markSeMapDirty() {
+  seMapDirty = true;
+  markDirty();
 }
 
 function appendExpressionInfoSection(panel) {
@@ -1050,17 +1169,31 @@ async function saveExpressions() {
       body: JSON.stringify(expressions),
     });
     const result = await r.json();
-    if (r.ok && result.ok) {
-      clearDirty();
-      try {
-        if (window.parent && window.parent !== window && window.parent.storyPlayer?.reloadExpressions) {
-          window.parent.storyPlayer.reloadExpressions();
-        }
-      } catch (e) {}
-    } else {
+    if (!r.ok || !result.ok) {
       s.className = "status err";
       s.textContent = result.error || "保存失敗";
+      return;
     }
+    if (seMapAvailable && seMapDirty) {
+      const seR = await fetch("/api/se-map", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(seMap),
+      });
+      const seResult = await seR.json();
+      if (!seR.ok || !seResult.ok) {
+        s.className = "status err";
+        s.textContent = "SE保存失敗: " + (seResult.error || seR.status);
+        return;
+      }
+      seMapDirty = false;
+    }
+    clearDirty();
+    try {
+      if (window.parent && window.parent !== window && window.parent.storyPlayer?.reloadExpressions) {
+        window.parent.storyPlayer.reloadExpressions();
+      }
+    } catch (e) {}
   } catch (e) {
     s.className = "status err";
     s.textContent = "通信エラー";

@@ -21,6 +21,10 @@ VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 EXPRESSIONS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "expressions.json")
 AVATARS_ASSETS_DIR = os.path.join(ROOT_DIR, "video", "assets", "avatars")
 AVATARS_PUBLIC_DIR = os.path.join(VIDEO_PUBLIC_DIR, "avatars")
+SE_MAP_JSON = os.path.join(VIDEO_PUBLIC_DIR, "se-map.json")
+BGM_DIR = os.path.join(VIDEO_PUBLIC_DIR, "bgm")
+SE_DIR = os.path.join(VIDEO_PUBLIC_DIR, "se")
+_AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg")
 
 # ─── スロットID → ラベル（psd-export.mjs の SLOTS 定義と一致） ──────────────
 SLOT_LABELS = {
@@ -189,6 +193,36 @@ def _save_expressions(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def _list_audio_assets():
+    """public/bgm・public/se の音源ファイル一覧を返す（プレフィックス付き相対パス）。"""
+    def listdir(d, prefix):
+        out = []
+        if os.path.isdir(d):
+            for fn in sorted(os.listdir(d)):
+                if fn.lower().endswith(_AUDIO_EXTS):
+                    out.append(prefix + "/" + fn)
+        return out
+    return {"bgm": listdir(BGM_DIR, "bgm"), "se": listdir(SE_DIR, "se")}
+
+
+def _load_se_map():
+    """se-map.json を返す。無ければ空dict。"""
+    if not os.path.exists(SE_MAP_JSON):
+        return {}
+    try:
+        with open(SE_MAP_JSON, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_se_map(data):
+    if not isinstance(data, dict):
+        raise ValueError("se-map は object である必要があります")
+    with open(SE_MAP_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
 def _build_catalog():
     """
     各キャラ・各スロットの候補一覧を返す。
@@ -332,6 +366,18 @@ class ExpressionEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/se-map":
+            try:
+                self._send_json(_load_se_map())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/audio-assets":
+            try:
+                self._send_json(_list_audio_assets())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path.startswith("/img/"):
             rel = path[len("/img/"):]
             safe = _safe_path(VIDEO_PUBLIC_DIR, rel)
@@ -353,6 +399,18 @@ class ExpressionEditorHandler(BaseHTTPRequestHandler):
             try:
                 data = json.loads(body.decode("utf-8"))
                 _save_expressions(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
+        elif path == "/api/se-map":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                _save_se_map(data)
                 self._send_json({"ok": True})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))

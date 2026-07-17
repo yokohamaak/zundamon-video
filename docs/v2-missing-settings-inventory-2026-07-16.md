@@ -281,7 +281,7 @@ V2シーンの許可キーは [stage_schema.py](/Users/yokohamaak/ap/zundamon-vi
 
 - 演出共通設定の非表示化・インポートガード・テロップ既定値ガード撤去・声共通設定の文言修正・初期ロード時のV2 UI同期: `80bfed06`
 - 見本プレビューのV2対応: `buildDisplayPreviewStoryV2()` を新設。見本用instancesを合成し、シーンの右寄りslot（無ければmanual配置）で `stage.enter` する。稼働エディタでキャラ表示を確認済み。
-- SE自動マッピング: ユーザー判断で**表情連動のみ残し他は廃止**。音画面のUIセクションを削除し、`V2SeLayer` から shake トリガーを削除（表情トリガーとse-map.json・旧renderer・/api/se-map は温存）。表情エディタへの表情連動SE編集UIの移設は ROADMAP.md に記録。
+- SE自動マッピング: ユーザー判断で**表情連動のみ残し他は廃止**。音画面のUIセクションを削除し、`V2SeLayer` から shake トリガーを削除（表情トリガーとse-map.json・旧renderer・/api/se-map は温存）。表情エディタへの表情連動SE編集UIの移設は同日中に完了（表情ごとの設定パネルに「表情連動SE」セクションを追加。埋め込み時は story_editor.py の既存 `/api/se-map`・`/api/audio-assets` を使用、単独起動用に expression_editor.py へ同APIを追加）。
 - holdAs（聞き役時の表情）: ユーザー判断で**V2では廃止**。表情エディタのUIを削除。expressions.json 内の既存 holdAs データは旧renderer互換のため温存（保存してもデータは消えない方式を確認済み）。
 
 ## 2026-07-16 追補: 一括編集で旧から落ちている操作
