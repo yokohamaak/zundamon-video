@@ -230,7 +230,7 @@ export type StageTurnV2 = {
   /** 音声生成済みの文ごとの絶対時刻。 */
   sentences?: StorySentenceV2[];
   /** このターンに入る境界で使う場面転換。 */
-  transition?: "cut" | "fade-black" | "fade-white";
+  transition?: "cut" | "fade-black" | "fade-white" | "wipe-left" | "wipe-right" | "slide-left" | "slide-right";
   /** ターン開始からの相対時刻で鳴らす手動SE。 */
   se?: TurnSe[];
   /** そのターンに画面上へ重ねる短い場面ラベル。 */

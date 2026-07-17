@@ -674,8 +674,8 @@ def validate_story_v2(data, scenes, mobs=None):
             _caption(turn["caption"], f"{path}.caption")
         if "effects" in turn:
             _stage_effects(turn["effects"], f"{path}.effects")
-        if "transition" in turn and turn["transition"] not in {"cut", "fade-black", "fade-white"}:
-            _error(f"{path}.transition", "cut / fade-black / fade-white のいずれかが必要です")
+        if "transition" in turn and turn["transition"] not in {"cut", "fade-black", "fade-white", "wipe-left", "wipe-right", "slide-left", "slide-right"}:
+            _error(f"{path}.transition", "cut / fade-black / fade-white / wipe-left / wipe-right / slide-left / slide-right のいずれかが必要です")
         speaker = turn["speaker"]
         if speaker not in instances:
             _error(f"{path}.speaker", f"instancesにありません: {speaker}")

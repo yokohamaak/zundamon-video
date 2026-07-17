@@ -175,6 +175,14 @@ class StageSchemaTest(unittest.TestCase):
         story["script"][0]["transition"] = "fade-white"
         validate_story_v2(story, SCENES)
         story["script"][0]["transition"] = "wipe-left"
+        validate_story_v2(story, SCENES)
+        story["script"][0]["transition"] = "wipe-right"
+        validate_story_v2(story, SCENES)
+        story["script"][0]["transition"] = "slide-left"
+        validate_story_v2(story, SCENES)
+        story["script"][0]["transition"] = "slide-right"
+        validate_story_v2(story, SCENES)
+        story["script"][0]["transition"] = "zoom"
         with self.assertRaisesRegex(ValueError, "transition"):
             validate_story_v2(story, SCENES)
 

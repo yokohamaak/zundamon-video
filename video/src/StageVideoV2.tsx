@@ -95,14 +95,38 @@ function activeTurnIndex(story: StoryV2, seconds: number): number {
   return index;
 }
 
-function sceneTransitionFade(turn: StageTurnV2, seconds: number) {
-  if (turn.transition !== "fade-black" && turn.transition !== "fade-white") return null;
+function sceneTransitionVisual(turn: StageTurnV2, seconds: number, stageWidth: number) {
+  if (
+    turn.transition !== "fade-black"
+    && turn.transition !== "fade-white"
+    && turn.transition !== "wipe-left"
+    && turn.transition !== "wipe-right"
+    && turn.transition !== "slide-left"
+    && turn.transition !== "slide-right"
+  ) return null;
   const start = turn.start ?? seconds;
-  const opacity = 1 - easeInOutCubic((seconds - start) / SCENE_TRANSITION_FADE_SECONDS);
-  return {
-    color: turn.transition === "fade-white" ? "#fff" : "#000",
-    opacity: clamp(opacity, 0, 1),
-  };
+  const progress = easeInOutCubic((seconds - start) / SCENE_TRANSITION_FADE_SECONDS);
+  const amount = clamp(progress, 0, 1);
+  switch (turn.transition) {
+    case "fade-black":
+    case "fade-white":
+      return {
+        cover: {
+          color: turn.transition === "fade-white" ? "#fff" : "#000",
+          opacity: 1 - amount,
+        },
+      };
+    case "wipe-left":
+      return {contentStyle: {clipPath: `inset(0 ${(1 - amount) * 100}% 0 0)`}};
+    case "wipe-right":
+      return {contentStyle: {clipPath: `inset(0 0 0 ${(1 - amount) * 100}%)`}};
+    case "slide-left":
+      return {contentStyle: {transform: `translateX(${-stageWidth * (1 - amount)}px)`}};
+    case "slide-right":
+      return {contentStyle: {transform: `translateX(${stageWidth * (1 - amount)}px)`}};
+    default:
+      return null;
+  }
 }
 
 function stageTransform(width: number, height: number, frame: {cx: number; cy: number; width: number} | undefined) {
@@ -858,7 +882,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const overlays = activeOverlays(story, seconds);
   const turnIndex = activeTurnIndex(story, seconds);
   const turn = story.script[turnIndex];
-  const sceneTransition = sceneTransitionFade(turn, seconds);
+  const sceneTransition = sceneTransitionVisual(turn, seconds, width);
   const state = resolveStageStateAtTurn(story, turnIndex);
   const scene = scenes.scenes[state.scene];
 
@@ -1198,115 +1222,117 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       <Audio src={mediaStaticSrc(audioSrc)} />
       <V2BgmLayer regions={story.bgm} fps={fps} />
       <V2SeLayer script={story.script} seMap={seMap} fps={fps} />
-      <AbsoluteFill style={{filter: flashbackFilter}}>
-        {insertDisplay ? (
-          <InsertOverlay insert={insertDisplay} bgOpacity={1} opacity={1} />
-        ) : state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
-          <WhiteboardExplainInsert
-            config={state.displayMode.whiteboard}
-            width={width}
-            height={height}
-            durationInFrames={Math.max(1, Math.round(((turn.end ?? turn.start ?? 0) - (turn.start ?? 0)) * fps))}
-            localFrame={Math.max(0, frame - Math.round((turn.start ?? 0) * fps))}
-            characterSlot={renderWhiteboardPresenter()}
-          />
-        ) : (
-          <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
-            <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
-              {scene.bgVideo ? (
-                <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={bgStyle} />
-              ) : scene.bg ? (
-                <Img src={staticFile(scene.bg)} style={bgStyle} />
-              ) : null}
-              <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
-              {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+      <AbsoluteFill style={sceneTransition?.contentStyle}>
+        <AbsoluteFill style={{filter: flashbackFilter}}>
+          {insertDisplay ? (
+            <InsertOverlay insert={insertDisplay} bgOpacity={1} opacity={1} />
+          ) : state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
+            <WhiteboardExplainInsert
+              config={state.displayMode.whiteboard}
+              width={width}
+              height={height}
+              durationInFrames={Math.max(1, Math.round(((turn.end ?? turn.start ?? 0) - (turn.start ?? 0)) * fps))}
+              localFrame={Math.max(0, frame - Math.round((turn.start ?? 0) * fps))}
+              characterSlot={renderWhiteboardPresenter()}
+            />
+          ) : (
+            <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
+              <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
+                {scene.bgVideo ? (
+                  <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={bgStyle} />
+                ) : scene.bg ? (
+                  <Img src={staticFile(scene.bg)} style={bgStyle} />
+                ) : null}
+                <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
+                {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+              </AbsoluteFill>
             </AbsoluteFill>
-          </AbsoluteFill>
-        )}
+          )}
+        </AbsoluteFill>
+        {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
+        <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyImpactLines />
+        {isStandardDialogue && isSubtitle ? (() => {
+          const style = turn.subtitleStyle ?? {};
+          const fontSize = Number.isFinite(Number(style.fontSize)) ? clamp(Math.round(Number(style.fontSize)), 24, 96) : displaySettings.subtitle.fontSize;
+          const textColor = validHex(style.textColor, displaySettings.subtitle.textColor);
+          const borderColor = validHex(style.boxBorderColor, displaySettings.subtitle.borderColor);
+          const borderWidth = Number.isFinite(Number(style.boxBorderWidth)) ? clamp(Number(style.boxBorderWidth), 0.5, 6) : displaySettings.subtitle.borderWidth;
+          const texts = continuedTurns.length > 1
+            ? continuedTurns.map((item) => subtitleProgressiveText(item, seconds))
+            : [subtitleProgressiveText(turn, seconds)];
+          return <div style={{position: "absolute", zIndex: 30, left: "50%", bottom: displaySettings.subtitle.bottom, width: Math.min(width * displaySettings.subtitle.width, 1360), transform: "translateX(-50%)", padding: "16px 28px 18px", borderRadius: 18, background: hexToRgba(displaySettings.subtitle.bgColor, displaySettings.subtitle.bgOpacity), border: (style.boxBorder ?? displaySettings.subtitle.border) ? `${borderWidth}px solid ${borderColor}` : "none", boxShadow: "0 14px 34px rgba(0,0,0,.4)", color: textColor, fontSize, lineHeight: 1.45, fontWeight: 700, fontFamily: displaySettings.subtitle.fontFamily, textAlign: "center", whiteSpace: "pre-wrap", textShadow: "0 2px 6px rgba(0,0,0,.4)"}}>{texts.join("\n")}</div>;
+        })() : null}
+        {isStandardDialogue && !isSubtitle && speakerPosition && speakerDefinition?.role !== "voiceOnly" ? (() => {
+          const autoGroups = sentenceGroups(turn);
+          const usingContinuation = continuedTurns.length > 1;
+          const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
+          const visibleCount = usingContinuation ? turnIndex - continueRange.start + 1 : visibleSentenceGroupCount(turn, seconds);
+          const stacked = texts.length > 1;
+          // 複数段（連結/自動分割）のときは旧と同じく少し縮小する。箱幅の見積もりと実描画で必ず同じ値を使うこと。
+          const bubbleFontSizeValue = bubbleFontSize(stacked, displaySettings.bubble.fontSize);
+          const bubbleBaseMaxWidth = width * 0.72;
+          const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, stacked, bubbleBaseMaxWidth, displaySettings.bubble);
+          const charLimit = bubbleWrapCharLimit(turn, displaySettings.bubble.maxChars);
+          const metrics = texts.map((text) => bubbleMetricsV2(text, bubbleFontSizeValue, bubbleMaxWidth, charLimit));
+          const groupWidth = metrics.reduce((largest, item) => Math.max(largest, item.width), 120);
+          // カメラ遷移中はステージ本体のtransformと同じ式でtx/ty/scaleを補間し、吹き出しを追従させる（旧のfollowK相当）。
+          const bubbleTransform = canSmoothCamera && previousTransform && targetTransform
+            ? {
+              tx: previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress,
+              ty: previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress,
+              scale: previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress,
+            }
+            : cameraTurnIndex !== turnIndex ? previousTransform : targetTransform;
+          const screenX = bubbleTransform
+            ? bubbleTransform.tx + speakerPosition.x * width * bubbleTransform.scale
+            : speakerPosition.x * width;
+          const side = screenX >= width * 0.52 ? "right" : "left";
+          const groupCenterX = clamp(screenX, groupWidth / 2 + 20, width - groupWidth / 2 - 20);
+          const bubbleStepX = side === "right" ? -18 : 18;
+          const singleWidth = metrics[0].width;
+          const singleLeft = side === "right" ? groupCenterX + singleWidth / 2 : groupCenterX - singleWidth / 2;
+          // ズームが深いほど旧のzoomBubbleKと同じ式で吹き出しを上へ逃がす。
+          const zoomBubbleK = bubbleTransform ? clamp((bubbleTransform.scale - 1) / 0.6, 0, 1) : 0;
+          const bubbleTop = height * lerp(0.95, 0.9, zoomBubbleK);
+          const singleBottomOffset = turn.continueBubble ? BUBBLE_CONTINUE_BOTTOM_OFFSET : BUBBLE_BOTTOM_OFFSET;
+          return <div style={stacked
+            ? {position: "absolute", zIndex: 30, left: groupCenterX, top: bubbleTop, width: groupWidth, transform: "translate(-50%, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start", gap: 6}
+            : {position: "absolute", zIndex: 30, left: singleLeft, top: bubbleTop - singleBottomOffset, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
+            {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 28px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: bubbleFontSizeValue, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
+          </div>;
+        })() : null}
+        <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines />
+        {captionVisual && captionVisual.opacity > 0 ? (() => {
+          const caption = captionVisual.caption;
+          const telopX = typeof caption.x === "number" ? clamp(caption.x, 0, 1) : displaySettings.telop.x;
+          const telopY = typeof caption.y === "number" ? clamp(caption.y, 0, 1) : displaySettings.telop.y;
+          const telopSize = typeof caption.size === "number" ? clamp(caption.size, 0.5, 3) : displaySettings.telop.size;
+          return <AbsoluteFill style={{pointerEvents: "none", zIndex: 40}}>
+            <div style={{
+              position: "absolute",
+              left: Math.round(width * telopX),
+              top: Math.round(height * telopY),
+              background: "rgba(8, 8, 8, 0.6)",
+              color: "#f4f0e8",
+              fontSize: 84 * telopSize,
+              fontWeight: 700,
+              fontFamily: "sans-serif",
+              letterSpacing: "0.12em",
+              padding: `${Math.round(18 * telopSize)}px ${Math.round(56 * telopSize)}px`,
+              borderRadius: 8,
+              borderLeft: "10px solid #f4f0e8",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
+              opacity: captionVisual.opacity,
+            }}>{caption.text}</div>
+          </AbsoluteFill>;
+        })() : null}
+        {flashbackWhiteFadeOpacity > 0 ? <AbsoluteFill style={{background: "#fff", opacity: flashbackWhiteFadeOpacity, pointerEvents: "none", zIndex: 60}} /> : null}
       </AbsoluteFill>
-      {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
-      <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyImpactLines />
-      {isStandardDialogue && isSubtitle ? (() => {
-        const style = turn.subtitleStyle ?? {};
-        const fontSize = Number.isFinite(Number(style.fontSize)) ? clamp(Math.round(Number(style.fontSize)), 24, 96) : displaySettings.subtitle.fontSize;
-        const textColor = validHex(style.textColor, displaySettings.subtitle.textColor);
-        const borderColor = validHex(style.boxBorderColor, displaySettings.subtitle.borderColor);
-        const borderWidth = Number.isFinite(Number(style.boxBorderWidth)) ? clamp(Number(style.boxBorderWidth), 0.5, 6) : displaySettings.subtitle.borderWidth;
-        const texts = continuedTurns.length > 1
-          ? continuedTurns.map((item) => subtitleProgressiveText(item, seconds))
-          : [subtitleProgressiveText(turn, seconds)];
-        return <div style={{position: "absolute", zIndex: 30, left: "50%", bottom: displaySettings.subtitle.bottom, width: Math.min(width * displaySettings.subtitle.width, 1360), transform: "translateX(-50%)", padding: "16px 28px 18px", borderRadius: 18, background: hexToRgba(displaySettings.subtitle.bgColor, displaySettings.subtitle.bgOpacity), border: (style.boxBorder ?? displaySettings.subtitle.border) ? `${borderWidth}px solid ${borderColor}` : "none", boxShadow: "0 14px 34px rgba(0,0,0,.4)", color: textColor, fontSize, lineHeight: 1.45, fontWeight: 700, fontFamily: displaySettings.subtitle.fontFamily, textAlign: "center", whiteSpace: "pre-wrap", textShadow: "0 2px 6px rgba(0,0,0,.4)"}}>{texts.join("\n")}</div>;
-      })() : null}
-      {isStandardDialogue && !isSubtitle && speakerPosition && speakerDefinition?.role !== "voiceOnly" ? (() => {
-        const autoGroups = sentenceGroups(turn);
-        const usingContinuation = continuedTurns.length > 1;
-        const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
-        const visibleCount = usingContinuation ? turnIndex - continueRange.start + 1 : visibleSentenceGroupCount(turn, seconds);
-        const stacked = texts.length > 1;
-        // 複数段（連結/自動分割）のときは旧と同じく少し縮小する。箱幅の見積もりと実描画で必ず同じ値を使うこと。
-        const bubbleFontSizeValue = bubbleFontSize(stacked, displaySettings.bubble.fontSize);
-        const bubbleBaseMaxWidth = width * 0.72;
-        const bubbleMaxWidth = bubbleMaxWidthForTurn(turn, width, stacked, bubbleBaseMaxWidth, displaySettings.bubble);
-        const charLimit = bubbleWrapCharLimit(turn, displaySettings.bubble.maxChars);
-        const metrics = texts.map((text) => bubbleMetricsV2(text, bubbleFontSizeValue, bubbleMaxWidth, charLimit));
-        const groupWidth = metrics.reduce((largest, item) => Math.max(largest, item.width), 120);
-        // カメラ遷移中はステージ本体のtransformと同じ式でtx/ty/scaleを補間し、吹き出しを追従させる（旧のfollowK相当）。
-        const bubbleTransform = canSmoothCamera && previousTransform && targetTransform
-          ? {
-            tx: previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress,
-            ty: previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress,
-            scale: previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress,
-          }
-          : cameraTurnIndex !== turnIndex ? previousTransform : targetTransform;
-        const screenX = bubbleTransform
-          ? bubbleTransform.tx + speakerPosition.x * width * bubbleTransform.scale
-          : speakerPosition.x * width;
-        const side = screenX >= width * 0.52 ? "right" : "left";
-        const groupCenterX = clamp(screenX, groupWidth / 2 + 20, width - groupWidth / 2 - 20);
-        const bubbleStepX = side === "right" ? -18 : 18;
-        const singleWidth = metrics[0].width;
-        const singleLeft = side === "right" ? groupCenterX + singleWidth / 2 : groupCenterX - singleWidth / 2;
-        // ズームが深いほど旧のzoomBubbleKと同じ式で吹き出しを上へ逃がす。
-        const zoomBubbleK = bubbleTransform ? clamp((bubbleTransform.scale - 1) / 0.6, 0, 1) : 0;
-        const bubbleTop = height * lerp(0.95, 0.9, zoomBubbleK);
-        const singleBottomOffset = turn.continueBubble ? BUBBLE_CONTINUE_BOTTOM_OFFSET : BUBBLE_BOTTOM_OFFSET;
-        return <div style={stacked
-          ? {position: "absolute", zIndex: 30, left: groupCenterX, top: bubbleTop, width: groupWidth, transform: "translate(-50%, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start", gap: 6}
-          : {position: "absolute", zIndex: 30, left: singleLeft, top: bubbleTop - singleBottomOffset, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
-          {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 28px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: bubbleFontSizeValue, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
-        </div>;
-      })() : null}
-      <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines />
-      {captionVisual && captionVisual.opacity > 0 ? (() => {
-        const caption = captionVisual.caption;
-        const telopX = typeof caption.x === "number" ? clamp(caption.x, 0, 1) : displaySettings.telop.x;
-        const telopY = typeof caption.y === "number" ? clamp(caption.y, 0, 1) : displaySettings.telop.y;
-        const telopSize = typeof caption.size === "number" ? clamp(caption.size, 0.5, 3) : displaySettings.telop.size;
-        return <AbsoluteFill style={{pointerEvents: "none", zIndex: 40}}>
-          <div style={{
-            position: "absolute",
-            left: Math.round(width * telopX),
-            top: Math.round(height * telopY),
-            background: "rgba(8, 8, 8, 0.6)",
-            color: "#f4f0e8",
-            fontSize: 84 * telopSize,
-            fontWeight: 700,
-            fontFamily: "sans-serif",
-            letterSpacing: "0.12em",
-            padding: `${Math.round(18 * telopSize)}px ${Math.round(56 * telopSize)}px`,
-            borderRadius: 8,
-            borderLeft: "10px solid #f4f0e8",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
-            opacity: captionVisual.opacity,
-          }}>{caption.text}</div>
-        </AbsoluteFill>;
-      })() : null}
-      {flashbackWhiteFadeOpacity > 0 ? <AbsoluteFill style={{background: "#fff", opacity: flashbackWhiteFadeOpacity, pointerEvents: "none", zIndex: 60}} /> : null}
-      {sceneTransition && sceneTransition.opacity > 0 ? (
+      {sceneTransition?.cover && sceneTransition.cover.opacity > 0 ? (
         <AbsoluteFill
           style={{
-            background: sceneTransition.color,
-            opacity: sceneTransition.opacity,
+            background: sceneTransition.cover.color,
+            opacity: sceneTransition.cover.opacity,
             pointerEvents: "none",
             zIndex: 70,
           }}

@@ -1101,7 +1101,8 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "- expression / pose / face を turn 直下に書く（必ず stage.update の中に書く）",
         "- telop / telopX / telopY / telopSize（caption を使う） / insert（displayMode を使う） / narrationVoice / voice（instances の voiceId を使う）",
         "- flashback / visionNoise / impactLines / zoomPunch / quoteFreeze / irisOut / stampRain / typingFlood / sparkleBurst を turn 直下に書く（対応済みの演出は effects の中に書く）",
-        '- transition は "cut" / "fade-black" / "fade-white" のみ可。wipe / slide 系は使わない。',
+        '- transition は "cut" / "fade-black" / "fade-white" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" が使える。'
+        ' V2では切替先ターンの画面全体を黒背景上に出す方式で、旧V1の次シーン先出し再現ではない。',
         "- 上記以外でも、このプロンプトに書かれていないキーは検証エラーで取り込めない。",
     ]
 
