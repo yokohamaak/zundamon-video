@@ -1101,7 +1101,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "- expression / pose / face を turn 直下に書く（必ず stage.update の中に書く）",
         "- telop / telopX / telopY / telopSize（caption を使う） / insert（displayMode を使う） / narrationVoice / voice（instances の voiceId を使う）",
         "- flashback / visionNoise / impactLines / zoomPunch / quoteFreeze / irisOut / stampRain / typingFlood / sparkleBurst を turn 直下に書く（対応済みの演出は effects の中に書く）",
-        '- transition は "cut" のみ可。fade / wipe / slide 系は存在しない。',
+        '- transition は "cut" / "fade-black" / "fade-white" のみ可。wipe / slide 系は使わない。',
         "- 上記以外でも、このプロンプトに書かれていないキーは検証エラーで取り込めない。",
     ]
 

@@ -6819,6 +6819,8 @@ function transitionOptionsHtml(selected, allowNone = false) {
   const options = isV2StoryEditor() ? [
     ...(allowNone ? [["", "なし"]] : []),
     ["cut", "cut（カット）"],
+    ["fade-black", "fade-black（暗転）"],
+    ["fade-white", "fade-white（白フェード）"],
   ] : [
     ...(allowNone ? [["", "なし"]] : []),
     ["cut", "cut（カット）"],

@@ -674,8 +674,8 @@ def validate_story_v2(data, scenes, mobs=None):
             _caption(turn["caption"], f"{path}.caption")
         if "effects" in turn:
             _stage_effects(turn["effects"], f"{path}.effects")
-        if "transition" in turn and turn["transition"] != "cut":
-            _error(f"{path}.transition", "v2では cut のみ対応しています。フェード・ワイプはv2用の表示種別またはオーバーレイで表現してください")
+        if "transition" in turn and turn["transition"] not in {"cut", "fade-black", "fade-white"}:
+            _error(f"{path}.transition", "cut / fade-black / fade-white のいずれかが必要です")
         speaker = turn["speaker"]
         if speaker not in instances:
             _error(f"{path}.speaker", f"instancesにありません: {speaker}")

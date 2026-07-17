@@ -171,7 +171,11 @@ class StageSchemaTest(unittest.TestCase):
             validate_story_v2(story, SCENES)
         story = copy.deepcopy(STORY)
         story["script"][0]["transition"] = "fade-black"
-        with self.assertRaisesRegex(ValueError, "v2では cut のみ"):
+        validate_story_v2(story, SCENES)
+        story["script"][0]["transition"] = "fade-white"
+        validate_story_v2(story, SCENES)
+        story["script"][0]["transition"] = "wipe-left"
+        with self.assertRaisesRegex(ValueError, "transition"):
             validate_story_v2(story, SCENES)
 
     def test_scene_accepts_background_video(self):

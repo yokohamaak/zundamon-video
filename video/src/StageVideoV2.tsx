@@ -56,6 +56,7 @@ const FLASHBACK_SATURATE = 0.4;
 const FLASHBACK_BRIGHTNESS = 1.02;
 const FLASHBACK_GRAIN_OPACITY = 0.06;
 const FLASHBACK_DISSOLVE_SECONDS = 0.3;
+const SCENE_TRANSITION_FADE_SECONDS = 0.9;
 const DEFAULT_STAGE_EFFECT_SETTINGS = {
   zoomPunch: {scale: 1.14, duration: 0.18, borderStrength: 1},
   quoteFreeze: {fadeIn: 0.14, fadeOutStart: 0.72, fadeOutDuration: 0.18, backdropOpacity: 0.22},
@@ -92,6 +93,16 @@ function activeTurnIndex(story: StoryV2, seconds: number): number {
     else break;
   }
   return index;
+}
+
+function sceneTransitionFade(turn: StageTurnV2, seconds: number) {
+  if (turn.transition !== "fade-black" && turn.transition !== "fade-white") return null;
+  const start = turn.start ?? seconds;
+  const opacity = 1 - easeInOutCubic((seconds - start) / SCENE_TRANSITION_FADE_SECONDS);
+  return {
+    color: turn.transition === "fade-white" ? "#fff" : "#000",
+    opacity: clamp(opacity, 0, 1),
+  };
 }
 
 function stageTransform(width: number, height: number, frame: {cx: number; cy: number; width: number} | undefined) {
@@ -847,6 +858,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const overlays = activeOverlays(story, seconds);
   const turnIndex = activeTurnIndex(story, seconds);
   const turn = story.script[turnIndex];
+  const sceneTransition = sceneTransitionFade(turn, seconds);
   const state = resolveStageStateAtTurn(story, turnIndex);
   const scene = scenes.scenes[state.scene];
 
@@ -1290,6 +1302,16 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         </AbsoluteFill>;
       })() : null}
       {flashbackWhiteFadeOpacity > 0 ? <AbsoluteFill style={{background: "#fff", opacity: flashbackWhiteFadeOpacity, pointerEvents: "none", zIndex: 60}} /> : null}
+      {sceneTransition && sceneTransition.opacity > 0 ? (
+        <AbsoluteFill
+          style={{
+            background: sceneTransition.color,
+            opacity: sceneTransition.opacity,
+            pointerEvents: "none",
+            zIndex: 70,
+          }}
+        />
+      ) : null}
     </AbsoluteFill>
   );
 };

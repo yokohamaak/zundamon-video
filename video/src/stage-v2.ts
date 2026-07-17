@@ -229,8 +229,8 @@ export type StageTurnV2 = {
   disableAutoBubbleSplit?: boolean;
   /** 音声生成済みの文ごとの絶対時刻。 */
   sentences?: StorySentenceV2[];
-  /** v2では即時切替のみ対応する旧場面転換指定。 */
-  transition?: "cut";
+  /** このターンに入る境界で使う場面転換。 */
+  transition?: "cut" | "fade-black" | "fade-white";
   /** ターン開始からの相対時刻で鳴らす手動SE。 */
   se?: TurnSe[];
   /** そのターンに画面上へ重ねる短い場面ラベル。 */
