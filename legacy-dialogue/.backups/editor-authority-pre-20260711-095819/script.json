@@ -1,0 +1,1042 @@
+{
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "あなたの財布に入っているクレジットカードやキャッシュカード、全部同じ大きさよね。",
+      "emotion": "normal",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0001"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "そうなのだ！ブランドが違っても、重ねると綺麗にピッタリ重なるのだ！",
+      "emotion": "surprise",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0002"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実はこれ、偶然じゃないの。今回は『なぜクレジットカードのサイズは世界共通なのか』を解き明かすわ。",
+      "emotion": "happy",
+      "section": "intro",
+      "chapter": 0,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0003"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "今や世界中のどの国に行っても、カードのサイズは1ミリの狂いもなく統一されているのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "flash",
+      "cut": 0,
+      "id": "turn-0004"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "国が違えば言葉も通貨も違うのに、カードの大きさだけが同じなのは不思議なのだ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0005"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "具体的な数値は、横が85.60ミリ、縦が53.98ミリ、厚さが0.76ミリと決まっているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "kenburns",
+      "cut": 1,
+      "reveal": true,
+      "id": "turn-0006"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "小数点以下まで細かく決まっているのだ！昔からこの形だったのだ？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 1,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "id": "turn-0007"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そんな中で、カードの歴史を遡ると、最初は今とは全く違うバラバラの姿をしていたのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "flash",
+      "cut": 0,
+      "id": "turn-0008"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "1950年代にアメリカで最初のクレジットカードとされるダイナースクラブが誕生したわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0009"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "その頃のカードも、やっぱり今のプラスチックみたいな感じだったのだ？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0010"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "いいえ、当時はただの紙の手帳や、お肉のクーポン券のような紙切れだったと言われているの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "voice": {
+        "speed": 1,
+        "pitch": 0,
+        "intonation": 0.9,
+        "volume": 1
+      },
+      "id": "turn-0011"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ええっ、ただの紙だったのだ！？それじゃお店ごとに大きさが違いそうなのだ。",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "shake",
+      "cut": 1,
+      "id": "turn-0012"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そうなの。当時は発行する会社やお店が、それぞれ独自のサイズで作っていて不便だったのね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 2,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0013"
+    },
+    {
+      "speaker": "ここで問題が",
+      "text": "発生するわ。紙のカードは破れやすいから、やがてプラスチック製へと進化していくの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "flash",
+      "cut": 0,
+      "compare_item": 0,
+      "id": "turn-0014"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その時に、カードの表面に会員番号や名前が凸凹に浮き出た加工が施されるようになったわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "compare_item": 1,
+      "id": "turn-0015"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "あ、古いカードとかによくある、あの触るとザラザラした文字のことなのだ！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0016"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "あの凸凹はエンボス加工と呼ばれるのだけど、実はこれがお洒落のデザインではないのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0017"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "えっ、てっきりカッコよく見せるための飾りだと思っていたのだ！違うのだ？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "shake",
+      "cut": 1,
+      "id": "turn-0018"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実はその裏で、この凸凹の文字こそが、サイズを世界共通にするための最大の引き金になったの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 3,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0019"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ここで当時の決済方法を思い出してほしいのだけど、当時はコンピューターなんて無いわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "flash",
+      "cut": 0,
+      "id": "turn-0020"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "確かに、昔はインターネットも数字を読み取る機械も無かったはずなのだ！",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0021"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。だからお店の人は、カードの凸凹にカーボン紙の伝票を重ねて、機械で挟んでいたの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0022"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そしてレバーを『ガシャコン』とスライドさせて、伝票に番号を物理的に転写していたのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "reveal": true,
+      "id": "turn-0023"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ああっ！昔の映画とかで見たことあるのだ！あのガシャコンってやるアナログなやつなのだ！",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "id": "turn-0024"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "その通りよ。あのガシャコンとやる機械はインプリンタという名前なの。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "pause": 1,
+      "id": "turn-0025"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "このインプリンタという機械の溝にカードをハメる必要があったから、サイズ統一が始まったのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0026"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "なるほどなのだ！機械の大きさにカードを合わせないと、ガシャコンできないのだね！",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0027"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それなら、なぜインプリンタの機械は『あの特定の数値』のサイズで作られたと思うかしら？",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "flash",
+      "cut": 0,
+      "panel_event": "shrink",
+      "panel_item": 0,
+      "id": "turn-0028"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "うーん、適当に作りやすかったからじゃないのだ？キリが良い数字でもないのだし。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0029"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "実は、縦横の比率が約1対1.585になっていて、これが人間の感じる黄金比にとても近いの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "panel_item": 1,
+      "id": "turn-0030"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "黄金比って、パルテノン神殿とか名画のモナ・リザにも使われている、あの美しい比率なのだ？",
+      "emotion": "surprise",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0031"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そう。人間が直感的に美しいと感じ、かつ名刺のように持ち運びやすい絶妙なサイズなのよ。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "panel_item": 2,
+      "id": "turn-0032"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "さらに、大人の男性の一般的なお財布のポケットにスムーズに収まるように計算されていたわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0033"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "美しさと、お財布への入れやすさを両立した結果が、あの小数点以下の細かい数字なのだね。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 5,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0034"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "こうしてアメリカで普及したサイズを、1980年代に国際機関が正式な標準として認めたの。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "flash",
+      "cut": 0,
+      "id": "turn-0035"
+    },
+    {
+      "speaker": "四0ミリ",
+      "text": "ISO（アイエスオー）という国際規格によって『ID-1（アイディーワン）』規格として制定されたわ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0036"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "国際規格になっちゃえば、世界中の会社が真似をして同じサイズで作るようになるのだ！",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0037"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ええ。そのおかげで世界中のATM（エーティーエム）やお店の端末も、このサイズで作られたのよ。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0038"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "もしサイズがバラバラだったら、海外旅行に行ったときに現地のATMが使えなくて困るわよね。",
+      "emotion": "normal",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "kenburns",
+      "cut": 1,
+      "id": "turn-0039"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "今の便利なキャッシュレス社会があるのは、昔のアナログな機械のおかげだったのだね。",
+      "emotion": "happy",
+      "section": "trivia",
+      "chapter": 6,
+      "effect": "zoom_punch",
+      "cut": 1,
+      "id": "turn-0040"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "現代ではガシャコンとやる機械は消えて、IC（アイシー）チップやスマホ決済が主流になったわ。",
+      "emotion": "normal",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "flash",
+      "cut": 0,
+      "id": "turn-0041"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "デジタルになっても、スマホの画面に出るカードの絵はやっぱりあの黄金比の形なのだ！",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0042"
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "過去の不便を解消するための知恵が、今も形を変えずに僕たちの生活を支えているのね。",
+      "emotion": "normal",
+      "section": "outro",
+      "chapter": 7,
+      "effect": "kenburns",
+      "cut": 0,
+      "id": "turn-0043"
+    }
+  ],
+  "theme": "なぜクレジットカードのサイズは世界共通なのか",
+  "chapters": [
+    {
+      "section": "intro",
+      "title": "財布の中の完璧な一致",
+      "summary": "世界中のクレジットカードや身分証が、なぜどれも全く同じサイズに統一されているのかという謎を提示する導入。",
+      "image_cuts": [
+        {
+          "image_query": "stacked credit cards",
+          "image_kind": "ambient",
+          "image_query_ja": "重ねられたクレジットカード"
+        }
+      ],
+      "vizList": []
+    },
+    {
+      "section": "trivia",
+      "title": "1ミリも狂わない驚異の統一",
+      "summary": "世界中のどのブランドでも縦横の長さや厚みが完全に一致しているという、驚くべき現状とその正確な数値を解説する。",
+      "image_cuts": [
+        {
+          "image_query": "credit card macro shot caliper",
+          "image_kind": "ambient",
+          "image_query_ja": "カードの厚みを測るノギス"
+        },
+        {
+          "image_query": "world map connectivity",
+          "image_kind": "ambient",
+          "image_query_ja": "世界地図とネットワーク"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "ISO/IEC 7810 ID-1規格の定義データ",
+      "stat": {
+        "value": "85",
+        "unit": "ミリ",
+        "label": "カードの横幅"
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "始まりはバラバラの紙の手帳",
+      "summary": "クレジットカードの黎明期である1950年代のアメリカでは、カードは紙製であり、サイズもお店ごとにバラバラだった歴史を振り返る。",
+      "image_cuts": [
+        {
+          "image_query": "1950s diners club vintage card",
+          "image_kind": "subject",
+          "image_query_ja": "1950年代のダイナースクラブカード"
+        },
+        {
+          "image_query": "vintage paper notebooks",
+          "image_kind": "ambient",
+          "image_query_ja": "古い紙の手帳"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "ダイナースクラブ創業期の歴史資料"
+    },
+    {
+      "section": "trivia",
+      "title": "浮き出た文字エンボスの謎",
+      "summary": "プラスチック製カードへの移行に伴い登場した、番号が凸凹に浮き出た「エンボス」という加工に隠された目的について触れる。",
+      "image_cuts": [
+        {
+          "image_query": "old paper membership card",
+          "image_kind": "ambient",
+          "image_query_ja": "古い紙の会員証"
+        },
+        {
+          "image_query": "credit card embossed numbers close up",
+          "image_kind": "ambient",
+          "image_query_ja": "カードの浮き出た数字"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "クレジットカードのエンボス加工の歴史",
+      "compare": {
+        "left": {
+          "label": "初期の紙カード",
+          "cut": 0
+        },
+        "right": {
+          "label": "浮き出たエンボス",
+          "cut": 1
+        }
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "核心・ガシャコンと挟む機械",
+      "summary": "かつて店舗で使われていた、カーボン紙にカードの凸凹を物理的に転写する決済用のアナログ機械がサイズの基準になった核心を明かす。",
+      "image_cuts": [
+        {
+          "image_query": "vintage manual credit card imprinter machine",
+          "image_kind": "subject",
+          "image_query_ja": "手動式インプリンタ機械"
+        },
+        {
+          "image_query": "carbon copy paper receipt",
+          "image_kind": "ambient",
+          "image_query_ja": "カーボン紙の複写伝票"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "手動式クレジットカードインプリンタの仕組み",
+      "quiz": {
+        "question": "凸凹を転写するアナログな機械の名前は？",
+        "answer": "インプリンタ"
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "美しき黄金比と財布のポッケ",
+      "summary": "機械のサイズを決める際に、人間が最も美しいと感じる黄金比の比率や、既存の財布のポケットへの収まりやすさが計算されていた理由を深掘りする。",
+      "image_cuts": [
+        {
+          "image_query": "golden ratio geometry diagram",
+          "image_kind": "ambient",
+          "image_query_ja": "黄金比の幾何学図形"
+        },
+        {
+          "image_query": "leather wallet pocket closeup",
+          "image_kind": "ambient",
+          "image_query_ja": "革財布のポケット"
+        }
+      ],
+      "confidence": "medium",
+      "source_hint": "黄金比のデザイン応用例とカードサイズに関する考察",
+      "panel": {
+        "items": [
+          {
+            "text": "機械の設置溝"
+          },
+          {
+            "text": "黄金比の美しさ"
+          },
+          {
+            "text": "財布の収納性"
+          }
+        ],
+        "heading": "サイズ決定の3大要素"
+      }
+    },
+    {
+      "section": "trivia",
+      "title": "世界標準アイエスオーの刻印",
+      "summary": "1980年代に国際規格として正式に登録され、世界中のATMなどのハードウェアがこのサイズを基準に作られるようになり規格が不動となった結末を語る。",
+      "image_cuts": [
+        {
+          "image_query": "ISO logo international organization",
+          "image_kind": "subject",
+          "image_query_ja": "ISOのイメージ"
+        },
+        {
+          "image_query": "modern ATM machine slot",
+          "image_kind": "ambient",
+          "image_query_ja": "現代のATMのカード挿入口"
+        }
+      ],
+      "confidence": "high",
+      "source_hint": "ISO/IEC 7810規格制定の歴史（1980年代）"
+    },
+    {
+      "section": "outro",
+      "title": "デジタルに受け継がれる形",
+      "summary": "スマホ決済やデジタル化が進んだ現代でも、あの物理的なサイズのデザインや比率がそのまま受け継がれているという教訓をまとめる。",
+      "image_cuts": [
+        {
+          "image_query": "smartphone display digital credit card",
+          "image_kind": "ambient",
+          "image_query_ja": "スマホ画面のデジタルカード"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 2,
+  "assets": [
+    {
+      "id": "asset-00-00",
+      "file": null,
+      "query": "stacked credit cards",
+      "queryJa": "重ねられたクレジットカード",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 0
+    },
+    {
+      "id": "asset-01-00",
+      "file": null,
+      "query": "credit card macro shot caliper",
+      "queryJa": "カードの厚みを測るノギス",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 1
+    },
+    {
+      "id": "asset-01-01",
+      "file": null,
+      "query": "world map connectivity",
+      "queryJa": "世界地図とネットワーク",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 1
+    },
+    {
+      "id": "asset-02-00",
+      "file": null,
+      "query": "1950s diners club vintage card",
+      "queryJa": "1950年代のダイナースクラブカード",
+      "kind": "subject",
+      "attribution": null,
+      "sourceChapter": 2
+    },
+    {
+      "id": "asset-02-01",
+      "file": null,
+      "query": "vintage paper notebooks",
+      "queryJa": "古い紙の手帳",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 2
+    },
+    {
+      "id": "asset-03-00",
+      "file": null,
+      "query": "old paper membership card",
+      "queryJa": "古い紙の会員証",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 3
+    },
+    {
+      "id": "asset-03-01",
+      "file": null,
+      "query": "credit card embossed numbers close up",
+      "queryJa": "カードの浮き出た数字",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 3
+    },
+    {
+      "id": "asset-04-00",
+      "file": null,
+      "query": "vintage manual credit card imprinter machine",
+      "queryJa": "手動式インプリンタ機械",
+      "kind": "subject",
+      "attribution": null,
+      "sourceChapter": 4
+    },
+    {
+      "id": "asset-04-01",
+      "file": null,
+      "query": "carbon copy paper receipt",
+      "queryJa": "カーボン紙の複写伝票",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 4
+    },
+    {
+      "id": "asset-05-00",
+      "file": null,
+      "query": "golden ratio geometry diagram",
+      "queryJa": "黄金比の幾何学図形",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 5
+    },
+    {
+      "id": "asset-05-01",
+      "file": null,
+      "query": "leather wallet pocket closeup",
+      "queryJa": "革財布のポケット",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 5
+    },
+    {
+      "id": "asset-06-00",
+      "file": null,
+      "query": "ISO logo international organization",
+      "queryJa": "ISOのイメージ",
+      "kind": "subject",
+      "attribution": null,
+      "sourceChapter": 6
+    },
+    {
+      "id": "asset-06-01",
+      "file": null,
+      "query": "modern ATM machine slot",
+      "queryJa": "現代のATMのカード挿入口",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 6
+    },
+    {
+      "id": "asset-07-00",
+      "file": null,
+      "query": "smartphone display digital credit card",
+      "queryJa": "スマホ画面のデジタルカード",
+      "kind": "ambient",
+      "attribution": null,
+      "sourceChapter": 7
+    }
+  ],
+  "imageCues": [
+    {
+      "id": "image-cue-0001",
+      "turnId": "turn-0001",
+      "assetId": "asset-00-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0002",
+      "turnId": "turn-0004",
+      "assetId": "asset-01-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0003",
+      "turnId": "turn-0006",
+      "assetId": "asset-01-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0004",
+      "turnId": "turn-0008",
+      "assetId": "asset-02-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0005",
+      "turnId": "turn-0010",
+      "assetId": "asset-02-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0006",
+      "turnId": "turn-0014",
+      "assetId": "asset-03-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0007",
+      "turnId": "turn-0015",
+      "assetId": "asset-03-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0008",
+      "turnId": "turn-0020",
+      "assetId": "asset-04-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0009",
+      "turnId": "turn-0023",
+      "assetId": "asset-04-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0010",
+      "turnId": "turn-0028",
+      "assetId": "asset-05-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0011",
+      "turnId": "turn-0032",
+      "assetId": "asset-05-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0012",
+      "turnId": "turn-0035",
+      "assetId": "asset-06-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0013",
+      "turnId": "turn-0037",
+      "assetId": "asset-06-01",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    },
+    {
+      "id": "image-cue-0014",
+      "turnId": "turn-0041",
+      "assetId": "asset-07-00",
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    }
+  ],
+  "visualSegments": [
+    {
+      "id": "visual-01-legacy",
+      "type": "stat",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0004",
+      "endTurnId": "turn-0007",
+      "config": {
+        "stat": {
+          "value": "85",
+          "unit": "ミリ",
+          "label": "カードの横幅"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0006",
+          "type": "reveal"
+        }
+      ],
+      "sourceChapter": 1
+    },
+    {
+      "id": "visual-03-legacy",
+      "type": "compare",
+      "mode": "replace",
+      "status": "active",
+      "startTurnId": "turn-0014",
+      "endTurnId": "turn-0019",
+      "config": {
+        "compare": {
+          "left": {
+            "label": "初期の紙カード",
+            "cut": 0
+          },
+          "right": {
+            "label": "浮き出たエンボス",
+            "cut": 1
+          }
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0014",
+          "type": "compare_item",
+          "value": 0
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0015",
+          "type": "compare_item",
+          "value": 1
+        }
+      ],
+      "sourceChapter": 3
+    },
+    {
+      "id": "visual-04-legacy",
+      "type": "quiz",
+      "mode": "overlay",
+      "status": "active",
+      "startTurnId": "turn-0020",
+      "endTurnId": "turn-0027",
+      "config": {
+        "quiz": {
+          "question": "凸凹を転写するアナログな機械の名前は？",
+          "answer": "インプリンタ"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0023",
+          "type": "reveal"
+        }
+      ],
+      "sourceChapter": 4
+    },
+    {
+      "id": "visual-05-legacy",
+      "type": "panel",
+      "mode": "layout",
+      "status": "active",
+      "startTurnId": "turn-0028",
+      "endTurnId": "turn-0034",
+      "config": {
+        "panel": {
+          "items": [
+            {
+              "text": "機械の設置溝"
+            },
+            {
+              "text": "黄金比の美しさ"
+            },
+            {
+              "text": "財布の収納性"
+            }
+          ],
+          "heading": "サイズ決定の3大要素"
+        }
+      },
+      "keyframes": [
+        {
+          "id": "kf-001",
+          "turnId": "turn-0028",
+          "type": "panel_event",
+          "value": "shrink"
+        },
+        {
+          "id": "kf-002",
+          "turnId": "turn-0028",
+          "type": "panel_item",
+          "value": 0
+        },
+        {
+          "id": "kf-003",
+          "turnId": "turn-0030",
+          "type": "panel_item",
+          "value": 1
+        },
+        {
+          "id": "kf-004",
+          "turnId": "turn-0032",
+          "type": "panel_item",
+          "value": 2
+        }
+      ],
+      "sourceChapter": 5
+    }
+  ]
+}

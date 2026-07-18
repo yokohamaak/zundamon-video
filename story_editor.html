@@ -294,6 +294,148 @@
     box-shadow: 0 4px 24px rgba(0,0,0,.5);
     flex-shrink: 0;
   }
+  body.preview-landscape-fullscreen { overflow: hidden; }
+  .preview-player-wrap.preview-fullscreen-active,
+  .preview-player-wrap:fullscreen,
+  .preview-player-wrap:-webkit-full-screen {
+    background: #000;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+  .preview-player-wrap.preview-fullscreen-fallback {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000;
+  }
+  .preview-fullscreen-exit {
+    display: none;
+    position: absolute;
+    right: calc(10px + env(safe-area-inset-right));
+    top: calc(10px + env(safe-area-inset-top));
+    z-index: 80;
+    min-width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.35);
+    background: rgba(8,10,15,.72);
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .preview-fullscreen-open {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    z-index: 80;
+    min-width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.35);
+    background: rgba(8,10,15,.72);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .preview-player-wrap.preview-fullscreen-active .preview-fullscreen-open { display: none; }
+  .preview-player-wrap.preview-fullscreen-active .preview-fullscreen-exit { display: flex; }
+  .preview-player-wrap.preview-fullscreen-active .preview-fullscreen-exit {
+    position: fixed;
+    right: calc(12px + env(safe-area-inset-right));
+    top: calc(12px + env(safe-area-inset-top));
+    z-index: 3001;
+    min-width: 48px;
+    height: 48px;
+  }
+  .preview-global-fullscreen-exit {
+    display: none;
+    position: fixed;
+    right: calc(12px + env(safe-area-inset-right));
+    top: calc(12px + env(safe-area-inset-top));
+    z-index: 3000;
+    min-width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.4);
+    background: rgba(8,10,15,.82);
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 8px 28px rgba(0,0,0,.35);
+  }
+  body.preview-landscape-fullscreen .preview-global-fullscreen-exit { display: flex; }
+  .preview-global-fullscreen-controls {
+    display: none;
+    position: fixed;
+    left: calc(16px + env(safe-area-inset-left));
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 3000;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.28);
+    background: rgba(8,10,15,.82);
+    box-shadow: 0 8px 28px rgba(0,0,0,.35);
+    backdrop-filter: blur(8px);
+  }
+  body.preview-landscape-fullscreen .preview-global-fullscreen-controls { display: flex; }
+  .preview-fullscreen-skip {
+    flex: 0 0 auto;
+    min-width: 54px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.35);
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .preview-fullscreen-seek {
+    flex: 1 1 auto;
+    min-width: 0;
+    accent-color: #5b8dee;
+  }
+  .preview-fullscreen-time {
+    flex: 0 0 auto;
+    min-width: 94px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (orientation: portrait) {
+    body.preview-landscape-fullscreen .preview-player-wrap.preview-fullscreen-active,
+    body.preview-landscape-fullscreen .preview-player-wrap:fullscreen,
+    body.preview-landscape-fullscreen .preview-player-wrap:-webkit-full-screen {
+      position: fixed !important;
+      left: 50% !important;
+      top: 50% !important;
+      right: auto !important;
+      bottom: auto !important;
+      width: 100vh !important;
+      height: 100vw !important;
+      transform: translate(-50%, -50%) rotate(90deg);
+      transform-origin: center center;
+    }
+  }
   .preview-status {
     font-size: 11px; color: var(--text2); text-align: center;
     flex-shrink: 0;
@@ -553,6 +695,10 @@
     cursor: nwse-resize;
     touch-action: none;
   }
+  .v2-framed-stage-map::after { content: "外側背景"; }
+  .v2-framed-stage-map-frame { border-color: rgba(45,212,191,.98); }
+  .v2-framed-stage-map-frame::before { content: "16:9 描画領域"; }
+  .v2-framed-stage-map-frame .v2-camera-map-handle { background: rgba(45,212,191,.98); }
   .overlay-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -804,6 +950,39 @@
     margin-top: 8px; margin-bottom: 4px;
   }
   .section-divider:first-child { border-top: none; margin-top: 0; }
+  .v2-foldout {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+    overflow: hidden;
+  }
+  .v2-foldout summary {
+    cursor: pointer;
+    padding: 10px 12px;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    list-style-position: inside;
+    user-select: none;
+  }
+  .v2-foldout[open] summary { border-bottom: 1px solid var(--border); }
+  .v2-foldout-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+  .v2-compact-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .v2-section-checks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
   .basic-assist {
     position: sticky; top: 0; z-index: 5;
     margin: -12px -14px 12px; padding: 10px 14px 12px;
@@ -1529,7 +1708,8 @@
         <option value="4">400%</option>
       </select>
       <span class="preview-status" id="playerStatus" style="margin-left:8px;">story-player.js を読み込み中...</span>
-      <button class="btn btn-secondary btn-sm" id="btnAddOverlay" style="margin-left:auto; font-size:12px; padding:2px 8px;">＋画像Overlay</button>
+      <button class="btn btn-secondary btn-sm" id="btnPreviewFullscreen" style="margin-left:auto; font-size:12px; padding:2px 8px;" title="プレビューを横向き全画面表示">⛶ 全画面</button>
+      <button class="btn btn-secondary btn-sm" id="btnAddOverlay" style="font-size:12px; padding:2px 8px;">＋画像Overlay</button>
       <button class="btn btn-secondary btn-sm" id="btnAddTextOverlay" style="font-size:12px; padding:2px 8px;">＋字幕</button>
     </div>
     <div class="preview-scroll">
@@ -1538,8 +1718,17 @@
           <div id="playerMount" style="position:absolute; inset:0;"></div>
           <div class="overlay-edit-layer" id="overlayEditLayer"></div>
           <div class="overlay-edit-layer" id="placementEditLayer"></div>
+          <button type="button" class="preview-fullscreen-open" id="btnPreviewFullscreenOverlay" title="プレビューを横向き全画面表示">⛶</button>
+          <button type="button" class="preview-fullscreen-exit" id="btnPreviewFullscreenExit" title="全画面表示を解除">×</button>
         </div>
       </div>
+    </div>
+    <button type="button" class="preview-global-fullscreen-exit" id="btnPreviewFullscreenGlobalExit" title="全画面表示を解除">×</button>
+    <div class="preview-global-fullscreen-controls" id="previewFullscreenControls">
+      <button type="button" class="preview-fullscreen-skip" id="btnPreviewSkipBack" title="10秒戻る">-10</button>
+      <input type="range" class="preview-fullscreen-seek" id="previewFullscreenSeek" min="0" max="1" step="0.1" value="0" aria-label="プレビューの再生位置">
+      <button type="button" class="preview-fullscreen-skip" id="btnPreviewSkipForward" title="10秒進む">+10</button>
+      <span class="preview-fullscreen-time" id="previewFullscreenTime">0:00 / 0:00</span>
     </div>
   </div>
 
@@ -1717,6 +1906,7 @@
               <label class="field-label">表示種別</label>
               <select class="field-select" id="fV2DisplayMode">
                 <option value="standard">通常表示</option>
+                <option value="framedStage">画面内ステージ（背景フレーム）</option>
                 <option value="zunMonitor">ZunMonitor（警告 / 正常）</option>
                 <option value="zunAi">ZunAI（AIチャット）</option>
                 <option value="zunChat">ZunChat（チームチャット）</option>
@@ -1731,8 +1921,8 @@
               <select class="field-select" id="fV2Speaker"></select>
             </div>
             <div class="field-row">
-              <label class="field-label">セリフ</label>
-              <textarea class="field-textarea" id="fV2Text"></textarea>
+              <label class="field-label">セリフ（空欄可）</label>
+              <textarea class="field-textarea" id="fV2Text" placeholder="空欄にして「間（秒）」だけを指定できます"></textarea>
               <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
                 <button type="button" class="btn btn-secondary btn-sm" id="btnV2SplitDialogue">セリフ分割</button>
                 <div class="field-help">カーソル位置で後半を新しいターンにします。舞台の在席状態はそのまま引き継がれます。</div>
@@ -1742,6 +1932,7 @@
               <label class="field-label" style="min-width:auto;">間（秒）</label>
               <input class="field-input" id="fV2Pause" type="number" min="0" step="0.1" placeholder="なし" style="width:120px;">
               <label class="toggle-row"><input type="checkbox" id="fV2NoLipSync"> 口パクをしない</label>
+              <span class="field-help" style="margin:0;">セリフが空欄なら、指定した秒数だけ無音で表示します。</span>
             </div>
             <div class="section-divider">台詞表示</div>
             <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
@@ -1802,6 +1993,29 @@
               <select class="field-select" id="fV2Scene"></select>
               <div class="field-help">シーンが変わると舞台上の人物はリセットされます。</div>
             </div>
+            <div id="v2FramedStageControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">画面内ステージ</div>
+              <div class="field-row">
+                <label class="field-label">外側の背景</label>
+                <select class="field-select" id="fV2FramedStageBackground"></select>
+                <div class="field-help">このターンの外枠に使う背景画像です。中の16:9領域には、選択中のシーン・人物・吹き出し・テロップをまとめて描画します。</div>
+              </div>
+              <div class="field-row">
+                <label class="field-label">描画領域</label>
+                <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
+                  <input class="field-input" id="fV2FramedStageX" type="number" min="0" max="1" step="0.01" placeholder="左 X">
+                  <input class="field-input" id="fV2FramedStageY" type="number" min="0" max="1" step="0.01" placeholder="上 Y">
+                  <input class="field-input" id="fV2FramedStageWidth" type="number" min="0.1" max="1" step="0.01" placeholder="幅">
+                </div>
+                <div class="field-help">枠は常に16:9です。背景プレビュー上でドラッグして移動し、右下のハンドルで大きさを変えられます。</div>
+                <div class="v2-camera-map v2-framed-stage-map" id="v2FramedStageMap" aria-label="画面内ステージの描画領域"></div>
+              </div>
+              <div class="field-row">
+                <label class="field-label">枠の切替</label>
+                <select class="field-select" id="fV2FramedStageTransition"><option value="fixed">即時に切替</option><option value="smooth">滑らかに移動・拡縮</option></select>
+                <div class="field-help">同じ外側背景の連続ターンでだけ有効です。枠内の映像は、タイムラインの「トランジション」でフェード／ワイプ／スライドを設定します。</div>
+              </div>
+            </div>
             <div id="v2WhiteboardControls" style="display:none; gap:10px; flex-direction:column;">
               <div class="section-divider">ホワイトボード解説</div>
               <div class="field-row">
@@ -1816,6 +2030,58 @@
               <div class="field-row"><label class="field-label">項目3</label><input class="field-input" id="fV2WhiteboardHeading2" type="text" placeholder="見出し"><textarea class="field-textarea" id="fV2WhiteboardBullets2" placeholder="箇条書き（1行ずつ）"></textarea></div>
               <div class="field-row"><label class="field-label">結論</label><textarea class="field-textarea" id="fV2WhiteboardConclusion"></textarea></div>
               <div class="field-row"><label class="field-label">レイアウト</label><select class="field-select" id="fV2WhiteboardLayout"><option value="default">標準</option><option value="compact">コンパクト</option></select></div>
+              <details class="v2-foldout">
+                <summary>表示タイミング</summary>
+                <div class="v2-foldout-body">
+                  <div class="v2-section-checks">
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardVisible0"> 項目1</label>
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardVisible1"> 項目2</label>
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardVisible2"> 項目3</label>
+                  </div>
+                  <div class="v2-section-checks">
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardArrowVisible0"> 矢印1→2</label>
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardArrowVisible1"> 矢印2→3</label>
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardConclusionVisible"> 結論</label>
+                  </div>
+                  <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardConclusionArrowVisible"> 結論への斜め矢印</label>
+                  <div class="field-row"><label class="field-label">今説明中</label><select class="field-select" id="fV2WhiteboardActiveSection"><option value="">なし</option><option value="0">項目1</option><option value="1">項目2</option><option value="2">項目3</option></select></div>
+                </div>
+              </details>
+              <details class="v2-foldout">
+                <summary>見た目</summary>
+                <div class="v2-foldout-body">
+                  <div class="v2-compact-grid">
+                    <div class="field-row"><label class="field-label">項目1アイコン</label><select class="field-select v2-whiteboard-icon" id="fV2WhiteboardIcon0"></select></div>
+                    <div class="field-row"><label class="field-label">項目2アイコン</label><select class="field-select v2-whiteboard-icon" id="fV2WhiteboardIcon1"></select></div>
+                    <div class="field-row"><label class="field-label">項目3アイコン</label><select class="field-select v2-whiteboard-icon" id="fV2WhiteboardIcon2"></select></div>
+                    <div class="field-row"><label class="field-label">タイトルサイズ</label><input class="field-input" id="fV2WhiteboardTitleFontSize" type="number" min="36" max="100" step="1" placeholder="90"></div>
+                    <div class="field-row"><label class="field-label">テーマサイズ</label><input class="field-input" id="fV2WhiteboardThemeFontSize" type="number" min="24" max="72" step="1" placeholder="65"></div>
+                    <div class="field-row"><label class="field-label">見出しサイズ</label><input class="field-input" id="fV2WhiteboardHeadingFontSize" type="number" min="20" max="60" step="1" placeholder="50"></div>
+                    <div class="field-row"><label class="field-label">本文サイズ</label><input class="field-input" id="fV2WhiteboardBodyFontSize" type="number" min="18" max="56" step="1" placeholder="42"></div>
+                    <div class="field-row"><label class="field-label">結論サイズ</label><input class="field-input" id="fV2WhiteboardConclusionFontSize" type="number" min="24" max="76" step="1" placeholder="70"></div>
+                  </div>
+                  <div class="section-divider">結論ボックス</div>
+                  <div class="v2-compact-grid">
+                    <div class="field-row"><label class="field-label">X</label><input class="field-input" id="fV2WhiteboardConclusionBoxX" type="number" min="0" max="1920" step="1" placeholder="245"></div>
+                    <div class="field-row"><label class="field-label">Y</label><input class="field-input" id="fV2WhiteboardConclusionBoxY" type="number" min="0" max="1080" step="1" placeholder="700"></div>
+                    <div class="field-row"><label class="field-label">幅</label><input class="field-input" id="fV2WhiteboardConclusionBoxWidth" type="number" min="300" max="1500" step="1" placeholder="1150"></div>
+                    <div class="field-row"><label class="field-label">高さ</label><input class="field-input" id="fV2WhiteboardConclusionBoxHeight" type="number" min="80" max="320" step="1" placeholder="200"></div>
+                  </div>
+                </div>
+              </details>
+              <details class="v2-foldout">
+                <summary>アニメーション</summary>
+                <div class="v2-foldout-body">
+                  <div class="field-row"><label class="field-label">表示方式</label><select class="field-select" id="fV2WhiteboardAnimationMode"><option value="all">最初から表示</option><option value="step">順番に表示</option><option value="none">アニメなし</option></select></div>
+                  <div class="v2-section-checks">
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardSectionPop"> 項目ポップ</label>
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardArrowPop"> 矢印ポップ</label>
+                    <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardConclusionPop"> 結論ポップ</label>
+                  </div>
+                  <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardUnderlineDraw"> 下線を左から引く</label>
+                  <label class="toggle-row"><input type="checkbox" id="fV2WhiteboardConclusionImpact"> 結論を強めに出す</label>
+                </div>
+              </details>
             </div>
             <div id="v2ZunMeetControls" style="display:none; gap:10px; flex-direction:column;">
               <div class="section-divider">ZunMeet</div>
@@ -1858,7 +2124,13 @@
                 <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">文字倍率</span><input class="field-input" id="fV2InsertFontScale" type="number" min="0.6" max="1.6" step="0.05" placeholder="1"></label>
                 <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">パネル色</span><input class="field-input" id="fV2InsertBg" type="text" placeholder="#..."></label>
                 <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">背景色</span><input class="field-input" id="fV2InsertBackdropBg" type="text" placeholder="#..."></label>
-                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">背景画像</span><input class="field-input" id="fV2InsertBackdropImage" type="text" placeholder="background/..."></label>
+                <label style="display:flex; flex-direction:column; gap:6px;"><span style="font-size:12px; color:var(--text2);">背景画像</span>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <select class="field-select" id="fV2InsertBackdropImageSelect" style="min-width:0; flex:1;"></select>
+                    <input id="fV2InsertBackdropImageUpload" type="file" accept="image/png,image/jpeg,image/webp" style="font-size:11px; width:116px;">
+                  </div>
+                  <input class="field-input" id="fV2InsertBackdropImage" type="text" placeholder="background/...">
+                </label>
               </div>
             </div>
             <div class="section-divider">登場退場</div>
@@ -1910,7 +2182,8 @@
                 <input class="field-input" id="fV2MotionShakeStrength" type="number" min="0" step="1" placeholder="shake（px）">
                 <input class="field-input" id="fV2MotionShakeDuration" type="number" min="0" step="0.05" placeholder="shake時間（秒）">
               </div>
-              <div class="field-help">構図に一時的に重ねる演出です。tiltはプレビュー上の配置マーカーにも反映されます。shakeはターン開始から指定秒数だけ画面を揺らします。人物の位置や在席は変えません。</div>
+              <label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="fV2MotionInherit"> 前のカメラ状態を維持</label>
+              <div class="field-help">オンなら前ターンのzoom・pan・tiltを継続し、この行の入力値だけ上書きします。shakeは継続せず、この行だけに効きます。</div>
             </div>
           </div>
           <div class="section-divider">表示種別</div>
@@ -3867,6 +4140,108 @@ function sizePlayerWrap() {
 }
 window.addEventListener("resize", sizePlayerWrap);
 
+function nativeFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function setPreviewFullscreenState(active, fallback = false) {
+  const wrap = document.getElementById("playerWrap");
+  const btn = document.getElementById("btnPreviewFullscreen");
+  if (!wrap) return;
+  wrap.classList.toggle("preview-fullscreen-active", active);
+  wrap.classList.toggle("preview-fullscreen-fallback", active && fallback);
+  document.body.classList.toggle("preview-landscape-fullscreen", active);
+  if (btn) {
+    btn.textContent = active ? "↙ 解除" : "⛶ 全画面";
+    btn.title = active ? "全画面表示を解除" : "プレビューを横向き全画面表示";
+  }
+  if (typeof updatePreviewFullscreenControls === "function") updatePreviewFullscreenControls();
+  renderOverlayEditLayer();
+  if (typeof renderPlacementEditLayer === "function") renderPlacementEditLayer();
+}
+
+async function lockPreviewLandscape() {
+  try {
+    if (screen.orientation && typeof screen.orientation.lock === "function") {
+      await screen.orientation.lock("landscape");
+    }
+  } catch (e) {
+    // iOS Safari等はロック不可。CSS回転で代替する。
+  }
+}
+
+function unlockPreviewLandscape() {
+  try {
+    if (screen.orientation && typeof screen.orientation.unlock === "function") screen.orientation.unlock();
+  } catch (e) {
+  }
+}
+
+async function enterPreviewFullscreen() {
+  const wrap = document.getElementById("playerWrap");
+  if (!wrap) return;
+  const wasPlaying = !!(window.storyPlayer && window.storyPlayer.isPlaying && window.storyPlayer.isPlaying());
+  let native = false;
+  const preferCssFullscreen = window.matchMedia
+    ? window.matchMedia("(max-width: 900px), (pointer: coarse)").matches
+    : false;
+  if (!preferCssFullscreen) {
+    try {
+      if (wrap.requestFullscreen) {
+        await wrap.requestFullscreen({ navigationUI: "hide" });
+        native = true;
+      } else if (wrap.webkitRequestFullscreen) {
+        wrap.webkitRequestFullscreen();
+        native = true;
+      }
+    } catch (e) {
+      native = false;
+    }
+  }
+  setPreviewFullscreenState(true, !native);
+  await lockPreviewLandscape();
+  sizePlayerWrap();
+  if (wasPlaying && window.storyPlayer && window.storyPlayer.play && !window.storyPlayer.isPlaying()) {
+    window.storyPlayer.play();
+  }
+}
+
+async function exitPreviewFullscreen() {
+  const wrap = document.getElementById("playerWrap");
+  if (!wrap) return;
+  try {
+    if (nativeFullscreenElement() && document.exitFullscreen) await document.exitFullscreen();
+    else if (nativeFullscreenElement() && document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } catch (e) {
+  }
+  unlockPreviewLandscape();
+  setPreviewFullscreenState(false, false);
+  sizePlayerWrap();
+}
+
+function togglePreviewFullscreen() {
+  const wrap = document.getElementById("playerWrap");
+  if (!wrap) return;
+  if (nativeFullscreenElement() === wrap || wrap.classList.contains("preview-fullscreen-fallback")) {
+    exitPreviewFullscreen();
+  } else {
+    enterPreviewFullscreen();
+  }
+}
+
+function syncPreviewFullscreenState() {
+  const wrap = document.getElementById("playerWrap");
+  if (!wrap) return;
+  const active = nativeFullscreenElement() === wrap || wrap.classList.contains("preview-fullscreen-fallback");
+  if (!active) {
+    unlockPreviewLandscape();
+    setPreviewFullscreenState(false, false);
+    sizePlayerWrap();
+  }
+}
+document.addEventListener("fullscreenchange", syncPreviewFullscreenState);
+document.addEventListener("webkitfullscreenchange", syncPreviewFullscreenState);
+
 // 逆方向の同期：再生中、Playerの現在フレームに対応するターンを選択（ターン境界でのみ更新）。
 // クリック→シークのecho（playing=false）では追従しない＝暴れない。
 window.addEventListener("story-player-frame", (e) => {
@@ -3880,6 +4255,8 @@ window.addEventListener("story-player-frame", (e) => {
 // プレビュー下タイムライン（セリフ＋BGM）。既存データ/連動を流用。
 // ============================================================
 let _playheadTime = 0;     // 現在の再生位置(秒)
+let _lastPreviewPlaybackDomRefresh = 0;
+let _previewFullscreenSeekDragging = false;
 const _SPK_COLORS = { zundamon: "#5fb84f", metan: "#e87bb0", "営業": "#9aa0a6", "部長": "#7a8190", "AI": "#5b8dee" };
 const BGM_DEFAULT_VOLUME = 0.10;
 const BGM_DEFAULT_FADE = 0.6;
@@ -4210,6 +4587,45 @@ function _timelineTotal() {
     m = Math.max(m, (last.end || 0) + last.pause);
   }
   return m;
+}
+
+function formatPreviewTime(sec) {
+  const safe = Math.max(0, Number.isFinite(Number(sec)) ? Number(sec) : 0);
+  const minutes = Math.floor(safe / 60);
+  const seconds = Math.floor(safe % 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function updatePreviewFullscreenControls(time = _playheadTime) {
+  const seek = document.getElementById("previewFullscreenSeek");
+  const label = document.getElementById("previewFullscreenTime");
+  if (!seek && !label) return;
+  const total = Math.max(1, _timelineTotal());
+  const value = Math.max(0, Math.min(total, Number(time) || 0));
+  if (seek) {
+    seek.max = String(total);
+    if (!_previewFullscreenSeekDragging) seek.value = String(value);
+  }
+  if (label) {
+    const shown = _previewFullscreenSeekDragging && seek ? Number(seek.value) || 0 : value;
+    label.textContent = `${formatPreviewTime(shown)} / ${formatPreviewTime(total)}`;
+  }
+}
+
+function seekPreviewFullscreenTo(sec) {
+  if (!window.storyPlayer || !playerReady) return;
+  const total = Math.max(1, _timelineTotal());
+  const next = Math.max(0, Math.min(total, Number(sec) || 0));
+  window.storyPlayer.seekToTime(next);
+  _playheadTime = next;
+  updatePreviewFullscreenControls(next);
+  drawScriptTimeline();
+  const idx = turnIndexAtTime(next);
+  if (idx >= 0 && idx !== playbackFollowIdx) followPlaybackTurn(idx);
+}
+
+function skipPreviewFullscreen(deltaSec) {
+  seekPreviewFullscreenTo(_playheadTime + deltaSec);
 }
 
 function drawScriptTimeline() {
@@ -5289,9 +5705,18 @@ function setupScriptTimeline() {
   // 再生中はヘッド追従
   window.addEventListener("story-player-frame", (e) => {
     _playheadTime = ((e.detail && e.detail.frame) || 0) / 30;
+    updatePreviewFullscreenControls(_playheadTime);
     scheduleTimelineDraw();
-    renderOverlayEditLayer();
-    renderPlacementEditLayer();
+    const isMobilePreview = window.matchMedia
+      ? window.matchMedia("(max-width: 900px), (pointer: coarse)").matches
+      : false;
+    const now = performance.now();
+    const minInterval = document.body.classList.contains("preview-landscape-fullscreen") ? 1000 : (isMobilePreview ? 250 : 0);
+    if (!minInterval || now - _lastPreviewPlaybackDomRefresh >= minInterval) {
+      _lastPreviewPlaybackDomRefresh = now;
+      renderOverlayEditLayer();
+      renderPlacementEditLayer();
+    }
   });
   window.addEventListener("resize", drawScriptTimeline);
 }
@@ -5305,6 +5730,8 @@ const KNOWN_CHARS = ["zundamon", "metan"];
 let _placementDrag = null; // { id, startX, startY, origX, origY, origScreenX, origScreenY, pointerLock, dragTf, draftStage }
 let _manualCameraDrag = null; // { mode, startX, startY, frame, left, top, wrapId }
 let _v2ManualCameraDrag = null; // { mode, startX, startY, frame, left, top }
+let _v2FramedStageDrag = null; // { mode, startX, startY, frame }
+let _v2FramedStagePreviewTimer = null;
 let _v2ManualPlacementEdit = null; // { turnIndex, instanceId }
 // 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
 const ZOOM_TARGET_ID = "__zoomTarget__";
@@ -6229,6 +6656,91 @@ function withProvisionalTimings(script) {
   return copy;
 }
 
+function previewTurnTimingAt(script, index) {
+  const preview = withProvisionalTimings(script);
+  const turn = Array.isArray(preview) ? preview[index] : null;
+  return turn ? { start: turn.start || 0, end: turn.end || 0 } : null;
+}
+
+function previewTimingSnapshot(script) {
+  const preview = withProvisionalTimings(script);
+  return Array.isArray(preview)
+    ? preview.map((turn) => ({ id: turn.id, start: turn.start || 0, end: turn.end || 0 }))
+    : [];
+}
+
+function adjustBgmForTimelineDelta(pivotSec, deltaSec, absorbAtSec = pivotSec) {
+  if (!storyData?.bgm || !Array.isArray(storyData.bgm)) return false;
+  const delta = Number(deltaSec);
+  const pivot = Number(pivotSec);
+  if (!Number.isFinite(delta) || Math.abs(delta) < 0.001 || !Number.isFinite(pivot)) return false;
+  const absorbAt = Number.isFinite(Number(absorbAtSec)) ? Number(absorbAtSec) : pivot;
+  let changed = false;
+  for (const region of storyData.bgm) {
+    if (!region || typeof region.start !== "number" || typeof region.end !== "number" || !(region.end > region.start)) continue;
+    const absorbsInsertedTime = region.start <= absorbAt + 1e-6 && region.end >= absorbAt - 1e-6 && region.end >= pivot - 1e-6;
+    if (absorbsInsertedTime) {
+      region.end = _snapT(Math.max(region.start + MIN_LEN, region.end + delta));
+      changed = true;
+    } else if (region.start >= pivot - 1e-6) {
+      region.start = _snapT(Math.max(0, region.start + delta));
+      region.end = _snapT(Math.max(region.start + MIN_LEN, region.end + delta));
+      changed = true;
+    } else if (region.start < pivot && region.end > pivot) {
+      region.end = _snapT(Math.max(region.start + MIN_LEN, region.end + delta));
+      changed = true;
+    }
+  }
+  if (changed) {
+    drawScriptTimeline();
+    _updateBgmRegionEditor();
+  }
+  return changed;
+}
+
+function adjustBgmForTurnDurationChange(oldTiming, newTiming) {
+  if (!oldTiming || !newTiming) return false;
+  const oldDuration = Math.max(0, oldTiming.end - oldTiming.start);
+  const newDuration = Math.max(0, newTiming.end - newTiming.start);
+  const delta = newDuration - oldDuration;
+  const absorbAt = oldDuration > 0 ? oldTiming.start + oldDuration / 2 : oldTiming.start;
+  return adjustBgmForTimelineDelta(oldTiming.end, delta, absorbAt);
+}
+
+function adjustBgmForTimingSnapshotChange(beforeSnapshot, afterSnapshot) {
+  if (!Array.isArray(beforeSnapshot) || !Array.isArray(afterSnapshot) || !beforeSnapshot.length || !afterSnapshot.length) return false;
+  const afterById = new Map(afterSnapshot.map((turn) => [turn.id, turn]));
+  let changed = false;
+  let runningShift = 0;
+  for (let index = 0; index < beforeSnapshot.length; index += 1) {
+    const before = beforeSnapshot[index];
+    const after = afterById.get(before.id);
+    if (!after) continue;
+    const beforeDuration = Math.max(0, before.end - before.start);
+    const afterDuration = Math.max(0, after.end - after.start);
+    const durationDelta = afterDuration - beforeDuration;
+    if (Math.abs(durationDelta) >= 0.001) {
+      const pivot = before.end + runningShift;
+      const absorbAt = beforeDuration > 0 ? before.start + runningShift + beforeDuration / 2 : before.start + runningShift;
+      changed = adjustBgmForTimelineDelta(pivot, durationDelta, absorbAt) || changed;
+      runningShift += durationDelta;
+    }
+    const nextBefore = beforeSnapshot[index + 1];
+    if (!nextBefore) continue;
+    const nextAfter = afterById.get(nextBefore.id);
+    if (!nextAfter) continue;
+    const beforeGap = Math.max(0, nextBefore.start - before.end);
+    const afterGap = Math.max(0, nextAfter.start - after.end);
+    const gapDelta = afterGap - beforeGap;
+    if (Math.abs(gapDelta) >= 0.001) {
+      const pivot = before.end + runningShift;
+      changed = adjustBgmForTimelineDelta(pivot, gapDelta, pivot) || changed;
+      runningShift += gapDelta;
+    }
+  }
+  return changed;
+}
+
 function normalizeTransitionValue(value) {
   switch (value) {
     case "fade-black":
@@ -7066,7 +7578,7 @@ function buildExpressionSelect() {
 const POSE_KEYS = [
   "idle", "cheer", "recoil", "lean", "droop", "flustered",
   "proud", "listening", "sneak", "wobble",
-  "point",
+  "point", "smartphone",
 ];
 const FACE_LABELS = {
   left: "left",
@@ -7093,6 +7605,7 @@ function poseLabel(pose) {
     sneak: "こそこそ",
     wobble: "ぐらぐら",
     point: "指差し",
+    smartphone: "スマホ",
   };
   return labels[pose] || pose || "";
 }
@@ -8209,6 +8722,167 @@ function v2StageEvent(turn) {
   return turn.stage;
 }
 
+function v2SanitizePatchForInstance(patch, instanceId) {
+  if (!patch || typeof patch !== "object") return;
+  const definition = storyData.instances?.[instanceId];
+  const characterId = definition?.characterId;
+  if (!characterId || KNOWN_CHARS.includes(characterId)) return;
+  if (typeof patch.expression !== "string") return;
+  const names = v2ExpressionNamesForInstance(definition);
+  if (names.includes(patch.expression)) return;
+  if (names.includes("normal")) patch.expression = "normal";
+  else delete patch.expression;
+}
+
+function v2MoveStageUpdate(stage, fromId, toId) {
+  if (!stage?.update || !stage.update[fromId] || fromId === toId) return false;
+  stage.update[toId] = { ...(stage.update[toId] || {}), ...stage.update[fromId] };
+  delete stage.update[fromId];
+  v2SanitizePatchForInstance(stage.update[toId], toId);
+  return true;
+}
+
+function v2ReplaceStageRefs(stage, fromId, toId) {
+  if (!stage || fromId === toId) return false;
+  let changed = false;
+  const enter = stage.enter || [];
+  for (const item of enter) {
+    if (item?.instanceId === fromId) {
+      item.instanceId = toId;
+      changed = true;
+    }
+  }
+  if (enter.length > 1) {
+    const seen = new Set();
+    stage.enter = enter.filter((item) => {
+      if (!item?.instanceId) return true;
+      if (seen.has(item.instanceId)) return false;
+      seen.add(item.instanceId);
+      return true;
+    });
+  }
+  const exit = stage.exit || [];
+  for (let index = 0; index < exit.length; index += 1) {
+    if (v2ExitItemId(exit[index]) !== fromId) continue;
+    if (typeof exit[index] === "string") exit[index] = toId;
+    else exit[index].instanceId = toId;
+    changed = true;
+  }
+  if (exit.length > 1) {
+    const seen = new Set();
+    stage.exit = exit.filter((item) => {
+      const instanceId = v2ExitItemId(item);
+      if (!instanceId) return true;
+      if (seen.has(instanceId)) return false;
+      seen.add(instanceId);
+      return true;
+    });
+  }
+  if (Array.isArray(stage.reset) && stage.reset.includes(fromId)) {
+    stage.reset = [...new Set(stage.reset.map((id) => id === fromId ? toId : id))];
+    changed = true;
+  }
+  return v2MoveStageUpdate(stage, fromId, toId) || changed;
+}
+
+function v2ReplaceTurnInstanceRefs(turn, fromId, toId) {
+  if (!turn || fromId === toId) return false;
+  let changed = false;
+  if (turn.speaker === fromId) {
+    turn.speaker = toId;
+    changed = true;
+  }
+  if (turn.displayMode?.presenterId === fromId) {
+    turn.displayMode.presenterId = toId;
+    changed = true;
+  }
+  const meeting = turn.displayMode?.kind === "zunMeet" ? turn.displayMode.zunMeet : null;
+  if (meeting) {
+    if (meeting.activeSpeakerId === fromId) {
+      meeting.activeSpeakerId = toId;
+      changed = true;
+    }
+    for (const participant of meeting.participants || []) {
+      if (participant.instanceId === fromId) {
+        participant.instanceId = toId;
+        changed = true;
+      }
+    }
+  }
+  return v2ReplaceStageRefs(turn.stage, fromId, toId) || changed;
+}
+
+function v2ApplySpeakerContinuityChange(index, oldSpeaker, newSpeaker) {
+  if (!oldSpeaker || !newSpeaker || oldSpeaker === newSpeaker) return false;
+  const turn = storyData.script[index];
+  const currentStage = turn?.stage;
+  if (!turn || !currentStage) return false;
+  const before = v2StateAt(index, false);
+  const currentEnters = new Set((currentStage.enter || []).map((item) => item?.instanceId).filter(Boolean));
+  const currentExits = new Set((currentStage.exit || []).map((item) => v2ExitItemId(item)).filter(Boolean));
+  const oldPresentAfter = (before[oldSpeaker] || currentEnters.has(oldSpeaker)) && !currentExits.has(oldSpeaker);
+  const newPresentAfter = (before[newSpeaker] || currentEnters.has(newSpeaker)) && !currentExits.has(newSpeaker);
+  const hasCurrentOldRef = currentEnters.has(oldSpeaker) || !!currentStage.update?.[oldSpeaker];
+  if (oldPresentAfter || !newPresentAfter || (!hasCurrentOldRef && !currentEnters.has(newSpeaker))) return false;
+  const scene = turn.scene;
+  let audioChanged = false;
+  v2ReplaceTurnInstanceRefs(turn, oldSpeaker, newSpeaker);
+  v2PruneStageEvent(turn);
+  for (let i = index + 1; i < storyData.script.length; i += 1) {
+    const next = storyData.script[i];
+    if (next.scene !== scene) break;
+    if (next.speaker === oldSpeaker) audioChanged = true;
+    v2ReplaceTurnInstanceRefs(next, oldSpeaker, newSpeaker);
+    v2PruneStageEvent(next);
+    if ((next.stage?.exit || []).some((item) => v2ExitItemId(item) === newSpeaker)) break;
+  }
+  return audioChanged;
+}
+
+function v2RepairCurrentSpeakerContinuity(index) {
+  const turn = storyData.script[index];
+  const replacementId = turn?.speaker;
+  if (!turn || !replacementId || !storyData.instances?.[replacementId]) return false;
+  let state = v2StateAt(index, true);
+  if (!state[replacementId]) return false;
+  const scene = turn.scene;
+  let audioChanged = false;
+  for (let i = index + 1; i < storyData.script.length; i += 1) {
+    const next = storyData.script[i];
+    if (next.scene !== scene) break;
+    if (!state[replacementId]) break;
+    const stage = next.stage || {};
+    for (const item of stage.enter || []) {
+      const definition = storyData.instances?.[item.instanceId];
+      if (definition) state[item.instanceId] = { instanceId: item.instanceId, definition, placement: v2Clone(item.placement) };
+    }
+    for (const item of stage.exit || []) delete state[v2ExitItemId(item)];
+    const staleIds = new Set();
+    if (next.speaker && !state[next.speaker] && storyData.instances?.[next.speaker]?.role !== "voiceOnly") staleIds.add(next.speaker);
+    if (next.displayMode?.presenterId && !state[next.displayMode.presenterId]) staleIds.add(next.displayMode.presenterId);
+    const meeting = next.displayMode?.kind === "zunMeet" ? next.displayMode.zunMeet : null;
+    if (meeting?.activeSpeakerId && !state[meeting.activeSpeakerId]) staleIds.add(meeting.activeSpeakerId);
+    for (const participant of meeting?.participants || []) {
+      if (participant.instanceId && !state[participant.instanceId]) staleIds.add(participant.instanceId);
+    }
+    for (const instanceId of Object.keys(stage.update || {})) {
+      if (!state[instanceId]) staleIds.add(instanceId);
+    }
+    for (const instanceId of stage.reset || []) {
+      if (!state[instanceId]) staleIds.add(instanceId);
+    }
+    staleIds.delete(replacementId);
+    for (const staleId of staleIds) {
+      if (!storyData.instances?.[staleId]) continue;
+      if (next.speaker === staleId) audioChanged = true;
+      v2ReplaceTurnInstanceRefs(next, staleId, replacementId);
+    }
+    if (staleIds.size) v2PruneStageEvent(next);
+    state = v2StateAt(i, true);
+  }
+  return audioChanged;
+}
+
 function v2ExitItemId(item) {
   return typeof item === "string" ? item : item?.instanceId;
 }
@@ -8264,6 +8938,45 @@ function v2PruneStageEvent(turn) {
     if (Object.keys(stage.update).length === 0) delete stage.update;
   }
   if (Object.keys(stage).length === 0) delete turn.stage;
+}
+
+function v2PruneInvalidStageStateRefs(story) {
+  if (!story?.schemaVersion || story.schemaVersion !== 2 || !Array.isArray(story.script)) return false;
+  const present = new Set();
+  let scene = null;
+  let changed = false;
+  for (const turn of story.script) {
+    if (!turn || typeof turn !== "object") continue;
+    if (turn.scene !== scene) {
+      scene = turn.scene;
+      present.clear();
+    }
+    const stage = turn.stage || {};
+    for (const item of stage.enter || []) {
+      const instanceId = item?.instanceId;
+      if (instanceId) present.add(instanceId);
+    }
+    for (const item of stage.exit || []) {
+      const instanceId = v2ExitItemId(item);
+      if (instanceId) present.delete(instanceId);
+    }
+    if (stage.reset) {
+      const nextReset = stage.reset.filter((instanceId) => present.has(instanceId));
+      if (nextReset.length !== stage.reset.length) {
+        stage.reset = nextReset;
+        changed = true;
+      }
+    }
+    if (stage.update) {
+      for (const instanceId of Object.keys(stage.update)) {
+        if (present.has(instanceId)) continue;
+        delete stage.update[instanceId];
+        changed = true;
+      }
+    }
+    if (changed) v2PruneStageEvent(turn);
+  }
+  return changed;
 }
 
 function v2SlotsForScene(sceneId) {
@@ -8839,10 +9552,40 @@ function v2CameraFrameForEditor(index, state) {
   return (presetId ? presets[presetId] : null) || presets.default || null;
 }
 
+function v2CameraMotionForEditor(index) {
+  let sceneId = null;
+  let motion;
+  for (let i = 0; i <= index; i += 1) {
+    const turn = storyData.script[i];
+    if (turn.scene !== sceneId) {
+      sceneId = turn.scene;
+      motion = undefined;
+    }
+    const current = turn.stage?.cameraMotion;
+    if (!current) {
+      motion = undefined;
+      continue;
+    }
+    if (!current.inherit) {
+      motion = current;
+      continue;
+    }
+    const {inherit, shake, ...patch} = current;
+    motion = {
+      ...(motion && typeof motion.zoom === "number" ? {zoom: motion.zoom} : {}),
+      ...(motion?.pan ? {pan: {...motion.pan}} : {}),
+      ...(motion && typeof motion.tilt === "number" ? {tilt: motion.tilt} : {}),
+      ...patch,
+      ...(shake ? {shake} : {}),
+    };
+  }
+  return motion;
+}
+
 function v2PreviewTransform(rect, index, state) {
   const frame = v2CameraFrameForEditor(index, state);
   if (!frame) return { tx: 0, ty: 0, s: 1, tilt: 0 };
-  const motion = storyData.script[index].stage?.cameraMotion;
+  const motion = v2CameraMotionForEditor(index);
   const width = frame.width / Math.max(0.2, 1 + (motion?.zoom ?? 0));
   const cx = frame.cx + (motion?.pan?.x ?? 0);
   const cy = frame.cy + (motion?.pan?.y ?? 0);
@@ -9109,6 +9852,143 @@ function v2UpdateManualCameraFrameFromDrag(e) {
   renderV2ManualCameraMap(turn);
 }
 
+function v2DefaultFramedStageBackground() {
+  const images = sortedStrings((backgroundAssets && Array.isArray(backgroundAssets.images)) ? backgroundAssets.images : []);
+  return images.includes("background/movie_player.png") ? "background/movie_player.png" : (images[0] || "background/movie_player.png");
+}
+
+function v2NormalizeFramedStageFrame(frame) {
+  const width = clampJS(typeof frame?.width === "number" ? frame.width : 0.72, 0.1, 1);
+  return {
+    x: clampJS(typeof frame?.x === "number" ? frame.x : (1 - width) / 2, 0, 1 - width),
+    y: clampJS(typeof frame?.y === "number" ? frame.y : (1 - width) / 2, 0, 1 - width),
+    width,
+  };
+}
+
+function v2FramedStageForTurn(turn) {
+  const display = turn.displayMode;
+  const framed = display?.kind === "framedStage" ? display.framedStage : null;
+  return {
+    background: framed?.background || v2DefaultFramedStageBackground(),
+    frame: v2NormalizeFramedStageFrame(framed?.frame),
+    frameTransition: framed?.frameTransition === "smooth" ? "smooth" : "fixed",
+  };
+}
+
+function v2SyncFramedStageInputs(frame) {
+  document.getElementById("fV2FramedStageX").value = frame.x;
+  document.getElementById("fV2FramedStageY").value = frame.y;
+  document.getElementById("fV2FramedStageWidth").value = frame.width;
+}
+
+function v2PopulateFramedStageBackgrounds(current) {
+  const select = document.getElementById("fV2FramedStageBackground");
+  if (!select) return;
+  const images = sortedStrings((backgroundAssets && Array.isArray(backgroundAssets.images)) ? backgroundAssets.images : []);
+  const value = current || v2DefaultFramedStageBackground();
+  select.innerHTML = "";
+  for (const image of images) v2Option(select, image, image.replace(/^background\//, ""));
+  if (value && !images.includes(value)) v2Option(select, value, value.replace(/^background\//, ""));
+  select.value = value;
+}
+
+function v2PaintFramedStageFrame(frame) {
+  const frameEl = document.getElementById("v2FramedStageMapFrame");
+  if (!frameEl) return;
+  frameEl.style.left = `${frame.x * 100}%`;
+  frameEl.style.top = `${frame.y * 100}%`;
+  frameEl.style.width = `${frame.width * 100}%`;
+  // 親マップも16:9なので、16:9枠は幅・高さとも同じ比率になる。
+  frameEl.style.height = `${frame.width * 100}%`;
+}
+
+function v2ScheduleFramedStagePreviewUpdate() {
+  if (_v2FramedStagePreviewTimer != null) return;
+  _v2FramedStagePreviewTimer = window.setTimeout(() => {
+    _v2FramedStagePreviewTimer = null;
+    notifyPlayerUpdate();
+  }, 80);
+}
+
+function v2FlushFramedStagePreviewUpdate() {
+  if (_v2FramedStagePreviewTimer != null) {
+    window.clearTimeout(_v2FramedStagePreviewTimer);
+    _v2FramedStagePreviewTimer = null;
+  }
+  notifyPlayerUpdate();
+}
+
+function renderV2FramedStageControls(turn) {
+  const framed = v2FramedStageForTurn(turn);
+  v2PopulateFramedStageBackgrounds(framed.background);
+  v2SyncFramedStageInputs(framed.frame);
+  document.getElementById("fV2FramedStageTransition").value = framed.frameTransition;
+  const map = document.getElementById("v2FramedStageMap");
+  if (!map) return;
+  map.innerHTML = "";
+  map.style.backgroundImage = framed.background ? `url(/preview-assets/${encodePathSegsJS(framed.background)})` : "none";
+  const frame = _v2FramedStageDrag?.frame || framed.frame;
+  const frameEl = document.createElement("div");
+  frameEl.id = "v2FramedStageMapFrame";
+  frameEl.className = "v2-camera-map-frame v2-framed-stage-map-frame";
+  frameEl.addEventListener("pointerdown", (e) => v2BeginFramedStageDrag(e, "move"));
+  const handle = document.createElement("div");
+  handle.className = "v2-camera-map-handle";
+  handle.addEventListener("pointerdown", (e) => v2BeginFramedStageDrag(e, "resize"));
+  frameEl.appendChild(handle);
+  map.appendChild(frameEl);
+  v2PaintFramedStageFrame(frame);
+  if (!backgroundAssets) {
+    ensureBackgroundAssets().then(() => {
+      if (selectedIdx >= 0 && storyData?.script?.[selectedIdx] === turn) renderV2FramedStageControls(turn);
+    }).catch(() => {});
+  }
+}
+
+function v2BeginFramedStageDrag(e, mode) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
+  const turn = storyData.script[selectedIdx];
+  _v2FramedStageDrag = {
+    mode,
+    startX: e.clientX,
+    startY: e.clientY,
+    frame: v2FramedStageForTurn(turn).frame,
+  };
+}
+
+function v2UpdateFramedStageFrameFromDrag(e) {
+  if (!_v2FramedStageDrag || selectedIdx < 0 || !storyData) return;
+  const map = document.getElementById("v2FramedStageMap");
+  if (!map) return;
+  const rect = map.getBoundingClientRect();
+  const dx = (e.clientX - _v2FramedStageDrag.startX) / Math.max(rect.width, 1);
+  const dy = (e.clientY - _v2FramedStageDrag.startY) / Math.max(rect.height, 1);
+  const initial = _v2FramedStageDrag.frame;
+  let frame;
+  if (_v2FramedStageDrag.mode === "move") {
+    frame = {
+      x: clampJS(initial.x + dx, 0, 1 - initial.width),
+      y: clampJS(initial.y + dy, 0, 1 - initial.width),
+      width: initial.width,
+    };
+  } else {
+    const widthByHeight = initial.width + dy;
+    const maxWidth = Math.min(1 - initial.x, 1 - initial.y, 1);
+    frame = {x: initial.x, y: initial.y, width: clampJS(Math.max(initial.width + dx, widthByHeight), 0.1, maxWidth)};
+  }
+  const turn = storyData.script[selectedIdx];
+  const framed = v2FramedStageForTurn(turn);
+  _v2FramedStageDrag.frame = v2NormalizeFramedStageFrame(frame);
+  turn.displayMode = {kind: "framedStage", framedStage: {...framed, frame: _v2FramedStageDrag.frame}};
+  v2SyncFramedStageInputs(_v2FramedStageDrag.frame);
+  markDirty();
+  v2PaintFramedStageFrame(_v2FramedStageDrag.frame);
+  v2ScheduleFramedStagePreviewUpdate();
+}
+
 function v2DefaultWhiteboard() {
   return {
     title: "ポイントを整理します",
@@ -9123,6 +10003,58 @@ function v2DefaultWhiteboard() {
   };
 }
 
+const V2_WHITEBOARD_ICON_OPTIONS = [
+  ["", "既定"],
+  ["none", "なし"],
+  ["cause", "原因"],
+  ["problem", "問題点"],
+  ["solution", "対策"],
+  ["process", "手順"],
+  ["priority", "優先度"],
+  ["deadline", "期限"],
+  ["evidence", "証拠"],
+  ["data", "データ"],
+  ["share", "共有"],
+  ["rule", "ルール"],
+  ["risk", "リスク"],
+  ["improvement", "改善"],
+  ["confused", "困惑"],
+  ["scribble", "混乱"],
+  ["checklist", "チェックリスト"],
+  ["memo", "メモ"],
+  ["conversation", "会話"],
+  ["warning", "警告"],
+  ["idea", "ひらめき"],
+  ["table", "表"],
+];
+
+function v2PopulateWhiteboardIconSelects() {
+  for (let index = 0; index < 3; index += 1) {
+    const select = document.getElementById(`fV2WhiteboardIcon${index}`);
+    if (!select || select.dataset.ready === "1") continue;
+    for (const [value, label] of V2_WHITEBOARD_ICON_OPTIONS) v2Option(select, value, label);
+    select.dataset.ready = "1";
+  }
+}
+
+function v2ReadOptionalNumber(id, min, max) {
+  const el = document.getElementById(id);
+  if (!el || el.value === "") return undefined;
+  const value = Number(el.value);
+  if (!Number.isFinite(value)) return undefined;
+  return Math.max(min, Math.min(max, value));
+}
+
+function v2AssignOptionalNumber(out, id, key, min, max) {
+  const value = v2ReadOptionalNumber(id, min, max);
+  if (value !== undefined) out[key] = value;
+}
+
+function v2SetOptionalNumber(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = Number.isFinite(Number(value)) ? String(value) : "";
+}
+
 function v2WhiteboardForTurn(turn) {
   const display = turn.displayMode;
   return display?.kind === "whiteboard" && display.whiteboard ? display.whiteboard : v2DefaultWhiteboard();
@@ -9135,6 +10067,7 @@ function v2InsertDisplayKind(kind) {
 function v2DisplayModeLabel(kind) {
   return {
     standard: "通常表示",
+    framedStage: "画面内ステージ",
     zunMonitor: "ZunMonitor",
     zunAi: "ZunAI",
     zunChat: "ZunChat",
@@ -9158,12 +10091,56 @@ function v2ApplyCommonInsertFields(insert) {
   return insert;
 }
 
+function v2InsertBackdropImageOptions() {
+  const images = [];
+  for (const img of sortedStrings((backgroundAssets && Array.isArray(backgroundAssets.images)) ? backgroundAssets.images : [])) {
+    images.push({ value: img, label: img.replace(/^background\//, ""), group: "背景" });
+  }
+  for (const img of sortedStrings((overlayAssets && Array.isArray(overlayAssets.images)) ? overlayAssets.images : [])) {
+    images.push({ value: img, label: img.replace(/^overlays\//, ""), group: "Overlay" });
+  }
+  return images;
+}
+
+function v2PopulateInsertBackdropImageSelect(current) {
+  const select = document.getElementById("fV2InsertBackdropImageSelect");
+  if (!select) return;
+  const value = current || document.getElementById("fV2InsertBackdropImage")?.value || "";
+  select.innerHTML = "";
+  v2Option(select, "", "画像なし");
+  const groups = new Map();
+  for (const item of v2InsertBackdropImageOptions()) {
+    let parent = groups.get(item.group);
+    if (!parent) {
+      parent = document.createElement("optgroup");
+      parent.label = item.group;
+      groups.set(item.group, parent);
+      select.appendChild(parent);
+    }
+    const opt = document.createElement("option");
+    opt.value = item.value;
+    opt.textContent = item.label;
+    parent.appendChild(opt);
+  }
+  if (value && !select.querySelector(`option[value="${CSS.escape(value)}"]`)) v2Option(select, value, value);
+  select.value = value;
+}
+
+function v2RefreshInsertBackdropImageAssets(current) {
+  Promise.all([ensureBackgroundAssets(), ensureOverlayAssets()])
+    .then(() => v2PopulateInsertBackdropImageSelect(current))
+    .catch(() => v2PopulateInsertBackdropImageSelect(current));
+}
+
 function v2SetCommonInsertFields(insert) {
   document.getElementById("fV2InsertWidth").value = insert?.width ?? "";
   document.getElementById("fV2InsertFontScale").value = insert?.fontScale ?? "";
   document.getElementById("fV2InsertBg").value = insert?.bg || "";
   document.getElementById("fV2InsertBackdropBg").value = insert?.backdropBg || "";
-  document.getElementById("fV2InsertBackdropImage").value = insert?.backdropImage || "";
+  const backdropImage = insert?.backdropImage || "";
+  document.getElementById("fV2InsertBackdropImage").value = backdropImage;
+  v2PopulateInsertBackdropImageSelect(backdropImage);
+  v2RefreshInsertBackdropImageAssets(backdropImage);
 }
 
 function v2DefaultMonitor() {
@@ -9244,6 +10221,7 @@ function v2CollectTeamMessages() {
 
 function v2UpdateDisplayModeFields() {
   const kind = document.getElementById("fV2DisplayMode").value;
+  document.getElementById("v2FramedStageControls").style.display = kind === "framedStage" ? "flex" : "none";
   document.getElementById("v2WhiteboardControls").style.display = kind === "whiteboard" ? "flex" : "none";
   document.getElementById("v2ZunMeetControls").style.display = kind === "zunMeet" ? "flex" : "none";
   document.getElementById("v2ZunMonitorControls").style.display = kind === "zunMonitor" ? "flex" : "none";
@@ -9614,6 +10592,7 @@ function renderV2Detail(turn) {
   sceneSelect.value = turn.scene || "";
   const displayMode = turn.displayMode?.kind || "standard";
   document.getElementById("fV2DisplayMode").value = displayMode;
+  renderV2FramedStageControls(turn);
   v2RenderInsertDisplayFields(turn);
 
   const slots = v2SlotsForScene(turn.scene);
@@ -9640,11 +10619,13 @@ function renderV2Detail(turn) {
   document.getElementById("fV2MotionTilt").value = stage.cameraMotion?.tilt ?? "";
   document.getElementById("fV2MotionShakeStrength").value = stage.cameraMotion?.shake?.strength ?? "";
   document.getElementById("fV2MotionShakeDuration").value = stage.cameraMotion?.shake?.duration ?? "";
+  document.getElementById("fV2MotionInherit").checked = stage.cameraMotion?.inherit === true;
   v2UpdateFramingFields();
 
   const before = v2StateAt(selectedIdx, false);
   const now = v2StateAt(selectedIdx, true);
   const whiteboard = v2WhiteboardForTurn(turn);
+  v2PopulateWhiteboardIconSelects();
   const presenter = document.getElementById("fV2WhiteboardPresenter");
   presenter.innerHTML = "";
   v2Option(presenter, "", "立ち絵なし");
@@ -9661,6 +10642,34 @@ function renderV2Detail(turn) {
   }
   document.getElementById("fV2WhiteboardConclusion").value = whiteboard.conclusion || "";
   document.getElementById("fV2WhiteboardLayout").value = whiteboard.layout === "compact" ? "compact" : "default";
+  for (let index = 0; index < 3; index += 1) {
+    const section = whiteboard.sections?.[index] || {};
+    document.getElementById(`fV2WhiteboardVisible${index}`).checked = whiteboard.visibleSections ? whiteboard.visibleSections[index] !== false : true;
+    document.getElementById(`fV2WhiteboardIcon${index}`).value = section.icon || "";
+  }
+  for (let index = 0; index < 2; index += 1) {
+    document.getElementById(`fV2WhiteboardArrowVisible${index}`).checked = whiteboard.visibleArrows ? whiteboard.visibleArrows[index] !== false : true;
+  }
+  document.getElementById("fV2WhiteboardConclusionVisible").checked = whiteboard.showConclusion !== false;
+  document.getElementById("fV2WhiteboardConclusionArrowVisible").checked = whiteboard.showConclusionArrow === true;
+  document.getElementById("fV2WhiteboardActiveSection").value = typeof whiteboard.activeSection === "number" ? String(Math.max(0, Math.min(2, Math.floor(whiteboard.activeSection)))) : "";
+  const wbStyle = whiteboard.style || {};
+  v2SetOptionalNumber("fV2WhiteboardTitleFontSize", wbStyle.titleFontSize);
+  v2SetOptionalNumber("fV2WhiteboardThemeFontSize", wbStyle.themeFontSize);
+  v2SetOptionalNumber("fV2WhiteboardHeadingFontSize", wbStyle.sectionHeadingFontSize);
+  v2SetOptionalNumber("fV2WhiteboardBodyFontSize", wbStyle.sectionBodyFontSize);
+  v2SetOptionalNumber("fV2WhiteboardConclusionFontSize", wbStyle.conclusionFontSize);
+  v2SetOptionalNumber("fV2WhiteboardConclusionBoxX", wbStyle.conclusionBoxX);
+  v2SetOptionalNumber("fV2WhiteboardConclusionBoxY", wbStyle.conclusionBoxY);
+  v2SetOptionalNumber("fV2WhiteboardConclusionBoxWidth", wbStyle.conclusionBoxWidth);
+  v2SetOptionalNumber("fV2WhiteboardConclusionBoxHeight", wbStyle.conclusionBoxHeight);
+  const wbAnimation = whiteboard.animation || {};
+  document.getElementById("fV2WhiteboardAnimationMode").value = ["step", "all", "none"].includes(wbAnimation.mode) ? wbAnimation.mode : "all";
+  document.getElementById("fV2WhiteboardSectionPop").checked = wbAnimation.sectionPop !== false;
+  document.getElementById("fV2WhiteboardArrowPop").checked = wbAnimation.arrowPop !== false;
+  document.getElementById("fV2WhiteboardConclusionPop").checked = wbAnimation.conclusionPop !== false;
+  document.getElementById("fV2WhiteboardUnderlineDraw").checked = wbAnimation.underlineDraw !== false;
+  document.getElementById("fV2WhiteboardConclusionImpact").checked = wbAnimation.conclusionImpact !== false;
   const meeting = v2ZunMeetForTurn(turn);
   document.getElementById("fV2MeetRoom").value = meeting.room || "";
   document.getElementById("fV2MeetLayout").value = meeting.layout === "grid" ? "grid" : "focus";
@@ -9768,23 +10777,28 @@ function renderV2Detail(turn) {
     const placementActions = document.createElement("div"); placementActions.style.cssText = "display:flex; gap:8px; align-items:center; flex-wrap:wrap;";
     const drag = document.createElement("button"); drag.type = "button"; drag.className = "btn btn-secondary btn-sm";
     const editingThis = _v2ManualPlacementEdit?.turnIndex === selectedIdx && _v2ManualPlacementEdit.instanceId === instanceId;
-    drag.textContent = placement.mode === "manual" ? (editingThis ? "プレビューでドラッグ中" : "プレビューで位置を動かす") : "手動配置にしてドラッグ";
-    const canDrag = (turn.displayMode?.kind || "standard") === "standard";
-    drag.disabled = !canDrag;
-    drag.title = canDrag ? "プレビュー上の身体中央マーカーをドラッグします" : "特殊表示中は通常ステージが見えないため、配置をドラッグできません";
+    const canPreviewDrag = (turn.displayMode?.kind || "standard") === "standard";
+    drag.textContent = placement.mode === "manual"
+      ? (canPreviewDrag ? (editingThis ? "プレビューでドラッグ中" : "プレビューで位置を動かす") : "数値で位置・倍率を調整")
+      : (canPreviewDrag ? "手動配置にしてドラッグ" : "手動配置にして数値調整");
+    drag.title = canPreviewDrag
+      ? "プレビュー上の身体中央マーカーをドラッグします"
+      : "画面内ステージでは数値入力で位置・倍率を調整します";
     drag.addEventListener("click", () => {
       if (placement.mode === "manual") {
-        _v2ManualPlacementEdit = { turnIndex: selectedIdx, instanceId };
-        renderPlacementEditLayer();
+        if (canPreviewDrag) {
+          _v2ManualPlacementEdit = { turnIndex: selectedIdx, instanceId };
+          renderPlacementEditLayer();
+        }
         return;
       }
       v2StartManualPlacement(turn, instanceId);
     });
     placementActions.appendChild(drag);
     if (placement.mode === "manual") {
-      const manualX = document.createElement("input"); manualX.type = "number"; manualX.step = "0.01"; manualX.className = "field-input"; manualX.value = placement.origin.x; manualX.title = "足元基準 X";
-      const manualY = document.createElement("input"); manualY.type = "number"; manualY.step = "0.01"; manualY.className = "field-input"; manualY.value = placement.origin.y; manualY.title = "足元基準 Y";
-      const manualScale = document.createElement("input"); manualScale.type = "number"; manualScale.step = "0.01"; manualScale.min = "0.01"; manualScale.className = "field-input"; manualScale.value = placement.scale ?? v2PlacementScaleForEditor(placement, turn.scene); manualScale.title = "手動配置の拡大率";
+      const manualX = document.createElement("input"); manualX.type = "number"; manualX.step = "0.01"; manualX.className = "field-input"; manualX.value = placement.origin.x; manualX.placeholder = "X"; manualX.title = "足元基準 X";
+      const manualY = document.createElement("input"); manualY.type = "number"; manualY.step = "0.01"; manualY.className = "field-input"; manualY.value = placement.origin.y; manualY.placeholder = "Y"; manualY.title = "足元基準 Y";
+      const manualScale = document.createElement("input"); manualScale.type = "number"; manualScale.step = "0.01"; manualScale.min = "0.01"; manualScale.className = "field-input"; manualScale.value = placement.scale ?? v2PlacementScaleForEditor(placement, turn.scene); manualScale.placeholder = "倍率"; manualScale.title = "手動配置の拡大率";
       const applyManual = () => {
         const x = Number(manualX.value), y = Number(manualY.value), scale = Number(manualScale.value);
         if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(scale) || scale <= 0) return;
@@ -9806,6 +10820,7 @@ function renderV2Detail(turn) {
 
 function collectV2Basic() {
   if (!isV2StoryEditor() || selectedIdx < 0) return;
+  const oldPreviewTiming = previewTurnTimingAt(storyData.script, selectedIdx);
   const turn = storyData.script[selectedIdx];
   const oldSpeaker = turn.speaker;
   const oldText = turn.text;
@@ -9868,6 +10883,8 @@ function collectV2Basic() {
   const nextScene = document.getElementById("fV2Scene").value;
   if (turn.scene !== nextScene) delete turn.stage;
   turn.scene = nextScene;
+  const continuityAudioChanged = v2ApplySpeakerContinuityChange(selectedIdx, oldSpeaker, turn.speaker);
+  const continuityRepairAudioChanged = v2RepairCurrentSpeakerContinuity(selectedIdx);
   const displayKind = document.getElementById("fV2DisplayMode").value;
   if (displayKind === "zunMonitor") {
     const state = document.getElementById("fV2MonitorState").value === "ok" ? "ok" : "warning";
@@ -9904,21 +10921,62 @@ function collectV2Basic() {
     });
     turn.displayMode = { kind: "zunMail", mailer };
   } else if (displayKind === "whiteboard") {
-    const sections = [0, 1, 2].map((index) => ({
-      heading: document.getElementById(`fV2WhiteboardHeading${index}`).value.trim(),
-      bullets: document.getElementById(`fV2WhiteboardBullets${index}`).value.split("\n").map((line) => line.trim()).filter(Boolean),
-    }));
+    const sections = [0, 1, 2].map((index) => {
+      const section = {
+        heading: document.getElementById(`fV2WhiteboardHeading${index}`).value.trim(),
+        bullets: document.getElementById(`fV2WhiteboardBullets${index}`).value.split("\n").map((line) => line.trim()).filter(Boolean),
+      };
+      const icon = document.getElementById(`fV2WhiteboardIcon${index}`).value;
+      if (icon) section.icon = icon;
+      return section;
+    });
     const presenterId = document.getElementById("fV2WhiteboardPresenter").value;
+    const whiteboard = {
+      title: document.getElementById("fV2WhiteboardTitle").value.trim(),
+      theme: document.getElementById("fV2WhiteboardTheme").value.trim(),
+      sections,
+      conclusion: document.getElementById("fV2WhiteboardConclusion").value.trim(),
+      layout: document.getElementById("fV2WhiteboardLayout").value === "compact" ? "compact" : "default",
+    };
+    const visibleSections = [0, 1, 2].map((index) => document.getElementById(`fV2WhiteboardVisible${index}`).checked);
+    if (visibleSections.some((value) => value === false)) whiteboard.visibleSections = visibleSections;
+    const visibleArrows = [0, 1].map((index) => document.getElementById(`fV2WhiteboardArrowVisible${index}`).checked);
+    if (visibleArrows.some((value) => value === false)) whiteboard.visibleArrows = visibleArrows;
+    if (!document.getElementById("fV2WhiteboardConclusionVisible").checked) whiteboard.showConclusion = false;
+    if (document.getElementById("fV2WhiteboardConclusionArrowVisible").checked) whiteboard.showConclusionArrow = true;
+    const activeSection = document.getElementById("fV2WhiteboardActiveSection").value;
+    if (activeSection !== "") whiteboard.activeSection = Math.max(0, Math.min(2, Number(activeSection)));
+    const style = {};
+    v2AssignOptionalNumber(style, "fV2WhiteboardTitleFontSize", "titleFontSize", 36, 100);
+    v2AssignOptionalNumber(style, "fV2WhiteboardThemeFontSize", "themeFontSize", 24, 72);
+    v2AssignOptionalNumber(style, "fV2WhiteboardHeadingFontSize", "sectionHeadingFontSize", 20, 60);
+    v2AssignOptionalNumber(style, "fV2WhiteboardBodyFontSize", "sectionBodyFontSize", 18, 56);
+    v2AssignOptionalNumber(style, "fV2WhiteboardConclusionFontSize", "conclusionFontSize", 24, 76);
+    v2AssignOptionalNumber(style, "fV2WhiteboardConclusionBoxX", "conclusionBoxX", 0, 1920);
+    v2AssignOptionalNumber(style, "fV2WhiteboardConclusionBoxY", "conclusionBoxY", 0, 1080);
+    v2AssignOptionalNumber(style, "fV2WhiteboardConclusionBoxWidth", "conclusionBoxWidth", 300, 1500);
+    v2AssignOptionalNumber(style, "fV2WhiteboardConclusionBoxHeight", "conclusionBoxHeight", 80, 320);
+    if (Object.keys(style).length) whiteboard.style = style;
+    const animation = {
+      mode: document.getElementById("fV2WhiteboardAnimationMode").value,
+      sectionPop: document.getElementById("fV2WhiteboardSectionPop").checked,
+      arrowPop: document.getElementById("fV2WhiteboardArrowPop").checked,
+      conclusionPop: document.getElementById("fV2WhiteboardConclusionPop").checked,
+      underlineDraw: document.getElementById("fV2WhiteboardUnderlineDraw").checked,
+      conclusionImpact: document.getElementById("fV2WhiteboardConclusionImpact").checked,
+    };
+    if (
+      animation.mode !== "all"
+      || animation.sectionPop === false
+      || animation.arrowPop === false
+      || animation.conclusionPop === false
+      || animation.underlineDraw === false
+      || animation.conclusionImpact === false
+    ) whiteboard.animation = animation;
     turn.displayMode = {
       kind: "whiteboard",
       ...(presenterId ? { presenterId } : {}),
-      whiteboard: {
-        title: document.getElementById("fV2WhiteboardTitle").value.trim(),
-        theme: document.getElementById("fV2WhiteboardTheme").value.trim(),
-        sections,
-        conclusion: document.getElementById("fV2WhiteboardConclusion").value.trim(),
-        layout: document.getElementById("fV2WhiteboardLayout").value === "compact" ? "compact" : "default",
-      },
+      whiteboard,
     };
   } else if (displayKind === "zunMeet") {
     const previous = v2ZunMeetForTurn(turn);
@@ -9927,6 +10985,20 @@ function collectV2Basic() {
       layout: document.getElementById("fV2MeetLayout").value === "grid" ? "grid" : "focus",
       ...(document.getElementById("fV2MeetActiveSpeaker").value ? { activeSpeakerId: document.getElementById("fV2MeetActiveSpeaker").value } : {}),
       participants: previous.participants || [],
+    }};
+  } else if (displayKind === "framedStage") {
+    const current = v2FramedStageForTurn(turn);
+    const x = Number(document.getElementById("fV2FramedStageX").value);
+    const y = Number(document.getElementById("fV2FramedStageY").value);
+    const width = Number(document.getElementById("fV2FramedStageWidth").value);
+    turn.displayMode = {kind: "framedStage", framedStage: {
+      background: document.getElementById("fV2FramedStageBackground").value || current.background,
+      frame: v2NormalizeFramedStageFrame({
+        x: Number.isFinite(x) ? x : current.frame.x,
+        y: Number.isFinite(y) ? y : current.frame.y,
+        width: Number.isFinite(width) ? width : current.frame.width,
+      }),
+      ...(document.getElementById("fV2FramedStageTransition").value === "smooth" ? {frameTransition: "smooth"} : {}),
     }};
   } else {
     turn.displayMode = { kind: "standard" };
@@ -9950,13 +11022,23 @@ function collectV2Basic() {
   const tilt = Number(document.getElementById("fV2MotionTilt").value);
   const shakeStrength = Number(document.getElementById("fV2MotionShakeStrength").value);
   const shakeDuration = Number(document.getElementById("fV2MotionShakeDuration").value);
+  const previousShake = turn.stage?.cameraMotion?.shake;
   const motion = {};
+  if (document.getElementById("fV2MotionInherit").checked) motion.inherit = true;
   if (document.getElementById("fV2MotionZoom").value !== "" && Number.isFinite(zoom)) motion.zoom = zoom;
   if ((document.getElementById("fV2MotionPanX").value !== "" && Number.isFinite(panX)) || (document.getElementById("fV2MotionPanY").value !== "" && Number.isFinite(panY))) motion.pan = { x: Number.isFinite(panX) ? panX : 0, y: Number.isFinite(panY) ? panY : 0 };
   if (document.getElementById("fV2MotionTilt").value !== "" && Number.isFinite(tilt)) motion.tilt = tilt;
-  if (document.getElementById("fV2MotionShakeStrength").value !== "" && Number.isFinite(shakeStrength) && document.getElementById("fV2MotionShakeDuration").value !== "" && Number.isFinite(shakeDuration)) motion.shake = { strength: shakeStrength, duration: shakeDuration };
+  const shakeStrengthInput = document.getElementById("fV2MotionShakeStrength").value;
+  const shakeDurationInput = document.getElementById("fV2MotionShakeDuration").value;
+  if (shakeStrengthInput !== "" || shakeDurationInput !== "") {
+    motion.shake = {
+      strength: shakeStrengthInput !== "" && Number.isFinite(shakeStrength) ? shakeStrength : previousShake?.strength ?? 10,
+      duration: shakeDurationInput !== "" && Number.isFinite(shakeDuration) ? shakeDuration : previousShake?.duration ?? 0.4,
+    };
+  }
   if (Object.keys(motion).length) stage.cameraMotion = motion; else delete stage.cameraMotion;
-  v2Commit(turn, oldSpeaker !== turn.speaker || oldText !== turn.text || oldPause !== turn.pause);
+  adjustBgmForTurnDurationChange(oldPreviewTiming, previewTurnTimingAt(storyData.script, selectedIdx));
+  v2Commit(turn, continuityAudioChanged || continuityRepairAudioChanged || oldSpeaker !== turn.speaker || oldText !== turn.text || oldPause !== turn.pause);
 }
 
 function renderBasicSectionNav(sections) {
@@ -11642,6 +12724,7 @@ function collectBasic() {
     collectV2Basic();
     return;
   }
+  const oldPreviewTiming = previewTurnTimingAt(storyData.script, selectedIdx);
   const turn = storyData.script[selectedIdx];
   const oldSpeaker = turn.speaker, oldText = turn.text, oldPause = turn.pause, oldVoice = JSON.stringify(turn.voice || null), oldNarration = turn.narrationVoice || "";
   const oldSpokenText = normalizeSpokenText(oldText);
@@ -11828,6 +12911,7 @@ function collectBasic() {
   normalizeV2Captions(storyData);
 
   markDirty();
+  adjustBgmForTurnDurationChange(oldPreviewTiming, previewTurnTimingAt(storyData.script, selectedIdx));
   // 音声に影響する変更（話者/セリフ/間）なら「要・音声生成」にする。
   if (turn.speaker !== oldSpeaker || normalizeSpokenText(turn.text) !== oldSpokenText || turn.pause !== oldPause || JSON.stringify(turn.voice || null) !== oldVoice || (turn.narrationVoice || "") !== oldNarration) markAudioDirty();
   renderList(); // バッジ等を更新
@@ -12057,6 +13141,7 @@ function addTurnAfter(inheritScene = false) {
   const script = storyData.script;
   const refTurn = selectedIdx >= 0 && selectedIdx < script.length
     ? script[selectedIdx] : null;
+  const refPreviewTiming = selectedIdx >= 0 ? previewTurnTimingAt(script, selectedIdx) : null;
   if (isV2StoryEditor()) {
     const sceneIds = sortedKeysBySceneLabel(sceneDefs?.scenes || {});
     const instanceIds = Object.keys(storyData.instances || {});
@@ -12090,6 +13175,13 @@ function addTurnAfter(inheritScene = false) {
     }
     const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : script.length;
     script.splice(insertAt, 0, newTurn);
+    if (refPreviewTiming) {
+      adjustBgmForTimelineDelta(
+        refPreviewTiming.end,
+        provisionalDuration(newTurn.text),
+        refPreviewTiming.end > refPreviewTiming.start ? refPreviewTiming.start + (refPreviewTiming.end - refPreviewTiming.start) / 2 : refPreviewTiming.end,
+      );
+    }
     markDirty();
     markAudioDirty();
     v2RecordHistory();
@@ -12132,6 +13224,13 @@ function addTurnAfter(inheritScene = false) {
   }
   const insertAt = selectedIdx >= 0 ? selectedIdx + 1 : script.length;
   script.splice(insertAt, 0, newTurn);
+  if (refPreviewTiming) {
+    adjustBgmForTimelineDelta(
+      refPreviewTiming.end,
+      provisionalDuration(newTurn.text),
+      refPreviewTiming.end > refPreviewTiming.start ? refPreviewTiming.start + (refPreviewTiming.end - refPreviewTiming.start) / 2 : refPreviewTiming.end,
+    );
+  }
   markDirty();
   markAudioDirty();
   selectedIdx = insertAt;
@@ -12156,6 +13255,7 @@ function splitDialogueAtCursor() {
   const script = storyData.script;
   const turn = script[selectedIdx];
   if (!turn) return;
+  const splitPreviewTiming = previewTurnTimingAt(script, selectedIdx);
   const text = String(textEl.value || "");
   const cursor = Math.max(0, Math.min(textEl.selectionStart ?? text.length, text.length));
   const before = text.slice(0, cursor).replace(/[ \t]+$/g, "");
@@ -12186,6 +13286,13 @@ function splitDialogueAtCursor() {
   delete turn.sentences;
   const insertAt = selectedIdx + 1;
   script.splice(insertAt, 0, newTurn);
+  if (splitPreviewTiming) {
+    adjustBgmForTimelineDelta(
+      splitPreviewTiming.end,
+      provisionalDuration(newTurn.text),
+      splitPreviewTiming.end > splitPreviewTiming.start ? splitPreviewTiming.start + (splitPreviewTiming.end - splitPreviewTiming.start) / 2 : splitPreviewTiming.end,
+    );
+  }
   markDirty();
   markAudioDirty();
   selectedIdx = insertAt;
@@ -12219,6 +13326,7 @@ function splitV2DialogueAtCursor() {
   const script = storyData.script;
   const turn = script[selectedIdx];
   if (!turn) return;
+  const splitPreviewTiming = previewTurnTimingAt(script, selectedIdx);
   const newTurn = JSON.parse(JSON.stringify(turn));
   newTurn.id = generateId(script);
   newTurn.start = 0;
@@ -12236,6 +13344,13 @@ function splitV2DialogueAtCursor() {
   delete turn.pause;
   const insertAt = selectedIdx + 1;
   script.splice(insertAt, 0, newTurn);
+  if (splitPreviewTiming) {
+    adjustBgmForTimelineDelta(
+      splitPreviewTiming.end,
+      provisionalDuration(newTurn.text),
+      splitPreviewTiming.end > splitPreviewTiming.start ? splitPreviewTiming.start + (splitPreviewTiming.end - splitPreviewTiming.start) / 2 : splitPreviewTiming.end,
+    );
+  }
   markDirty();
   markAudioDirty();
   v2RecordHistory();
@@ -12403,6 +13518,11 @@ async function saveStory() {
   normalizeStoryTransitions(storyData);
   normalizeV2Captions(storyData);
   pruneAllTurnsForDisplayType();
+  if (v2PruneInvalidStageStateRefs(storyData)) {
+    renderList();
+    renderDetail();
+    notifyPlayerUpdate();
+  }
   try {
     const r = await fetch("/api/story", {
       method: "POST",
@@ -12452,6 +13572,7 @@ async function generateAudio(confirmFirst = true) {
       if (!mobsSaved) throw new Error("モブ設定の保存に失敗しました");
     }
     await saveStory();                       // 最新を保存してから生成（make_story_audioは保存済みJSONを読む）
+    const timingBeforeAudio = previewTimingSnapshot(storyData.script);
     // 生成中(数十秒〜)に編集を続けると、完了時の再読込で編集内容が丸ごと巻き戻り、
     // selectedIdxはそのままなので別ターンが表示される事故が起きるため編集をロックする。
     lockScriptEditing();
@@ -12487,6 +13608,14 @@ async function generateAudio(confirmFirst = true) {
     if (ok) {
       const sres = await fetch("/api/story"); // 実尺/audioが入ったstoryを再読込
       storyData = await sres.json();
+      const bgmAdjusted = adjustBgmForTimingSnapshotChange(timingBeforeAudio, previewTimingSnapshot(storyData.script));
+      if (bgmAdjusted) {
+        await fetch("/api/story", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(storyData),
+        });
+      }
       clearMultiSelection();
       normalizeStoryTransitions(storyData);
       normalizeV2Captions(storyData);
@@ -13245,6 +14374,10 @@ function setupEvents() {
   window.addEventListener("pointercancel", onOverlayPreviewPointerUp);
 
   window.addEventListener("pointermove", (e) => {
+    if (_v2FramedStageDrag) {
+      v2UpdateFramedStageFrameFromDrag(e);
+      return;
+    }
     if (_v2ManualCameraDrag) {
       v2UpdateManualCameraFrameFromDrag(e);
       return;
@@ -13275,6 +14408,16 @@ function setupEvents() {
     renderPlacementEditLayer();
   });
   const onPlacementPointerUp = () => {
+    if (_v2FramedStageDrag) {
+      const turn = selectedIdx >= 0 && storyData ? storyData.script[selectedIdx] : null;
+      _v2FramedStageDrag = null;
+      if (turn) {
+        v2FlushFramedStagePreviewUpdate();
+        v2Commit(turn);
+        renderV2Detail(turn);
+      }
+      return;
+    }
     if (_v2ManualCameraDrag) {
       const turn = selectedIdx >= 0 && storyData ? storyData.script[selectedIdx] : null;
       _v2ManualCameraDrag = null;
@@ -13364,11 +14507,16 @@ function setupEvents() {
   }
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
+    "fV2FramedStageBackground", "fV2FramedStageX", "fV2FramedStageY", "fV2FramedStageWidth", "fV2FramedStageTransition",
     "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
     "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut",
-    "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration",
+    "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration", "fV2MotionInherit",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",
+    "fV2WhiteboardVisible0", "fV2WhiteboardVisible1", "fV2WhiteboardVisible2", "fV2WhiteboardArrowVisible0", "fV2WhiteboardArrowVisible1", "fV2WhiteboardConclusionVisible", "fV2WhiteboardConclusionArrowVisible", "fV2WhiteboardActiveSection",
+    "fV2WhiteboardIcon0", "fV2WhiteboardIcon1", "fV2WhiteboardIcon2", "fV2WhiteboardTitleFontSize", "fV2WhiteboardThemeFontSize", "fV2WhiteboardHeadingFontSize", "fV2WhiteboardBodyFontSize", "fV2WhiteboardConclusionFontSize",
+    "fV2WhiteboardConclusionBoxX", "fV2WhiteboardConclusionBoxY", "fV2WhiteboardConclusionBoxWidth", "fV2WhiteboardConclusionBoxHeight",
+    "fV2WhiteboardAnimationMode", "fV2WhiteboardSectionPop", "fV2WhiteboardArrowPop", "fV2WhiteboardConclusionPop", "fV2WhiteboardUnderlineDraw", "fV2WhiteboardConclusionImpact",
     "fV2MeetRoom", "fV2MeetLayout", "fV2MeetActiveSpeaker",
     "fV2MonitorState", "fV2MonitorTitle", "fV2MonitorText",
     "fV2ChatUser", "fV2ChatAi", "fV2ChatHighlight",
@@ -13392,10 +14540,51 @@ function setupEvents() {
       if (id === "fV2FramingMode") v2UpdateFramingFields();
       if (id === "fV2DisplayMode") v2UpdateDisplayModeFields();
       if (id === "fV2SubtitleMode") v2UpdateDialogueFields();
+      if (id === "fV2InsertBackdropImage") v2PopulateInsertBackdropImageSelect(el.value);
       collectV2Basic();
       if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
     });
   }
+  document.getElementById("fV2InsertBackdropImageSelect")?.addEventListener("change", (event) => {
+    if (!isV2StoryEditor()) return;
+    const hidden = document.getElementById("fV2InsertBackdropImage");
+    if (hidden) hidden.value = event.currentTarget.value;
+    collectV2Basic();
+    if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
+  });
+  document.getElementById("fV2InsertBackdropImageUpload")?.addEventListener("change", async (event) => {
+    if (!isV2StoryEditor()) return;
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch("/api/background-assets/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, dataUrl }),
+      });
+      const result = await response.json();
+      if (response.ok && result.ok && result.path) {
+        backgroundAssets = null;
+        await ensureBackgroundAssets();
+        const hidden = document.getElementById("fV2InsertBackdropImage");
+        if (hidden) hidden.value = result.path;
+        v2PopulateInsertBackdropImageSelect(result.path);
+        collectV2Basic();
+        if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
+      }
+    } catch (error) {
+      console.warn("背景画像アップロードに失敗しました", error);
+    } finally {
+      input.value = "";
+    }
+  });
   for (const id of ["fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize"]) {
     const el = document.getElementById(id);
     if (!el) continue;
@@ -13647,6 +14836,32 @@ function setupEvents() {
 
   // プレビューのズーム倍率
   document.getElementById("previewZoom").addEventListener("change", sizePlayerWrap);
+  document.getElementById("btnPreviewFullscreen").addEventListener("click", togglePreviewFullscreen);
+  document.getElementById("btnPreviewFullscreenOverlay").addEventListener("click", togglePreviewFullscreen);
+  document.getElementById("btnPreviewFullscreenExit").addEventListener("click", exitPreviewFullscreen);
+  document.getElementById("btnPreviewFullscreenGlobalExit").addEventListener("click", exitPreviewFullscreen);
+  document.getElementById("btnPreviewSkipBack").addEventListener("click", () => skipPreviewFullscreen(-10));
+  document.getElementById("btnPreviewSkipForward").addEventListener("click", () => skipPreviewFullscreen(10));
+  const fullscreenSeek = document.getElementById("previewFullscreenSeek");
+  fullscreenSeek.addEventListener("pointerdown", () => { _previewFullscreenSeekDragging = true; });
+  fullscreenSeek.addEventListener("pointerup", () => {
+    _previewFullscreenSeekDragging = false;
+    seekPreviewFullscreenTo(Number(fullscreenSeek.value));
+  });
+  fullscreenSeek.addEventListener("pointercancel", () => { _previewFullscreenSeekDragging = false; updatePreviewFullscreenControls(); });
+  fullscreenSeek.addEventListener("input", () => {
+    updatePreviewFullscreenControls(Number(fullscreenSeek.value));
+    seekPreviewFullscreenTo(Number(fullscreenSeek.value));
+  });
+  fullscreenSeek.addEventListener("change", () => {
+    _previewFullscreenSeekDragging = false;
+    seekPreviewFullscreenTo(Number(fullscreenSeek.value));
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.body.classList.contains("preview-landscape-fullscreen")) {
+      exitPreviewFullscreen();
+    }
+  });
 
   // タイムラインの横ズーム
   document.getElementById("timelineZoom").addEventListener("change", drawScriptTimeline);

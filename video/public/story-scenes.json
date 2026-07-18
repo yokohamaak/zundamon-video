@@ -1,1150 +1,1155 @@
 {
-  "_note": "Phase1のシーンライブラリ(仮)。背景は既存画像を流用したプレースホルダ。anchorは正規化座標(0..1, yは足元位置)。frontを指定すると back→キャラ→front の重ね(layered)。cameraはライブラリ既定。docs/next-animation-editor-spec.md §4.2/§4.5。",
+  "schemaVersion": 2,
   "scenes": {
     "office": {
       "label": "オフィス",
-      "bg": "background/office_bg.png",
-      "front": "background/office_fg.png",
-      "camera": "static",
-      "figure": "full",
-      "scale": 1.2,
-      "bgBlur": 0,
-      "cast": {
-        "metan": "left",
-        "zundamon": "right"
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.359,
+                "y": 1.012
+              },
+              "scale": 1.15,
+              "zIndex": 20,
+              "cameraPresetId": "left",
+              "previewCharacterId": "metan"
+            },
+            "center": {
+              "origin": {
+                "x": 0.474,
+                "y": 0.895
+              },
+              "scale": 1.15,
+              "zIndex": 20,
+              "cameraPresetId": "default",
+              "previewCharacterId": "mob:営業"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.706,
+                "y": 1.032
+              },
+              "scale": 1.15,
+              "zIndex": 20,
+              "cameraPresetId": "right",
+              "previewCharacterId": "zundamon"
+            }
+          }
+        }
       },
-      "anchors": {
-        "center": {
-          "x": 0.543,
-          "y": 0.645
+      "cameraPresets": {
+        "default": {
+          "cx": 0.536342761363177,
+          "cy": 0.37746652229927474,
+          "width": 0.6961451874219984
         },
         "left": {
-          "x": 0.442,
-          "y": 0.57
+          "cx": 0.3687464251442621,
+          "cy": 0.2980522056616025,
+          "width": 0.5313302246793695
         },
         "right": {
-          "x": 0.719,
-          "y": 0.604
+          "cx": 0.6795778603008241,
+          "cy": 0.357375058706342,
+          "width": 0.48002333146384824
         }
       },
-      "mobAnchor": {
-        "x": 0.5,
-        "y": 0.96
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.214,
-          "y": 1,
-          "scale": 1.5,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.429,
-          "y": 0.911,
-          "scale": 1.25
-        },
-        "同僚": {
-          "x": 0.411,
-          "y": 0.881,
-          "scale": 1.25
-        },
-        "弱い同僚": {
-          "x": 0.405,
-          "y": 0.952,
-          "scale": 1.35,
-          "hidden": true
-        },
-        "豆山": {
-          "x": 0.425,
-          "y": 0.795,
-          "scale": 1.1
-        }
-      },
-      "cameraFrame": {
-        "cx": 0.5579742317839129,
-        "cy": 0.3580209145147453,
-        "width": 0.6296426704830764
-      },
-      "focusZoom": 0.1,
-      "cameraFrames": {
-        "default": {
-          "cx": 0.5579742317839129,
-          "cy": 0.3580209145147453,
-          "width": 0.6296426704830764
-        },
-        "leftFocus": {
-          "cx": 0.5783068011122543,
-          "cy": 0.3761033222927084,
-          "width": 0.6296426704830764
-        },
-        "rightFocus": {
-          "cx": 0.6648770623965888,
-          "cy": 0.41700462988922143,
-          "width": 0.5364881673227578
-        }
-      }
+      "figure": "full",
+      "bg": "background/office_bg.png",
+      "front": "background/office_fg.png",
+      "bgBlur": 3
     },
     "meeting_room": {
       "label": "会議室",
-      "bg": "background/会議室bg.png",
-      "front": "background/会議室fg.png",
-      "camera": "static",
-      "figure": "full",
-      "scale": 0.95,
-      "bgBlur": 0,
-      "cast": {
-        "metan": "left",
-        "zundamon": "right"
-      },
-      "anchors": {
-        "center": {
-          "x": 0.52,
-          "y": 0.63
-        },
-        "left": {
-          "x": 0.389,
-          "y": 0.523
-        },
-        "right": {
-          "x": 0.601,
-          "y": 0.566
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.389,
+                "y": 0.94
+              },
+              "scale": 0.95,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.52,
+                "y": 0.94
+              },
+              "scale": 0.95,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.601,
+                "y": 0.94
+              },
+              "scale": 0.95,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
         }
       },
-      "mobAnchor": {
-        "x": 0.5,
-        "y": 0.95
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.18,
-          "y": 0.66,
-          "scale": 0.58,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.86,
-          "y": 0.66,
-          "scale": 0.62,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "豆山": {
-          "x": 0.396,
-          "y": 0.72,
-          "scale": 0.85
-        }
-      },
-      "cameraFrame": {
-        "cx": 0.4747431506849315,
-        "cy": 0.41395547945205474,
-        "width": 0.6258561643835616
-      },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.4747431506849315,
           "cy": 0.41395547945205474,
           "width": 0.6258561643835616
         },
-        "leftFocus": {
+        "left": {
           "cx": 0.4747431506849315,
           "cy": 0.41395547945205474,
           "width": 0.6258561643835616
         },
-        "rightFocus": {
+        "right": {
           "cx": 0.4747431506849315,
           "cy": 0.41395547945205474,
           "width": 0.6258561643835616
         }
-      }
+      },
+      "figure": "full",
+      "bg": "background/会議室bg.png",
+      "front": "background/会議室fg.png",
+      "bgBlur": 3
     },
     "home": {
       "label": "自宅",
-      "bg": "background/room.png",
-      "front": null,
-      "camera": "static",
-      "figure": "full",
-      "scale": 1.1,
-      "bgBlur": 0,
-      "anchors": {
-        "center": {
-          "x": 0.52,
-          "y": 0.684
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.27,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.536,
+                "y": 1.044
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default",
+              "previewCharacterId": "zundamon"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.73,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
+          "cx": 0.5209551249464897,
+          "cy": 0.44859460281999153,
+          "width": 0.525921547249572
         },
         "left": {
-          "x": 0.27,
-          "y": 1.04
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         },
         "right": {
-          "x": 0.73,
-          "y": 1.04
-        }
-      },
-      "cast": {
-        "zundamon": "center"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "cameraFrames": {
-        "default": {
-          "cx": 0.4594392123287671,
-          "cy": 0.5252568493150686,
-          "width": 0.7011986301369862
-        },
-        "leftFocus": {
-          "cx": 0.5,
-          "cy": 0.5,
-          "width": 1
-        },
-        "rightFocus": {
           "cx": 0.5,
           "cy": 0.5,
           "width": 1
         }
       },
-      "cameraFrame": {
-        "cx": 0.4594392123287671,
-        "cy": 0.5252568493150686,
-        "width": 0.7011986301369862
-      }
+      "figure": "full",
+      "bg": "background/room.png",
+      "front": null,
+      "bgBlur": 3
     },
     "server_room": {
       "label": "サーバールーム",
-      "bg": "background/server_room.png",
-      "front": null,
-      "camera": "slow-zoom",
-      "figure": "full",
-      "scale": 1.35,
-      "bgBlur": 0,
-      "cast": {
-        "zundamon": "right",
-        "metan": "left"
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.95
-        },
-        "left": {
-          "x": 0.335,
-          "y": 0.619
-        },
-        "right": {
-          "x": 0.711,
-          "y": 0.662
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.335,
+                "y": 0.94
+              },
+              "scale": 1.35,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.35,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.711,
+                "y": 0.94
+              },
+              "scale": 1.35,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
         }
       },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.349,
-          "y": 1.015,
-          "scale": 1.4
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.5001072041166381,
           "cy": 0.40351629502572894,
           "width": 0.6972555746140651
         },
-        "leftFocus": {
+        "left": {
           "cx": 0.3445540308747855,
           "cy": 0.35205831903945106,
           "width": 0.5771869639794167
         },
-        "rightFocus": {
+        "right": {
           "cx": 0.6704545454545455,
           "cy": 0.37778730703259006,
           "width": 0.5806174957118353
         }
       },
-      "cameraFrame": {
-        "cx": 0.5001072041166381,
-        "cy": 0.40351629502572894,
-        "width": 0.6972555746140651
-      }
+      "figure": "full",
+      "bg": "background/server_room.png",
+      "front": null,
+      "bgBlur": 3
     },
     "rooftop": {
       "label": "屋上（夕方）",
-      "bg": "background/rooftop.png",
-      "front": null,
-      "camera": "static",
-      "figure": "full",
-      "scale": 1.5,
-      "bgBlur": 0,
-      "cast": {
-        "zundamon": "right",
-        "metan": "left"
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.96
-        },
-        "left": {
-          "x": 0.303,
-          "y": 0.658
-        },
-        "right": {
-          "x": 0.687,
-          "y": 0.705
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.303,
+                "y": 0.94
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.687,
+                "y": 0.94
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
         }
       },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.4708904109589041,
           "cy": 0.46532534246575347,
           "width": 0.8416095890410958
         },
-        "leftFocus": {
+        "left": {
           "cx": 0.5,
           "cy": 0.5,
           "width": 1
         },
-        "rightFocus": {
+        "right": {
           "cx": 0.6477418664383562,
           "cy": 0.48078981164383566,
           "width": 0.6019905821917808
         }
       },
-      "cameraFrame": {
-        "cx": 0.4708904109589041,
-        "cy": 0.46532534246575347,
-        "width": 0.8416095890410958
-      }
+      "figure": "full",
+      "bg": "background/rooftop.png",
+      "front": null,
+      "bgBlur": 3
     },
     "home-night": {
       "label": "自宅夜",
-      "bg": "background/room_night.png",
-      "front": null,
-      "camera": "static",
-      "scale": 1.1,
-      "bgBlur": 0,
-      "cast": {
-        "zundamon": "center"
-      },
-      "anchors": {
-        "center": {
-          "x": 0.52,
-          "y": 0.684
-        },
-        "left": {
-          "x": 0.32,
-          "y": 0.68
-        },
-        "right": {
-          "x": 0.68,
-          "y": 0.68
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.512,
+                "y": 1.064
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default",
+              "previewCharacterId": "zundamon"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.68,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
         }
       },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
+      "cameraPresets": {
+        "default": {
+          "cx": 0.49234501484565907,
+          "cy": 0.5076363543661446,
+          "width": 0.6064096542814092
         },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
+        "left": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
+        "right": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         }
       },
       "figure": "full",
-      "cameraFrames": {
-        "default": {
-          "cx": 0.48370497427101194,
-          "cy": 0.5578902229845626,
-          "width": 0.5428816466552314
-        },
-        "leftFocus": {
-          "cx": 0.5,
-          "cy": 0.5,
-          "width": 1
-        },
-        "rightFocus": {
-          "cx": 0.5,
-          "cy": 0.5,
-          "width": 1
-        }
-      },
-      "cameraFrame": {
-        "cx": 0.48370497427101194,
-        "cy": 0.5578902229845626,
-        "width": 0.5428816466552314
-      }
+      "bg": "background/room_night.png",
+      "front": null,
+      "bgBlur": 3
     },
     "izakaya": {
       "label": "居酒屋",
-      "bg": "background/izakaya.png",
-      "front": "background/izakaya_fg.png",
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.5,
-      "bgBlur": 3,
-      "cast": {
-        "metan": "right",
-        "zundamon": "left"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.259,
+                "y": 1.055
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "left",
+              "previewCharacterId": "mob:おじいさんずんだもん"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.76,
+                "y": 0.727
+              },
+              "scale": 1.15,
+              "zIndex": 20,
+              "cameraPresetId": "right",
+              "previewCharacterId": "mob:おじいさん"
+            }
+          }
         }
       },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.275,
-          "y": 0.629
-        },
-        "right": {
-          "x": 0.737,
-          "y": 0.679
-        }
-      },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.5,
           "cy": 0.5,
           "width": 1
         },
-        "leftFocus": {
-          "cx": 0.3788527397260274,
-          "cy": 0.4148116438356164,
+        "left": {
+          "cx": 0.3838944108518836,
+          "cy": 0.3850933754280822,
           "width": 0.7577054794520548
         },
-        "rightFocus": {
+        "right": {
           "cx": 0.6168664383561644,
           "cy": 0.3899828767123288,
           "width": 0.7662671232876712
         }
       },
-      "cameraFrame": {
-        "cx": 0.5,
-        "cy": 0.5,
-        "width": 1
-      }
+      "figure": "full",
+      "bg": "background/izakaya.png",
+      "front": "background/izakaya_fg.png",
+      "bgBlur": 3
     },
     "park_night": {
       "label": "公園（夜）",
-      "bg": "background/park_yoru.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.5,
-      "bgBlur": 2,
-      "cast": {
-        "zundamon": "center"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.68,
+                "y": 0.94
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
         }
       },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
+      "cameraPresets": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         },
         "left": {
-          "x": 0.32,
-          "y": 0.68
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         },
         "right": {
-          "x": 0.68,
-          "y": 0.68
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         }
-      }
+      },
+      "figure": "full",
+      "bg": "background/park_yoru.png",
+      "front": null,
+      "bgBlur": 3
     },
     "park_day": {
       "label": "公園（昼）",
-      "bg": "background/park_hiru.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.5,
-      "bgBlur": 2,
-      "cast": {
-        "zundamon": "right"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "おじいさん": {
-          "x": 0.347,
-          "y": 0.767,
-          "scale": 0.85
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.497,
+                "y": 0.574
+              },
+              "scale": 1.5,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.333,
+                "y": 1.032
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default",
+              "previewCharacterId": "metan"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.655,
+                "y": 0.988
+              },
+              "scale": 1.1,
+              "zIndex": 21,
+              "cameraPresetId": "right",
+              "previewCharacterId": "zundamon"
+            }
+          }
         }
       },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.32,
-          "y": 0.68
-        },
-        "right": {
-          "x": 0.68,
-          "y": 0.68
-        }
-      },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.49796660958904115,
           "cy": 0.4668236301369861,
           "width": 0.7281678082191778
         },
-        "leftFocus": {
-          "cx": 0.5,
-          "cy": 0.5,
-          "width": 1
+        "left": {
+          "cx": 0.3525244307844607,
+          "cy": 0.4035611087328767,
+          "width": 0.6380698844178083
         },
-        "rightFocus": {
+        "right": {
           "cx": 0.6373073630136986,
           "cy": 0.46018835616438347,
           "width": 0.6601027397260274
         }
       },
-      "cameraFrame": {
-        "cx": 0.49796660958904115,
-        "cy": 0.4668236301369861,
-        "width": 0.7281678082191778
-      }
+      "figure": "full",
+      "bg": "background/park_hiru.png",
+      "front": null,
+      "bgBlur": 3
     },
     "kyutoshitsu": {
       "label": "給湯室",
-      "bg": "background/kyutoshitsu.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.35,
-      "bgBlur": 2,
-      "cast": {
-        "metan": "left",
-        "zundamon": "right"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.33,
+                "y": 0.94
+              },
+              "scale": 1.35,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.35,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.714,
+                "y": 0.94
+              },
+              "scale": 1.35,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
         }
       },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.33,
-          "y": 0.669
-        },
-        "right": {
-          "x": 0.714,
-          "y": 0.655
-        }
-      },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.5038593481989707,
           "cy": 0.41316466552315606,
           "width": 0.7096912521440824
         },
-        "leftFocus": {
+        "left": {
           "cx": 0.3514150943396225,
           "cy": 0.3932246998284734,
           "width": 0.5909090909090908
         },
-        "rightFocus": {
+        "right": {
           "cx": 0.6866423670668952,
           "cy": 0.4095197255574614,
           "width": 0.506861063464837
         }
       },
-      "cameraFrame": {
-        "cx": 0.5038593481989707,
-        "cy": 0.41316466552315606,
-        "width": 0.7096912521440824
-      }
+      "figure": "full",
+      "bg": "background/kyutoshitsu.png",
+      "front": null,
+      "bgBlur": 3
     },
     "train-hiru": {
       "label": "電車（昼）",
-      "bg": "background/train_hiru.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.85,
-      "bgBlur": 3,
-      "cast": {
-        "zundamon": "center"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.85,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.535,
+                "y": 0.94
+              },
+              "scale": 1.85,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.68,
+                "y": 0.94
+              },
+              "scale": 1.85,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
         }
       },
-      "anchors": {
-        "center": {
-          "x": 0.535,
-          "y": 0.735
-        },
-        "left": {
-          "x": 0.32,
-          "y": 0.68
-        },
-        "right": {
-          "x": 0.68,
-          "y": 0.68
-        }
-      }
-    },
-    "train-night": {
-      "label": "電車（夜）",
-      "bg": "background/train_yoru.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.85,
-      "bgBlur": 3,
-      "cast": {
-        "zundamon": "center"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.535,
-          "y": 0.735
-        },
-        "left": {
-          "x": 0.32,
-          "y": 0.68
-        },
-        "right": {
-          "x": 0.68,
-          "y": 0.68
-        }
-      }
-    },
-    "vendor_office": {
-      "label": "ベンダー会議室",
-      "bg": "background/ベンダー会議室.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.1,
-      "bgBlur": 0,
-      "cast": {},
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.32,
-          "y": 0.68
-        },
-        "right": {
-          "x": 0.68,
-          "y": 0.68
-        }
-      }
-    },
-    "roottop-hiru": {
-      "label": "屋上（昼）",
-      "bg": "background/roottop_hiru.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.1,
-      "bgBlur": 0,
-      "cast": {
-        "zundamon": "right"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.383,
-          "y": 1,
-          "scale": 1.3,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.32,
-          "y": 0.68
-        },
-        "right": {
-          "x": 0.67,
-          "y": 0.561
-        }
-      }
-    },
-    "office_copy": {
-      "label": "オフィスコピー機前",
-      "bg": "background/copy.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "scale": 1.1,
-      "bgBlur": 0,
-      "cast": {
-        "zundamon": "left",
-        "metan": "right"
-      },
-      "mobs": {
-        "営業": {
-          "x": 0.771,
-          "y": 1,
-          "scale": 1.4,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.324,
-          "y": 0.511
-        },
-        "right": {
-          "x": 0.698,
-          "y": 0.545
-        }
-      }
-    },
-    "money": {
-      "label": "money",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "cameraFrame": {
-        "cx": 0.5,
-        "cy": 0.5,
-        "width": 1
-      },
-      "scale": 1.1,
-      "bgBlur": 0,
-      "cast": {},
-      "mobs": {
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
-        "left": {
-          "x": 0.32,
-          "y": 0.68
-        },
-        "right": {
-          "x": 0.68,
-          "y": 0.68
-        }
-      },
-      "bgVideo": "background/money.mp4",
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.5,
           "cy": 0.5,
           "width": 1
         },
-        "leftFocus": {
+        "left": {
           "cx": 0.5,
           "cy": 0.5,
           "width": 1
         },
-        "rightFocus": {
+        "right": {
           "cx": 0.5,
           "cy": 0.5,
           "width": 1
         }
-      }
+      },
+      "figure": "full",
+      "bg": "background/train_hiru.png",
+      "front": null,
+      "bgBlur": 3
+    },
+    "train-night": {
+      "label": "電車（夜）",
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.85,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.535,
+                "y": 0.94
+              },
+              "scale": 1.85,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.68,
+                "y": 0.94
+              },
+              "scale": 1.85,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "left": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "right": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "figure": "full",
+      "bg": "background/train_yoru.png",
+      "front": null,
+      "bgBlur": 3
+    },
+    "vendor_office": {
+      "label": "ベンダー会議室",
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.68,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "left": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "right": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "figure": "full",
+      "bg": "background/ベンダー会議室.png",
+      "front": null,
+      "bgBlur": 3
+    },
+    "roottop-hiru": {
+      "label": "屋上（昼）",
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.67,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "left": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "right": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "figure": "full",
+      "bg": "background/roottop_hiru.png",
+      "front": null,
+      "bgBlur": 3
+    },
+    "office_copy": {
+      "label": "オフィスコピー機前",
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.324,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.698,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "left": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "right": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "figure": "full",
+      "bg": "background/copy.png",
+      "front": null,
+      "bgBlur": 3
+    },
+    "money": {
+      "label": "money",
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.68,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "left": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "right": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "figure": "full",
+      "front": null,
+      "bgVideo": "background/money.mp4",
+      "bgBlur": 3
     },
     "old_zundamon_heya": {
       "label": "old_zundamon_heya",
-      "bg": "background/ChatGPT Image 2026年7月13日 23_39_26.png",
-      "front": null,
-      "figure": "full",
-      "camera": "static",
-      "cameraFrame": {
-        "cx": 0.5918771404109588,
-        "cy": 0.46698416095890405,
-        "width": 0.7387628424657535
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.5,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.68,
+                "y": 0.94
+              },
+              "scale": 1.1,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            }
+          }
+        }
       },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
           "cx": 0.5918771404109588,
           "cy": 0.46698416095890405,
           "width": 0.7387628424657535
         },
-        "leftFocus": {
-          "cx": 0.5,
-          "cy": 0.5,
-          "width": 1
-        },
-        "rightFocus": {
-          "cx": 0.5,
-          "cy": 0.5,
-          "width": 1
-        }
-      },
-      "scale": 1.1,
-      "bgBlur": 0,
-      "cast": {},
-      "mobs": {
-        "おじいさんずんだもん": {
-          "x": 0.626,
-          "y": 1.105,
-          "scale": 1.45
-        },
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "豆山": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
         "left": {
-          "x": 0.32,
-          "y": 0.68
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         },
         "right": {
-          "x": 0.68,
-          "y": 0.68
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         }
-      }
+      },
+      "figure": "full",
+      "bg": "background/ChatGPT Image 2026年7月13日 23_39_26.png",
+      "front": null,
+      "bgBlur": 3
     },
     "konkatsu": {
       "label": "婚活パーティ",
-      "bg": "background/konkatsu.png",
-      "front": "background/konkatsu_fg.png",
-      "figure": "full",
-      "camera": "static",
-      "cameraFrame": {
-        "cx": 0.4950770547945206,
-        "cy": 0.5620719178082191,
-        "width": 0.47003424657534226
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.32,
+                "y": 0.94
+              },
+              "scale": 0.85,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "center": {
+              "origin": {
+                "x": 0.392,
+                "y": 0.826
+              },
+              "scale": 0.65,
+              "zIndex": 20,
+              "cameraPresetId": "default",
+              "previewCharacterId": "mob:女性"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.626,
+                "y": 1.023
+              },
+              "scale": 0.85,
+              "zIndex": 20,
+              "cameraPresetId": "right",
+              "previewCharacterId": "zundamon"
+            }
+          }
+        }
       },
-      "cameraFrames": {
+      "cameraPresets": {
         "default": {
-          "cx": 0.4950770547945206,
-          "cy": 0.5620719178082191,
+          "cx": 0.49810581991117325,
+          "cy": 0.5768741973458903,
           "width": 0.47003424657534226
         },
-        "leftFocus": {
+        "left": {
+          "cx": 0.3949526434075342,
+          "cy": 0.5694663687928083,
+          "width": 0.39867160744863006
+        },
+        "right": {
+          "cx": 0.6167577456121573,
+          "cy": 0.5393768728595891,
+          "width": 0.3895547945205478
+        }
+      },
+      "figure": "full",
+      "bg": "background/konkatsu.png",
+      "front": "background/konkatsu_fg.png",
+      "bgBlur": 3
+    },
+    "black": {
+      "label": "真っ暗",
+      "bg": "background/black.png",
+      "front": null,
+      "bgBlur": 0,
+      "figure": "full",
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.164,
+                "y": 0.676
+              },
+              "scale": 1.2,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.66,
+                "y": 0.678
+              },
+              "scale": 1.2,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            },
+            "center": {
+              "origin": {
+                "x": 0.405,
+                "y": 0.67
+              },
+              "scale": 1.2,
+              "zIndex": 20,
+              "cameraPresetId": "default"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
+          "cx": 0.3891925550486944,
+          "cy": 0.3891925550486944,
+          "width": 0.7783851100973888
+        },
+        "left": {
+          "cx": 0.41,
+          "cy": 0.5,
+          "width": 0.82
+        },
+        "right": {
+          "cx": 0.4776121207459333,
+          "cy": 0.4693586793664383,
+          "width": 0.82
+        }
+      }
+    },
+    "old_zundamon_heya_idol": {
+      "label": "おじいさんずんだもん推し活",
+      "bg": "background/oldzundamon_idol.png",
+      "front": null,
+      "bgBlur": 0,
+      "figure": "full",
+      "layouts": {
+        "standard": {
+          "slots": {
+            "speakerLeft": {
+              "origin": {
+                "x": 0.299,
+                "y": 0.839
+              },
+              "scale": 1.2,
+              "zIndex": 20,
+              "cameraPresetId": "left"
+            },
+            "speakerRight": {
+              "origin": {
+                "x": 0.712,
+                "y": 0.821
+              },
+              "scale": 1.2,
+              "zIndex": 20,
+              "cameraPresetId": "right"
+            },
+            "center": {
+              "origin": {
+                "x": 0.39,
+                "y": 0.729
+              },
+              "scale": 0.5,
+              "zIndex": 20,
+              "cameraPresetId": "default",
+              "previewCharacterId": "mob:おじいさんずんだもん"
+            }
+          }
+        }
+      },
+      "cameraPresets": {
+        "default": {
           "cx": 0.5,
           "cy": 0.5,
           "width": 1
         },
-        "rightFocus": {
-          "cx": 0.5733090753424656,
-          "cy": 0.5697773972602741,
-          "width": 0.3895547945205478
-        }
-      },
-      "scale": 0.85,
-      "bgBlur": 0,
-      "cast": {
-        "zundamon": "right"
-      },
-      "mobs": {
-        "おじいさんずんだもん": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "営業": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "弱い同僚": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "豆山": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "部長": {
-          "x": 0.5,
-          "y": 0.98,
-          "scale": 0.85,
-          "hidden": true
-        },
-        "女性": {
-          "x": 0.388,
-          "y": 0.817,
-          "scale": 0.65
-        }
-      },
-      "anchors": {
-        "center": {
-          "x": 0.5,
-          "y": 0.68
-        },
         "left": {
-          "x": 0.32,
-          "y": 0.68
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
         },
         "right": {
-          "x": 0.625,
-          "y": 0.732
+          "cx": 0.5900000000000001,
+          "cy": 0.5,
+          "width": 0.82
         }
       }
     }

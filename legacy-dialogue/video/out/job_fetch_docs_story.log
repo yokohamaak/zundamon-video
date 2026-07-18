@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/yokohamaak/ap/zundamon-video/legacy-dialogue/main_story.py", line 1185, in <module>
+    main()
+    ~~~~^^
+  File "/Users/yokohamaak/ap/zundamon-video/legacy-dialogue/main_story.py", line 989, in main
+    config = load_config(args.config)
+  File "/Users/yokohamaak/ap/zundamon-video/legacy-dialogue/main_story.py", line 74, in load_config
+    import yaml  # 遅延import（テストに依存を持ち込まない）
+    ^^^^^^^^^^^
+ModuleNotFoundError: No module named 'yaml'

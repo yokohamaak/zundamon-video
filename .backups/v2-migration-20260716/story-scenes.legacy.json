@@ -1,0 +1,1180 @@
+{
+  "_note": "Phase1のシーンライブラリ(仮)。背景は既存画像を流用したプレースホルダ。anchorは正規化座標(0..1, yは足元位置)。frontを指定すると back→キャラ→front の重ね(layered)。cameraはライブラリ既定。docs/next-animation-editor-spec.md §4.2/§4.5。",
+  "scenes": {
+    "office": {
+      "label": "オフィス",
+      "bg": "background/office_bg.png",
+      "front": "background/office_fg.png",
+      "camera": "static",
+      "figure": "full",
+      "scale": 1.2,
+      "bgBlur": 0,
+      "cast": {
+        "metan": "left",
+        "zundamon": "right"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.543,
+          "y": 0.645
+        },
+        "left": {
+          "x": 0.442,
+          "y": 0.57
+        },
+        "right": {
+          "x": 0.719,
+          "y": 0.604
+        }
+      },
+      "mobAnchor": {
+        "x": 0.5,
+        "y": 0.96
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.427,
+          "y": 0.93,
+          "scale": 1.3
+        },
+        "部長": {
+          "x": 0.429,
+          "y": 0.911,
+          "scale": 1.25
+        },
+        "同僚": {
+          "x": 0.411,
+          "y": 0.881,
+          "scale": 1.25
+        },
+        "弱い同僚": {
+          "x": 0.405,
+          "y": 0.952,
+          "scale": 1.35,
+          "hidden": true
+        },
+        "豆山": {
+          "x": 0.425,
+          "y": 0.795,
+          "scale": 1.1
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.5579742317839129,
+        "cy": 0.3580209145147453,
+        "width": 0.6296426704830764
+      },
+      "focusZoom": 0.1,
+      "cameraFrames": {
+        "default": {
+          "cx": 0.5579742317839129,
+          "cy": 0.3580209145147453,
+          "width": 0.6296426704830764
+        },
+        "leftFocus": {
+          "cx": 0.5783068011122543,
+          "cy": 0.3761033222927084,
+          "width": 0.6296426704830764
+        },
+        "rightFocus": {
+          "cx": 0.6648770623965888,
+          "cy": 0.41700462988922143,
+          "width": 0.5364881673227578
+        }
+      }
+    },
+    "meeting_room": {
+      "label": "会議室",
+      "bg": "background/会議室bg.png",
+      "front": "background/会議室fg.png",
+      "camera": "static",
+      "figure": "full",
+      "scale": 0.95,
+      "bgBlur": 0,
+      "cast": {
+        "metan": "left",
+        "zundamon": "right"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.52,
+          "y": 0.63
+        },
+        "left": {
+          "x": 0.389,
+          "y": 0.523
+        },
+        "right": {
+          "x": 0.601,
+          "y": 0.566
+        }
+      },
+      "mobAnchor": {
+        "x": 0.5,
+        "y": 0.95
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.18,
+          "y": 0.66,
+          "scale": 0.58,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.86,
+          "y": 0.66,
+          "scale": 0.62,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "豆山": {
+          "x": 0.396,
+          "y": 0.72,
+          "scale": 0.85
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.4747431506849315,
+        "cy": 0.41395547945205474,
+        "width": 0.6258561643835616
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.4747431506849315,
+          "cy": 0.41395547945205474,
+          "width": 0.6258561643835616
+        },
+        "leftFocus": {
+          "cx": 0.4747431506849315,
+          "cy": 0.41395547945205474,
+          "width": 0.6258561643835616
+        },
+        "rightFocus": {
+          "cx": 0.4747431506849315,
+          "cy": 0.41395547945205474,
+          "width": 0.6258561643835616
+        }
+      }
+    },
+    "home": {
+      "label": "自宅",
+      "bg": "background/room.png",
+      "front": null,
+      "camera": "static",
+      "figure": "full",
+      "scale": 1.1,
+      "bgBlur": 0,
+      "anchors": {
+        "center": {
+          "x": 0.52,
+          "y": 0.684
+        },
+        "left": {
+          "x": 0.27,
+          "y": 1.04
+        },
+        "right": {
+          "x": 0.73,
+          "y": 1.04
+        }
+      },
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "おじいさん": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "豆山": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "女性": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "おじいさんずんだもん": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.5153039383561644,
+          "cy": 0.5560787671232877,
+          "width": 0.7011986301369862
+        },
+        "leftFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "rightFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.5153039383561644,
+        "cy": 0.5560787671232877,
+        "width": 0.7011986301369862
+      }
+    },
+    "server_room": {
+      "label": "サーバールーム",
+      "bg": "background/server_room.png",
+      "front": null,
+      "camera": "slow-zoom",
+      "figure": "full",
+      "scale": 1.35,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "right",
+        "metan": "left"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.95
+        },
+        "left": {
+          "x": 0.335,
+          "y": 0.619
+        },
+        "right": {
+          "x": 0.711,
+          "y": 0.662
+        }
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.349,
+          "y": 1.015,
+          "scale": 1.4
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.5001072041166381,
+          "cy": 0.40351629502572894,
+          "width": 0.6972555746140651
+        },
+        "leftFocus": {
+          "cx": 0.3445540308747855,
+          "cy": 0.35205831903945106,
+          "width": 0.5771869639794167
+        },
+        "rightFocus": {
+          "cx": 0.6704545454545455,
+          "cy": 0.37778730703259006,
+          "width": 0.5806174957118353
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.5001072041166381,
+        "cy": 0.40351629502572894,
+        "width": 0.6972555746140651
+      }
+    },
+    "rooftop": {
+      "label": "屋上（夕方）",
+      "bg": "background/rooftop.png",
+      "front": null,
+      "camera": "static",
+      "figure": "full",
+      "scale": 1.5,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "right",
+        "metan": "left"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.96
+        },
+        "left": {
+          "x": 0.303,
+          "y": 0.658
+        },
+        "right": {
+          "x": 0.687,
+          "y": 0.705
+        }
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.4708904109589041,
+          "cy": 0.46532534246575347,
+          "width": 0.8416095890410958
+        },
+        "leftFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "rightFocus": {
+          "cx": 0.6477418664383562,
+          "cy": 0.48078981164383566,
+          "width": 0.6019905821917808
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.4708904109589041,
+        "cy": 0.46532534246575347,
+        "width": 0.8416095890410958
+      }
+    },
+    "home-night": {
+      "label": "自宅夜",
+      "bg": "background/room_night.png",
+      "front": null,
+      "camera": "static",
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "center"
+      },
+      "anchors": {
+        "center": {
+          "x": 0.52,
+          "y": 0.684
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "figure": "full",
+      "cameraFrames": {
+        "default": {
+          "cx": 0.48370497427101194,
+          "cy": 0.5578902229845626,
+          "width": 0.5428816466552314
+        },
+        "leftFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "rightFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.48370497427101194,
+        "cy": 0.5578902229845626,
+        "width": 0.5428816466552314
+      }
+    },
+    "izakaya": {
+      "label": "居酒屋",
+      "bg": "background/izakaya.png",
+      "front": "background/izakaya_fg.png",
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.5,
+      "bgBlur": 3,
+      "cast": {
+        "metan": "right",
+        "zundamon": "left"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "おじいさん": {
+          "x": 0.556,
+          "y": 0.709,
+          "scale": 0.85
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.275,
+          "y": 0.629
+        },
+        "right": {
+          "x": 0.737,
+          "y": 0.679
+        }
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "leftFocus": {
+          "cx": 0.3788527397260274,
+          "cy": 0.4148116438356164,
+          "width": 0.7577054794520548
+        },
+        "rightFocus": {
+          "cx": 0.6168664383561644,
+          "cy": 0.3899828767123288,
+          "width": 0.7662671232876712
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "width": 1
+      }
+    },
+    "park_night": {
+      "label": "公園（夜）",
+      "bg": "background/park_yoru.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.5,
+      "bgBlur": 2,
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "park_day": {
+      "label": "公園（昼）",
+      "bg": "background/park_hiru.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.5,
+      "bgBlur": 2,
+      "cast": {
+        "zundamon": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "おじいさん": {
+          "x": 0.347,
+          "y": 0.767,
+          "scale": 0.85
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.49796660958904115,
+          "cy": 0.4668236301369861,
+          "width": 0.7281678082191778
+        },
+        "leftFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "rightFocus": {
+          "cx": 0.6373073630136986,
+          "cy": 0.46018835616438347,
+          "width": 0.6601027397260274
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.49796660958904115,
+        "cy": 0.4668236301369861,
+        "width": 0.7281678082191778
+      }
+    },
+    "kyutoshitsu": {
+      "label": "給湯室",
+      "bg": "background/kyutoshitsu.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.35,
+      "bgBlur": 2,
+      "cast": {
+        "metan": "left",
+        "zundamon": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.33,
+          "y": 0.669
+        },
+        "right": {
+          "x": 0.714,
+          "y": 0.655
+        }
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.5038593481989707,
+          "cy": 0.41316466552315606,
+          "width": 0.7096912521440824
+        },
+        "leftFocus": {
+          "cx": 0.3514150943396225,
+          "cy": 0.3932246998284734,
+          "width": 0.5909090909090908
+        },
+        "rightFocus": {
+          "cx": 0.6866423670668952,
+          "cy": 0.4095197255574614,
+          "width": 0.506861063464837
+        }
+      },
+      "cameraFrame": {
+        "cx": 0.5038593481989707,
+        "cy": 0.41316466552315606,
+        "width": 0.7096912521440824
+      }
+    },
+    "train-hiru": {
+      "label": "電車（昼）",
+      "bg": "background/train_hiru.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.85,
+      "bgBlur": 3,
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.535,
+          "y": 0.735
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "train-night": {
+      "label": "電車（夜）",
+      "bg": "background/train_yoru.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.85,
+      "bgBlur": 3,
+      "cast": {
+        "zundamon": "center"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.535,
+          "y": 0.735
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "vendor_office": {
+      "label": "ベンダー会議室",
+      "bg": "background/ベンダー会議室.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {},
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "roottop-hiru": {
+      "label": "屋上（昼）",
+      "bg": "background/roottop_hiru.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.383,
+          "y": 1,
+          "scale": 1.3,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.67,
+          "y": 0.561
+        }
+      }
+    },
+    "office_copy": {
+      "label": "オフィスコピー機前",
+      "bg": "background/copy.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "left",
+        "metan": "right"
+      },
+      "mobs": {
+        "営業": {
+          "x": 0.771,
+          "y": 1,
+          "scale": 1.4,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.324,
+          "y": 0.511
+        },
+        "right": {
+          "x": 0.698,
+          "y": 0.545
+        }
+      }
+    },
+    "money": {
+      "label": "money",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "cameraFrame": {
+        "cx": 0.5,
+        "cy": 0.5,
+        "width": 1
+      },
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {},
+      "mobs": {
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      },
+      "bgVideo": "background/money.mp4",
+      "cameraFrames": {
+        "default": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "leftFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "rightFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      }
+    },
+    "old_zundamon_heya": {
+      "label": "old_zundamon_heya",
+      "bg": "background/ChatGPT Image 2026年7月13日 23_39_26.png",
+      "front": null,
+      "figure": "full",
+      "camera": "static",
+      "cameraFrame": {
+        "cx": 0.5918771404109588,
+        "cy": 0.46698416095890405,
+        "width": 0.7387628424657535
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.5918771404109588,
+          "cy": 0.46698416095890405,
+          "width": 0.7387628424657535
+        },
+        "leftFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "rightFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        }
+      },
+      "scale": 1.1,
+      "bgBlur": 0,
+      "cast": {},
+      "mobs": {
+        "おじいさんずんだもん": {
+          "x": 0.626,
+          "y": 1.105,
+          "scale": 1.45
+        },
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "豆山": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.68,
+          "y": 0.68
+        }
+      }
+    },
+    "konkatsu": {
+      "label": "婚活パーティ",
+      "bg": "background/konkatsu.png",
+      "front": "background/konkatsu_fg.png",
+      "figure": "full",
+      "camera": "static",
+      "cameraFrame": {
+        "cx": 0.4950770547945206,
+        "cy": 0.5620719178082191,
+        "width": 0.47003424657534226
+      },
+      "cameraFrames": {
+        "default": {
+          "cx": 0.4950770547945206,
+          "cy": 0.5620719178082191,
+          "width": 0.47003424657534226
+        },
+        "leftFocus": {
+          "cx": 0.5,
+          "cy": 0.5,
+          "width": 1
+        },
+        "rightFocus": {
+          "cx": 0.5733090753424656,
+          "cy": 0.5697773972602741,
+          "width": 0.3895547945205478
+        }
+      },
+      "scale": 0.85,
+      "bgBlur": 0,
+      "cast": {
+        "zundamon": "right"
+      },
+      "mobs": {
+        "おじいさんずんだもん": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "営業": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "弱い同僚": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "豆山": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "部長": {
+          "x": 0.5,
+          "y": 0.98,
+          "scale": 0.85,
+          "hidden": true
+        },
+        "女性": {
+          "x": 0.388,
+          "y": 0.817,
+          "scale": 0.65
+        }
+      },
+      "anchors": {
+        "center": {
+          "x": 0.5,
+          "y": 0.68
+        },
+        "left": {
+          "x": 0.32,
+          "y": 0.68
+        },
+        "right": {
+          "x": 0.625,
+          "y": 0.732
+        }
+      }
+    }
+  }
+}

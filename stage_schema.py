@@ -7,7 +7,23 @@ import math
 import re
 
 
-DISPLAY_MODES = {"standard", "whiteboard", "zunMeet", "zunMonitor", "zunAi", "zunChat", "zunMail"}
+DISPLAY_MODES = {"standard", "whiteboard", "zunMeet", "zunMonitor", "zunAi", "zunChat", "zunMail", "framedStage"}
+WHITEBOARD_ICONS = {
+    "none", "confused", "scribble", "checklist", "memo", "conversation", "warning", "idea", "table",
+    "cause", "problem", "solution", "process", "priority", "deadline", "evidence", "data", "share",
+    "rule", "risk", "improvement",
+}
+WHITEBOARD_STYLE_RANGES = {
+    "titleFontSize": (36, 100),
+    "themeFontSize": (24, 72),
+    "sectionHeadingFontSize": (20, 60),
+    "sectionBodyFontSize": (18, 56),
+    "conclusionFontSize": (24, 76),
+    "conclusionBoxX": (0, 1920),
+    "conclusionBoxY": (0, 1080),
+    "conclusionBoxWidth": (300, 1500),
+    "conclusionBoxHeight": (80, 320),
+}
 KNOWN_STAGE_CHARACTER_IDS = {"zundamon", "metan"}
 CAMERA_FRAME_MIN = 0.35
 CAMERA_FRAME_MAX = 1.0
@@ -26,6 +42,16 @@ def _only_keys(value, allowed, path):
     unknown = sorted(set(value) - set(allowed))
     if unknown:
         _error(path, f"未対応の項目があります: {', '.join(unknown)}")
+
+
+def _bool_tuple(value, length, path):
+    if not isinstance(value, list) or len(value) != length or not all(isinstance(item, bool) for item in value):
+        _error(path, f"true/false {length}件の配列が必要です")
+
+
+def _number_range(value, min_value, max_value, path):
+    if not _is_number(value) or not (min_value <= value <= max_value):
+        _error(path, f"{min_value}〜{max_value} の有限数値が必要です")
 
 
 def _point(value, path):
@@ -100,7 +126,9 @@ def _framing(value, path, slots, present, speaker):
 def _camera_motion(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
-    _only_keys(value, {"zoom", "pan", "tilt", "shake"}, path)
+    _only_keys(value, {"inherit", "zoom", "pan", "tilt", "shake"}, path)
+    if "inherit" in value and not isinstance(value["inherit"], bool):
+        _error(f"{path}.inherit", "true/falseが必要です")
     if "zoom" in value and not _is_number(value["zoom"]):
         _error(f"{path}.zoom", "有限数値が必要です")
     if "pan" in value:
@@ -373,6 +401,30 @@ def _display_mode(value, path):
         _error(path, f"kind は {', '.join(sorted(DISPLAY_MODES))} のいずれかが必要です")
     if value["kind"] == "standard":
         _only_keys(value, {"kind"}, path)
+    if value["kind"] == "framedStage":
+        _only_keys(value, {"kind", "framedStage"}, path)
+        framed = value.get("framedStage")
+        if not isinstance(framed, dict):
+            _error(f"{path}.framedStage", "objectが必要です")
+        _only_keys(framed, {"background", "frame", "frameTransition"}, f"{path}.framedStage")
+        if not isinstance(framed.get("background"), str) or not framed["background"].startswith("background/"):
+            _error(f"{path}.framedStage.background", "background/ から始まる画像パスが必要です")
+        if "frameTransition" in framed and framed["frameTransition"] not in {"fixed", "smooth"}:
+            _error(f"{path}.framedStage.frameTransition", "fixed/smooth のいずれかが必要です")
+        frame = framed.get("frame")
+        if not isinstance(frame, dict):
+            _error(f"{path}.framedStage.frame", "objectが必要です")
+        _only_keys(frame, {"x", "y", "width"}, f"{path}.framedStage.frame")
+        for key in ("x", "y", "width"):
+            if not _is_number(frame.get(key)):
+                _error(f"{path}.framedStage.frame.{key}", "有限数値が必要です")
+        if not 0.1 <= frame["width"] <= 1:
+            _error(f"{path}.framedStage.frame.width", "0.1〜1の値が必要です")
+        # x/y はそれぞれ画面の幅/高さに対する比率。出力と枠がともに16:9のため、
+        # 16:9枠の高さ比率は幅比率と同じになる。
+        height = frame["width"]
+        if not 0 <= frame["x"] <= 1 - frame["width"] or not 0 <= frame["y"] <= 1 - height:
+            _error(f"{path}.framedStage.frame", "16:9の描画領域が画面内に収まる値が必要です")
     if value["kind"] == "zunMonitor":
         _only_keys(value, {"kind", "monitor"}, path)
         monitor = value.get("monitor")
@@ -451,7 +503,15 @@ def _display_mode(value, path):
         board = value.get("whiteboard")
         if not isinstance(board, dict):
             _error(f"{path}.whiteboard", "objectが必要です")
-        _only_keys(board, {"title", "theme", "sections", "conclusion", "layout"}, f"{path}.whiteboard")
+        _only_keys(
+            board,
+            {
+                "title", "theme", "sections", "conclusion", "layout",
+                "visibleSections", "visibleArrows", "showConclusion", "showConclusionArrow",
+                "activeSection", "style", "animation",
+            },
+            f"{path}.whiteboard",
+        )
         for key in ("title", "theme", "conclusion"):
             if not isinstance(board.get(key), str) or not board[key]:
                 _error(f"{path}.whiteboard.{key}", "空でない文字列が必要です")
@@ -462,13 +522,43 @@ def _display_mode(value, path):
             section_path = f"{path}.whiteboard.sections[{index}]"
             if not isinstance(section, dict) or not isinstance(section.get("heading"), str):
                 _error(section_path, "headingを持つobjectが必要です")
-            _only_keys(section, {"heading", "bullets"}, section_path)
+            _only_keys(section, {"heading", "bullets", "icon"}, section_path)
             if not isinstance(section.get("bullets"), list) or not all(isinstance(item, str) for item in section["bullets"]):
                 _error(f"{section_path}.bullets", "文字列配列が必要です")
+            if "icon" in section and section["icon"] not in WHITEBOARD_ICONS:
+                _error(f"{section_path}.icon", "未対応のアイコンです")
         if "character" in board:
             _error(f"{path}.whiteboard.character", "presenterIdを使用してください")
         if "layout" in board and board["layout"] not in {"default", "compact"}:
             _error(f"{path}.whiteboard.layout", "default/compact のいずれかが必要です")
+        if "visibleSections" in board:
+            _bool_tuple(board["visibleSections"], 3, f"{path}.whiteboard.visibleSections")
+        if "visibleArrows" in board:
+            _bool_tuple(board["visibleArrows"], 2, f"{path}.whiteboard.visibleArrows")
+        for key in ("showConclusion", "showConclusionArrow"):
+            if key in board and not isinstance(board[key], bool):
+                _error(f"{path}.whiteboard.{key}", "true/falseが必要です")
+        if "activeSection" in board:
+            if not isinstance(board["activeSection"], int) or isinstance(board["activeSection"], bool) or board["activeSection"] not in {0, 1, 2}:
+                _error(f"{path}.whiteboard.activeSection", "0/1/2 のいずれかが必要です")
+        if "style" in board:
+            style = board["style"]
+            if not isinstance(style, dict):
+                _error(f"{path}.whiteboard.style", "objectが必要です")
+            _only_keys(style, set(WHITEBOARD_STYLE_RANGES), f"{path}.whiteboard.style")
+            for key, (min_value, max_value) in WHITEBOARD_STYLE_RANGES.items():
+                if key in style:
+                    _number_range(style[key], min_value, max_value, f"{path}.whiteboard.style.{key}")
+        if "animation" in board:
+            animation = board["animation"]
+            if not isinstance(animation, dict):
+                _error(f"{path}.whiteboard.animation", "objectが必要です")
+            _only_keys(animation, {"mode", "sectionPop", "arrowPop", "conclusionPop", "underlineDraw", "conclusionImpact"}, f"{path}.whiteboard.animation")
+            if "mode" in animation and animation["mode"] not in {"all", "step", "none"}:
+                _error(f"{path}.whiteboard.animation.mode", "all/step/none のいずれかが必要です")
+            for key in ("sectionPop", "arrowPop", "conclusionPop", "underlineDraw", "conclusionImpact"):
+                if key in animation and not isinstance(animation[key], bool):
+                    _error(f"{path}.whiteboard.animation.{key}", "true/falseが必要です")
         presenter_id = value.get("presenterId")
         if presenter_id is not None and (not isinstance(presenter_id, str) or not presenter_id):
             _error(f"{path}.presenterId", "省略または個体ID文字列が必要です")
@@ -647,9 +737,12 @@ def validate_story_v2(data, scenes, mobs=None):
             "bubbleMaxChars", "disableAutoBubbleSplit", "sentences", "transition", "caption", "effects", "cameraTransition",
             "displayMode", "stage",
         }, path)
-        for key in ("speaker", "text", "scene"):
+        for key in ("speaker", "scene"):
             if not isinstance(turn.get(key), str) or not turn[key]:
                 _error(f"{path}.{key}", "文字列が必要です")
+        # 無音の「間」専用ターンは text: "" で表す。話者とsceneは状態・音声尺の解決に必要なため必須のまま。
+        if not isinstance(turn.get("text"), str):
+            _error(f"{path}.text", "文字列が必要です")
         if not isinstance(turn.get("id"), str) or not turn["id"]:
             _error(f"{path}.id", "空でない文字列が必要です")
         for key in ("start", "end", "pause"):
@@ -797,7 +890,7 @@ def validate_story_v2(data, scenes, mobs=None):
                     if instance_id not in present_z_indexes:
                         _error(path, f"slot {slot_id} の重なりには {instance_id} のzIndexが必要です")
 
-        if display_kind != "standard" and "framing" in event:
+        if display_kind not in {"standard", "framedStage"} and "framing" in event:
             # 特殊表示中のstage更新は許可するが、通常stage用構図は画面に出ない。
             # 禁止せず、呼び出し元がUI上で注意を出せるよう構造だけを検証する。
             pass

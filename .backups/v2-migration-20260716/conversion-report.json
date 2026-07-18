@@ -1,0 +1,34 @@
+{
+  "sourceTurns": 141,
+  "convertedTurns": 141,
+  "unsupportedDisplayModesConvertedToStandard": [
+    "chat",
+    "teamchat"
+  ],
+  "normalizedMobExpressions": [
+    {
+      "turnId": "turn-0037",
+      "instanceId": "女性",
+      "from": "surprise",
+      "to": "normal"
+    },
+    {
+      "turnId": "turn-0120",
+      "instanceId": "女性",
+      "from": "surprise",
+      "to": "normal"
+    },
+    {
+      "turnId": "turn-0068",
+      "instanceId": "営業",
+      "from": "happy",
+      "to": "normal"
+    },
+    {
+      "turnId": "turn-0076",
+      "instanceId": "おじいさん",
+      "from": "happy",
+      "to": "normal"
+    }
+  ]
+}

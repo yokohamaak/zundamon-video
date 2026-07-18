@@ -79,6 +79,18 @@ const SWEAT_EXTRA: Record<string, { dx: number; dy: number; s: number }[]> = {
   ],
 };
 
+// expressionCfg未指定時（旧来のemotionベース）の眉フォールバック候補。
+// キャラごとに眉パーツ名が異なる(zundamon: normal/up/angry/worry1/worry2、metan: futo_gokigen/komari)ため、
+// 存在する方が採用されるよう候補を複数並べる（part()はmanifestに無ければnullを返す）。
+const BROW_CANDIDATES: Record<Emotion, string[]> = {
+  normal: ["normal", "futo_gokigen"],
+  happy: ["normal", "futo_gokigen"],
+  surprise: ["up", "futo_gokigen"],
+  sad: ["worry1", "komari"],
+  angry: ["angry", "komari"],
+  panic: ["worry2", "worry1", "komari"],
+};
+
 // 口の開き判定しきい値（amplitude=波形RMS×LIPSYNC_GAIN, 0..1）。
 // 発話中の実測レンジ(≈0.10〜0.33)に合わせる。無音/語間は閉じ。
 export const MOUTH_HALF = 0.06;
@@ -450,7 +462,10 @@ export const Avatar: React.FC<{
   // ── brow（眉）の解決 ──
   const browSrc = hasCfg && expressionCfg!.brow
     ? part(`brow_${expressionCfg!.brow}`) || null
-    : null;
+    : // 旧来の emotion ベース（後方互換）。キャラごとに眉パーツ名が異なるため候補を順に試す。
+      (BROW_CANDIDATES[emotion] || BROW_CANDIDATES.normal)
+        .map((id) => part(`brow_${id}`))
+        .find((src): src is string => !!src) || part("brow_normal") || null;
 
   // ── bangs（前髪もみあげ）の解決（タスクB: metanのみ常時パーツ） ──
   // manifest に "bangs" があれば重ねる（zundaは無いのでスキップ）。

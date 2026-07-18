@@ -142,6 +142,18 @@ export type ZunMailDisplayV2 = {
   mailer: Extract<StoryInsert, {kind: "mailer"}>;
 };
 
+export type FramedStageDisplayV2 = {
+  kind: "framedStage";
+  framedStage: {
+    /** 外枠として使う背景画像（background/ 配下）。 */
+    background: string;
+    /** 外枠画像上の16:9描画領域。x/yは左上、widthは画面幅に対する比率。 */
+    frame: {x: number; y: number; width: number};
+    /** 前ターンの同じ外側背景から描画領域を滑らかに移動・拡縮する。 */
+    frameTransition?: "fixed" | "smooth";
+  };
+};
+
 export type DisplayModeV2 =
   | {kind: "standard"}
   | WhiteboardDisplayV2
@@ -149,7 +161,8 @@ export type DisplayModeV2 =
   | ZunMonitorDisplayV2
   | ZunAiDisplayV2
   | ZunChatDisplayV2
-  | ZunMailDisplayV2;
+  | ZunMailDisplayV2
+  | FramedStageDisplayV2;
 
 export type StoryInstanceV2 = {
   characterId?: string;
@@ -180,6 +193,8 @@ export type FramingV2 =
   | {mode: "manual"; frame: CameraFrameV2};
 
 export type CameraMotionV2 = {
+  /** 前ターンのzoom/pan/tiltを継続し、このターンの指定値だけを上書きする。shakeは継続しない。 */
+  inherit?: boolean;
   zoom?: number;
   pan?: Point;
   tilt?: number;
@@ -313,6 +328,19 @@ type MutableInstance = Omit<ResolvedInstanceV2, "visible">;
 const standardMode: DisplayModeV2 = {kind: "standard"};
 const defaultFraming: FramingV2 = {mode: "sceneDefault"};
 
+function resolveCameraMotion(previous: CameraMotionV2 | undefined, current: CameraMotionV2 | undefined) {
+  if (!current) return undefined;
+  if (!current.inherit) return current;
+  const {inherit: _inherit, shake, ...patch} = current;
+  const inherited = previous ? {
+    ...(typeof previous.zoom === "number" ? {zoom: previous.zoom} : {}),
+    ...(previous.pan ? {pan: clonePoint(previous.pan)} : {}),
+    ...(typeof previous.tilt === "number" ? {tilt: previous.tilt} : {}),
+  } : {};
+  const resolved = {...inherited, ...patch, ...(shake ? {shake} : {})};
+  return Object.keys(resolved).length ? resolved : undefined;
+}
+
 function clonePoint(point: Point): Point {
   return {x: point.x, y: point.y};
 }
@@ -391,8 +419,8 @@ export function resolveStageStateAtTurn(
 
     displayMode = turn.displayMode ?? standardMode;
     const event = turn.stage;
-    // 動きはそのターンだけに重ねる演出であり、次ターンへ状態として継承しない。
-    cameraMotion = event?.cameraMotion;
+    // 既定ではターン限定。inherit:true の場合だけzoom/pan/tiltを継続し、shakeは持ち越さない。
+    cameraMotion = resolveCameraMotion(cameraMotion, event?.cameraMotion);
     // 非話者の表情はstageイベントの有無に関わらず毎ターン既定へ戻す。
     // このターンのupdateで明示した表情を消さないよう、イベント適用前に戻す。
     if (story.idleFace === "normal") {
@@ -427,7 +455,8 @@ export function resolveStageStateAtTurn(
     if (event.framing) framing = event.framing;
   }
 
-  const visible = displayMode.kind === "standard" && !story.script[turnIndex].hideCharacters;
+  const visible = (displayMode.kind === "standard" || displayMode.kind === "framedStage")
+    && !story.script[turnIndex].hideCharacters;
   const resolved: Record<string, ResolvedInstanceV2> = {};
   for (const [instanceId, instance] of Object.entries(instances)) {
     resolved[instanceId] = {...instance, visible};

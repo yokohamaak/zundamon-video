@@ -57,7 +57,6 @@ const LIPSYNC_GAIN = 5;
 const FB_SATURATE = 0.4;        // 回想中の彩度（1.0=元のまま・低いほど色が薄い）
 const FB_BRIGHTNESS = 1.02;     // 回想中の輝度（微加）
 const FB_GRAIN_OPACITY = 0.06;  // グレインの不透明度（0.0=なし・0.1で見えてくる）
-const FB_DISSOLVE_SEC = 0.3;    // 白ディゾルブ片側の秒数（合計 2×FB_DISSOLVE_SEC）
 const FB_TELOP_SEC = 1.2;       // テロップの表示秒数
 const FB_TELOP_FADE = 0.25;     // テロップのフェードイン/アウト秒数
 const CAMERA_EFFECT_SETTLE_SEC = 0.4; // 旧データ向けの既定値。未設定時は camera.*Duration にフォールバック
@@ -3266,10 +3265,10 @@ const HALF_WIDTH_CHAR_RE = /[ -ÿ｡-ￜ￨-￮]/;
 const WIDE_PUNCTUATION_RE = /[?!！？、。，．,.・…「」『』（）()[\]【】]/;
 
 function charDisplayWidth(fontSize: number, ch: string): number {
+  if (ch === "…") return fontSize * 1.02;
+  if (/[?!！？]/.test(ch)) return fontSize * 0.9;
   if (WIDE_PUNCTUATION_RE.test(ch)) return fontSize * 0.74;
-  // 実描画は太字・環境フォントの差で概算より広くなることがある。
-  // 少し安全側に見積もり、長文の行末が吹き出し枠外へ逃げるのを防ぐ。
-  return fontSize * (HALF_WIDTH_CHAR_RE.test(ch) ? 0.58 : 1.08);
+  return fontSize * (HALF_WIDTH_CHAR_RE.test(ch) ? 0.58 : 1.03);
 }
 
 function lineDisplayWidth(fontSize: number, line: string): number {
@@ -3334,9 +3333,7 @@ function bubbleMetrics(
       maxLineWidth = Math.max(maxLineWidth, lineDisplayWidth(fontSize, wrapped));
     }
   }
-  // +20px は幅見積もりの誤差マージン。ここが無いと、見積もり値ぴったりの箱幅に対して
-  // 実際のフォント描画がわずかに上回った時、white-space:preでも欠けて見えることがある
-  // （改行はしない代わりに、箱の右端がほんの数px窮屈になる分はここで吸収する）。
+  // 幅見積もりの誤差マージン。実フォント差で右端が窮屈になる分だけ吸収する。
   const width = Math.max(120, maxLineWidth + 66 + 20);
   return { fontSize, width, text: lines.join("\n") };
 }
@@ -3771,6 +3768,84 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   //   Studioプレビューだとこれが重く再生が詰まる（音切れ/リップシンク停止の主因）。
   //   最終renderでだけ効かせ、プレビューでは無効にして軽くする。
   const camCfg = scenes.camera || {};
+
+  const sceneStartTransformFor = (targetSeg: Segment, targetSceneDef: SceneDef) => {
+    const targetTurn = targetSeg.turns[0];
+    const targetRoster = segmentRoster(targetSeg);
+    const targetAnchorOf = resolveAnchorMapAt(targetSeg, targetRoster, targetSceneDef, targetSeg.start);
+    const targetEntrance = entranceTimesFor(targetSeg, isKnownChar);
+    const targetPresent = targetRoster.filter((c) => targetEntrance[c] <= targetSeg.start + 1e-6);
+    const baseCam = targetCameraFrame(targetTurn, targetPresent, targetAnchorOf, targetSceneDef);
+    let localTf = toTf(baseCam);
+    let localRotateDeg = 0;
+
+    if (targetTurn.emphasis === true && !isNarrationTurn(targetTurn) && isKnownChar(targetTurn.speaker)) {
+      const speakerAnchor = resolveCharXY(targetTurn.speaker, targetAnchorOf, targetSceneDef, targetSeg, targetSeg.start);
+      const autoFocusCy = clamp(
+        faceCyOf(targetTurn.speaker, targetAnchorOf, targetSceneDef, targetSeg, targetSeg.start) + (targetSceneDef.focusDy ?? 0.12),
+        0,
+        1
+      );
+      const manualFocus =
+        explicitZoomTarget(targetTurn) ??
+        zoomTargetValueAt(targetSeg, targetSeg.start) ??
+        resolveZoomTargetAt(targetSeg, targetSeg.start, () => ({ x: speakerAnchor.x, y: autoFocusCy }));
+      const emphasisCfg = resolveEffectSettings(
+        mergeEffectSettings(story.effectSettings, targetTurn.effectSettings)
+      ).emphasis;
+      const emphasisScaleOverridden =
+        story.effectSettings?.emphasis?.scale != null || targetTurn.effectSettings?.emphasis?.scale != null;
+      const emphasisScale = emphasisScaleOverridden ? emphasisCfg.scale : (targetSceneDef.focusZoom ?? emphasisCfg.scale);
+      localTf = toTf({
+        s: localTf.s + emphasisScale,
+        cx: manualFocus?.x ?? speakerAnchor.x,
+        cy: manualFocus?.y ?? autoFocusCy,
+      });
+    }
+
+    const targetEffects = normalizedCameraEffects(targetTurn);
+    if (targetEffects.zoom) {
+      const defaultFocus = (() => {
+        if (!isNarrationTurn(targetTurn) && isKnownChar(targetTurn.speaker)) {
+          const speakerAnchor = resolveCharXY(targetTurn.speaker, targetAnchorOf, targetSceneDef, targetSeg, targetSeg.start);
+          return {
+            x: speakerAnchor.x,
+            y: clamp(faceCyOf(targetTurn.speaker, targetAnchorOf, targetSceneDef, targetSeg, targetSeg.start) + (targetSceneDef.focusDy ?? 0.12), 0, 1),
+          };
+        }
+        return { x: baseCam.cx, y: baseCam.cy };
+      })();
+      const zoomFocus = explicitZoomTarget(targetTurn) ?? defaultFocus;
+      const zoomAmount = cameraEffectTurnValue(targetTurn, camCfg, "zoom", "amount");
+      localTf = toTf({
+        s: targetEffects.zoom === "in" ? localTf.s + zoomAmount : Math.max(1, localTf.s - zoomAmount),
+        cx: zoomFocus.x,
+        cy: zoomFocus.y,
+      });
+    }
+    if (targetEffects.pan) {
+      const dir = targetEffects.pan === "left" ? -1 : 1;
+      const panRoom = Math.max(0, -width * (1 - localTf.s));
+      const panAmount = Math.min(panRoom, width * cameraEffectTurnValue(targetTurn, camCfg, "pan", "amount")) * dir;
+      localTf = {
+        tx: clamp(localTf.tx + panAmount, width * (1 - localTf.s), 0),
+        ty: localTf.ty,
+        s: localTf.s,
+      };
+    }
+    if (targetEffects.tilt) {
+      const dir = targetEffects.tilt === "left" ? -1 : 1;
+      localRotateDeg = cameraEffectTurnValue(targetTurn, camCfg, "tilt", "angle") * dir;
+      localTf = {
+        tx: localTf.tx,
+        ty: localTf.ty,
+        s: Math.max(localTf.s, 1.04),
+      };
+    }
+
+    return `translate(${localTf.tx}px, ${localTf.ty}px) scale(${localTf.s}) rotate(${localRotateDeg}deg)`;
+  };
+
   let driftS = 1.0;
   if (sceneDef.camera !== "static" && getRemotionEnvironment().isRendering) {
     const segDur = Math.max(seg.end - seg.start, 0.001);
@@ -4083,6 +4158,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     sceneDef: SceneDef;
     clipPath?: string;
     shiftX?: number;
+    stageTransform?: string;
     key: string;
   } | null = null;
 
@@ -4112,6 +4188,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         incomingPlate = {
           sceneDef: nextSceneDef,
           clipPath: `inset(0 ${(1 - exitProgress) * 100}% 0 0)`,
+          stageTransform: sceneStartTransformFor(nextSeg, nextSceneDef),
           key: `next-${nextSeg.start}`,
         };
         break;
@@ -4120,6 +4197,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         incomingPlate = {
           sceneDef: nextSceneDef,
           clipPath: `inset(0 0 0 ${(1 - exitProgress) * 100}%)`,
+          stageTransform: sceneStartTransformFor(nextSeg, nextSceneDef),
           key: `next-${nextSeg.start}`,
         };
         break;
@@ -4128,6 +4206,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         incomingPlate = {
           sceneDef: nextSceneDef,
           shiftX: -width * (1 - exitProgress),
+          stageTransform: sceneStartTransformFor(nextSeg, nextSceneDef),
           key: `next-slide-${nextSeg.start}`,
         };
         break;
@@ -4136,6 +4215,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         incomingPlate = {
           sceneDef: nextSceneDef,
           shiftX: width * (1 - exitProgress),
+          stageTransform: sceneStartTransformFor(nextSeg, nextSceneDef),
           key: `next-slide-${nextSeg.start}`,
         };
         break;
@@ -4430,11 +4510,9 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     fontFamily: displaySettings.bubble.fontFamily,
     boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
     textAlign: align,
-    // bubbleMetricsで基本の改行位置を作りつつ、実フォントが概算より広い場合だけ
-    // ブラウザにも追加折り返しを許可する。pre固定だと長文の行末だけ枠外へ逃げる。
-    whiteSpace: "pre-wrap",
-    overflowWrap: "break-word",
-    wordBreak: "break-word",
+    // 改行位置は bubbleMetrics が決める。pre-wrap にすると実フォント幅との差で
+    // ブラウザが追加改行し、同じ台詞でも意図しない段数に変わってしまう。
+    whiteSpace: "pre",
   });
   const bubbleGroupPlacement = (speaker: string, groupWidth: number) => {
     const a = isMob(speaker)
@@ -4626,25 +4704,12 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
     }
   }
 
-  // 現在時刻から最も近い境界を探す（白ディゾルブの基準）。
+  // 回想から戻る境界のテロップ表示に使う。白ディゾルブは自動では出さない。
   const nearestBoundary = fbBoundaries.reduce<FbBoundary | null>((best, b) => {
     if (best === null) return b;
     return Math.abs(t - b.at) < Math.abs(t - best.at) ? b : best;
   }, null);
 
-  // 白ディゾルブのオーバーレイ opacity（三角波: 境界中心で1、±FB_DISSOLVE_SEC で 0）。
-  let whiteFadeOpacity = 0;
-  if (nearestBoundary !== null) {
-    const dt = Math.abs(t - nearestBoundary.at);
-    if (dt < FB_DISSOLVE_SEC) {
-      whiteFadeOpacity = clamp(1 - dt / FB_DISSOLVE_SEC, 0, 1);
-    }
-  }
-  // 白ディゾルブが出る間は黒フェードを抑制する（両立させると汚くなるため）。
-  const suppressBlackFade = whiteFadeOpacity > 0;
-  const stageTransformWithShift = currentStageShiftX !== 0
-    ? `translateX(${currentStageShiftX}px) ${stageTransform}`
-    : stageTransform;
   // ZunMeet タイル用ライブフィード（カメラ映像風の合成）。
   // 全タイル共通の描画方式: bgStyle 背景（renderTile側）＋ここで立ち絵を下端中央に合成する。
   // 立ち絵の表示幅はタイル幅の一定割合＝フォーカス切替では「同じ映像のサイズと場所」だけが変わる。
@@ -4864,7 +4929,7 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
   const renderScenePlate = (
     plateSceneDef: SceneDef,
     key: string,
-    opts?: { clipPath?: string; shiftX?: number; filter?: string; children?: React.ReactNode }
+    opts?: { clipPath?: string; shiftX?: number; filter?: string; stageTransform?: string; children?: React.ReactNode }
   ) => {
     const plateTransform = opts?.shiftX
       ? `translateX(${opts.shiftX}px)`
@@ -4879,21 +4944,29 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           overflow: "hidden",
         }}
       >
-        {renderSceneBackdrop(plateSceneDef)}
-        {opts?.children}
-        {plateSceneDef.front ? (
-          <Img
-            src={staticFile(plateSceneDef.front)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              pointerEvents: "none",
-            }}
-          />
-        ) : null}
+        <AbsoluteFill
+          style={{
+            transform: opts?.stageTransform,
+            transformOrigin: "0 0",
+            overflow: "hidden",
+          }}
+        >
+          {renderSceneBackdrop(plateSceneDef)}
+          {opts?.children}
+          {plateSceneDef.front ? (
+            <Img
+              src={staticFile(plateSceneDef.front)}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                pointerEvents: "none",
+              }}
+            />
+          ) : null}
+        </AbsoluteFill>
       </AbsoluteFill>
     );
   };
@@ -5033,42 +5106,51 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
           clipPath: incomingPlate.clipPath,
           shiftX: incomingPlate.shiftX,
           filter: stageFilter,
+          stageTransform: incomingPlate.stageTransform,
           children: renderNextSceneAvatarsGhost(),
         })
         : null}
-      {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る） */}
+      {/* ステージ（背景＋キャラ＋前景を1枚として仮想カメラで撮る）。
+          ワイプ/スライドはカメラ後の表示プレートに掛ける。 */}
       <AbsoluteFill
         style={{
-          transform: stageTransformWithShift,
-          transformOrigin: "0 0",
-          filter: stageFilter,
           clipPath: currentStageClipPath,
           overflow: "hidden",
+          transform: currentStageShiftX !== 0 ? `translateX(${currentStageShiftX}px)` : undefined,
         }}
       >
-        {/* 背景（back） */}
-        {renderSceneBackdrop(sceneDef)}
+        <AbsoluteFill
+          style={{
+            transform: stageTransform,
+            transformOrigin: "0 0",
+            filter: stageFilter,
+            overflow: "hidden",
+          }}
+        >
+          {/* 背景（back） */}
+          {renderSceneBackdrop(sceneDef)}
 
-        {/* キャラ（back と front の間） */}
-        {hideCharacters ? null : presentNow.map(renderAvatar)}
+          {/* キャラ（back と front の間） */}
+          {hideCharacters ? null : presentNow.map(renderAvatar)}
 
-        {/* モブ（登場〜退場の区間だけ1枚絵を立たせる。素材未配置なら自動で非表示） */}
-        {hideCharacters ? null : presentMobs.map(renderMob)}
+          {/* モブ（登場〜退場の区間だけ1枚絵を立たせる。素材未配置なら自動で非表示） */}
+          {hideCharacters ? null : presentMobs.map(renderMob)}
 
-        {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
-        {sceneDef.front ? (
-          <Img
-            src={staticFile(sceneDef.front)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              pointerEvents: "none",
-            }}
-          />
-        ) : null}
+          {/* 前景（front）。指定があれば back→キャラ→front の順で机等の手前要素を重ねる。 */}
+          {sceneDef.front ? (
+            <Img
+              src={staticFile(sceneDef.front)}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                pointerEvents: "none",
+              }}
+            />
+          ) : null}
+        </AbsoluteFill>
       </AbsoluteFill>
 
       {/* 回想中グレイン（タイル状ノイズを低opacity＋毎フレームずれ）。回想中のみ表示。 */}
@@ -5192,17 +5274,10 @@ export const StoryVideo: React.FC<StoryVideoProps> = ({
         </AbsoluteFill>
       ) : null}
 
-      {/* 場面切り替えのフェード被せ。flashbackの白ディゾルブ中は黒被せを抑制。 */}
-      {transitionCoverColor && transitionCoverOpacity > 0 && !(transitionCoverColor === "#000" && suppressBlackFade) ? (
+      {/* 場面切り替えのフェード被せ。回想の自動白ディゾルブは使わず、手動トランジションで制御する。 */}
+      {transitionCoverColor && transitionCoverOpacity > 0 ? (
         <AbsoluteFill
           style={{ background: transitionCoverColor, opacity: transitionCoverOpacity, pointerEvents: "none" }}
-        />
-      ) : null}
-
-      {/* 白ディゾルブ（flashback境界の出入り）。黒fadeより手前に重ねる。 */}
-      {whiteFadeOpacity > 0 ? (
-        <AbsoluteFill
-          style={{ background: "#fff", opacity: whiteFadeOpacity, pointerEvents: "none" }}
         />
       ) : null}
     </AbsoluteFill>

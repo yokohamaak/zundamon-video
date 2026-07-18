@@ -1,0 +1,912 @@
+{
+  "generated_at": "2026-07-11T18:22:24.074626+09:00",
+  "title": "ずんだもんの あさのニュース",
+  "speakers": [
+    {
+      "name": "四国めたん",
+      "gender": "female"
+    },
+    {
+      "name": "ずんだもん",
+      "gender": "male"
+    }
+  ],
+  "topics": [
+    {
+      "title": "あさのニュース",
+      "start": 0.0,
+      "end": 13.947,
+      "section": "intro",
+      "chapter": 0,
+      "chapterTotal": 5,
+      "image": "ch_00_00.jpg",
+      "credit": "U.S. Navy photo by Mass Communication Specialist 2nd Class Donisha Burns / Public domain"
+    },
+    {
+      "title": "遊園地の新しい乗り物",
+      "start": 13.947,
+      "end": 73.903,
+      "section": "trivia",
+      "chapter": 1,
+      "chapterTotal": 5,
+      "triviaIndex": 1,
+      "triviaTotal": 3,
+      "image": "ch_00_00.jpg",
+      "credit": "U.S. Navy photo by Mass Communication Specialist 2nd Class Donisha Burns / Public domain"
+    },
+    {
+      "title": "サンリオでいっぱいの病院",
+      "start": 73.903,
+      "end": 126.616,
+      "section": "trivia",
+      "chapter": 2,
+      "chapterTotal": 5,
+      "triviaIndex": 2,
+      "triviaTotal": 3,
+      "image": "ch_02_00.jpg",
+      "credit": "Kgbo / CC BY-SA 4.0"
+    },
+    {
+      "title": "宇宙の国際宇宙ステーション",
+      "start": 126.616,
+      "end": 183.233,
+      "section": "trivia",
+      "chapter": 3,
+      "chapterTotal": 5,
+      "triviaIndex": 3,
+      "triviaTotal": 3,
+      "image": "ch_03_00.jpg",
+      "fit": "contain",
+      "credit": "NASA / Public domain"
+    },
+    {
+      "title": "まとめ",
+      "start": 183.233,
+      "end": 226.068,
+      "section": "outro",
+      "chapter": 4,
+      "chapterTotal": 5,
+      "image": "ch_04_00.jpg",
+      "credit": "U.S. Navy photo by Mass Communication Specialist 2nd Class Donisha Burns / Public domain"
+    }
+  ],
+  "credits": [
+    "VOICEVOX:ずんだもん",
+    "VOICEVOX:四国めたん",
+    "画像出典: U.S. Navy photo by Mass Communication Specialist 2nd Class Donisha Burns / Public domain / Kgbo / CC BY-SA 4.0 / NASA / Public domain"
+  ],
+  "audio": {
+    "bgm": {
+      "file": "bgm.mp3",
+      "volume": 0.07,
+      "fade": 3.0
+    },
+    "bgmSegments": null,
+    "se_volume": 0.5,
+    "se": {
+      "intro": "",
+      "outro": "outro.mp3",
+      "flash": "flash.mp3",
+      "surprise": "surprise.mp3"
+    },
+    "events": [
+      {
+        "t": 14.097,
+        "se": "flash"
+      },
+      {
+        "t": 74.053,
+        "se": "flash"
+      },
+      {
+        "t": 84.284,
+        "se": "surprise"
+      },
+      {
+        "t": 126.766,
+        "se": "flash"
+      },
+      {
+        "t": 140.709,
+        "se": "surprise"
+      },
+      {
+        "t": 156.637,
+        "se": "surprise"
+      },
+      {
+        "t": 183.383,
+        "se": "outro"
+      }
+    ]
+  },
+  "script": [
+    {
+      "speaker": "四国めたん",
+      "text": "おはようございます！今日１日、わくわくするニュースをお届けします！",
+      "emotion": "happy",
+      "chapter": 0,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "intro",
+      "id": "turn-0001",
+      "start": 2.5,
+      "end": 8.623,
+      "sentences": [
+        {
+          "text": "おはようございます！",
+          "start": 2.5,
+          "end": 4.1
+        },
+        {
+          "text": "今日１日、わくわくするニュースをお届けします！",
+          "start": 4.1,
+          "end": 8.623
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "わくわくするニュースなのだ！ どんなニュースがあるのだ？",
+      "emotion": "happy",
+      "chapter": 0,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "intro",
+      "id": "turn-0002",
+      "start": 8.923,
+      "end": 13.947,
+      "sentences": [
+        {
+          "text": "わくわくするニュースなのだ！",
+          "start": 8.923,
+          "end": 11.44
+        },
+        {
+          "text": "どんなニュースがあるのだ？",
+          "start": 11.44,
+          "end": 13.947
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "はい、まずは楽しいお知らせから！横浜にある大きな遊園地に、新しい乗り物ができたそうですよ！",
+      "emotion": "happy",
+      "chapter": 1,
+      "cut": 0,
+      "effect": "flash",
+      "section": "trivia",
+      "id": "turn-0003",
+      "start": 15.047,
+      "end": 24.625,
+      "sentences": [
+        {
+          "text": "はい、まずは楽しいお知らせから！",
+          "start": 15.047,
+          "end": 18.407
+        },
+        {
+          "text": "横浜にある大きな遊園地に、",
+          "start": 18.407,
+          "end": 21.194
+        },
+        {
+          "text": "新しい乗り物ができたそうですよ！",
+          "start": 21.194,
+          "end": 24.625
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "わー！新しい乗り物なのだ！ どんな乗り物なのだ？",
+      "emotion": "happy",
+      "chapter": 1,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0004",
+      "start": 24.925,
+      "end": 30.419,
+      "sentences": [
+        {
+          "text": "わー！",
+          "start": 24.925,
+          "end": 25.619
+        },
+        {
+          "text": "新しい乗り物なのだ！",
+          "start": 25.619,
+          "end": 28.083
+        },
+        {
+          "text": "どんな乗り物なのだ？",
+          "start": 28.083,
+          "end": 30.419
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "「グレートムーン」と「スーパーフレア」という名前で、ふわふわ浮いたり、ぐるぐる速く回ったりする、宇宙みたいな乗り物なんですって。",
+      "emotion": "normal",
+      "chapter": 1,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0005",
+      "start": 30.719,
+      "end": 44.521,
+      "sentences": [
+        {
+          "text": "「グレートムーン」と「スーパーフレア」という名前で、",
+          "start": 30.719,
+          "end": 36.326
+        },
+        {
+          "text": "ふわふわ浮いたり、ぐるぐる速く回ったりする、",
+          "start": 36.326,
+          "end": 41.071
+        },
+        {
+          "text": "宇宙みたいな乗り物なんですって。",
+          "start": 41.071,
+          "end": 44.521
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ふわふわ、ぐるぐる！面白そう！ずんだもんも乗ってみたいのだ！",
+      "emotion": "happy",
+      "chapter": 1,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0006",
+      "start": 44.821,
+      "end": 51.424,
+      "sentences": [
+        {
+          "text": "ふわふわ、ぐるぐる！",
+          "start": 44.821,
+          "end": 47.275
+        },
+        {
+          "text": "面白そう！",
+          "start": 47.275,
+          "end": 48.608
+        },
+        {
+          "text": "ずんだもんも乗ってみたいのだ！",
+          "start": 48.608,
+          "end": 51.424
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "新しい公園の遊具で遊ぶみたいに、初めての乗り物に乗るのは、とっても楽しいですよね！お休みの日に、家族やお友達と行ってみてくださいね。",
+      "emotion": "happy",
+      "chapter": 1,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0007",
+      "start": 51.724,
+      "end": 65.399,
+      "sentences": [
+        {
+          "text": "新しい公園の遊具で遊ぶみたいに、",
+          "start": 51.724,
+          "end": 55.117
+        },
+        {
+          "text": "初めての乗り物に乗るのは、",
+          "start": 55.117,
+          "end": 57.873
+        },
+        {
+          "text": "とっても楽しいですよね！",
+          "start": 57.873,
+          "end": 60.417
+        },
+        {
+          "text": "お休みの日に、",
+          "start": 60.417,
+          "end": 61.812
+        },
+        {
+          "text": "家族やお友達と行ってみてくださいね。",
+          "start": 61.812,
+          "end": 65.399
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "今日おぼえる一言は、「遊びに行くのが楽しみ！」です！",
+      "emotion": "happy",
+      "chapter": 1,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0008",
+      "start": 65.699,
+      "end": 70.456,
+      "sentences": [
+        {
+          "text": "今日おぼえる一言は、",
+          "start": 65.699,
+          "end": 67.531
+        },
+        {
+          "text": "「遊びに行くのが楽しみ！」",
+          "start": 67.531,
+          "end": 69.912
+        },
+        {
+          "text": "です！",
+          "start": 69.912,
+          "end": 70.456
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "遊びに行くのが楽しみなのだー！",
+      "emotion": "happy",
+      "chapter": 1,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0009",
+      "start": 70.756,
+      "end": 73.903,
+      "sentences": [
+        {
+          "text": "遊びに行くのが楽しみなのだー！",
+          "start": 70.756,
+          "end": 73.903
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "さて、次は優しい気持ちになれるお話です。病院がサンリオキャラクターでいっぱいになったそうですよ。",
+      "emotion": "happy",
+      "chapter": 2,
+      "cut": 0,
+      "effect": "flash",
+      "section": "trivia",
+      "id": "turn-0010",
+      "start": 75.003,
+      "end": 83.984,
+      "sentences": [
+        {
+          "text": "さて、次は優しい気持ちになれるお話です。",
+          "start": 75.003,
+          "end": 79.461
+        },
+        {
+          "text": "病院がサンリオキャラクターでいっぱいになったそうですよ。",
+          "start": 79.461,
+          "end": 83.984
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "病院がかわいくなったのだ？ どうしてなのだ？",
+      "emotion": "surprise",
+      "chapter": 2,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0011",
+      "start": 84.284,
+      "end": 89.02,
+      "sentences": [
+        {
+          "text": "病院がかわいくなったのだ？",
+          "start": 84.284,
+          "end": 87.292
+        },
+        {
+          "text": "どうしてなのだ？",
+          "start": 87.292,
+          "end": 89.02
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "ハローキティたちが、入院している小さなお友達が安心して笑顔でいられるように、病院のお部屋をかわいく飾り付けしたんです。",
+      "emotion": "normal",
+      "chapter": 2,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0012",
+      "start": 89.32,
+      "end": 100.755,
+      "sentences": [
+        {
+          "text": "ハローキティたちが、",
+          "start": 89.32,
+          "end": 91.258
+        },
+        {
+          "text": "入院している小さなお友達が安心して笑顔でいられるように、",
+          "start": 91.258,
+          "end": 96.685
+        },
+        {
+          "text": "病院のお部屋をかわいく飾り付けしたんです。",
+          "start": 96.685,
+          "end": 100.755
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "寂しい気持ちがなくなるといいのだ！",
+      "emotion": "normal",
+      "chapter": 2,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0013",
+      "start": 101.055,
+      "end": 104.553,
+      "sentences": [
+        {
+          "text": "寂しい気持ちがなくなるといいのだ！",
+          "start": 101.055,
+          "end": 104.553
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "そうですね。お家のお部屋を好きなキャラクターの絵で飾ると、元気が出るのと一緒ですね。優しい気持ちが大切だと教えてくれるニュースです。",
+      "emotion": "happy",
+      "chapter": 2,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0014",
+      "start": 104.853,
+      "end": 116.864,
+      "sentences": [
+        {
+          "text": "そうですね。",
+          "start": 104.853,
+          "end": 105.888
+        },
+        {
+          "text": "お家のお部屋を好きなキャラクターの絵で飾ると、",
+          "start": 105.888,
+          "end": 110.093
+        },
+        {
+          "text": "元気が出るのと一緒ですね。",
+          "start": 110.093,
+          "end": 112.469
+        },
+        {
+          "text": "優しい気持ちが大切だと教えてくれるニュースです。",
+          "start": 112.469,
+          "end": 116.864
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "今日おぼえる一言は、「優しい気持ちが大切だね！」です。",
+      "emotion": "happy",
+      "chapter": 2,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0015",
+      "start": 117.164,
+      "end": 122.433,
+      "sentences": [
+        {
+          "text": "今日おぼえる一言は、",
+          "start": 117.164,
+          "end": 119.133
+        },
+        {
+          "text": "「優しい気持ちが大切だね！」",
+          "start": 119.133,
+          "end": 121.889
+        },
+        {
+          "text": "です。",
+          "start": 121.889,
+          "end": 122.433
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "優しい気持ちが大切だね！ なのだ！",
+      "emotion": "happy",
+      "chapter": 2,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0016",
+      "start": 122.733,
+      "end": 126.616,
+      "sentences": [
+        {
+          "text": "優しい気持ちが大切だね！",
+          "start": 122.733,
+          "end": 125.72
+        },
+        {
+          "text": "なのだ！",
+          "start": 125.72,
+          "end": 126.616
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "では、最後に宇宙のお話です。お空の上に、宇宙飛行士さんたちが住んでいる「国際宇宙ステーション」というお家があるんですよ。",
+      "emotion": "normal",
+      "chapter": 3,
+      "cut": 0,
+      "effect": "flash",
+      "section": "trivia",
+      "id": "turn-0017",
+      "start": 127.716,
+      "end": 140.409,
+      "sentences": [
+        {
+          "text": "では、最後に宇宙のお話です。",
+          "start": 127.716,
+          "end": 130.969
+        },
+        {
+          "text": "お空の上に、",
+          "start": 130.969,
+          "end": 132.201
+        },
+        {
+          "text": "宇宙飛行士さんたちが住んでいる「国際宇宙ステーション」というお家があるんですよ。",
+          "start": 132.201,
+          "end": 140.409
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "えーっ！お空にお家があるのだ！？",
+      "emotion": "surprise",
+      "chapter": 3,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0018",
+      "start": 140.709,
+      "end": 144.165,
+      "sentences": [
+        {
+          "text": "えーっ！",
+          "start": 140.709,
+          "end": 141.541
+        },
+        {
+          "text": "お空にお家があるのだ！？",
+          "start": 141.541,
+          "end": 144.165
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "はい、そうなんです。きのうの夜、それが日本の空を飛んでいったんです。晴れている場所では、ピカピカ光って見えることがあるんですよ。",
+      "emotion": "normal",
+      "chapter": 3,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0019",
+      "start": 144.465,
+      "end": 156.337,
+      "sentences": [
+        {
+          "text": "はい、そうなんです。",
+          "start": 144.465,
+          "end": 146.556
+        },
+        {
+          "text": "きのうの夜、",
+          "start": 146.556,
+          "end": 147.703
+        },
+        {
+          "text": "それが日本の空を飛んでいったんです。",
+          "start": 147.703,
+          "end": 151.143
+        },
+        {
+          "text": "晴れている場所では、",
+          "start": 151.143,
+          "end": 152.874
+        },
+        {
+          "text": "ピカピカ光って見えることがあるんですよ。",
+          "start": 152.874,
+          "end": 156.337
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "お月様みたいに、夜空を見上げたら見えるのだ？",
+      "emotion": "surprise",
+      "chapter": 3,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0020",
+      "start": 156.637,
+      "end": 161.971,
+      "sentences": [
+        {
+          "text": "お月様みたいに、夜空を見上げたら見えるのだ？",
+          "start": 156.637,
+          "end": 161.971
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "夜、お月様や星を見るのに似ていますね。でも、これは宇宙飛行士さんが乗っている、動くお家なんですよ。宇宙って本当に広いですね！",
+      "emotion": "happy",
+      "chapter": 3,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0021",
+      "start": 162.271,
+      "end": 175.007,
+      "sentences": [
+        {
+          "text": "夜、お月様や星を見るのに似ていますね。",
+          "start": 162.271,
+          "end": 166.303
+        },
+        {
+          "text": "でも、これは宇宙飛行士さんが乗っている、",
+          "start": 166.303,
+          "end": 170.313
+        },
+        {
+          "text": "動くお家なんですよ。",
+          "start": 170.313,
+          "end": 172.319
+        },
+        {
+          "text": "宇宙って本当に広いですね！",
+          "start": 172.319,
+          "end": 175.007
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "今日おぼえる一言は、「宇宙って広いね！」です。",
+      "emotion": "happy",
+      "chapter": 3,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0022",
+      "start": 175.307,
+      "end": 179.584,
+      "sentences": [
+        {
+          "text": "今日おぼえる一言は、「宇宙って広いね！」",
+          "start": 175.307,
+          "end": 179.04
+        },
+        {
+          "text": "です。",
+          "start": 179.04,
+          "end": 179.584
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "宇宙って広いね！ 不思議なのだ！",
+      "emotion": "happy",
+      "chapter": 3,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "trivia",
+      "id": "turn-0023",
+      "start": 179.884,
+      "end": 183.233,
+      "sentences": [
+        {
+          "text": "宇宙って広いね！",
+          "start": 179.884,
+          "end": 181.825
+        },
+        {
+          "text": "不思議なのだ！",
+          "start": 181.825,
+          "end": 183.233
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "今日は、新しい乗り物のこと、優しい気持ちになれる病院のお話、そして宇宙のお家のお話をお届けしました。どれもわくわくするニュースでしたね！",
+      "emotion": "happy",
+      "chapter": 4,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "outro",
+      "id": "turn-0024",
+      "start": 184.333,
+      "end": 198.243,
+      "sentences": [
+        {
+          "text": "今日は、新しい乗り物のこと、",
+          "start": 184.333,
+          "end": 187.445
+        },
+        {
+          "text": "優しい気持ちになれる病院のお話、",
+          "start": 187.445,
+          "end": 191.002
+        },
+        {
+          "text": "そして宇宙のお家のお話をお届けしました。",
+          "start": 191.002,
+          "end": 195.448
+        },
+        {
+          "text": "どれもわくわくするニュースでしたね！",
+          "start": 195.448,
+          "end": 198.243
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "うん！ どれも楽しかったのだ！ また明日のニュースも楽しみなのだ！",
+      "emotion": "happy",
+      "chapter": 4,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "outro",
+      "id": "turn-0025",
+      "start": 198.543,
+      "end": 204.889,
+      "sentences": [
+        {
+          "text": "うん！",
+          "start": 198.543,
+          "end": 199.172
+        },
+        {
+          "text": "どれも楽しかったのだ！",
+          "start": 199.172,
+          "end": 201.465
+        },
+        {
+          "text": "また明日のニュースも楽しみなのだ！",
+          "start": 201.465,
+          "end": 204.889
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "はい、それでは、楽しい一日をお過ごしください。また明日！",
+      "emotion": "happy",
+      "chapter": 4,
+      "cut": 0,
+      "effect": "kenburns",
+      "section": "outro",
+      "id": "turn-0026",
+      "start": 205.189,
+      "end": 211.227,
+      "sentences": [
+        {
+          "text": "はい、それでは、",
+          "start": 205.189,
+          "end": 206.944
+        },
+        {
+          "text": "楽しい一日をお過ごしください。",
+          "start": 206.944,
+          "end": 210.235
+        },
+        {
+          "text": "また明日！",
+          "start": 210.235,
+          "end": 211.227
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "次に深掘りしてほしいテーマがあったら、コメントで教えてね。高評価も嬉しいわ。",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "start": 211.527,
+      "end": 218.929,
+      "sentences": [
+        {
+          "text": "次に深掘りしてほしいテーマがあったら、",
+          "start": 211.527,
+          "end": 215.049
+        },
+        {
+          "text": "コメントで教えてね。",
+          "start": 215.049,
+          "end": 216.903
+        },
+        {
+          "text": "高評価も嬉しいわ。",
+          "start": 216.903,
+          "end": 218.929
+        }
+      ]
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "start": 219.229,
+      "end": 223.368,
+      "sentences": [
+        {
+          "text": "気に入ったらチャンネル登録もよろしくなのだ！",
+          "start": 219.229,
+          "end": 223.368
+        }
+      ]
+    },
+    {
+      "speaker": "四国めたん",
+      "text": "それじゃあ、また見てね〜〜",
+      "emotion": "happy",
+      "section": "outro",
+      "chapter": 4,
+      "effect": "kenburns",
+      "cut": 0,
+      "closing": true,
+      "chorus": true,
+      "start": 223.668,
+      "end": 226.068,
+      "sentences": [
+        {
+          "text": "それじゃあ、また見てね〜〜",
+          "start": 223.668,
+          "end": 226.068
+        }
+      ]
+    }
+  ]
+}

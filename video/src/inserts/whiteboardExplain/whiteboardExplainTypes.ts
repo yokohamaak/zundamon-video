@@ -153,6 +153,11 @@ export type WhiteboardExplainInsertConfig = {
   theme: string;
   sections: WhiteboardExplainSection[];
   conclusion: string;
+  /**
+   * Per-turn toggle of the 3 sections. Omitted = visible.
+   * In run-story V2 this is stored on displayMode.whiteboard and passed through to props.
+   */
+  visibleSections?: [boolean, boolean, boolean];
   /** Per-turn toggle of arrows between sections. [0] is section1→2, [1] is section2→3. Omitted = visible. */
   visibleArrows?: [boolean, boolean];
   /** Per-turn toggle for the conclusion box. Omitted = visible. */

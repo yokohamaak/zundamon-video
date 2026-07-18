@@ -11,6 +11,12 @@ const FPS = 30;
 const WIDTH = 1920;
 const HEIGHT = 1080;
 
+function isLikelyMobilePreview() {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia?.("(max-width: 900px), (pointer: coarse)").matches) return true;
+  return /iPhone|iPad|iPod|Android/i.test(window.navigator.userAgent);
+}
+
 type StoryPlayerApi = {
   mount: (element: HTMLElement) => Promise<void>;
   unmount: () => void;
@@ -85,6 +91,7 @@ const StoryPlayerComponent: React.FC<{
     1,
     Math.ceil((props.story.script.reduce((m, t) => Math.max(m, t.end ?? 0), 0) + tailPause) * FPS) + FPS
   );
+  const sharedAudioTags = isLikelyMobilePreview() ? 6 : 12;
 
   useEffect(() => {
     onReady?.(ref.current, setProps);
@@ -117,10 +124,9 @@ const StoryPlayerComponent: React.FC<{
       controls={controls}
       showPlaybackRateControl={[0.5, 0.75, 1, 1.25, 1.5, 2]}
       initiallyMuted={false}
-      // モバイルでは共有 audio tag を増やしすぎると、主音声が頭に戻る不安定さが出やすいため
-      // 必要以上には増やさない。演出(SE)を密集させると voice + BGM(最大2) + 数個のSE で
-      // 8を超えることがあるため、実運用で余裕を持たせて12にしている。
-      numberOfSharedAudioTags={12}
+      // モバイルでは共有 audio tag が多いと主音声が巻き戻ることがあるため、
+      // 編集プレビューではスマホだけ少なめにする。
+      numberOfSharedAudioTags={sharedAudioTags}
       acknowledgeRemotionLicense
       style={{ width: "100%", height: "100%", background: "#080a0f" }}
       renderLoading={() => (

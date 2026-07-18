@@ -2941,6 +2941,8 @@ function chapterDivider(ch,ci){
 // サーバの is_managed_closing と同じ判定。音声に関わる編集(本文/分割/削除)を不可にするのに使う。
 function isManagedClosing(tn){ if(!tn) return false; const txt=tn.text||'';
   return !!(tn.closing||tn.chorus||(tn.section==='outro'&&(txt.includes('チャンネル登録')||txt.includes('高評価')))); }
+// インサート表示（ホワイトボード解説等）中は吹き出し非表示。story_editor.htmlのgetContinueBubbleInfoと同じ判定。
+function lineShownInInsert(tn){ return !!(tn && tn.insert); }
 function continueBubblePair(script, gi){
   const tn=script&&script[gi], prev=gi>0&&script?script[gi-1]:null;
   if(!tn||!tn.continueBubble) return { active:false, valid:false, reason:'' };

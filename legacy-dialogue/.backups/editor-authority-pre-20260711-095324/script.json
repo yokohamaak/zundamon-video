@@ -1,0 +1,307 @@
+{
+  "script": [
+    {
+      "speaker": "めたん",
+      "text": "おはようございます！今日１日、わくわくするニュースをお届けします！",
+      "scene": "news_studio",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0001"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "わくわくするニュースなのだ！ どんなニュースがあるのだ？",
+      "scene": "news_studio",
+      "expression": "happy",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0002"
+    },
+    {
+      "speaker": "めたん",
+      "text": "はい、まずは楽しいお知らせから！横浜にある大きな遊園地に、新しい乗り物ができたそうですよ！",
+      "scene": "news_studio_image",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0003"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "わー！新しい乗り物なのだ！ どんな乗り物なのだ？",
+      "scene": "news_studio_image",
+      "expression": "happy",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0004"
+    },
+    {
+      "speaker": "めたん",
+      "text": "「グレートムーン」と「スーパーフレア」という名前で、ふわふわ浮いたり、ぐるぐる速く回ったりする、宇宙みたいな乗り物なんですって。",
+      "scene": "explanation_board",
+      "expression": "normal",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0005"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "ふわふわ、ぐるぐる！面白そう！ずんだもんも乗ってみたいのだ！",
+      "scene": "news_studio",
+      "expression": "happy",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0006"
+    },
+    {
+      "speaker": "めたん",
+      "text": "新しい公園の遊具で遊ぶみたいに、初めての乗り物に乗るのは、とっても楽しいですよね！お休みの日に、家族やお友達と行ってみてくださいね。",
+      "scene": "explanation_board",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0007"
+    },
+    {
+      "speaker": "めたん",
+      "text": "今日おぼえる一言は、「遊びに行くのが楽しみ！」です！",
+      "scene": "summary_board",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0008"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "遊びに行くのが楽しみなのだー！",
+      "scene": "news_studio",
+      "expression": "happy",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0009"
+    },
+    {
+      "speaker": "めたん",
+      "text": "さて、次は優しい気持ちになれるお話です。病院がサンリオキャラクターでいっぱいになったそうですよ。",
+      "scene": "news_studio_image",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0010"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "病院がかわいくなったのだ？ どうしてなのだ？",
+      "scene": "news_studio_image",
+      "expression": "confused",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0011"
+    },
+    {
+      "speaker": "めたん",
+      "text": "ハローキティたちが、入院している小さなお友達が安心して笑顔でいられるように、病院のお部屋をかわいく飾り付けしたんです。",
+      "scene": "explanation_board",
+      "expression": "normal",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0012"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "寂しい気持ちがなくなるといいのだ！",
+      "scene": "news_studio",
+      "expression": "normal",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0013"
+    },
+    {
+      "speaker": "めたん",
+      "text": "そうですね。お家のお部屋を好きなキャラクターの絵で飾ると、元気が出るのと一緒ですね。優しい気持ちが大切だと教えてくれるニュースです。",
+      "scene": "explanation_board",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0014"
+    },
+    {
+      "speaker": "めたん",
+      "text": "今日おぼえる一言は、「優しい気持ちが大切だね！」です。",
+      "scene": "summary_board",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0015"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "優しい気持ちが大切だね！ なのだ！",
+      "scene": "news_studio",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0016"
+    },
+    {
+      "speaker": "めたん",
+      "text": "では、最後に宇宙のお話です。お空の上に、宇宙飛行士さんたちが住んでいる「国際宇宙ステーション」というお家があるんですよ。",
+      "scene": "news_studio_image",
+      "expression": "normal",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0017"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "えーっ！お空にお家があるのだ！？",
+      "scene": "news_studio_image",
+      "expression": "confused",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0018"
+    },
+    {
+      "speaker": "めたん",
+      "text": "はい、そうなんです。きのうの夜、それが日本の空を飛んでいったんです。晴れている場所では、ピカピカ光って見えることがあるんですよ。",
+      "scene": "explanation_board",
+      "expression": "normal",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0019"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "お月様みたいに、夜空を見上げたら見えるのだ？",
+      "scene": "explanation_board",
+      "expression": "confused",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0020"
+    },
+    {
+      "speaker": "めたん",
+      "text": "夜、お月様や星を見るのに似ていますね。でも、これは宇宙飛行士さんが乗っている、動くお家なんですよ。宇宙って本当に広いですね！",
+      "scene": "explanation_board",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0021"
+    },
+    {
+      "speaker": "めたん",
+      "text": "今日おぼえる一言は、「宇宙って広いね！」です。",
+      "scene": "summary_board",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0022"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "宇宙って広いね！ 不思議なのだ！",
+      "scene": "news_studio",
+      "expression": "happy",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0023"
+    },
+    {
+      "speaker": "めたん",
+      "text": "今日は、新しい乗り物のこと、優しい気持ちになれる病院のお話、そして宇宙のお家のお話をお届けしました。どれもわくわくするニュースでしたね！",
+      "scene": "news_studio",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0024"
+    },
+    {
+      "speaker": "ずんだもん",
+      "text": "うん！ どれも楽しかったのだ！ また明日のニュースも楽しみなのだ！",
+      "scene": "news_studio",
+      "expression": "happy",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0025"
+    },
+    {
+      "speaker": "めたん",
+      "text": "はい、それでは、楽しい一日をお過ごしください。また明日！",
+      "scene": "news_studio",
+      "expression": "smile",
+      "emotion": "normal",
+      "effect": "kenburns",
+      "chapter": 0,
+      "section": "trivia",
+      "id": "turn-0026"
+    }
+  ],
+  "chapters": [],
+  "schemaVersion": 2,
+  "assets": [],
+  "imageCues": [
+    {
+      "id": "image-cue-0001",
+      "turnId": "turn-0001",
+      "assetId": null,
+      "fit": null,
+      "crop": null,
+      "filter": null,
+      "pad": 0,
+      "bg": null,
+      "hide": false
+    }
+  ],
+  "visualSegments": []
+}

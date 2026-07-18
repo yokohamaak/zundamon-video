@@ -10,7 +10,8 @@
       "mouth_close": "mufu",
       "mouth_half": "half",
       "mouth_open": "open",
-      "fx": null
+      "fx": null,
+      "edamame": "normal"
     },
     "happy": {
       "brow": "normal",
@@ -52,10 +53,10 @@
       "mouth_open": "open",
       "fx": [
         "sweat1",
-        "sweat3",
         "sweat2"
       ],
-      "holdAs": "trouble"
+      "holdAs": "trouble",
+      "edamame": "normal"
     },
     "panic": {
       "brow": "worry2",
@@ -63,16 +64,17 @@
       "shadow": "kageri",
       "pose": "flustered",
       "arm": "normal",
-      "eye": "guruguru",
-      "mouth_close": "close",
+      "eye": "surprise",
+      "mouth_close": "nn",
       "mouth_half": "o",
       "mouth_open": "hahee",
       "fx": [
         "sweat1",
-        "tears",
-        "sweat3"
+        "sweat3",
+        "sweat2"
       ],
-      "holdAs": "trouble"
+      "holdAs": "trouble",
+      "edamame": "wilt"
     },
     "niyari": {
       "brow": "normal",
@@ -84,7 +86,8 @@
       "mouth_close": "mufu",
       "mouth_half": "ho",
       "mouth_open": "open",
-      "fx": null
+      "fx": null,
+      "label": "はにかみ"
     },
     "angry": {
       "brow": "angry",
@@ -97,7 +100,8 @@
       "mouth_half": "tri",
       "mouth_open": "naa",
       "fx": [],
-      "holdAs": "angry"
+      "holdAs": "angry",
+      "label": "怒り"
     },
     "question": {
       "brow": "up",
@@ -109,7 +113,8 @@
       "mouth_close": "nn",
       "mouth_half": "nhe",
       "mouth_open": "o",
-      "fx": null
+      "fx": null,
+      "label": "はてな"
     },
     "cry": {
       "brow": "worry2",
@@ -123,7 +128,114 @@
       "mouth_open": "naa",
       "fx": [
         "tears"
-      ]
+      ],
+      "label": "泣き",
+      "edamame": "wilt"
+    },
+    "nae": {
+      "brow": "worry1",
+      "cheek": "pale",
+      "shadow": "kageri",
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "nagomi",
+      "mouth_close": "nn",
+      "mouth_half": "tri",
+      "mouth_open": "nhe",
+      "fx": [
+        "sweat1",
+        "sweat2"
+      ],
+      "edamame": "wilt",
+      "label": "萎え"
+    },
+    "doubt": {
+      "brow": "worry1",
+      "cheek": "hoppe",
+      "shadow": "kageri",
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "jito",
+      "mouth_close": "close",
+      "mouth_half": "tri",
+      "mouth_open": "nhe",
+      "fx": null,
+      "edamame": "normal",
+      "label": "疑う"
+    },
+    "tired": {
+      "brow": "worry2",
+      "cheek": "pale",
+      "shadow": "kageri",
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "hosome",
+      "mouth_close": "nn",
+      "mouth_half": "nhe",
+      "mouth_open": "hahee",
+      "fx": null,
+      "edamame": "wilt",
+      "label": "疲れた"
+    },
+    "ecstasy": {
+      "brow": "up",
+      "cheek": "hoppe_red",
+      "shadow": null,
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "hosome_heart",
+      "mouth_close": "mufu",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": null,
+      "edamame": "wilt",
+      "label": "恍惚"
+    },
+    "Blurred": {
+      "brow": "up",
+      "cheek": "hoppe",
+      "shadow": null,
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "uwamuki",
+      "mouth_close": "close",
+      "mouth_half": "yu",
+      "mouth_open": "tri",
+      "fx": [
+        "sweat3",
+        "sweat2",
+        "sweat1"
+      ],
+      "edamame": "normal",
+      "label": "とぼけ"
+    },
+    "sleep": {
+      "brow": "up",
+      "cheek": "hoppe",
+      "shadow": null,
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "close",
+      "mouth_close": "mufu",
+      "mouth_half": "o",
+      "mouth_open": "ho",
+      "fx": null,
+      "edamame": "wilt",
+      "label": "眠る"
+    },
+    "proud": {
+      "brow": "angry",
+      "cheek": "hoppe",
+      "shadow": null,
+      "pose": "idle",
+      "arm": "normal",
+      "eye": "jito",
+      "mouth_close": "mufu",
+      "mouth_half": "ho",
+      "mouth_open": "open",
+      "fx": null,
+      "edamame": "normal",
+      "label": "誇らしげ"
     }
   },
   "metan": {
@@ -136,7 +248,10 @@
       "mouth_close": "close",
       "mouth_half": "half",
       "mouth_open": "open",
-      "fx": null
+      "fx": null,
+      "hair_back": "ponytail",
+      "hair_clip": "frill",
+      "head_dress": "normal"
     },
     "happy": {
       "brow": "futo_gokigen",
@@ -147,7 +262,10 @@
       "mouth_close": "close",
       "mouth_half": "open",
       "mouth_open": "open",
-      "fx": null
+      "fx": null,
+      "hair_clip": "frill",
+      "head_dress": "normal",
+      "hair_back": "ponytail"
     },
     "surprise": {
       "brow": "futo_gokigen",
@@ -158,7 +276,9 @@
       "mouth_close": "momu",
       "mouth_half": "ii",
       "mouth_open": "uee",
-      "fx": "surprise"
+      "fx": "surprise",
+      "hair_back": "ponytail",
+      "hair_clip": "frill"
     },
     "trouble": {
       "brow": "komari",
@@ -169,7 +289,9 @@
       "mouth_close": "close",
       "mouth_half": "half",
       "mouth_open": "open",
-      "fx": "sweat"
+      "fx": "sweat",
+      "hair_back": "ponytail",
+      "hair_clip": "frill"
     },
     "panic": {
       "brow": "komari",
@@ -180,42 +302,163 @@
       "mouth_close": "nn",
       "mouth_half": "half",
       "mouth_open": "uee",
-      "fx": "sweat"
+      "fx": "sweat",
+      "hair_back": "ponytail",
+      "hair_clip": "frill"
     },
     "niyari": {
       "brow": "futo_gokigen",
-      "cheek": "normal2",
+      "cheek": "blush",
       "shadow": null,
       "pose": "idle",
-      "eye": "open",
+      "eye": "close",
       "mouth_close": "close",
-      "mouth_half": "half",
+      "mouth_half": "niyari",
       "mouth_open": "open",
-      "fx": null
+      "fx": null,
+      "label": "はにかみ",
+      "hair_back": "ponytail",
+      "hair_clip": "frill"
     },
     "angry": {
-      "brow": "futo_gokigen",
+      "brow": "oko",
       "cheek": "normal2",
-      "shadow": null,
+      "shadow": "kageri",
       "pose": "idle",
       "eye": "open",
-      "mouth_close": "close",
-      "mouth_half": "half",
-      "mouth_open": "open",
-      "fx": null
+      "mouth_close": "momu",
+      "mouth_half": "ii",
+      "mouth_open": "uee",
+      "fx": null,
+      "label": "怒り",
+      "hair_back": "ponytail",
+      "hair_clip": "frill"
     },
     "question": {
-      "brow": "futo_gokigen",
+      "brow": "komari",
       "cheek": "normal2",
       "shadow": null,
       "pose": "idle",
-      "eye": "open",
-      "mouth_close": "close",
+      "eye": "surprise",
+      "mouth_close": "yu",
       "mouth_half": "half",
       "mouth_open": "open",
-      "fx": null
+      "fx": [
+        "sweat"
+      ],
+      "label": "はてな",
+      "hair_back": "ponytail",
+      "hair_clip": "frill"
     },
     "cry": {
+      "brow": "komari",
+      "cheek": "normal2",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "tojime2",
+      "mouth_close": "nn",
+      "mouth_half": "half",
+      "mouth_open": "uee",
+      "fx": [
+        "tears"
+      ],
+      "label": "泣き",
+      "hair_back": "ponytail",
+      "hair_clip": "frill"
+    },
+    "nae": {
+      "brow": "futo_komari",
+      "cheek": "pale",
+      "shadow": "kageri",
+      "pose": "idle",
+      "eye": "close",
+      "mouth_close": "momu",
+      "mouth_half": "half",
+      "mouth_open": "tri",
+      "fx": null,
+      "hair_back": "ponytail",
+      "hair_clip": "frill",
+      "head_dress": "normal",
+      "label": "萎え"
+    },
+    "doubt": {
+      "brow": "futo_gokigen",
+      "cheek": "normal2",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "open",
+      "mouth_close": "momu",
+      "mouth_half": "tri",
+      "mouth_open": "half",
+      "fx": null,
+      "hair_back": "ponytail",
+      "hair_clip": "frill",
+      "head_dress": "normal",
+      "label": "疑う"
+    },
+    "tired": {
+      "brow": "komari",
+      "cheek": "pale",
+      "shadow": "kageri",
+      "pose": "idle",
+      "eye": "tojime2",
+      "mouth_close": "momu",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": null,
+      "hair_back": "ponytail",
+      "hair_clip": "frill",
+      "head_dress": "normal",
+      "label": "疲れた"
+    },
+    "ecstasy": {
+      "brow": "futo_komari",
+      "cheek": "blush",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "guruguru",
+      "mouth_close": "perori",
+      "mouth_half": "niyari",
+      "mouth_open": "tri_down",
+      "fx": null,
+      "hair_back": "ponytail",
+      "hair_clip": "heart",
+      "head_dress": "normal",
+      "label": "恍惚"
+    },
+    "Blurred": {
+      "brow": "futo_gokigen",
+      "cheek": "normal2",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "surprise",
+      "mouth_close": "close",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": [
+        "sweat"
+      ],
+      "hair_back": "ponytail",
+      "hair_clip": "frill",
+      "head_dress": "normal",
+      "label": "とぼけ"
+    },
+    "sleep": {
+      "brow": "futo_gokigen",
+      "cheek": "normal2",
+      "shadow": null,
+      "pose": "idle",
+      "eye": "tojime2",
+      "mouth_close": "yu",
+      "mouth_half": "half",
+      "mouth_open": "open",
+      "fx": null,
+      "hair_back": "ponytail",
+      "hair_clip": "frill",
+      "head_dress": "normal",
+      "label": "眠る"
+    },
+    "proud": {
       "brow": "futo_gokigen",
       "cheek": "normal2",
       "shadow": null,
@@ -224,7 +467,11 @@
       "mouth_close": "close",
       "mouth_half": "half",
       "mouth_open": "open",
-      "fx": null
+      "fx": null,
+      "hair_back": "ponytail",
+      "hair_clip": "frill",
+      "head_dress": "normal",
+      "label": "誇らしげ"
     }
   }
 }

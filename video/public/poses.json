@@ -2,28 +2,28 @@
   "zundamon": {
     "idle": {
       "arm": "arm_normal",
-      "speed": 1,
-      "strength": 1
+      "speed": 0.6,
+      "strength": 0.6
     },
     "cheer": {
       "arm": "arm_raise",
-      "speed": 1,
-      "strength": 1
+      "speed": 0.5,
+      "strength": 0.6
     },
     "recoil": {
       "arm": "arm_raise",
-      "speed": 1,
-      "strength": 1
+      "speed": 0.8,
+      "strength": 1.25
     },
     "lean": {
-      "arm": "arm_think",
-      "speed": 0.4,
-      "strength": 0.5
+      "arm": "arm_point",
+      "speed": 0.75,
+      "strength": 2.5
     },
     "droop": {
-      "arm": "arm_waist",
-      "speed": 1,
-      "strength": 1
+      "arm": "arm_normal",
+      "speed": 0.4,
+      "strength": 0.75
     },
     "flustered": {
       "arm": "arm_mouth",
@@ -31,19 +31,19 @@
       "strength": 0.45
     },
     "proud": {
-      "arm": "arm_point",
-      "speed": 0.4,
+      "arm": "arm_waist",
+      "speed": 0.95,
       "strength": 0.4
     },
     "listening": {
-      "arm": "arm_think",
+      "arm": "arm_normal",
       "speed": 1,
       "strength": 1
     },
     "sneak": {
       "arm": "arm_whisper",
-      "speed": 1,
-      "strength": 1
+      "speed": 0.4,
+      "strength": 0.4
     },
     "wobble": {
       "arm": "arm_suffering",
@@ -54,6 +54,11 @@
       "arm": "arm_point",
       "speed": 1,
       "strength": 1
+    },
+    "smartphone": {
+      "arm": "arm_smartphone",
+      "speed": 0.6,
+      "strength": 0.6
     }
   },
   "metan": {
@@ -109,6 +114,11 @@
     },
     "point": {
       "arm": "arm_point",
+      "speed": 1,
+      "strength": 1
+    },
+    "smartphone": {
+      "arm": "arm_normal",
       "speed": 1,
       "strength": 1
     }

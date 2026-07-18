@@ -4,7 +4,7 @@ import {useWindowedAudioData} from "@remotion/media-utils";
 import {Avatar, MOUTH_HALF} from "./Avatar";
 import type {ExpressionCfg} from "./Avatar";
 import type {Gender} from "./types";
-import {WhiteboardExplainInsert, getWhiteboardExplainLayout} from "./inserts/whiteboardExplain";
+import {WhiteboardExplainInsert, getWhiteboardExplainLayout, type WhiteboardExplainInsertConfig, type WhiteboardExplainPopTargets} from "./inserts/whiteboardExplain";
 import {InsertOverlay} from "./StoryVideo";
 import {
   placementOrigin,
@@ -43,6 +43,12 @@ const FULL_CANVAS = {
   zundamon: {w: 783, h: 1473},
   metan: {w: 858, h: 1769},
 } as const;
+
+function shouldUseWebAudioVolumePreview() {
+  if (typeof window === "undefined") return false;
+  if (/iPhone|iPad|iPod/i.test(window.navigator.userAgent)) return true;
+  return window.matchMedia?.("(max-width: 900px), (pointer: coarse)").matches ?? false;
+}
 const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
 const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
@@ -297,6 +303,54 @@ function stageIrisOutConfig(raw: unknown) {
   };
 }
 
+function stageTurnDisplayDuration(turn: StageTurnV2): number {
+  const start = typeof turn.start === "number" ? turn.start : 0;
+  const end = typeof turn.end === "number" ? turn.end : start;
+  const pause = Number.isFinite(Number(turn.pause)) ? Math.max(0, Number(turn.pause)) : 0;
+  return Math.max(end - start + pause, 0.001);
+}
+
+function stageIrisOutVisual(
+  turn: StageTurnV2,
+  elapsed: number,
+  width: number,
+  height: number,
+): {backdropStyle: React.CSSProperties; contentMaskStyle: React.CSSProperties} | null {
+  const effects = turn.effects || {};
+  if (!stageEffectEnabled(effects.irisOut)) return null;
+  const irisOutCfg = stageIrisOutConfig(effects.irisOut);
+  const dur = stageTurnDisplayDuration(turn);
+  const diag = Math.sqrt(width * width + height * height) / 2;
+  const baseRadius = diag * clamp(irisOutCfg.startRadius, 0.15, 1.3);
+  const coverRadius = diag * 1.3;
+  const rawCloseEnd = Math.max(irisOutCfg.closeEnd, 0.05);
+  const rawCloseStart = clamp(irisOutCfg.closeStart, 0, rawCloseEnd);
+  const closeDuration = Math.max(rawCloseEnd - rawCloseStart, 0.05);
+  const closeEnd = Math.min(rawCloseEnd, dur);
+  const closeStart = Math.max(0, closeEnd - closeDuration);
+  const appearDur = Math.min(0.6, closeStart);
+  let radius: number;
+  if (appearDur > 0 && elapsed < appearDur) {
+    radius = lerp(coverRadius, baseRadius, easeInOutCubic(clamp(elapsed / appearDur, 0, 1)));
+  } else if (elapsed < closeStart) {
+    radius = baseRadius;
+  } else {
+    const p = clamp((elapsed - closeStart) / Math.max(closeEnd - closeStart, 0.05), 0, 1);
+    radius = lerp(baseRadius, 0, easeInOutCubic(p));
+  }
+  const cxPct = clamp(irisOutCfg.cx, 0, 1) * 100;
+  const cyPct = clamp(irisOutCfg.cy, 0, 1) * 100;
+  const color = validHex(irisOutCfg.color, "#000000");
+  const visibleMask = `radial-gradient(circle ${radius}px at ${cxPct}% ${cyPct}%, #000 0, #000 ${Math.max(radius - 1, 0)}px, transparent ${radius}px, transparent 100%)`;
+  return {
+    backdropStyle: {background: color, pointerEvents: "none", zIndex: 0},
+    contentMaskStyle: {
+      maskImage: visibleMask,
+      WebkitMaskImage: visibleMask,
+    },
+  };
+}
+
 function displaySettingsOf(settings?: StoryDisplaySettingsV2) {
   const bubble = settings?.bubble ?? {};
   const subtitle = settings?.subtitle ?? {};
@@ -509,7 +563,7 @@ function activeOverlays(story: StoryV2, seconds: number) {
 }
 
 function isStandardDisplayMode(kind: string | undefined) {
-  return !kind || kind === "standard";
+  return !kind || kind === "standard" || kind === "framedStage";
 }
 
 function displayModeInsert(displayMode: ReturnType<typeof resolveStageStateAtTurn>["displayMode"]): StoryInsert | null {
@@ -525,6 +579,47 @@ function displayModeInsert(displayMode: ReturnType<typeof resolveStageStateAtTur
     default:
       return null;
   }
+}
+
+function whiteboardVisibleSections(whiteboard: WhiteboardExplainInsertConfig | undefined): [boolean, boolean, boolean] {
+  const raw = whiteboard?.visibleSections;
+  return [raw?.[0] !== false, raw?.[1] !== false, raw?.[2] !== false];
+}
+
+function whiteboardVisibleArrows(whiteboard: WhiteboardExplainInsertConfig | undefined): [boolean, boolean] {
+  const raw = whiteboard?.visibleArrows;
+  return [raw?.[0] !== false, raw?.[1] !== false];
+}
+
+function whiteboardShowsConclusion(whiteboard: WhiteboardExplainInsertConfig | undefined): boolean {
+  return whiteboard?.showConclusion !== false;
+}
+
+function whiteboardPopTargetsForTurn(script: StageTurnV2[], turnIndex: number): WhiteboardExplainPopTargets | undefined {
+  const currentDisplay = script[turnIndex]?.displayMode;
+  if (currentDisplay?.kind !== "whiteboard") return undefined;
+  const previousDisplay = script[turnIndex - 1]?.displayMode;
+  if (previousDisplay?.kind !== "whiteboard") return undefined;
+  const current = currentDisplay.whiteboard as WhiteboardExplainInsertConfig;
+  const previous = previousDisplay.whiteboard as WhiteboardExplainInsertConfig;
+  if ((current.title || "") !== (previous.title || "") || (current.theme || "") !== (previous.theme || "")) return undefined;
+
+  const currentSections = whiteboardVisibleSections(current);
+  const previousSections = whiteboardVisibleSections(previous);
+  const currentArrows = whiteboardVisibleArrows(current);
+  const previousArrows = whiteboardVisibleArrows(previous);
+  return {
+    sections: [
+      currentSections[0] && !previousSections[0],
+      currentSections[1] && !previousSections[1],
+      currentSections[2] && !previousSections[2],
+    ],
+    arrows: [
+      currentArrows[0] && !previousArrows[0],
+      currentArrows[1] && !previousArrows[1],
+    ],
+    conclusion: whiteboardShowsConclusion(current) && !whiteboardShowsConclusion(previous),
+  };
 }
 
 function mobImageForState(mob: MobDef | undefined, expression: string | undefined, speaking: boolean, amplitude: number) {
@@ -565,30 +660,40 @@ const V2BgmLayer: React.FC<{regions?: BgmRegion[]; fps: number}> = ({regions, fp
       {validSegs.map((seg, index) => {
         const startFrame = Math.round(seg.startSec * fps);
         const durationInFrames = Math.max(1, Math.round((seg.endSec - seg.startSec) * fps));
-        const fadeInFrames = Math.round(seg.fadeIn * fps);
-        const fadeOutFrames = Math.round(seg.fadeOut * fps);
-        const volume = seg.volume;
-        const volumeFn = (localFrame: number): number => {
-          const inK = fadeInFrames > 0 ? Math.min(localFrame / fadeInFrames, 1) : 1;
-          const outK =
-            fadeOutFrames > 0
-              ? Math.min((durationInFrames - localFrame) / fadeOutFrames, 1)
-              : 1;
-          return volume * Math.max(0, Math.min(inK, outK));
-        };
         const audioKey = `${seg.file}-${index}-${seg.startSec}-${seg.endSec}-${seg.volume}-${seg.fadeIn}-${seg.fadeOut}`;
         const src = `${staticFile(seg.file)}?v2bgm=${encodeURIComponent(audioKey)}`;
         return (
           <Sequence key={audioKey} from={startFrame} durationInFrames={durationInFrames}>
-            <Audio
-              src={src}
-              loop
-              volume={volumeFn}
-            />
+            <V2BgmSegmentAudio src={src} volume={seg.volume} fadeIn={seg.fadeIn} fadeOut={seg.fadeOut} fps={fps} durationInFrames={durationInFrames} />
           </Sequence>
         );
       })}
     </>
+  );
+};
+
+const V2BgmSegmentAudio: React.FC<{
+  src: string;
+  volume: number;
+  fadeIn: number;
+  fadeOut: number;
+  fps: number;
+  durationInFrames: number;
+}> = ({src, volume, fadeIn, fadeOut, fps, durationInFrames}) => {
+  const frame = useCurrentFrame();
+  const fadeInFrames = Math.max(0, Math.round(fadeIn * fps));
+  const fadeOutFrames = Math.max(0, Math.round(fadeOut * fps));
+  const inK = fadeInFrames > 0 ? clamp(frame / fadeInFrames, 0, 1) : 1;
+  const outK = fadeOutFrames > 0 ? clamp((durationInFrames - 1 - frame) / fadeOutFrames, 0, 1) : 1;
+  const useWebAudioApi = shouldUseWebAudioVolumePreview();
+  return (
+    <Audio
+      src={src}
+      loop
+      volume={volume * Math.min(inK, outK)}
+      useWebAudioApi={useWebAudioApi}
+      crossOrigin={useWebAudioApi ? "anonymous" : undefined}
+    />
   );
 };
 
@@ -646,7 +751,8 @@ const V2EffectsLayer: React.FC<{
   height: number;
   onlyImpactLines?: boolean;
   hideImpactLines?: boolean;
-}> = ({turn, elapsed, progress, width, height, onlyImpactLines, hideImpactLines}) => {
+  hideIrisOut?: boolean;
+}> = ({turn, elapsed, progress, width, height, onlyImpactLines, hideImpactLines, hideIrisOut}) => {
   const effects = turn.effects ?? {};
   const layers: React.ReactNode[] = [];
   const hasImpactLines = stageEffectEnabled(effects.impactLines);
@@ -778,9 +884,9 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
-  if (!onlyImpactLines && stageEffectEnabled(effects.irisOut)) {
+  if (!onlyImpactLines && !hideIrisOut && stageEffectEnabled(effects.irisOut)) {
     const irisOutCfg = stageIrisOutConfig(effects.irisOut);
-    const dur = Math.max((turn.end ?? 0) - (turn.start ?? 0), 0.001);
+    const dur = stageTurnDisplayDuration(turn);
     const diag = Math.sqrt(width * width + height * height) / 2;
     const baseRadius = diag * clamp(irisOutCfg.startRadius, 0.15, 1.3);
     const coverRadius = diag * 1.3;
@@ -969,7 +1075,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       })
       .map(([, instance]) => ({
         ...instance,
-        visible: state.displayMode.kind === "standard" && !turn.hideCharacters,
+        visible: isStandardDisplayMode(state.displayMode.kind) && !turn.hideCharacters,
       }))
     : [];
   const stagePeople = [...Object.values(state.instances), ...exitingInstances];
@@ -990,7 +1096,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const continuedTurns = story.script.slice(continueRange.start, continueRange.end + 1);
   const hasBubbleText = !!turn.text.trim();
   const isSubtitle = turn.subtitleMode === "subtitle";
-  const isStandardDialogue = state.displayMode.kind === "standard" && !turn.hideBubble && hasBubbleText;
+  const isStandardDialogue = isStandardDisplayMode(state.displayMode.kind) && !turn.hideBubble && hasBubbleText;
   let speakerAmp = 0;
   if (audioData) {
     const wave = audioData.channelWaveforms[0];
@@ -1019,16 +1125,12 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const flashbackAt = (item: StageTurnV2 | undefined) => stageEffectEnabled(item?.effects?.flashback);
   const hasFlashback = flashbackAt(turn);
   const flashbackFilter = hasFlashback ? `saturate(${FLASHBACK_SATURATE}) brightness(${FLASHBACK_BRIGHTNESS})` : undefined;
-  const prevFlashback = flashbackAt(story.script[turnIndex - 1]);
-  const nextFlashback = flashbackAt(story.script[turnIndex + 1]);
-  const flashbackInFade = hasFlashback !== prevFlashback ? 1 - clamp(effectElapsed / FLASHBACK_DISSOLVE_SECONDS, 0, 1) : 0;
-  const flashbackOutFade = hasFlashback !== nextFlashback ? 1 - clamp(((effectEnd - seconds) / FLASHBACK_DISSOLVE_SECONDS), 0, 1) : 0;
-  const flashbackWhiteFadeOpacity = clamp(Math.max(flashbackInFade, flashbackOutFade), 0, 1);
   const stageShellTransform = [
     shakeOffset.x || shakeOffset.y ? `translate(${shakeOffset.x}px, ${shakeOffset.y}px)` : "",
     zoomPunchScale !== 1 ? `scale(${zoomPunchScale})` : "",
   ].filter(Boolean).join(" ") || undefined;
   const insertDisplay = displayModeInsert(state.displayMode);
+  const whiteboardPopTargets = whiteboardPopTargetsForTurn(story.script, turnIndex);
 
   const renderWhiteboardPresenter = () => {
     if (state.displayMode.kind !== "whiteboard") return undefined;
@@ -1435,7 +1537,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       : undefined;
     const plateInsertDisplay = displayModeInsert(plateState.displayMode);
     const platePeople = Object.values(plateState.instances)
-      .filter((instance) => instance.visible && plateState.displayMode.kind === "standard" && !plateTurn.hideCharacters)
+      .filter((instance) => instance.visible && isStandardDisplayMode(plateState.displayMode.kind) && !plateTurn.hideCharacters)
       .map((instance) => renderStaticPlateInstance(instance, plateTurn, plateScene, 0, "previous-plate"));
     return (
       <AbsoluteFill style={{filter: plateFilter}}>
@@ -1448,6 +1550,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             height={height}
             durationInFrames={Math.max(1, Math.round(((plateTurn.end ?? plateTurn.start ?? 0) - (plateTurn.start ?? 0)) * fps))}
             localFrame={Math.max(0, frame - Math.round((plateTurn.start ?? 0) * fps))}
+            visibleSections={plateState.displayMode.whiteboard.visibleSections}
             characterSlot={renderStaticWhiteboardPresenter(plateTurn, plateState, 0)}
           />
         ) : (
@@ -1467,43 +1570,93 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     );
   };
   const transitionPreviousPlate = renderTransitionPreviousPlate();
+  const irisOutVisual = stageIrisOutVisual(turn, effectElapsed, width, height);
+  const framedStage = state.displayMode.kind === "framedStage" ? state.displayMode.framedStage : null;
+  const previousFramedStage = previousState?.displayMode.kind === "framedStage"
+    ? previousState.displayMode.framedStage
+    : null;
+  const smoothFramedStage = !!framedStage
+    && framedStage.frameTransition === "smooth"
+    && previousFramedStage?.background === framedStage.background
+    && typeof turn.start === "number";
+  const framedTransitionProgress = smoothFramedStage
+    ? easeInOutCubic((seconds - (turn.start ?? seconds)) / SCENE_TRANSITION_FADE_SECONDS)
+    : 1;
+  const previousFramedWidth = previousFramedStage ? clamp(previousFramedStage.frame.width, 0.1, 1) : 1;
+  const previousFramedX = previousFramedStage ? clamp(previousFramedStage.frame.x, 0, 1 - previousFramedWidth) : 0;
+  const previousFramedY = previousFramedStage ? clamp(previousFramedStage.frame.y, 0, 1 - previousFramedWidth) : 0;
+  const targetFramedWidth = framedStage ? clamp(framedStage.frame.width, 0.1, 1) : 1;
+  const targetFramedX = framedStage ? clamp(framedStage.frame.x, 0, 1 - targetFramedWidth) : 0;
+  const targetFramedY = framedStage ? clamp(framedStage.frame.y, 0, 1 - targetFramedWidth) : 0;
+  const framedWidth = smoothFramedStage
+    ? lerp(previousFramedWidth, targetFramedWidth, framedTransitionProgress)
+    : targetFramedWidth;
+  // 出力も描画枠も16:9なので、横幅・縦幅の正規化比率は同じになる。
+  const framedHeight = framedWidth;
+  const framedX = smoothFramedStage
+    ? lerp(previousFramedX, targetFramedX, framedTransitionProgress)
+    : targetFramedX;
+  const framedY = smoothFramedStage
+    ? lerp(previousFramedY, targetFramedY, framedTransitionProgress)
+    : targetFramedY;
+  const framedViewportStyle = framedStage ? {
+    position: "absolute" as const,
+    left: width * framedX,
+    top: height * framedY,
+    width: width * framedWidth,
+    height: height * framedHeight,
+    overflow: "hidden" as const,
+  } : undefined;
+  const framedContentStyle = framedStage ? {
+    width,
+    height,
+    transform: `scale(${framedWidth})`,
+    transformOrigin: "top left",
+  } : undefined;
 
   return (
     <AbsoluteFill style={{background: "#111", overflow: "hidden"}}>
       <Audio src={mediaStaticSrc(audioSrc)} />
       <V2BgmLayer regions={story.bgm} fps={fps} />
       <V2SeLayer script={story.script} seMap={seMap} fps={fps} />
-      {transitionPreviousPlate}
-      <AbsoluteFill style={sceneTransition?.contentStyle}>
-        <AbsoluteFill style={{filter: flashbackFilter}}>
-          {insertDisplay ? (
-            <InsertOverlay insert={insertDisplay} bgOpacity={1} opacity={1} />
-          ) : state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
-            <WhiteboardExplainInsert
-              config={state.displayMode.whiteboard}
-              width={width}
-              height={height}
-              durationInFrames={Math.max(1, Math.round(((turn.end ?? turn.start ?? 0) - (turn.start ?? 0)) * fps))}
-              localFrame={Math.max(0, frame - Math.round((turn.start ?? 0) * fps))}
-              characterSlot={renderWhiteboardPresenter()}
-            />
-          ) : (
-            <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
-              <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
-                {scene.bgVideo ? (
-                  <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={bgStyle} />
-                ) : scene.bg ? (
-                  <Img src={staticFile(scene.bg)} style={bgStyle} />
-                ) : null}
-                <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
-                {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+      {irisOutVisual ? <AbsoluteFill style={irisOutVisual.backdropStyle} /> : null}
+      <AbsoluteFill style={irisOutVisual?.contentMaskStyle}>
+        {framedStage ? <Img src={staticFile(framedStage.background)} style={{position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover"}} /> : null}
+        <AbsoluteFill style={framedViewportStyle}>
+          <AbsoluteFill style={framedContentStyle}>
+            {transitionPreviousPlate}
+            <AbsoluteFill style={sceneTransition?.contentStyle}>
+          <AbsoluteFill style={{filter: flashbackFilter}}>
+            {insertDisplay ? (
+              <InsertOverlay insert={insertDisplay} bgOpacity={1} opacity={1} />
+            ) : state.displayMode.kind === "zunMeet" ? renderZunMeet() : state.displayMode.kind === "whiteboard" ? (
+              <WhiteboardExplainInsert
+                config={state.displayMode.whiteboard}
+                width={width}
+                height={height}
+                durationInFrames={Math.max(1, Math.round(((turn.end ?? turn.start ?? 0) - (turn.start ?? 0)) * fps))}
+                localFrame={Math.max(0, frame - Math.round((turn.start ?? 0) * fps))}
+                visibleSections={state.displayMode.whiteboard.visibleSections}
+                popTargets={whiteboardPopTargets}
+                characterSlot={renderWhiteboardPresenter()}
+              />
+            ) : (
+              <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
+                <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
+                  {scene.bgVideo ? (
+                    <Video src={staticFile(scene.bgVideo)} muted loop={scene.bgVideoLoop === true} style={bgStyle} />
+                  ) : scene.bg ? (
+                    <Img src={staticFile(scene.bg)} style={bgStyle} />
+                  ) : null}
+                  <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
+                  {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
+                </AbsoluteFill>
               </AbsoluteFill>
-            </AbsoluteFill>
-          )}
-        </AbsoluteFill>
-        {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
-        <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyImpactLines />
-        {isStandardDialogue && isSubtitle ? (() => {
+            )}
+          </AbsoluteFill>
+          {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
+          <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyImpactLines />
+          {isStandardDialogue && isSubtitle ? (() => {
           const style = turn.subtitleStyle ?? {};
           const fontSize = Number.isFinite(Number(style.fontSize)) ? clamp(Math.round(Number(style.fontSize)), 24, 96) : displaySettings.subtitle.fontSize;
           const textColor = validHex(style.textColor, displaySettings.subtitle.textColor);
@@ -1513,8 +1666,8 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             ? continuedTurns.map((item) => subtitleProgressiveText(item, seconds))
             : [subtitleProgressiveText(turn, seconds)];
           return <div style={{position: "absolute", zIndex: 30, left: "50%", bottom: displaySettings.subtitle.bottom, width: Math.min(width * displaySettings.subtitle.width, 1360), transform: "translateX(-50%)", padding: "16px 28px 18px", borderRadius: 18, background: hexToRgba(displaySettings.subtitle.bgColor, displaySettings.subtitle.bgOpacity), border: (style.boxBorder ?? displaySettings.subtitle.border) ? `${borderWidth}px solid ${borderColor}` : "none", boxShadow: "0 14px 34px rgba(0,0,0,.4)", color: textColor, fontSize, lineHeight: 1.45, fontWeight: 700, fontFamily: displaySettings.subtitle.fontFamily, textAlign: "center", whiteSpace: "pre-wrap", textShadow: "0 2px 6px rgba(0,0,0,.4)"}}>{texts.join("\n")}</div>;
-        })() : null}
-        {isStandardDialogue && !isSubtitle && speakerPosition && speakerDefinition?.role !== "voiceOnly" ? (() => {
+          })() : null}
+          {isStandardDialogue && !isSubtitle && speakerPosition && speakerDefinition?.role !== "voiceOnly" ? (() => {
           const autoGroups = sentenceGroups(turn);
           const usingContinuation = continuedTurns.length > 1;
           const texts = usingContinuation ? continuedTurns.map((item) => bubbleTextAt(item, seconds)) : autoGroups.map((group) => group.text);
@@ -1552,9 +1705,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             : {position: "absolute", zIndex: 30, left: singleLeft, top: bubbleTop - singleBottomOffset, width: singleWidth, transform: side === "right" ? "translate(-100%, -100%)" : "translate(0, -100%)", display: "flex", flexDirection: "column", alignItems: side === "right" ? "flex-end" : "flex-start"}}>
             {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 28px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: bubbleFontSizeValue, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
           </div>;
-        })() : null}
-        <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines />
-        {captionVisual && captionVisual.opacity > 0 ? (() => {
+          })() : null}
+          <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines hideIrisOut />
+          {captionVisual && captionVisual.opacity > 0 ? (() => {
           const caption = captionVisual.caption;
           const telopX = typeof caption.x === "number" ? clamp(caption.x, 0, 1) : displaySettings.telop.x;
           const telopY = typeof caption.y === "number" ? clamp(caption.y, 0, 1) : displaySettings.telop.y;
@@ -1577,10 +1730,22 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
               opacity: captionVisual.opacity,
             }}>{caption.text}</div>
           </AbsoluteFill>;
-        })() : null}
-        {flashbackWhiteFadeOpacity > 0 ? <AbsoluteFill style={{background: "#fff", opacity: flashbackWhiteFadeOpacity, pointerEvents: "none", zIndex: 60}} /> : null}
+          })() : null}
+            </AbsoluteFill>
+          </AbsoluteFill>
+          {framedStage && sceneTransition?.cover && sceneTransition.cover.opacity > 0 ? (
+            <AbsoluteFill
+              style={{
+                background: sceneTransition.cover.color,
+                opacity: sceneTransition.cover.opacity,
+                pointerEvents: "none",
+                zIndex: 70,
+              }}
+            />
+          ) : null}
+        </AbsoluteFill>
       </AbsoluteFill>
-      {sceneTransition?.cover && sceneTransition.cover.opacity > 0 ? (
+      {!framedStage && sceneTransition?.cover && sceneTransition.cover.opacity > 0 ? (
         <AbsoluteFill
           style={{
             background: sceneTransition.cover.color,

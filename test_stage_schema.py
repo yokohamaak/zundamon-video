@@ -127,6 +127,52 @@ class StageSchemaTest(unittest.TestCase):
         story["script"][0]["caption"] = {"text": "― 前日 ―", "x": 0.04, "y": 0.06, "size": 1.1}
         validate_story_v2(story, SCENES)
 
+    def test_v2_accepts_framed_stage(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "framedStage",
+            "framedStage": {
+                "background": "background/movie_player.png",
+                "frame": {"x": 0.1, "y": 0.1, "width": 0.72},
+                "frameTransition": "smooth",
+            },
+        }
+        validate_story_v2(story, SCENES)
+
+        story["script"][0]["displayMode"]["framedStage"]["frameTransition"] = "bounce"
+        with self.assertRaisesRegex(ValueError, "frameTransition"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_accepts_empty_text_for_pause_only_turn(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["text"] = ""
+        story["script"][0]["pause"] = 2.0
+        validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_framed_stage_outside_background(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "framedStage",
+            "framedStage": {
+                "background": "overlays/movie_player.png",
+                "frame": {"x": 0.1, "y": 0.1, "width": 0.72},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "framedStage.background"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_framed_stage_that_does_not_fit_16_by_9_canvas(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "framedStage",
+            "framedStage": {
+                "background": "background/movie_player.png",
+                "frame": {"x": 0.1, "y": 0.4, "width": 0.72},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "framedStage.frame"):
+            validate_story_v2(story, SCENES)
+
     def test_v2_rejects_invalid_caption(self):
         story = copy.deepcopy(STORY)
         story["script"][0]["caption"] = {"text": "", "x": 1.2}
@@ -295,16 +341,57 @@ class StageSchemaTest(unittest.TestCase):
                 "title": "整理します",
                 "theme": "確認事項",
                 "sections": [
-                    {"heading": "原因", "bullets": ["共有不足"]},
+                    {"heading": "原因", "bullets": ["共有不足"], "icon": "cause"},
+                    {"heading": "影響", "bullets": ["手戻り"], "icon": "risk"},
+                    {"heading": "対策", "bullets": ["記録する"], "icon": "solution"},
+                ],
+                "conclusion": "早めに共有する",
+                "layout": "compact",
+                "visibleSections": [True, False, True],
+                "visibleArrows": [False, True],
+                "showConclusion": True,
+                "showConclusionArrow": True,
+                "activeSection": 2,
+                "style": {
+                    "titleFontSize": 88,
+                    "themeFontSize": 60,
+                    "sectionHeadingFontSize": 48,
+                    "sectionBodyFontSize": 40,
+                    "conclusionFontSize": 64,
+                    "conclusionBoxX": 245,
+                    "conclusionBoxY": 700,
+                    "conclusionBoxWidth": 1150,
+                    "conclusionBoxHeight": 200,
+                },
+                "animation": {
+                    "mode": "step",
+                    "sectionPop": True,
+                    "arrowPop": True,
+                    "conclusionPop": True,
+                    "underlineDraw": True,
+                    "conclusionImpact": False,
+                },
+            },
+        }
+        validate_story_v2(story, SCENES)
+        story["script"][1]["displayMode"]["presenterId"] = "narrator"
+        with self.assertRaisesRegex(ValueError, "stage個体"):
+            validate_story_v2(story, SCENES)
+        story = copy.deepcopy(STORY)
+        story["script"][1]["displayMode"] = {
+            "kind": "whiteboard",
+            "whiteboard": {
+                "title": "整理します",
+                "theme": "確認事項",
+                "sections": [
+                    {"heading": "原因", "bullets": ["共有不足"], "icon": "missing"},
                     {"heading": "影響", "bullets": ["手戻り"]},
                     {"heading": "対策", "bullets": ["記録する"]},
                 ],
                 "conclusion": "早めに共有する",
             },
         }
-        validate_story_v2(story, SCENES)
-        story["script"][1]["displayMode"]["presenterId"] = "narrator"
-        with self.assertRaisesRegex(ValueError, "stage個体"):
+        with self.assertRaisesRegex(ValueError, "アイコン"):
             validate_story_v2(story, SCENES)
 
     def test_zun_meet_uses_explicit_participants(self):
@@ -391,6 +478,12 @@ class StageSchemaTest(unittest.TestCase):
         del story["script"][1]["stage"]["update"]["zundamon"]["visible"]
         story["script"][1]["stage"]["cameraMotion"] = {"zoom": 0.1, "speed": 2}
         with self.assertRaisesRegex(ValueError, "未対応の項目"):
+            validate_story_v2(story, SCENES)
+
+        story["script"][1]["stage"]["cameraMotion"] = {"inherit": True}
+        validate_story_v2(story, SCENES)
+        story["script"][1]["stage"]["cameraMotion"] = {"inherit": "yes"}
+        with self.assertRaisesRegex(ValueError, "cameraMotion.inherit"):
             validate_story_v2(story, SCENES)
 
     def test_stage_character_requires_known_renderer_material(self):

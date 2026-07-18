@@ -1,0 +1,547 @@
+{
+  "title": "【アニメ】若手営業「契約取れたのであとはヨロシク！」→無茶振りに中堅ずんだもんが本気を出した結果…！？",
+  "script": [
+    {
+      "speaker": "zundamon",
+      "text": "ふぅ、中堅社員ともなると、自分の仕事だけじゃなく全体のバランスを見るのが大変なのだ……。",
+      "scene": "office",
+      "expression": "trouble",
+      "pose": "droop",
+      "speakerAnchor": "left",
+      "transition": "fade-black",
+      "id": "turn-0001"
+    },
+    {
+      "speaker": "metan",
+      "text": "あら、ずんだもん。珍しくため息なんてついて、お疲れのようね？",
+      "scene": "office",
+      "expression": "normal",
+      "pose": "listening",
+      "speakerAnchor": "right",
+      "enter": [
+        "metan"
+      ],
+      "enterDir": "right",
+      "id": "turn-0002"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "めたん先輩！ そうなのだ、最近の若手は元気があっていいんだけど、ちょっと破天荒すぎて胃が痛いのだ……。",
+      "scene": "office",
+      "expression": "trouble",
+      "pose": "wobble",
+      "focusSpeaker": true,
+      "id": "turn-0003"
+    },
+    {
+      "speaker": "metan",
+      "text": "元気があるのは良いことじゃない。でも、あなたも「中堅」なんだから、しっかり手綱を握ってあげなさいな。",
+      "scene": "office",
+      "expression": "normal",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "id": "turn-0004"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "わ、分かっているのだ！ ボクがビシッと教育して見せるのだ！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "step_in",
+      "focusSpeaker": true,
+      "id": "turn-0005"
+    },
+    {
+      "speaker": "営業",
+      "text": "ずんだもん先輩！ 大変です！ とんでもない大口契約、取っちゃいましたー！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "cheer",
+      "speakerAnchor": "right",
+      "enter": [
+        "営業"
+      ],
+      "enterDir": "right",
+      "id": "turn-0006"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "おお！ さすが営業部期待の若手なのだ！ やるじゃないか！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "sparkleBurst": true,
+      "id": "turn-0007"
+    },
+    {
+      "speaker": "営業",
+      "text": "ただ、クライアントから『明日の朝までに、カスタマイズしたデモ画面が見たい』って言われまして！",
+      "scene": "office",
+      "expression": "normal",
+      "focusSpeaker": true,
+      "id": "turn-0008"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "……ん？ 明日の朝？ デモ画面のカスタマイズ？ 今からデザインとコーディングをするのだ？",
+      "scene": "office",
+      "expression": "surprise",
+      "pose": "recoil",
+      "focusSpeaker": true,
+      "id": "turn-0009"
+    },
+    {
+      "speaker": "営業",
+      "text": "はい！ 『ずんだもん先輩なら一晩でやってくれる』って言っておきました！ じゃ、デートあるんで定時で失礼します！",
+      "scene": "office",
+      "expression": "happy",
+      "exit": [
+        "営業"
+      ],
+      "exitDir": "right",
+      "id": "turn-0010"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ええええーーーっ！？ ちょっと待つ のだ！ 帰るんじゃないのだーーー！",
+      "scene": "office",
+      "expression": "panic",
+      "pose": "flustered",
+      "focusSpeaker": true,
+      "shake": true,
+      "id": "turn-0011"
+    },
+    {
+      "speaker": "metan",
+      "text": "あらあら。手綱を握るどころか、完全に馬車で引きずり回されているわね。",
+      "scene": "office",
+      "expression": "niyari",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "enter": [
+        "metan"
+      ],
+      "enterDir": "right",
+      "id": "turn-0012"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "めたん先輩、笑い事じゃないのだ！ 明日の朝までなんて、どう考えても物理的に不可能なのだ……！",
+      "scene": "office",
+      "expression": "cry",
+      "pose": "droop",
+      "focusSpeaker": true,
+      "id": "turn-0013"
+    },
+    {
+      "speaker": "metan",
+      "text": "諦めるのは早いわ。こういう時こそ、最近導入された社内AI『ZunAI』を使うのよ。",
+      "scene": "office",
+      "expression": "normal",
+      "pose": "point",
+      "focusSpeaker": true,
+      "id": "turn-0014"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ZunAI……？ そういえば、そんな高度なAIアシスタントが導入されていたのだ！",
+      "scene": "office",
+      "expression": "surprise",
+      "pose": "recoil",
+      "focusSpeaker": true,
+      "id": "turn-0015"
+    },
+    {
+      "speaker": "metan",
+      "text": "そう。プログラミングのコード生成から、デザインのモックアップ作成まで一瞬で行ってくれるわ。使い方は分かるわね？",
+      "scene": "office",
+      "expression": "normal",
+      "pose": "listening",
+      "focusSpeaker": true,
+      "id": "turn-0016"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "も、ちろんなのだ！ 中堅社員のボクにかかれば、AIを使いこなすなんて朝飯前なのだ！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "id": "turn-0017"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "さっそく会議室にこもって、ZunAIとデモ画面の開発を始めるのだ！",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "pose": "step_in",
+      "transition": "fade-black",
+      "id": "turn-0018"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ZunAI、起動なのだ！ クライアントの要望に合わせた、最高にイケてるデモ画面のコードを書いてほしいのだ！",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "pose": "point",
+      "insert": {
+        "kind": "chat",
+        "user": "最高にイケてるデモ画面のコードを書いてなのだ！",
+        "ai": [
+          "了解しました。どのようなデザインコンセプトをご希望ですか？"
+        ]
+      },
+      "id": "turn-0019"
+    },
+    {
+      "speaker": "AI",
+      "text": "具体的なデザインコンセプト、レイアウト、配色の指定を入力してください。",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "id": "turn-0020"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "えっ、具体的な指定？ ……えーっと、なんかこう、パッと見で『おっ、すごい！』ってなる感じでお願いするのだ！",
+      "scene": "meeting_room",
+      "expression": "question",
+      "pose": "wobble",
+      "insert": {
+        "kind": "chat",
+        "user": "パッと見で『おっ、すごい！』ってなる感じでお願いするのだ！",
+        "ai": [
+          "『おっ、すごい！』という表現は抽象的です。具体的な要件を定義してください。"
+        ]
+      },
+      "id": "turn-0021"
+    },
+    {
+      "speaker": "AI",
+      "text": "エラー。抽象的な表現は処理できません。ボタンの配置やカラーコードを指定してください。",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "id": "turn-0022"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "む、むずかしいのだ……！ カラーコードなんて分からないのだ！ 緑っぽくて、枝豆みたいな感じで！",
+      "scene": "meeting_room",
+      "expression": "panic",
+      "pose": "flustered",
+      "insert": {
+        "kind": "chat",
+        "user": "緑っぽくて、枝豆みたいな感じで！",
+        "ai": [
+          "枝豆をテーマにしたデザインコードを出力します。"
+        ]
+      },
+      "id": "turn-0023"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "おっ、コードが出力されたのだ！ これをプレビュー画面で確認してみるのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "proud",
+      "transition": "cut",
+      "id": "turn-0024"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "……って、画面全体がリアルな枝豆の画像で埋め尽くされてるだけなのだーーーっ！？",
+      "scene": "meeting_room",
+      "expression": "surprise",
+      "pose": "recoil",
+      "cameraEffects": {
+        "zoom": "in"
+      },
+      "emphasis": true,
+      "id": "turn-0025"
+    },
+    {
+      "speaker": "metan",
+      "text": "あら、ずいぶん斬新なデモ画面ね。これじゃあ営業どころか、ただの農業アピールだわ。",
+      "scene": "meeting_room",
+      "expression": "niyari",
+      "pose": "proud",
+      "speakerAnchor": "right",
+      "enter": [
+        "metan"
+      ],
+      "enterDir": "right",
+      "id": "turn-0026"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "めたん先輩！ いつからそこに！？ 違うのだ、AIがボクの意図を全然汲み取ってくれないのだ！",
+      "scene": "meeting_room",
+      "expression": "cry",
+      "pose": "droop",
+      "focusSpeaker": true,
+      "id": "turn-0027"
+    },
+    {
+      "speaker": "metan",
+      "text": "AIは魔法の道具じゃないのよ。出す指示（プロンプト）が曖昧なら、それなりのものしか返ってこないわ。",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "pose": "point",
+      "focusSpeaker": true,
+      "id": "turn-0028"
+    },
+    {
+      "speaker": "metan",
+      "text": "まずはクライアントの要望を整理して、論理的に一つずつ組み立てていくの。それが『中堅』の仕事でしょう？",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "pose": "listening",
+      "focusSpeaker": true,
+      "id": "turn-0029"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "うっ……確かにその通りなのだ。ボクはただAIに丸投げしようとしていただけだったのだ……。",
+      "scene": "meeting_room",
+      "expression": "trouble",
+      "pose": "wobble",
+      "focusSpeaker": true,
+      "id": "turn-0030"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "よし、覚醒なのだ！ クライアントの資料を読み込んで、完璧な指示書をボク自身で作って見せるのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "step_in",
+      "focusSpeaker": true,
+      "zoomPunch": true,
+      "id": "turn-0031"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "えーっと、ターゲット層は30代ビジネスパーソン。全体のトーンは信頼感のあるネイビー（#002060）を基調として……",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "pose": "point",
+      "telop": "― 深夜 2:00 ―",
+      "transition": "fade-black",
+      "id": "turn-0032"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "グラフ描画ライブラリを組み込んで、売上データがリアルタイムで動くデモにするのだ。ZunAI、これで生成するのだ！",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "insert": {
+        "kind": "chat",
+        "user": "（論理的で完璧な指示書を入力）",
+        "ai": [
+          "仕様を理解しました。高品質なデモ画面のコードを生成します。"
+        ]
+      },
+      "id": "turn-0033"
+    },
+    {
+      "speaker": "AI",
+      "text": "コードの生成が完了しました。モックアップを表示します。",
+      "scene": "meeting_room",
+      "expression": "normal",
+      "id": "turn-0034"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "きたなのだ！ これこれ！ 美しいUI、滑らかなアニメーション、まさに完璧なデモ画面なのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "cheer",
+      "cameraEffects": {
+        "zoom": "in"
+      },
+      "sparkleBurst": true,
+      "id": "turn-0035"
+    },
+    {
+      "speaker": "metan",
+      "text": "やるじゃない、ずんだもん。論理的なプロンプトを打てば、AIは最高の相棒になるわね。",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "proud",
+      "speakerAnchor": "right",
+      "enter": [
+        "metan"
+      ],
+      "enterDir": "right",
+      "id": "turn-0036"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ふふん、これこそが中堅社員の底力なのだ！ あとは若手の出社を待って、引き渡すだけなのだ！",
+      "scene": "meeting_room",
+      "expression": "happy",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "id": "turn-0037"
+    },
+    {
+      "speaker": "営業",
+      "text": "おはよーございまーす！ 朝のデモ画面、できてますかー？",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "cheer",
+      "speakerAnchor": "right",
+      "enter": [
+        "営業"
+      ],
+      "enterDir": "right",
+      "transition": "fade-black",
+      "telop": "― 翌朝 9:00 ―",
+      "id": "turn-0038"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "ふっふっふ……もちろん完璧に仕上がっているのだ。このデモ画面を持っていけば、契約は確実なのだ！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "stampRain": "完璧！",
+      "id": "turn-0039"
+    },
+    {
+      "speaker": "営業",
+      "text": "うわぁぁ！ す、すごすぎる！ 昨日の今日で、こんなハイクオリティなものを作っちゃうなんて！",
+      "scene": "office",
+      "expression": "surprise",
+      "pose": "recoil",
+      "focusSpeaker": true,
+      "id": "turn-0040"
+    },
+    {
+      "speaker": "営業",
+      "text": "ずんだもん先輩、神ですか！？ いや、宇宙の創造主ですか！？ 一生ついていきます！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "cheer",
+      "focusSpeaker": true,
+      "id": "turn-0041"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "まあまあ、これくらい中堅なら当然なのだ。さあ、クライアントへのプレゼン、バシッと決めてくるのだ！",
+      "scene": "office",
+      "expression": "niyari",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "id": "turn-0042"
+    },
+    {
+      "speaker": "営業",
+      "text": "はい！ 行ってきます！ 最高のデモをぶちかましてきますね！",
+      "scene": "office",
+      "expression": "happy",
+      "exit": [
+        "営業"
+      ],
+      "exitDir": "right",
+      "id": "turn-0043"
+    },
+    {
+      "speaker": "metan",
+      "text": "ずいぶん懐かれたわね、ずんだもん。徹夜した甲斐があったじゃない。",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "listening",
+      "speakerAnchor": "right",
+      "enter": [
+        "metan"
+      ],
+      "enterDir": "right",
+      "id": "turn-0044"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "これでボクの社内評価も爆上がり間違いなしなのだ！ 中堅としての威厳も保てたのだ！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "cheer",
+      "focusSpeaker": true,
+      "id": "turn-0045"
+    },
+    {
+      "speaker": "営業",
+      "text": "ずんだもん先輩！ 大ニュースです！ デモ画面を見せたら、クライアントが感動しすぎて……！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "cheer",
+      "speakerAnchor": "right",
+      "enter": [
+        "営業"
+      ],
+      "enterDir": "right",
+      "transition": "cut",
+      "id": "turn-0046"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "おお！ 契約成立なのだ！？ やったのだ！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "id": "turn-0047"
+    },
+    {
+      "speaker": "営業",
+      "text": "『このハイクオリティなデモをベースに、あと5パターン、別のデザインも今日の夕方までに見たい』って言われました！",
+      "scene": "office",
+      "expression": "happy",
+      "pose": "cheer",
+      "focusSpeaker": true,
+      "id": "turn-0048"
+    },
+    {
+      "speaker": "営業",
+      "text": "ずんだもん先輩なら余裕ですよね！ 5パターン、夕方までにヨロシクお願いしまーす！",
+      "scene": "office",
+      "expression": "happy",
+      "exit": [
+        "営業"
+      ],
+      "exitDir": "right",
+      "id": "turn-0049"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "……え？ 5パターン？ 今日の夕方まで……？",
+      "scene": "office",
+      "expression": "panic",
+      "pose": "wobble",
+      "focusSpeaker": true,
+      "cameraEffects": {
+        "zoom": "in"
+      },
+      "id": "turn-0050"
+    },
+    {
+      "speaker": "metan",
+      "text": "有能すぎるのも考えものね。さあ、中堅の底力を見せて、第二ラウンド開始よ？",
+      "scene": "office",
+      "expression": "niyari",
+      "pose": "proud",
+      "focusSpeaker": true,
+      "id": "turn-0051"
+    },
+    {
+      "speaker": "zundamon",
+      "text": "もう無理なのだーーーっ！ 誰かボクを助けてなのだーーーっ！！",
+      "scene": "office",
+      "expression": "panic",
+      "pose": "flustered",
+      "focusSpeaker": true,
+      "irisOut": true,
+      "shake": true,
+      "id": "turn-0052"
+    }
+  ]
+}

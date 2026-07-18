@@ -102,6 +102,14 @@ const drawProgress = (frame: number, enabled: boolean, start = 4, duration = 16)
   });
 };
 
+const estimateWrappedLineCount = (text: string, fontSize: number, maxWidth: number) => {
+  const chars = [...String(text || '')];
+  if (chars.length === 0) return 1;
+  const charWidth = fontSize * 0.92;
+  const charsPerLine = Math.max(1, Math.floor(maxWidth / Math.max(1, charWidth)));
+  return Math.max(1, Math.ceil(chars.length / charsPerLine));
+};
+
 const Arrow: React.FC<{ x: number; y: number; width: number; height: number; strokeWidth: number; color: string }> = ({ x, y, width, height, strokeWidth, color }) => {
   const midY = height / 2;
   const headX = Math.max(18, width - 8);
@@ -226,6 +234,16 @@ const SectionBlock: React.FC<{
   const iconSize = Math.max(24, (section.iconSize ?? 120) * widthScale);
   const iconLeft = (typeof section.iconX === 'number' ? section.iconX : rect.width / widthScale - 128) * widthScale;
   const iconTop = (typeof section.iconY === 'number' ? section.iconY : 155) * heightScale;
+  const headingTextWidth = Math.max(1, rect.width - headingFont * 1.15 - 12);
+  const headingLines = estimateWrappedLineCount(heading, headingFont, headingTextWidth);
+  const headingHeight = Math.max(headingFont * 1.15, headingLines * headingFont);
+  const bodyTextWidth = Math.max(1, rect.width - 16 - bodyFont);
+  const bodyLineHeight = bodyFont * 1.45;
+  const bodyLines = bullets.reduce((sum, bullet) => sum + estimateWrappedLineCount(bullet, bodyFont, bodyTextWidth), 0);
+  const highlightHeight = Math.min(
+    rect.height + 28,
+    Math.max(headingHeight + 50, 92 + bodyLines * bodyLineHeight + 28),
+  );
 
   return (
     <div style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height }}>
@@ -236,7 +254,7 @@ const SectionBlock: React.FC<{
             left: -18,
             top: -18,
             width: rect.width + 24,
-            height: 260,
+            height: highlightHeight,
             borderRadius: 24,
             background: markerColor,
             opacity: 0.18,
@@ -255,7 +273,7 @@ const SectionBlock: React.FC<{
           color: headingColor,
           lineHeight: 1,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           gap: 12,
         }}
       >
@@ -272,7 +290,7 @@ const SectionBlock: React.FC<{
         >
           {index + 1}
         </span>
-        <span>{heading}</span>
+        <span style={{ whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.05 }}>{heading}</span>
       </div>
       {handwritingLine({ x: 54, y: headingFont + 13, width: rect.width - 72, color: headingColor, strokeWidth: 5, progress: underlineProgress, variant: index + 2 })}
 

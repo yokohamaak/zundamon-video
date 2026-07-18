@@ -41,10 +41,334 @@
   },
   "script": [
     {
+      "id": "turn-0171",
+      "speaker": "AI",
+      "text": "ずんだもん解析中。",
+      "scene": "black",
+      "start": 0,
+      "end": 1.344,
+      "displayMode": {
+        "kind": "zunAi",
+        "chat": {
+          "kind": "chat",
+          "user": "",
+          "ai": [
+            "「ずんだもん」解析中．．．"
+          ],
+          "width": 1.95,
+          "fontScale": 1.3,
+          "backdropImage": "background/desktop.png",
+          "highlight": 0
+        }
+      },
+      "transition": "cut",
+      "sentences": [
+        {
+          "text": "ずんだもん解析中。",
+          "start": 0,
+          "end": 1.344
+        }
+      ],
+      "pause": 1,
+      "se": [
+        {
+          "file": "se/決定ボタンを押す40.mp3"
+        }
+      ]
+    },
+    {
+      "id": "turn-0173",
+      "speaker": "AI",
+      "text": "将来ずんだもんが一人ぼっちで枯れた枝豆になる確率が",
+      "scene": "black",
+      "start": 2.694,
+      "end": 6.065,
+      "displayMode": {
+        "kind": "zunAi",
+        "chat": {
+          "kind": "chat",
+          "user": "",
+          "ai": [
+            "将来ずんだもんが一人ぼっちで枯れた枝豆になる確率が"
+          ],
+          "width": 1.95,
+          "fontScale": 1.3,
+          "backdropImage": "background/desktop.png",
+          "highlight": 0
+        }
+      },
+      "sentences": [
+        {
+          "text": "将来ずんだもんが一人ぼっちで枯れた枝豆になる確率が",
+          "start": 2.694,
+          "end": 6.065
+        }
+      ],
+      "se": [
+        {
+          "file": "se/決定ボタンを押す40.mp3"
+        }
+      ]
+    },
+    {
+      "id": "turn-0172",
+      "speaker": "AI",
+      "text": "『96.5%』と算出されました。",
+      "scene": "black",
+      "start": 6.415,
+      "end": 9.497,
+      "displayMode": {
+        "kind": "zunAi",
+        "chat": {
+          "kind": "chat",
+          "user": "",
+          "ai": [
+            "将来ずんだもんが一人ぼっちで枯れた枝豆になる確率が",
+            "『96.5%』と算出されました。"
+          ],
+          "width": 1.95,
+          "fontScale": 1.3,
+          "backdropImage": "background/desktop.png",
+          "highlight": 1
+        }
+      },
+      "sentences": [
+        {
+          "text": "『96.5%』と算出されました。",
+          "start": 6.415,
+          "end": 9.497
+        }
+      ],
+      "se": [
+        {
+          "file": "se/決定ボタンを押す40.mp3"
+        }
+      ]
+    },
+    {
       "id": "turn-0129",
-      "speaker": "zundamon",
+      "speaker": "音声なし",
       "text": " ",
-      "scene": "office",
+      "scene": "black",
+      "displayMode": {
+        "kind": "framedStage",
+        "framedStage": {
+          "background": "background/movie_player.png",
+          "frame": {
+            "x": 0.2,
+            "y": 0.151,
+            "width": 0.595
+          }
+        }
+      },
+      "start": 9.847,
+      "end": 9.847,
+      "sentences": [],
+      "transition": "cut",
+      "stage": {
+        "framing": {
+          "mode": "manual",
+          "frame": {
+            "cx": 0.3891925550486944,
+            "cy": 0.3891925550486944,
+            "width": 0.7783851100973888
+          }
+        },
+        "cameraMotion": {
+          "zoom": 0.2,
+          "pan": {
+            "x": -0.1,
+            "y": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "turn-0169",
+      "speaker": "おじいさんずんだもん",
+      "text": " ",
+      "scene": "old_zundamon_heya_idol",
+      "displayMode": {
+        "kind": "framedStage",
+        "framedStage": {
+          "background": "background/movie_player.png",
+          "frame": {
+            "x": 0.2,
+            "y": 0.15,
+            "width": 0.595
+          }
+        }
+      },
+      "start": 10.197,
+      "end": 10.197,
+      "transition": "fade-white",
+      "sentences": [],
+      "se": [
+        {
+          "file": "se/メニューを開く1.mp3"
+        }
+      ],
+      "pause": 1.5,
+      "stage": {
+        "framing": {
+          "mode": "speaker"
+        },
+        "cameraMotion": {
+          "zoom": 0.69,
+          "pan": {
+            "x": -0.04,
+            "y": 0.32
+          }
+        },
+        "enter": [
+          {
+            "instanceId": "おじいさんずんだもん",
+            "placement": {
+              "mode": "manual",
+              "origin": {
+                "x": 0.53,
+                "y": 0.99
+              },
+              "scale": 0.6,
+              "zIndex": 20
+            },
+            "animation": {
+              "direction": "instant"
+            }
+          }
+        ],
+        "update": {
+          "おじいさんずんだもん": {
+            "expression": "agitated",
+            "flip": true
+          }
+        }
+      }
+    },
+    {
+      "id": "turn-0176",
+      "speaker": "女性",
+      "text": " みんなー！\n今日も配信見に来てくれてありがとー！",
+      "scene": "old_zundamon_heya_idol",
+      "displayMode": {
+        "kind": "framedStage",
+        "framedStage": {
+          "background": "background/movie_player.png",
+          "frame": {
+            "x": 0.2,
+            "y": 0.15,
+            "width": 0.595
+          }
+        }
+      },
+      "start": 12.047,
+      "end": 14.981,
+      "pause": 1.5,
+      "sentences": [
+        {
+          "text": "みんなー！",
+          "start": 12.047,
+          "end": 12.655
+        },
+        {
+          "text": "今日も配信見に来てくれてありがとー！",
+          "start": 12.655,
+          "end": 14.981
+        }
+      ],
+      "stage": {
+        "cameraMotion": {
+          "inherit": true
+        }
+      },
+      "subtitleMode": "subtitle",
+      "subtitleStyle": {
+        "fontSize": 46,
+        "textColor": "#ffffff",
+        "boxBorder": true,
+        "boxBorderColor": "#ffffff",
+        "boxBorderWidth": 2
+      }
+    },
+    {
+      "id": "turn-0178",
+      "speaker": "女性",
+      "text": " みんなー！\n今日も配信見に来てくれてありがとー！",
+      "scene": "old_zundamon_heya_idol",
+      "displayMode": {
+        "kind": "framedStage",
+        "framedStage": {
+          "background": "background/movie_player.png",
+          "frame": {
+            "x": 0.2,
+            "y": 0.15,
+            "width": 0.595
+          }
+        }
+      },
+      "start": 16.831,
+      "end": 19.764,
+      "pause": 1.5,
+      "subtitleMode": "subtitle",
+      "subtitleStyle": {
+        "fontSize": 46,
+        "textColor": "#ffffff",
+        "boxBorder": true,
+        "boxBorderColor": "#ffffff",
+        "boxBorderWidth": 2
+      },
+      "sentences": [
+        {
+          "text": "みんなー！",
+          "start": 16.831,
+          "end": 17.439
+        },
+        {
+          "text": "今日も配信見に来てくれてありがとー！",
+          "start": 17.439,
+          "end": 19.764
+        }
+      ]
+    },
+    {
+      "id": "turn-0177",
+      "speaker": "女性",
+      "text": " 今日も見に来てくれてありがとー！",
+      "scene": "old_zundamon_heya_idol",
+      "displayMode": {
+        "kind": "framedStage",
+        "framedStage": {
+          "background": "background/movie_player.png",
+          "frame": {
+            "x": 0.2,
+            "y": 0.15,
+            "width": 0.595
+          }
+        }
+      },
+      "start": 21.614,
+      "end": 23.481,
+      "pause": 1.5,
+      "sentences": [
+        {
+          "text": "今日も見に来てくれてありがとー！",
+          "start": 21.614,
+          "end": 23.481
+        }
+      ],
+      "stage": {
+        "cameraMotion": {
+          "inherit": true
+        }
+      }
+    },
+    {
+      "id": "turn-0175",
+      "speaker": "zundamon",
+      "text": "こんな最期は絶対に嫌なのだぁぁぁぁっ！！",
+      "scene": "home-night",
+      "start": 25.331,
+      "end": 28.093,
       "displayMode": {
         "kind": "standard"
       },
@@ -54,95 +378,168 @@
             "instanceId": "zundamon",
             "placement": {
               "mode": "slot",
-              "slotId": "speakerRight"
+              "slotId": "center"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
-        "framing": {
-          "mode": "sceneDefault"
+        "cameraMotion": {
+          "zoom": 0.4,
+          "pan": {
+            "x": 0,
+            "y": -0.06
+          },
+          "shake": {
+            "strength": 23,
+            "duration": 2.1
+          }
+        },
+        "update": {
+          "zundamon": {
+            "expression": "trouble",
+            "pose": "recoil"
+          }
         }
       },
-      "start": 0.0,
-      "end": 0.0,
-      "sentences": []
+      "transition": "fade-white",
+      "sentences": [
+        {
+          "text": "こんな最期は絶対に嫌なのだぁぁぁぁっ！！",
+          "start": 25.331,
+          "end": 28.093
+        }
+      ],
+      "pause": 0.9,
+      "effects": {
+        "impactLines": {
+          "enabled": true,
+          "cx": 0.52,
+          "cy": 0.33,
+          "count": 72,
+          "thickness": 1.25,
+          "opacity": 0.32,
+          "innerRadius": 0.41,
+          "start": 0.1,
+          "end": 3.65
+        }
+      }
     },
     {
       "id": "turn-0001",
       "speaker": "zundamon",
-      "text": "全社チャンネルに怒涛の勢いで\nメッセージを送信するのだ！エンター！ターン！なのだ！",
+      "text": "全社チャンネルに怒涛の勢いで\nメッセージを送信するのだ！",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "angry",
-            "pose": "typingFlood"
-          }
-        },
         "framing": {
           "mode": "speaker"
-        }
+        },
+        "enter": [
+          {
+            "instanceId": "zundamon",
+            "placement": {
+              "mode": "slot",
+              "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
+            }
+          }
+        ]
       },
-      "start": 0.35,
-      "end": 6.878,
+      "start": 29.343,
+      "end": 33.845,
       "sentences": [
         {
           "text": "全社チャンネルに怒涛の勢いで メッセージを送信するのだ！",
-          "start": 0.35,
-          "end": 4.851
-        },
+          "start": 29.343,
+          "end": 33.845
+        }
+      ],
+      "transition": "fade-black",
+      "caption": {
+        "text": "ーオフィスー"
+      }
+    },
+    {
+      "id": "turn-0151",
+      "speaker": "zundamon",
+      "text": "エンター！ターン！なのだ！",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 34.195,
+      "end": 36.221,
+      "sentences": [
         {
           "text": "エンター！",
-          "start": 4.851,
-          "end": 5.566
+          "start": 34.195,
+          "end": 34.909
         },
         {
           "text": "ターン！",
-          "start": 5.566,
-          "end": 6.249
+          "start": 34.909,
+          "end": 35.592
         },
         {
           "text": "なのだ！",
-          "start": 6.249,
-          "end": 6.878
+          "start": 35.592,
+          "end": 36.221
         }
-      ]
+      ],
+      "disableAutoBubbleSplit": true,
+      "se": [
+        {
+          "file": "se/決定ボタンを押す40.mp3",
+          "at": 0.2
+        },
+        {
+          "file": "se/決定ボタンを押す40.mp3",
+          "at": 0.4
+        },
+        {
+          "file": "se/決定ボタンを押す40.mp3",
+          "at": 0.6
+        },
+        {
+          "file": "se/決定ボタンを押す40.mp3",
+          "at": 0.8
+        }
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0002",
       "speaker": "zundamon",
-      "text": "これで今週末の社内バーベキューは、参加率1000％間違いなしなのだ！",
+      "text": "これで今週末の社内バーベキューは\n参加率1000％間違いなしなのだ！",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "normal",
-            "pose": "proud"
-          }
-        },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         }
       },
-      "start": 7.228,
-      "end": 12.764,
+      "start": 36.571,
+      "end": 42.107,
       "sentences": [
         {
-          "text": "これで今週末の社内バーベキューは、",
-          "start": 7.228,
-          "end": 9.996
-        },
-        {
-          "text": "参加率1000％間違いなしなのだ！",
-          "start": 9.996,
-          "end": 12.764
+          "text": "これで今週末の社内バーベキューは 参加率1000％間違いなしなのだ！",
+          "start": 36.571,
+          "end": 42.107
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0003",
@@ -153,38 +550,35 @@
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "angry",
-            "pose": "step_in"
-          }
-        },
         "framing": {
           "mode": "speaker"
         },
         "cameraMotion": {
-          "zoom": 0.1
+          "zoom": 0.2
         }
       },
-      "start": 13.114,
-      "end": 18.778,
+      "start": 42.457,
+      "end": 48.121,
       "sentences": [
         {
           "text": "まだまだ足りないのだ！",
-          "start": 13.114,
-          "end": 14.575
+          "start": 42.457,
+          "end": 43.919
         },
         {
           "text": "部署の垣根を超えて、",
-          "start": 14.575,
-          "end": 15.976
+          "start": 43.919,
+          "end": 45.32
         },
         {
           "text": " 全員のスケジュールを押さえてやるのだ！",
-          "start": 15.976,
-          "end": 18.778
+          "start": 45.32,
+          "end": 48.121
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0004",
@@ -214,20 +608,23 @@
           "mode": "speaker"
         }
       },
-      "start": 19.128,
-      "end": 24.92,
+      "start": 48.471,
+      "end": 54.263,
       "sentences": [
         {
           "text": "ちょっと、ずんだもん。",
-          "start": 19.128,
-          "end": 20.877
+          "start": 48.471,
+          "end": 50.221
         },
         {
           "text": "あなたの脳内CPU、熱暴走でも起こしてるの？",
-          "start": 20.877,
-          "end": 24.92
+          "start": 50.221,
+          "end": 54.263
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0005",
@@ -240,7 +637,7 @@
       "stage": {
         "update": {
           "metan": {
-            "expression": "trouble",
+            "expression": "angry",
             "pose": "arms_crossed"
           }
         },
@@ -248,49 +645,54 @@
           "mode": "speaker"
         }
       },
-      "start": 25.27,
-      "end": 31.094,
+      "start": 54.613,
+      "end": 60.437,
       "sentences": [
         {
           "text": "さっきから社内チャットの通知が鳴り止まないんだけど。",
-          "start": 25.27,
-          "end": 28.491
+          "start": 54.613,
+          "end": 57.835
         },
         {
           "text": "これ、立派なサイバー攻撃よ？",
-          "start": 28.491,
-          "end": 31.094
+          "start": 57.835,
+          "end": 60.437
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0007",
       "speaker": "zundamon",
-      "text": "とにかく今は1分1秒を争うのだ！",
+      "text": "あ、めたん！\nとにかく今は1分1秒を争うのだ！",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "trouble",
-            "pose": "proud"
-          }
-        },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 31.444,
-      "end": 34.228,
+      "start": 60.787,
+      "end": 65.075,
       "sentences": [
         {
+          "text": "あ、めたん！",
+          "start": 60.787,
+          "end": 62.291
+        },
+        {
           "text": "とにかく今は1分1秒を争うのだ！",
-          "start": 31.444,
-          "end": 34.228
+          "start": 62.291,
+          "end": 65.075
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0086",
@@ -301,12 +703,6 @@
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "trouble",
-            "pose": "proud"
-          }
-        },
         "framing": {
           "mode": "speaker"
         },
@@ -314,20 +710,23 @@
           "zoom": 0.1
         }
       },
-      "start": 34.578,
-      "end": 39.346,
+      "start": 65.425,
+      "end": 70.193,
       "sentences": [
         {
           "text": "人との繋がりを、",
-          "start": 34.578,
-          "end": 35.94
+          "start": 65.425,
+          "end": 66.788
         },
         {
           "text": "バックアップを含めて爆速で構築中なのだ！",
-          "start": 35.94,
-          "end": 39.346
+          "start": 66.788,
+          "end": 70.193
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0008",
@@ -348,15 +747,18 @@
           "mode": "speaker"
         }
       },
-      "start": 39.696,
-      "end": 41.104,
+      "start": 70.543,
+      "end": 71.951,
       "sentences": [
         {
           "text": "急にどうしたのよ？",
-          "start": 39.696,
-          "end": 41.104
+          "start": 70.543,
+          "end": 71.951
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0087",
@@ -377,20 +779,23 @@
           "mode": "speaker"
         }
       },
-      "start": 41.454,
-      "end": 45.678,
+      "start": 72.301,
+      "end": 76.536,
       "sentences": [
         {
           "text": "いつもは週末になったら引きこもって 推し活三昧のくせに。",
-          "start": 41.454,
-          "end": 45.678
+          "start": 72.301,
+          "end": 76.536
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0009",
       "speaker": "metan",
-      "text": "全社チャットへのバーベキュースパム爆撃なんて",
+      "text": "全社チャットへのバーベキュー・スパム爆撃なんて",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -406,15 +811,18 @@
           "mode": "speaker"
         }
       },
-      "start": 46.028,
-      "end": 48.972,
+      "start": 76.886,
+      "end": 80.342,
       "sentences": [
         {
-          "text": "全社チャットへのバーベキュースパム爆撃なんて",
-          "start": 46.028,
-          "end": 48.972
+          "text": "全社チャットへのバーベキュー・スパム爆撃なんて",
+          "start": 76.886,
+          "end": 80.342
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0088",
@@ -432,18 +840,21 @@
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         }
       },
-      "start": 49.322,
-      "end": 50.453,
+      "start": 80.692,
+      "end": 81.823,
       "sentences": [
         {
           "text": "何かあったの？",
-          "start": 49.322,
-          "end": 50.453
+          "start": 80.692,
+          "end": 81.823
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0010",
@@ -454,54 +865,48 @@
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "cry",
-            "pose": "droop"
-          }
-        },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 50.803,
-      "end": 52.797,
+      "start": 82.173,
+      "end": 84.167,
       "sentences": [
         {
           "text": "うっ……それを聞かれると、",
-          "start": 50.803,
-          "end": 52.797
+          "start": 82.173,
+          "end": 84.167
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0089",
       "speaker": "zundamon",
-      "text": "胸の枝豆が締め付けられるのだ……。",
+      "text": "胸の奥の枝豆が締め付けられるのだ……。",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "cry",
-            "pose": "droop"
-          }
-        },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 53.147,
-      "end": 55.473,
+      "start": 84.517,
+      "end": 87.205,
       "sentences": [
         {
-          "text": "胸の枝豆が締め付けられるのだ……。",
-          "start": 53.147,
-          "end": 55.473
+          "text": "胸の奥の枝豆が締め付けられるのだ……。",
+          "start": 84.517,
+          "end": 87.205
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0011",
@@ -512,25 +917,22 @@
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "zundamon": {
-            "expression": "cry",
-            "pose": "droop"
-          }
-        },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 55.823,
-      "end": 58.521,
+      "start": 87.555,
+      "end": 90.254,
       "sentences": [
         {
           "text": "それは……昨日の夜のことだったのだ……。",
-          "start": 55.823,
-          "end": 58.521
+          "start": 87.555,
+          "end": 90.254
         }
-      ]
+      ],
+      "caption": {
+        "text": "ーオフィスー"
+      }
     },
     {
       "id": "turn-0012",
@@ -547,23 +949,32 @@
             "placement": {
               "mode": "slot",
               "slotId": "center"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
         "update": {
           "zundamon": {
-            "expression": "happy",
-            "pose": "cheer"
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 58.871,
-      "end": 58.871,
+      "start": 90.604,
+      "end": 90.604,
       "pause": 0.6,
-      "sentences": []
+      "sentences": [],
+      "transition": "fade-white",
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0116",
@@ -584,20 +995,26 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 59.821,
-      "end": 65.901,
+      "start": 91.554,
+      "end": 97.634,
       "sentences": [
         {
           "text": "今日も推しが尊いのだぁぁぁ！",
-          "start": 59.821,
-          "end": 61.827
+          "start": 91.554,
+          "end": 93.559
         },
         {
           "text": "新衣装の配信、最高すぎて涙が止まらないのだ！",
-          "start": 61.827,
-          "end": 65.901
+          "start": 93.559,
+          "end": 97.634
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0013",
@@ -616,22 +1033,37 @@
         },
         "framing": {
           "mode": "sceneDefault"
+        },
+        "cameraMotion": {
+          "zoom": 0.4,
+          "pan": {
+            "x": 0,
+            "y": -0.08
+          }
         }
       },
-      "start": 66.251,
-      "end": 71.691,
+      "start": 97.984,
+      "end": 103.424,
       "sentences": [
         {
           "text": "お給料は全額スーパーチャットに全振りなのだー！",
-          "start": 66.251,
-          "end": 69.643
+          "start": 97.984,
+          "end": 101.376
         },
         {
           "text": "赤スパ、投下なのだーーっ！",
-          "start": 69.643,
-          "end": 71.691
+          "start": 101.376,
+          "end": 103.424
         }
-      ]
+      ],
+      "effects": {
+        "flashback": {
+          "enabled": true
+        }
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0014",
@@ -652,20 +1084,26 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 72.041,
-      "end": 78.377,
+      "start": 103.774,
+      "end": 110.11,
       "sentences": [
         {
           "text": "あ、スマホに通知が来てるのだ……。",
-          "start": 72.041,
-          "end": 74.836
+          "start": 103.774,
+          "end": 106.569
         },
         {
           "text": "学生時代の友人からの飲み会の誘いなのだ？",
-          "start": 74.836,
-          "end": 78.377
+          "start": 106.569,
+          "end": 110.11
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0015",
@@ -678,28 +1116,34 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "niyari",
-            "pose": "idle"
+            "expression": "doubt",
+            "pose": "proud"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 78.727,
-      "end": 84.359,
+      "start": 110.46,
+      "end": 116.092,
       "sentences": [
         {
           "text": "んー……でも今は配信の余韻に浸りたいし、",
-          "start": 78.727,
-          "end": 82.141
+          "start": 110.46,
+          "end": 113.873
         },
         {
           "text": " 今月はお金もピンチだし、",
-          "start": 82.141,
-          "end": 84.359
+          "start": 113.873,
+          "end": 116.092
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0090",
@@ -720,15 +1164,21 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 84.709,
-      "end": 87.504,
+      "start": 116.442,
+      "end": 119.237,
       "sentences": [
         {
           "text": "『また今度』って返事してパスなのだ！",
-          "start": 84.709,
-          "end": 87.504
+          "start": 116.442,
+          "end": 119.237
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0016",
@@ -741,7 +1191,7 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "normal",
+            "expression": "question",
             "pose": "step_back"
           }
         },
@@ -749,15 +1199,21 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 87.854,
-      "end": 91.289,
+      "start": 119.587,
+      "end": 123.021,
       "sentences": [
         {
           "text": "あ、今度は母親から電話が来てるのだ……。",
-          "start": 87.854,
-          "end": 91.289
+          "start": 119.587,
+          "end": 123.021
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0091",
@@ -770,7 +1226,7 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "normal",
+            "expression": "doubt",
             "pose": "step_back"
           }
         },
@@ -778,20 +1234,26 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 91.639,
-      "end": 95.82,
+      "start": 123.371,
+      "end": 127.553,
       "sentences": [
         {
           "text": "実家に帰ってこいって話だろうから、",
-          "start": 91.639,
-          "end": 94.177
+          "start": 123.371,
+          "end": 125.91
         },
         {
           "text": " これも後回しなのだ！",
-          "start": 94.177,
-          "end": 95.82
+          "start": 125.91,
+          "end": 127.553
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0017",
@@ -810,27 +1272,42 @@
         },
         "framing": {
           "mode": "sceneDefault"
+        },
+        "cameraMotion": {
+          "zoom": 0.4,
+          "pan": {
+            "x": 0,
+            "y": -0.1
+          }
         }
       },
-      "start": 96.17,
-      "end": 102.613,
+      "start": 127.903,
+      "end": 134.345,
       "sentences": [
         {
           "text": "推しだけがボクの癒やしなのだ。",
-          "start": 96.17,
-          "end": 98.101
+          "start": 127.903,
+          "end": 129.833
         },
         {
           "text": "推し活さえあれば、",
-          "start": 98.101,
-          "end": 99.663
+          "start": 129.833,
+          "end": 131.395
         },
         {
           "text": "現実の人間関係なんて二の次なのだ！",
-          "start": 99.663,
-          "end": 102.613
+          "start": 131.395,
+          "end": 134.345
         }
-      ]
+      ],
+      "effects": {
+        "flashback": {
+          "enabled": true
+        }
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0115",
@@ -845,43 +1322,120 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 102.963,
-      "end": 102.963,
+      "start": 134.695,
+      "end": 134.695,
       "pause": 0.9,
-      "sentences": []
+      "sentences": [],
+      "subtitleMode": "subtitle",
+      "subtitleStyle": {
+        "fontSize": 46,
+        "textColor": "#ffffff",
+        "boxBorder": true,
+        "boxBorderColor": "#ffffff",
+        "boxBorderWidth": 2
+      },
+      "se": [
+        {
+          "file": "se/決定ボタンを押す40.mp3"
+        }
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
-      "id": "turn-0114",
-      "speaker": "AI_voice_1_11_low",
-      "text": "新機能「未来シミュレーション機能」をリリースしました。ぜひお試しください。",
+      "id": "turn-0168",
+      "speaker": "zundamon",
+      "text": "ん？AIからの通知なのだ？",
       "scene": "home-night",
       "displayMode": {
         "kind": "standard"
+      },
+      "start": 135.945,
+      "end": 138.388,
+      "effects": {
+        "flashback": {
+          "enabled": true
+        }
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      },
+      "stage": {
+        "update": {
+          "zundamon": {
+            "expression": "question",
+            "pose": "idle",
+            "flip": false
+          }
+        }
+      },
+      "sentences": [
+        {
+          "text": "ん？",
+          "start": 135.945,
+          "end": 136.415
+        },
+        {
+          "text": "AIからの通知なのだ？",
+          "start": 136.415,
+          "end": 138.388
+        }
+      ]
+    },
+    {
+      "id": "turn-0114",
+      "speaker": "AI",
+      "text": "いつもZunAIをご利用いただきありがとうございます。\n新機能「未来シミュレーション機能」をリリースしました。ぜひお試しください。",
+      "scene": "home-night",
+      "displayMode": {
+        "kind": "zunAi",
+        "chat": {
+          "kind": "chat",
+          "user": "",
+          "ai": [
+            "いつもZunAIをご利用いただきありがとうございます。",
+            "新機能「未来シミュレーション機能」をリリースしました。ぜひお試しください。"
+          ],
+          "width": 1.65,
+          "backdropImage": "background/macdesktop.png"
+        }
       },
       "stage": {
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 104.213,
-      "end": 109.333,
+      "start": 138.738,
+      "end": 146.791,
       "sentences": [
         {
+          "text": "いつもZunAIをご利用いただきありがとうございます。",
+          "start": 138.738,
+          "end": 141.618
+        },
+        {
           "text": "新機能「未来シミュレーション機能」をリリースしました。",
-          "start": 104.213,
-          "end": 108.149
+          "start": 141.618,
+          "end": 145.597
         },
         {
           "text": "ぜひお試しください。",
-          "start": 108.149,
-          "end": 109.333
+          "start": 145.597,
+          "end": 146.791
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0092",
       "speaker": "zundamon",
-      "text": "【未来シミュレーション】？\n",
+      "text": "　ん？AIから新機能の通知が来たのだ？\n【未来シミュレーション】？\n",
       "scene": "home-night",
       "displayMode": {
         "kind": "standard"
@@ -897,15 +1451,31 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 109.683,
-      "end": 111.091,
+      "start": 147.141,
+      "end": 151.813,
       "sentences": [
         {
+          "text": "ん？",
+          "start": 147.141,
+          "end": 147.611
+        },
+        {
+          "text": "AIから新機能の通知が来たのだ？",
+          "start": 147.611,
+          "end": 150.405
+        },
+        {
           "text": "【未来シミュレーション】？",
-          "start": 109.683,
-          "end": 111.091
+          "start": 150.405,
+          "end": 151.813
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0117",
@@ -926,15 +1496,21 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 111.441,
-      "end": 114.577,
+      "start": 152.163,
+      "end": 155.299,
       "sentences": [
         {
           "text": "僕の華やかな未来をシミュレーションしてみるのだ！",
-          "start": 111.441,
-          "end": 114.577
+          "start": 152.163,
+          "end": 155.299
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0111",
@@ -955,15 +1531,21 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 114.927,
-      "end": 118.436,
+      "start": 155.649,
+      "end": 159.159,
       "sentences": [
         {
           "text": "ボクの将来のシミュレーション結果を教えてほしいのだ！",
-          "start": 114.927,
-          "end": 118.436
+          "start": 155.649,
+          "end": 159.159
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0112",
@@ -971,83 +1553,115 @@
       "text": "分析完了。数十年後の未来を出力します。\n",
       "scene": "home-night",
       "displayMode": {
-        "kind": "standard"
+        "kind": "zunAi",
+        "chat": {
+          "kind": "chat",
+          "user": "ボクの将来のシミュレーション結果を教えてほしいのだ！",
+          "ai": [
+            "分析完了。数十年後の未来を出力します。"
+          ],
+          "width": 2,
+          "fontScale": 1.2,
+          "backdropImage": "background/macdesktop.png"
+        }
       },
       "stage": {
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 118.786,
-      "end": 121.751,
+      "start": 159.509,
+      "end": 162.474,
       "sentences": [
         {
           "text": "分析完了。",
-          "start": 118.786,
-          "end": 119.703
+          "start": 159.509,
+          "end": 160.426
         },
         {
           "text": "数十年後の未来を出力します。",
-          "start": 119.703,
-          "end": 121.751
+          "start": 160.426,
+          "end": 162.474
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
-      "id": "turn-0105",
+      "id": "turn-0149",
       "speaker": "AI",
       "text": "致命的なエラー、全ての交友関係がタイムアウトします。",
       "scene": "home-night",
       "displayMode": {
-        "kind": "standard"
-      },
-      "stage": {
-        "framing": {
-          "mode": "sceneDefault"
+        "kind": "zunAi",
+        "chat": {
+          "kind": "chat",
+          "user": "",
+          "ai": [
+            "分析完了。数十年後の未来を出力します。",
+            "致命的なエラー、全ての交友関係がタイムアウトします。"
+          ],
+          "width": 2,
+          "fontScale": 1.2,
+          "backdropImage": "background/macdesktop.png"
         }
       },
-      "start": 122.101,
-      "end": 125.856,
+      "start": 162.824,
+      "end": 166.579,
       "sentences": [
         {
           "text": "致命的なエラー、",
-          "start": 122.101,
-          "end": 123.257
+          "start": 162.824,
+          "end": 163.979
         },
         {
           "text": "全ての交友関係がタイムアウトします。",
-          "start": 123.257,
-          "end": 125.856
+          "start": 163.979,
+          "end": 166.579
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
-      "id": "turn-0104",
+      "id": "turn-0150",
       "speaker": "AI",
       "text": "現在の生活パターンを継続した場合、将来『孤独死エラー』が発生します。",
       "scene": "home-night",
       "displayMode": {
-        "kind": "standard"
-      },
-      "stage": {
-        "framing": {
-          "mode": "sceneDefault"
+        "kind": "zunAi",
+        "chat": {
+          "kind": "chat",
+          "user": "",
+          "ai": [
+            "分析完了。数十年後の未来を出力します。",
+            "致命的なエラー、全ての交友関係がタイムアウトします。",
+            "現在の生活パターンを継続した場合、将来『孤独死エラー』が発生します。"
+          ],
+          "width": 2,
+          "fontScale": 1.2,
+          "backdropImage": "background/macdesktop.png"
         }
       },
-      "start": 126.206,
-      "end": 131.881,
+      "start": 166.929,
+      "end": 172.603,
       "sentences": [
         {
           "text": "現在の生活パターンを継続した場合、",
-          "start": 126.206,
-          "end": 129.043
+          "start": 166.929,
+          "end": 169.766
         },
         {
           "text": "将来『孤独死エラー』が発生します。",
-          "start": 129.043,
-          "end": 131.881
+          "start": 169.766,
+          "end": 172.603
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0021",
@@ -1066,32 +1680,47 @@
         },
         "framing": {
           "mode": "sceneDefault"
+        },
+        "cameraMotion": {
+          "zoom": 0.2,
+          "shake": {
+            "strength": 20,
+            "duration": 1
+          }
         }
       },
-      "start": 132.231,
-      "end": 135.783,
+      "start": 172.953,
+      "end": 176.505,
       "sentences": [
         {
           "text": "えっ！？",
-          "start": 132.231,
-          "end": 132.796
+          "start": 172.953,
+          "end": 173.519
         },
         {
           "text": "こ、孤独死エラー！？",
-          "start": 132.796,
-          "end": 134.567
+          "start": 173.519,
+          "end": 175.289
         },
         {
           "text": "何なのだそれは！",
-          "start": 134.567,
-          "end": 135.783
+          "start": 175.289,
+          "end": 176.505
         }
-      ]
+      ],
+      "effects": {
+        "flashback": {
+          "enabled": true
+        }
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0022",
       "speaker": "AI",
-      "text": "推し活へ全てのリソースを割りあて、\n現実の人間関係をパージし続けた結果、\n",
+      "text": "推し活へ全てのリソースを割りあて、\n現実の人間関係を消去し続けた結果、\n",
       "scene": "home-night",
       "displayMode": {
         "kind": "standard"
@@ -1099,22 +1728,41 @@
       "stage": {
         "framing": {
           "mode": "sceneDefault"
+        },
+        "update": {
+          "zundamon": {
+            "pose": "idle"
+          }
         }
       },
-      "start": 136.133,
-      "end": 141.157,
+      "start": 176.855,
+      "end": 181.879,
       "sentences": [
         {
           "text": "推し活へ全てのリソースを割りあて、",
-          "start": 136.133,
-          "end": 138.505
+          "start": 176.855,
+          "end": 179.296
         },
         {
-          "text": " 現実の人間関係をパージし続けた結果、",
-          "start": 138.505,
-          "end": 141.157
+          "text": " 現実の人間関係を消去し続けた結果、",
+          "start": 179.296,
+          "end": 181.879
         }
-      ]
+      ],
+      "subtitleMode": "subtitle",
+      "subtitleStyle": {
+        "fontSize": 46,
+        "textColor": "#ffffff",
+        "boxBorder": true,
+        "boxBorderColor": "#ffffff",
+        "boxBorderWidth": 2
+      },
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0093",
@@ -1129,15 +1777,29 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 141.507,
-      "end": 145.571,
+      "start": 182.229,
+      "end": 186.293,
       "sentences": [
         {
           "text": "年齢を重ねるごとに 連絡を取れるオブジェクトが減少します。",
-          "start": 141.507,
-          "end": 145.571
+          "start": 182.229,
+          "end": 186.293
         }
-      ]
+      ],
+      "subtitleMode": "subtitle",
+      "subtitleStyle": {
+        "fontSize": 46,
+        "textColor": "#ffffff",
+        "boxBorder": true,
+        "boxBorderColor": "#ffffff",
+        "boxBorderWidth": 2
+      },
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0023",
@@ -1150,27 +1812,46 @@
       "stage": {
         "framing": {
           "mode": "sceneDefault"
+        },
+        "update": {
+          "zundamon": {
+            "pose": "flustered"
+          }
         }
       },
-      "start": 145.921,
-      "end": 153.089,
+      "start": 186.643,
+      "end": 193.811,
       "sentences": [
         {
           "text": "誰にも気づかれず、",
-          "start": 145.921,
-          "end": 147.421
+          "start": 186.643,
+          "end": 188.144
         },
         {
           "text": "一人ぼっちで枯れた枝豆になる確率が、",
-          "start": 147.421,
-          "end": 150.422
+          "start": 188.144,
+          "end": 191.144
         },
         {
           "text": "『96.5%』と算出されました。",
-          "start": 150.422,
-          "end": 153.089
+          "start": 191.144,
+          "end": 193.811
         }
-      ]
+      ],
+      "subtitleMode": "subtitle",
+      "subtitleStyle": {
+        "fontSize": 46,
+        "textColor": "#ffffff",
+        "boxBorder": true,
+        "boxBorderColor": "#ffffff",
+        "boxBorderWidth": 2
+      },
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0110",
@@ -1183,17 +1864,36 @@
       "stage": {
         "framing": {
           "mode": "sceneDefault"
+        },
+        "update": {
+          "zundamon": {
+            "pose": "flustered"
+          }
         }
       },
-      "start": 153.439,
-      "end": 155.348,
+      "start": 194.161,
+      "end": 196.071,
       "sentences": [
         {
           "text": "未来予想動画を再生します。",
-          "start": 153.439,
-          "end": 155.348
+          "start": 194.161,
+          "end": 196.071
         }
-      ]
+      ],
+      "subtitleMode": "subtitle",
+      "subtitleStyle": {
+        "fontSize": 46,
+        "textColor": "#ffffff",
+        "boxBorder": true,
+        "boxBorderColor": "#ffffff",
+        "boxBorderWidth": 2
+      },
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0106",
@@ -1215,6 +1915,9 @@
               },
               "scale": 1.45,
               "zIndex": 15
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
@@ -1222,10 +1925,25 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 155.698,
-      "end": 155.698,
+      "start": 196.421,
+      "end": 196.421,
       "pause": 1,
-      "sentences": []
+      "sentences": [],
+      "transition": "fade-black",
+      "effects": {
+        "visionNoise": {
+          "enabled": true,
+          "strength": 0.2,
+          "scanline": 0.78,
+          "glitch": 0.1,
+          "flicker": 0.42,
+          "type": "future",
+          "tint": "#000000"
+        }
+      },
+      "caption": {
+        "text": "ー未来のずんだもんー"
+      }
     },
     {
       "id": "turn-0113",
@@ -1240,15 +1958,29 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 157.048,
-      "end": 163.523,
+      "start": 197.771,
+      "end": 202.891,
       "sentences": [
         {
           "text": "気づいたら友達も家族もおらんまま 枯れた枝豆になってしもうた・・・",
-          "start": 157.048,
-          "end": 163.523
+          "start": 197.771,
+          "end": 202.891
         }
-      ]
+      ],
+      "effects": {
+        "visionNoise": {
+          "enabled": true,
+          "strength": 0.2,
+          "scanline": 0.78,
+          "glitch": 0.1,
+          "flicker": 0.42,
+          "type": "future",
+          "tint": "#000000"
+        }
+      },
+      "caption": {
+        "text": "ー未来のずんだもんー"
+      }
     },
     {
       "id": "turn-0108",
@@ -1263,15 +1995,29 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 163.873,
-      "end": 169.643,
+      "start": 203.241,
+      "end": 207.923,
       "sentences": [
         {
           "text": "若い頃にもっと家族や友人を大切にすれば良かったかのう・・",
-          "start": 163.873,
-          "end": 169.643
+          "start": 203.241,
+          "end": 207.923
         }
-      ]
+      ],
+      "effects": {
+        "visionNoise": {
+          "enabled": true,
+          "strength": 0.2,
+          "scanline": 0.78,
+          "glitch": 0.1,
+          "flicker": 0.42,
+          "type": "future",
+          "tint": "#000000"
+        }
+      },
+      "caption": {
+        "text": "ー未来のずんだもんー"
+      }
     },
     {
       "id": "turn-0109",
@@ -1286,16 +2032,30 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 169.993,
-      "end": 173.225,
+      "start": 208.273,
+      "end": 210.844,
       "pause": 1,
       "sentences": [
         {
           "text": "「詰んだもん」になってしもうたな・・",
-          "start": 169.993,
-          "end": 173.225
+          "start": 208.273,
+          "end": 210.844
         }
-      ]
+      ],
+      "effects": {
+        "visionNoise": {
+          "enabled": true,
+          "strength": 0.2,
+          "scanline": 0.78,
+          "glitch": 0.1,
+          "flicker": 0.42,
+          "type": "future",
+          "tint": "#000000"
+        }
+      },
+      "caption": {
+        "text": "ー未来のずんだもんー"
+      }
     },
     {
       "id": "turn-0024",
@@ -1312,6 +2072,9 @@
             "placement": {
               "mode": "slot",
               "slotId": "center"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
@@ -1325,23 +2088,53 @@
           "mode": "sceneDefault"
         },
         "cameraMotion": {
-          "zoom": 0.1
+          "zoom": 0.1,
+          "shake": {
+            "strength": 20,
+            "duration": 1.5
+          }
         }
       },
-      "start": 174.575,
-      "end": 176.303,
+      "start": 212.194,
+      "end": 213.922,
       "sentences": [
         {
           "text": "な、なんだってー！？",
-          "start": 174.575,
-          "end": 176.303
+          "start": 212.194,
+          "end": 213.922
         }
-      ]
+      ],
+      "transition": "fade-black",
+      "effects": {
+        "impactLines": {
+          "enabled": true,
+          "cx": 0.5,
+          "cy": 0.29,
+          "count": 72,
+          "thickness": 0.55,
+          "opacity": 0.45,
+          "innerRadius": 0.17,
+          "start": 0,
+          "end": 1.55
+        },
+        "zoomPunch": {
+          "enabled": true,
+          "scale": 1.23,
+          "duration": 0.5,
+          "borderStrength": 1
+        },
+        "flashback": {
+          "enabled": true
+        }
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0094",
       "speaker": "zundamon",
-      "text": "ボクの輝かしい未来が、\nそんなバグまみれの結末を迎えるなんて嘘なのだ！",
+      "text": "ボクの輝かしい未来が、\nそんな寂しい結末を迎えるなんて嘘なのだ！",
       "scene": "home-night",
       "displayMode": {
         "kind": "standard"
@@ -1357,20 +2150,26 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 176.653,
-      "end": 182.029,
+      "start": 214.272,
+      "end": 219.424,
       "sentences": [
         {
           "text": "ボクの輝かしい未来が、",
-          "start": 176.653,
-          "end": 178.343
+          "start": 214.272,
+          "end": 216.043
         },
         {
-          "text": " そんなバグまみれの結末を迎えるなんて嘘なのだ！",
-          "start": 178.343,
-          "end": 182.029
+          "text": " そんな寂しい結末を迎えるなんて嘘なのだ！",
+          "start": 216.043,
+          "end": 219.424
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0025",
@@ -1391,25 +2190,31 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 182.379,
-      "end": 187.649,
+      "start": 219.774,
+      "end": 225.043,
       "sentences": [
         {
           "text": "映し出された未来のボク、",
-          "start": 182.379,
-          "end": 184.186
+          "start": 219.774,
+          "end": 221.581
         },
         {
           "text": " 部屋で一人で「詰んだ豆」になってたのだ……。",
-          "start": 184.186,
-          "end": 187.649
+          "start": 221.581,
+          "end": 225.043
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0095",
       "speaker": "zundamon",
-      "text": "誰も看取ってくれないし、葬式にも誰も来ないのだ……。",
+      "text": "誰も看取ってくれないし、葬式にも来ないってことなのだ……。",
       "scene": "home-night",
       "displayMode": {
         "kind": "standard"
@@ -1423,22 +2228,31 @@
         },
         "framing": {
           "mode": "sceneDefault"
+        },
+        "cameraMotion": {
+          "zoom": -0.32
         }
       },
-      "start": 187.999,
-      "end": 191.711,
+      "start": 225.393,
+      "end": 229.319,
       "sentences": [
         {
           "text": "誰も看取ってくれないし、",
-          "start": 187.999,
-          "end": 189.712
+          "start": 225.393,
+          "end": 227.018
         },
         {
-          "text": "葬式にも誰も来ないのだ……。",
-          "start": 189.712,
-          "end": 191.711
+          "text": "葬式にも来ないってことなのだ……。",
+          "start": 227.018,
+          "end": 229.319
         }
-      ]
+      ],
+      "effects": {
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0026",
@@ -1452,25 +2266,46 @@
         "update": {
           "zundamon": {
             "expression": "trouble",
-            "pose": "step_in"
+            "pose": "recoil"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         },
         "cameraMotion": {
-          "zoom": 0.1
+          "zoom": 0.4,
+          "shake": {
+            "strength": 23,
+            "duration": 1.5
+          }
         }
       },
-      "start": 192.061,
-      "end": 194.823,
+      "start": 229.669,
+      "end": 232.431,
       "sentences": [
         {
           "text": "こんな最期は絶対に嫌なのだぁぁぁぁっ！！",
-          "start": 192.061,
-          "end": 194.823
+          "start": 229.669,
+          "end": 232.431
         }
-      ]
+      ],
+      "effects": {
+        "impactLines": {
+          "enabled": true,
+          "cx": 0.51,
+          "cy": 0.22,
+          "count": 72,
+          "thickness": 1.25,
+          "opacity": 0.37,
+          "innerRadius": 0.32,
+          "start": 0,
+          "end": 3.7
+        },
+        "flashback": true
+      },
+      "caption": {
+        "text": "ー昨晩 自宅ー"
+      }
     },
     {
       "id": "turn-0027",
@@ -1487,6 +2322,9 @@
             "placement": {
               "mode": "slot",
               "slotId": "speakerLeft"
+            },
+            "animation": {
+              "direction": "instant"
             }
           },
           {
@@ -1494,6 +2332,9 @@
             "placement": {
               "mode": "slot",
               "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
@@ -1501,21 +2342,25 @@
           "zundamon": {
             "expression": "trouble",
             "pose": "proud"
+          },
+          "metan": {
+            "expression": "trouble"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 195.173,
-      "end": 195.173,
+      "start": 232.781,
+      "end": 232.781,
       "pause": 0.6,
-      "sentences": []
+      "sentences": [],
+      "transition": "fade-white"
     },
     {
       "id": "turn-0118",
       "speaker": "zundamon",
-      "text": "……という絶望的な未来のログを見てしまったのだ。\n",
+      "text": "……という絶望的な未来を見てしまったのだ。\n",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -1531,13 +2376,13 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 196.123,
-      "end": 199.302,
+      "start": 233.731,
+      "end": 236.547,
       "sentences": [
         {
-          "text": "……という絶望的な未来のログを見てしまったのだ。",
-          "start": 196.123,
-          "end": 199.302
+          "text": "……という絶望的な未来を見てしまったのだ。",
+          "start": 233.731,
+          "end": 236.547
         }
       ]
     },
@@ -1560,25 +2405,25 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 199.652,
-      "end": 204.921,
+      "start": 236.897,
+      "end": 242.167,
       "sentences": [
         {
           "text": "だからボクは、この最悪な未来を修正するため、",
-          "start": 199.652,
-          "end": 203.165
+          "start": 236.897,
+          "end": 240.41
         },
         {
           "text": " 行動を起こしたのだ！",
-          "start": 203.165,
-          "end": 204.921
+          "start": 240.41,
+          "end": 242.167
         }
       ]
     },
     {
       "id": "turn-0028",
       "speaker": "metan",
-      "text": "なるほどね。AIに孤独死を宣告されて、パニックになって狂ったように人間関係を作ろうとしてるわけね。",
+      "text": "なるほどね。",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -1594,23 +2439,37 @@
           "mode": "speaker"
         }
       },
-      "start": 205.271,
-      "end": 212.557,
+      "start": 242.517,
+      "end": 243.295,
       "sentences": [
         {
           "text": "なるほどね。",
-          "start": 205.271,
-          "end": 206.05
-        },
+          "start": 242.517,
+          "end": 243.295
+        }
+      ]
+    },
+    {
+      "id": "turn-0165",
+      "speaker": "metan",
+      "text": "AIに孤独死を宣告されて、狂ったように\n人間関係を作ろうとしてるわけね。",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 243.645,
+      "end": 249.629,
+      "continueBubble": true,
+      "sentences": [
         {
           "text": "AIに孤独死を宣告されて、",
-          "start": 206.05,
-          "end": 208.017
+          "start": 243.645,
+          "end": 245.806
         },
         {
-          "text": "パニックになって狂ったように人間関係を作ろうとしてるわけね。",
-          "start": 208.017,
-          "end": 212.557
+          "text": "狂ったように 人間関係を作ろうとしてるわけね。",
+          "start": 245.806,
+          "end": 249.629
         }
       ]
     },
@@ -1633,13 +2492,13 @@
           "mode": "speaker"
         }
       },
-      "start": 212.907,
-      "end": 216.043,
+      "start": 249.979,
+      "end": 253.115,
       "sentences": [
         {
           "text": "精度が高いと言われるZunAIの予測だもの、",
-          "start": 212.907,
-          "end": 216.043
+          "start": 249.979,
+          "end": 253.115
         }
       ]
     },
@@ -1662,20 +2521,20 @@
           "mode": "speaker"
         }
       },
-      "start": 216.393,
-      "end": 218.739,
+      "start": 253.465,
+      "end": 255.823,
       "sentences": [
         {
           "text": "焦る気持ちは分からなくもないけれど……。",
-          "start": 216.393,
-          "end": 218.739
+          "start": 253.465,
+          "end": 255.823
         }
       ]
     },
     {
       "id": "turn-0030",
       "speaker": "metan",
-      "text": "端から見ていると、完全にシステム要件の定義を間違えているようにしか思えないわよ。",
+      "text": "端から見ていると、ただの空回りにしか思えないわよ。",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -1691,18 +2550,18 @@
           "mode": "speaker"
         }
       },
-      "start": 219.089,
-      "end": 225.137,
+      "start": 256.173,
+      "end": 260.023,
       "sentences": [
         {
           "text": "端から見ていると、",
-          "start": 219.089,
-          "end": 220.45
+          "start": 256.173,
+          "end": 257.559
         },
         {
-          "text": "完全にシステム要件の定義を間違えているようにしか思えないわよ。",
-          "start": 220.45,
-          "end": 225.137
+          "text": "ただの空回りにしか思えないわよ。",
+          "start": 257.559,
+          "end": 260.023
         }
       ]
     },
@@ -1725,13 +2584,13 @@
           "mode": "speaker"
         }
       },
-      "start": 225.487,
-      "end": 226.853,
+      "start": 260.373,
+      "end": 261.739,
       "sentences": [
         {
           "text": "間違えてないのだ！",
-          "start": 225.487,
-          "end": 226.853
+          "start": 260.373,
+          "end": 261.739
         }
       ]
     },
@@ -1754,18 +2613,18 @@
           "mode": "speaker"
         }
       },
-      "start": 227.203,
-      "end": 233.304,
+      "start": 262.089,
+      "end": 268.19,
       "sentences": [
         {
           "text": "友達がゼロだから孤独死するなら、",
-          "start": 227.203,
-          "end": 229.643
+          "start": 262.089,
+          "end": 264.529
         },
         {
           "text": " 友達を一気に100人作ればいいだけの話なのだ！",
-          "start": 229.643,
-          "end": 233.304
+          "start": 264.529,
+          "end": 268.19
         }
       ]
     },
@@ -1781,25 +2640,28 @@
         "update": {
           "metan": {
             "expression": "trouble",
-            "pose": "proud"
+            "pose": "idle"
+          },
+          "zundamon": {
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 233.654,
-      "end": 238.113,
+      "start": 268.54,
+      "end": 272.999,
       "sentences": [
         {
           "text": "それがすでに暴走なのよ。",
-          "start": 233.654,
-          "end": 235.382
+          "start": 268.54,
+          "end": 270.268
         },
         {
           "text": "まあいいわ、どうせ言っても聞かないんでしょ。",
-          "start": 235.382,
-          "end": 238.113
+          "start": 270.268,
+          "end": 272.999
         }
       ]
     },
@@ -1815,25 +2677,25 @@
         "update": {
           "metan": {
             "expression": "trouble",
-            "pose": "proud"
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 238.463,
-      "end": 242.825,
+      "start": 273.349,
+      "end": 277.711,
       "sentences": [
         {
           "text": "その空回りっぷり、",
-          "start": 238.463,
-          "end": 239.865
+          "start": 273.349,
+          "end": 274.751
         },
         {
           "text": "遠くから生暖かく見守らせてもらうわね。",
-          "start": 239.865,
-          "end": 242.825
+          "start": 274.751,
+          "end": 277.711
         }
       ]
     },
@@ -1848,34 +2710,34 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "happy",
-            "pose": "step_in"
+            "expression": "proud",
+            "pose": "lean"
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         },
         "cameraMotion": {
           "zoom": 0.1
         }
       },
-      "start": 243.175,
-      "end": 251.143,
+      "start": 278.061,
+      "end": 286.029,
       "sentences": [
         {
           "text": "ふん、めたんに頼らなくても、",
-          "start": 243.175,
-          "end": 245.731
+          "start": 278.061,
+          "end": 280.617
         },
         {
           "text": "ボクの作戦は完璧なのだ！",
-          "start": 245.731,
-          "end": 247.922
+          "start": 280.617,
+          "end": 282.808
         },
         {
           "text": "さっそく今夜の婚活パーティーに突撃なのだ！",
-          "start": 247.922,
-          "end": 251.143
+          "start": 282.808,
+          "end": 286.029
         }
       ]
     },
@@ -1899,6 +2761,9 @@
               },
               "scale": 0.65,
               "zIndex": 15
+            },
+            "animation": {
+              "direction": "instant"
             }
           },
           {
@@ -1906,6 +2771,9 @@
             "placement": {
               "mode": "slot",
               "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
@@ -1918,10 +2786,20 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 251.493,
-      "end": 251.493,
+      "start": 286.379,
+      "end": 286.379,
       "pause": 0.6,
-      "sentences": []
+      "sentences": [],
+      "transition": "slide-left",
+      "se": [
+        {
+          "file": "se/flash.mp3",
+          "at": 0.2
+        }
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0097",
@@ -1939,23 +2817,26 @@
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         }
       },
-      "start": 252.443,
-      "end": 256.977,
+      "start": 287.329,
+      "end": 291.863,
       "sentences": [
         {
           "text": "ボクはずんだもん、",
-          "start": 252.443,
-          "end": 253.954
+          "start": 287.329,
+          "end": 288.84
         },
         {
           "text": "趣味は推し活で特技は枝豆栽培なのだ！",
-          "start": 253.954,
-          "end": 256.977
+          "start": 288.84,
+          "end": 291.863
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0098",
@@ -1973,18 +2854,21 @@
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         }
       },
-      "start": 257.327,
-      "end": 260.836,
+      "start": 292.213,
+      "end": 295.722,
       "sentences": [
         {
           "text": "結婚したら一緒にライブの遠征に行ってほしいのだ！",
-          "start": 257.327,
-          "end": 260.836
+          "start": 292.213,
+          "end": 295.722
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0035",
@@ -2004,20 +2888,23 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 261.186,
-      "end": 264.631,
+      "start": 296.072,
+      "end": 299.517,
       "sentences": [
         {
           "text": "あ、はあ……。",
-          "start": 261.186,
-          "end": 262.466
+          "start": 296.072,
+          "end": 297.352
         },
         {
           "text": "最初から遠征の話ですか……？",
-          "start": 262.466,
-          "end": 264.631
+          "start": 297.352,
+          "end": 299.517
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0145",
@@ -2037,15 +2924,18 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 264.981,
-      "end": 268.341,
+      "start": 299.867,
+      "end": 303.227,
       "sentences": [
         {
           "text": "ちょっと、熱量がすごすぎてついていけないかも……。",
-          "start": 264.981,
-          "end": 268.341
+          "start": 299.867,
+          "end": 303.227
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0036",
@@ -2058,47 +2948,65 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "trouble",
-            "pose": "flustered"
+            "expression": "proud",
+            "pose": "lean",
+            "placement": {
+              "mode": "slot",
+              "slotId": "speakerRight"
+            }
+          },
+          "女性": {
+            "placement": {
+              "mode": "manual",
+              "origin": {
+                "x": 0.388,
+                "y": 0.817
+              },
+              "scale": 0.65,
+              "zIndex": 15
+            }
           }
         },
         "framing": {
-          "mode": "manual",
-          "frame": {
-            "cx": 0.6671408765467864,
-            "cy": 0.4618075673550469,
-            "width": 0.47003424657534226
-          }
+          "mode": "slot",
+          "slotId": "speakerRight"
         },
         "cameraMotion": {
           "zoom": 0.1,
+          "pan": {
+            "x": 0,
+            "y": -0.06
+          },
           "tilt": -2
         }
       },
-      "start": 268.691,
-      "end": 276.649,
+      "start": 303.577,
+      "end": 311.535,
       "sentences": [
         {
           "text": "そんなこと言わずに、",
-          "start": 268.691,
-          "end": 270.261
+          "start": 303.577,
+          "end": 305.147
         },
         {
           "text": "ボクの将来の孤独死を防ぐために、",
-          "start": 270.261,
-          "end": 272.771
+          "start": 305.147,
+          "end": 307.657
         },
         {
           "text": " 今すぐマッチングOKしてほしいのだ！",
-          "start": 272.771,
-          "end": 275.753
+          "start": 307.657,
+          "end": 310.639
         },
         {
           "text": "頼むのだ！",
-          "start": 275.753,
-          "end": 276.649
+          "start": 310.639,
+          "end": 311.535
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0037",
@@ -2111,22 +3019,28 @@
       "stage": {
         "update": {
           "女性": {
-            "expression": "normal"
+            "expression": "agitated"
+          },
+          "zundamon": {
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 276.999,
-      "end": 278.311,
+      "start": 311.885,
+      "end": 313.197,
       "sentences": [
         {
           "text": "こ、怖い……！",
-          "start": 276.999,
-          "end": 278.311
+          "start": 311.885,
+          "end": 313.197
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0120",
@@ -2137,29 +3051,41 @@
         "kind": "standard"
       },
       "stage": {
-        "update": {
-          "女性": {
-            "expression": "normal"
-          }
-        },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "slot",
+          "slotId": "speakerLeft"
+        },
+        "exit": [
+          {
+            "instanceId": "女性",
+            "animation": {
+              "direction": "left"
+            }
+          }
+        ],
+        "update": {
+          "zundamon": {
+            "expression": "trouble"
+          }
         }
       },
-      "start": 278.661,
-      "end": 283.301,
+      "start": 313.547,
+      "end": 318.187,
       "sentences": [
         {
           "text": "すみません、私、",
-          "start": 278.661,
-          "end": 280.088
+          "start": 313.547,
+          "end": 314.974
         },
         {
           "text": "急用を思い出しましたので失礼します！",
-          "start": 280.088,
-          "end": 283.301
+          "start": 314.974,
+          "end": 318.187
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0038",
@@ -2170,9 +3096,6 @@
         "kind": "standard"
       },
       "stage": {
-        "exit": [
-          "女性"
-        ],
         "update": {
           "zundamon": {
             "expression": "trouble",
@@ -2180,26 +3103,29 @@
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         },
         "cameraMotion": {
           "zoom": 0.1
         }
       },
-      "start": 283.651,
-      "end": 285.283,
+      "start": 318.537,
+      "end": 320.169,
       "sentences": [
         {
           "text": "ああっ！",
-          "start": 283.651,
-          "end": 284.195
+          "start": 318.537,
+          "end": 319.081
         },
         {
           "text": "逃げられたのだ！",
-          "start": 284.195,
-          "end": 285.283
+          "start": 319.081,
+          "end": 320.169
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0121",
@@ -2223,15 +3149,18 @@
           "zoom": 0.1
         }
       },
-      "start": 285.633,
-      "end": 287.777,
+      "start": 320.519,
+      "end": 322.663,
       "sentences": [
         {
           "text": "完全に失敗に終わったのだ・・。",
-          "start": 285.633,
-          "end": 287.777
+          "start": 320.519,
+          "end": 322.663
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー婚活会場ー"
+      }
     },
     {
       "id": "turn-0039",
@@ -2248,6 +3177,9 @@
             "placement": {
               "mode": "slot",
               "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
@@ -2258,18 +3190,28 @@
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         }
       },
-      "start": 288.127,
-      "end": 290.697,
+      "start": 323.013,
+      "end": 325.583,
       "sentences": [
         {
           "text": "婚活がダメなら地域活動なのだ！",
-          "start": 288.127,
-          "end": 290.697
+          "start": 323.013,
+          "end": 325.583
         }
-      ]
+      ],
+      "transition": "slide-left",
+      "se": [
+        {
+          "file": "se/flash.mp3",
+          "at": 0.2
+        }
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0122",
@@ -2290,20 +3232,23 @@
           "mode": "speaker"
         }
       },
-      "start": 291.047,
-      "end": 295.143,
+      "start": 325.933,
+      "end": 330.029,
       "sentences": [
         {
           "text": "町のコミュニティにログインして、",
-          "start": 291.047,
-          "end": 293.232
+          "start": 325.933,
+          "end": 328.118
         },
         {
           "text": " 存在感をアピールするのだ！",
-          "start": 293.232,
-          "end": 295.143
+          "start": 328.118,
+          "end": 330.029
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0040",
@@ -2324,15 +3269,18 @@
           "mode": "speaker"
         }
       },
-      "start": 295.493,
-      "end": 297.349,
+      "start": 330.379,
+      "end": 332.235,
       "sentences": [
         {
           "text": "みなさんお疲れ様なのだ！",
-          "start": 295.493,
-          "end": 297.349
+          "start": 330.379,
+          "end": 332.235
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0099",
@@ -2350,18 +3298,21 @@
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         }
       },
-      "start": 297.699,
-      "end": 301.123,
+      "start": 332.585,
+      "end": 336.009,
       "sentences": [
         {
           "text": "ボクがこの公園のゴミ拾いを効率化するために、",
-          "start": 297.699,
-          "end": 301.123
+          "start": 332.585,
+          "end": 336.009
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0101",
@@ -2375,22 +3326,25 @@
         "update": {
           "zundamon": {
             "expression": "niyari",
-            "pose": "cheer"
+            "pose": "point"
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         }
       },
-      "start": 301.473,
-      "end": 305.548,
+      "start": 336.359,
+      "end": 340.434,
       "sentences": [
         {
           "text": "ゴミの位置をGPSでマッピングするアプリを作ってきたのだ！",
-          "start": 301.473,
-          "end": 305.548
+          "start": 336.359,
+          "end": 340.434
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0041",
@@ -2412,32 +3366,42 @@
               },
               "scale": 0.85,
               "zIndex": 15
+            },
+            "animation": {
+              "direction": "left"
             }
           }
         ],
         "update": {
           "おじいさん": {
             "expression": "normal"
+          },
+          "zundamon": {
+            "pose": "proud",
+            "expression": "proud"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 305.898,
-      "end": 308.458,
+      "start": 340.784,
+      "end": 343.344,
       "sentences": [
         {
           "text": "え……？",
-          "start": 305.898,
-          "end": 306.314
+          "start": 340.784,
+          "end": 341.2
         },
         {
           "text": "いや、ずんだもん君。",
-          "start": 306.314,
-          "end": 308.458
+          "start": 341.2,
+          "end": 343.344
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0102",
@@ -2457,20 +3421,23 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 308.808,
-      "end": 312.499,
+      "start": 343.694,
+      "end": 347.385,
       "sentences": [
         {
           "text": "私たちはただ、ハサミと袋を持って、",
-          "start": 308.808,
-          "end": 312.499
+          "start": 343.694,
+          "end": 347.385
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0103",
       "speaker": "おじいさん",
-      "text": "おしゃべりしながらのんびり草むしりをしたいだけなんだけど……。",
+      "text": "おしゃべりしながらのんびり\n草むしりをしたいだけなんだけど……。",
       "scene": "park_day",
       "displayMode": {
         "kind": "standard"
@@ -2485,20 +3452,23 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 312.849,
-      "end": 317.585,
+      "start": 347.735,
+      "end": 352.94,
       "sentences": [
         {
-          "text": "おしゃべりしながらのんびり草むしりをしたいだけなんだけど……。",
-          "start": 312.849,
-          "end": 317.585
+          "text": "おしゃべりしながらのんびり 草むしりをしたいだけなんだけど……。",
+          "start": 347.735,
+          "end": 352.94
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0042",
       "speaker": "zundamon",
-      "text": "それじゃ非効率なのだ！ \nタイムスタンプを押して、担当エリアを厳密に管理して",
+      "text": "それじゃ非効率なのだ！",
       "scene": "park_day",
       "displayMode": {
         "kind": "standard"
@@ -2514,25 +3484,45 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 317.935,
-      "end": 323.62,
+      "start": 353.29,
+      "end": 354.901,
       "sentences": [
         {
           "text": "それじゃ非効率なのだ！",
-          "start": 317.935,
-          "end": 319.545
-        },
+          "start": 353.29,
+          "end": 354.901
+        }
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
+    },
+    {
+      "id": "turn-0152",
+      "speaker": "zundamon",
+      "text": "タイムスタンプを押して、\n担当エリアを厳密に管理して",
+      "scene": "park_day",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 355.251,
+      "end": 359.325,
+      "continueBubble": true,
+      "sentences": [
         {
           "text": "タイムスタンプを押して、",
-          "start": 319.545,
-          "end": 321.501
+          "start": 355.251,
+          "end": 357.131
         },
         {
-          "text": "担当エリアを厳密に管理して",
-          "start": 321.501,
-          "end": 323.62
+          "text": " 担当エリアを厳密に管理して",
+          "start": 357.131,
+          "end": 359.325
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0123",
@@ -2553,15 +3543,18 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 323.97,
-      "end": 326.189,
+      "start": 359.675,
+      "end": 361.894,
       "sentences": [
         {
           "text": "それぞれのパフォーマンスをグラフ化・・・・",
-          "start": 323.97,
-          "end": 326.189
+          "start": 359.675,
+          "end": 361.894
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0043",
@@ -2581,25 +3574,28 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 326.539,
-      "end": 332.96,
+      "start": 362.244,
+      "end": 368.665,
       "sentences": [
         {
           "text": "なんだかすごく怖い顔をしてるね……。",
-          "start": 326.539,
-          "end": 329.429
+          "start": 362.244,
+          "end": 365.135
         },
         {
           "text": "それに、言ってる意味がよく分からないよ。",
-          "start": 329.429,
-          "end": 332.96
+          "start": 365.135,
+          "end": 368.665
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0124",
       "speaker": "おじいさん",
-      "text": "私たちは普通に掃除がしたいだけだから、君はもういいよ……。",
+      "text": "私たちは普通に掃除がしたいだけだから、\n君はもういいよ……。",
       "scene": "park_day",
       "displayMode": {
         "kind": "standard"
@@ -2614,20 +3610,23 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 333.31,
-      "end": 338.739,
+      "start": 369.015,
+      "end": 374.445,
       "sentences": [
         {
           "text": "私たちは普通に掃除がしたいだけだから、",
-          "start": 333.31,
-          "end": 336.867
+          "start": 369.015,
+          "end": 372.454
         },
         {
-          "text": "君はもういいよ……。",
-          "start": 336.867,
-          "end": 338.739
+          "text": " 君はもういいよ……。",
+          "start": 372.454,
+          "end": 374.445
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0044",
@@ -2646,17 +3645,26 @@
         },
         "framing": {
           "mode": "sceneDefault"
+        },
+        "cameraMotion": {
+          "pan": {
+            "x": 0,
+            "y": 0
+          }
         }
       },
-      "start": 339.089,
-      "end": 339.804,
+      "start": 374.795,
+      "end": 375.509,
       "sentences": [
         {
           "text": "そんなぁ！",
-          "start": 339.089,
-          "end": 339.804
+          "start": 374.795,
+          "end": 375.509
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0125",
@@ -2669,31 +3677,38 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "panic",
+            "expression": "nae",
             "pose": "wobble"
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         },
         "cameraMotion": {
-          "zoom": 0.1
+          "zoom": 0.62,
+          "pan": {
+            "x": 0,
+            "y": -0.1
+          }
         }
       },
-      "start": 340.154,
-      "end": 343.61,
+      "start": 375.859,
+      "end": 379.315,
       "sentences": [
         {
           "text": "地域住民とのコミュニケーションもうまくいかないのだ〜〜！！",
-          "start": 340.154,
-          "end": 343.61
+          "start": 375.859,
+          "end": 379.315
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー地域清掃活動ー"
+      }
     },
     {
       "id": "turn-0045",
       "speaker": "zundamon",
-      "text": "会社でも、婚活でも、地域でも、\n",
+      "text": " ",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -2705,6 +3720,9 @@
             "placement": {
               "mode": "slot",
               "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
@@ -2718,13 +3736,27 @@
           "mode": "speaker"
         }
       },
-      "start": 343.96,
-      "end": 346.979,
+      "start": 379.665,
+      "end": 379.665,
+      "sentences": [],
+      "transition": "fade-white",
+      "pause": 0.5
+    },
+    {
+      "id": "turn-0154",
+      "speaker": "zundamon",
+      "text": "会社でも、婚活でも、地域でも、\n",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 380.515,
+      "end": 383.534,
       "sentences": [
         {
           "text": "会社でも、婚活でも、地域でも、",
-          "start": 343.96,
-          "end": 346.979
+          "start": 380.515,
+          "end": 383.534
         }
       ]
     },
@@ -2745,15 +3777,18 @@
         },
         "framing": {
           "mode": "speaker"
+        },
+        "cameraMotion": {
+          "zoom": 0.05
         }
       },
-      "start": 347.329,
-      "end": 350.486,
+      "start": 383.884,
+      "end": 387.041,
       "sentences": [
         {
           "text": "良かれと思ってやったことが全部裏目に出るのだ……。",
-          "start": 347.329,
-          "end": 350.486
+          "start": 383.884,
+          "end": 387.041
         }
       ]
     },
@@ -2774,20 +3809,27 @@
         },
         "framing": {
           "mode": "speaker"
+        },
+        "cameraMotion": {
+          "zoom": 0.23,
+          "pan": {
+            "x": 0,
+            "y": -0.03
+          }
         }
       },
-      "start": 350.836,
-      "end": 355.753,
+      "start": 387.391,
+      "end": 392.309,
       "sentences": [
         {
           "text": "焦れば焦るほど、",
-          "start": 350.836,
-          "end": 352.293
+          "start": 387.391,
+          "end": 388.848
         },
         {
           "text": "未来の悲しい枝豆の姿が頭をよぎるのだ。",
-          "start": 352.293,
-          "end": 355.753
+          "start": 388.848,
+          "end": 392.309
         }
       ]
     },
@@ -2811,21 +3853,24 @@
         ],
         "update": {
           "metan": {
-            "expression": "niyari",
+            "expression": "trouble",
             "pose": "lean"
+          },
+          "zundamon": {
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 356.103,
-      "end": 358.738,
+      "start": 392.659,
+      "end": 395.293,
       "sentences": [
         {
           "text": "あら、ボロボロになって戻ってきたわね。",
-          "start": 356.103,
-          "end": 358.738
+          "start": 392.659,
+          "end": 395.293
         }
       ]
     },
@@ -2848,13 +3893,13 @@
           "mode": "speaker"
         }
       },
-      "start": 359.088,
-      "end": 361.712,
+      "start": 395.643,
+      "end": 398.267,
       "sentences": [
         {
           "text": "めたん……ボクはもう絶望したのだ。",
-          "start": 359.088,
-          "end": 361.712
+          "start": 395.643,
+          "end": 398.267
         }
       ]
     },
@@ -2874,21 +3919,21 @@
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         }
       },
-      "start": 362.062,
-      "end": 366.329,
+      "start": 398.617,
+      "end": 402.884,
       "sentences": [
         {
           "text": "人間関係の構築なんて、",
-          "start": 362.062,
-          "end": 363.68
+          "start": 398.617,
+          "end": 400.236
         },
         {
           "text": " ボクには無理なことだったのだ……。",
-          "start": 363.68,
-          "end": 366.329
+          "start": 400.236,
+          "end": 402.884
         }
       ]
     },
@@ -2914,20 +3959,20 @@
           "zoom": 0.1
         }
       },
-      "start": 366.679,
-      "end": 369.559,
+      "start": 403.234,
+      "end": 406.114,
       "sentences": [
         {
           "text": "やっぱり、全部推し活が悪いのだ。",
-          "start": 366.679,
-          "end": 369.559
+          "start": 403.234,
+          "end": 406.114
         }
       ]
     },
     {
       "id": "turn-0127",
       "speaker": "zundamon",
-      "text": "推し活なんて始めなければ、こんな歪んだ人生にならなかったのだ……！",
+      "text": "推し活なんて始めなければ、\nこんな歪んだ人生にならなかったのだ……！",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -2940,24 +3985,24 @@
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         },
         "cameraMotion": {
-          "zoom": 0.1
+          "zoom": 0.2
         }
       },
-      "start": 369.909,
-      "end": 374.591,
+      "start": 406.464,
+      "end": 411.147,
       "sentences": [
         {
           "text": "推し活なんて始めなければ、",
-          "start": 369.909,
-          "end": 371.753
+          "start": 406.464,
+          "end": 408.254
         },
         {
-          "text": "こんな歪んだ人生にならなかったのだ……！",
-          "start": 371.753,
-          "end": 374.591
+          "text": " こんな歪んだ人生にならなかったのだ……！",
+          "start": 408.254,
+          "end": 411.147
         }
       ]
     },
@@ -2974,24 +4019,27 @@
           "metan": {
             "expression": "angry",
             "pose": "step_in"
+          },
+          "zundamon": {
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 374.941,
-      "end": 379.069,
+      "start": 411.497,
+      "end": 415.625,
       "sentences": [
         {
           "text": "……ちょっと、ずんだもん。",
-          "start": 374.941,
-          "end": 376.691
+          "start": 411.497,
+          "end": 413.246
         },
         {
           "text": "今の言葉、聞き捨てならないわね。",
-          "start": 376.691,
-          "end": 379.069
+          "start": 413.246,
+          "end": 415.625
         }
       ]
     },
@@ -3014,23 +4062,23 @@
           "mode": "speaker"
         }
       },
-      "start": 379.419,
-      "end": 385.947,
+      "start": 415.975,
+      "end": 422.503,
       "sentences": [
         {
           "text": "自分のミスを、大好きな推しのせいにするつもり？",
-          "start": 379.419,
-          "end": 382.843
+          "start": 415.975,
+          "end": 419.399
         },
         {
           "text": "そんなの、ただの八つ当たりでしょ。",
-          "start": 382.843,
-          "end": 385.147
+          "start": 419.399,
+          "end": 421.703
         },
         {
           "text": "最低ね。",
-          "start": 385.147,
-          "end": 385.947
+          "start": 421.703,
+          "end": 422.503
         }
       ]
     },
@@ -3053,18 +4101,18 @@
           "mode": "speaker"
         }
       },
-      "start": 386.297,
-      "end": 392.057,
+      "start": 422.853,
+      "end": 428.613,
       "sentences": [
         {
           "text": "うっ……最低と言われても、",
-          "start": 386.297,
-          "end": 388.377
+          "start": 422.853,
+          "end": 424.933
         },
         {
           "text": " ボクの何が悪かったのか、もう分からないのだ！",
-          "start": 388.377,
-          "end": 392.057
+          "start": 424.933,
+          "end": 428.613
         }
       ]
     },
@@ -3081,24 +4129,28 @@
           "metan": {
             "expression": "trouble",
             "pose": "arms_crossed"
+          },
+          "zundamon": {
+            "expression": "panic",
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 392.407,
-      "end": 396.887,
+      "start": 428.963,
+      "end": 433.496,
       "sentences": [
         {
           "text": "はぁ……。",
-          "start": 392.407,
-          "end": 392.823
+          "start": 428.963,
+          "end": 429.379
         },
         {
           "text": "本当に、根本原因の切り分けが全然できてないわね。",
-          "start": 392.823,
-          "end": 396.887
+          "start": 429.379,
+          "end": 433.496
         }
       ]
     },
@@ -3115,19 +4167,22 @@
           "metan": {
             "expression": "trouble",
             "pose": "arms_crossed"
+          },
+          "zundamon": {
+            "expression": "trouble"
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         }
       },
-      "start": 397.237,
-      "end": 399.893,
+      "start": 433.846,
+      "end": 436.502,
       "sentences": [
         {
           "text": "いいから、そこのホワイトボードを見なさい。",
-          "start": 397.237,
-          "end": 399.893
+          "start": 433.846,
+          "end": 436.502
         }
       ]
     },
@@ -3148,25 +4203,50 @@
               "bullets": [
                 "趣味に使う時間と情熱は正常",
                 "エネルギーの源を否定してはダメ"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "後回し癖",
               "bullets": [
                 "現実の人間関係を『いつでも戻せる』と誤認",
                 "タスクの無期限保留が真の原因"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "極端な修正の弊害",
               "bullets": [
                 "いきなり100の繋がりは作れない",
                 "不自然なアクセスは拒絶される"
-              ]
+              ],
+              "icon": "none"
             }
           ],
           "conclusion": "必要なのはリソースの\n全消去ではなく、再配分！",
-          "layout": "compact"
+          "layout": "compact",
+          "visibleSections": [
+            false,
+            false,
+            false
+          ],
+          "visibleArrows": [
+            false,
+            false
+          ],
+          "showConclusion": false,
+          "style": {
+            "titleFontSize": 84,
+            "themeFontSize": 59
+          },
+          "animation": {
+            "mode": "step",
+            "sectionPop": true,
+            "arrowPop": true,
+            "conclusionPop": true,
+            "underlineDraw": true,
+            "conclusionImpact": true
+          }
         }
       },
       "stage": {
@@ -3180,18 +4260,18 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 400.243,
-      "end": 406.377,
+      "start": 436.852,
+      "end": 442.985,
       "sentences": [
         {
           "text": "なぜあなたが将来「詰んだもん」になってしまうのか、",
-          "start": 400.243,
-          "end": 404.278
+          "start": 436.852,
+          "end": 440.887
         },
         {
           "text": "要因を考えてみましょうか。",
-          "start": 404.278,
-          "end": 406.377
+          "start": 440.887,
+          "end": 442.985
         }
       ]
     },
@@ -3212,25 +4292,43 @@
               "bullets": [
                 "趣味に使う時間と情熱は正常",
                 "エネルギーの源を否定してはダメ"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "後回し癖",
               "bullets": [
                 "現実の人間関係を『いつでも戻せる』と誤認",
                 "タスクの無期限保留が真の原因"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "極端な修正の弊害",
               "bullets": [
                 "いきなり100の繋がりは作れない",
                 "不自然なアクセスは拒絶される"
-              ]
+              ],
+              "icon": "none"
             }
           ],
           "conclusion": "必要なのはリソースの\n全消去ではなく、再配分！",
-          "layout": "compact"
+          "layout": "compact",
+          "visibleSections": [
+            true,
+            false,
+            false
+          ],
+          "visibleArrows": [
+            false,
+            false
+          ],
+          "showConclusion": false,
+          "activeSection": 0,
+          "style": {
+            "titleFontSize": 84,
+            "themeFontSize": 59
+          }
         }
       },
       "stage": {
@@ -3244,18 +4342,18 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 406.727,
-      "end": 412.305,
+      "start": 443.335,
+      "end": 448.914,
       "sentences": [
         {
           "text": "推し活自体は無罪なのよ。",
-          "start": 406.727,
-          "end": 408.572
+          "start": 443.335,
+          "end": 445.181
         },
         {
           "text": "趣味に使う時間や情熱は人生のエネルギーになるわ。",
-          "start": 408.572,
-          "end": 412.305
+          "start": 445.181,
+          "end": 448.914
         }
       ]
     },
@@ -3276,25 +4374,43 @@
               "bullets": [
                 "趣味に使う時間と情熱は正常",
                 "エネルギーの源を否定してはダメ"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "後回し癖",
               "bullets": [
                 "現実の人間関係を『いつでも戻せる』と誤認",
                 "タスクの無期限保留が真の原因"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "極端な修正の弊害",
               "bullets": [
                 "いきなり100の繋がりは作れない",
                 "不自然なアクセスは拒絶される"
-              ]
+              ],
+              "icon": "none"
             }
           ],
           "conclusion": "必要なのはリソースの\n全消去ではなく、再配分！",
-          "layout": "compact"
+          "layout": "compact",
+          "visibleSections": [
+            true,
+            true,
+            false
+          ],
+          "visibleArrows": [
+            false,
+            false
+          ],
+          "showConclusion": false,
+          "activeSection": 1,
+          "style": {
+            "titleFontSize": 84,
+            "themeFontSize": 59
+          }
         }
       },
       "stage": {
@@ -3308,28 +4424,28 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 412.655,
-      "end": 422.81,
+      "start": 449.264,
+      "end": 459.419,
       "sentences": [
         {
           "text": "後回しにする癖はとても良くないわね。",
-          "start": 412.655,
-          "end": 415.258
+          "start": 449.264,
+          "end": 451.867
         },
         {
           "text": "人間関係は一度切れるとなかなか元に戻らないのよ。",
-          "start": 415.258,
-          "end": 418.927
+          "start": 451.867,
+          "end": 455.536
         },
         {
           "text": "後でいいや、",
-          "start": 418.927,
-          "end": 419.79
+          "start": 455.536,
+          "end": 456.399
         },
         {
           "text": "でそのまま忘れてしまうことがあったでしょ？",
-          "start": 419.79,
-          "end": 422.81
+          "start": 456.399,
+          "end": 459.419
         }
       ]
     },
@@ -3350,25 +4466,38 @@
               "bullets": [
                 "趣味に使う時間と情熱は正常",
                 "エネルギーの源を否定してはダメ"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "後回し癖",
               "bullets": [
                 "現実の人間関係を『いつでも戻せる』と誤認",
                 "タスクの無期限保留が真の原因"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "極端な修正の弊害",
               "bullets": [
                 "いきなり100の繋がりは作れない",
                 "不自然なアクセスは拒絶される"
-              ]
+              ],
+              "icon": "none"
             }
           ],
           "conclusion": "まとめ",
-          "layout": "compact"
+          "layout": "compact",
+          "visibleArrows": [
+            false,
+            false
+          ],
+          "showConclusion": false,
+          "activeSection": 2,
+          "style": {
+            "titleFontSize": 84,
+            "themeFontSize": 59
+          }
         }
       },
       "stage": {
@@ -3382,23 +4511,23 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 423.16,
-      "end": 430.189,
+      "start": 459.769,
+      "end": 466.798,
       "sentences": [
         {
           "text": "かと言って、",
-          "start": 423.16,
-          "end": 424.164
+          "start": 459.769,
+          "end": 460.773
         },
         {
           "text": "いきなり極端な行動の修正は弊害があるわ。",
-          "start": 424.164,
-          "end": 427.512
+          "start": 460.773,
+          "end": 464.121
         },
         {
           "text": "少しずつ積み重ねることが重要なのよ。",
-          "start": 427.512,
-          "end": 430.189
+          "start": 464.121,
+          "end": 466.798
         }
       ]
     },
@@ -3419,25 +4548,39 @@
               "bullets": [
                 "趣味に使う時間と情熱は正常",
                 "エネルギーの源を否定してはダメ"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "後回し癖",
               "bullets": [
                 "現実の人間関係を『いつでも戻せる』と誤認",
                 "タスクの無期限保留が真の原因"
-              ]
+              ],
+              "icon": "none"
             },
             {
               "heading": "極端な修正の弊害",
               "bullets": [
                 "いきなり100の繋がりは作れない",
                 "不自然なアクセスは拒絶される"
-              ]
+              ],
+              "icon": "none"
             }
           ],
           "conclusion": "必要なのは**リソースを**\n**バランスよく再配分**することよ。",
-          "layout": "compact"
+          "layout": "compact",
+          "visibleArrows": [
+            false,
+            false
+          ],
+          "showConclusionArrow": true,
+          "style": {
+            "titleFontSize": 85,
+            "themeFontSize": 59,
+            "conclusionBoxWidth": 1050,
+            "conclusionBoxHeight": 250
+          }
         }
       },
       "stage": {
@@ -3451,23 +4594,23 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 430.539,
-      "end": 439.307,
+      "start": 467.148,
+      "end": 475.916,
       "sentences": [
         {
           "text": "必要なのはリソースをバランスよく再配分することよ。",
-          "start": 430.539,
-          "end": 434.102
+          "start": 467.148,
+          "end": 470.711
         },
         {
           "text": "推し活を少し減らして、",
-          "start": 434.102,
-          "end": 435.693
+          "start": 470.711,
+          "end": 472.301
         },
         {
           "text": "あいたリソースで人間関係も大切にしていきましょう。",
-          "start": 435.693,
-          "end": 439.307
+          "start": 472.301,
+          "end": 475.916
         }
       ]
     },
@@ -3482,7 +4625,11 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "question",
+            "expression": "surprise",
+            "pose": "idle",
+            "flip": false
+          },
+          "metan": {
             "pose": "idle"
           }
         },
@@ -3490,15 +4637,16 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 439.657,
-      "end": 441.897,
+      "start": 476.266,
+      "end": 478.506,
       "sentences": [
         {
           "text": "推し活は……悪くないのだ？",
-          "start": 439.657,
-          "end": 441.897
+          "start": 476.266,
+          "end": 478.506
         }
-      ]
+      ],
+      "transition": "fade-white"
     },
     {
       "id": "turn-0056",
@@ -3513,29 +4661,32 @@
           "metan": {
             "expression": "happy",
             "pose": "idle"
+          },
+          "zundamon": {
+            "expression": "trouble"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 442.247,
-      "end": 447.805,
+      "start": 478.856,
+      "end": 484.413,
       "sentences": [
         {
           "text": "そうよ。",
-          "start": 442.247,
-          "end": 442.834
+          "start": 478.856,
+          "end": 479.443
         },
         {
           "text": "あなたが推しを応援して幸せだった時間は、",
-          "start": 442.834,
-          "end": 446.041
+          "start": 479.443,
+          "end": 482.65
         },
         {
           "text": "間違いなく本物でしょ？",
-          "start": 446.041,
-          "end": 447.805
+          "start": 482.65,
+          "end": 484.413
         }
       ]
     },
@@ -3558,20 +4709,20 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 448.155,
-      "end": 449.691,
+      "start": 484.763,
+      "end": 486.299,
       "sentences": [
         {
           "text": "問題は推し活じゃない。",
-          "start": 448.155,
-          "end": 449.691
+          "start": 484.763,
+          "end": 486.299
         }
       ]
     },
     {
       "id": "turn-0148",
       "speaker": "metan",
-      "text": "現実の人との時間を『いつでも取り戻せる』と思って、ずっと後回しにしてきたことでしょ。",
+      "text": "現実の人との時間を『いつでも取り戻せる』と思って、\nずっと後回しにしてきたことでしょ。",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -3581,26 +4732,42 @@
           "metan": {
             "expression": "normal",
             "pose": "point"
+          },
+          "zundamon": {
+            "expression": "trouble"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 450.041,
-      "end": 456.761,
+      "start": 486.649,
+      "end": 493.369,
       "sentences": [
         {
           "text": "現実の人との時間を『いつでも取り戻せる』と思って、",
-          "start": 450.041,
-          "end": 454.041
+          "start": 486.649,
+          "end": 490.556
         },
         {
-          "text": "ずっと後回しにしてきたことでしょ。",
-          "start": 454.041,
-          "end": 456.761
+          "text": " ずっと後回しにしてきたことでしょ。",
+          "start": 490.556,
+          "end": 493.369
         }
       ]
+    },
+    {
+      "id": "turn-0153",
+      "speaker": "zundamon",
+      "text": "　",
+      "scene": "office",
+      "start": 493.719,
+      "end": 493.719,
+      "displayMode": {
+        "kind": "standard"
+      },
+      "pause": 0.1,
+      "sentences": []
     },
     {
       "id": "turn-0058",
@@ -3621,13 +4788,13 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 457.111,
-      "end": 457.505,
+      "start": 494.169,
+      "end": 494.564,
       "sentences": [
         {
           "text": "あ……っ！！",
-          "start": 457.111,
-          "end": 457.505
+          "start": 494.169,
+          "end": 494.564
         }
       ]
     },
@@ -3650,13 +4817,13 @@
           "mode": "speaker"
         }
       },
-      "start": 457.855,
-      "end": 458.911,
+      "start": 494.914,
+      "end": 495.97,
       "sentences": [
         {
           "text": "そうだったのだ……。",
-          "start": 457.855,
-          "end": 458.911
+          "start": 494.914,
+          "end": 495.97
         }
       ]
     },
@@ -3679,13 +4846,13 @@
           "mode": "speaker"
         }
       },
-      "start": 459.261,
-      "end": 462.632,
+      "start": 496.32,
+      "end": 499.691,
       "sentences": [
         {
           "text": "友人からの誘いも、家族からの連絡も、",
-          "start": 459.261,
-          "end": 462.632
+          "start": 496.32,
+          "end": 499.691
         }
       ]
     },
@@ -3708,13 +4875,13 @@
           "mode": "speaker"
         }
       },
-      "start": 462.982,
-      "end": 465.873,
+      "start": 500.041,
+      "end": 502.931,
       "sentences": [
         {
           "text": "「いつでも繋がれる」と過信していたのだ……。",
-          "start": 462.982,
-          "end": 465.873
+          "start": 500.041,
+          "end": 502.931
         }
       ]
     },
@@ -3734,16 +4901,16 @@
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         }
       },
-      "start": 466.223,
-      "end": 467.236,
+      "start": 503.281,
+      "end": 504.295,
       "sentences": [
         {
           "text": "気づいたようね。",
-          "start": 466.223,
-          "end": 467.236
+          "start": 503.281,
+          "end": 504.295
         }
       ]
     },
@@ -3766,18 +4933,18 @@
           "mode": "speaker"
         }
       },
-      "start": 467.586,
-      "end": 473.954,
+      "start": 504.645,
+      "end": 511.013,
       "sentences": [
         {
           "text": "現実の人間関係は、",
-          "start": 467.586,
-          "end": 469.094
+          "start": 504.645,
+          "end": 506.153
         },
         {
           "text": "メンテナンスを怠ると いつの間にかサービス終了になるのよ。",
-          "start": 469.094,
-          "end": 473.954
+          "start": 506.153,
+          "end": 511.013
         }
       ]
     },
@@ -3800,20 +4967,20 @@
           "mode": "speaker"
         }
       },
-      "start": 474.304,
-      "end": 477.259,
+      "start": 511.363,
+      "end": 514.317,
       "sentences": [
         {
           "text": "いきなり知らないコミュニティに突撃するんじゃなくて、",
-          "start": 474.304,
-          "end": 477.259
+          "start": 511.363,
+          "end": 514.317
         }
       ]
     },
     {
       "id": "turn-0136",
       "speaker": "metan",
-      "text": "まずは身近なセッションを大切にしたらどう？",
+      "text": "まずは身近な人を大切にしたらどう？",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -3826,23 +4993,23 @@
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         }
       },
-      "start": 477.609,
-      "end": 480.542,
+      "start": 514.667,
+      "end": 517.355,
       "sentences": [
         {
-          "text": "まずは身近なセッションを大切にしたらどう？",
-          "start": 477.609,
-          "end": 480.542
+          "text": "まずは身近な人を大切にしたらどう？",
+          "start": 514.667,
+          "end": 517.355
         }
       ]
     },
     {
       "id": "turn-0062",
       "speaker": "zundamon",
-      "text": "身近なセッション……。",
+      "text": "身近な人……。",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -3850,21 +5017,24 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "question",
+            "expression": "Blurred",
             "pose": "proud"
+          },
+          "metan": {
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 480.892,
-      "end": 482.055,
+      "start": 517.705,
+      "end": 518.729,
       "sentences": [
         {
-          "text": "身近なセッション……。",
-          "start": 480.892,
-          "end": 482.055
+          "text": "身近な人……。",
+          "start": 517.705,
+          "end": 518.729
         }
       ]
     },
@@ -3879,26 +5049,26 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "surprise",
-            "pose": "proud"
+            "pose": "proud",
+            "expression": "surprise"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 482.405,
-      "end": 487.173,
+      "start": 519.079,
+      "end": 523.847,
       "sentences": [
         {
           "text": "そうなのだ、ボクにはまだ、",
-          "start": 482.405,
-          "end": 484.342
+          "start": 519.079,
+          "end": 521.016
         },
         {
           "text": " 完全に切れていない繋がりがあるのだ！",
-          "start": 484.342,
-          "end": 487.173
+          "start": 521.016,
+          "end": 523.847
         }
       ]
     },
@@ -3921,13 +5091,13 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 487.523,
-      "end": 491.107,
+      "start": 524.197,
+      "end": 527.781,
       "sentences": [
         {
           "text": "人生を劇的に変えようとするのを、やめるのだ！",
-          "start": 487.523,
-          "end": 491.107
+          "start": 524.197,
+          "end": 527.781
         }
       ]
     },
@@ -3953,15 +5123,16 @@
           "zoom": 0.1
         }
       },
-      "start": 491.457,
-      "end": 494.337,
+      "start": 528.131,
+      "end": 531.011,
       "sentences": [
         {
           "text": "まずは……お母さんに電話してみるのだ。",
-          "start": 491.457,
-          "end": 494.337
+          "start": 528.131,
+          "end": 531.011
         }
-      ]
+      ],
+      "pause": 0.6
     },
     {
       "id": "turn-0064",
@@ -3978,31 +5149,41 @@
             "placement": {
               "mode": "slot",
               "slotId": "center"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
         "update": {
           "zundamon": {
-            "expression": "happy",
-            "pose": "idle"
+            "expression": "normal",
+            "pose": "smartphone"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 494.687,
-      "end": 499.145,
+      "start": 531.961,
+      "end": 536.42,
       "sentences": [
         {
           "text": "もしもし、お母さん？",
-          "start": 494.687,
-          "end": 496.543
+          "start": 531.961,
+          "end": 533.817
         },
         {
           "text": "いや、特に用事はないんだけど、",
-          "start": 496.543,
-          "end": 499.145
+          "start": 533.817,
+          "end": 536.42
+        }
+      ],
+      "transition": "wipe-left",
+      "se": [
+        {
+          "file": "se/flash.mp3",
+          "at": 0.2
         }
       ]
     },
@@ -4018,30 +5199,30 @@
         "update": {
           "zundamon": {
             "expression": "niyari",
-            "pose": "cheer"
+            "pose": "smartphone"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 499.495,
-      "end": 506.365,
+      "start": 536.77,
+      "end": 543.639,
       "sentences": [
         {
           "text": "今度の週末、",
-          "start": 499.495,
-          "end": 500.552
+          "start": 536.77,
+          "end": 537.827
         },
         {
           "text": "久しぶりに実家に帰ろうかと思って…… うん、",
-          "start": 500.552,
-          "end": 504.427
+          "start": 537.827,
+          "end": 541.702
         },
         {
           "text": "楽しみにしててなのだ！",
-          "start": 504.427,
-          "end": 506.365
+          "start": 541.702,
+          "end": 543.639
         }
       ]
     },
@@ -4064,20 +5245,20 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 506.715,
-      "end": 512.421,
+      "start": 543.989,
+      "end": 549.696,
       "sentences": [
         {
           "text": "次は、ずっと「また今度」って言ってた友達にメッセージを送るのだ。",
-          "start": 506.715,
-          "end": 512.421
+          "start": 543.989,
+          "end": 549.696
         }
       ]
     },
     {
       "id": "turn-0140",
       "speaker": "zundamon",
-      "text": "『来月、久しぶりに飯でもどうなのだ？』と。",
+      "text": "『来月、久しぶりに飯でもどうなのだ？』\nと送信。",
       "scene": "home",
       "displayMode": {
         "kind": "standard"
@@ -4085,27 +5266,29 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "normal"
+            "expression": "normal",
+            "pose": "smartphone"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 512.771,
-      "end": 516.238,
+      "start": 550.046,
+      "end": 553.907,
       "sentences": [
         {
           "text": "『来月、久しぶりに飯でもどうなのだ？』",
-          "start": 512.771,
-          "end": 515.833
+          "start": 550.046,
+          "end": 553.107
         },
         {
-          "text": "と。",
-          "start": 515.833,
-          "end": 516.238
+          "text": "と送信。",
+          "start": 553.107,
+          "end": 553.907
         }
-      ]
+      ],
+      "pause": 0.8
     },
     {
       "id": "turn-0141",
@@ -4126,13 +5309,13 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 516.588,
-      "end": 519.255,
+      "start": 555.057,
+      "end": 557.724,
       "sentences": [
         {
           "text": "……あ、すぐに既読がついたのだ！",
-          "start": 516.588,
-          "end": 519.255
+          "start": 555.057,
+          "end": 557.724
         }
       ]
     },
@@ -4147,7 +5330,7 @@
       "stage": {
         "update": {
           "zundamon": {
-            "expression": "proud",
+            "expression": "happy",
             "pose": "proud"
           }
         },
@@ -4155,13 +5338,13 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 519.605,
-      "end": 523.903,
+      "start": 558.074,
+      "end": 562.373,
       "sentences": [
         {
           "text": "現実の繋がりを、1つずつ丁寧に修復していくのだ。",
-          "start": 519.605,
-          "end": 523.903
+          "start": 558.074,
+          "end": 562.373
         }
       ]
     },
@@ -4177,30 +5360,34 @@
         "update": {
           "zundamon": {
             "expression": "happy",
-            "pose": "listening"
+            "pose": "point"
           }
         },
         "framing": {
           "mode": "sceneDefault"
         },
         "cameraMotion": {
-          "zoom": 0.1
+          "zoom": 0.28,
+          "pan": {
+            "x": 0,
+            "y": -0.05
+          }
         }
       },
-      "start": 524.253,
-      "end": 526.877,
+      "start": 562.723,
+      "end": 565.347,
       "sentences": [
         {
           "text": "これならボクでも無理なく続けられるのだ！",
-          "start": 524.253,
-          "end": 526.877
+          "start": 562.723,
+          "end": 565.347
         }
       ]
     },
     {
       "id": "turn-0067",
       "speaker": "zundamon",
-      "text": "弱い同僚さん、お疲れ様なのだ！\nもしよかったら、今日のお昼、一緒に会社の食堂で食べないのだ？",
+      "text": "　",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -4212,6 +5399,9 @@
             "placement": {
               "mode": "slot",
               "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
@@ -4225,30 +5415,69 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 527.227,
-      "end": 535.121,
+      "start": 565.697,
+      "end": 565.697,
+      "transition": "wipe-left",
+      "sentences": [],
+      "pause": 0.5,
+      "se": [
+        {
+          "file": "se/flash.mp3",
+          "at": 0.2
+        }
+      ]
+    },
+    {
+      "id": "turn-0167",
+      "speaker": "zundamon",
+      "text": "営業さん、お疲れ様なのだ！",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 566.547,
+      "end": 568.979,
       "sentences": [
         {
-          "text": "弱い同僚さん、お疲れ様なのだ！",
-          "start": 527.227,
-          "end": 529.99
+          "text": "営業さん、お疲れ様なのだ！",
+          "start": 566.547,
+          "end": 568.979
+        }
+      ],
+      "stage": {
+        "framing": {
+          "mode": "speaker"
+        }
+      }
+    },
+    {
+      "id": "turn-0166",
+      "speaker": "zundamon",
+      "text": "今日のお昼、一緒に会社の食堂で食べましょうなのだ？",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 569.329,
+      "end": 573.499,
+      "continueBubble": true,
+      "sentences": [
+        {
+          "text": "今日のお昼、",
+          "start": 569.329,
+          "end": 570.33
         },
         {
-          "text": "もしよかったら、今日のお昼、",
-          "start": 529.99,
-          "end": 532.384
-        },
-        {
-          "text": "一緒に会社の食堂で食べないのだ？",
-          "start": 532.384,
-          "end": 535.121
+          "text": "一緒に会社の食堂で食べましょうなのだ？",
+          "start": 570.33,
+          "end": 573.499
         }
       ]
     },
     {
       "id": "turn-0068",
       "speaker": "営業",
-      "text": "あ、ずんだもんさん！ いいですね、行きましょう。\n最近導入されたZunAIの使いこなしについて、教えてほしかったんですよ。",
+      "text": "あ、ずんだもんさん！ いいですね、行きましょう。",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -4260,10 +5489,10 @@
             "placement": {
               "mode": "manual",
               "origin": {
-                "x": 0.427,
-                "y": 0.93
+                "x": 0.48377383846918387,
+                "y": 0.9228304882293253
               },
-              "scale": 1.3,
+              "scale": 1.42,
               "zIndex": 15
             }
           }
@@ -4275,32 +5504,50 @@
         },
         "framing": {
           "mode": "sceneDefault"
+        },
+        "cameraMotion": {
+          "zoom": 0.2
         }
       },
-      "start": 535.471,
-      "end": 543.417,
+      "start": 573.849,
+      "end": 576.879,
       "sentences": [
         {
           "text": "あ、ずんだもんさん！",
-          "start": 535.471,
-          "end": 536.836
+          "start": 573.849,
+          "end": 575.215
         },
         {
           "text": "いいですね、行きましょう。",
-          "start": 536.836,
-          "end": 538.5
-        },
-        {
-          "text": "最近導入されたZunAIの使いこなしについて、",
-          "start": 538.5,
-          "end": 541.642
-        },
-        {
-          "text": "教えてほしかったんですよ。",
-          "start": 541.642,
-          "end": 543.417
+          "start": 575.215,
+          "end": 576.879
         }
       ]
+    },
+    {
+      "id": "turn-0155",
+      "speaker": "営業",
+      "text": "最近導入されたAIの使いこなしについて\n教えてほしかったんですよ。",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 577.229,
+      "end": 581.965,
+      "sentences": [
+        {
+          "text": "最近導入されたAIの使いこなしについて 教えてほしかったんですよ。",
+          "start": 577.229,
+          "end": 581.965
+        }
+      ],
+      "stage": {
+        "update": {
+          "zundamon": {
+            "expression": "normal"
+          }
+        }
+      }
     },
     {
       "id": "turn-0069",
@@ -4321,28 +5568,28 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 543.767,
-      "end": 550.775,
+      "start": 582.315,
+      "end": 589.323,
       "sentences": [
         {
           "text": "喜んで教えるのだ！",
-          "start": 543.767,
-          "end": 545.41
+          "start": 582.315,
+          "end": 583.957
         },
         {
           "text": "ボクの失敗談という名のログなら、",
-          "start": 545.41,
-          "end": 547.731
+          "start": 583.957,
+          "end": 586.278
         },
         {
           "text": " 山ほどストックがあるのだ！",
-          "start": 547.731,
-          "end": 549.762
+          "start": 586.278,
+          "end": 588.309
         },
         {
           "text": "ハハハなのだ！",
-          "start": 549.762,
-          "end": 550.775
+          "start": 588.309,
+          "end": 589.323
         }
       ]
     },
@@ -4374,25 +5621,25 @@
           "mode": "speaker"
         }
       },
-      "start": 551.125,
-      "end": 557.824,
+      "start": 589.673,
+      "end": 596.371,
       "sentences": [
         {
           "text": "ふふ、いい感じにリソースの最適化が進んでいるみたいね。",
-          "start": 551.125,
-          "end": 555.125
+          "start": 589.673,
+          "end": 593.673
         },
         {
           "text": "極端な暴走が収まって安心したわ。",
-          "start": 555.125,
-          "end": 557.824
+          "start": 593.673,
+          "end": 596.371
         }
       ]
     },
     {
       "id": "turn-0071",
       "speaker": "zundamon",
-      "text": "もちろん、推し活もやめないのだ！\n今夜は推しの3周年記念配信だから、定時でダッシュして全力応援なのだ！",
+      "text": "もちろん、推し活もやめないのだ！",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -4408,30 +5655,43 @@
           "mode": "speaker"
         }
       },
-      "start": 558.174,
-      "end": 566.451,
+      "start": 596.721,
+      "end": 599.281,
       "sentences": [
         {
           "text": "もちろん、推し活もやめないのだ！",
-          "start": 558.174,
-          "end": 560.734
-        },
+          "start": 596.721,
+          "end": 599.281
+        }
+      ]
+    },
+    {
+      "id": "turn-0156",
+      "speaker": "zundamon",
+      "text": "今夜は推しの3周年記念配信だから、\n定時でダッシュして全力応援なのだ！",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 599.631,
+      "end": 605.349,
+      "sentences": [
         {
           "text": "今夜は推しの3周年記念配信だから、",
-          "start": 560.734,
-          "end": 563.593
+          "start": 599.631,
+          "end": 602.408
         },
         {
-          "text": "定時でダッシュして全力応援なのだ！",
-          "start": 563.593,
-          "end": 566.451
+          "text": " 定時でダッシュして全力応援なのだ！",
+          "start": 602.408,
+          "end": 605.349
         }
       ]
     },
     {
       "id": "turn-0072",
       "speaker": "metan",
-      "text": "ええ、自分のキャパシティの範囲内で楽しむなら、趣味は最高のスパイスよ。\n推し『だけ』の人生をやめたことで、あなたの世界が少し広がったみたいね。",
+      "text": "ええ、自分のキャパシティの範囲内で楽しむなら\n趣味は最高のスパイスよ。\n",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -4440,42 +5700,50 @@
         "update": {
           "metan": {
             "expression": "happy",
-            "pose": "proud"
+            "pose": "idle"
           }
         },
         "framing": {
           "mode": "speaker"
         }
       },
-      "start": 566.801,
-      "end": 578.183,
+      "start": 605.699,
+      "end": 611.245,
       "sentences": [
         {
-          "text": "ええ、自分のキャパシティの範囲内で楽しむなら、",
-          "start": 566.801,
-          "end": 570.446
-        },
-        {
-          "text": "趣味は最高のスパイスよ。",
-          "start": 570.446,
-          "end": 572.348
-        },
+          "text": "ええ、自分のキャパシティの範囲内で楽しむなら 趣味は最高のスパイスよ。",
+          "start": 605.699,
+          "end": 611.245
+        }
+      ]
+    },
+    {
+      "id": "turn-0157",
+      "speaker": "metan",
+      "text": "推し『だけ』の人生をやめたことで、\n世界が少し広がったみたいね。",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 611.595,
+      "end": 616.971,
+      "sentences": [
         {
           "text": "推し『だけ』の人生をやめたことで、",
-          "start": 572.348,
-          "end": 575.182
+          "start": 611.595,
+          "end": 614.451
         },
         {
-          "text": "あなたの世界が少し広がったみたいね。",
-          "start": 575.182,
-          "end": 578.183
+          "text": " 世界が少し広がったみたいね。",
+          "start": 614.451,
+          "end": 616.971
         }
       ]
     },
     {
       "id": "turn-0073",
       "speaker": "zundamon",
-      "text": "なのだ！ 推しも大切、身近な人も大切。\nこのマルチタスクが、ボクの人生の最適解（ベストプラクティス）なのだ！",
+      "text": "なのだ！ 推しも大切、身近な人も大切。",
       "scene": "office",
       "displayMode": {
         "kind": "standard"
@@ -4491,28 +5759,45 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 578.533,
-      "end": 587.717,
+      "start": 617.321,
+      "end": 620.831,
       "sentences": [
         {
           "text": "なのだ！",
-          "start": 578.533,
-          "end": 579.162
+          "start": 617.321,
+          "end": 617.951
         },
         {
           "text": "推しも大切、身近な人も大切。",
-          "start": 579.162,
-          "end": 582.042
-        },
+          "start": 617.951,
+          "end": 620.831
+        }
+      ]
+    },
+    {
+      "id": "turn-0158",
+      "speaker": "zundamon",
+      "text": "このマルチタスクが、ボクの人生の最適解なのだ！",
+      "scene": "office",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 621.181,
+      "end": 624.925,
+      "pause": 0.3,
+      "stage": {
+        "update": {
+          "zundamon": {
+            "expression": "happy",
+            "pose": "cheer"
+          }
+        }
+      },
+      "sentences": [
         {
-          "text": "このマルチタスクが、",
-          "start": 582.042,
-          "end": 583.711
-        },
-        {
-          "text": "ボクの人生の最適解（ベストプラクティス）なのだ！",
-          "start": 583.711,
-          "end": 587.717
+          "text": "このマルチタスクが、ボクの人生の最適解なのだ！",
+          "start": 621.181,
+          "end": 624.925
         }
       ]
     },
@@ -4532,23 +5817,26 @@
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
+        },
+        "cameraMotion": {
+          "zoom": 0.17
         }
       },
-      "start": 588.067,
-      "end": 591.352,
+      "start": 625.575,
+      "end": 628.86,
       "sentences": [
         {
           "text": "そして……時は流れ……数十年後なのだ……。",
-          "start": 588.067,
-          "end": 591.352
+          "start": 625.575,
+          "end": 628.86
         }
       ]
     },
     {
       "id": "turn-0075",
-      "speaker": "zundamon",
-      "text": "いやぁ、あの頃の推しのライブは本当に伝説だったのだ！\nあの演出、今思い出してもデータが色褪せないのだ！",
+      "speaker": "おじいさんずんだもん",
+      "text": "いやぁ、あの頃の推しのライブは本当に伝説だったのだ！\nあの演出、今思い出しても色褪せないのだ！",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
@@ -4556,37 +5844,53 @@
       "stage": {
         "enter": [
           {
-            "instanceId": "zundamon",
+            "instanceId": "おじいさんずんだもん",
             "placement": {
               "mode": "slot",
               "slotId": "speakerLeft"
+            },
+            "animation": {
+              "direction": "instant"
+            }
+          },
+          {
+            "instanceId": "おじいさん",
+            "placement": {
+              "mode": "slot",
+              "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
             }
           }
         ],
-        "update": {
-          "zundamon": {
-            "expression": "happy",
-            "pose": "proud"
-          }
-        },
         "framing": {
           "mode": "sceneDefault"
+        },
+        "update": {
+          "おじいさん": {
+            "flip": true
+          }
         }
       },
-      "start": 591.702,
-      "end": 599.809,
+      "start": 629.21,
+      "end": 637.647,
       "sentences": [
         {
           "text": "いやぁ、あの頃の推しのライブは本当に伝説だったのだ！",
-          "start": 591.702,
-          "end": 595.969
+          "start": 629.21,
+          "end": 633.957
         },
         {
-          "text": "あの演出、今思い出してもデータが色褪せないのだ！",
-          "start": 595.969,
-          "end": 599.809
+          "text": "あの演出、今思い出しても色褪せないのだ！",
+          "start": 633.957,
+          "end": 637.647
         }
-      ]
+      ],
+      "transition": "fade-white",
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0076",
@@ -4597,61 +5901,45 @@
         "kind": "standard"
       },
       "stage": {
-        "enter": [
-          {
-            "instanceId": "おじいさん",
-            "placement": {
-              "mode": "manual",
-              "origin": {
-                "x": 0.556,
-                "y": 0.709
-              },
-              "scale": 0.85,
-              "zIndex": 15
-            }
-          }
-        ],
-        "update": {
-          "おじいさん": {
-            "expression": "normal"
-          }
-        },
         "framing": {
           "mode": "sceneDefault"
         }
       },
-      "start": 600.159,
-      "end": 609.855,
+      "start": 637.997,
+      "end": 647.693,
       "sentences": [
         {
           "text": "ワハハ！",
-          "start": 600.159,
-          "end": 600.841
+          "start": 637.997,
+          "end": 638.68
         },
         {
           "text": "ずんだもんさん、その話もう何百回も聞きましたよ！",
-          "start": 600.841,
-          "end": 605.716
+          "start": 638.68,
+          "end": 643.555
         },
         {
           "text": "でも、本当に楽しそうな時代でしたよねぇ。",
-          "start": 605.716,
-          "end": 609.855
+          "start": 643.555,
+          "end": 647.693
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0077",
-      "speaker": "zundamon",
-      "text": "何回でも言うのだ！ ボクの魂に刻まれたマスターデータなのだから！\nこうしてみんなでお酒を飲みながら思い出を語るの、最高なのだ！",
+      "speaker": "おじいさんずんだもん",
+      "text": "何回でも言うのだ！ \nこうしてお酒を飲みながら思い出を語るの、最高なのだ！",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
         "update": {
-          "zundamon": {
-            "expression": "happy",
+          "おじいさんずんだもん": {
+            "expression": "normal",
             "pose": "cheer"
           }
         },
@@ -4659,95 +5947,40 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 610.205,
-      "end": 619.453,
+      "start": 648.043,
+      "end": 654.155,
       "sentences": [
         {
           "text": "何回でも言うのだ！",
-          "start": 610.205,
-          "end": 611.645
+          "start": 648.043,
+          "end": 649.601
         },
         {
-          "text": "ボクの魂に刻まれたマスターデータなのだから！",
-          "start": 611.645,
-          "end": 614.866
-        },
-        {
-          "text": "こうしてみんなでお酒を飲みながら思い出を語るの、",
-          "start": 614.866,
-          "end": 618.535
+          "text": "こうしてお酒を飲みながら思い出を語るの、",
+          "start": 649.601,
+          "end": 653.104
         },
         {
           "text": "最高なのだ！",
-          "start": 618.535,
-          "end": 619.453
+          "start": 653.104,
+          "end": 654.155
         }
-      ]
-    },
-    {
-      "id": "turn-0078",
-      "speaker": "metan",
-      "text": "ふふ、相変わらず騒がしいおじいちゃんね、ずんだもんは。\nでも……昔あなたが怯えていた未来とは、全然違う景色になったわね。",
-      "scene": "izakaya",
-      "displayMode": {
-        "kind": "standard"
-      },
-      "stage": {
-        "enter": [
-          {
-            "instanceId": "metan",
-            "placement": {
-              "mode": "slot",
-              "slotId": "speakerRight"
-            }
-          }
-        ],
-        "update": {
-          "metan": {
-            "expression": "happy",
-            "pose": "idle"
-          }
-        },
-        "framing": {
-          "mode": "speaker"
-        }
-      },
-      "start": 619.803,
-      "end": 629.264,
-      "sentences": [
-        {
-          "text": "ふふ、相変わらず騒がしいおじいちゃんね、",
-          "start": 619.803,
-          "end": 622.924
-        },
-        {
-          "text": "ずんだもんは。",
-          "start": 622.924,
-          "end": 624.016
-        },
-        {
-          "text": "でも……昔あなたが怯えていた未来とは、",
-          "start": 624.016,
-          "end": 627.132
-        },
-        {
-          "text": "全然違う景色になったわね。",
-          "start": 627.132,
-          "end": 629.264
-        }
-      ]
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0079",
-      "speaker": "zundamon",
-      "text": "……そうなのだ。あの頃、ZunAIの警告で孤独死する未来を見てなかったら、\n後回しにし続けて、今ここにはいなかったのだ。",
+      "speaker": "おじいさんずんだもん",
+      "text": "……そうなのだ。あの頃孤独死する未来を見てなかったら、\n後回しにし続けて、今ここにはいなかったのだ。",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
         "update": {
-          "zundamon": {
+          "おじいさんずんだもん": {
             "expression": "normal",
             "pose": "idle"
           }
@@ -4756,38 +5989,41 @@
           "mode": "speaker"
         }
       },
-      "start": 629.614,
-      "end": 638.787,
+      "start": 654.505,
+      "end": 662.473,
       "sentences": [
         {
           "text": "……そうなのだ。",
-          "start": 629.614,
-          "end": 630.467
+          "start": 654.505,
+          "end": 655.444
         },
         {
-          "text": "あの頃、ZunAIの警告で孤独死する未来を見てなかったら、",
-          "start": 630.467,
-          "end": 635.107
+          "text": "あの頃孤独死する未来を見てなかったら、",
+          "start": 655.444,
+          "end": 658.624
         },
         {
           "text": " 後回しにし続けて、今ここにはいなかったのだ。",
-          "start": 635.107,
-          "end": 638.787
+          "start": 658.624,
+          "end": 662.473
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0080",
-      "speaker": "zundamon",
-      "text": "推し活はやめなかった。\nただ、推し『だけ』の人生をやめたことで、ボクの最期は孤独ではなくなったのだ。",
+      "speaker": "おじいさんずんだもん",
+      "text": "推し活はやめなかった。\n",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
         "update": {
-          "zundamon": {
-            "expression": "happy",
+          "おじいさんずんだもん": {
+            "expression": "normal",
             "pose": "proud"
           }
         },
@@ -4795,82 +6031,95 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 639.137,
-      "end": 647.383,
+      "start": 662.823,
+      "end": 664.573,
       "sentences": [
         {
           "text": "推し活はやめなかった。",
-          "start": 639.137,
-          "end": 640.737
-        },
+          "start": 662.823,
+          "end": 664.573
+        }
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
+    },
+    {
+      "id": "turn-0159",
+      "speaker": "おじいさんずんだもん",
+      "text": "ただ、推し『だけ』の人生をやめたことで、\nワシの最期は孤独ではなくなったのだ。",
+      "scene": "izakaya",
+      "displayMode": {
+        "kind": "standard"
+      },
+      "start": 664.923,
+      "end": 672.379,
+      "continueBubble": true,
+      "sentences": [
         {
           "text": "ただ、推し『だけ』の人生をやめたことで、",
-          "start": 640.737,
-          "end": 644.235
+          "start": 664.923,
+          "end": 668.746
         },
         {
-          "text": "ボクの最期は孤独ではなくなったのだ。",
-          "start": 644.235,
-          "end": 647.383
+          "text": " ワシの最期は孤独ではなくなったのだ。",
+          "start": 668.746,
+          "end": 672.379
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0081",
-      "speaker": "metan",
-      "text": "良い教訓ね。現実の繋がりは、バグってからじゃ修復が難しいシステムパッチ。\n日頃の定期メンテナンスが、未来の自分を救うのよ。",
+      "speaker": "おじいさん",
+      "text": "良い教訓だね。こうしてずんだもんと楽しく過ごせて嬉しいよ。",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
         "update": {
-          "metan": {
-            "expression": "happy",
+          "おじいさん": {
+            "expression": "normal",
             "pose": "proud"
           }
         },
         "framing": {
-          "mode": "speaker"
+          "mode": "sceneDefault"
         }
       },
-      "start": 647.733,
-      "end": 657.023,
+      "start": 672.729,
+      "end": 678.115,
       "sentences": [
         {
-          "text": "良い教訓ね。",
-          "start": 647.733,
-          "end": 648.735
+          "text": "良い教訓だね。",
+          "start": 672.729,
+          "end": 674.169
         },
         {
-          "text": "現実の繋がりは、",
-          "start": 648.735,
-          "end": 649.967
-        },
-        {
-          "text": "バグってからじゃ修復が難しいシステムパッチ。",
-          "start": 649.967,
-          "end": 653.354
-        },
-        {
-          "text": "日頃の定期メンテナンスが、未来の自分を救うのよ。",
-          "start": 653.354,
-          "end": 657.023
+          "text": "こうしてずんだもんと楽しく過ごせて嬉しいよ。",
+          "start": 674.169,
+          "end": 678.115
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0082",
-      "speaker": "zundamon",
-      "text": "なのだ！ ボクの人生の稼働率は、今が一番安定しているのだ！\nよーし、今夜はボクが奢っちゃうのだ！ みんな好きなだけ飲むのだ！",
+      "speaker": "おじいさんずんだもん",
+      "text": "なのだ！ ワシの人生は、今が一番安定しているのだ！\nよーし、今夜はワシが奢っちゃうのだ！ 好きなだけ飲むのだ！",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
         "update": {
-          "zundamon": {
-            "expression": "happy",
+          "おじいさんずんだもん": {
+            "expression": "normal",
             "pose": "cheer"
           }
         },
@@ -4878,43 +6127,46 @@
           "mode": "sceneDefault"
         }
       },
-      "start": 657.373,
-      "end": 666.803,
+      "start": 678.465,
+      "end": 687.671,
       "sentences": [
         {
           "text": "なのだ！",
-          "start": 657.373,
-          "end": 658.003
+          "start": 678.465,
+          "end": 679.159
         },
         {
-          "text": "ボクの人生の稼働率は、今が一番安定しているのだ！",
-          "start": 658.003,
-          "end": 662.333
+          "text": "ワシの人生は、今が一番安定しているのだ！",
+          "start": 679.159,
+          "end": 683.201
         },
         {
-          "text": "よーし、今夜はボクが奢っちゃうのだ！",
-          "start": 662.333,
-          "end": 665.107
+          "text": "よーし、今夜はワシが奢っちゃうのだ！",
+          "start": 683.201,
+          "end": 686.188
         },
         {
-          "text": "みんな好きなだけ飲むのだ！",
-          "start": 665.107,
-          "end": 666.803
+          "text": "好きなだけ飲むのだ！",
+          "start": 686.188,
+          "end": 687.671
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0083",
-      "speaker": "metan",
-      "text": "あら、太っ腹ね。じゃあ、このお店で一番高いヴィンテージのワイン、\n遠慮なくサーバーにロード（注文）させてもらうわね？",
+      "speaker": "おじいさん",
+      "text": "じゃあこのお店で一番高い\nヴィンテージのワイン、頼んじゃおーっと",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
         "update": {
-          "metan": {
-            "expression": "niyari",
+          "おじいさん": {
+            "expression": "normal",
             "pose": "proud"
           }
         },
@@ -4922,69 +6174,356 @@
           "mode": "speaker"
         }
       },
-      "start": 667.153,
-      "end": 676.753,
+      "start": 688.021,
+      "end": 694.015,
       "sentences": [
         {
-          "text": "あら、太っ腹ね。",
-          "start": 667.153,
-          "end": 668.753
+          "text": "じゃあこのお店で一番高い ヴィンテージのワイン、",
+          "start": 688.021,
+          "end": 692.517
         },
         {
-          "text": "じゃあ、このお店で一番高いヴィンテージのワイン、",
-          "start": 668.753,
-          "end": 672.593
-        },
-        {
-          "text": " 遠慮なくサーバーにロード（注文）させてもらうわね？",
-          "start": 672.593,
-          "end": 676.753
+          "text": "頼んじゃおーっと",
+          "start": 692.517,
+          "end": 694.015
         }
-      ]
+      ],
+      "caption": {
+        "text": "ー数十年後ー"
+      }
     },
     {
       "id": "turn-0084",
-      "speaker": "zundamon",
-      "text": "ぎゃああああ！？ それは予算オーバーなのだ！\nやっぱりボクの財布が孤独死しそうなのだーーっ！！",
+      "speaker": "おじいさんずんだもん",
+      "text": "それはワシの財布が孤独死しそうなのだーーっ！！",
       "scene": "izakaya",
       "displayMode": {
         "kind": "standard"
       },
       "stage": {
         "update": {
-          "zundamon": {
-            "expression": "panic",
+          "おじいさんずんだもん": {
+            "expression": "normal",
             "pose": "flustered"
           }
         },
         "framing": {
-          "mode": "sceneDefault"
+          "mode": "speaker"
         },
         "cameraMotion": {
-          "zoom": 0.1
+          "zoom": 0.26
         }
       },
-      "start": 677.103,
-      "end": 683.044,
+      "start": 694.365,
+      "end": 697.608,
       "sentences": [
         {
-          "text": "ぎゃああああ！？",
-          "start": 677.103,
-          "end": 678.159
+          "text": "それはワシの財布が孤独死しそうなのだーーっ！！",
+          "start": 694.365,
+          "end": 697.608
+        }
+      ],
+      "effects": {
+        "irisOut": {
+          "enabled": true,
+          "cx": 0.32,
+          "cy": 0.35,
+          "startRadius": 1.05,
+          "closeStart": 3.4,
+          "closeEnd": 5.5,
+          "color": "#000000"
+        }
+      },
+      "pause": 2,
+      "caption": {
+        "text": "ー数十年後ー"
+      }
+    },
+    {
+      "id": "turn-0160",
+      "speaker": "zundamon",
+      "text": "　",
+      "scene": "park_day",
+      "start": 699.958,
+      "end": 699.958,
+      "displayMode": {
+        "kind": "standard"
+      },
+      "stage": {
+        "enter": [
+          {
+            "instanceId": "zundamon",
+            "placement": {
+              "mode": "slot",
+              "slotId": "speakerRight"
+            },
+            "animation": {
+              "direction": "instant"
+            }
+          }
+        ],
+        "framing": {
+          "mode": "speaker"
         },
+        "update": {
+          "zundamon": {
+            "pose": "idle",
+            "expression": "normal"
+          }
+        }
+      },
+      "transition": "fade-black",
+      "sentences": [],
+      "pause": 1
+    },
+    {
+      "id": "turn-0164",
+      "speaker": "zundamon",
+      "text": "最後まで見てくれてありがとうなのだ！",
+      "scene": "park_day",
+      "start": 701.308,
+      "end": 703.74,
+      "displayMode": {
+        "kind": "standard"
+      },
+      "sentences": [
         {
-          "text": "それは予算オーバーなのだ！",
-          "start": 678.159,
-          "end": 680.015
+          "text": "最後まで見てくれてありがとうなのだ！",
+          "start": 701.308,
+          "end": 703.74
+        }
+      ]
+    },
+    {
+      "id": "turn-0161",
+      "speaker": "zundamon",
+      "text": "感想をコメントで教えてね！",
+      "scene": "park_day",
+      "start": 704.09,
+      "end": 706.223,
+      "displayMode": {
+        "kind": "standard"
+      },
+      "sentences": [
+        {
+          "text": "感想をコメントで教えてね！",
+          "start": 704.09,
+          "end": 706.223
+        }
+      ],
+      "stage": {
+        "update": {
+          "zundamon": {
+            "expression": "normal"
+          }
+        }
+      }
+    },
+    {
+      "id": "turn-0162",
+      "speaker": "zundamon",
+      "text": "高評価とチャンネル登録もよろしくなのだ！\n",
+      "scene": "park_day",
+      "start": 706.573,
+      "end": 709.485,
+      "displayMode": {
+        "kind": "standard"
+      },
+      "stage": {
+        "cameraMotion": {
+          "zoom": 0.32,
+          "pan": {
+            "x": 0,
+            "y": -0.08
+          }
         },
+        "update": {
+          "zundamon": {
+            "pose": "sneak"
+          }
+        }
+      },
+      "sentences": [
         {
-          "text": "やっぱりボクの財布が孤独死しそうなのだーーっ！！",
-          "start": 680.015,
-          "end": 683.044
+          "text": "高評価とチャンネル登録もよろしくなのだ！",
+          "start": 706.573,
+          "end": 709.485
+        }
+      ]
+    },
+    {
+      "id": "turn-0163",
+      "speaker": "zundamon",
+      "text": "また見てね！",
+      "scene": "park_day",
+      "start": 709.835,
+      "end": 710.731,
+      "displayMode": {
+        "kind": "standard"
+      },
+      "continueBubble": true,
+      "stage": {
+        "cameraMotion": {
+          "zoom": 0.52,
+          "pan": {
+            "x": 0,
+            "y": -0.08
+          }
+        },
+        "update": {
+          "zundamon": {
+            "pose": "point",
+            "expression": "happy"
+          }
+        }
+      },
+      "pause": 1,
+      "sentences": [
+        {
+          "text": "また見てね！",
+          "start": 709.835,
+          "end": 710.731
         }
       ]
     }
   ],
   "title": "【孤独死確定！？】推し活全振りエンジニアの末路と人生のデバッグ【アニメ】",
-  "audio": "story-01.mp3"
+  "audio": "story-01.mp3",
+  "idleFace": "hold",
+  "overlays": [
+    {
+      "id": "ov-0001",
+      "kind": "image",
+      "layer": "normal",
+      "src": "overlays/naruhodo.png",
+      "x": 0.7654815576209063,
+      "y": 0.15756030880257038,
+      "w": 0.2061867077847895,
+      "opacity": 1,
+      "z": 0,
+      "start": {
+        "turnId": "turn-0132",
+        "at": 1.842
+      },
+      "end": {
+        "turnId": "turn-0132",
+        "at": 8.868
+      }
+    }
+  ],
+  "bgm": [
+    {
+      "start": 29.3,
+      "end": 91.4,
+      "file": "bgm/なんでしょう？.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.3,
+      "fadeOut": 0.6
+    },
+    {
+      "start": 701.5,
+      "end": 713.0500000000001,
+      "file": "bgm/I_Need_Only_You.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 1
+    },
+    {
+      "start": 91.9,
+      "end": 197.5,
+      "file": "bgm/昼下がり気分.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 0.6
+    },
+    {
+      "start": 197.9,
+      "end": 213.20000000000002,
+      "file": "bgm/人狼の為の子守唄.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 0.6
+    },
+    {
+      "start": 213.65,
+      "end": 234.55,
+      "file": "bgm/トラブル.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 0.6
+    },
+    {
+      "start": 234.60000000000002,
+      "end": 288.25,
+      "file": "bgm/なんでしょう？.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 0.6
+    },
+    {
+      "start": 288.3,
+      "end": 381.15000000000003,
+      "file": "bgm/ほんわかぷっぷー.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 0.6
+    },
+    {
+      "start": 381.15000000000003,
+      "end": 438.3,
+      "file": "bgm/なんでしょう？.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 0.6
+    },
+    {
+      "start": 438.45000000000005,
+      "end": 628.0500000000001,
+      "file": "bgm/少年達の夏休み的なBGM.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 1
+    },
+    {
+      "start": 630.25,
+      "end": 701.1500000000001,
+      "file": "bgm/ほんわかぷっぷー.mp3",
+      "volume": 0.1,
+      "fadeIn": 0.6,
+      "fadeOut": 0.6
+    }
+  ],
+  "displaySettings": {
+    "bubble": {
+      "maxChars": 99,
+      "fontSize": 54,
+      "fontFamily": "sans-serif",
+      "textColor": "#1b1b1f",
+      "bgColor": "#ffffff",
+      "borderWidth": 5,
+      "radius": 18
+    },
+    "subtitle": {
+      "fontSize": 46,
+      "fontFamily": "\"Hiragino Kaku Gothic ProN\", \"Yu Gothic\", sans-serif",
+      "textColor": "#ffffff",
+      "bgColor": "#080a0e",
+      "bgOpacity": 0.84,
+      "border": true,
+      "borderColor": "#ffffff",
+      "borderWidth": 2,
+      "bottom": 60,
+      "width": 0.84
+    },
+    "speakerColors": {
+      "zundamon": "#5fb84f",
+      "metan": "#e87bb0",
+      "default": "#9aa0a6"
+    },
+    "telop": {
+      "x": 0.01,
+      "y": 0.01,
+      "size": 0.7
+    }
+  }
 }

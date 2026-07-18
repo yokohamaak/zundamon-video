@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "story-editor",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["story_editor.py", "--port", "8771"],
+      "port": 8771
+    },
+    {
+      "name": "remotion-studio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "video", "run", "dev:story", "--", "--port", "3210"],
+      "port": 3210
+    },
+    {
+      "name": "scene-editor",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["scene_editor.py", "--port", "8783"],
+      "port": 8783
+    },
+    {
+      "name": "pose-editor",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["pose_editor.py", "--port", "8773"],
+      "port": 8773
+    }
+  ]
+}

@@ -1,4 +1,24 @@
 {
+  "おじいさん": {
+    "scale": 1,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.95
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/おじいさん_normal_closed.png",
+        "open": "mobs/おじいさん_normal_open.png"
+      },
+      "agitated": {
+        "closed": "mobs/おじいさん_agitated_closed.png",
+        "open": "mobs/おじいさん_agitated_open.png"
+      }
+    },
+    "voice": {
+      "speaker": 42
+    }
+  },
   "おじいさんずんだもん": {
     "scale": 1,
     "anchor": {
@@ -117,26 +137,6 @@
     },
     "voice": {
       "speaker": 13
-    }
-  },
-  "おじいさん": {
-    "scale": 1,
-    "anchor": {
-      "x": 0.5,
-      "y": 0.95
-    },
-    "images": {
-      "normal": {
-        "closed": "mobs/おじいさん_normal_closed.png",
-        "open": "mobs/おじいさん_normal_open.png"
-      },
-      "agitated": {
-        "closed": "mobs/おじいさん_agitated_closed.png",
-        "open": "mobs/おじいさん_agitated_open.png"
-      }
-    },
-    "voice": {
-      "speaker": 42
     }
   }
 }

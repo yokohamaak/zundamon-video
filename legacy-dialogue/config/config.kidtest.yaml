@@ -1,0 +1,119 @@
+# 深掘りストーリー 動画パイプライン設定
+# 秘密情報は書かない（APIキーは環境変数 GEMINI_API_KEY / PEXELS_API_KEY / PIXABAY_API_KEY）
+
+# 番組（なぜ〇〇は…のか・1主題を深掘りする掛け合いストーリー）の設定
+story:
+  genre: yokohama                      # ジャンルID。重複回避の履歴ファイルをジャンル別に分ける（topic_history/<genre>.json）。分野不問・自由に変えてよい
+  theme: "なぜ横浜駅は迷宮なのか？"          # 1本の主題（なぜ〜のか型）。空にすると theme_pool→Gemini自動 で巡回
+  theme_pool:                          # theme が空のとき、ここから使用済み(topic_history)を避けて1つ巡回
+    - "なぜ横浜駅は迷宮なのか？"
+    - "なぜ横浜は港町になったのか"
+    - "なぜ横浜中華街は日本一の規模になったのか"
+    - "なぜみなとみらいは埋め立てて作られたのか"
+    - "なぜ赤レンガ倉庫は取り壊されず残ったのか"
+    - "なぜ横浜は外国人居留地として選ばれたのか"
+  topics: 6                            # 1本の物語の本編ビート（章）の目安数（主題に応じ可変・尺に合わせて増減）
+  questioner: ずんだもん               # 聞き手・ボケ役
+  explainer: 四国めたん                # 語り役・解説役
+  target_minutes: 12                   # 狙う尺（分・10分以上を狙う）。総量目安に使う（CHARS_PER_MINUTE換算・下限0.85倍）
+  # 締めの固定エンディング（Geminiに生成させず固定＝入れ忘れ防止・毎回一貫）。
+  # 順番: 生成アウトロ → 締めCTA(下) → closing_chorus(二人同時)
+  # closing_lines_pool があれば動画ごとに巡回（A/C…）。空なら closing_lines を使う。
+  closing_lines_pool:
+    - # A: 感想募集（コメント誘導＋高評価＋登録）
+      - { speaker: 四国めたん, text: "この話、どう思った？高評価とコメントで感想を教えてね。", emotion: happy }
+      - { speaker: ずんだもん, text: "気に入ったらチャンネル登録もよろしくなのだ！", emotion: happy }
+    - # C: リクエスト募集（次回主題集め＋高評価＋登録）
+      - { speaker: 四国めたん, text: "次に深掘りしてほしいテーマがあったら、コメントで教えてね。高評価も嬉しいわ。", emotion: happy }
+      - { speaker: ずんだもん, text: "気に入ったらチャンネル登録もよろしくなのだ！", emotion: happy }
+  closing_lines:                           # 巡回プールが空のときの固定CTA（フォールバック）
+    - { speaker: 四国めたん, text: "楽しんでもらえたら、高評価とチャンネル登録お願いするわ。", emotion: happy }
+    - { speaker: ずんだもん, text: "登録してくれたら、ずんだもん跳ねて喜ぶのだ！", emotion: happy }
+  closing_chorus: "それじゃあ、また見てね〜〜"   # 締めの二人同時(ユニゾン)。読点(、)でチャンクを区切り、各チャンクで二人の頭を揃える
+
+  # ショート(縦9:16)末尾の固定締め＝本編誘導（喋り・ユニゾンなし・巡回なし）。
+  # ショート生成時に各 script.json へ普通の台詞として焼き込む→/storyで個別編集可。ここは新規ショートの既定文言。
+  short_closing:
+    - { speaker: 四国めたん, text: "このネタ、本編ではもっと深掘りしてるよ。", emotion: happy }
+    - { speaker: ずんだもん, text: "気になったら本編もチェックなのだ！", emotion: happy }
+
+# アバター性別割当 兼 画面配置（この定義順が画面配置: 上=画面左 / 下=画面右）。
+# → 左=四国めたん（女性アバター） / 右=ずんだもん（男性アバター）。
+characters_gender:
+  四国めたん: female
+  ずんだもん: male
+
+models:
+  text: gemini-3.5-flash     # 台本生成（無料枠・レート制限あり）。Stable・最新世代で台本品質が期待できる
+  fallback_enabled: true     # 台本生成の既定値。falseなら text のみ使用（レビュー画面のチェックで都度上書き可）
+  # 503(高負荷)/クォータ枯渇時に順に試すフォールバック（いずれも無料枠のStableモデル）
+  # ※ gemini-2.0-flash は廃止進行中のため除外した
+  text_fallbacks:
+    - gemini-2.5-flash
+    - gemini-3.1-flash-lite
+
+# 画像取得（Phase2）。image_kindで振り分け: subject→wikimedia / ambient→pexels→pixabay。
+# 商用可ライセンスのみ使用。Wikimediaは無認証、Pexels/Pixabayはキー無料登録（.env）。
+images:
+  width: 1280
+  height: 720
+  timeout: 30
+  wikimedia:
+    enable: true
+    licenses: [PD, CC0, CC-BY]   # これ以外（CC-BY-SA/ND/不明）は除外
+  pexels:
+    enable: true
+    api_key_env: PEXELS_API_KEY
+  pixabay:
+    enable: true
+    api_key_env: PIXABAY_API_KEY
+
+# VOICEVOX（自己ホスト・課金なし）。話者ID（四国めたん=2 / ずんだもん=3）。
+# 接続先は環境変数 VOICEVOX_URL で上書き可（コンテナからは host.docker.internal:50021）。
+tts_voicevox:
+  base_url: http://localhost:50021
+  speakers:
+    ずんだもん: 3          # ノーマル
+    四国めたん: 2          # ノーマル
+  speed: 0.75          # 子供向けにかなり遅め(既定1.0)
+  pitch: 0.0
+  intonation: 1.0
+  voice_params:
+    四国めたん:
+      speed: 0.75
+    ずんだもん:
+      speed: 0.75
+      intonation: 1.3
+  caption_max_chars: 22    # 字幕1枚の最大文字数
+  inter_turn_pause: 0.3    # ターン間（話者交代）の無音秒
+  chapter_gap_pause: 0.8   # ネタ(章)の境目の無音。この無音中に切替演出(めくり)+SEを行い、新章の声はその後に始まる
+  lead_in_silence: 2.5     # 動画開始から声が始まるまでの無音秒。BGMだけ先に流れ、しばらくして声が始まる（画像は0秒から）
+  pre_phoneme_length: 0.0  # 各文の先頭の無音秒。0で文の境目のカクつきを抑える（長い説明が滑らかに）
+  post_phoneme_length: 0.1 # 各文末の余韻秒＝文と文の間。大きいほど一文ずつ区切る感じ（耳で調整）
+  # 相づち/笑いの置換（全無声化で囁きになる語の回避）。文が丸ごと左の語の時だけ右へ差し替える。
+  # 音声・字幕の両方がこの置換語になる。基本は末尾に「っ」を付けて回避（語の響きを保つ）。
+  # 耳で聴いて調整可（左右とも自由に増減してよい）。
+  interjection_replace:
+    ふふ: ふふっ
+    ふふふ: ふふふっ
+    ひひ: ひひっ
+    へへ: へへっ
+    ええ: ええっ
+    えへへ: えへへっ
+
+# BGM / 効果音(SE)。無料・商用可・収益化可の音源のみ（効果音ラボ/DOVA/魔王魂 等）。
+# ファイルは video/assets/bgm/・video/assets/se/ に置く。無ければ自動でスキップ（無音）＝
+# まず仕組みだけ動かし、実音は後で差し替えて調整する前提。音量は render を見て詰める。
+audio:
+  bgm:
+    file: bgm.mp3          # video/assets/bgm/ に置く。空/無ければBGMなし
+    volume: 0.07           # 声(1.0)を埋めない薄さ
+    fade: 3.0              # 末尾フェードアウト秒（フェードインは無し＝冒頭から定常音量）。末尾fade秒かけて音量0へ
+  se_volume: 0.5           # SE全体の音量
+  se_min_gap: 0.8          # 直前SEからこの秒数以内のSEは抑制（連発防止・先勝ち）
+  se_lead: 0.15            # ネタ切替/締めSEを章境界の無音内(直前発話の終わり+この秒数)に鳴らす＝めくり開始と同期
+  se:                      # トリガー → ファイル名（video/assets/se/ に置く）
+    intro: ""              # 冒頭SEは無し（空＝鳴らさない）
+    outro: outro.mp3       # outro章の頭
+    flash: flash.mp3       # ネタ切替（各ネタ最初の発言）
+    surprise: surprise.mp3 # ずんだもん(聞き手)の驚き「ええー！？」の頭だけ
