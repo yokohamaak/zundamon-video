@@ -43,6 +43,14 @@ cmd_render() {
   run "cd video && npm run prep:story && npx remotion render StoryVideo \"out/${filename}\""
 }
 
+# レイアウトは本番と同じまま、確認用に半解像度で書き出す。
+cmd_render_review() {
+  local filename review_filename
+  filename="$($PY -c "import story_editor as s; print(s._safe_export_filename(s._load_story().get('title','')))")"
+  review_filename="${filename%.mp4}-review-960x540.mp4"
+  run "cd video && npm run prep:story && npx remotion render StoryVideo \"out/${review_filename}\" --scale=0.5"
+}
+
 # 1フレームだけ静止画書き出し（確認用）。$1=フレーム番号（既定0）。
 cmd_still() {
   local f="${1:-0}"
@@ -72,6 +80,7 @@ cmd_help() {
   review-ts     エディタを0.0.0.0で起動（Tailscale経由でスマホから開くレビュー用）
   dev           Studioで全体プレビュー(HMR)
   render        全体を書き出し → video/out/<タイトル>.mp4
+  render-review 確認用に半解像度(960x540)で書き出し → video/out/<タイトル>-review-960x540.mp4
   still [N]     1フレームだけ静止画 → video/out/still-N.png（確認用）
   audio         音声だけCLIで再生成(VOICEVOX)＋実尺をJSONに書き戻し（ブラウザ不要な時用）
   prep          手動フォールバック: assets→public 同期（通常はstory起動時に自動実行）
@@ -90,6 +99,7 @@ if [ $# -gt 0 ]; then
     review-ts)     cmd_story_ts ;;
     dev)           cmd_dev ;;
     render)        cmd_render ;;
+    render-review) cmd_render_review ;;
     still)         cmd_still "$(z2h "${2:-0}")" ;;
     audio)         cmd_audio ;;
     prep)          cmd_prep ;;
@@ -106,10 +116,11 @@ echo "  1) story         ストーリーエディタ（台本編集・シーン/
 echo "  2) review-ts     エディタを0.0.0.0で起動（Tailscaleでスマホから）"
 echo "  3) dev           Studioで全体プレビュー(HMR)"
 echo "  4) render        全体を書き出し → video/out/<タイトル>.mp4"
-echo "  5) still         1フレーム静止画（フレーム番号を聞く）"
-echo "  6) audio         音声だけCLIで再生成（ブラウザ不要な時用）"
-echo "  7) prep          手動フォールバック: assets→public 同期"
-echo "  8) player-build  手動フォールバック: エディタ用Playerビルド"
+echo "  5) render-review 確認用に半解像度(960x540)で書き出し"
+echo "  6) still         1フレーム静止画（フレーム番号を聞く）"
+echo "  7) audio         音声だけCLIで再生成（ブラウザ不要な時用）"
+echo "  8) prep          手動フォールバック: assets→public 同期"
+echo "  9) player-build  手動フォールバック: エディタ用Playerビルド"
 echo "  0) help"
 read -rp "番号: " n
 n="$(z2h "$n")"
@@ -118,9 +129,10 @@ case "$n" in
   2) cmd_story_ts ;;
   3) cmd_dev ;;
   4) cmd_render ;;
-  5) read -rp "フレーム番号: " f; cmd_still "$(z2h "$f")" ;;
-  6) cmd_audio ;;
-  7) cmd_prep ;;
-  8) cmd_player_build ;;
+  5) cmd_render_review ;;
+  6) read -rp "フレーム番号: " f; cmd_still "$(z2h "$f")" ;;
+  7) cmd_audio ;;
+  8) cmd_prep ;;
+  9) cmd_player_build ;;
   0|*) cmd_help ;;
 esac
