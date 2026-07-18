@@ -903,7 +903,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
     experimental = (mode == "experimental")
     world = (custom_world or "").strip() or _load_story_world()
     theme = (theme or "").strip() or "（ここに物語の題材・あらすじを入れてください）"
-    length = (length or "").strip() or "5〜10分・全体で30〜60ターンほど（起承転結のある一話）"
+    length = (length or "").strip() or "8〜11分・全体で120〜170ターン、3,200〜4,300文字ほど（起承転結のある一話）"
     notes = (notes or "").strip() or "特になし"
     extra_rules = (extra_rules or "").strip()
 
@@ -1001,6 +1001,20 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "- 場面転換(scene)・登場/退場(stage.enter/exit)・表情(stage.update)・演出(effects)で物語を演出する。",
         "- 1ターンは1〜2文。地の文はナレーション（voiceOnly個体）以外に使わず、すべてセリフ（text）で進める。教訓は短く・最後は軽いオチ。",
         "",
+        "━━━ 手直し済み台本から抽出した品質基準（長さ指定を優先）━━━",
+        "- 尺の目安は1分あたり350〜420文字・13〜17ターン。指定が無い時は8〜11分、120〜170ターン、3,200〜4,300文字を標準にする。",
+        "- 通常の1ターンは空白・改行を除いて13〜36文字を中心にする。説明・宣言だけは37〜55文字まで許容するが、長台詞を連発しない。",
+        "- 吹き出しの読みやすさのため、必要な台詞は意味の切れ目で12〜22文字程度ごとに text 内で改行する。改行は台詞のおよそ半数で使い、単語の途中では切らない。",
+        "- 同じ話者を機械的に交互にしない。行動・感情を積み上げる2〜5ターンの連続も使い、長い説明の前後には相手の反応か小さな行動を置く。",
+        "- 構成は、冒頭10%で主人公がすでに動いているフック→原因/過去の提示→失敗または悪化を2段階→根本原因の発見→小さく実行可能な改善→未来の結果と軽いオチ、を基本にする。題材に合わせて各段を伸縮してよい。",
+        "- scene は物語上の節目ごとに4〜35ターンのまとまりで使い、場面・時代・目的が変わる時だけ transition を置く。同じ scene の細かな会話ごとに転換を乱用しない。",
+        "- 画面に出ている話者の感情や動きが変わる場面では stage.update で expression と pose を更新する。全ターンの75〜90%を目安に表情/ポーズで意味を補い、同じ値の連打だけにはしない。",
+        "- framing は会話の焦点を切り替える時に speaker、状況説明・複数人の反応・場面の見せ直しには sceneDefault を使う。cameraMotion は全ターンの15〜20%程度を上限の目安にし、zoom は決意/感情の高まり、pan は行動や視線の移り、shake は驚き・衝突の一瞬だけに使う。",
+        "- effects は飾りではなく出来事に対応させる。回想は caption と flashback をその連続区間に維持し、未来視/記録映像だけ visionNoise、発覚・ツッコミの一点だけ impactLines/zoomPunch、irisOut は本編の最後だけにする。",
+        "- ZunAIなどの画面表示は通知・ログ・会話の内容自体を見せる必然がある時だけ使う。ホワイトボードは根本原因や解決策を3点に整理する転換点で3〜5ターン連続させ、抽象的な説明を画面で理解できる形にする。",
+        "- caption は回想・未来・場所の切替時に短く付け、同じ時間帯が続く間は同じ caption を繰り返す。SE は送信・通知・登場など画面上の具体的な動作にだけ付ける。",
+        "- text が空白だけのターンは、場面開始・時間経過・見せる間が必要な時だけにし、各イベントにつき1ターンまでにする。通常の会話を空ターンで水増ししない。",
+        "",
         "━━━ 出力の全体構造（V2形式）━━━",
         '{ "schemaVersion": 2, "title": "動画タイトル", "instances": { 登場人物定義 }, "script": [ ターン, ... ]'
         + (', "_proposals": [ ... ] }' if experimental else " }"),
@@ -1049,7 +1063,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "",
         "━━━ 表情・ポーズ（stage.update で指定）━━━",
         "【zundamon / metan の expression】" + expr_list,
-        '【pose】idle / cheer / recoil / lean / droop / flustered / proud / listening / sneak / wobble / point',
+        '【pose】idle / cheer / recoil / lean / droop / flustered / proud / listening / sneak / wobble / point / smartphone',
         "※ モブの expression は上の素材一覧に書かれた名前のみ。無い表情を指定すると取り込みに失敗する。",
         "",
         "━━━ セリフ・吹き出し・音（turn直下・任意）━━━",

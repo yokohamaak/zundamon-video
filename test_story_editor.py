@@ -295,8 +295,14 @@ def test_prompt_v2_mentions_v2_contract():
         "在席簿",
         "旧形式のキー",
         "JSON.parse",
+        "手直し済み台本から抽出した品質基準",
+        "1分あたり350〜420文字・13〜17ターン",
+        "cameraMotion は全ターンの15〜20%程度",
+        "text が空白だけのターン",
     ):
         assert token in prompt, f"{token} がV2プロンプトに無い"
+    default_prompt = se._build_script_prompt_v2("題材", "", "補足")
+    assert "8〜11分・全体で120〜170ターン、3,200〜4,300文字ほど" in default_prompt
     # 旧形式キーは「禁止リスト」としてだけ登場し、使い方としては案内しない。
     for legacy in ('"focusSpeaker": true', '"speakerAnchor":', '"telop":', '"enterDir":', '"insert":'):
         assert legacy not in prompt, f"旧形式の使い方 {legacy} がV2プロンプトに残っている"
