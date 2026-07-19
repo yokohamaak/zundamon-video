@@ -335,6 +335,17 @@ function stageTurnDisplayDuration(turn: StageTurnV2): number {
   return Math.max(end - start + pause, 0.001);
 }
 
+function stageTurnCameraEnd(turn: StageTurnV2): number | undefined {
+  const baseEnd = typeof turn.end === "number"
+    ? turn.end
+    : typeof turn.start === "number"
+      ? turn.start
+      : undefined;
+  if (baseEnd == null) return undefined;
+  const pause = Number.isFinite(Number(turn.pause)) ? Math.max(0, Number(turn.pause)) : 0;
+  return baseEnd + pause;
+}
+
 function stageIrisOutVisual(
   turn: StageTurnV2,
   elapsed: number,
@@ -1095,10 +1106,11 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   }
 
   const nextTurn = story.script[turnIndex + 1];
+  const cameraBaseEnd = stageTurnCameraEnd(turn);
   const cameraTurnIndex = nextTurn
-    && typeof turn.end === "number"
+    && typeof cameraBaseEnd === "number"
     && typeof nextTurn.start === "number"
-    && seconds >= turn.end
+    && seconds >= cameraBaseEnd
     && seconds < nextTurn.start
     && nextTurn.scene === turn.scene
     && nextTurn.cameraTransition !== "cut"
@@ -1125,7 +1137,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     && isStandardDisplayMode(previousCameraTurn.displayMode?.kind)
     && isStandardDisplayMode(cameraTurn.displayMode?.kind)
     && cameraTurn.cameraTransition !== "cut";
-  const transitionStart = previousCameraTurn?.end ?? cameraTurn.start ?? seconds;
+  const transitionStart = previousCameraTurn ? stageTurnCameraEnd(previousCameraTurn) ?? cameraTurn.start ?? seconds : cameraTurn.start ?? seconds;
   const transitionEnd = (cameraTurn.start ?? transitionStart) + 0.8;
   const previousTransform = stageTransformValues(width, height, previousFrame);
   const targetTransform = stageTransformValues(width, height, motionFrame);
