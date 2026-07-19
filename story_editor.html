@@ -1570,6 +1570,7 @@
       <select class="field-select" id="bulkSceneSelect" style="width:auto; flex:1;"></select>
       <button class="btn btn-primary btn-sm" id="btnBulkSceneApply">シーンを一括適用</button>
       <button class="btn btn-secondary btn-sm" id="btnBulkOpenAdvanced">一括変更</button>
+      <button class="btn btn-danger btn-sm" id="btnBulkDelete">選択を削除</button>
       <button class="btn btn-secondary btn-sm" id="btnBulkSceneClear">選択解除</button>
     </div>
     <div class="bulk-edit-panel" id="bulkEditPanel" style="display:none;">
@@ -7788,6 +7789,8 @@ function updateBulkSceneBar() {
   if (n > 1 || (_mobileSelectMode && n > 0)) {
     bar.style.display = "flex";
     document.getElementById("bulkSceneCount").textContent = `${n}件選択中`;
+    const deleteBtn = document.getElementById("btnBulkDelete");
+    if (deleteBtn) deleteBtn.disabled = n < 2;
   } else {
     bar.style.display = "none";
     closeBulkEditPanel();
@@ -9209,6 +9212,47 @@ function v2ApplyBulkSpeaker() {
   }
   if (!changed) return;
   if (v2ApplyBulkChange(candidate)) markAudioDirty();
+}
+
+function bulkDeleteSelectedTurns() {
+  if (!storyData || !Array.isArray(storyData.script)) return;
+  const script = storyData.script;
+  const targets = [...selectedIndices]
+    .filter((idx) => Number.isInteger(idx) && idx >= 0 && idx < script.length)
+    .sort((a, b) => a - b);
+  if (targets.length < 2) return;
+  if (targets.length >= script.length) {
+    alert("全ターンは削除できません。少なくとも1ターンは残してください。");
+    return;
+  }
+  const firstDeleted = targets[0];
+  if (isV2StoryEditor()) {
+    const candidate = v2Clone(storyData);
+    for (const idx of [...targets].sort((a, b) => b - a)) {
+      candidate.script.splice(idx, 1);
+    }
+    const error = v2TurnOrderError(candidate.script);
+    if (error) {
+      alert(`選択ターンを削除するとV2の舞台状態が壊れるため、削除しません。\n${error}`);
+      return;
+    }
+    if (!confirm(`${targets.length}件のターンを削除しますか？`)) return;
+    const nextIdx = Math.min(firstDeleted, candidate.script.length - 1);
+    v2ApplyTurnOrderChange(candidate, nextIdx, true);
+    return;
+  }
+  if (!confirm(`${targets.length}件のターンを削除しますか？`)) return;
+  for (const idx of [...targets].sort((a, b) => b - a)) {
+    script.splice(idx, 1);
+  }
+  selectedIdx = Math.min(firstDeleted, script.length - 1);
+  clearMultiSelection();
+  markDirty();
+  markAudioDirty();
+  renderList();
+  renderDetail();
+  notifyPlayerUpdate();
+  seekPlayer(selectedIdx);
 }
 
 function v2RenderBulkPanel() {
@@ -13414,6 +13458,10 @@ function splitV2DialogueAtCursor() {
 }
 
 function deleteTurn() {
+  if (selectedIndices.size > 1) {
+    bulkDeleteSelectedTurns();
+    return;
+  }
   if (selectedIdx < 0) return;
   const script = storyData.script;
   if (!confirm("ターンを削除しますか？")) return;
@@ -14320,6 +14368,7 @@ function setupEvents() {
   document.getElementById("btnDown").addEventListener("click", moveDown);
   document.getElementById("btnBulkSceneApply").addEventListener("click", applyBulkScene);
   document.getElementById("btnBulkOpenAdvanced").addEventListener("click", openBulkEditPanel);
+  document.getElementById("btnBulkDelete").addEventListener("click", bulkDeleteSelectedTurns);
   document.getElementById("btnBulkPanelClose").addEventListener("click", closeBulkEditPanel);
   document.getElementById("btnBulkFocusOn").addEventListener("click", () => applyBulkFocusSpeaker(true));
   document.getElementById("btnBulkFocusOff").addEventListener("click", () => applyBulkFocusSpeaker(false));
