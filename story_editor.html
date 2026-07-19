@@ -4298,6 +4298,21 @@ function ensureOverlayArray() {
   return storyData.overlays;
 }
 
+function pruneOverlaysForExistingTurns(story = storyData) {
+  if (!story || !Array.isArray(story.script) || !Array.isArray(story.overlays)) return 0;
+  const validTurnIds = new Set(story.script.map((turn) => turn && turn.id).filter(Boolean));
+  const before = story.overlays.length;
+  story.overlays = story.overlays.filter((overlay) => (
+    overlay?.start?.turnId && overlay?.end?.turnId
+    && validTurnIds.has(overlay.start.turnId)
+    && validTurnIds.has(overlay.end.turnId)
+  ));
+  if (_selectedOverlayId && !story.overlays.some((overlay) => overlay.id === _selectedOverlayId)) {
+    _selectedOverlayId = null;
+  }
+  return before - story.overlays.length;
+}
+
 async function ensureOverlayAssets() {
   if (overlayAssets) return overlayAssets;
   try {
@@ -9080,6 +9095,7 @@ function v2ApplyTurnOrderChange(candidate, nextSelectedIdx, audioChanged = false
     alert(`この操作を行うとV2の舞台状態が壊れるため、変更しません。\n${error}`);
     return false;
   }
+  pruneOverlaysForExistingTurns(candidate);
   storyData = candidate;
   selectedIdx = nextSelectedIdx;
   clearMultiSelection();
@@ -9325,6 +9341,7 @@ function bulkDeleteSelectedTurns() {
   for (const idx of [...targets].sort((a, b) => b - a)) {
     script.splice(idx, 1);
   }
+  pruneOverlaysForExistingTurns(storyData);
   selectedIdx = Math.min(firstDeleted, script.length - 1);
   clearMultiSelection();
   markDirty();
@@ -13591,6 +13608,7 @@ function deleteTurn() {
   }
   clearMultiSelection();
   script.splice(selectedIdx, 1);
+  pruneOverlaysForExistingTurns(storyData);
   if (selectedIdx >= script.length) selectedIdx = script.length - 1;
   markDirty();
   markAudioDirty();
@@ -13724,6 +13742,7 @@ async function saveStory() {
   normalizeStoryTransitions(storyData);
   normalizeV2Captions(storyData);
   normalizeV2EmptyWhiteboards(storyData);
+  pruneOverlaysForExistingTurns(storyData);
   pruneAllTurnsForDisplayType();
   if (v2PruneInvalidStageStateRefs(storyData)) {
     renderList();

@@ -270,6 +270,60 @@ def test_save_story_prunes_empty_v2_whiteboard_display_mode():
     print("  save: 空のV2ホワイトボードは通常表示として保存する: OK")
 
 
+def test_save_story_prunes_overlays_referencing_deleted_turns():
+    """削除済みturn.idを参照するoverlayは保存時に落とす。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        story_path = os.path.join(tmp, "story-01.json")
+        scenes_path = os.path.join(tmp, "story-scenes.json")
+        with open(scenes_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "schemaVersion": 2,
+                "scenes": {"office": {"layouts": {"standard": {"slots": {}}}, "cameraPresets": {}}},
+            }, f, ensure_ascii=False)
+        old_story, old_scenes = se.STORY_JSON, se.SCENES_JSON
+        try:
+            se.STORY_JSON = story_path
+            se.SCENES_JSON = scenes_path
+            story = {
+                "schemaVersion": 2,
+                "instances": {"hero": {"characterId": "zundamon", "voiceId": "zundamon"}},
+                "script": [{
+                    "id": "turn-live",
+                    "speaker": "hero",
+                    "text": "残るターン",
+                    "scene": "office",
+                }],
+                "overlays": [
+                    {
+                        "id": "ok",
+                        "kind": "text",
+                        "text": "残す",
+                        "x": 0.5,
+                        "y": 0.5,
+                        "w": 0.3,
+                        "start": {"turnId": "turn-live", "at": 0},
+                        "end": {"turnId": "turn-live", "at": 1},
+                    },
+                    {
+                        "id": "stale",
+                        "kind": "text",
+                        "text": "消す",
+                        "x": 0.5,
+                        "y": 0.5,
+                        "w": 0.3,
+                        "start": {"turnId": "turn-deleted", "at": 0},
+                        "end": {"turnId": "turn-live", "at": 1},
+                    },
+                ],
+            }
+            se._save_story(story)
+            saved = json.load(open(story_path, encoding="utf-8"))
+            assert [overlay["id"] for overlay in saved["overlays"]] == ["ok"]
+        finally:
+            se.STORY_JSON, se.SCENES_JSON = old_story, old_scenes
+    print("  save: 削除済みターンを参照するoverlayを保存前に削除する: OK")
+
+
 def test_import_v2_story_keeps_stage_and_instance_references():
     with tempfile.TemporaryDirectory() as tmp:
         story_path = os.path.join(tmp, "story-01.json")
@@ -427,6 +481,7 @@ if __name__ == "__main__":
     test_validate_story_rejects_broken_insert()
     test_validate_story_v2_resolves_instance_voice_ids()
     test_save_story_prunes_empty_v2_whiteboard_display_mode()
+    test_save_story_prunes_overlays_referencing_deleted_turns()
     test_import_v2_story_keeps_stage_and_instance_references()
     test_prompt_v2_mentions_v2_contract()
     test_prompt_v2_example_is_importable()

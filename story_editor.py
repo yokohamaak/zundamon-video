@@ -367,9 +367,37 @@ def _normalize_empty_v2_whiteboards(data):
     return changed
 
 
+def _normalize_overlay_turn_refs(data):
+    if not isinstance(data, dict):
+        return False
+    script = data.get("script")
+    overlays = data.get("overlays")
+    if not isinstance(script, list) or not isinstance(overlays, list):
+        return False
+    turn_ids = {turn.get("id") for turn in script if isinstance(turn, dict) and isinstance(turn.get("id"), str) and turn.get("id")}
+    kept = []
+    changed = False
+    for overlay in overlays:
+        if not isinstance(overlay, dict):
+            kept.append(overlay)
+            continue
+        start = overlay.get("start")
+        end = overlay.get("end")
+        start_id = start.get("turnId") if isinstance(start, dict) else None
+        end_id = end.get("turnId") if isinstance(end, dict) else None
+        if start_id in turn_ids and end_id in turn_ids:
+            kept.append(overlay)
+        else:
+            changed = True
+    if changed:
+        data["overlays"] = kept
+    return changed
+
+
 def _save_story(data):
     """検証してから story-01.json に書き戻す。ensure_ascii=False。"""
     _normalize_empty_v2_whiteboards(data)
+    _normalize_overlay_turn_refs(data)
     _validate_story(data)
     with open(STORY_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
