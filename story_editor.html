@@ -3148,7 +3148,7 @@ const CAMERA_EFFECT_SETTING_SPECS = [
 ];
 // 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
 const IRIS_OUT_DEFAULT_COLOR = "#000000";
-const VOICE_LINES_SIDES = [["right", "右画像"], ["left", "左画像"], ["both", "左右両方"]];
+const VOICE_LINES_SIDES = [["right", "右画像"], ["left", "左画像"]];
 const VISION_NOISE_DEFAULT_TINT = "#7dd3fc";
 const VISION_NOISE_TYPES = [
   ["future", "未来視"],
@@ -10517,7 +10517,7 @@ function appendV2VoiceLinesControls(card, params) {
   side.className = "field-select";
   side.id = "fV2Effect_voiceLines_side";
   for (const [value, label] of VOICE_LINES_SIDES) v2Option(side, value, label);
-  side.value = params.side || "both";
+  side.value = params.side === "left" ? "left" : "right";
   side.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
   sideLabel.append(sideText, side);
   row.append(sideLabel);

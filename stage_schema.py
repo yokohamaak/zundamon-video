@@ -294,8 +294,8 @@ def _stage_effects(value, path):
             _hex(item["tint"], f"{item_path}.tint")
         if key == "irisOut" and "color" in item:
             _hex(item["color"], f"{item_path}.color")
-        if key == "voiceLines" and "side" in item and item["side"] not in {"both", "left", "right"}:
-            _error(f"{item_path}.side", "both/left/right のいずれかが必要です")
+        if key == "voiceLines" and "side" in item and item["side"] not in {"left", "right"}:
+            _error(f"{item_path}.side", "left/right のいずれかが必要です")
         if key == "voiceLines" and "color" in item:
             _hex(item["color"], f"{item_path}.color")
         for param, bounds in spec["ranges"].items():

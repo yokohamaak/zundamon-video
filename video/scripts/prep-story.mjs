@@ -4,6 +4,7 @@
 // 立ち絵 manifest.json を生成する。
 //   - avatars（パーツ立ち絵）＋ manifest.json
 //   - background（シーン背景）
+//   - effects（固定の演出用画像）
 //   - fonts（日本語フォント）
 // story-scenes.json は public/ に直接置く運用（git追跡済み）。
 import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, writeFileSync, unlinkSync } from "node:fs";
@@ -21,6 +22,7 @@ mkdirSync(pubDir, { recursive: true });
 for (const [sub, exts, label, mirror] of [
   ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts", false],
   ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image", true],
+  ["effects", [".png", ".jpg", ".jpeg", ".webp"], "effect image", true],
   ["mobs", [".png", ".webp"], "mob image", true],
   ["bgm", [".mp3", ".wav", ".m4a"], "BGM", true],
   ["se", [".mp3", ".wav", ".m4a"], "SE", true],

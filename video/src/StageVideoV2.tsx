@@ -69,7 +69,7 @@ const DEFAULT_STAGE_EFFECT_SETTINGS = {
   impactLines: {cx: 0.5, cy: 0.48, count: 72, thickness: 1.25, opacity: 0.72, innerRadius: 0.17, start: 0, end: 0},
   visionNoise: {type: "future" as "future" | "snow" | "vhs" | "glitch", strength: 0.68, scanline: 0.78, glitch: 0.36, flicker: 0.42, tint: "#7dd3fc"},
   irisOut: {cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0},
-  voiceLines: {x: 0.5, y: 0.5, side: "right" as "both" | "left" | "right", size: 220, motion: 16, rotation: 0, opacity: 0.95, speed: 2.2, start: 0, end: 0},
+  voiceLines: {x: 0.5, y: 0.5, side: "right" as "left" | "right", size: 220, motion: 16, rotation: 0, opacity: 0.95, speed: 2.2, start: 0, end: 0},
 };
 const VOICE_LINES_ASSET = {
   left: "effects/voice_bubble_left.png",
@@ -313,7 +313,7 @@ function stageVoiceLinesConfig(raw: unknown) {
   if (!raw || typeof raw !== "object") return base;
   const data = raw as Record<string, unknown>;
   const number = (key: string, fallback: number) => Number.isFinite(Number(data[key])) ? Number(data[key]) : fallback;
-  const side = data.side === "left" || data.side === "right" || data.side === "both" ? data.side : base.side;
+  const side: "left" | "right" = data.side === "left" ? "left" : "right";
   return {
     x: number("x", base.x),
     y: number("y", base.y),
@@ -840,10 +840,9 @@ const V2EffectsLayer: React.FC<{
     const size = clamp(voiceLinesCfg.size, 64, 640);
     const motion = clamp(voiceLinesCfg.motion, 0, 120);
     const baseRotation = clamp(voiceLinesCfg.rotation, -45, 45);
-    const sides: Array<"left" | "right"> = voiceLinesCfg.side === "both" ? ["left", "right"] : [voiceLinesCfg.side];
+    const sides: Array<"left" | "right"> = [voiceLinesCfg.side];
     const renderVoiceBubble = (side: "left" | "right") => {
       const dir = side === "left" ? -1 : 1;
-      const bothOffset = voiceLinesCfg.side === "both" ? dir * size * 0.42 : 0;
       const driftX = dir * Math.sin(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8)) * motion * 0.25;
       const driftY = Math.cos(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8) * 0.82) * motion * 0.16;
       const scale = 1 + Math.sin(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8)) * (motion / 900);
@@ -854,7 +853,7 @@ const V2EffectsLayer: React.FC<{
           src={staticFile(VOICE_LINES_ASSET[side])}
           style={{
             position: "absolute",
-            left: cx + bothOffset,
+            left: cx,
             top: cy,
             width: size,
             height: size,

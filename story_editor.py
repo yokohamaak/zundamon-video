@@ -60,7 +60,7 @@ _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 # StoryVideo.tsx の staticFile() が参照する video/public/ 配下のアセット。
 # /preview-assets/<path> として配信する（パストラバーサル防止付き）。
 # 許可するトップレベルディレクトリ名 or ファイル名の集合。
-_PREVIEW_ASSET_DIRS = {"avatars", "background", "mobs", "bgm", "se", "fonts", "overlays"}
+_PREVIEW_ASSET_DIRS = {"avatars", "background", "effects", "mobs", "bgm", "se", "fonts", "overlays"}
 _PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "poses.json", "se-map.json",
                         "mobs.json", "noise.png", "story-01.wav", "story-01.mp3",
                         "story.wav", "story.mp3"}
@@ -1088,7 +1088,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         '- "effects": {"impactLines": true} … 漫画の集中線（驚き・発覚・ツッコミの瞬間に）',
         '- "effects": {"zoomPunch": true} … 話し始めに一瞬強く寄って戻る強調（短く鋭い）',
         '- "effects": {"quoteFreeze": true} … 画面を暗くしてそのターンの text を大きな引用カードで見せる（名言・宣言向け）',
-        '- "effects": {"voiceLines": {"x":0.5,"y":0.5,"side":"right","size":220,"motion":16}} … 任意位置に音符入り吹き出しを出す。PC・電話・画面外の声など「そこから音が出ている」時に使う。side は right/left/both。',
+        '- "effects": {"voiceLines": {"x":0.5,"y":0.5,"side":"right","size":220,"motion":16}} … 任意位置に音符入り吹き出しを出す。PC・電話・画面外の声など「そこから音が出ている」時に使う。side は right/left。',
         '- "effects": {"flashback": true} … 回想（彩度が落ちる。caption と併用推奨。回想の間、連続ターンすべてに付ける）',
         '- "effects": {"visionNoise": {"type": "future"}} … 映像ノイズ。type は future（未来視）/ snow（砂嵐）/ vhs（VHS・防犯カメラ）/ glitch（デジタル異常）',
         '- "effects": {"irisOut": true} … 円が閉じて暗転する締め演出。話の最後のターンでのみ使う。',
@@ -1335,7 +1335,7 @@ def _story_preview_asset_path(relative):
     """Remotion Player 用アセットを video/public/ 内の許可パスから解決する。
 
     StoryVideo.tsx の staticFile() が参照するファイルをすべてカバーする:
-      background/*.png  avatars/**  mobs/*.png  noise.png
+      background/*.png  effects/*.png  avatars/**  mobs/*.png  noise.png
       story-scenes.json  story-01.wav/.mp3  bgm/*  se/*  fonts/*
 
     パストラバーサル防止: video/public/ 外を指せない。

@@ -91,7 +91,7 @@ export type IrisOutEffectV2 = {
 export type VoiceLinesEffectV2 = {
   x?: number;
   y?: number;
-  side?: "both" | "left" | "right";
+  side?: "left" | "right";
   size?: number;
   motion?: number;
   rotation?: number;
