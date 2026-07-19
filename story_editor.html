@@ -3019,6 +3019,7 @@
           <div style="font-size:12px; font-weight:700; color:var(--text2); margin-right:auto;">日本語表示</div>
           <button class="btn btn-secondary btn-sm" id="btnGenReadableOutline" type="button">1 確認用</button>
           <button class="btn btn-secondary btn-sm" id="btnGenReadablePlain" type="button">2 本文だけ</button>
+          <button class="btn btn-secondary btn-sm" id="btnCopyGenReadable" type="button">コピー</button>
         </div>
         <pre id="genReadablePreview" style="white-space:pre-wrap; overflow:auto; max-height:360px; min-height:120px; margin:0; padding:12px; border-radius:6px; background:var(--bg); color:var(--text); border:1px solid var(--border); font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; line-height:1.7;">AI出力JSONを貼り付けると、ここに日本語だけの台本表示が出ます。</pre>
         <div id="genReadableStatus" style="font-size:12px; color:var(--text2);"></div>
@@ -15258,6 +15259,30 @@ function setupEvents() {
       // fallback: select + execCommand
       ta.select();
       try { document.execCommand("copy"); } catch (_) {}
+      btn.textContent = "コピーしました";
+    }
+    setTimeout(() => { btn.textContent = originalText; }, 1800);
+  });
+
+  // 台本生成タブ: 日本語表示をクリップボードへコピー
+  document.getElementById("btnCopyGenReadable")?.addEventListener("click", async () => {
+    const preview = document.getElementById("genReadablePreview");
+    const text = preview?.textContent || "";
+    if (!text.trim()) return;
+    const btn = document.getElementById("btnCopyGenReadable");
+    const originalText = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "コピーしました";
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (_) {}
+      ta.remove();
       btn.textContent = "コピーしました";
     }
     setTimeout(() => { btn.textContent = originalText; }, 1800);
