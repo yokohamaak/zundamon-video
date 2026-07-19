@@ -9098,6 +9098,82 @@ function v2DefaultPlacement(sceneId) {
   return { mode: "slot", slotId: slotId || "center" };
 }
 
+function v2StateBeforeSceneChange(story, index, nextScene) {
+  const state = {};
+  if (!story || !Array.isArray(story.script) || index <= 0) return state;
+  let scene = null;
+  for (let i = 0; i < index; i += 1) {
+    const turn = story.script[i];
+    if (!turn) continue;
+    if (turn.scene !== scene) {
+      scene = turn.scene;
+      for (const id of Object.keys(state)) delete state[id];
+    }
+    const stage = turn.stage || {};
+    for (const item of stage.enter || []) {
+      const definition = story.instances?.[item.instanceId];
+      if (definition) state[item.instanceId] = { instanceId: item.instanceId, definition, placement: v2Clone(item.placement) };
+    }
+    for (const item of stage.exit || []) delete state[v2ExitItemId(item)];
+    for (const id of stage.reset || []) {
+      const current = state[id];
+      if (current) state[id] = { instanceId: id, definition: current.definition, placement: current.placement };
+    }
+    for (const [id, patch] of Object.entries(stage.update || {})) {
+      const current = state[id];
+      if (current) state[id] = { ...current, ...v2Clone(patch), placement: patch.placement ? v2Clone(patch.placement) : current.placement };
+    }
+  }
+  const previous = story.script[index - 1];
+  return previous?.scene === nextScene ? state : {};
+}
+
+function v2RetargetStageForSceneChange(story, index, oldStage) {
+  const turn = story?.script?.[index];
+  if (!turn || !oldStage || typeof oldStage !== "object") {
+    if (turn) delete turn.stage;
+    return;
+  }
+  const nextScene = turn.scene;
+  const presentBefore = new Set(Object.keys(v2StateBeforeSceneChange(story, index, nextScene)));
+  const stage = {};
+  const available = new Set(presentBefore);
+  for (const item of oldStage.enter || []) {
+    const instanceId = item?.instanceId;
+    const definition = story.instances?.[instanceId];
+    if (!instanceId || definition?.role === "voiceOnly") continue;
+    if (presentBefore.has(instanceId)) {
+      available.add(instanceId);
+      continue;
+    }
+    const nextItem = { instanceId, placement: v2DefaultPlacement(nextScene) };
+    if (item.animation) nextItem.animation = v2Clone(item.animation);
+    if (!stage.enter) stage.enter = [];
+    stage.enter.push(nextItem);
+    available.add(instanceId);
+  }
+  for (const item of oldStage.exit || []) {
+    const instanceId = v2ExitItemId(item);
+    if (!instanceId || !available.has(instanceId)) continue;
+    if (!stage.exit) stage.exit = [];
+    stage.exit.push(typeof item === "string" ? instanceId : { instanceId, ...(item.animation ? { animation: v2Clone(item.animation) } : {}) });
+    available.delete(instanceId);
+  }
+  const reset = (oldStage.reset || []).filter((instanceId) => available.has(instanceId));
+  if (reset.length) stage.reset = reset;
+  for (const [instanceId, patch] of Object.entries(oldStage.update || {})) {
+    if (!available.has(instanceId) || !patch || typeof patch !== "object") continue;
+    const { placement: _placement, ...keptPatch } = v2Clone(patch);
+    if (!Object.keys(keptPatch).length) continue;
+    if (!stage.update) stage.update = {};
+    stage.update[instanceId] = keptPatch;
+  }
+  if (oldStage.cameraMotion) stage.cameraMotion = v2Clone(oldStage.cameraMotion);
+  if (oldStage.framing?.mode === "sceneDefault") stage.framing = { mode: "sceneDefault" };
+  turn.stage = stage;
+  v2PruneStageEvent(turn);
+}
+
 function v2BulkSelectedIndices() {
   if (!isV2StoryEditor() || !storyData || selectedIndices.size < 2) return [];
   return [...selectedIndices].filter((idx) => storyData.script[idx]).sort((a, b) => a - b);
@@ -9131,13 +9207,16 @@ function v2ApplyBulkScene() {
   for (const idx of targets) {
     const turn = candidate.script[idx];
     if (turn.scene === scene) continue;
+    const oldStage = turn.stage ? v2Clone(turn.stage) : null;
     turn.scene = scene;
     changed = true;
-    // 単体編集(collectV2Basic)と同じ規則: sceneが変わるとslot参照が無効になるため舞台操作を消す。
-    if (turn.stage) { delete turn.stage; dropped += 1; }
+    if (oldStage) {
+      v2RetargetStageForSceneChange(candidate, idx, oldStage);
+      dropped += 1;
+    }
   }
   if (!changed) return;
-  if (dropped > 0 && !confirm(`sceneが変わる${dropped}件のターンから舞台操作（登場退場・配置・構図）を削除します。よろしいですか？`)) return;
+  if (dropped > 0 && !confirm(`sceneが変わる${dropped}件のターンで、配置・構図を新シーン用に調整します。表情・ポーズ・登退場は可能な範囲で維持します。よろしいですか？`)) return;
   v2ApplyBulkChange(candidate);
 }
 
@@ -10970,8 +11049,13 @@ function collectV2Basic() {
   if (Object.keys(effects).length) turn.effects = effects;
   else delete turn.effects;
   const nextScene = document.getElementById("fV2Scene").value;
-  if (turn.scene !== nextScene) delete turn.stage;
-  turn.scene = nextScene;
+  if (turn.scene !== nextScene) {
+    const oldStage = turn.stage ? v2Clone(turn.stage) : null;
+    turn.scene = nextScene;
+    v2RetargetStageForSceneChange(storyData, selectedIdx, oldStage);
+  } else {
+    turn.scene = nextScene;
+  }
   const continuityAudioChanged = v2ApplySpeakerContinuityChange(selectedIdx, oldSpeaker, turn.speaker);
   const continuityRepairAudioChanged = v2RepairCurrentSpeakerContinuity(selectedIdx);
   const displayKind = document.getElementById("fV2DisplayMode").value;
@@ -14625,7 +14709,7 @@ function setupEvents() {
       if (!isV2StoryEditor()) return;
       const turn = selectedIdx >= 0 ? storyData.script[selectedIdx] : null;
       if (id === "fV2Scene" && turn && turn.scene !== el.value && turn.stage && Object.keys(turn.stage).length > 0) {
-        const confirmed = window.confirm("シーンを変更すると、このターンの登場・退場・配置・構図指定を解除します。続けますか？");
+        const confirmed = window.confirm("シーンを変更すると、配置・構図は新シーン用に調整します。表情・ポーズ・登退場は可能な範囲で維持します。続けますか？");
         if (!confirmed) {
           el.value = turn.scene;
           return;
