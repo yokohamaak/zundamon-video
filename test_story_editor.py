@@ -224,6 +224,52 @@ def test_validate_story_v2_resolves_instance_voice_ids():
     print("  validate: v2個体のslot/voiceIdを検証する: OK")
 
 
+def test_save_story_prunes_empty_v2_whiteboard_display_mode():
+    """V2ホワイトボードの入力を全削除した状態は通常表示として保存する。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        story_path = os.path.join(tmp, "story-01.json")
+        scenes_path = os.path.join(tmp, "story-scenes.json")
+        with open(scenes_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "schemaVersion": 2,
+                "scenes": {"office": {"layouts": {"standard": {"slots": {}}}, "cameraPresets": {}}},
+            }, f, ensure_ascii=False)
+        old_story, old_scenes = se.STORY_JSON, se.SCENES_JSON
+        try:
+            se.STORY_JSON = story_path
+            se.SCENES_JSON = scenes_path
+            story = {
+                "schemaVersion": 2,
+                "instances": {"hero": {"characterId": "zundamon", "voiceId": "zundamon"}},
+                "script": [{
+                    "id": "turn-0001",
+                    "speaker": "hero",
+                    "text": "テスト",
+                    "scene": "office",
+                    "displayMode": {
+                        "kind": "whiteboard",
+                        "whiteboard": {
+                            "title": "",
+                            "theme": "",
+                            "sections": [
+                                {"heading": "", "bullets": []},
+                                {"heading": "", "bullets": []},
+                                {"heading": "", "bullets": []},
+                            ],
+                            "conclusion": "",
+                            "layout": "default",
+                        },
+                    },
+                }],
+            }
+            se._save_story(story)
+            saved = json.load(open(story_path, encoding="utf-8"))
+            assert "displayMode" not in saved["script"][0]
+        finally:
+            se.STORY_JSON, se.SCENES_JSON = old_story, old_scenes
+    print("  save: 空のV2ホワイトボードは通常表示として保存する: OK")
+
+
 def test_import_v2_story_keeps_stage_and_instance_references():
     with tempfile.TemporaryDirectory() as tmp:
         story_path = os.path.join(tmp, "story-01.json")
@@ -380,6 +426,7 @@ if __name__ == "__main__":
     test_validate_story_accepts_existing_inserts()
     test_validate_story_rejects_broken_insert()
     test_validate_story_v2_resolves_instance_voice_ids()
+    test_save_story_prunes_empty_v2_whiteboard_display_mode()
     test_import_v2_story_keeps_stage_and_instance_references()
     test_prompt_v2_mentions_v2_contract()
     test_prompt_v2_example_is_importable()

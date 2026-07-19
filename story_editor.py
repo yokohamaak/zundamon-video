@@ -322,8 +322,54 @@ def _validate_story(data):
                 raise ValueError(f"instances.{instance_id}.voiceId: 音声プロファイルがありません: {voice_id}")
 
 
+def _has_nonempty_string(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _v2_whiteboard_display_has_content(display):
+    if not isinstance(display, dict) or display.get("kind") != "whiteboard":
+        return True
+    board = display.get("whiteboard")
+    if not isinstance(board, dict):
+        return False
+    if any(_has_nonempty_string(display.get(key)) for key in ("presenterId",)):
+        return True
+    if any(_has_nonempty_string(board.get(key)) for key in ("title", "theme", "conclusion")):
+        return True
+    sections = board.get("sections")
+    if not isinstance(sections, list):
+        return False
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        if _has_nonempty_string(section.get("heading")) or _has_nonempty_string(section.get("icon")):
+            return True
+        bullets = section.get("bullets")
+        if isinstance(bullets, list) and any(_has_nonempty_string(item) for item in bullets):
+            return True
+    return False
+
+
+def _normalize_empty_v2_whiteboards(data):
+    if not isinstance(data, dict) or data.get("schemaVersion") != 2:
+        return False
+    script = data.get("script")
+    if not isinstance(script, list):
+        return False
+    changed = False
+    for turn in script:
+        if not isinstance(turn, dict):
+            continue
+        display = turn.get("displayMode")
+        if isinstance(display, dict) and display.get("kind") == "whiteboard" and not _v2_whiteboard_display_has_content(display):
+            turn.pop("displayMode", None)
+            changed = True
+    return changed
+
+
 def _save_story(data):
     """検証してから story-01.json に書き戻す。ensure_ascii=False。"""
+    _normalize_empty_v2_whiteboards(data)
     _validate_story(data)
     with open(STORY_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)

@@ -10141,6 +10141,32 @@ function v2DefaultWhiteboard() {
   };
 }
 
+function v2WhiteboardDisplayHasContent(display) {
+  if (!display || display.kind !== "whiteboard") return true;
+  const board = display.whiteboard || {};
+  const hasText = (value) => typeof value === "string" && value.trim() !== "";
+  if (hasText(display.presenterId) || hasText(board.title) || hasText(board.theme) || hasText(board.conclusion)) return true;
+  const sections = Array.isArray(board.sections) ? board.sections : [];
+  return sections.some((section) => {
+    if (!section || typeof section !== "object") return false;
+    if (hasText(section.heading) || hasText(section.icon)) return true;
+    const bullets = Array.isArray(section.bullets) ? section.bullets : [];
+    return bullets.some(hasText);
+  });
+}
+
+function normalizeV2EmptyWhiteboards(story) {
+  if (!story || story.schemaVersion !== 2 || !Array.isArray(story.script)) return false;
+  let changed = false;
+  for (const turn of story.script) {
+    if (turn?.displayMode?.kind === "whiteboard" && !v2WhiteboardDisplayHasContent(turn.displayMode)) {
+      delete turn.displayMode;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 const V2_WHITEBOARD_ICON_OPTIONS = [
   ["", "既定"],
   ["none", "なし"],
@@ -11147,11 +11173,13 @@ function collectV2Basic() {
       || animation.underlineDraw === false
       || animation.conclusionImpact === false
     ) whiteboard.animation = animation;
-    turn.displayMode = {
+    const nextDisplayMode = {
       kind: "whiteboard",
       ...(presenterId ? { presenterId } : {}),
       whiteboard,
     };
+    if (v2WhiteboardDisplayHasContent(nextDisplayMode)) turn.displayMode = nextDisplayMode;
+    else delete turn.displayMode;
   } else if (displayKind === "zunMeet") {
     const previous = v2ZunMeetForTurn(turn);
     turn.displayMode = { kind: "zunMeet", zunMeet: {
@@ -11175,7 +11203,7 @@ function collectV2Basic() {
       ...(document.getElementById("fV2FramedStageTransition").value === "smooth" ? {frameTransition: "smooth"} : {}),
     }};
   } else {
-    turn.displayMode = { kind: "standard" };
+    delete turn.displayMode;
   }
   const stage = v2StageEvent(turn);
   if (document.getElementById("fV2CameraTransition").value === "cut") turn.cameraTransition = "cut";
@@ -13695,6 +13723,7 @@ async function saveStory() {
   storyData.title = document.getElementById("storyTitle").value;
   normalizeStoryTransitions(storyData);
   normalizeV2Captions(storyData);
+  normalizeV2EmptyWhiteboards(storyData);
   pruneAllTurnsForDisplayType();
   if (v2PruneInvalidStageStateRefs(storyData)) {
     renderList();
