@@ -1012,6 +1012,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         mob_lines.append("- %s（使える表情: %s）" % (name, ", ".join(supported) or "normal"))
     voices = list(make_story_audio.load_voice_profiles().keys())
     narrator_voice = "棒読み男" if "棒読み男" in voices else None
+    background_lines = "\n".join("- " + path for path in _list_background_assets()) or "-（背景画像未登録）"
 
     slot_ids = first.get("slotIds") or []
     place_a = ('{"mode": "slot", "slotId": "%s"}' % slot_ids[0]) if slot_ids \
@@ -1102,6 +1103,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "",
         "━━━ 登場人物（instances）の定義 ━━━",
         '- instances のキー＝個体ID。script の speaker や stage の操作対象はすべてこのIDで指す。',
+        "- 個体IDは日本語でもよい。画面上で分かりやすい名前にする（例: \"推しおじいさんずんだもん\"）。同じIDを重複させない。",
         '- 画面に出す人物: {"characterId": "素材ID", "voiceId": "声ID", "label": "表示名(任意)"}',
         '- 声だけの人物（ナレーション・電話越し等）: {"role": "voiceOnly", "voiceId": "声ID"}。characterId は書かない。画面には出せない。',
         "- 同じ素材を複数人として使ってよい（例: \"営業A\" と \"営業B\" が同じ characterId を持つ）。",
@@ -1135,7 +1137,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         '- 構図: "stage": {"framing": {"mode": "speaker"}} … 話者の立ち位置に応じた構図プリセットへ寄せる（話者が登場中のターンのみ有効）。',
         '- その他の framing: {"mode": "sceneDefault"}（引き） / {"mode": "slot", "slotId": "スロット名"}（特定位置へ寄せる） /'
         ' {"mode": "manual", "frame": {"cx": 0.5, "cy": 0.5, "width": 0.8}}（例外カット用）。',
-        "- framing は次のターンへ継承される。構図を戻したいターンで sceneDefault を明示する。",
+        "- framing は次のターンへ継承される。前の構図を維持したいターンでは stage.framing を書かない。構図を戻したいターンで sceneDefault を明示する。",
         '- 動き: "stage": {"cameraMotion": {"zoom": 0.15, "pan": {"x": 0.05, "y": 0}, "tilt": 4,'
         ' "shake": {"strength": 10, "duration": 0.4}}} … そのターンだけの演出。継承する時だけ "inherit": true を追加し、zoom/pan/tiltだけを前ターンから維持する。shakeは継承しない。構図と混ぜない。',
         '- "cameraTransition": "cut" は構図を即切り替えしたい例外だけに使う。未指定なら smooth（滑らかに移動）。',
@@ -1167,7 +1169,7 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         '- "effects": {"impactLines": true} … 漫画の集中線（驚き・発覚・ツッコミの瞬間に）',
         '- "effects": {"zoomPunch": true} … 話し始めに一瞬強く寄って戻る強調（短く鋭い）',
         '- "effects": {"quoteFreeze": true} … 画面を暗くしてそのターンの text を大きな引用カードで見せる（名言・宣言向け）',
-        '- "effects": {"voiceLines": {"x":0.5,"y":0.5,"side":"right","size":220,"motion":16}} … 任意位置に音符入り吹き出しを出す。PC・電話・画面外の声など「そこから音が出ている」時に使う。side は right/left。',
+        '- "effects": {"voiceLines": {"x":0.5,"y":0.5,"side":"right","size":220,"motion":16,"rotation":0,"opacity":0.95,"speed":2.2}} … 任意位置に音符入り吹き出しを出す。PC・電話・画面外の声など「そこから音が出ている」時に使う。side は right/left。start/end で表示秒を絞れる。',
         '- "effects": {"flashback": true} … 回想（彩度が落ちる。caption と併用推奨。回想の間、連続ターンすべてに付ける）',
         '- "effects": {"visionNoise": {"type": "future"}} … 映像ノイズ。type は future（未来視）/ snow（砂嵐）/ vhs（VHS・防犯カメラ）/ glitch（デジタル異常）',
         '- "effects": {"irisOut": true} … 円が閉じて暗転する締め演出。話の最後のターンでのみ使う。',
@@ -1176,19 +1178,26 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "",
         "━━━ 表示種別（displayMode・任意）━━━",
         "- 省略すると通常の舞台表示。displayMode は次のターンへ継承されないので、続けたいターンには毎ターン同じ displayMode を書く。",
+        '- Zun系表示（zunMonitor/zunAi/zunChat/zunMail）は共通で width/fontScale/bg/backdropBg/backdropImage を持てる。通常は省略し、背景画像を使う時だけ backdropImage: "background/..." を指定する。',
         '- ホワイトボード解説: "displayMode": {"kind": "whiteboard", "presenterId": "metan", "whiteboard": {"title": "...", "theme": "...",'
-        ' "sections": [{"heading": "...", "bullets": ["...", "..."]}, {…}, {…}], "conclusion": "...", "layout": "default"}}。'
+        ' "sections": [{"heading": "...", "bullets": ["...", "..."], "icon": "problem"}, {…}, {…}], "conclusion": "...", "layout": "default", "animation": {"mode": "step"}}}。'
         ' sections は必ず3件。presenterId は登場中の個体のみ（省略すると立ち絵なし）。',
+        '- ホワイトボードの icon は none/confused/scribble/checklist/memo/conversation/warning/idea/table/cause/problem/solution/process/priority/deadline/evidence/data/share/rule/risk/improvement。',
+        '- ホワイトボードを段階表示する時は visibleSections（true/false 3件）/ visibleArrows（true/false 2件）/ showConclusion / showConclusionArrow / activeSection(0/1/2) を各ターンで指定する。',
+        '- ホワイトボードの見た目を調整する時だけ style に titleFontSize/themeFontSize/sectionHeadingFontSize/sectionBodyFontSize/conclusionFontSize/conclusionBoxX/Y/Width/Height を書ける。',
         '- ビデオ会議: "displayMode": {"kind": "zunMeet", "zunMeet": {"room": "定例会議", "layout": "focus",'
-        ' "participants": [{"instanceId": "zundamon"}, {"instanceId": "metan", "muted": true}]}}。participants は1〜4件・instances のID。',
+        ' "activeSpeakerId": "zundamon", "participants": [{"instanceId": "zundamon"}, {"instanceId": "metan", "muted": true, "cameraOff": false}]}}。participants は1〜4件・instances のID。layout は focus/grid。',
         '- ZunMonitor: "displayMode": {"kind": "zunMonitor", "monitor": {"kind": "warning", "title": "警告", "text": "..."}}。'
         ' 正常表示は monitor.kind を "ok" にする。',
-        '- ZunAI: "displayMode": {"kind": "zunAi", "chat": {"kind": "chat", "user": "...", "ai": ["...", "..."]}}。',
+        '- ZunAI: "displayMode": {"kind": "zunAi", "chat": {"kind": "chat", "user": "...", "ai": ["...", "..."], "highlight": 0}}。highlight は0始まりの強調行番号。',
         '- ZunChat: "displayMode": {"kind": "zunChat", "teamchat": {"kind": "teamchat", "channel": "障害対応",'
         ' "messages": [{"from": "metan", "text": "..."}, {"from": "zundamon", "text": "...", "highlight": true}]}}。',
-        '- ZunMail: "displayMode": {"kind": "zunMail", "mailer": {"kind": "mailer", "from": "管理部", "subject": "...", "body": "..."}}。',
+        '- ZunMail: "displayMode": {"kind": "zunMail", "mailer": {"kind": "mailer", "from": "管理部", "fromAddr": "admin@example.local", "subject": "...", "body": "...", "time": "14:32"}}。',
         '- 画面内ステージ: "displayMode": {"kind": "framedStage", "framedStage": {"background": "background/movie_player.png", "frame": {"x": 0.12, "y": 0.18, "width": 0.72}, "frameTransition": "smooth"}}。外枠の背景画像を選び、その中の16:9枠へこのターンの通常scene・人物・吹き出し・カメラを縮小して描画する。frame はエディタでD&Dして設定する。前ターンと同じ外側背景ならframeTransition: smoothで枠を移動・拡縮でき、turn.transition は枠内だけに適用される。',
         "- 特殊表示の間も stage の enter/exit/update は裏で効き、通常表示に戻ると反映されている。",
+        "",
+        "【background/backdropImage に使える背景画像】",
+        background_lines,
         "",
         "━━━ 旧形式のキー【絶対に書かない・検証で拒否される】━━━",
         "- speakerAnchor / manualPos / focusSpeaker / manualCameraFrame / cameraEffects / cameraEffectSettings / zoomTarget / cameraCenter / emphasis",
