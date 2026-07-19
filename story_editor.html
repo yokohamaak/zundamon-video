@@ -2608,10 +2608,14 @@
     <div style="overflow-x:auto;">
       <div id="v2InstanceRegistry" style="display:flex; flex-direction:column; gap:8px; min-width:760px;"></div>
     </div>
-    <div style="display:grid; grid-template-columns:minmax(140px,0.9fr) minmax(180px,1.1fr) minmax(180px,1.1fr) minmax(180px,1.2fr) minmax(170px,auto); gap:8px; align-items:end; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--panel); overflow-x:auto; min-width:760px;">
+    <div style="display:grid; grid-template-columns:minmax(120px,0.75fr) minmax(180px,1fr) minmax(180px,1.1fr) minmax(180px,1.1fr) minmax(180px,1.2fr) minmax(170px,auto); gap:8px; align-items:end; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--panel); overflow-x:auto; min-width:900px;">
       <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text2);">
         種類
         <select class="field-select" id="fV2NewInstanceRole"><option value="stage">画面に出す</option><option value="voiceOnly">声のみ</option></select>
+      </label>
+      <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text2);">
+        ID
+        <input class="field-input" id="fV2NewInstanceId" type="text" placeholder="例: 推しおじいさんずんだもん">
       </label>
       <label style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text2);">
         見た目・素材
@@ -9542,11 +9546,41 @@ function v2InstanceIsReferenced(instanceId) {
 }
 
 function v2UniqueInstanceId(characterId) {
-  const base = String(characterId || "voice").replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "instance";
+  const base = v2NormalizeInstanceIdCandidate(characterId || "voice");
   let candidate = base;
   let number = 2;
   while (storyData.instances[candidate]) candidate = `${base}-${number++}`;
   return candidate;
+}
+
+function v2NormalizeInstanceIdCandidate(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[\s./\\[\]{}:]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    || "instance";
+}
+
+function v2ValidateInstanceIdForCreate(instanceId) {
+  if (!instanceId) return "IDを入力してください。";
+  if (/[\u0000-\u001f\u007f]/.test(instanceId)) return "IDに制御文字は使えません。";
+  if (/[\s./\\[\]{}:]/.test(instanceId)) return "IDに空白、. / \\ [ ] { } : は使えません。";
+  if (storyData.instances?.[instanceId]) return `ID「${instanceId}」はすでに使われています。`;
+  return "";
+}
+
+function v2NewInstanceIdSeed() {
+  const role = document.getElementById("fV2NewInstanceRole")?.value || "stage";
+  const characterId = document.getElementById("fV2NewInstanceCharacter")?.value || "";
+  return role === "voiceOnly" ? "voice" : characterId;
+}
+
+function v2RefreshNewInstanceId(force = false) {
+  const input = document.getElementById("fV2NewInstanceId");
+  if (!input) return;
+  if (!force && input.dataset.autofilled !== "1" && input.value.trim()) return;
+  input.value = v2UniqueInstanceId(v2NewInstanceIdSeed());
+  input.dataset.autofilled = "1";
 }
 
 function v2UpdateNewInstanceFields() {
@@ -9554,6 +9588,7 @@ function v2UpdateNewInstanceFields() {
   const character = document.getElementById("fV2NewInstanceCharacter");
   if (!role || !character) return;
   character.disabled = role.value === "voiceOnly";
+  v2RefreshNewInstanceId();
 }
 
 function renderV2InstanceRegistry() {
@@ -9651,17 +9686,28 @@ function v2CommitInstanceRegistryChange() {
 function v2AddInstance() {
   if (!isV2StoryEditor()) return;
   const role = document.getElementById("fV2NewInstanceRole").value;
+  const idInput = document.getElementById("fV2NewInstanceId");
   const characterId = document.getElementById("fV2NewInstanceCharacter").value;
   const voiceId = document.getElementById("fV2NewInstanceVoice").value;
   const label = document.getElementById("fV2NewInstanceLabel").value.trim();
   if (!voiceId || (role !== "voiceOnly" && !characterId)) return;
-  const instanceId = v2UniqueInstanceId(role === "voiceOnly" ? "voice" : characterId);
+  const instanceId = String(idInput?.value || "").trim() || v2UniqueInstanceId(role === "voiceOnly" ? "voice" : characterId);
+  const idError = v2ValidateInstanceIdForCreate(instanceId);
+  if (idError) {
+    alert(idError);
+    idInput?.focus();
+    return;
+  }
   storyData.instances[instanceId] = {
     voiceId,
     ...(role === "voiceOnly" ? { role: "voiceOnly" } : { characterId }),
     ...(label ? { label } : {}),
   };
   document.getElementById("fV2NewInstanceLabel").value = "";
+  if (idInput) {
+    idInput.value = "";
+    idInput.dataset.autofilled = "1";
+  }
   v2CommitInstanceRegistryChange();
 }
 
@@ -14905,6 +14951,10 @@ function setupEvents() {
     if (e.shiftKey) v2Redo(); else v2Undo();
   });
   document.getElementById("fV2NewInstanceRole")?.addEventListener("change", v2UpdateNewInstanceFields);
+  document.getElementById("fV2NewInstanceCharacter")?.addEventListener("change", () => v2RefreshNewInstanceId());
+  document.getElementById("fV2NewInstanceId")?.addEventListener("input", (event) => {
+    event.currentTarget.dataset.autofilled = event.currentTarget.value.trim() ? "0" : "1";
+  });
   document.getElementById("btnV2AddInstance")?.addEventListener("click", v2AddInstance);
   // 向きを指定した時だけ「向きの効き方」「向き保持の解除」を出す
   for (const id of ["fFaceZundamon", "fFaceMetan"]) {
