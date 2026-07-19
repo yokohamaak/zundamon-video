@@ -59,6 +59,11 @@
       "arm": "arm_smartphone",
       "speed": 0.6,
       "strength": 0.6
+    },
+    "thinking": {
+      "arm": "arm_normal",
+      "speed": 0,
+      "strength": 0
     }
   },
   "metan": {
@@ -121,6 +126,11 @@
       "arm": "arm_normal",
       "speed": 1,
       "strength": 1
+    },
+    "thinking": {
+      "arm": "arm_normal",
+      "speed": 0,
+      "strength": 0
     }
   }
 }

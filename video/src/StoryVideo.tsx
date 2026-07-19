@@ -178,7 +178,9 @@ export type StoryTurn = {
     | "listening"
     | "sneak"
     | "wobble"
-    | "point";
+    | "point"
+    | "smartphone"
+    | "thinking";
   // 登場するキャラ/モブ。このターンの頭からスライドインして以後表示される。
   enter?: string[];
   // 登場方向（"left"/"right"）または即時登場（"instant"）。省略時は自分の居る側（近い画面端）から。

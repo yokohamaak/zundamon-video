@@ -7591,7 +7591,7 @@ function buildExpressionSelect() {
 const POSE_KEYS = [
   "idle", "cheer", "recoil", "lean", "droop", "flustered",
   "proud", "listening", "sneak", "wobble",
-  "point", "smartphone",
+  "point", "smartphone", "thinking",
 ];
 const FACE_LABELS = {
   left: "left",
@@ -7619,6 +7619,7 @@ function poseLabel(pose) {
     wobble: "ぐらぐら",
     point: "指差し",
     smartphone: "スマホ",
+    thinking: "考える",
   };
   return labels[pose] || pose || "";
 }

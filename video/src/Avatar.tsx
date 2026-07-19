@@ -66,6 +66,8 @@ export type ExpressionCfg = {
     | "sneak"
     | "wobble"
     | "point"
+    | "smartphone"
+    | "thinking"
     | null;
   // 腕差分があるキャラ用。arm_normal / arm_raise / arm_whisper などのstem名。
   // 旧データ互換のため "normal" / "raise" も受け付ける。
