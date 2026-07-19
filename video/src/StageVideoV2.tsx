@@ -69,8 +69,12 @@ const DEFAULT_STAGE_EFFECT_SETTINGS = {
   impactLines: {cx: 0.5, cy: 0.48, count: 72, thickness: 1.25, opacity: 0.72, innerRadius: 0.17, start: 0, end: 0},
   visionNoise: {type: "future" as "future" | "snow" | "vhs" | "glitch", strength: 0.68, scanline: 0.78, glitch: 0.36, flicker: 0.42, tint: "#7dd3fc"},
   irisOut: {cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0},
-  voiceLines: {x: 0.5, y: 0.5, side: "both" as "both" | "left" | "right", length: 88, gap: 26, thickness: 4, opacity: 0.86, speed: 3.2, color: "#ffffff", start: 0, end: 0},
+  voiceLines: {x: 0.5, y: 0.5, side: "right" as "both" | "left" | "right", size: 220, motion: 16, rotation: 0, opacity: 0.95, speed: 2.2, start: 0, end: 0},
 };
+const VOICE_LINES_ASSET = {
+  left: "effects/voice_bubble_left.png",
+  right: "effects/voice_bubble_right.png",
+} as const;
 
 const DEFAULT_DISPLAY_SETTINGS = {
   bubble: {maxChars: null as number | null, fontSize: 54, fontFamily: "sans-serif", textColor: "#1b1b1f", bgColor: "#ffffff", borderWidth: 5, radius: 18},
@@ -314,12 +318,11 @@ function stageVoiceLinesConfig(raw: unknown) {
     x: number("x", base.x),
     y: number("y", base.y),
     side,
-    length: number("length", base.length),
-    gap: number("gap", base.gap),
-    thickness: number("thickness", base.thickness),
+    size: number("size", number("length", base.size)),
+    motion: number("motion", base.motion),
+    rotation: number("rotation", base.rotation),
     opacity: number("opacity", base.opacity),
     speed: number("speed", base.speed),
-    color: validHex(data.color, base.color),
     start: number("start", base.start),
     end: number("end", base.end),
   };
@@ -834,52 +837,39 @@ const V2EffectsLayer: React.FC<{
     const opacity = visible ? clamp(Math.min(fadeIn, fadeOut), 0, 1) * clamp(voiceLinesCfg.opacity, 0, 1) * (0.62 + pulse * 0.38) : 0;
     const cx = clamp(voiceLinesCfg.x, 0, 1) * width;
     const cy = clamp(voiceLinesCfg.y, 0, 1) * height;
-    const length = clamp(voiceLinesCfg.length, 24, 240) * (0.9 + pulse * 0.16);
-    const gap = clamp(voiceLinesCfg.gap, 8, 90) * (0.82 + pulse * 0.42);
-    const thickness = clamp(voiceLinesCfg.thickness, 1, 16);
-    const spread = 18 + pulse * 18;
-    const renderLineGroup = (side: "left" | "right") => {
+    const size = clamp(voiceLinesCfg.size, 64, 640);
+    const motion = clamp(voiceLinesCfg.motion, 0, 120);
+    const baseRotation = clamp(voiceLinesCfg.rotation, -45, 45);
+    const sides: Array<"left" | "right"> = voiceLinesCfg.side === "both" ? ["left", "right"] : [voiceLinesCfg.side];
+    const renderVoiceBubble = (side: "left" | "right") => {
       const dir = side === "left" ? -1 : 1;
-      const baseX = cx + dir * spread;
-      const baseAngle = side === "left" ? -96 : -38;
-      const color = validHex(voiceLinesCfg.color, DEFAULT_STAGE_EFFECT_SETTINGS.voiceLines.color);
+      const bothOffset = voiceLinesCfg.side === "both" ? dir * size * 0.42 : 0;
+      const driftX = dir * Math.sin(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8)) * motion * 0.25;
+      const driftY = Math.cos(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8) * 0.82) * motion * 0.16;
+      const scale = 1 + Math.sin(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8)) * (motion / 900);
+      const rotation = baseRotation + Math.sin(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8) * 0.74) * dir * motion * 0.08;
       return (
-        <div
+        <Img
           key={side}
+          src={staticFile(VOICE_LINES_ASSET[side])}
           style={{
             position: "absolute",
-            left: baseX,
+            left: cx + bothOffset,
             top: cy,
-            width: 0,
-            height: 0,
+            width: size,
+            height: size,
             opacity,
-            transform: `translate(${dir * pulse * 7}px, 0)`,
-            filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.3))",
+            objectFit: "contain",
+            transform: `translate(-50%, -50%) translate(${driftX}px, ${driftY}px) scale(${scale}) rotate(${rotation}deg)`,
+            transformOrigin: "50% 50%",
+            filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.28))",
           }}
-        >
-          {[-0.5, 0.5].map((offset, index) => (
-            <div
-              key={index}
-              style={{
-                position: "absolute",
-                left: -length / 2,
-                top: offset * gap - thickness / 2,
-                width: length,
-                height: thickness,
-                borderRadius: thickness,
-                background: color,
-                transform: `rotate(${baseAngle + offset * dir * 5}deg)`,
-                transformOrigin: "50% 50%",
-              }}
-            />
-          ))}
-        </div>
+        />
       );
     };
     layers.push(
       <AbsoluteFill key="voiceLines" style={{pointerEvents: "none", overflow: "hidden"}}>
-        {voiceLinesCfg.side !== "right" ? renderLineGroup("left") : null}
-        {voiceLinesCfg.side !== "left" ? renderLineGroup("right") : null}
+        {sides.map(renderVoiceBubble)}
       </AbsoluteFill>,
     );
   }

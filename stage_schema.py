@@ -264,10 +264,15 @@ def _stage_effects(value, path):
             "ranges": {"cx": (0, 1), "cy": (0, 1), "startRadius": (0.15, 1.3), "closeStart": (0, 8), "closeEnd": (0, 8)},
         },
         "voiceLines": {
-            "keys": {"enabled", "x", "y", "side", "length", "gap", "thickness", "opacity", "speed", "color", "start", "end"},
+            "keys": {
+                "enabled", "x", "y", "side", "size", "motion", "rotation", "opacity", "speed", "start", "end",
+                # 直前の線描画版で保存された台本を弾かないための互換キー。
+                "length", "gap", "thickness", "color",
+            },
             "ranges": {
-                "x": (0, 1), "y": (0, 1), "length": (24, 240), "gap": (8, 90),
-                "thickness": (1, 16), "opacity": (0, 1), "speed": (0.5, 8), "start": (0, 8), "end": (0, 8),
+                "x": (0, 1), "y": (0, 1), "size": (64, 640), "motion": (0, 120), "rotation": (-45, 45),
+                "opacity": (0, 1), "speed": (0.5, 8), "start": (0, 8), "end": (0, 8),
+                "length": (24, 240), "gap": (8, 90), "thickness": (1, 16),
             },
         },
     }

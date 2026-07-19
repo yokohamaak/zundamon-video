@@ -3121,11 +3121,11 @@ const EFFECT_SETTING_SPECS = [
   { group: "impactLines", label: "集中線 終了秒（0=自動）", key: "end", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
   { group: "voiceLines", label: "発声線 X", key: "x", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
   { group: "voiceLines", label: "発声線 Y", key: "y", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
-  { group: "voiceLines", label: "発声線 長さ", key: "length", min: 24, max: 240, step: 1, defaultValue: 88, digits: 0, unit: "px" },
-  { group: "voiceLines", label: "発声線 間隔", key: "gap", min: 8, max: 90, step: 1, defaultValue: 26, digits: 0, unit: "px" },
-  { group: "voiceLines", label: "発声線 太さ", key: "thickness", min: 1, max: 16, step: 0.5, defaultValue: 4, digits: 1, unit: "px" },
-  { group: "voiceLines", label: "発声線 濃さ", key: "opacity", min: 0, max: 1, step: 0.01, defaultValue: 0.86, digits: 2 },
-  { group: "voiceLines", label: "発声線 速度", key: "speed", min: 0.5, max: 8, step: 0.1, defaultValue: 3.2, digits: 1 },
+  { group: "voiceLines", label: "発声線 サイズ", key: "size", min: 64, max: 640, step: 4, defaultValue: 220, digits: 0, unit: "px" },
+  { group: "voiceLines", label: "発声線 動き", key: "motion", min: 0, max: 120, step: 1, defaultValue: 16, digits: 0, unit: "px" },
+  { group: "voiceLines", label: "発声線 角度", key: "rotation", min: -45, max: 45, step: 1, defaultValue: 0, digits: 0, unit: "度" },
+  { group: "voiceLines", label: "発声線 濃さ", key: "opacity", min: 0, max: 1, step: 0.01, defaultValue: 0.95, digits: 2 },
+  { group: "voiceLines", label: "発声線 速度", key: "speed", min: 0.5, max: 8, step: 0.1, defaultValue: 2.2, digits: 1 },
   { group: "voiceLines", label: "発声線 開始秒", key: "start", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
   { group: "voiceLines", label: "発声線 終了秒（0=自動）", key: "end", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
   { group: "visionNoise", label: "ノイズ量", key: "strength", min: 0, max: 1, step: 0.01, defaultValue: 0.68, digits: 2 },
@@ -3148,8 +3148,7 @@ const CAMERA_EFFECT_SETTING_SPECS = [
 ];
 // 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
 const IRIS_OUT_DEFAULT_COLOR = "#000000";
-const VOICE_LINES_DEFAULT_COLOR = "#ffffff";
-const VOICE_LINES_SIDES = [["both", "左右"], ["left", "左だけ"], ["right", "右だけ"]];
+const VOICE_LINES_SIDES = [["right", "右画像"], ["left", "左画像"], ["both", "左右両方"]];
 const VISION_NOISE_DEFAULT_TINT = "#7dd3fc";
 const VISION_NOISE_TYPES = [
   ["future", "未来視"],
@@ -10363,7 +10362,7 @@ const V2_EFFECT_SPEC_KEYS = {
   flashback: new Set([]),
   visionNoise: new Set(["strength", "scanline", "glitch", "flicker"]),
   irisOut: new Set(["cx", "cy", "startRadius", "closeStart", "closeEnd"]),
-  voiceLines: new Set(["x", "y", "length", "gap", "thickness", "opacity", "speed", "start", "end"]),
+  voiceLines: new Set(["x", "y", "size", "motion", "rotation", "opacity", "speed", "start", "end"]),
 };
 
 function v2EffectSpecs(group) {
@@ -10441,8 +10440,6 @@ function collectV2EffectsFromUi() {
     if (group === "voiceLines") {
       const side = document.getElementById("fV2Effect_voiceLines_side");
       if (side?.value) config.side = side.value;
-      const color = document.getElementById("fV2Effect_voiceLines_color");
-      if (color?.value) config.color = color.value;
     }
     effects[group] = config;
   }
@@ -10523,18 +10520,7 @@ function appendV2VoiceLinesControls(card, params) {
   side.value = params.side || "both";
   side.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
   sideLabel.append(sideText, side);
-  const colorLabel = document.createElement("label");
-  colorLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
-  const colorText = document.createElement("span");
-  colorText.textContent = "色";
-  const color = document.createElement("input");
-  color.type = "color";
-  color.className = "color-picker";
-  color.id = "fV2Effect_voiceLines_color";
-  color.value = normalizeHexColor(params.color || VOICE_LINES_DEFAULT_COLOR, VOICE_LINES_DEFAULT_COLOR);
-  color.addEventListener("input", () => { collectV2Basic(); notifyPlayerUpdate(); });
-  colorLabel.append(colorText, color);
-  row.append(sideLabel, colorLabel);
+  row.append(sideLabel);
   card.appendChild(row);
 }
 

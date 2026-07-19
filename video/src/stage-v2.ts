@@ -92,14 +92,18 @@ export type VoiceLinesEffectV2 = {
   x?: number;
   y?: number;
   side?: "both" | "left" | "right";
+  size?: number;
+  motion?: number;
+  rotation?: number;
+  opacity?: number;
+  speed?: number;
+  start?: number;
+  end?: number;
+  /** 旧線描画版の互換用。指定されていれば size のフォールバックに使う。 */
   length?: number;
   gap?: number;
   thickness?: number;
-  opacity?: number;
-  speed?: number;
   color?: string;
-  start?: number;
-  end?: number;
 };
 export type StageEffectsV2 = {
   impactLines?: EffectToggleV2<ImpactLinesEffectV2>;

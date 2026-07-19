@@ -193,7 +193,7 @@ class StageSchemaTest(unittest.TestCase):
             "flashback": {"enabled": True},
             "visionNoise": {"enabled": True, "type": "vhs", "strength": 0.7, "scanline": 0.8, "glitch": 0.2, "flicker": 0.4, "tint": "#7dd3fc"},
             "irisOut": {"enabled": True, "cx": 0.5, "cy": 0.5, "startRadius": 1.05, "closeStart": 1.2, "closeEnd": 1.8, "color": "#000000"},
-            "voiceLines": {"enabled": True, "x": 0.62, "y": 0.38, "side": "both", "length": 92, "gap": 28, "thickness": 4, "opacity": 0.85, "speed": 3.4, "color": "#ffffff", "start": 0.1, "end": 1.5},
+            "voiceLines": {"enabled": True, "x": 0.62, "y": 0.38, "side": "right", "size": 240, "motion": 18, "rotation": -4, "opacity": 0.92, "speed": 2.4, "start": 0.1, "end": 1.5},
         }
         validate_story_v2(story, SCENES)
 
