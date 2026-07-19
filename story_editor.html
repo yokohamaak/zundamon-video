@@ -8921,24 +8921,26 @@ function v2RepairCurrentSpeakerContinuity(index) {
     if (next.scene !== scene) break;
     if (!state[replacementId]) break;
     const stage = next.stage || {};
+    const stateAtTurnStart = { ...state };
     for (const item of stage.enter || []) {
       const definition = storyData.instances?.[item.instanceId];
-      if (definition) state[item.instanceId] = { instanceId: item.instanceId, definition, placement: v2Clone(item.placement) };
+      if (definition) stateAtTurnStart[item.instanceId] = { instanceId: item.instanceId, definition, placement: v2Clone(item.placement) };
     }
-    for (const item of stage.exit || []) delete state[v2ExitItemId(item)];
+    const stateAfterExit = { ...stateAtTurnStart };
+    for (const item of stage.exit || []) delete stateAfterExit[v2ExitItemId(item)];
     const staleIds = new Set();
-    if (next.speaker && !state[next.speaker] && storyData.instances?.[next.speaker]?.role !== "voiceOnly") staleIds.add(next.speaker);
-    if (next.displayMode?.presenterId && !state[next.displayMode.presenterId]) staleIds.add(next.displayMode.presenterId);
+    if (next.speaker && !stateAtTurnStart[next.speaker] && storyData.instances?.[next.speaker]?.role !== "voiceOnly") staleIds.add(next.speaker);
+    if (next.displayMode?.presenterId && !stateAtTurnStart[next.displayMode.presenterId]) staleIds.add(next.displayMode.presenterId);
     const meeting = next.displayMode?.kind === "zunMeet" ? next.displayMode.zunMeet : null;
-    if (meeting?.activeSpeakerId && !state[meeting.activeSpeakerId]) staleIds.add(meeting.activeSpeakerId);
+    if (meeting?.activeSpeakerId && !stateAtTurnStart[meeting.activeSpeakerId]) staleIds.add(meeting.activeSpeakerId);
     for (const participant of meeting?.participants || []) {
-      if (participant.instanceId && !state[participant.instanceId]) staleIds.add(participant.instanceId);
+      if (participant.instanceId && !stateAtTurnStart[participant.instanceId]) staleIds.add(participant.instanceId);
     }
     for (const instanceId of Object.keys(stage.update || {})) {
-      if (!state[instanceId]) staleIds.add(instanceId);
+      if (!stateAfterExit[instanceId]) staleIds.add(instanceId);
     }
     for (const instanceId of stage.reset || []) {
-      if (!state[instanceId]) staleIds.add(instanceId);
+      if (!stateAfterExit[instanceId]) staleIds.add(instanceId);
     }
     staleIds.delete(replacementId);
     for (const staleId of staleIds) {
