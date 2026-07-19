@@ -234,7 +234,7 @@ def _caption(value, path):
 def _stage_effects(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
-    _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze", "flashback", "visionNoise", "irisOut"}, path)
+    _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze", "flashback", "visionNoise", "irisOut", "voiceLines"}, path)
     specs = {
         "flashback": {
             "keys": {"enabled"},
@@ -263,6 +263,13 @@ def _stage_effects(value, path):
             "keys": {"enabled", "cx", "cy", "startRadius", "closeStart", "closeEnd", "color"},
             "ranges": {"cx": (0, 1), "cy": (0, 1), "startRadius": (0.15, 1.3), "closeStart": (0, 8), "closeEnd": (0, 8)},
         },
+        "voiceLines": {
+            "keys": {"enabled", "x", "y", "side", "length", "gap", "thickness", "opacity", "speed", "color", "start", "end"},
+            "ranges": {
+                "x": (0, 1), "y": (0, 1), "length": (24, 240), "gap": (8, 90),
+                "thickness": (1, 16), "opacity": (0, 1), "speed": (0.5, 8), "start": (0, 8), "end": (0, 8),
+            },
+        },
     }
     for key, spec in specs.items():
         if key not in value:
@@ -281,6 +288,10 @@ def _stage_effects(value, path):
         if key == "visionNoise" and "tint" in item:
             _hex(item["tint"], f"{item_path}.tint")
         if key == "irisOut" and "color" in item:
+            _hex(item["color"], f"{item_path}.color")
+        if key == "voiceLines" and "side" in item and item["side"] not in {"both", "left", "right"}:
+            _error(f"{item_path}.side", "both/left/right のいずれかが必要です")
+        if key == "voiceLines" and "color" in item:
             _hex(item["color"], f"{item_path}.color")
         for param, bounds in spec["ranges"].items():
             if param not in item:

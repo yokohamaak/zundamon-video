@@ -88,6 +88,19 @@ export type IrisOutEffectV2 = {
   closeEnd?: number;
   color?: string;
 };
+export type VoiceLinesEffectV2 = {
+  x?: number;
+  y?: number;
+  side?: "both" | "left" | "right";
+  length?: number;
+  gap?: number;
+  thickness?: number;
+  opacity?: number;
+  speed?: number;
+  color?: string;
+  start?: number;
+  end?: number;
+};
 export type StageEffectsV2 = {
   impactLines?: EffectToggleV2<ImpactLinesEffectV2>;
   zoomPunch?: EffectToggleV2<ZoomPunchEffectV2>;
@@ -95,6 +108,7 @@ export type StageEffectsV2 = {
   flashback?: EffectToggleV2<FlashbackEffectV2>;
   visionNoise?: EffectToggleV2<VisionNoiseEffectV2>;
   irisOut?: EffectToggleV2<IrisOutEffectV2>;
+  voiceLines?: EffectToggleV2<VoiceLinesEffectV2>;
 };
 
 export type WhiteboardDisplayV2 = {

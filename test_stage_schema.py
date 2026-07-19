@@ -181,7 +181,7 @@ class StageSchemaTest(unittest.TestCase):
 
     def test_v2_accepts_lightweight_effects(self):
         story = copy.deepcopy(STORY)
-        story["script"][0]["effects"] = {"impactLines": True, "zoomPunch": True, "quoteFreeze": True}
+        story["script"][0]["effects"] = {"impactLines": True, "zoomPunch": True, "quoteFreeze": True, "voiceLines": True}
         validate_story_v2(story, SCENES)
 
     def test_v2_accepts_lightweight_effect_parameters(self):
@@ -193,6 +193,7 @@ class StageSchemaTest(unittest.TestCase):
             "flashback": {"enabled": True},
             "visionNoise": {"enabled": True, "type": "vhs", "strength": 0.7, "scanline": 0.8, "glitch": 0.2, "flicker": 0.4, "tint": "#7dd3fc"},
             "irisOut": {"enabled": True, "cx": 0.5, "cy": 0.5, "startRadius": 1.05, "closeStart": 1.2, "closeEnd": 1.8, "color": "#000000"},
+            "voiceLines": {"enabled": True, "x": 0.62, "y": 0.38, "side": "both", "length": 92, "gap": 28, "thickness": 4, "opacity": 0.85, "speed": 3.4, "color": "#ffffff", "start": 0.1, "end": 1.5},
         }
         validate_story_v2(story, SCENES)
 
@@ -208,6 +209,10 @@ class StageSchemaTest(unittest.TestCase):
         story = copy.deepcopy(STORY)
         story["script"][0]["effects"] = {"visionNoise": {"type": "bad"}}
         with self.assertRaisesRegex(ValueError, "effects.visionNoise.type"):
+            validate_story_v2(story, SCENES)
+        story = copy.deepcopy(STORY)
+        story["script"][0]["effects"] = {"voiceLines": {"side": "center"}}
+        with self.assertRaisesRegex(ValueError, "effects.voiceLines.side"):
             validate_story_v2(story, SCENES)
 
     def test_v2_rejects_legacy_fields_instead_of_ignoring_them(self):

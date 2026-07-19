@@ -290,6 +290,7 @@ def test_prompt_v2_mentions_v2_contract():
         '"displayMode"',
         '"caption"',
         '"effects"',
+        '"voiceLines"',
         '"framedStage"',
         "voiceOnly",
         "speakerLeft",

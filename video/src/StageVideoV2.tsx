@@ -69,6 +69,7 @@ const DEFAULT_STAGE_EFFECT_SETTINGS = {
   impactLines: {cx: 0.5, cy: 0.48, count: 72, thickness: 1.25, opacity: 0.72, innerRadius: 0.17, start: 0, end: 0},
   visionNoise: {type: "future" as "future" | "snow" | "vhs" | "glitch", strength: 0.68, scanline: 0.78, glitch: 0.36, flicker: 0.42, tint: "#7dd3fc"},
   irisOut: {cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0},
+  voiceLines: {x: 0.5, y: 0.5, side: "both" as "both" | "left" | "right", length: 88, gap: 26, thickness: 4, opacity: 0.86, speed: 3.2, color: "#ffffff", start: 0, end: 0},
 };
 
 const DEFAULT_DISPLAY_SETTINGS = {
@@ -300,6 +301,27 @@ function stageIrisOutConfig(raw: unknown) {
     closeStart: number("closeStart", base.closeStart),
     closeEnd: number("closeEnd", base.closeEnd),
     color: validHex(data.color, base.color),
+  };
+}
+
+function stageVoiceLinesConfig(raw: unknown) {
+  const base = DEFAULT_STAGE_EFFECT_SETTINGS.voiceLines;
+  if (!raw || typeof raw !== "object") return base;
+  const data = raw as Record<string, unknown>;
+  const number = (key: string, fallback: number) => Number.isFinite(Number(data[key])) ? Number(data[key]) : fallback;
+  const side = data.side === "left" || data.side === "right" || data.side === "both" ? data.side : base.side;
+  return {
+    x: number("x", base.x),
+    y: number("y", base.y),
+    side,
+    length: number("length", base.length),
+    gap: number("gap", base.gap),
+    thickness: number("thickness", base.thickness),
+    opacity: number("opacity", base.opacity),
+    speed: number("speed", base.speed),
+    color: validHex(data.color, base.color),
+    start: number("start", base.start),
+    end: number("end", base.end),
   };
 }
 
@@ -750,15 +772,19 @@ const V2EffectsLayer: React.FC<{
   width: number;
   height: number;
   onlyImpactLines?: boolean;
+  onlyVoiceLines?: boolean;
   hideImpactLines?: boolean;
+  hideVoiceLines?: boolean;
   hideIrisOut?: boolean;
-}> = ({turn, elapsed, progress, width, height, onlyImpactLines, hideImpactLines, hideIrisOut}) => {
+}> = ({turn, elapsed, progress, width, height, onlyImpactLines, onlyVoiceLines, hideImpactLines, hideVoiceLines, hideIrisOut}) => {
   const effects = turn.effects ?? {};
   const layers: React.ReactNode[] = [];
   const hasImpactLines = stageEffectEnabled(effects.impactLines);
+  const hasVoiceLines = stageEffectEnabled(effects.voiceLines);
   if (onlyImpactLines && !hasImpactLines) return null;
+  if (onlyVoiceLines && !hasVoiceLines) return null;
 
-  if (!hideImpactLines && hasImpactLines) {
+  if (!hideImpactLines && !onlyVoiceLines && hasImpactLines) {
     const impactLinesCfg = stageEffectConfig(effects.impactLines, DEFAULT_STAGE_EFFECT_SETTINGS.impactLines);
     const lineStart = Math.max(0, impactLinesCfg.start);
     const lineEnd = Math.max(0, impactLinesCfg.end);
@@ -795,7 +821,70 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
-  if (!onlyImpactLines && stageEffectEnabled(effects.zoomPunch)) {
+  if (!onlyImpactLines && !hideVoiceLines && hasVoiceLines) {
+    const voiceLinesCfg = stageVoiceLinesConfig(effects.voiceLines);
+    const lineStart = Math.max(0, voiceLinesCfg.start);
+    const lineEnd = Math.max(0, voiceLinesCfg.end);
+    const hasManualWindow = lineEnd > lineStart;
+    const visible = !hasManualWindow || (elapsed >= lineStart && elapsed < lineEnd);
+    const windowProgress = hasManualWindow ? clamp((elapsed - lineStart) / Math.max(lineEnd - lineStart, 0.001), 0, 1) : progress;
+    const fadeIn = clamp((hasManualWindow ? elapsed - lineStart : elapsed) / 0.14, 0, 1);
+    const fadeOut = hasManualWindow ? 1 - clamp((elapsed - (lineEnd - 0.18)) / 0.18, 0, 1) : 1 - clamp((windowProgress - 0.92) / 0.08, 0, 1);
+    const pulse = (Math.sin(elapsed * Math.PI * 2 * clamp(voiceLinesCfg.speed, 0.5, 8)) + 1) / 2;
+    const opacity = visible ? clamp(Math.min(fadeIn, fadeOut), 0, 1) * clamp(voiceLinesCfg.opacity, 0, 1) * (0.62 + pulse * 0.38) : 0;
+    const cx = clamp(voiceLinesCfg.x, 0, 1) * width;
+    const cy = clamp(voiceLinesCfg.y, 0, 1) * height;
+    const length = clamp(voiceLinesCfg.length, 24, 240) * (0.9 + pulse * 0.16);
+    const gap = clamp(voiceLinesCfg.gap, 8, 90) * (0.82 + pulse * 0.42);
+    const thickness = clamp(voiceLinesCfg.thickness, 1, 16);
+    const spread = 18 + pulse * 18;
+    const renderLineGroup = (side: "left" | "right") => {
+      const dir = side === "left" ? -1 : 1;
+      const baseX = cx + dir * spread;
+      const baseAngle = side === "left" ? -96 : -38;
+      const color = validHex(voiceLinesCfg.color, DEFAULT_STAGE_EFFECT_SETTINGS.voiceLines.color);
+      return (
+        <div
+          key={side}
+          style={{
+            position: "absolute",
+            left: baseX,
+            top: cy,
+            width: 0,
+            height: 0,
+            opacity,
+            transform: `translate(${dir * pulse * 7}px, 0)`,
+            filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.3))",
+          }}
+        >
+          {[-0.5, 0.5].map((offset, index) => (
+            <div
+              key={index}
+              style={{
+                position: "absolute",
+                left: -length / 2,
+                top: offset * gap - thickness / 2,
+                width: length,
+                height: thickness,
+                borderRadius: thickness,
+                background: color,
+                transform: `rotate(${baseAngle + offset * dir * 5}deg)`,
+                transformOrigin: "50% 50%",
+              }}
+            />
+          ))}
+        </div>
+      );
+    };
+    layers.push(
+      <AbsoluteFill key="voiceLines" style={{pointerEvents: "none", overflow: "hidden"}}>
+        {voiceLinesCfg.side !== "right" ? renderLineGroup("left") : null}
+        {voiceLinesCfg.side !== "left" ? renderLineGroup("right") : null}
+      </AbsoluteFill>,
+    );
+  }
+
+  if (!onlyImpactLines && !onlyVoiceLines && stageEffectEnabled(effects.zoomPunch)) {
     const zoomPunchCfg = stageEffectConfig(effects.zoomPunch, DEFAULT_STAGE_EFFECT_SETTINGS.zoomPunch);
     const local = clamp(elapsed / Math.max(zoomPunchCfg.duration, 0.001), 0, 1);
     const punch = Math.sin(local * Math.PI);
@@ -810,7 +899,7 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
-  if (!onlyImpactLines && stageEffectEnabled(effects.quoteFreeze)) {
+  if (!onlyImpactLines && !onlyVoiceLines && stageEffectEnabled(effects.quoteFreeze)) {
     const quoteFreezeCfg = stageEffectConfig(effects.quoteFreeze, DEFAULT_STAGE_EFFECT_SETTINGS.quoteFreeze);
     const hold = clamp(progress / Math.max(quoteFreezeCfg.fadeIn, 0.001), 0, 1);
     const fade = 1 - clamp((progress - quoteFreezeCfg.fadeOutStart) / Math.max(quoteFreezeCfg.fadeOutDuration, 0.001), 0, 1);
@@ -865,7 +954,7 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
-  if (!onlyImpactLines && stageEffectEnabled(effects.flashback)) {
+  if (!onlyImpactLines && !onlyVoiceLines && stageEffectEnabled(effects.flashback)) {
     const grainOffsetX = Math.round((elapsed * 31) % 64);
     const grainOffsetY = Math.round((elapsed * 47) % 64);
     layers.push(
@@ -884,7 +973,7 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
-  if (!onlyImpactLines && !hideIrisOut && stageEffectEnabled(effects.irisOut)) {
+  if (!onlyImpactLines && !onlyVoiceLines && !hideIrisOut && stageEffectEnabled(effects.irisOut)) {
     const irisOutCfg = stageIrisOutConfig(effects.irisOut);
     const dur = stageTurnDisplayDuration(turn);
     const diag = Math.sqrt(width * width + height * height) / 2;
@@ -922,7 +1011,7 @@ const V2EffectsLayer: React.FC<{
     );
   }
 
-  if (!onlyImpactLines && stageEffectEnabled(effects.visionNoise)) {
+  if (!onlyImpactLines && !onlyVoiceLines && stageEffectEnabled(effects.visionNoise)) {
     const visionNoiseCfg = stageVisionNoiseConfig(effects.visionNoise);
     const strength = clamp(visionNoiseCfg.strength, 0, 1);
     const scanline = clamp(visionNoiseCfg.scanline, 0, 1);
@@ -1706,7 +1795,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             {texts.map((text, index) => <div key={`${turn.id}-bubble-${index}`} style={{visibility: index < visibleCount ? "visible" : "hidden", width: metrics[index].width, boxSizing: "border-box", padding: "14px 28px", borderRadius: displaySettings.bubble.radius, background: displaySettings.bubble.bgColor, color: displaySettings.bubble.textColor, border: `${displaySettings.bubble.borderWidth}px solid ${speakerBubbleColor}`, fontSize: bubbleFontSizeValue, fontWeight: 700, lineHeight: 1.3, fontFamily: displaySettings.bubble.fontFamily, textAlign: side, whiteSpace: "pre", boxShadow: "0 6px 18px rgba(0,0,0,.35)", transform: stacked ? `translateX(${index * bubbleStepX}px)` : undefined}}>{metrics[index].text}</div>)}
           </div>;
           })() : null}
-          <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines hideIrisOut />
+          <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} hideImpactLines hideVoiceLines hideIrisOut />
           {captionVisual && captionVisual.opacity > 0 ? (() => {
           const caption = captionVisual.caption;
           const telopX = typeof caption.x === "number" ? clamp(caption.x, 0, 1) : displaySettings.telop.x;
@@ -1744,6 +1833,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             />
           ) : null}
         </AbsoluteFill>
+        <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyVoiceLines />
       </AbsoluteFill>
       {!framedStage && sceneTransition?.cover && sceneTransition.cover.opacity > 0 ? (
         <AbsoluteFill

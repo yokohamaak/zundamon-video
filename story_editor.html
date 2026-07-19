@@ -1684,6 +1684,7 @@
         <option value="zoomPunch">ズームパンチ</option>
         <option value="quoteFreeze">引用止め</option>
         <option value="irisOut">アイリスアウト</option>
+        <option value="voiceLines">発声線</option>
       </select>
       <button class="btn btn-secondary btn-sm" id="btnV2BulkEffectOn">ON適用</button>
       <button class="btn btn-secondary btn-sm" id="btnV2BulkEffectOff">解除</button>
@@ -1977,6 +1978,7 @@
                 <label class="toggle-row"><input type="checkbox" id="fV2Flashback"> <span>回想</span></label>
                 <label class="toggle-row"><input type="checkbox" id="fV2VisionNoise"> <span>ノイズ</span></label>
                 <label class="toggle-row"><input type="checkbox" id="fV2IrisOut"> <span>アイリスアウト</span></label>
+                <label class="toggle-row"><input type="checkbox" id="fV2VoiceLines"> <span>発声線</span></label>
               </div>
               <div id="v2EffectParams" style="display:none; width:100%; margin-top:10px;"></div>
               <div class="field-help">V2用の軽量演出です。旧方式のturn直下キーではなく、effectsとして保存します。</div>
@@ -3117,6 +3119,15 @@ const EFFECT_SETTING_SPECS = [
   { group: "impactLines", label: "集中線 中央の空き", key: "innerRadius", min: 0, max: 0.5, step: 0.01, defaultValue: 0.17, digits: 2 },
   { group: "impactLines", label: "集中線 開始秒", key: "start", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
   { group: "impactLines", label: "集中線 終了秒（0=自動）", key: "end", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
+  { group: "voiceLines", label: "発声線 X", key: "x", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
+  { group: "voiceLines", label: "発声線 Y", key: "y", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
+  { group: "voiceLines", label: "発声線 長さ", key: "length", min: 24, max: 240, step: 1, defaultValue: 88, digits: 0, unit: "px" },
+  { group: "voiceLines", label: "発声線 間隔", key: "gap", min: 8, max: 90, step: 1, defaultValue: 26, digits: 0, unit: "px" },
+  { group: "voiceLines", label: "発声線 太さ", key: "thickness", min: 1, max: 16, step: 0.5, defaultValue: 4, digits: 1, unit: "px" },
+  { group: "voiceLines", label: "発声線 濃さ", key: "opacity", min: 0, max: 1, step: 0.01, defaultValue: 0.86, digits: 2 },
+  { group: "voiceLines", label: "発声線 速度", key: "speed", min: 0.5, max: 8, step: 0.1, defaultValue: 3.2, digits: 1 },
+  { group: "voiceLines", label: "発声線 開始秒", key: "start", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
+  { group: "voiceLines", label: "発声線 終了秒（0=自動）", key: "end", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
   { group: "visionNoise", label: "ノイズ量", key: "strength", min: 0, max: 1, step: 0.01, defaultValue: 0.68, digits: 2 },
   { group: "visionNoise", label: "走査線", key: "scanline", min: 0, max: 1, step: 0.01, defaultValue: 0.78, digits: 2 },
   { group: "visionNoise", label: "グリッチ", key: "glitch", min: 0, max: 1, step: 0.01, defaultValue: 0.36, digits: 2 },
@@ -3137,6 +3148,8 @@ const CAMERA_EFFECT_SETTING_SPECS = [
 ];
 // 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
 const IRIS_OUT_DEFAULT_COLOR = "#000000";
+const VOICE_LINES_DEFAULT_COLOR = "#ffffff";
+const VOICE_LINES_SIDES = [["both", "左右"], ["left", "左だけ"], ["right", "右だけ"]];
 const VISION_NOISE_DEFAULT_TINT = "#7dd3fc";
 const VISION_NOISE_TYPES = [
   ["future", "未来視"],
@@ -8055,9 +8068,10 @@ function renderList() {
         badges.appendChild(makeBadge("カメラ:" + label, "fx"));
       }
     }
-    if (turn.impactLines || turn.impactText) badges.appendChild(makeBadge("集中線", "fx"));
-    if (turn.zoomPunch) badges.appendChild(makeBadge("ズームパンチ", "fx"));
-    if (turn.quoteFreeze) badges.appendChild(makeBadge("引用止め", "fx"));
+    if (turn.effects?.impactLines || turn.impactLines || turn.impactText) badges.appendChild(makeBadge("集中線", "fx"));
+    if (turn.effects?.zoomPunch || turn.zoomPunch) badges.appendChild(makeBadge("ズームパンチ", "fx"));
+    if (turn.effects?.quoteFreeze || turn.quoteFreeze) badges.appendChild(makeBadge("引用止め", "fx"));
+    if (turn.effects?.voiceLines) badges.appendChild(makeBadge("発声線", "fx"));
     if (turn.stampRain) badges.appendChild(makeBadge("スタンプ雨", "fx"));
     if (turn.typingFlood) badges.appendChild(makeBadge("通知洪水", "fx"));
     if (turn.sparkleBurst) badges.appendChild(makeBadge("キラッ", "fx"));
@@ -8687,6 +8701,7 @@ function collectBasicSummaryChips(turn) {
   if (turn.effects?.impactLines || turn.impactLines || turn.impactText) effectLabels.push("集中線");
   if (turn.effects?.zoomPunch || turn.zoomPunch) effectLabels.push("ズームパンチ");
   if (turn.effects?.quoteFreeze || turn.quoteFreeze) effectLabels.push("引用止め");
+  if (turn.effects?.voiceLines) effectLabels.push("発声線");
   if (turn.typingFlood) effectLabels.push("通知洪水");
   if (turn.sparkleBurst) effectLabels.push("キラッ");
   if (turn.irisOut) effectLabels.push("アイリスアウト");
@@ -10339,6 +10354,7 @@ const V2_EFFECT_GROUPS = {
   flashback: { checkboxId: "fV2Flashback", title: "回想" },
   visionNoise: { checkboxId: "fV2VisionNoise", title: "ノイズ" },
   irisOut: { checkboxId: "fV2IrisOut", title: "アイリスアウト" },
+  voiceLines: { checkboxId: "fV2VoiceLines", title: "発声線" },
 };
 const V2_EFFECT_SPEC_KEYS = {
   impactLines: new Set(["cx", "cy", "count", "thickness", "opacity", "innerRadius", "start", "end"]),
@@ -10347,6 +10363,7 @@ const V2_EFFECT_SPEC_KEYS = {
   flashback: new Set([]),
   visionNoise: new Set(["strength", "scanline", "glitch", "flicker"]),
   irisOut: new Set(["cx", "cy", "startRadius", "closeStart", "closeEnd"]),
+  voiceLines: new Set(["x", "y", "length", "gap", "thickness", "opacity", "speed", "start", "end"]),
 };
 
 function v2EffectSpecs(group) {
@@ -10380,10 +10397,12 @@ function armV2EffectPositionPick(turn, group, label) {
     const rect = wrap.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    const cxInput = document.getElementById(v2EffectInputId(group, "cx"));
-    const cyInput = document.getElementById(v2EffectInputId(group, "cy"));
-    if (cxInput) cxInput.value = x.toFixed(2);
-    if (cyInput) cyInput.value = y.toFixed(2);
+    const xKey = document.getElementById(v2EffectInputId(group, "x")) ? "x" : "cx";
+    const yKey = document.getElementById(v2EffectInputId(group, "y")) ? "y" : "cy";
+    const xInput = document.getElementById(v2EffectInputId(group, xKey));
+    const yInput = document.getElementById(v2EffectInputId(group, yKey));
+    if (xInput) xInput.value = x.toFixed(2);
+    if (yInput) yInput.value = y.toFixed(2);
     const checkboxId = V2_EFFECT_GROUPS[group]?.checkboxId;
     if (checkboxId) document.getElementById(checkboxId).checked = true;
     collectV2Basic();
@@ -10417,6 +10436,12 @@ function collectV2EffectsFromUi() {
     }
     if (group === "irisOut") {
       const color = document.getElementById("fV2Effect_irisOut_color");
+      if (color?.value) config.color = color.value;
+    }
+    if (group === "voiceLines") {
+      const side = document.getElementById("fV2Effect_voiceLines_side");
+      if (side?.value) config.side = side.value;
+      const color = document.getElementById("fV2Effect_voiceLines_color");
       if (color?.value) config.color = color.value;
     }
     effects[group] = config;
@@ -10484,6 +10509,35 @@ function appendV2IrisOutColorControl(card, params) {
   card.appendChild(row);
 }
 
+function appendV2VoiceLinesControls(card, params) {
+  const row = document.createElement("div");
+  row.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;";
+  const sideLabel = document.createElement("label");
+  sideLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const sideText = document.createElement("span");
+  sideText.textContent = "出す側";
+  const side = document.createElement("select");
+  side.className = "field-select";
+  side.id = "fV2Effect_voiceLines_side";
+  for (const [value, label] of VOICE_LINES_SIDES) v2Option(side, value, label);
+  side.value = params.side || "both";
+  side.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  sideLabel.append(sideText, side);
+  const colorLabel = document.createElement("label");
+  colorLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const colorText = document.createElement("span");
+  colorText.textContent = "色";
+  const color = document.createElement("input");
+  color.type = "color";
+  color.className = "color-picker";
+  color.id = "fV2Effect_voiceLines_color";
+  color.value = normalizeHexColor(params.color || VOICE_LINES_DEFAULT_COLOR, VOICE_LINES_DEFAULT_COLOR);
+  color.addEventListener("input", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  colorLabel.append(colorText, color);
+  row.append(sideLabel, colorLabel);
+  card.appendChild(row);
+}
+
 function renderV2EffectParams(turn) {
   const container = document.getElementById("v2EffectParams");
   if (!container) return;
@@ -10506,6 +10560,10 @@ function renderV2EffectParams(turn) {
     const grid = document.createElement("div");
     grid.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;";
     if (group === "impactLines") appendV2EffectPositionButton(card, turn, group, meta.title);
+    if (group === "voiceLines") {
+      appendV2EffectPositionButton(card, turn, group, meta.title);
+      appendV2VoiceLinesControls(card, params);
+    }
     if (group === "visionNoise") appendV2VisionNoiseControls(card, params);
     if (group === "irisOut") {
       appendV2EffectPositionButton(card, turn, group, meta.title);
@@ -10581,6 +10639,7 @@ function renderV2Detail(turn) {
   document.getElementById("fV2Flashback").checked = v2EffectIsEnabled(effects.flashback);
   document.getElementById("fV2VisionNoise").checked = v2EffectIsEnabled(effects.visionNoise);
   document.getElementById("fV2IrisOut").checked = v2EffectIsEnabled(effects.irisOut);
+  document.getElementById("fV2VoiceLines").checked = v2EffectIsEnabled(effects.voiceLines);
   renderV2EffectParams(turn);
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
@@ -14509,7 +14568,7 @@ function setupEvents() {
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FramedStageBackground", "fV2FramedStageX", "fV2FramedStageY", "fV2FramedStageWidth", "fV2FramedStageTransition",
     "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
-    "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut",
+    "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut", "fV2VoiceLines",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration", "fV2MotionInherit",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",
