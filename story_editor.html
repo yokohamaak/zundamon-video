@@ -2109,7 +2109,7 @@
             <div id="v2ZunChatControls" style="display:none; gap:10px; flex-direction:column;">
               <div class="section-divider">ZunChat</div>
               <div class="field-row"><label class="field-label">チャンネル</label><input class="field-input" id="fV2TeamChannel" type="text" placeholder="障害対応"></div>
-              <div class="field-row"><label class="field-label">メッセージ</label><textarea class="field-textarea" id="fV2TeamMessages" placeholder="from: text を1行ずつ"></textarea><div class="field-help">例: zundamon: まずいのだ</div></div>
+              <div class="field-row"><label class="field-label">メッセージ</label><textarea class="field-textarea" id="fV2TeamMessages" placeholder="from: text を1行ずつ"></textarea><div class="field-help">例: ずんだもん: まずいのだ</div></div>
               <div class="field-row"><label class="field-label">強調行</label><input class="field-input" id="fV2TeamHighlight" type="number" min="1" step="1" placeholder="1始まり・任意"></div>
             </div>
             <div id="v2ZunMailControls" style="display:none; gap:10px; flex-direction:column;">
@@ -3176,7 +3176,42 @@ function speakerColor(sp) {
 }
 
 function speakerDisplayName(sp) {
-  return SPEAKER_DISPLAY_NAMES[sp] || sp || "";
+  return meta?.speakerLabels?.[sp] || SPEAKER_DISPLAY_NAMES[sp] || sp || "";
+}
+
+function speakerInputId(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (meta?.speakers?.includes(raw)) return raw;
+  for (const sp of meta?.speakers || []) {
+    if (speakerDisplayName(sp) === raw) return sp;
+  }
+  return raw;
+}
+
+function v2InstanceDisplayName(instanceId, definition = null) {
+  const def = definition || storyData?.instances?.[instanceId] || null;
+  const explicit = typeof def?.label === "string" ? def.label.trim() : "";
+  if (explicit) return explicit;
+  const characterLabel = speakerDisplayName(def?.characterId || "");
+  if (characterLabel && characterLabel !== def?.characterId) return characterLabel;
+  const voiceLabel = speakerDisplayName(def?.voiceId || "");
+  if (voiceLabel && voiceLabel !== def?.voiceId) return voiceLabel;
+  return speakerDisplayName(instanceId);
+}
+
+function v2ResolveInstanceInputId(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (storyData?.instances?.[raw]) return raw;
+  for (const [instanceId, definition] of Object.entries(storyData?.instances || {})) {
+    if (v2InstanceDisplayName(instanceId, definition) === raw) return instanceId;
+  }
+  return raw;
+}
+
+function voiceOrCharacterDisplayName(id) {
+  return speakerDisplayName(id);
 }
 
 function ensureEffectSettings() {
@@ -7519,7 +7554,7 @@ function buildSpeakerSelect() {
   sel.innerHTML = "";
   for (const sp of sortedStrings(meta.speakers)) {
     const o = document.createElement("option");
-    o.value = sp; o.textContent = sp;
+    o.value = sp; o.textContent = speakerDisplayName(sp);
     sel.appendChild(o);
   }
 }
@@ -8525,7 +8560,8 @@ function fallbackIcon(speaker) {
   const div = document.createElement("div");
   div.className = "turn-icon-fallback";
   div.style.background = speakerColor(speaker);
-  div.textContent = speaker === "ナ" ? "ナ" : speaker.charAt(0).toUpperCase();
+  const label = speaker === "ナ" ? "ナ" : speakerDisplayName(speaker);
+  div.textContent = label.charAt(0).toUpperCase();
   return div;
 }
 
@@ -9071,19 +9107,19 @@ function v2TurnOrderError(script) {
     }
     const stage = turn.stage || {};
     for (const item of stage.enter || []) {
-      if (present.has(item.instanceId)) return `${index + 1}ターン目で、すでに在席中の ${item.instanceId} を再び登場させています。`;
+      if (present.has(item.instanceId)) return `${index + 1}ターン目で、すでに在席中の ${v2InstanceDisplayName(item.instanceId)} を再び登場させています。`;
       present.add(item.instanceId);
     }
     for (const item of stage.exit || []) {
       const instanceId = v2ExitItemId(item);
-      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${instanceId} を退場させています。`;
+      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${v2InstanceDisplayName(instanceId)} を退場させています。`;
       present.delete(instanceId);
     }
     for (const instanceId of [...Object.keys(stage.update || {}), ...(stage.reset || [])]) {
-      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${instanceId} の状態を変更しています。`;
+      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${v2InstanceDisplayName(instanceId)} の状態を変更しています。`;
     }
     if (stage.framing?.mode === "speaker" && !present.has(turn.speaker)) {
-      return `${index + 1}ターン目の「話者を主役にする」構図では、話者 ${turn.speaker} が在席している必要があります。`;
+      return `${index + 1}ターン目の「話者を主役にする」構図では、話者 ${v2InstanceDisplayName(turn.speaker)} が在席している必要があります。`;
     }
   }
   return "";
@@ -9358,7 +9394,7 @@ function v2RenderBulkPanel() {
   const previous = speakerSelect.value;
   speakerSelect.innerHTML = "";
   for (const [id, definition] of Object.entries(storyData?.instances || {})) {
-    v2Option(speakerSelect, id, definition.label || id);
+    v2Option(speakerSelect, id, v2InstanceDisplayName(id, definition));
   }
   if (previous && storyData?.instances?.[previous]) speakerSelect.value = previous;
 }
@@ -9536,7 +9572,7 @@ function renderV2InstanceRegistry() {
   registry.innerHTML = "";
   const header = document.createElement("div");
   header.style.cssText = "display:grid; grid-template-columns:minmax(120px,0.9fr) minmax(180px,1.2fr) minmax(180px,1.1fr) minmax(180px,1.1fr) auto; gap:8px; padding:0 8px; color:var(--text2); font-size:12px; font-weight:700;";
-  for (const text of ["個体ID / 種類", "表示名", "見た目・素材", "声", "操作"]) {
+  for (const text of ["名前 / 種類", "表示名", "見た目・素材", "声", "操作"]) {
     const cell = document.createElement("div");
     cell.textContent = text;
     header.appendChild(cell);
@@ -9544,17 +9580,17 @@ function renderV2InstanceRegistry() {
   registry.appendChild(header);
   for (const [instanceId, definition] of Object.entries(storyData.instances || {})) {
     const card = document.createElement("div"); card.style.cssText = "display:grid; grid-template-columns:minmax(120px,0.9fr) minmax(180px,1.2fr) minmax(180px,1.1fr) minmax(180px,1.1fr) auto; gap:8px; align-items:center; padding:8px; border:1px solid var(--border); border-radius:8px;";
-    const title = document.createElement("span"); title.style.cssText = "font-size:12px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"; title.textContent = `${instanceId}（${definition.role === "voiceOnly" ? "声のみ" : "画面"}）`;
+    const title = document.createElement("span"); title.style.cssText = "font-size:12px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"; title.textContent = `${v2InstanceDisplayName(instanceId, definition)}（${definition.role === "voiceOnly" ? "声のみ" : "画面"}）`;
     const label = document.createElement("input"); label.type = "text"; label.className = "field-input"; label.placeholder = "表示名"; label.value = definition.label || "";
     const voice = document.createElement("select"); voice.className = "field-select";
-    for (const voiceId of voiceIds) v2Option(voice, voiceId, voiceId);
-    if (!voice.querySelector(`option[value="${CSS.escape(definition.voiceId || "")}"]`)) v2Option(voice, definition.voiceId || "", definition.voiceId || "（voiceId未設定）");
+    for (const voiceId of voiceIds) v2Option(voice, voiceId, voiceOrCharacterDisplayName(voiceId));
+    if (!voice.querySelector(`option[value="${CSS.escape(definition.voiceId || "")}"]`)) v2Option(voice, definition.voiceId || "", voiceOrCharacterDisplayName(definition.voiceId || "") || "（声未設定）");
     voice.value = definition.voiceId || "";
     const character = definition.role === "voiceOnly" ? null : document.createElement("select");
     if (character) {
       character.className = "field-select";
-      for (const characterId of characterIds) v2Option(character, characterId, characterId);
-      if (!character.querySelector(`option[value="${CSS.escape(definition.characterId || "")}"]`)) v2Option(character, definition.characterId || "", definition.characterId || "（素材未設定）");
+      for (const characterId of characterIds) v2Option(character, characterId, voiceOrCharacterDisplayName(characterId));
+      if (!character.querySelector(`option[value="${CSS.escape(definition.characterId || "")}"]`)) v2Option(character, definition.characterId || "", voiceOrCharacterDisplayName(definition.characterId || "") || "（素材未設定）");
       character.value = definition.characterId || "";
     }
     const characterCell = character || document.createElement("span");
@@ -9587,9 +9623,9 @@ function renderV2InstanceRegistry() {
     registry.appendChild(empty);
   }
   characterSelect.innerHTML = "";
-  for (const characterId of characterIds) v2Option(characterSelect, characterId, characterId);
+  for (const characterId of characterIds) v2Option(characterSelect, characterId, voiceOrCharacterDisplayName(characterId));
   voiceSelect.innerHTML = "";
-  for (const voiceId of voiceIds) v2Option(voiceSelect, voiceId, voiceId);
+  for (const voiceId of voiceIds) v2Option(voiceSelect, voiceId, voiceOrCharacterDisplayName(voiceId));
   v2UpdateNewInstanceFields();
   if (!mobsLoaded && !_v2InstanceAssetsLoading) {
     _v2InstanceAssetsLoading = true;
@@ -9827,7 +9863,7 @@ function renderV2ManualPlacementMarker(layer, wrap) {
   marker.style.top = screen.y + "px";
   const label = document.createElement("div");
   label.className = "placement-marker-label";
-  label.textContent = `${instance.definition.label || instanceId}（身体中央）`;
+  label.textContent = `${v2InstanceDisplayName(instanceId, instance.definition)}（身体中央）`;
   marker.appendChild(label);
   marker.addEventListener("pointerdown", (e) => v2BeginManualPlacementDrag(e, instanceId));
   layer.appendChild(marker);
@@ -9935,7 +9971,7 @@ function renderV2ManualCameraMap(turn) {
     if (!origin) continue;
     const actor = document.createElement("div");
     actor.className = "v2-camera-map-actor";
-    actor.textContent = instance.definition.label || instanceId;
+    actor.textContent = v2InstanceDisplayName(instanceId, instance.definition);
     actor.style.left = `${clampJS(origin.x, 0, 1) * 100}%`;
     actor.style.top = `${clampJS(origin.y, 0, 1) * 100}%`;
     map.appendChild(actor);
@@ -10371,7 +10407,7 @@ function v2RenderInsertDisplayFields(turn) {
   document.getElementById("fV2ChatHighlight").value = typeof chat.highlight === "number" ? String(chat.highlight + 1) : "";
   const teamchat = v2TeamChatForTurn(turn);
   document.getElementById("fV2TeamChannel").value = teamchat.channel || "";
-  document.getElementById("fV2TeamMessages").value = (teamchat.messages || []).map((message) => `${message.from || ""}: ${message.text || ""}`).join("\n");
+  document.getElementById("fV2TeamMessages").value = (teamchat.messages || []).map((message) => `${v2InstanceDisplayName(message.from || "")}: ${message.text || ""}`).join("\n");
   const teamHighlight = (teamchat.messages || []).findIndex((message) => message.highlight);
   document.getElementById("fV2TeamHighlight").value = teamHighlight >= 0 ? String(teamHighlight + 1) : "";
   const mailer = v2MailerForTurn(turn);
@@ -10391,7 +10427,7 @@ function v2CollectTeamMessages() {
       const text = line.trim();
       if (!text) return null;
       const colon = text.indexOf(":");
-      const from = colon >= 0 ? text.slice(0, colon).trim() : "";
+      const from = colon >= 0 ? v2ResolveInstanceInputId(text.slice(0, colon).trim()) : "";
       const body = colon >= 0 ? text.slice(colon + 1).trim() : text;
       const message = { from: from || "system", text: body };
       if (Number.isFinite(highlightLine) && highlightLine === index + 1) message.highlight = true;
@@ -10489,7 +10525,7 @@ function renderV2MeetParticipants(turn) {
     const select = document.createElement("select"); select.className = "field-select";
     const usedByOthers = new Set((meeting.participants || []).filter((item) => item !== participant).map((item) => item.instanceId));
     for (const [id, definition] of Object.entries(storyData.instances || {})) {
-      v2Option(select, id, definition.label || id);
+      v2Option(select, id, v2InstanceDisplayName(id, definition));
       select.lastElementChild.disabled = usedByOthers.has(id);
     }
     select.value = participant.instanceId;
@@ -10508,7 +10544,7 @@ function renderV2MeetParticipants(turn) {
     select.addEventListener("change", update); name.addEventListener("change", update); cb.addEventListener("change", update); muteCb.addEventListener("change", update);
     remove.addEventListener("click", () => { meeting.participants.splice(meeting.participants.indexOf(participant), 1); turn.displayMode = { kind: "zunMeet", zunMeet: meeting }; v2Commit(turn); renderV2Detail(turn); });
     row.append(select, name, camera, muted, remove); list.appendChild(row);
-    v2Option(active, participant.instanceId, storyData.instances?.[participant.instanceId]?.label || participant.instanceId);
+    v2Option(active, participant.instanceId, v2InstanceDisplayName(participant.instanceId, storyData.instances?.[participant.instanceId]));
   }
   active.value = meeting.activeSpeakerId || "";
 }
@@ -10752,7 +10788,7 @@ function renderV2Detail(turn) {
   const speaker = document.getElementById("fV2Speaker");
   speaker.innerHTML = "";
   for (const [id, definition] of Object.entries(storyData.instances || {})) {
-    v2Option(speaker, id, definition.label || id);
+    v2Option(speaker, id, v2InstanceDisplayName(id, definition));
   }
   speaker.value = turn.speaker || "";
   document.getElementById("fV2Text").value = turn.text || "";
@@ -10842,7 +10878,7 @@ function renderV2Detail(turn) {
   presenter.innerHTML = "";
   v2Option(presenter, "", "立ち絵なし");
   for (const [instanceId, state] of Object.entries(now)) {
-    if (state.definition.role !== "voiceOnly") v2Option(presenter, instanceId, state.definition.label || instanceId);
+    if (state.definition.role !== "voiceOnly") v2Option(presenter, instanceId, v2InstanceDisplayName(instanceId, state.definition));
   }
   presenter.value = turn.displayMode?.kind === "whiteboard" ? (turn.displayMode.presenterId || "") : "";
   document.getElementById("fV2WhiteboardTitle").value = whiteboard.title || "";
@@ -10899,7 +10935,7 @@ function renderV2Detail(turn) {
     row.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px;";
     const text = document.createElement("span");
     const isOnStage = definition.role !== "voiceOnly";
-    text.textContent = `${definition.label || instanceId}${isOnStage ? (now[instanceId] ? "（在席）" : "（不在）") : "（声のみ）"}`;
+    text.textContent = `${v2InstanceDisplayName(instanceId, definition)}${isOnStage ? (now[instanceId] ? "（在席）" : "（不在）") : "（声のみ）"}`;
     const controls = document.createElement("div");
     controls.style.cssText = "display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;";
     const button = document.createElement("button");
@@ -10931,7 +10967,7 @@ function renderV2Detail(turn) {
   for (const [instanceId, state] of Object.entries(now)) {
     const card = document.createElement("div");
     card.style.cssText = "padding:10px; border:1px solid var(--border); border-radius:8px; display:grid; gap:8px;";
-    const title = document.createElement("strong"); title.textContent = state.definition.label || instanceId;
+    const title = document.createElement("strong"); title.textContent = v2InstanceDisplayName(instanceId, state.definition);
     const placement = state.placement || v2DefaultPlacement(turn.scene);
     const slotSelect = document.createElement("select"); slotSelect.className = "field-select";
     v2Option(slotSelect, "", "手動配置");
@@ -11406,7 +11442,7 @@ function renderDetail() {
   if (narrationHelp) {
     narrationHelp.className = "field-help" + (isNarrationTurnData(turn) ? " warn" : "");
     narrationHelp.textContent = isNarrationTurnData(turn)
-      ? `この行はナレーション扱いです。音声は話者 ${turn.speaker} を使い、吹き出し・立ち絵・話者寄り演出は出ません。`
+      ? `この行はナレーション扱いです。音声は話者 ${speakerDisplayName(turn.speaker)} を使い、吹き出し・立ち絵・話者寄り演出は出ません。`
       : "オンの時は吹き出し・立ち絵・話者寄り演出なしで、この音声だけを使います。";
   }
   if (cameraEffectHelp) {
@@ -11917,7 +11953,7 @@ function renderInsertFields(insert) {
     layoutRow.appendChild(layoutLbl);
     layoutRow.appendChild(layoutSel);
     container.appendChild(layoutRow);
-    container.appendChild(makeField("activeSpeaker（任意。このターンのみ有効・未入力なら現在の話者）", "text", "fIVActiveSpeaker", insert.activeSpeaker || ""));
+    container.appendChild(makeField("activeSpeaker（任意。このターンのみ有効・未入力なら現在の話者）", "text", "fIVActiveSpeaker", speakerDisplayName(insert.activeSpeaker || "")));
     const section = document.createElement("div");
     section.className = "section-divider";
     section.textContent = "参加者（participants 配列）";
@@ -11932,7 +11968,7 @@ function renderInsertFields(insert) {
       const note = document.createElement("div");
       note.className = "field-hint";
       note.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
-      note.textContent = "継承中: " + inhParts.map((p) => p.name || p.speaker).join(", ") + "（前のターンの参加者を使用）";
+      note.textContent = "継承中: " + inhParts.map((p) => p.name || speakerDisplayName(p.speaker)).join(", ") + "（前のターンの参加者を使用）";
       container.appendChild(note);
       container.appendChild(makeAddBtn("このターンで参加者を上書き編集", () => {
         refreshVideoCallParticipants(JSON.parse(JSON.stringify(inhParts)));
@@ -12158,7 +12194,7 @@ function renderInsertFields(insert) {
     const hint = document.createElement("div");
     hint.className = "field-hint";
     hint.style.cssText = "font-size:12px; opacity:0.75; padding:4px 2px 8px;";
-    hint.textContent = "立ち絵は既存のめたん立ち絵（表情・ポーズ）で描画されます。ホワイトボード画像は video/assets/background/ に置いて video/public/background/xxx.png として参照してください（起動時に自動同期）。このターンのセリフ(speaker/text)は通常通り音声生成され、話者がcharacter名と一致する間リップシンクします（吹き出しだけ非表示）。";
+    hint.textContent = "立ち絵は既存のめたん立ち絵（表情・ポーズ）で描画されます。ホワイトボード画像は video/assets/background/ に置いて video/public/background/xxx.png として参照してください（起動時に自動同期）。このターンのセリフは通常通り音声生成され、話者がホワイトボードの人物名と一致する間リップシンクします（吹き出しだけ非表示）。";
     container.appendChild(hint);
   }
 }
@@ -12560,13 +12596,13 @@ function makeTeamchatItem(idx, msg) {
   fromSel.className = "field-select"; fromSel.dataset.field = "from"; fromSel.dataset.idx = idx;
   for (const sp of sortedStrings(meta.speakers)) {
     const o = document.createElement("option");
-    o.value = sp; o.textContent = sp;
+    o.value = sp; o.textContent = speakerDisplayName(sp);
     fromSel.appendChild(o);
   }
   // speakers にない値も保持
   if (msg.from && !meta.speakers.includes(msg.from)) {
     const o = document.createElement("option");
-    o.value = msg.from; o.textContent = msg.from;
+    o.value = msg.from; o.textContent = speakerDisplayName(msg.from);
     fromSel.insertBefore(o, fromSel.firstChild);
   }
   fromSel.value = msg.from || "";
@@ -12757,13 +12793,13 @@ function makeVideoCallParticipantItem(idx, part) {
   for (const sp of sortedStrings(meta.speakers)) {
     const o = document.createElement("option");
     o.value = sp;
-    o.textContent = sp;
+    o.textContent = speakerDisplayName(sp);
     speakerSel.appendChild(o);
   }
   if (part.speaker && !meta.speakers.includes(part.speaker)) {
     const o = document.createElement("option");
     o.value = part.speaker;
-    o.textContent = part.speaker;
+    o.textContent = speakerDisplayName(part.speaker);
     speakerSel.insertBefore(o, speakerSel.firstChild);
   }
   speakerSel.value = part.speaker || "";
@@ -13233,7 +13269,7 @@ function collectInsert() {
       const layout = document.getElementById("fIVLayout");
       if (layout && layout.value) ins.layout = layout.value;
       const activeSpeaker = document.getElementById("fIVActiveSpeaker");
-      if (activeSpeaker && activeSpeaker.value) ins.activeSpeaker = activeSpeaker.value;
+      if (activeSpeaker && activeSpeaker.value) ins.activeSpeaker = speakerInputId(activeSpeaker.value);
       const parts = getVideoCallParticipants();
       if (parts.length) ins.participants = parts;
     }
@@ -14061,6 +14097,21 @@ function readableTransitionLabel(transition) {
   return labels[transition] || transition;
 }
 
+function readableSpeakerLabel(story, turn) {
+  const speaker = turn?.speaker || "";
+  if (!speaker) return "話者未設定";
+  const definition = story?.instances?.[speaker] || null;
+  if (definition) {
+    const explicit = typeof definition.label === "string" ? definition.label.trim() : "";
+    if (explicit) return explicit;
+    const characterLabel = speakerDisplayName(definition.characterId || "");
+    if (characterLabel && characterLabel !== definition.characterId) return characterLabel;
+    const voiceLabel = speakerDisplayName(definition.voiceId || "");
+    if (voiceLabel && voiceLabel !== definition.voiceId) return voiceLabel;
+  }
+  return speakerDisplayName(speaker);
+}
+
 function buildReadableScript(story, mode) {
   const script = Array.isArray(story?.script) ? story.script : [];
   if (!script.length) return "script 配列が見つかりません。";
@@ -14082,7 +14133,7 @@ function buildReadableScript(story, mode) {
       }
       const insertLabel = readableInsertLabel(turn.insert);
       if (insertLabel) lines.push(`［画面：${insertLabel}］`);
-      lines.push(`${i + 1}. ${turn.speaker || "話者未設定"}`);
+      lines.push(`${i + 1}. ${readableSpeakerLabel(story, turn)}`);
       lines.push(turn.text || "（セリフなし）");
       lines.push("");
       prevScene = scene;
@@ -14090,7 +14141,7 @@ function buildReadableScript(story, mode) {
     return lines.join("\n").trim();
   }
   for (const turn of script) {
-    const speaker = turn?.speaker || "話者未設定";
+    const speaker = readableSpeakerLabel(story, turn);
     const text = turn?.text || "";
     if (!text.trim()) continue;
     lines.push(`${speaker}：${text}`);

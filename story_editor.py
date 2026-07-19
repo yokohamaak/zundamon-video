@@ -181,6 +181,11 @@ BASE_SPEAKERS = [
     "troublemaker_female_normal", "troublemaker_female_creepy",
 ]
 NARRATION_SPEAKERS = ["棒読み男", "棒読み女"]
+BASE_SPEAKER_LABELS = {
+    "zundamon": "ずんだもん",
+    "metan": "四国めたん",
+    "AI": "ZunAI",
+}
 
 # 話者アイコン（/preview-assets/<path> でアクセスできる video/public 配下の相対パス）
 BASE_SPEAKER_ICONS = {
@@ -1637,6 +1642,7 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 meta = {
                     "speakers": speakers,
                     "narrationSpeakers": NARRATION_SPEAKERS,
+                    "speakerLabels": BASE_SPEAKER_LABELS,
                     "speakerIcons": speaker_icons,
                     "scenes": _load_scenes_keys(),
                     # expressions.json のキーから動的生成。読み込み失敗時は定数にフォールバック。
