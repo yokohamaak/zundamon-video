@@ -69,6 +69,7 @@ const DEFAULT_STAGE_EFFECT_SETTINGS = {
   impactLines: {cx: 0.5, cy: 0.48, count: 72, thickness: 1.25, opacity: 0.72, innerRadius: 0.17, start: 0, end: 0},
   visionNoise: {type: "future" as "future" | "snow" | "vhs" | "glitch", strength: 0.68, scanline: 0.78, glitch: 0.36, flicker: 0.42, tint: "#7dd3fc"},
   irisOut: {cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0},
+  gloomShock: {opacity: 0.72, lineCount: 34, lineOpacity: 0.45, lineThickness: 4, angle: -8, color: "#071026", start: 0, end: 0},
   voiceLines: {x: 0.5, y: 0.5, side: "right" as "left" | "right", size: 220, motion: 16, rotation: 0, opacity: 0.95, speed: 2.2, start: 0, end: 0},
   reactionMark: {targetId: "", mark: "!", anchor: "topRight" as "head" | "topRight" | "topLeft" | "faceRight" | "faceLeft" | "screen", x: -1, y: -1, offsetX: 0, offsetY: 0, size: 120, rotation: -8, duration: 0.85, motion: "pop" as "pop" | "bounce" | "shake" | "none", color: "", start: 0, end: 0},
 };
@@ -306,6 +307,23 @@ function stageIrisOutConfig(raw: unknown) {
     closeStart: number("closeStart", base.closeStart),
     closeEnd: number("closeEnd", base.closeEnd),
     color: validHex(data.color, base.color),
+  };
+}
+
+function stageGloomShockConfig(raw: unknown) {
+  const base = DEFAULT_STAGE_EFFECT_SETTINGS.gloomShock;
+  if (!raw || typeof raw !== "object") return base;
+  const data = raw as Record<string, unknown>;
+  const number = (key: string, fallback: number) => Number.isFinite(Number(data[key])) ? Number(data[key]) : fallback;
+  return {
+    opacity: number("opacity", base.opacity),
+    lineCount: number("lineCount", base.lineCount),
+    lineOpacity: number("lineOpacity", base.lineOpacity),
+    lineThickness: number("lineThickness", base.lineThickness),
+    angle: number("angle", base.angle),
+    color: validHex(data.color, base.color),
+    start: number("start", base.start),
+    end: number("end", base.end),
   };
 }
 
@@ -1014,6 +1032,69 @@ const V2ReactionMarkLayer: React.FC<{
       >
         {svgKind ? <ReactionMarkSvg kind={svgKind} color={color} size={size} /> : text}
       </div>
+    </AbsoluteFill>
+  );
+};
+
+const V2GloomShockLayer: React.FC<{
+  turn: StageTurnV2;
+  elapsed: number;
+  progress: number;
+  width: number;
+  height: number;
+}> = ({turn, elapsed, progress, width, height}) => {
+  const raw = turn.effects?.gloomShock;
+  if (!stageEffectEnabled(raw)) return null;
+  const cfg = stageGloomShockConfig(raw);
+  const start = Math.max(0, cfg.start);
+  const end = Math.max(0, cfg.end);
+  const hasManualWindow = end > start;
+  const visible = hasManualWindow ? elapsed >= start && elapsed < end : true;
+  if (!visible) return null;
+  const localProgress = hasManualWindow ? clamp((elapsed - start) / Math.max(end - start, 0.001), 0, 1) : progress;
+  const fadeIn = clamp((elapsed - start) / 0.18, 0, 1);
+  const fadeOut = hasManualWindow
+    ? 1 - clamp((elapsed - (end - 0.25)) / 0.25, 0, 1)
+    : 1 - clamp((localProgress - 0.9) / 0.1, 0, 1);
+  const opacity = clamp(Math.min(fadeIn, fadeOut), 0, 1) * clamp(cfg.opacity, 0, 1);
+  const color = validHex(cfg.color, DEFAULT_STAGE_EFFECT_SETTINGS.gloomShock.color);
+  const lineCount = clamp(Math.round(cfg.lineCount), 8, 80);
+  const lineOpacity = clamp(cfg.lineOpacity, 0, 1);
+  const lineThickness = clamp(cfg.lineThickness, 1, 18);
+  const angle = clamp(cfg.angle, -35, 35);
+  const lines = Array.from({length: lineCount}, (_, i) => {
+    const base = lineCount <= 1 ? 0.5 : i / (lineCount - 1);
+    const jitter = Math.sin(i * 12.9898) * 0.018;
+    const left = clamp(base + jitter, -0.06, 1.06) * width;
+    const lineHeight = height * (0.42 + ((i * 37) % 100) / 210);
+    const lineTop = -height * (0.03 + ((i * 17) % 30) / 500);
+    const alpha = lineOpacity * (0.55 + ((i * 19) % 45) / 100);
+    return (
+      <div
+        key={i}
+        style={{
+          position: "absolute",
+          left,
+          top: lineTop,
+          width: lineThickness * (0.75 + ((i * 11) % 40) / 100),
+          height: lineHeight,
+          borderRadius: 999,
+          background: `linear-gradient(180deg, ${hexToRgba(color, alpha)} 0%, ${hexToRgba(color, alpha * 0.72)} 48%, ${hexToRgba(color, 0)} 100%)`,
+          transform: `rotate(${angle + Math.sin(i * 4.7) * 5}deg)`,
+          transformOrigin: "50% 0%",
+        }}
+      />
+    );
+  });
+  return (
+    <AbsoluteFill style={{pointerEvents: "none", overflow: "hidden", opacity, zIndex: 8}}>
+      <AbsoluteFill
+        style={{
+          background: `linear-gradient(180deg, ${hexToRgba(color, 0.92)} 0%, ${hexToRgba(color, 0.72)} 24%, ${hexToRgba(color, 0.28)} 58%, ${hexToRgba(color, 0)} 100%)`,
+          mixBlendMode: "multiply",
+        }}
+      />
+      <AbsoluteFill style={{mixBlendMode: "multiply"}}>{lines}</AbsoluteFill>
     </AbsoluteFill>
   );
 };
@@ -1986,6 +2067,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
                   ) : scene.bg ? (
                     <Img src={staticFile(scene.bg)} style={bgStyle} />
                   ) : null}
+                  <V2GloomShockLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} />
                   <AbsoluteFill style={{zIndex: 10}}>{people}</AbsoluteFill>
                   {scene.front ? <Img src={staticFile(scene.front)} style={{position: "absolute", inset: 0, zIndex: 20, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none"}} /> : null}
                 </AbsoluteFill>

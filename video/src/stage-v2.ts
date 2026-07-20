@@ -88,6 +88,16 @@ export type IrisOutEffectV2 = {
   closeEnd?: number;
   color?: string;
 };
+export type GloomShockEffectV2 = {
+  opacity?: number;
+  lineCount?: number;
+  lineOpacity?: number;
+  lineThickness?: number;
+  angle?: number;
+  color?: string;
+  start?: number;
+  end?: number;
+};
 export type VoiceLinesEffectV2 = {
   x?: number;
   y?: number;
@@ -129,6 +139,7 @@ export type StageEffectsV2 = {
   flashback?: EffectToggleV2<FlashbackEffectV2>;
   visionNoise?: EffectToggleV2<VisionNoiseEffectV2>;
   irisOut?: EffectToggleV2<IrisOutEffectV2>;
+  gloomShock?: EffectToggleV2<GloomShockEffectV2>;
   voiceLines?: EffectToggleV2<VoiceLinesEffectV2>;
   reactionMark?: EffectToggleV2<ReactionMarkEffectV2>;
 };
