@@ -841,11 +841,26 @@ function ReactionMarkSvg({kind, color, size}: {kind: ReactionMarkSvgKind; color:
     strokeLinejoin: "round" as const,
   };
   if (kind === "anger") {
+    const outlineWidth = Math.max(18, Math.round(size / 6.8));
+    const lineWidth = Math.max(10, Math.round(size / 10));
     return (
       <svg viewBox="0 0 128 128" width={size} height={size} style={{display: "block", overflow: "visible"}}>
-        <path d="M56 12 L49 46 L17 36 L42 62 L16 89 L52 80 L58 116 L74 82 L111 93 L86 64 L112 36 L78 47 L72 12 Z" fill={color} stroke="#fff" strokeWidth={strokeWidth} {...common} />
-        <path d="M58 35 L53 57 L32 52" fill="none" stroke="rgba(20,20,20,0.38)" strokeWidth={Math.max(4, strokeWidth * 0.45)} {...common} />
-        <path d="M77 50 L94 46 L82 62 L96 79" fill="none" stroke="rgba(20,20,20,0.38)" strokeWidth={Math.max(4, strokeWidth * 0.45)} {...common} />
+        <g fill="none" stroke="#fff" strokeWidth={outlineWidth} {...common}>
+          <path d="M47 38 C51 20 77 20 81 38" />
+          <path d="M90 47 C108 51 108 77 90 81" />
+          <path d="M81 90 C77 108 51 108 47 90" />
+          <path d="M38 81 C20 77 20 51 38 47" />
+          <path d="M64 42 L64 86" />
+          <path d="M42 64 L86 64" />
+        </g>
+        <g fill="none" stroke={color} strokeWidth={lineWidth} {...common}>
+          <path d="M47 38 C51 20 77 20 81 38" />
+          <path d="M90 47 C108 51 108 77 90 81" />
+          <path d="M81 90 C77 108 51 108 47 90" />
+          <path d="M38 81 C20 77 20 51 38 47" />
+          <path d="M64 42 L64 86" />
+          <path d="M42 64 L86 64" />
+        </g>
       </svg>
     );
   }
@@ -867,8 +882,19 @@ function ReactionMarkSvg({kind, color, size}: {kind: ReactionMarkSvgKind; color:
   }
   return (
     <svg viewBox="0 0 128 128" width={size} height={size} style={{display: "block", overflow: "visible"}}>
-      <path d="M64 9 L76 44 L113 28 L96 64 L119 95 L81 86 L64 119 L47 86 L9 95 L32 64 L15 28 L52 44 Z" fill={color} stroke="#fff" strokeWidth={strokeWidth} {...common} />
-      <path d="M64 31 L70 54 L93 46 L82 67 L96 86 L72 80 L64 100 L56 80 L32 86 L46 67 L35 46 L58 54 Z" fill="rgba(255,255,255,0.38)" stroke="none" />
+      <path d="M64 17 C42 17 28 33 28 53 C28 66 35 76 45 84 C49 88 51 94 51 100 L77 100 C77 94 79 88 83 84 C93 76 100 66 100 53 C100 33 86 17 64 17 Z" fill={color} stroke="#fff" strokeWidth={strokeWidth} {...common} />
+      <path d="M52 108 L76 108" fill="none" stroke="#fff" strokeWidth={Math.max(9, strokeWidth * 0.8)} {...common} />
+      <path d="M55 118 L73 118" fill="none" stroke="#fff" strokeWidth={Math.max(8, strokeWidth * 0.7)} {...common} />
+      <path d="M46 38 C51 29 60 25 69 27" fill="none" stroke="rgba(255,255,255,0.58)" strokeWidth={Math.max(5, strokeWidth * 0.55)} {...common} />
+      <path d="M49 100 L79 100" fill="none" stroke="rgba(20,20,20,0.42)" strokeWidth={Math.max(4, strokeWidth * 0.45)} {...common} />
+      <path d="M54 108 L74 108" fill="none" stroke="rgba(20,20,20,0.42)" strokeWidth={Math.max(4, strokeWidth * 0.4)} {...common} />
+      <g fill="none" stroke="#fff" strokeWidth={Math.max(7, strokeWidth * 0.62)} {...common}>
+        <path d="M64 2 L64 9" />
+        <path d="M23 14 L29 22" />
+        <path d="M105 14 L99 22" />
+        <path d="M8 54 L16 54" />
+        <path d="M120 54 L112 54" />
+      </g>
     </svg>
   );
 }
