@@ -841,27 +841,24 @@ function ReactionMarkSvg({kind, color, size}: {kind: ReactionMarkSvgKind; color:
     strokeLinejoin: "round" as const,
   };
   if (kind === "anger") {
-    const outlineWidth = Math.max(18, Math.round(size / 6.8));
-    const lineWidth = Math.max(10, Math.round(size / 10));
+    const maskImage = `url(${staticFile("effects/anger_mark.svg")})`;
+    const maskBase: React.CSSProperties = {
+      position: "absolute",
+      inset: 0,
+      WebkitMaskImage: maskImage,
+      maskImage,
+      WebkitMaskRepeat: "no-repeat",
+      maskRepeat: "no-repeat",
+      WebkitMaskPosition: "center",
+      maskPosition: "center",
+      WebkitMaskSize: "contain",
+      maskSize: "contain",
+    };
     return (
-      <svg viewBox="0 0 128 128" width={size} height={size} style={{display: "block", overflow: "visible"}}>
-        <g fill="none" stroke="#fff" strokeWidth={outlineWidth} {...common}>
-          <path d="M47 38 C51 20 77 20 81 38" />
-          <path d="M90 47 C108 51 108 77 90 81" />
-          <path d="M81 90 C77 108 51 108 47 90" />
-          <path d="M38 81 C20 77 20 51 38 47" />
-          <path d="M64 42 L64 86" />
-          <path d="M42 64 L86 64" />
-        </g>
-        <g fill="none" stroke={color} strokeWidth={lineWidth} {...common}>
-          <path d="M47 38 C51 20 77 20 81 38" />
-          <path d="M90 47 C108 51 108 77 90 81" />
-          <path d="M81 90 C77 108 51 108 47 90" />
-          <path d="M38 81 C20 77 20 51 38 47" />
-          <path d="M64 42 L64 86" />
-          <path d="M42 64 L86 64" />
-        </g>
-      </svg>
+      <div style={{position: "relative", width: size, height: size}}>
+        <div style={{...maskBase, background: "#fff", transform: "scale(1.18)", transformOrigin: "50% 50%"}} />
+        <div style={{...maskBase, background: color}} />
+      </div>
     );
   }
   if (kind === "sweat") {

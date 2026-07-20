@@ -22,7 +22,7 @@ mkdirSync(pubDir, { recursive: true });
 for (const [sub, exts, label, mirror] of [
   ["fonts", [".woff2", ".woff", ".ttf", ".otf"], "fonts", false],
   ["background", [".png", ".jpg", ".jpeg", ".webp"], "background image", true],
-  ["effects", [".png", ".jpg", ".jpeg", ".webp"], "effect image", true],
+  ["effects", [".png", ".jpg", ".jpeg", ".webp", ".svg"], "effect image", true],
   ["mobs", [".png", ".webp"], "mob image", true],
   ["bgm", [".mp3", ".wav", ".m4a"], "BGM", true],
   ["se", [".mp3", ".wav", ".m4a"], "SE", true],
