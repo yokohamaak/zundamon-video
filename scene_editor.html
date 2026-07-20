@@ -760,6 +760,13 @@ const V2_REACTION_ANCHOR_LABELS = {
   faceRight: '顔右',
   faceLeft: '顔左',
 };
+const CHARACTER_DISPLAY_NAMES = {
+  zundamon: 'ずんだもん',
+  metan: '四国めたん',
+};
+function characterDisplayName(charId) {
+  return CHARACTER_DISPLAY_NAMES[charId] || charId;
+}
 function fullBoxSize(charId) {
   const c = FULL_CANVAS[charId];
   const h = c ? Math.round(FULL_BOX_W * (c.h / c.w)) : Math.round(FULL_BOX_W * 1.8);
@@ -1481,7 +1488,7 @@ function buildCastRows() {
     const row = document.createElement('div');
     row.className = 'cast-row';
     const lbl = document.createElement('span');
-    lbl.className = 'cast-char'; lbl.textContent = ch;
+    lbl.className = 'cast-char'; lbl.textContent = characterDisplayName(ch);
     row.appendChild(lbl);
     const sel = document.createElement('select');
     sel.className = 'cast-select';
@@ -1558,7 +1565,7 @@ function buildSlotList() {
     preview.className = 'cast-select'; preview.style.width = '112px'; preview.title = 'プレビュー表示キャラ';
     const previewNone = document.createElement('option'); previewNone.value = ''; previewNone.textContent = '表示キャラ: なし'; preview.appendChild(previewNone);
     for (const characterId of sortedStrings(assets?.characters ?? [])) {
-      const option = document.createElement('option'); option.value = characterId; option.textContent = `表示: ${characterId}`; preview.appendChild(option);
+      const option = document.createElement('option'); option.value = characterId; option.textContent = `表示: ${characterDisplayName(characterId)}`; preview.appendChild(option);
     }
     for (const mob of [...(assets?.mobs ?? [])].sort((a, b) => compareUiText(a.id, b.id))) {
       const option = document.createElement('option'); option.value = `mob:${mob.id}`; option.textContent = `表示: モブ ${mob.id}`; preview.appendChild(option);
@@ -1634,13 +1641,18 @@ function buildSlotList() {
     const resetAnchors = document.createElement('button');
     resetAnchors.type = 'button';
     resetAnchors.className = 'btn btn-secondary btn-sm';
-    resetAnchors.textContent = '顔アンカー既定';
+    resetAnchors.textContent = '既定に戻す';
     resetAnchors.title = 'このslotで調整した頭上/顔横アンカーを既定推定値へ戻します';
     resetAnchors.addEventListener('click', () => {
       delete slot.reactionAnchors;
       renderPreview();
     });
-    item.append(name, coords, preview, scale, zIndex, preset, overlapLabel, editAnchors, resetAnchors);
+    const actions = document.createElement('div');
+    actions.style.cssText = 'grid-column:1 / -1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;';
+    editAnchors.style.whiteSpace = 'nowrap';
+    resetAnchors.style.whiteSpace = 'nowrap';
+    actions.append(editAnchors, resetAnchors);
+    item.append(name, coords, preview, scale, zIndex, preset, overlapLabel, actions);
     container.appendChild(item);
   }
 }
@@ -1906,7 +1918,7 @@ function renderPreview() {
     dotLabel.className = 'anchor-label';
     dotLabel.style.left = ax + 'px';
     dotLabel.style.top = (grabY * STAGE_H) + 'px';
-    dotLabel.textContent = name + (charId ? ` (${charId})` : previewMob ? ` (mob:${previewMob.id})` : v2 ? ' (slot)' : '');
+    dotLabel.textContent = name + (charId ? ` (${characterDisplayName(charId)})` : previewMob ? ` (mob:${previewMob.id})` : v2 ? ' (slot)' : '');
     stage.appendChild(dotLabel);
 
     if (v2 && (charId || previewMob) && v2ReactionAnchorEditSlotId === name) {
