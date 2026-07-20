@@ -816,16 +816,61 @@ const REACTION_MARK_GLYPHS: Record<string, string> = {
   "？": "?",
   "!?": "!?",
   "！？": "!?",
-  "汗": "汗",
-  "怒り": "╬",
-  "怒": "╬",
-  "ハート": "♥",
   "zzz": "zzz",
-  "ひらめき": "✦",
 };
 
 function reactionMarkText(mark: string) {
   return REACTION_MARK_GLYPHS[mark] || mark;
+}
+
+type ReactionMarkSvgKind = "anger" | "sweat" | "heart" | "idea";
+
+function reactionMarkSvgKind(mark: string): ReactionMarkSvgKind | null {
+  if (mark.includes("怒")) return "anger";
+  if (mark.includes("汗")) return "sweat";
+  if (mark.includes("ハート")) return "heart";
+  if (mark.includes("ひらめき")) return "idea";
+  return null;
+}
+
+function ReactionMarkSvg({kind, color, size}: {kind: ReactionMarkSvgKind; color: string; size: number}) {
+  const strokeWidth = Math.max(10, Math.round(size / 14));
+  const common = {
+    vectorEffect: "non-scaling-stroke" as const,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  if (kind === "anger") {
+    return (
+      <svg viewBox="0 0 128 128" width={size} height={size} style={{display: "block", overflow: "visible"}}>
+        <path d="M56 12 L49 46 L17 36 L42 62 L16 89 L52 80 L58 116 L74 82 L111 93 L86 64 L112 36 L78 47 L72 12 Z" fill={color} stroke="#fff" strokeWidth={strokeWidth} {...common} />
+        <path d="M58 35 L53 57 L32 52" fill="none" stroke="rgba(20,20,20,0.38)" strokeWidth={Math.max(4, strokeWidth * 0.45)} {...common} />
+        <path d="M77 50 L94 46 L82 62 L96 79" fill="none" stroke="rgba(20,20,20,0.38)" strokeWidth={Math.max(4, strokeWidth * 0.45)} {...common} />
+      </svg>
+    );
+  }
+  if (kind === "sweat") {
+    return (
+      <svg viewBox="0 0 128 128" width={size} height={size} style={{display: "block", overflow: "visible"}}>
+        <path d="M71 10 C48 39 34 62 34 82 C34 107 50 122 72 122 C95 122 111 106 111 83 C111 61 94 37 71 10 Z" fill={color} stroke="#fff" strokeWidth={strokeWidth} {...common} />
+        <path d="M60 34 C49 52 44 67 44 82 C44 96 52 106 64 110" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth={Math.max(5, strokeWidth * 0.55)} {...common} />
+      </svg>
+    );
+  }
+  if (kind === "heart") {
+    return (
+      <svg viewBox="0 0 128 128" width={size} height={size} style={{display: "block", overflow: "visible"}}>
+        <path d="M64 113 C28 82 13 62 13 39 C13 22 25 12 41 12 C51 12 59 17 64 26 C69 17 77 12 87 12 C103 12 115 22 115 39 C115 62 100 82 64 113 Z" fill={color} stroke="#fff" strokeWidth={strokeWidth} {...common} />
+        <path d="M38 28 C30 31 27 38 29 47" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth={Math.max(5, strokeWidth * 0.5)} {...common} />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 128 128" width={size} height={size} style={{display: "block", overflow: "visible"}}>
+      <path d="M64 9 L76 44 L113 28 L96 64 L119 95 L81 86 L64 119 L47 86 L9 95 L32 64 L15 28 L52 44 Z" fill={color} stroke="#fff" strokeWidth={strokeWidth} {...common} />
+      <path d="M64 31 L70 54 L93 46 L82 67 L96 86 L72 80 L64 100 L56 80 L32 86 L46 67 L35 46 L58 54 Z" fill="rgba(255,255,255,0.38)" stroke="none" />
+    </svg>
+  );
 }
 
 function reactionMarkColor(mark: string, rawColor: string) {
@@ -918,8 +963,10 @@ const V2ReactionMarkLayer: React.FC<{
   const popScale = cfg.motion === "pop"
     ? 0.58 + popIn * 0.52 - Math.sin(clamp(localProgress, 0, 1) * Math.PI) * 0.06
     : 1;
+  const svgKind = reactionMarkSvgKind(cfg.mark);
   const text = reactionMarkText(cfg.mark);
   const color = reactionMarkColor(cfg.mark, cfg.color);
+  const size = clamp(cfg.size, 40, 260);
   return (
     <AbsoluteFill style={{pointerEvents: "none", zIndex: 34, overflow: "visible"}}>
       <div
@@ -932,18 +979,18 @@ const V2ReactionMarkLayer: React.FC<{
           opacity,
           color,
           fontFamily: EXTRA_EFFECT_FONT,
-          fontSize: clamp(cfg.size, 40, 260),
+          fontSize: size,
           fontWeight: 900,
           lineHeight: 1,
-          letterSpacing: text.length > 1 ? "-0.08em" : "0",
-          WebkitTextStroke: `${Math.max(4, Math.round(clamp(cfg.size, 40, 260) / 18))}px #ffffff`,
+          letterSpacing: svgKind ? "0" : (text.length > 1 ? "-0.08em" : "0"),
+          WebkitTextStroke: svgKind ? "0" : `${Math.max(4, Math.round(size / 18))}px #ffffff`,
           paintOrder: "stroke fill",
           textShadow: "0 12px 18px rgba(0,0,0,0.32)",
           filter: "drop-shadow(0 3px 0 rgba(20,20,20,0.42))",
           whiteSpace: "nowrap",
         }}
       >
-        {text}
+        {svgKind ? <ReactionMarkSvg kind={svgKind} color={color} size={size} /> : text}
       </div>
     </AbsoluteFill>
   );
