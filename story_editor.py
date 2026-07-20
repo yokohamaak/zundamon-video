@@ -1145,9 +1145,9 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "",
         "━━━ 舞台操作（stage）のルール【最重要・検証で機械的に拒否される】━━━",
         '- 登場: "stage": {"enter": [{"instanceId": "個体ID", "placement": {"mode":"slot","slotId":"スロット名"},'
-        ' "animation": {"direction": "auto"|"left"|"right"|"up"|"down"|"instant"}}]}。animation は省略可。',
+        ' "animation": {"direction": "auto"|"left"|"right"|"up"|"down"|"instant", "duration": 0.5}}]}。animation は省略可。duration は0.15〜1.2秒で、必要な時だけ書く。',
         "- 画面に出したい人物は必ず enter で登場させる。speaker にしただけでは画面に出ない（声だけになる）。",
-        '- 退場: "stage": {"exit": [{"instanceId": "個体ID", "animation": {"direction": "left"}}]}（文字列だけの "exit": ["個体ID"] も可）。',
+        '- 退場: "stage": {"exit": [{"instanceId": "個体ID", "animation": {"direction": "left", "duration": 0.5}}]}（文字列だけの "exit": ["個体ID"] も可）。',
         '- 状態変更: "stage": {"update": {"個体ID": {"expression": "表情", "pose": "ポーズ", "face": "left"|"right",'
         ' "flip": true, "placement": {...}}}}。話者以外の人物も変えられる。',
         "- 在席簿の整合を必ず守る: すでに登場中の人物を再度 enter しない / 登場していない人物を exit・update しない / voiceOnly の人物は enter できない。",

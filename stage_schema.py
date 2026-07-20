@@ -148,9 +148,79 @@ def _camera_motion(value, path):
 def _stage_animation(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
-    _only_keys(value, {"direction"}, path)
+    _only_keys(value, {"direction", "duration"}, path)
     if "direction" in value and value["direction"] not in STAGE_ANIMATION_DIRECTIONS:
         _error(f"{path}.direction", "auto/left/right/up/down/instant のいずれかが必要です")
+    if "duration" in value and (not _is_number(value["duration"]) or not 0.15 <= value["duration"] <= 1.2):
+        _error(f"{path}.duration", "0.15〜1.2の値が必要です")
+
+
+def _effect_settings(value, path):
+    if not isinstance(value, dict):
+        _error(path, "objectである必要があります")
+    specs = {
+        "entrance": {
+            "keys": {"duration"},
+            "ranges": {"duration": (0.15, 1.2)},
+        },
+        "emphasis": {
+            "keys": {"duration", "scale"},
+            "ranges": {"duration": (0.15, 1.5), "scale": (0.05, 0.8)},
+        },
+        "zoomPunch": {
+            "keys": {"scale", "duration", "borderStrength"},
+            "ranges": {"scale": (1.02, 1.4), "duration": (0.08, 0.5), "borderStrength": (0, 2)},
+        },
+        "quoteFreeze": {
+            "keys": {"fadeIn", "fadeOutStart", "fadeOutDuration", "backdropOpacity"},
+            "ranges": {"fadeIn": (0.05, 0.4), "fadeOutStart": (0, 1), "fadeOutDuration": (0.05, 0.4), "backdropOpacity": (0, 0.6)},
+        },
+        "stampRain": {
+            "keys": {"count", "fallDuration", "stagger", "spread"},
+            "ranges": {"count": (1, 12), "fallDuration": (0.15, 1), "stagger": (0, 0.3), "spread": (0.4, 1.4)},
+        },
+        "typingFlood": {
+            "keys": {"rows", "flowDuration", "stagger"},
+            "ranges": {"rows": (2, 12), "flowDuration": (0.12, 0.8), "stagger": (0.01, 0.12)},
+        },
+        "sparkleBurst": {
+            "keys": {"count", "spread", "duration"},
+            "ranges": {"count": (4, 20), "spread": (80, 420), "duration": (0.1, 0.8)},
+        },
+        "impactLines": {
+            "keys": {"cx", "cy", "count", "thickness", "opacity", "innerRadius", "start", "end"},
+            "ranges": {"cx": (0, 1), "cy": (0, 1), "count": (12, 180), "thickness": (0.3, 5), "opacity": (0, 1), "innerRadius": (0, 0.5), "start": (0, 8), "end": (0, 8)},
+        },
+        "visionNoise": {
+            "keys": {"type", "strength", "scanline", "glitch", "flicker", "tint"},
+            "ranges": {"strength": (0, 1), "scanline": (0, 1), "glitch": (0, 1), "flicker": (0, 1)},
+        },
+        "irisOut": {
+            "keys": {"cx", "cy", "startRadius", "closeStart", "closeEnd", "color"},
+            "ranges": {"cx": (0, 1), "cy": (0, 1), "startRadius": (0.15, 1.3), "closeStart": (0, 8), "closeEnd": (0, 8)},
+        },
+    }
+    _only_keys(value, set(specs.keys()), path)
+    for key, item in value.items():
+        item_path = f"{path}.{key}"
+        if not isinstance(item, dict):
+            _error(item_path, "objectである必要があります")
+        spec = specs[key]
+        _only_keys(item, spec["keys"], item_path)
+        if key == "visionNoise" and "type" in item and item["type"] not in {"future", "snow", "vhs", "glitch"}:
+            _error(f"{item_path}.type", "future/snow/vhs/glitch のいずれかが必要です")
+        if key == "visionNoise" and "tint" in item:
+            _hex(item["tint"], f"{item_path}.tint")
+        if key == "irisOut" and "color" in item:
+            _hex(item["color"], f"{item_path}.color")
+        for param, bounds in spec["ranges"].items():
+            if param not in item:
+                continue
+            if not _is_number(item[param]):
+                _error(f"{item_path}.{param}", "有限数値が必要です")
+            low, high = bounds
+            if not low <= item[param] <= high:
+                _error(f"{item_path}.{param}", f"{low}〜{high}の値が必要です")
 
 
 def _hex(value, path):
@@ -735,12 +805,14 @@ def validate_story_v2(data, scenes, mobs=None):
     """Story Stage Schema v2の構造、参照、turnごとの舞台状態を検証する。"""
     if not isinstance(data, dict) or data.get("schemaVersion") != 2:
         _error("story", "schemaVersion: 2 が必要です")
-    _only_keys(data, {"schemaVersion", "title", "audio", "bgm", "overlays", "displaySettings", "idleFace", "instances", "script"}, "story")
+    _only_keys(data, {"schemaVersion", "title", "audio", "bgm", "overlays", "displaySettings", "effectSettings", "idleFace", "instances", "script"}, "story")
     for key in ("title", "audio"):
         if key in data and not isinstance(data[key], str):
             _error(f"story.{key}", "文字列が必要です")
     if "displaySettings" in data:
         _display_settings(data["displaySettings"], "story.displaySettings")
+    if "effectSettings" in data:
+        _effect_settings(data["effectSettings"], "story.effectSettings")
     if "idleFace" in data and data["idleFace"] not in {"normal", "hold"}:
         _error("story.idleFace", "normal または hold が必要です")
     if "bgm" in data:

@@ -3177,6 +3177,7 @@ const EFFECT_SETTING_SPECS = [
   { group: "irisOut", label: "アイリスアウト 閉じ始め", key: "closeStart", min: 0, max: 8, step: 0.05, defaultValue: 1.7, digits: 2, unit: "秒" },
   { group: "irisOut", label: "アイリスアウト 閉じ終わり", key: "closeEnd", min: 0, max: 8, step: 0.05, defaultValue: 2.0, digits: 2, unit: "秒" },
 ];
+const ENTRANCE_DURATION_SPEC = EFFECT_SETTING_SPECS.find((spec) => spec.group === "entrance" && spec.key === "duration");
 const CAMERA_EFFECT_SETTING_SPECS = [
   { group: "zoom", label: "ズーム量", key: "amount", min: 0, max: 0.6, step: 0.01, defaultValue: 0.12, digits: 2, commonKey: "zoomAmount", legacyKey: "pullOut" },
   { group: "zoom", label: "ズーム時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "zoomDuration" },
@@ -9021,10 +9022,77 @@ function v2StageAnimationDirection(item) {
   return item?.animation?.direction || "";
 }
 
+function v2PruneStageAnimation(item) {
+  if (!item || typeof item !== "object" || !item.animation) return;
+  if (!Object.keys(item.animation).length) delete item.animation;
+}
+
 function v2SetStageAnimationDirection(item, direction) {
   if (!item || typeof item !== "object") return;
-  if (!direction || direction === "auto") delete item.animation;
-  else item.animation = { direction };
+  if (direction && direction !== "auto") {
+    if (!item.animation || typeof item.animation !== "object") item.animation = {};
+    item.animation.direction = direction;
+  } else if (item.animation) {
+    delete item.animation.direction;
+  }
+  v2PruneStageAnimation(item);
+}
+
+function v2StageAnimationDurationRaw(item) {
+  const raw = item?.animation?.duration;
+  return Number.isFinite(raw) ? raw : null;
+}
+
+function v2SetStageAnimationDuration(item, value) {
+  if (!item || typeof item !== "object" || !ENTRANCE_DURATION_SPEC) return;
+  const raw = String(value ?? "").trim();
+  if (!raw) {
+    if (item.animation) delete item.animation.duration;
+    v2PruneStageAnimation(item);
+    return;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return;
+  const clamped = Math.max(ENTRANCE_DURATION_SPEC.min, Math.min(ENTRANCE_DURATION_SPEC.max, parsed));
+  if (!item.animation || typeof item.animation !== "object") item.animation = {};
+  item.animation.duration = Number(clamped.toFixed(ENTRANCE_DURATION_SPEC.digits));
+  v2PruneStageAnimation(item);
+}
+
+function v2StageDurationInput(item) {
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex; align-items:center; gap:4px;";
+  const input = document.createElement("input");
+  input.type = "number";
+  input.className = "field-input";
+  input.min = String(ENTRANCE_DURATION_SPEC?.min ?? 0.15);
+  input.max = String(ENTRANCE_DURATION_SPEC?.max ?? 1.2);
+  input.step = String(ENTRANCE_DURATION_SPEC?.step ?? 0.05);
+  input.style.cssText = "width:72px; padding:2px 6px; font-size:12px;";
+  const defaultDuration = ENTRANCE_DURATION_SPEC ? getEffectSettingValue(ENTRANCE_DURATION_SPEC) : 0.5;
+  input.placeholder = `${Number(defaultDuration).toFixed(2)}秒`;
+  const raw = v2StageAnimationDurationRaw(item);
+  input.value = raw == null ? "" : String(raw);
+  input.title = "空欄なら演出共通設定の登場退場速度を使います。";
+  input.addEventListener("change", () => {
+    v2SetStageAnimationDuration(item, input.value);
+    v2Commit(storyData.script[selectedIdx]);
+    renderV2Detail(storyData.script[selectedIdx]);
+  });
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.className = "btn btn-secondary btn-sm";
+  clear.style.cssText = "padding:2px 6px; font-size:11px;";
+  clear.textContent = "既定";
+  clear.title = "個別秒数を消して全体設定に戻します。";
+  clear.addEventListener("click", () => {
+    input.value = "";
+    v2SetStageAnimationDuration(item, "");
+    v2Commit(storyData.script[selectedIdx]);
+    renderV2Detail(storyData.script[selectedIdx]);
+  });
+  wrap.append(input, clear);
+  return wrap;
 }
 
 function v2StageDirectionSelect(value, labels) {
@@ -11227,11 +11295,13 @@ function renderV2Detail(turn) {
       const direction = v2StageDirectionSelect(v2StageAnimationDirection(enterItem), { auto: "自動", left: "左から", right: "右から", up: "上から", down: "下から" });
       direction.addEventListener("change", () => { v2SetStageAnimationDirection(enterItem, direction.value); v2Commit(turn); renderV2Detail(turn); });
       controls.appendChild(direction);
+      controls.appendChild(v2StageDurationInput(enterItem));
     } else if (exitItem) {
       const exitObject = v2EnsureExitObjectFor(stage, instanceId);
       const direction = v2StageDirectionSelect(v2StageAnimationDirection(exitObject), { auto: "自動", left: "左へ", right: "右へ", up: "上へ", down: "下へ" });
       direction.addEventListener("change", () => { v2SetStageAnimationDirection(exitObject, direction.value); v2Commit(turn); renderV2Detail(turn); });
       controls.appendChild(direction);
+      controls.appendChild(v2StageDurationInput(exitObject));
     }
     controls.appendChild(button);
     row.append(text, controls);

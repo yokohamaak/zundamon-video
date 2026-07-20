@@ -52,6 +52,8 @@ function shouldUseWebAudioVolumePreview() {
 const FULL_BOX_WIDTH = 445;
 const LIPSYNC_GAIN = 5;
 const ENTER_EXIT_ANIMATION_SECONDS = 0.5;
+const ENTER_EXIT_ANIMATION_MIN_SECONDS = 0.15;
+const ENTER_EXIT_ANIMATION_MAX_SECONDS = 1.2;
 // 手動配置(placement)がターン間で変わったときの移動遷移秒数。旧StoryVideoのMANUAL_POS_TRANSと同値。
 const MANUAL_POS_TRANSITION_SECONDS = 0.6;
 // 単発吹き出しを話者の足元より少し上へ浮かせるオフセット。旧bubbleBottomOffsetと同値。
@@ -229,8 +231,24 @@ function stageAnimationDirection(item: StageEnterV2 | StageExitV2 | undefined): 
   return item.animation?.direction ?? "auto";
 }
 
+function stageDefaultEntranceDuration(story: StoryV2) {
+  const raw = story.effectSettings?.entrance?.duration;
+  return Number.isFinite(Number(raw))
+    ? clamp(Number(raw), ENTER_EXIT_ANIMATION_MIN_SECONDS, ENTER_EXIT_ANIMATION_MAX_SECONDS)
+    : ENTER_EXIT_ANIMATION_SECONDS;
+}
+
+function stageAnimationDuration(item: StageEnterV2 | StageExitV2 | undefined, defaultDuration: number) {
+  if (!item || typeof item === "string") return defaultDuration;
+  const raw = item.animation?.duration;
+  return Number.isFinite(Number(raw))
+    ? clamp(Number(raw), ENTER_EXIT_ANIMATION_MIN_SECONDS, ENTER_EXIT_ANIMATION_MAX_SECONDS)
+    : defaultDuration;
+}
+
 function stageAnimationOffset({
   direction,
+  durationSeconds,
   phase,
   originX,
   seconds,
@@ -239,6 +257,7 @@ function stageAnimationOffset({
   height,
 }: {
   direction: StageAnimationDirectionV2;
+  durationSeconds: number;
   phase: "enter" | "exit";
   originX: number;
   seconds: number;
@@ -250,8 +269,9 @@ function stageAnimationOffset({
   const start = turn.start;
   const end = turn.end;
   if (typeof start !== "number") return {x: 0, y: 0};
-  const turnDuration = typeof end === "number" ? Math.max(0, end - start) : ENTER_EXIT_ANIMATION_SECONDS;
-  const duration = Math.max(0.001, Math.min(ENTER_EXIT_ANIMATION_SECONDS, turnDuration / 2 || ENTER_EXIT_ANIMATION_SECONDS));
+  const requestedDuration = clamp(durationSeconds, ENTER_EXIT_ANIMATION_MIN_SECONDS, ENTER_EXIT_ANIMATION_MAX_SECONDS);
+  const turnDuration = typeof end === "number" ? Math.max(0, end - start) : requestedDuration;
+  const duration = Math.max(0.001, Math.min(requestedDuration, turnDuration / 2 || requestedDuration));
   let amount = 0;
   if (phase === "enter") {
     amount = 1 - easeInOutCubic((seconds - start) / duration);
@@ -1484,6 +1504,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const tiltedTransform = `${transform ?? ""}${cameraTilt ? ` rotate(${cameraTilt}deg)` : ""}` || undefined;
   const enterById = new Map((turn.stage?.enter ?? []).map((item) => [item.instanceId, item]));
   const exitById = new Map((turn.stage?.exit ?? []).map((item) => [stageExitId(item), item]));
+  const defaultEntranceDuration = stageDefaultEntranceDuration(story);
   const previousState = turnIndex > 0 ? resolveStageStateAtTurn(story, turnIndex - 1) : undefined;
   const exitingInstances: ResolvedInstanceV2[] = previousState
     ? Object.entries(previousState.instances)
@@ -1826,6 +1847,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       const animationOffset = exitItem
         ? stageAnimationOffset({
           direction: stageAnimationDirection(exitItem),
+          durationSeconds: stageAnimationDuration(exitItem, defaultEntranceDuration),
           phase: "exit",
           originX: origin.x,
           seconds,
@@ -1836,6 +1858,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
         : enterItem
           ? stageAnimationOffset({
             direction: stageAnimationDirection(enterItem),
+            durationSeconds: stageAnimationDuration(enterItem, defaultEntranceDuration),
             phase: "enter",
             originX: origin.x,
             seconds,

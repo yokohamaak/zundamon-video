@@ -1,5 +1,5 @@
 import type {WhiteboardExplainInsertConfig} from "./inserts/whiteboardExplain";
-import type {BgmRegion, StoryInsert, StoryOverlay, TurnSe} from "./StoryVideo";
+import type {BgmRegion, StoryEffectSettings, StoryInsert, StoryOverlay, TurnSe} from "./StoryVideo";
 
 export type Point = {x: number; y: number};
 export type CameraFrameV2 = {cx: number; cy: number; width: number};
@@ -249,14 +249,18 @@ export type CameraMotionV2 = {
 };
 
 export type StageAnimationDirectionV2 = "auto" | "left" | "right" | "up" | "down" | "instant";
+export type StageAnimationV2 = {
+  direction?: StageAnimationDirectionV2;
+  duration?: number;
+};
 export type StageEnterV2 = {
   instanceId: string;
   placement: PlacementV2;
-  animation?: {direction?: StageAnimationDirectionV2};
+  animation?: StageAnimationV2;
 };
 export type StageExitV2 = string | {
   instanceId: string;
-  animation?: {direction?: StageAnimationDirectionV2};
+  animation?: StageAnimationV2;
 };
 
 export type StageEventV2 = {
@@ -320,6 +324,8 @@ export type StoryV2 = {
   overlays?: StoryOverlay[];
   /** 旧と共通の動画全体表示設定。 */
   displaySettings?: StoryDisplaySettingsV2;
+  /** 旧と共通の動画全体演出設定。V2では主にentrance.durationを登場/退場の既定秒数として使う。 */
+  effectSettings?: StoryEffectSettings;
   /** 非話者の表情を保持するか、各ターンで通常状態へ戻すか。 */
   idleFace?: "normal" | "hold";
   instances: Record<string, StoryInstanceV2>;
