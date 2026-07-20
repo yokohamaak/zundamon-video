@@ -717,7 +717,7 @@ def _load_story_world():
 
 
 def _build_script_prompt(theme, length, notes, mode="safe",
-                         custom_world="", custom_example="", extra_rules=""):
+                         custom_world="", custom_example="", extra_rules="", source_script=""):
     """AI(ChatGPT/Gemini など)に投げる台本生成プロンプトを組み立てて返す。
 
     現在ツールが対応しているシーン/キャラ/表情/演出/インサートと、
@@ -972,7 +972,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
 
 
 def _build_script_prompt_v2(theme, length, notes, mode="safe",
-                            custom_world="", custom_example="", extra_rules=""):
+                            custom_world="", custom_example="", extra_rules="", source_script=""):
     """V2台本（schemaVersion: 2）用のAIプロンプトを組み立てて返す。
 
     stage_schema.validate_story_v2 がそのまま受け入れるJSONを出させることが目的。
@@ -980,8 +980,12 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
     mode="experimental" では新演出・新シーンの考案を _proposals 限定で促す。
     """
     experimental = (mode == "experimental")
+    adaptation = bool((source_script or "").strip())
     world = (custom_world or "").strip() or _load_story_world()
-    theme = (theme or "").strip() or "（ここに物語の題材・あらすじを入れてください）"
+    theme = (theme or "").strip() or (
+        "（補足なし。元台本の内容を優先）" if adaptation else "（ここに物語の題材・あらすじを入れてください）"
+    )
+    source_script = (source_script or "").strip()
     length = (length or "").strip() or "8〜11分・全体で120〜170ターン、3,200〜4,300文字ほど（起承転結のある一話）"
     notes = (notes or "").strip() or "特になし"
     extra_rules = (extra_rules or "").strip()
@@ -1059,10 +1063,15 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
 
     parts = [
         "あなたは「ずんだもん」と「四国めたん」が登場するストーリー（会話劇）動画の脚本家です。",
-        "下記の【題材】をもとに、専用ツールでそのまま読み込めるV2形式のJSON台本（物語）を作成してください。",
+        ("下記の【元台本・決定済み内容】を、専用ツールでそのまま読み込めるV2形式のJSON台本へ変換してください。"
+         if adaptation else
+         "下記の【題材】をもとに、専用ツールでそのまま読み込めるV2形式のJSON台本（物語）を作成してください。"),
         "",
         "━━━ 入力 ━━━",
-        "【題材・あらすじ】",
+        ("【元台本・決定済み内容】" if adaptation else "【題材・あらすじ】"),
+        source_script if adaptation else theme,
+        "",
+        ("【補足・タイトル案】" if adaptation else "【題材補足】"),
         theme,
         "",
         "【長さ・構成の目安】",
@@ -1081,6 +1090,19 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "- 場面転換(scene)・登場/退場(stage.enter/exit)・表情(stage.update)・演出(effects)で物語を演出する。",
         "- 1ターンは1〜2文。地の文はナレーション（voiceOnly個体）以外に使わず、すべてセリフ（text）で進める。教訓は短く・最後は軽いオチ。",
         "",
+    ]
+    if adaptation:
+        parts += [
+            "━━━ 変換モードの最重要方針 ━━━",
+            "- 元台本の大筋・結末・出来事の順番・キャラの意図を変えない。新しい山場・新キャラ・別の教訓を勝手に足さない。",
+            "- すでにあるセリフや言い回しはできるだけ維持し、V2で見やすくするための改行・ターン分割・短い反応追加だけを行う。",
+            "- 箇条書きや粗い構成だけの場合は、各項目を会話劇のターンへ展開してよい。ただし因果関係と結論は元台本を優先する。",
+            "- 不足している scene / instances / stage.enter / stage.update / framing / displayMode / effects / caption / pause を、既存機能へ自然に割り当てる。",
+            "- 元台本に『ここは画面内ステージ』『PCから音』『ホワイトボードで整理』などの意図がある場合は、対応する現行機能を優先して使う。",
+            "- 指定尺に足りない場合でも水増しの新展開は避ける。必要なら pause・caption・表情・短い相槌で自然な間を作る。",
+            "",
+        ]
+    parts += [
         "━━━ 手直し済み台本から抽出した品質基準（長さ指定を優先）━━━",
         "- 尺の目安は1分あたり350〜420文字・13〜17ターン。指定が無い時は8〜11分、120〜170ターン、3,200〜4,300文字を標準にする。",
         "- 通常の1ターンは空白・改行を除いて13〜36文字を中心にする。説明・宣言だけは37〜55文字まで許容するが、長台詞を連発しない。",
@@ -1245,7 +1267,9 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "━━━ 出力例（最小）━━━",
         example,
         "",
-        "では、上記の【題材】をもとに物語の台本JSONを作成してください。まずタイトルを決め、導入から山場・結末まで一本の物語として構成すること。",
+        ("では、上記の【元台本・決定済み内容】をV2台本JSONへ変換してください。まずタイトルを決め、元台本の流れを保ったまま、このツールで読み込める構造へ割り当てること。"
+         if adaptation else
+         "では、上記の【題材】をもとに物語の台本JSONを作成してください。まずタイトルを決め、導入から山場・結末まで一本の物語として構成すること。"),
     ]
     return "\n".join(parts)
 
@@ -1904,12 +1928,18 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
             try:
                 params = json.loads(body.decode("utf-8")) if body else {}
-                prompt = _script_prompt_builder()(
+                source_script = params.get("sourceScript", "") if params.get("promptKind") == "adapt" else ""
+                if params.get("promptKind") == "adapt" and not str(source_script).strip():
+                    self._send_error_json(400, "元台本・決定済み内容を入力してください")
+                    return
+                builder = _build_script_prompt_v2 if params.get("promptKind") == "adapt" else _script_prompt_builder()
+                prompt = builder(
                     params.get("theme"), params.get("length"), params.get("notes"),
                     params.get("mode", "safe"),
                     params.get("customWorld", ""),
                     params.get("customExample", ""),
                     params.get("extraRules", ""),
+                    source_script,
                 )
                 self._send_json({"prompt": prompt})
             except Exception as e:

@@ -2951,7 +2951,20 @@
         プロンプト生成
       </div>
       <div class="field-row">
-        <label class="field-label" for="genTheme">題材・あらすじ <span style="color:var(--danger)">*</span></label>
+        <label class="field-label" for="genPromptKind">用途</label>
+        <select class="field-select" id="genPromptKind">
+          <option value="create">題材から新規作成</option>
+          <option value="adapt">既存台本をV2 JSON化</option>
+        </select>
+        <div class="field-help">既存台本モードは、チャットで固めた内容をこのツール用のV2台本へ変換するためのプロンプトを作ります。</div>
+      </div>
+      <div class="field-row" id="genSourceScriptRow" style="display:none;">
+        <label class="field-label" for="genSourceScript">元台本・決定済み内容 <span style="color:var(--danger)">*</span></label>
+        <textarea class="field-textarea" id="genSourceScript" rows="10" placeholder="ここにAIとのチャットで固めた台本、構成、セリフ案、箇条書きなどを貼り付けます。"></textarea>
+        <div class="field-help">セリフが未完成でも構いません。変えたくない結末・順番・言い回しはここに明記してください。</div>
+      </div>
+      <div class="field-row">
+        <label class="field-label" for="genTheme"><span id="genThemeLabelText">題材・あらすじ</span> <span id="genThemeRequired" style="color:var(--danger)">*</span></label>
         <textarea class="field-textarea" id="genTheme" rows="2" placeholder="例: ずんだもんが良かれと思ってZunDriveを整理したら共有リンクが全部切れて障害に"></textarea>
       </div>
       <div class="field-row">
@@ -14055,6 +14068,8 @@ function loadGenSettings() {
     saved = JSON.parse(localStorage.getItem(GEN_SETTINGS_KEY) || "{}") || {};
   } catch (_) {}
   const ids = [
+    "genPromptKind",
+    "genSourceScript",
     "genTheme",
     "genLength",
     "genNotes",
@@ -14068,11 +14083,14 @@ function loadGenSettings() {
   }
   const experimental = document.getElementById("genExperimental");
   if (experimental) experimental.checked = !!saved.genExperimental;
+  updateGenPromptMode();
 }
 
 function saveGenSettings() {
   const data = {};
   const ids = [
+    "genPromptKind",
+    "genSourceScript",
     "genTheme",
     "genLength",
     "genNotes",
@@ -14089,6 +14107,23 @@ function saveGenSettings() {
   try {
     localStorage.setItem(GEN_SETTINGS_KEY, JSON.stringify(data));
   } catch (_) {}
+}
+
+function updateGenPromptMode() {
+  const kind = document.getElementById("genPromptKind")?.value || "create";
+  const adapt = kind === "adapt";
+  const sourceRow = document.getElementById("genSourceScriptRow");
+  const themeLabel = document.getElementById("genThemeLabelText");
+  const themeRequired = document.getElementById("genThemeRequired");
+  const theme = document.getElementById("genTheme");
+  if (sourceRow) sourceRow.style.display = adapt ? "" : "none";
+  if (themeLabel) themeLabel.textContent = adapt ? "補足・タイトル案（任意）" : "題材・あらすじ";
+  if (themeRequired) themeRequired.style.display = adapt ? "none" : "";
+  if (theme) {
+    theme.placeholder = adapt
+      ? "例: タイトルは◯◯寄り / 5分に収める / 既存セリフはなるべく維持"
+      : "例: ずんだもんが良かれと思ってZunDriveを整理したら共有リンクが全部切れて障害に";
+  }
 }
 
 let genReadableMode = "outline";
@@ -15210,8 +15245,14 @@ function setupEvents() {
 
   // 台本生成タブ: プロンプト生成
   document.getElementById("btnGenPrompt").addEventListener("click", async () => {
+    const promptKind = document.getElementById("genPromptKind")?.value || "create";
+    const sourceScript = document.getElementById("genSourceScript")?.value.trim() || "";
     const theme = document.getElementById("genTheme").value.trim();
-    if (!theme) {
+    if (promptKind === "adapt" && !sourceScript) {
+      alert("元台本・決定済み内容を入力してください。");
+      return;
+    }
+    if (promptKind !== "adapt" && !theme) {
       alert("題材・あらすじを入力してください。");
       return;
     }
@@ -15229,7 +15270,7 @@ function setupEvents() {
       const r = await fetch("/api/script-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme, length, notes, mode, customWorld, customExample, extraRules }),
+        body: JSON.stringify({ promptKind, sourceScript, theme, length, notes, mode, customWorld, customExample, extraRules }),
       });
       const result = await r.json();
       if (r.ok && result.prompt) {
@@ -15377,6 +15418,7 @@ function setupEvents() {
   });
 
   const genPersistIds = [
+    "genSourceScript",
     "genTheme",
     "genLength",
     "genNotes",
@@ -15388,6 +15430,8 @@ function setupEvents() {
     const el = document.getElementById(id);
     if (el) el.addEventListener("input", saveGenSettings);
   }
+  const genPromptKindEl = document.getElementById("genPromptKind");
+  if (genPromptKindEl) genPromptKindEl.addEventListener("change", () => { updateGenPromptMode(); saveGenSettings(); });
   const genExperimentalEl = document.getElementById("genExperimental");
   if (genExperimentalEl) genExperimentalEl.addEventListener("change", saveGenSettings);
 }

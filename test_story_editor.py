@@ -430,6 +430,22 @@ def test_prompt_v2_example_is_importable():
     print("  V2プロンプトの出力例が実データでそのまま取込可能: OK")
 
 
+def test_prompt_v2_adaptation_mode_preserves_existing_script_intent():
+    source = "ずんだもんがPCの警告音に気づく。最後は共有リンクを直して終わる。"
+    prompt = se._build_script_prompt_v2("セリフはなるべく維持", "5分", "補足", source_script=source)
+    for token in (
+        "元台本・決定済み内容",
+        source,
+        "V2台本JSONへ変換",
+        "大筋・結末・出来事の順番・キャラの意図を変えない",
+        "新しい山場・新キャラ・別の教訓を勝手に足さない",
+        "不足している scene / instances / stage.enter / stage.update / framing / displayMode / effects / caption / pause",
+    ):
+        assert token in prompt, f"{token} が変換モードプロンプトに無い"
+    assert "下記の【題材】をもとに" not in prompt, "変換モードなのに新規作成向けの主指示が残っている"
+    print("  V2プロンプト変換モードが既存台本維持を案内する: OK")
+
+
 def test_prompt_builder_dispatches_by_schema():
     with tempfile.TemporaryDirectory() as tmp:
         story_path = os.path.join(tmp, "story-01.json")
@@ -485,6 +501,7 @@ if __name__ == "__main__":
     test_import_v2_story_keeps_stage_and_instance_references()
     test_prompt_v2_mentions_v2_contract()
     test_prompt_v2_example_is_importable()
+    test_prompt_v2_adaptation_mode_preserves_existing_script_intent()
     test_prompt_builder_dispatches_by_schema()
     test_import_rejects_legacy_script_while_editing_v2_story()
     print("OK")
