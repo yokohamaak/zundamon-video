@@ -9575,12 +9575,8 @@ function v2SetEditorVisibility() {
   const placementButton = document.getElementById("tabBtnPlacement");
   if (placementButton) placementButton.style.display = v2 ? "none" : "";
   const effectsMenuItem = document.getElementById("tabEffects");
-  if (effectsMenuItem) effectsMenuItem.style.display = v2 ? "none" : "";
+  if (effectsMenuItem) effectsMenuItem.style.display = "";
   if (v2) {
-    const viewEffects = document.getElementById("viewEffects");
-    if (viewEffects && viewEffects.style.display !== "none") {
-      document.getElementById("tabScript").click();
-    }
     document.querySelectorAll(".tab-btn").forEach((button) => button.classList.toggle("active", button.dataset.tab === "basic"));
     document.querySelectorAll(".tab-panel").forEach((tab) => tab.classList.toggle("active", tab.id === "tabBasic"));
   }
