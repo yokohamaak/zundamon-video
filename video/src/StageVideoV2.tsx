@@ -856,7 +856,6 @@ function ReactionMarkSvg({kind, color, size}: {kind: ReactionMarkSvgKind; color:
     };
     return (
       <div style={{position: "relative", width: size, height: size}}>
-        <div style={{...maskBase, background: "#fff", transform: "scale(1.18)", transformOrigin: "50% 50%"}} />
         <div style={{...maskBase, background: color}} />
       </div>
     );
