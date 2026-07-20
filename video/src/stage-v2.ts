@@ -121,6 +121,7 @@ export type ReactionMarkEffectV2 = {
   start?: number;
   end?: number;
 };
+export type ReactionAnchorV2 = Exclude<NonNullable<ReactionMarkEffectV2["anchor"]>, "screen">;
 export type StageEffectsV2 = {
   impactLines?: EffectToggleV2<ImpactLinesEffectV2>;
   zoomPunch?: EffectToggleV2<ZoomPunchEffectV2>;
@@ -320,6 +321,8 @@ export type SlotV2 = {
   zIndex?: number;
   cameraPresetId?: string;
   allowOverlap?: boolean;
+  /** slotの足元originからの相対位置。リアクションマーク等の人物追従演出で使う。 */
+  reactionAnchors?: Partial<Record<ReactionAnchorV2, Point>>;
   /** シーンエディタだけで使う確認用立ち絵。主役IDまたは`mob:<mobId>`で、台本の配置対象は決めない。 */
   previewCharacterId?: string;
 };

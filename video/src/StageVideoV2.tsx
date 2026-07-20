@@ -898,7 +898,10 @@ const V2ReactionMarkLayer: React.FC<{
     const headOffset = MAIN_CHARACTERS[characterId || ""]
       ? (scene.figure === "full" ? 900 : 590)
       : 650 * mobScale;
-    const anchorOffset = reactionAnchorOffset(cfg.anchor, headOffset, instanceScale);
+    const slotAnchor = slot?.reactionAnchors?.[cfg.anchor === "screen" ? "topRight" : cfg.anchor];
+    const anchorOffset = slotAnchor
+      ? {x: slotAnchor.x * width, y: slotAnchor.y * height}
+      : reactionAnchorOffset(cfg.anchor, headOffset, instanceScale);
     const stageX = origin.x * width + anchorOffset.x + cfg.offsetX;
     const stageY = origin.y * height + anchorOffset.y + cfg.offsetY;
     x = transformValues ? transformValues.tx + stageX * transformValues.scale : stageX;

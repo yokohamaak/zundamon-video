@@ -687,7 +687,7 @@ def validate_scene_library_v2(data):
             if not isinstance(slot_id, str) or not slot_id or not isinstance(slot, dict):
                 _error(f"scenes.{scene_id}.slots", "slot IDとobjectが必要です")
             slot_path = f"scenes.{scene_id}.slots.{slot_id}"
-            _only_keys(slot, {"origin", "scale", "zIndex", "cameraPresetId", "allowOverlap", "previewCharacterId"}, slot_path)
+            _only_keys(slot, {"origin", "scale", "zIndex", "cameraPresetId", "allowOverlap", "reactionAnchors", "previewCharacterId"}, slot_path)
             _point(slot.get("origin"), f"scenes.{scene_id}.slots.{slot_id}.origin")
             if "scale" in slot and (not _is_number(slot["scale"]) or slot["scale"] <= 0):
                 _error(f"scenes.{scene_id}.slots.{slot_id}.scale", "0より大きい有限数値が必要です")
@@ -699,6 +699,13 @@ def validate_scene_library_v2(data):
                 not isinstance(slot["previewCharacterId"], str) or not slot["previewCharacterId"]
             ):
                 _error(f"scenes.{scene_id}.slots.{slot_id}.previewCharacterId", "省略または空でない文字列が必要です")
+            if "reactionAnchors" in slot:
+                anchors = slot["reactionAnchors"]
+                if not isinstance(anchors, dict):
+                    _error(f"{slot_path}.reactionAnchors", "objectである必要があります")
+                _only_keys(anchors, {"head", "topRight", "topLeft", "faceRight", "faceLeft"}, f"{slot_path}.reactionAnchors")
+                for anchor_name, point in anchors.items():
+                    _point(point, f"{slot_path}.reactionAnchors.{anchor_name}")
         presets = scene.get("cameraPresets", {})
         if not isinstance(presets, dict):
             _error(f"scenes.{scene_id}.cameraPresets", "objectが必要です")

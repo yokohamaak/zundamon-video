@@ -233,6 +233,19 @@
   }
   .anchor-dot:hover { transform: translate(-50%,-50%) scale(1.4); }
   .anchor-dot.dragging { cursor: grabbing; transform: translate(-50%,-50%) scale(1.5); }
+  .reaction-anchor-dot {
+    width: 18px; height: 18px;
+    background: rgba(251, 191, 36, .92);
+    border-color: #111827;
+    z-index: 142;
+  }
+  .reaction-anchor-dot::after { inset: -22px; }
+  .reaction-anchor-label {
+    font-size: 10px;
+    background: rgba(80, 55, 0, .78);
+    color: #fff8d5;
+    z-index: 143;
+  }
   .anchor-label {
     position: absolute;
     font-size: 11px; color: #fff;
@@ -739,6 +752,14 @@ const FULL_BOX_W = 445; // 全身の基準幅。render(StoryVideo.FULL_BOX_W)と
 // 全身キャンバス寸法（assets/avatars/<char>/full/_box.json と一致）。キャラ別アスペクトで高さを出す。
 const FULL_CANVAS = { zundamon: { w: 783, h: 1473 }, metan: { w: 858, h: 1769 } };
 const V2_SLOT_ORIGIN_BOUNDS = { xMin: -0.2, xMax: 1.2, yMin: -0.2, yMax: 1.4 };
+const V2_REACTION_ANCHOR_NAMES = ['head', 'topRight', 'topLeft', 'faceRight', 'faceLeft'];
+const V2_REACTION_ANCHOR_LABELS = {
+  head: '頭上',
+  topRight: '右上',
+  topLeft: '左上',
+  faceRight: '顔右',
+  faceLeft: '顔左',
+};
 function fullBoxSize(charId) {
   const c = FULL_CANVAS[charId];
   const h = c ? Math.round(FULL_BOX_W * (c.h / c.w)) : Math.round(FULL_BOX_W * 1.8);
@@ -812,6 +833,51 @@ function v2SlotGrabOffset(sc, slotId, slot) {
   const isFull = (sc.figure ?? 'bust') === 'full';
   const box = isFull ? fullBoxSize(charId) : { w: BUST_W, h: BUST_H };
   return (box.h * (slot?.scale ?? 1)) / (2 * STAGE_H);
+}
+
+function v2DefaultReactionAnchorOffset(sc, slot, anchorName) {
+  const charId = v2SlotPreviewCharacter(slot);
+  const mob = v2SlotPreviewMob(slot);
+  if (!charId && !mob) return null;
+  const scale = slot?.scale ?? 1;
+  const headOffset = charId
+    ? ((sc.figure ?? 'bust') === 'full' ? 900 : 590)
+    : 650;
+  const effectiveHead = headOffset * scale * (mob ? (mob.scale ?? 1) : 1);
+  switch (anchorName) {
+    case 'head':
+      return { x: 0, y: -effectiveHead / STAGE_H };
+    case 'topLeft':
+      return { x: (-132 * scale) / STAGE_W, y: (-effectiveHead * 0.96) / STAGE_H };
+    case 'faceRight':
+      return { x: (300 * scale) / STAGE_W, y: (-effectiveHead * 0.78) / STAGE_H };
+    case 'faceLeft':
+      return { x: (-300 * scale) / STAGE_W, y: (-effectiveHead * 0.78) / STAGE_H };
+    case 'topRight':
+    default:
+      return { x: (132 * scale) / STAGE_W, y: (-effectiveHead * 0.96) / STAGE_H };
+  }
+}
+
+function v2SlotReactionAnchorOffset(sc, slot, anchorName) {
+  const saved = slot?.reactionAnchors?.[anchorName];
+  if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) return saved;
+  return v2DefaultReactionAnchorOffset(sc, slot, anchorName);
+}
+
+function v2SlotReactionAnchorPoint(sc, slot, anchorName) {
+  const offset = v2SlotReactionAnchorOffset(sc, slot, anchorName);
+  if (!offset || !slot?.origin) return null;
+  return { x: slot.origin.x + offset.x, y: slot.origin.y + offset.y };
+}
+
+function v2SetSlotReactionAnchorPoint(slot, anchorName, x, y) {
+  if (!slot?.origin) return;
+  if (!slot.reactionAnchors || typeof slot.reactionAnchors !== 'object') slot.reactionAnchors = {};
+  slot.reactionAnchors[anchorName] = {
+    x: Math.round((x - slot.origin.x) * 1000) / 1000,
+    y: Math.round((y - slot.origin.y) * 1000) / 1000,
+  };
 }
 
 function cameraPresetKey(key = currentCameraFrameKey, sc = currentScene()) {
@@ -1543,7 +1609,16 @@ function buildSlotList() {
       else delete slot.allowOverlap;
     });
     overlapLabel.append(overlap, ' 重なり');
-    item.append(name, coords, preview, scale, zIndex, preset, overlapLabel);
+    const resetAnchors = document.createElement('button');
+    resetAnchors.type = 'button';
+    resetAnchors.className = 'btn btn-secondary btn-sm';
+    resetAnchors.textContent = '顔アンカー既定';
+    resetAnchors.title = 'このslotで調整した頭上/顔横アンカーを既定推定値へ戻します';
+    resetAnchors.addEventListener('click', () => {
+      delete slot.reactionAnchors;
+      renderPreview();
+    });
+    item.append(name, coords, preview, scale, zIndex, preset, overlapLabel, resetAnchors);
     container.appendChild(item);
   }
 }
@@ -1811,6 +1886,30 @@ function renderPreview() {
     dotLabel.style.top = (grabY * STAGE_H) + 'px';
     dotLabel.textContent = name + (charId ? ` (${charId})` : previewMob ? ` (mob:${previewMob.id})` : v2 ? ' (slot)' : '');
     stage.appendChild(dotLabel);
+
+    if (v2 && (charId || previewMob)) {
+      for (const anchorName of V2_REACTION_ANCHOR_NAMES) {
+        const point = v2SlotReactionAnchorPoint(sc, slot, anchorName);
+        if (!point) continue;
+        const rx = point.x * STAGE_W;
+        const ry = point.y * STAGE_H;
+        const reactionDot = document.createElement('div');
+        reactionDot.className = 'anchor-dot reaction-anchor-dot';
+        reactionDot.dataset.anchorName = name;
+        reactionDot.dataset.reactionAnchorName = anchorName;
+        reactionDot.style.left = rx + 'px';
+        reactionDot.style.top = ry + 'px';
+        reactionDot.title = `${name}: ${V2_REACTION_ANCHOR_LABELS[anchorName]}`;
+        stage.appendChild(reactionDot);
+
+        const reactionLabel = document.createElement('div');
+        reactionLabel.className = 'anchor-label reaction-anchor-label';
+        reactionLabel.style.left = rx + 'px';
+        reactionLabel.style.top = ry + 'px';
+        reactionLabel.textContent = V2_REACTION_ANCHOR_LABELS[anchorName];
+        stage.appendChild(reactionLabel);
+      }
+    }
   }
 
   // ── モブ描画（旧sceneだけ） ──
@@ -1925,7 +2024,11 @@ function setupDrag() {
     dot.classList.add('dragging');
     const sc = currentScene();
     const slot = isV2Scene(sc) ? v2Slots(sc)[name] : null;
-    dragging = { name, dot, v2GrabOffset: slot ? v2SlotGrabOffset(sc, name, slot) : 0 };
+    if (dot.dataset.reactionAnchorName && slot) {
+      dragging = { type: 'reactionAnchor', name, anchorName: dot.dataset.reactionAnchorName, dot };
+    } else {
+      dragging = { type: 'layoutPoint', name, dot, v2GrabOffset: slot ? v2SlotGrabOffset(sc, name, slot) : 0 };
+    }
   });
 
   window.addEventListener('pointermove', e => {
@@ -1995,6 +2098,15 @@ function setupDrag() {
     if (dragging) {
       const sc = currentScene();
       if (!sc) return;
+      if (dragging.type === 'reactionAnchor') {
+        const slot = v2Slots(sc)[dragging.name];
+        if (!slot) return;
+        const nx = sx / STAGE_W;
+        const ny = sy / STAGE_H;
+        v2SetSlotReactionAnchorPoint(slot, dragging.anchorName, nx, ny);
+        renderPreview();
+        return;
+      }
       if (isV2Scene(sc)) {
         const slot = v2Slots(sc)[dragging.name];
         if (!slot) return;
