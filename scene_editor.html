@@ -278,6 +278,10 @@
   .slider-hint { font-size: 11px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
   .toggle-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .toggle-row input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+  .camera-lock-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .camera-lock-row .toggle-row { font-size: 12px; color: var(--text); }
+  .camera-copy-row { display: flex; gap: 6px; align-items: center; }
+  .camera-copy-row .field-select { flex: 1; min-width: 0; }
 
   /* アンカー一覧 */
   .anchor-list { display: flex; flex-direction: column; gap: 6px; }
@@ -665,6 +669,22 @@
         <div class="slider-hint">使用中の構図は削除できません。slotの「構図」で割り当ててから台本のslot framingに使います。</div>
       </div>
       <div class="field-label" id="cameraFrameInfo">center(0.500, 0.500) / width 1.000</div>
+      <div class="field-row">
+        <label class="field-label">編集ロック（一時）</label>
+        <div class="camera-lock-row">
+          <label class="toggle-row"><input type="checkbox" id="cameraLockSize"> サイズ</label>
+          <label class="toggle-row"><input type="checkbox" id="cameraLockY"> 縦位置</label>
+          <label class="toggle-row"><input type="checkbox" id="cameraLockX"> 横位置</label>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-label">枠からコピー</label>
+        <div class="camera-copy-row">
+          <select class="field-select" id="cameraCopySource"></select>
+          <button class="btn btn-secondary btn-sm" id="btnCopyCameraFrameMetrics" type="button">サイズ/縦位置コピー</button>
+        </div>
+        <div class="slider-hint">コピー元の width と cy を、現在編集中の枠へ適用します。左右位置(cx)は変えません。</div>
+      </div>
       <div class="slider-hint" id="cameraFrameHint">default / leftFocus / rightFocus の3枠をシーン共通の構図として保存します。話者フォーカスONのターンでは、話者の立ち位置に応じて枠が切り替わります。</div>
     </div>
 
@@ -830,6 +850,40 @@ function syncV2CameraPresetUi(sc = currentScene()) {
   }
 }
 
+function cameraFrameKeysForCopy(sc = currentScene()) {
+  if (!sc) return [];
+  if (isV2Scene(sc)) {
+    ensureV2Layout(sc);
+    return sortedStrings(Object.keys(sc.cameraPresets || {}));
+  }
+  ensureCameraFrames(sc);
+  return ['default', 'leftFocus', 'rightFocus'];
+}
+
+function syncCameraCopySourceUi(sc = currentScene()) {
+  const select = document.getElementById('cameraCopySource');
+  if (!select || !sc) return;
+  const currentKey = cameraPresetKey(currentCameraFrameKey, sc);
+  const keys = cameraFrameKeysForCopy(sc).filter(key => cameraPresetKey(key, sc) !== currentKey);
+  const previous = select.value;
+  select.innerHTML = '';
+  for (const key of keys) {
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = key;
+    select.appendChild(option);
+  }
+  if (keys.includes(previous)) select.value = previous;
+  else {
+    const preferred = keys.find(key => /left/i.test(currentKey) && /right/i.test(key))
+      || keys.find(key => /right/i.test(currentKey) && /left/i.test(key))
+      || keys[0]
+      || '';
+    select.value = preferred;
+  }
+  document.getElementById('btnCopyCameraFrameMetrics').disabled = keys.length === 0;
+}
+
 function syncV2LayoutUi() {
   const v2 = isV2Scene();
   document.getElementById('legacyCameraModeRow').style.display = v2 ? 'none' : '';
@@ -863,6 +917,7 @@ function syncV2LayoutUi() {
       if (btn.dataset.cameraFrameKey === 'rightFocus') btn.textContent = 'rightFocus';
     });
   }
+  syncCameraCopySourceUi();
 }
 
 function compareUiText(a, b) {
@@ -985,6 +1040,32 @@ function setCameraFrameKey(key) {
   currentCameraFrameKey = isV2Scene(sc) ? cameraPresetKey(key, sc) : (key || 'default');
   if (sc) ensureCameraFrame(sc, currentCameraFrameKey);
   syncCameraFrameKeyUi();
+  syncCameraCopySourceUi(sc);
+  updateCameraFrameInfo();
+  applyStageTransform();
+  renderPreview();
+}
+
+function cameraFrameLockState() {
+  return {
+    size: !!document.getElementById('cameraLockSize')?.checked,
+    x: !!document.getElementById('cameraLockX')?.checked,
+    y: !!document.getElementById('cameraLockY')?.checked,
+  };
+}
+
+function copyCameraFrameMetrics() {
+  const sc = currentScene();
+  if (!sc) return;
+  const sourceKey = document.getElementById('cameraCopySource')?.value;
+  if (!sourceKey) return;
+  const source = normalizedCameraFrame(sc, sourceKey);
+  const target = ensureCameraFrame(sc, currentCameraFrameKey);
+  const width = source.width;
+  target.width = width;
+  target.cy = clampN(source.cy, width / 2, 1 - width / 2);
+  target.cx = clampN(target.cx, width / 2, 1 - width / 2);
+  if (!isV2Scene(sc) && currentCameraFrameKey === 'default') sc.cameraFrame = { ...target };
   updateCameraFrameInfo();
   applyStageTransform();
   renderPreview();
@@ -1791,11 +1872,12 @@ function setupDrag() {
     const handle = e.target.closest('.camera-frame-handle');
     if (handle) {
       e.preventDefault();
+      if (cameraFrameLockState().size) return;
       wrap.setPointerCapture?.(e.pointerId);
       const sc = currentScene();
       if (!sc) return;
       const frame = normalizedCameraFrame(sc);
-      draggingFrame = { mode: 'resize', left: frame.x, top: frame.y };
+      draggingFrame = { mode: 'resize', left: frame.x, top: frame.y, startCx: frame.cx, startCy: frame.cy, startWidth: frame.width };
       return;
     }
     // カメラ枠は広く重なるため、枠の下にいるモブを先に掴めるようにする。
@@ -1828,6 +1910,9 @@ function setupDrag() {
         mode: 'move',
         offsetX: sx / STAGE_W - frame.cx,
         offsetY: sy / STAGE_H - frame.cy,
+        startCx: frame.cx,
+        startCy: frame.cy,
+        startWidth: frame.width,
       };
       return;
     }
@@ -1857,16 +1942,23 @@ function setupDrag() {
       const sc = currentScene();
       if (!sc) return;
       const cameraFrame = ensureCameraFrame(sc, currentCameraFrameKey);
+      const locks = cameraFrameLockState();
       if (draggingFrame.mode === 'move') {
         const width = cameraFrame.width;
-        cameraFrame.cx = clampN(sx / STAGE_W - draggingFrame.offsetX, width / 2, 1 - width / 2);
-        cameraFrame.cy = clampN(sy / STAGE_H - draggingFrame.offsetY, width / 2, 1 - width / 2);
+        const nextCx = sx / STAGE_W - draggingFrame.offsetX;
+        const nextCy = sy / STAGE_H - draggingFrame.offsetY;
+        cameraFrame.cx = locks.x ? draggingFrame.startCx : clampN(nextCx, width / 2, 1 - width / 2);
+        cameraFrame.cy = locks.y ? draggingFrame.startCy : clampN(nextCy, width / 2, 1 - width / 2);
       } else {
         const maxWidth = Math.min(1 - draggingFrame.left, 1 - draggingFrame.top);
         const nextWidth = Math.max((sx / STAGE_W) - draggingFrame.left, (sy / STAGE_H) - draggingFrame.top);
-        cameraFrame.width = clampN(nextWidth, CAMERA_FRAME_MIN, Math.min(CAMERA_FRAME_MAX, maxWidth));
-        cameraFrame.cx = draggingFrame.left + cameraFrame.width / 2;
-        cameraFrame.cy = draggingFrame.top + cameraFrame.width / 2;
+        cameraFrame.width = locks.size ? draggingFrame.startWidth : clampN(nextWidth, CAMERA_FRAME_MIN, Math.min(CAMERA_FRAME_MAX, maxWidth));
+        cameraFrame.cx = locks.x
+          ? clampN(draggingFrame.startCx, cameraFrame.width / 2, 1 - cameraFrame.width / 2)
+          : draggingFrame.left + cameraFrame.width / 2;
+        cameraFrame.cy = locks.y
+          ? clampN(draggingFrame.startCy, cameraFrame.width / 2, 1 - cameraFrame.width / 2)
+          : draggingFrame.top + cameraFrame.width / 2;
       }
       if (!isV2Scene(sc) && currentCameraFrameKey === 'default') sc.cameraFrame = { ...cameraFrame };
       updateCameraFrameInfo();
@@ -2114,6 +2206,8 @@ function setupEvents() {
   document.getElementById('cameraFrameKey').addEventListener('change', e => {
     setCameraFrameKey(e.target.value);
   });
+
+  document.getElementById('btnCopyCameraFrameMetrics').addEventListener('click', copyCameraFrameMetrics);
 
   for (const btn of document.querySelectorAll('[data-camera-frame-key]')) {
     btn.addEventListener('click', () => setCameraFrameKey(btn.dataset.cameraFrameKey));
