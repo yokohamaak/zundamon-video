@@ -9116,7 +9116,7 @@ function v2StateAt(index, includeCurrent = true) {
   return state;
 }
 
-function v2TurnOrderError(script) {
+function v2TurnOrderIssue(script) {
   let sceneId = null;
   const present = new Set();
   for (let index = 0; index < script.length; index += 1) {
@@ -9127,22 +9127,68 @@ function v2TurnOrderError(script) {
     }
     const stage = turn.stage || {};
     for (const item of stage.enter || []) {
-      if (present.has(item.instanceId)) return `${index + 1}ターン目で、すでに在席中の ${v2InstanceDisplayName(item.instanceId)} を再び登場させています。`;
+      if (present.has(item.instanceId)) return { index, kind: "enter", instanceId: item.instanceId };
       present.add(item.instanceId);
     }
     for (const item of stage.exit || []) {
       const instanceId = v2ExitItemId(item);
-      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${v2InstanceDisplayName(instanceId)} を退場させています。`;
+      if (!present.has(instanceId)) return { index, kind: "exit", instanceId };
       present.delete(instanceId);
     }
     for (const instanceId of [...Object.keys(stage.update || {}), ...(stage.reset || [])]) {
-      if (!present.has(instanceId)) return `${index + 1}ターン目で、在席していない ${v2InstanceDisplayName(instanceId)} の状態を変更しています。`;
+      if (!present.has(instanceId)) return { index, kind: "update", instanceId };
     }
     if (stage.framing?.mode === "speaker" && !present.has(turn.speaker)) {
-      return `${index + 1}ターン目の「話者を主役にする」構図では、話者 ${v2InstanceDisplayName(turn.speaker)} が在席している必要があります。`;
+      return { index, kind: "framing", instanceId: turn.speaker };
     }
   }
-  return "";
+  return null;
+}
+
+function v2TurnOrderError(script) {
+  const issue = v2TurnOrderIssue(script);
+  if (!issue) return "";
+  const name = v2InstanceDisplayName(issue.instanceId);
+  const no = issue.index + 1;
+  if (issue.kind === "enter") return `${no}ターン目で、すでに在席中の ${name} を再び登場させています。`;
+  if (issue.kind === "exit") return `${no}ターン目で、在席していない ${name} を退場させています。`;
+  if (issue.kind === "update") return `${no}ターン目で、在席していない ${name} の状態を変更しています。`;
+  return `${no}ターン目の「話者を主役にする」構図では、話者 ${name} が在席している必要があります。`;
+}
+
+// 検証は削除後の台本に対して行うため、そのままの番号だと画面表示とズレる。
+// 削除前の番号に換算し、どのターンのイベントを先に直せばよいか誘導する。
+function v2DeleteBlockMessage(originalScript, deletedIndices, issue) {
+  const sorted = [...deletedIndices].sort((a, b) => a - b);
+  let origIdx = issue.index;
+  for (const d of sorted) {
+    if (d <= origIdx) origIdx += 1;
+  }
+  const name = v2InstanceDisplayName(issue.instanceId);
+  const no = origIdx + 1;
+  const findDeletedWith = (key, matcher) => sorted.find((d) => ((originalScript[d]?.stage || {})[key] || []).some(matcher));
+  if (issue.kind === "enter") {
+    const src = findDeletedWith("exit", (item) => v2ExitItemId(item) === issue.instanceId);
+    if (src !== undefined) {
+      return `削除するターン${src + 1}に ${name} の退場イベントが含まれているため、ターン${no}の登場と矛盾します。\n先にターン${no}の ${name} の登場を取り消すか、退場イベントを別のターンへ移してから削除してください。`;
+    }
+    return `削除するとターン${no}で、すでに在席中の ${name} を再び登場させることになります。先にターン${no}の ${name} の登場を取り消してください。`;
+  }
+  const problem = issue.kind === "exit"
+    ? `ターン${no}で、在席していない ${name} を退場させることになります`
+    : issue.kind === "update"
+      ? `ターン${no}で、在席していない ${name} の状態を変更することになります`
+      : `ターン${no}の「話者を主役にする」構図で、話者 ${name} が不在になります`;
+  const fix = issue.kind === "exit"
+    ? `先にターン${no}の ${name} の退場を取り消す`
+    : issue.kind === "update"
+      ? `先にターン${no}の ${name} の状態変更（変更/リセット）を取り消す`
+      : `先にターン${no}の構図設定を解除する`;
+  const enterSrc = findDeletedWith("enter", (item) => item.instanceId === issue.instanceId);
+  if (enterSrc !== undefined) {
+    return `削除するターン${enterSrc + 1}に ${name} の登場イベントが含まれているため、${problem}。\n${fix}か、登場イベントを別のターンへ移してから削除してください。`;
+  }
+  return `削除すると${problem}。${fix}と削除できます。`;
 }
 
 function v2ApplyTurnOrderChange(candidate, nextSelectedIdx, audioChanged = false) {
@@ -9383,9 +9429,9 @@ function bulkDeleteSelectedTurns() {
     for (const idx of [...targets].sort((a, b) => b - a)) {
       candidate.script.splice(idx, 1);
     }
-    const error = v2TurnOrderError(candidate.script);
-    if (error) {
-      alert(`選択ターンを削除するとV2の舞台状態が壊れるため、削除しません。\n${error}`);
+    const issue = v2TurnOrderIssue(candidate.script);
+    if (issue) {
+      alert(`選択ターンを削除するとV2の舞台状態が壊れるため、削除しません。\n${v2DeleteBlockMessage(storyData.script, targets, issue)}`);
       return;
     }
     if (!confirm(`${targets.length}件のターンを削除しますか？`)) return;
@@ -13700,6 +13746,11 @@ function deleteTurn() {
     }
     const candidate = v2Clone(storyData);
     candidate.script.splice(selectedIdx, 1);
+    const issue = v2TurnOrderIssue(candidate.script);
+    if (issue) {
+      alert(`このターンを削除するとV2の舞台状態が壊れるため、削除しません。\n${v2DeleteBlockMessage(storyData.script, [selectedIdx], issue)}`);
+      return;
+    }
     const nextIdx = Math.min(selectedIdx, candidate.script.length - 1);
     v2ApplyTurnOrderChange(candidate, nextIdx, true);
     return;
