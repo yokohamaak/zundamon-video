@@ -408,6 +408,9 @@ def test_prompt_v2_mentions_v2_contract():
     # 旧形式キーは「禁止リスト」としてだけ登場し、使い方としては案内しない。
     for legacy in ('"focusSpeaker": true', '"speakerAnchor":', '"telop":', '"enterDir":', '"insert":'):
         assert legacy not in prompt, f"旧形式の使い方 {legacy} がV2プロンプトに残っている"
+    for newline_instruction in ("12〜22文字程度ごと", "text 内で改行する", 'text に "\\n" を入れる'):
+        assert newline_instruction not in prompt, f"text内改行を促す文言がV2プロンプトに残っている: {newline_instruction}"
+    assert "text 内に改行" in prompt and 'text に "\\n" を入れない' in prompt
     print("  V2プロンプトがV2契約を案内し旧形式を案内しない: OK")
 
 
