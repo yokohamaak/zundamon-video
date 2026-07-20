@@ -845,9 +845,9 @@ function reactionAnchorOffset(anchor: ReturnType<typeof stageReactionMarkConfig>
     case "topLeft":
       return {x: -132 * scale, y: -headOffset * 0.96 * scale};
     case "faceRight":
-      return {x: 170 * scale, y: -headOffset * 0.58 * scale};
+      return {x: 300 * scale, y: -headOffset * 0.78 * scale};
     case "faceLeft":
-      return {x: -170 * scale, y: -headOffset * 0.58 * scale};
+      return {x: -300 * scale, y: -headOffset * 0.78 * scale};
     case "topRight":
     default:
       return {x: 132 * scale, y: -headOffset * 0.96 * scale};
