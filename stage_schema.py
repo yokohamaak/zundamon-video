@@ -234,7 +234,7 @@ def _caption(value, path):
 def _stage_effects(value, path):
     if not isinstance(value, dict):
         _error(path, "objectである必要があります")
-    _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze", "flashback", "visionNoise", "irisOut", "voiceLines"}, path)
+    _only_keys(value, {"impactLines", "zoomPunch", "quoteFreeze", "flashback", "visionNoise", "irisOut", "voiceLines", "reactionMark"}, path)
     specs = {
         "flashback": {
             "keys": {"enabled"},
@@ -275,6 +275,13 @@ def _stage_effects(value, path):
                 "length": (24, 240), "gap": (8, 90), "thickness": (1, 16),
             },
         },
+        "reactionMark": {
+            "keys": {"enabled", "targetId", "mark", "anchor", "x", "y", "offsetX", "offsetY", "size", "rotation", "duration", "motion", "color", "start", "end"},
+            "ranges": {
+                "x": (0, 1), "y": (0, 1), "offsetX": (-600, 600), "offsetY": (-600, 600),
+                "size": (40, 260), "rotation": (-45, 45), "duration": (0.1, 4), "start": (0, 8), "end": (0, 8),
+            },
+        },
     }
     for key, spec in specs.items():
         if key not in value:
@@ -298,6 +305,17 @@ def _stage_effects(value, path):
             _error(f"{item_path}.side", "left/right のいずれかが必要です")
         if key == "voiceLines" and "color" in item:
             _hex(item["color"], f"{item_path}.color")
+        if key == "reactionMark":
+            if "targetId" in item and not isinstance(item["targetId"], str):
+                _error(f"{item_path}.targetId", "文字列が必要です")
+            if "mark" in item and (not isinstance(item["mark"], str) or not item["mark"].strip() or len(item["mark"]) > 8):
+                _error(f"{item_path}.mark", "1〜8文字の文字列が必要です")
+            if "anchor" in item and item["anchor"] not in {"head", "topRight", "topLeft", "faceRight", "faceLeft", "screen"}:
+                _error(f"{item_path}.anchor", "head/topRight/topLeft/faceRight/faceLeft/screen のいずれかが必要です")
+            if "motion" in item and item["motion"] not in {"pop", "bounce", "shake", "none"}:
+                _error(f"{item_path}.motion", "pop/bounce/shake/none のいずれかが必要です")
+            if "color" in item:
+                _hex(item["color"], f"{item_path}.color")
         for param, bounds in spec["ranges"].items():
             if param not in item:
                 continue

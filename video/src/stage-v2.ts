@@ -105,6 +105,22 @@ export type VoiceLinesEffectV2 = {
   thickness?: number;
   color?: string;
 };
+export type ReactionMarkEffectV2 = {
+  targetId?: string;
+  mark?: string;
+  anchor?: "head" | "topRight" | "topLeft" | "faceRight" | "faceLeft" | "screen";
+  x?: number;
+  y?: number;
+  offsetX?: number;
+  offsetY?: number;
+  size?: number;
+  rotation?: number;
+  duration?: number;
+  motion?: "pop" | "bounce" | "shake" | "none";
+  color?: string;
+  start?: number;
+  end?: number;
+};
 export type StageEffectsV2 = {
   impactLines?: EffectToggleV2<ImpactLinesEffectV2>;
   zoomPunch?: EffectToggleV2<ZoomPunchEffectV2>;
@@ -113,6 +129,7 @@ export type StageEffectsV2 = {
   visionNoise?: EffectToggleV2<VisionNoiseEffectV2>;
   irisOut?: EffectToggleV2<IrisOutEffectV2>;
   voiceLines?: EffectToggleV2<VoiceLinesEffectV2>;
+  reactionMark?: EffectToggleV2<ReactionMarkEffectV2>;
 };
 
 export type WhiteboardDisplayV2 = {

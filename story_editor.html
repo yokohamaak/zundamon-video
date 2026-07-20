@@ -1686,6 +1686,7 @@
         <option value="quoteFreeze">引用止め</option>
         <option value="irisOut">アイリスアウト</option>
         <option value="voiceLines">発声線</option>
+        <option value="reactionMark">リアクションマーク</option>
       </select>
       <button class="btn btn-secondary btn-sm" id="btnV2BulkEffectOn">ON適用</button>
       <button class="btn btn-secondary btn-sm" id="btnV2BulkEffectOff">解除</button>
@@ -1980,6 +1981,7 @@
                 <label class="toggle-row"><input type="checkbox" id="fV2VisionNoise"> <span>ノイズ</span></label>
                 <label class="toggle-row"><input type="checkbox" id="fV2IrisOut"> <span>アイリスアウト</span></label>
                 <label class="toggle-row"><input type="checkbox" id="fV2VoiceLines"> <span>発声線</span></label>
+                <label class="toggle-row"><input type="checkbox" id="fV2ReactionMark"> <span>リアクションマーク</span></label>
               </div>
               <div id="v2EffectParams" style="display:none; width:100%; margin-top:10px;"></div>
               <div class="field-help">V2用の軽量演出です。旧方式のturn直下キーではなく、effectsとして保存します。</div>
@@ -3147,6 +3149,15 @@ const EFFECT_SETTING_SPECS = [
   { group: "voiceLines", label: "発声線 速度", key: "speed", min: 0.5, max: 8, step: 0.1, defaultValue: 2.2, digits: 1 },
   { group: "voiceLines", label: "発声線 開始秒", key: "start", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
   { group: "voiceLines", label: "発声線 終了秒（0=自動）", key: "end", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
+  { group: "reactionMark", label: "リアクション X", key: "x", min: 0, max: 1, step: 0.01, defaultValue: 0.5, digits: 2 },
+  { group: "reactionMark", label: "リアクション Y", key: "y", min: 0, max: 1, step: 0.01, defaultValue: 0.3, digits: 2 },
+  { group: "reactionMark", label: "リアクション オフセットX", key: "offsetX", min: -600, max: 600, step: 4, defaultValue: 0, digits: 0, unit: "px" },
+  { group: "reactionMark", label: "リアクション オフセットY", key: "offsetY", min: -600, max: 600, step: 4, defaultValue: 0, digits: 0, unit: "px" },
+  { group: "reactionMark", label: "リアクション サイズ", key: "size", min: 40, max: 260, step: 4, defaultValue: 120, digits: 0, unit: "px" },
+  { group: "reactionMark", label: "リアクション 角度", key: "rotation", min: -45, max: 45, step: 1, defaultValue: -8, digits: 0, unit: "度" },
+  { group: "reactionMark", label: "リアクション 表示秒", key: "duration", min: 0.1, max: 4, step: 0.05, defaultValue: 0.85, digits: 2, unit: "秒" },
+  { group: "reactionMark", label: "リアクション 開始秒", key: "start", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
+  { group: "reactionMark", label: "リアクション 終了秒（0=自動）", key: "end", min: 0, max: 8, step: 0.05, defaultValue: 0, digits: 2, unit: "秒" },
   { group: "visionNoise", label: "ノイズ量", key: "strength", min: 0, max: 1, step: 0.01, defaultValue: 0.68, digits: 2 },
   { group: "visionNoise", label: "走査線", key: "scanline", min: 0, max: 1, step: 0.01, defaultValue: 0.78, digits: 2 },
   { group: "visionNoise", label: "グリッチ", key: "glitch", min: 0, max: 1, step: 0.01, defaultValue: 0.36, digits: 2 },
@@ -3168,6 +3179,10 @@ const CAMERA_EFFECT_SETTING_SPECS = [
 // 上記スライダー群では表現できないirisOut専用の色設定（別途カラーピッカーで扱う）。
 const IRIS_OUT_DEFAULT_COLOR = "#000000";
 const VOICE_LINES_SIDES = [["right", "右画像"], ["left", "左画像"]];
+const REACTION_MARK_PRESETS = [["!", "！"], ["?", "？"], ["!?", "！？"], ["汗", "汗"], ["怒り", "怒り"], ["ハート", "ハート"], ["zzz", "zzz"], ["ひらめき", "ひらめき"]];
+const REACTION_MARK_ANCHORS = [["topRight", "右上"], ["topLeft", "左上"], ["head", "頭上"], ["faceRight", "顔の右"], ["faceLeft", "顔の左"], ["screen", "画面座標"]];
+const REACTION_MARK_MOTIONS = [["pop", "ポップ"], ["bounce", "バウンド"], ["shake", "ぷるぷる"], ["none", "なし"]];
+const REACTION_MARK_DEFAULT_COLOR = "#facc15";
 const VISION_NOISE_DEFAULT_TINT = "#7dd3fc";
 const VISION_NOISE_TYPES = [
   ["future", "未来視"],
@@ -8143,6 +8158,7 @@ function renderList() {
     if (turn.effects?.zoomPunch || turn.zoomPunch) badges.appendChild(makeBadge("ズームパンチ", "fx"));
     if (turn.effects?.quoteFreeze || turn.quoteFreeze) badges.appendChild(makeBadge("引用止め", "fx"));
     if (turn.effects?.voiceLines) badges.appendChild(makeBadge("発声線", "fx"));
+    if (turn.effects?.reactionMark) badges.appendChild(makeBadge("リアクション", "fx"));
     if (turn.stampRain) badges.appendChild(makeBadge("スタンプ雨", "fx"));
     if (turn.typingFlood) badges.appendChild(makeBadge("通知洪水", "fx"));
     if (turn.sparkleBurst) badges.appendChild(makeBadge("キラッ", "fx"));
@@ -8774,6 +8790,7 @@ function collectBasicSummaryChips(turn) {
   if (turn.effects?.zoomPunch || turn.zoomPunch) effectLabels.push("ズームパンチ");
   if (turn.effects?.quoteFreeze || turn.quoteFreeze) effectLabels.push("引用止め");
   if (turn.effects?.voiceLines) effectLabels.push("発声線");
+  if (turn.effects?.reactionMark) effectLabels.push("リアクション");
   if (turn.typingFlood) effectLabels.push("通知洪水");
   if (turn.sparkleBurst) effectLabels.push("キラッ");
   if (turn.irisOut) effectLabels.push("アイリスアウト");
@@ -10665,6 +10682,7 @@ const V2_EFFECT_GROUPS = {
   visionNoise: { checkboxId: "fV2VisionNoise", title: "ノイズ" },
   irisOut: { checkboxId: "fV2IrisOut", title: "アイリスアウト" },
   voiceLines: { checkboxId: "fV2VoiceLines", title: "発声線" },
+  reactionMark: { checkboxId: "fV2ReactionMark", title: "リアクションマーク" },
 };
 const V2_EFFECT_SPEC_KEYS = {
   impactLines: new Set(["cx", "cy", "count", "thickness", "opacity", "innerRadius", "start", "end"]),
@@ -10674,6 +10692,7 @@ const V2_EFFECT_SPEC_KEYS = {
   visionNoise: new Set(["strength", "scanline", "glitch", "flicker"]),
   irisOut: new Set(["cx", "cy", "startRadius", "closeStart", "closeEnd"]),
   voiceLines: new Set(["x", "y", "size", "motion", "rotation", "opacity", "speed", "start", "end"]),
+  reactionMark: new Set(["x", "y", "offsetX", "offsetY", "size", "rotation", "duration", "start", "end"]),
 };
 
 function v2EffectSpecs(group) {
@@ -10713,6 +10732,8 @@ function armV2EffectPositionPick(turn, group, label) {
     const yInput = document.getElementById(v2EffectInputId(group, yKey));
     if (xInput) xInput.value = x.toFixed(2);
     if (yInput) yInput.value = y.toFixed(2);
+    const anchorInput = document.getElementById(v2EffectInputId(group, "anchor"));
+    if (group === "reactionMark" && anchorInput) anchorInput.value = "screen";
     const checkboxId = V2_EFFECT_GROUPS[group]?.checkboxId;
     if (checkboxId) document.getElementById(checkboxId).checked = true;
     collectV2Basic();
@@ -10729,7 +10750,9 @@ function collectV2EffectsFromUi() {
     const checkbox = document.getElementById(meta.checkboxId);
     if (!checkbox?.checked) continue;
     const config = { enabled: true };
+    const reactionAnchor = group === "reactionMark" ? document.getElementById("fV2Effect_reactionMark_anchor")?.value : "";
     for (const spec of v2EffectSpecs(group)) {
+      if (group === "reactionMark" && (spec.key === "x" || spec.key === "y") && reactionAnchor !== "screen") continue;
       const input = document.getElementById(v2EffectInputId(group, spec.key));
       const rawValue = input?.value;
       const parsed = Number(rawValue);
@@ -10751,6 +10774,18 @@ function collectV2EffectsFromUi() {
     if (group === "voiceLines") {
       const side = document.getElementById("fV2Effect_voiceLines_side");
       if (side?.value) config.side = side.value;
+    }
+    if (group === "reactionMark") {
+      const targetId = document.getElementById("fV2Effect_reactionMark_targetId");
+      if (targetId?.value) config.targetId = targetId.value;
+      const mark = document.getElementById("fV2Effect_reactionMark_mark");
+      if (mark?.value.trim()) config.mark = mark.value.trim().slice(0, 8);
+      const anchor = document.getElementById("fV2Effect_reactionMark_anchor");
+      if (anchor?.value) config.anchor = anchor.value;
+      const motion = document.getElementById("fV2Effect_reactionMark_motion");
+      if (motion?.value) config.motion = motion.value;
+      const color = document.getElementById("fV2Effect_reactionMark_color");
+      if (color?.value) config.color = color.value;
     }
     effects[group] = config;
   }
@@ -10835,6 +10870,90 @@ function appendV2VoiceLinesControls(card, params) {
   card.appendChild(row);
 }
 
+function appendV2ReactionMarkControls(card, params) {
+  const row = document.createElement("div");
+  row.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;";
+
+  const targetLabel = document.createElement("label");
+  targetLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const targetText = document.createElement("span");
+  targetText.textContent = "対象";
+  const target = document.createElement("select");
+  target.className = "field-select";
+  target.id = "fV2Effect_reactionMark_targetId";
+  v2Option(target, "", "現在の話者");
+  for (const [id, definition] of Object.entries(storyData?.instances || {})) {
+    if (definition?.role !== "voiceOnly") v2Option(target, id, v2InstanceDisplayName(id, definition));
+  }
+  target.value = params.targetId || "";
+  target.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  targetLabel.append(targetText, target);
+
+  const markLabel = document.createElement("label");
+  markLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const markText = document.createElement("span");
+  markText.textContent = "マーク";
+  const mark = document.createElement("input");
+  mark.className = "field-input";
+  mark.id = "fV2Effect_reactionMark_mark";
+  mark.setAttribute("list", "reactionMarkPresetList");
+  mark.maxLength = 8;
+  mark.value = params.mark || "!";
+  mark.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  markLabel.append(markText, mark);
+
+  if (!document.getElementById("reactionMarkPresetList")) {
+    const datalist = document.createElement("datalist");
+    datalist.id = "reactionMarkPresetList";
+    for (const [value, label] of REACTION_MARK_PRESETS) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.label = label;
+      datalist.appendChild(option);
+    }
+    document.body.appendChild(datalist);
+  }
+
+  const anchorLabel = document.createElement("label");
+  anchorLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const anchorText = document.createElement("span");
+  anchorText.textContent = "位置基準";
+  const anchor = document.createElement("select");
+  anchor.className = "field-select";
+  anchor.id = "fV2Effect_reactionMark_anchor";
+  for (const [value, label] of REACTION_MARK_ANCHORS) v2Option(anchor, value, label);
+  anchor.value = params.anchor || ((params.x != null && params.y != null) ? "screen" : "topRight");
+  anchor.addEventListener("change", () => { collectV2Basic(); renderV2EffectParams(storyData.script[selectedIdx]); notifyPlayerUpdate(); });
+  anchorLabel.append(anchorText, anchor);
+
+  const motionLabel = document.createElement("label");
+  motionLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const motionText = document.createElement("span");
+  motionText.textContent = "動き";
+  const motion = document.createElement("select");
+  motion.className = "field-select";
+  motion.id = "fV2Effect_reactionMark_motion";
+  for (const [value, label] of REACTION_MARK_MOTIONS) v2Option(motion, value, label);
+  motion.value = params.motion || "pop";
+  motion.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  motionLabel.append(motionText, motion);
+
+  const colorLabel = document.createElement("label");
+  colorLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const colorText = document.createElement("span");
+  colorText.textContent = "色";
+  const color = document.createElement("input");
+  color.type = "color";
+  color.className = "color-picker";
+  color.id = "fV2Effect_reactionMark_color";
+  color.value = normalizeHexColor(params.color || REACTION_MARK_DEFAULT_COLOR, REACTION_MARK_DEFAULT_COLOR);
+  color.addEventListener("input", () => { collectV2Basic(); notifyPlayerUpdate(); });
+  colorLabel.append(colorText, color);
+
+  row.append(targetLabel, markLabel, anchorLabel, motionLabel, colorLabel);
+  card.appendChild(row);
+}
+
 function renderV2EffectParams(turn) {
   const container = document.getElementById("v2EffectParams");
   if (!container) return;
@@ -10861,12 +10980,17 @@ function renderV2EffectParams(turn) {
       appendV2EffectPositionButton(card, turn, group, meta.title);
       appendV2VoiceLinesControls(card, params);
     }
+    if (group === "reactionMark") {
+      appendV2EffectPositionButton(card, turn, group, meta.title);
+      appendV2ReactionMarkControls(card, params);
+    }
     if (group === "visionNoise") appendV2VisionNoiseControls(card, params);
     if (group === "irisOut") {
       appendV2EffectPositionButton(card, turn, group, meta.title);
       appendV2IrisOutColorControl(card, params);
     }
     for (const spec of v2EffectSpecs(group)) {
+      if (group === "reactionMark" && (spec.key === "x" || spec.key === "y") && (params.anchor || ((params.x != null && params.y != null) ? "screen" : "topRight")) !== "screen") continue;
       const label = document.createElement("label");
       label.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
       const text = document.createElement("span");
@@ -10937,6 +11061,7 @@ function renderV2Detail(turn) {
   document.getElementById("fV2VisionNoise").checked = v2EffectIsEnabled(effects.visionNoise);
   document.getElementById("fV2IrisOut").checked = v2EffectIsEnabled(effects.irisOut);
   document.getElementById("fV2VoiceLines").checked = v2EffectIsEnabled(effects.voiceLines);
+  document.getElementById("fV2ReactionMark").checked = v2EffectIsEnabled(effects.reactionMark);
   renderV2EffectParams(turn);
   const sceneSelect = document.getElementById("fV2Scene");
   sceneSelect.innerHTML = "";
@@ -14922,7 +15047,7 @@ function setupEvents() {
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FramedStageBackground", "fV2FramedStageX", "fV2FramedStageY", "fV2FramedStageWidth", "fV2FramedStageTransition",
     "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
-    "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut", "fV2VoiceLines",
+    "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut", "fV2VoiceLines", "fV2ReactionMark",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration", "fV2MotionInherit",
     "fV2WhiteboardPresenter", "fV2WhiteboardTitle", "fV2WhiteboardTheme", "fV2WhiteboardHeading0", "fV2WhiteboardHeading1", "fV2WhiteboardHeading2",
     "fV2WhiteboardBullets0", "fV2WhiteboardBullets1", "fV2WhiteboardBullets2", "fV2WhiteboardConclusion", "fV2WhiteboardLayout",

@@ -70,6 +70,7 @@ const DEFAULT_STAGE_EFFECT_SETTINGS = {
   visionNoise: {type: "future" as "future" | "snow" | "vhs" | "glitch", strength: 0.68, scanline: 0.78, glitch: 0.36, flicker: 0.42, tint: "#7dd3fc"},
   irisOut: {cx: 0.5, cy: 0.5, startRadius: 1.05, color: "#000000", closeStart: 1.7, closeEnd: 2.0},
   voiceLines: {x: 0.5, y: 0.5, side: "right" as "left" | "right", size: 220, motion: 16, rotation: 0, opacity: 0.95, speed: 2.2, start: 0, end: 0},
+  reactionMark: {targetId: "", mark: "!", anchor: "topRight" as "head" | "topRight" | "topLeft" | "faceRight" | "faceLeft" | "screen", x: -1, y: -1, offsetX: 0, offsetY: 0, size: 120, rotation: -8, duration: 0.85, motion: "pop" as "pop" | "bounce" | "shake" | "none", color: "", start: 0, end: 0},
 };
 const VOICE_LINES_ASSET = {
   left: "effects/voice_bubble_left.png",
@@ -323,6 +324,35 @@ function stageVoiceLinesConfig(raw: unknown) {
     rotation: number("rotation", base.rotation),
     opacity: number("opacity", base.opacity),
     speed: number("speed", base.speed),
+    start: number("start", base.start),
+    end: number("end", base.end),
+  };
+}
+
+function stageReactionMarkConfig(raw: unknown) {
+  const base = DEFAULT_STAGE_EFFECT_SETTINGS.reactionMark;
+  if (!raw || typeof raw !== "object") return base;
+  const data = raw as Record<string, unknown>;
+  const number = (key: string, fallback: number) => Number.isFinite(Number(data[key])) ? Number(data[key]) : fallback;
+  const anchor = data.anchor === "head" || data.anchor === "topRight" || data.anchor === "topLeft" || data.anchor === "faceRight" || data.anchor === "faceLeft" || data.anchor === "screen"
+    ? data.anchor
+    : base.anchor;
+  const motion = data.motion === "bounce" || data.motion === "shake" || data.motion === "none" || data.motion === "pop"
+    ? data.motion
+    : base.motion;
+  return {
+    targetId: typeof data.targetId === "string" ? data.targetId : base.targetId,
+    mark: typeof data.mark === "string" && data.mark.trim() ? data.mark.trim().slice(0, 8) : base.mark,
+    anchor,
+    x: number("x", base.x),
+    y: number("y", base.y),
+    offsetX: number("offsetX", base.offsetX),
+    offsetY: number("offsetY", base.offsetY),
+    size: number("size", base.size),
+    rotation: number("rotation", base.rotation),
+    duration: number("duration", base.duration),
+    motion,
+    color: typeof data.color === "string" ? data.color : base.color,
     start: number("start", base.start),
     end: number("end", base.end),
   };
@@ -779,6 +809,143 @@ const V2OverlayLayer: React.FC<{overlays: StoryOverlay[]}> = ({overlays}) => {
   </AbsoluteFill>;
 };
 
+const REACTION_MARK_GLYPHS: Record<string, string> = {
+  "!": "!",
+  "！": "!",
+  "?": "?",
+  "？": "?",
+  "!?": "!?",
+  "！？": "!?",
+  "汗": "💧",
+  "怒り": "💢",
+  "怒": "💢",
+  "ハート": "♡",
+  "zzz": "zzz",
+  "ひらめき": "💡",
+};
+
+function reactionMarkText(mark: string) {
+  return REACTION_MARK_GLYPHS[mark] || mark;
+}
+
+function reactionMarkColor(mark: string, rawColor: string) {
+  if (rawColor) return validHex(rawColor, "#facc15");
+  if (mark.includes("?") || mark.includes("？")) return "#60a5fa";
+  if (mark.includes("汗")) return "#38bdf8";
+  if (mark.includes("怒")) return "#fb7185";
+  if (mark.includes("ハート")) return "#fb7185";
+  if (mark.includes("ひらめき")) return "#fde047";
+  return "#facc15";
+}
+
+function reactionAnchorOffset(anchor: ReturnType<typeof stageReactionMarkConfig>["anchor"], headOffset: number, scale: number) {
+  switch (anchor) {
+    case "head":
+      return {x: 0, y: -headOffset * scale};
+    case "topLeft":
+      return {x: -132 * scale, y: -headOffset * 0.96 * scale};
+    case "faceRight":
+      return {x: 170 * scale, y: -headOffset * 0.58 * scale};
+    case "faceLeft":
+      return {x: -170 * scale, y: -headOffset * 0.58 * scale};
+    case "topRight":
+    default:
+      return {x: 132 * scale, y: -headOffset * 0.96 * scale};
+  }
+}
+
+const V2ReactionMarkLayer: React.FC<{
+  turn: StageTurnV2;
+  state: ReturnType<typeof resolveStageStateAtTurn>;
+  scene: SceneLibraryV2["scenes"][string];
+  elapsed: number;
+  progress: number;
+  width: number;
+  height: number;
+  transformValues?: ReturnType<typeof stageTransformValues>;
+  mobs?: MobsMap;
+}> = ({turn, state, scene, elapsed, progress, width, height, transformValues, mobs}) => {
+  const raw = turn.effects?.reactionMark;
+  if (!stageEffectEnabled(raw) || turn.hideCharacters) return null;
+  const cfg = stageReactionMarkConfig(raw);
+  const start = Math.max(0, cfg.start);
+  const end = Math.max(0, cfg.end);
+  const duration = Math.max(0.1, cfg.duration);
+  const hasManualWindow = end > start;
+  const visible = hasManualWindow ? elapsed >= start && elapsed < end : elapsed >= start && elapsed < start + duration;
+  if (!visible) return null;
+  const localElapsed = Math.max(0, elapsed - start);
+  const localProgress = hasManualWindow
+    ? clamp(localElapsed / Math.max(end - start, 0.001), 0, 1)
+    : clamp(localElapsed / duration, 0, 1);
+  let x: number | undefined;
+  let y: number | undefined;
+  if (cfg.x >= 0 && cfg.y >= 0) {
+    x = clamp(cfg.x, 0, 1) * width;
+    y = clamp(cfg.y, 0, 1) * height;
+  } else {
+    const targetId = cfg.targetId || turn.speaker;
+    const instance = state.instances[targetId];
+    if (!instance?.visible || !isStandardDisplayMode(state.displayMode.kind)) return null;
+    const origin = placementOrigin(instance.placement, scene.layouts.standard);
+    if (!origin) return null;
+    const slot = instance.placement.mode === "slot" ? scene.layouts.standard.slots[instance.placement.slotId] : undefined;
+    const instanceScale = instance.placement.mode === "manual"
+      ? instance.placement.scale ?? 1
+      : slot?.scale ?? 1;
+    const characterId = instance.definition.characterId;
+    const mobScale = characterId ? mobs?.[characterId]?.scale ?? 1 : 1;
+    const headOffset = MAIN_CHARACTERS[characterId || ""]
+      ? (scene.figure === "full" ? 900 : 590)
+      : 650 * mobScale;
+    const anchorOffset = reactionAnchorOffset(cfg.anchor, headOffset, instanceScale);
+    const stageX = origin.x * width + anchorOffset.x + cfg.offsetX;
+    const stageY = origin.y * height + anchorOffset.y + cfg.offsetY;
+    x = transformValues ? transformValues.tx + stageX * transformValues.scale : stageX;
+    y = transformValues ? transformValues.ty + stageY * transformValues.scale : stageY;
+  }
+  const popIn = easeOutCubic(clamp(localProgress / 0.28, 0, 1));
+  const fadeOut = 1 - clamp((localProgress - 0.78) / 0.22, 0, 1);
+  const opacity = clamp(Math.min(popIn, fadeOut), 0, 1);
+  const motionAmount = cfg.motion === "bounce"
+    ? {x: 0, y: Math.sin(localElapsed * Math.PI * 7) * 10 * (1 - localProgress)}
+    : cfg.motion === "shake"
+      ? {x: Math.sin(localElapsed * Math.PI * 28) * 12 * (1 - localProgress), y: 0}
+      : {x: 0, y: 0};
+  const popScale = cfg.motion === "pop"
+    ? 0.58 + popIn * 0.52 - Math.sin(clamp(localProgress, 0, 1) * Math.PI) * 0.06
+    : 1;
+  const text = reactionMarkText(cfg.mark);
+  const color = reactionMarkColor(cfg.mark, cfg.color);
+  return (
+    <AbsoluteFill style={{pointerEvents: "none", zIndex: 34, overflow: "visible"}}>
+      <div
+        style={{
+          position: "absolute",
+          left: x,
+          top: y,
+          transform: `translate(-50%, -50%) translate(${motionAmount.x}px, ${motionAmount.y}px) scale(${popScale}) rotate(${clamp(cfg.rotation, -45, 45)}deg)`,
+          transformOrigin: "50% 50%",
+          opacity,
+          color,
+          fontFamily: EXTRA_EFFECT_FONT,
+          fontSize: clamp(cfg.size, 40, 260),
+          fontWeight: 900,
+          lineHeight: 1,
+          letterSpacing: text.length > 1 ? "-0.08em" : "0",
+          WebkitTextStroke: `${Math.max(4, Math.round(clamp(cfg.size, 40, 260) / 18))}px #ffffff`,
+          paintOrder: "stroke fill",
+          textShadow: "0 12px 18px rgba(0,0,0,0.32)",
+          filter: "drop-shadow(0 3px 0 rgba(20,20,20,0.42))",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {text}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 const V2EffectsLayer: React.FC<{
   turn: StageTurnV2;
   elapsed: number;
@@ -1147,6 +1314,15 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const transform = canSmoothCamera && previousTransform && targetTransform
     ? `translate(${previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress}px, ${previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress}px) scale(${previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress})`
     : stageTransform(width, height, motionFrame);
+  const reactionTransform = canSmoothCamera && previousTransform && targetTransform
+    ? {
+      tx: previousTransform.tx + (targetTransform.tx - previousTransform.tx) * transitionProgress,
+      ty: previousTransform.ty + (targetTransform.ty - previousTransform.ty) * transitionProgress,
+      scale: previousTransform.scale + (targetTransform.scale - previousTransform.scale) * transitionProgress,
+    }
+    : cameraTurnIndex !== turnIndex
+      ? previousTransform
+      : targetTransform;
   const cameraTilt = canSmoothCamera
     ? (previousCameraState?.cameraMotion?.tilt ?? 0) + ((cameraState.cameraMotion?.tilt ?? 0) - (previousCameraState?.cameraMotion?.tilt ?? 0)) * transitionProgress
     : (cameraState.cameraMotion?.tilt ?? 0);
@@ -1745,6 +1921,17 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             )}
           </AbsoluteFill>
           {overlays.length > 0 ? <V2OverlayLayer overlays={overlays} /> : null}
+          <V2ReactionMarkLayer
+            turn={turn}
+            state={state}
+            scene={scene}
+            elapsed={effectElapsed}
+            progress={effectProgress}
+            width={width}
+            height={height}
+            transformValues={reactionTransform}
+            mobs={mobs}
+          />
           <V2EffectsLayer turn={turn} elapsed={effectElapsed} progress={effectProgress} width={width} height={height} onlyImpactLines />
           {isStandardDialogue && isSubtitle ? (() => {
           const style = turn.subtitleStyle ?? {};
