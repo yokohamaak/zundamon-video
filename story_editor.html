@@ -10896,23 +10896,31 @@ function appendV2ReactionMarkControls(card, params) {
   const mark = document.createElement("input");
   mark.className = "field-input";
   mark.id = "fV2Effect_reactionMark_mark";
-  mark.setAttribute("list", "reactionMarkPresetList");
   mark.maxLength = 8;
   mark.value = params.mark || "!";
+  mark.addEventListener("input", () => {
+    const preset = document.getElementById("fV2Effect_reactionMark_preset");
+    if (preset) preset.value = REACTION_MARK_PRESETS.some(([value]) => value === mark.value) ? mark.value : "";
+  });
   mark.addEventListener("change", () => { collectV2Basic(); notifyPlayerUpdate(); });
   markLabel.append(markText, mark);
 
-  if (!document.getElementById("reactionMarkPresetList")) {
-    const datalist = document.createElement("datalist");
-    datalist.id = "reactionMarkPresetList";
-    for (const [value, label] of REACTION_MARK_PRESETS) {
-      const option = document.createElement("option");
-      option.value = value;
-      option.label = label;
-      datalist.appendChild(option);
-    }
-    document.body.appendChild(datalist);
-  }
+  const presetLabel = document.createElement("label");
+  presetLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
+  const presetText = document.createElement("span");
+  presetText.textContent = "プリセット";
+  const preset = document.createElement("select");
+  preset.className = "field-select";
+  preset.id = "fV2Effect_reactionMark_preset";
+  v2Option(preset, "", "自由入力");
+  for (const [value, label] of REACTION_MARK_PRESETS) v2Option(preset, value, label);
+  preset.value = REACTION_MARK_PRESETS.some(([value]) => value === mark.value) ? mark.value : "";
+  preset.addEventListener("change", () => {
+    if (preset.value) mark.value = preset.value;
+    collectV2Basic();
+    notifyPlayerUpdate();
+  });
+  presetLabel.append(presetText, preset);
 
   const anchorLabel = document.createElement("label");
   anchorLabel.style.cssText = "display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text2);";
@@ -10950,7 +10958,7 @@ function appendV2ReactionMarkControls(card, params) {
   color.addEventListener("input", () => { collectV2Basic(); notifyPlayerUpdate(); });
   colorLabel.append(colorText, color);
 
-  row.append(targetLabel, markLabel, anchorLabel, motionLabel, colorLabel);
+  row.append(targetLabel, markLabel, presetLabel, anchorLabel, motionLabel, colorLabel);
   card.appendChild(row);
 }
 
