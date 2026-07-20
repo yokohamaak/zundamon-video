@@ -816,12 +816,12 @@ const REACTION_MARK_GLYPHS: Record<string, string> = {
   "？": "?",
   "!?": "!?",
   "！？": "!?",
-  "汗": "💧",
-  "怒り": "💢",
-  "怒": "💢",
-  "ハート": "♡",
+  "汗": "汗",
+  "怒り": "╬",
+  "怒": "╬",
+  "ハート": "♥",
   "zzz": "zzz",
-  "ひらめき": "💡",
+  "ひらめき": "✦",
 };
 
 function reactionMarkText(mark: string) {
