@@ -1523,7 +1523,7 @@
         <button class="menu-item" id="tabAudio" data-view="audio">音（BGM/SE）</button>
         <button class="menu-item" id="tabMobs" data-view="mobs">モブキャラ</button>
         <button class="menu-item" id="tabDisplay" data-view="display">表示共通設定</button>
-        <button class="menu-item" id="tabEffects" data-view="effects">演出共通設定</button>
+        <button class="menu-item" id="tabEffects" data-view="effects">演出の全体設定</button>
         <div class="menu-sep"></div>
         <button class="menu-item" id="btnExport" title="編集中の台本をJSONに書き出す（別ストーリーへ切替/再開用）">⬇ エクスポート</button>
         <button class="menu-item" id="btnImport" title="JSONから台本を読み込む（現在の編集内容は置き換わる）">⬆ インポート</button>
@@ -2938,7 +2938,7 @@
   </div>
 </div>
 
-<!-- 演出共通設定（動画全体に効くデフォルト値。行ごとの上書きは詳細パネルの「この行だけ上書き」） -->
+<!-- 演出の全体設定（動画全体に効くデフォルト値。行ごとの上書きは詳細パネル側） -->
 <div id="viewEffects" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
   <div style="max-width:860px; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
     <div id="fEffectSettings"></div>
@@ -3178,6 +3178,89 @@ const EFFECT_SETTING_SPECS = [
   { group: "irisOut", label: "アイリスアウト 閉じ終わり", key: "closeEnd", min: 0, max: 8, step: 0.05, defaultValue: 2.0, digits: 2, unit: "秒" },
 ];
 const ENTRANCE_DURATION_SPEC = EFFECT_SETTING_SPECS.find((spec) => spec.group === "entrance" && spec.key === "duration");
+const EFFECT_SETTING_GROUPS = [
+  {
+    id: "entrance",
+    title: "登場・退場",
+    badge: "V2 / 旧形式",
+    summary: "キャラクターやモブが画面に入る・画面から出るスライドの既定速度です。",
+    applies: "V2では、各ターンの登場/退場行に秒数が入っていない時に使われます。",
+    override: "個別変更: 台本 → 基本 → 登場/退場中の人物行 → 秒数入力。空欄ならこの全体設定を使用。",
+  },
+  {
+    id: "emphasis",
+    title: "話者ズーム",
+    badge: "旧形式",
+    summary: "話者に寄る強調カメラの既定速度・倍率です。",
+    applies: "旧形式のemphasis/focusSpeaker系で使います。V2のstage.framing/cameraMotionには直接使いません。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "zoomPunch",
+    title: "ズームパンチ",
+    badge: "旧形式",
+    summary: "ツッコミや驚きで一瞬ズームする演出の強さ・時間です。",
+    applies: "旧形式のzoomPunchで使います。V2では各ターンのeffects.zoomPunch側で個別指定します。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "quoteFreeze",
+    title: "引用止め",
+    badge: "旧形式",
+    summary: "画面を暗くしてセリフを引用カード風に止める演出の既定値です。",
+    applies: "旧形式のquoteFreezeで使います。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "stampRain",
+    title: "スタンプ雨",
+    badge: "旧形式",
+    summary: "スタンプが落ちてくる演出の個数・落下速度・広がりです。",
+    applies: "旧形式のstampRainで使います。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "typingFlood",
+    title: "通知洪水",
+    badge: "旧形式",
+    summary: "大量の通知・チャット行が流れる演出の行数・流速・間隔です。",
+    applies: "旧形式のtypingFloodで使います。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "sparkleBurst",
+    title: "キラッ",
+    badge: "旧形式",
+    summary: "キラキラが広がる演出の数・範囲・時間です。",
+    applies: "旧形式のsparkleBurstで使います。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "impactLines",
+    title: "集中線",
+    badge: "旧形式",
+    summary: "漫画の集中線の中心・本数・太さ・表示タイミングです。",
+    applies: "旧形式のimpactLinesで使います。V2では各ターンのeffects.impactLinesで個別指定します。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "visionNoise",
+    title: "映像ノイズ",
+    badge: "旧形式",
+    summary: "未来視・VHS・砂嵐・グリッチ系ノイズの強さです。",
+    applies: "旧形式のvisionNoiseで使います。V2では各ターンのeffects.visionNoiseで個別指定します。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+  {
+    id: "irisOut",
+    title: "アイリスアウト",
+    badge: "旧形式",
+    summary: "円形に閉じて暗転する締め演出の中心・閉じ始め・閉じ終わりです。",
+    applies: "旧形式のirisOutで使います。V2では各ターンのeffects.irisOutで個別指定します。",
+    override: "個別変更: ターン詳細の「この行だけ上書き」。",
+  },
+];
+const EFFECT_SETTING_GROUP_META = Object.fromEntries(EFFECT_SETTING_GROUPS.map((group) => [group.id, group]));
 const CAMERA_EFFECT_SETTING_SPECS = [
   { group: "zoom", label: "ズーム量", key: "amount", min: 0, max: 0.6, step: 0.01, defaultValue: 0.12, digits: 2, commonKey: "zoomAmount", legacyKey: "pullOut" },
   { group: "zoom", label: "ズーム時間", key: "duration", min: 0.1, max: 1.2, step: 0.05, defaultValue: 0.4, digits: 2, unit: "秒", commonKey: "zoomDuration" },
@@ -3683,20 +3766,100 @@ function makeSteppedNumberControl(spec) {
   return row;
 }
 
+function makeEffectSettingsHeader() {
+  const header = document.createElement("div");
+  header.style.cssText = "display:flex; flex-direction:column; gap:8px; padding:16px 18px; border:1px solid var(--border); border-radius:12px; background:var(--surface);";
+  const title = document.createElement("div");
+  title.style.cssText = "font-size:18px; font-weight:800; color:var(--text);";
+  title.textContent = "演出の全体設定";
+  const desc = document.createElement("div");
+  desc.className = "field-help";
+  desc.style.margin = "0";
+  desc.textContent = "ここは動画全体の既定値を決める画面です。各ターンで個別値が入っている場合は、個別値が優先されます。";
+  header.append(title, desc);
+  return header;
+}
+
+function makeV2EffectSettingsNotice() {
+  const notice = document.createElement("div");
+  notice.style.cssText = "display:flex; flex-direction:column; gap:8px; padding:14px 16px; border:1px solid rgba(96,165,250,.35); border-radius:12px; background:rgba(59,130,246,.10); color:var(--text);";
+  const title = document.createElement("div");
+  title.style.cssText = "font-size:13px; font-weight:800;";
+  title.textContent = "V2台本でこの画面が効く範囲";
+  const body = document.createElement("div");
+  body.className = "field-help";
+  body.style.margin = "0";
+  body.textContent = "現状、V2で全体設定として効くのは「登場・退場」の既定速度です。集中線・発声線・リアクション・ガーン影・アイリスアウトなどは、各ターンの「画面演出」側で個別に調整します。";
+  notice.append(title, body);
+  return notice;
+}
+
+function makeEffectSettingGroupCard(groupId) {
+  const meta = EFFECT_SETTING_GROUP_META[groupId] || { title: groupId, badge: "", summary: "", applies: "", override: "" };
+  const specs = EFFECT_SETTING_SPECS.filter((spec) => spec.group === groupId);
+  if (!specs.length) return null;
+  const card = document.createElement("div");
+  card.style.cssText = "display:flex; flex-direction:column; gap:12px; padding:16px 18px; border:1px solid var(--border); border-radius:12px; background:var(--surface); box-shadow:0 10px 24px rgba(0,0,0,.10);";
+  const head = document.createElement("div");
+  head.style.cssText = "display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;";
+  const titleWrap = document.createElement("div");
+  titleWrap.style.cssText = "display:flex; flex-direction:column; gap:5px; min-width:220px; flex:1;";
+  const title = document.createElement("div");
+  title.style.cssText = "font-size:15px; font-weight:800; color:var(--text);";
+  title.textContent = meta.title;
+  const summary = document.createElement("div");
+  summary.className = "field-help";
+  summary.style.margin = "0";
+  summary.textContent = meta.summary;
+  titleWrap.append(title, summary);
+  if (meta.badge) {
+    const badge = document.createElement("span");
+    badge.style.cssText = "font-size:11px; font-weight:700; color:#bfdbfe; border:1px solid rgba(96,165,250,.45); background:rgba(59,130,246,.12); border-radius:999px; padding:3px 8px; white-space:nowrap;";
+    badge.textContent = meta.badge;
+    head.append(titleWrap, badge);
+  } else {
+    head.append(titleWrap);
+  }
+  card.appendChild(head);
+  const notes = document.createElement("div");
+  notes.style.cssText = "display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px;";
+  for (const [label, text] of [["効く場所", meta.applies], ["個別調整", meta.override]]) {
+    if (!text) continue;
+    const note = document.createElement("div");
+    note.style.cssText = "font-size:12px; line-height:1.55; color:var(--text2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; background:rgba(255,255,255,.025);";
+    note.innerHTML = `<span style="font-weight:700;color:var(--text);">${label}: </span>${text}`;
+    notes.appendChild(note);
+  }
+  if (notes.children.length) card.appendChild(notes);
+  const controls = document.createElement("div");
+  controls.style.cssText = "display:flex; flex-direction:column; gap:8px;";
+  for (const spec of specs) {
+    controls.appendChild(makeSteppedNumberControl(spec));
+    if (spec.group === "irisOut" && spec.key === "closeEnd") {
+      controls.appendChild(makeEffectColorControl());
+    }
+  }
+  card.appendChild(controls);
+  return card;
+}
+
 function renderEffectSettingsEditor() {
   const container = document.getElementById("fEffectSettings");
   if (!container) return;
   container.innerHTML = "";
-  const intro = document.createElement("div");
-  intro.className = "field-help";
-  intro.textContent = "ここで設定した値は動画全体の演出に共通で効きます。スライダー、直接入力、±ボタンで調整できます。";
-  intro.style.marginBottom = "10px";
-  container.appendChild(intro);
-  for (const spec of EFFECT_SETTING_SPECS) {
-    container.appendChild(makeSteppedNumberControl(spec));
-    if (spec.group === "irisOut" && spec.key === "closeEnd") {
-      container.appendChild(makeEffectColorControl());
-    }
+  container.style.display = "flex";
+  container.style.flexDirection = "column";
+  container.style.gap = "14px";
+  container.appendChild(makeEffectSettingsHeader());
+  const groupIds = isV2StoryEditor()
+    ? ["entrance"]
+    : EFFECT_SETTING_GROUPS.map((group) => group.id);
+  if (isV2StoryEditor()) {
+    container.appendChild(makeV2EffectSettingsNotice());
+  }
+  for (const groupId of groupIds) {
+    const card = makeEffectSettingGroupCard(groupId);
+    if (card) container.appendChild(card);
   }
 }
 
@@ -9070,7 +9233,7 @@ function v2StageDurationInput(item) {
   input.step = String(ENTRANCE_DURATION_SPEC?.step ?? 0.05);
   input.style.cssText = "width:72px; padding:2px 6px; font-size:12px;";
   const defaultDuration = ENTRANCE_DURATION_SPEC ? getEffectSettingValue(ENTRANCE_DURATION_SPEC) : 0.5;
-  input.placeholder = `${Number(defaultDuration).toFixed(2)}秒`;
+  input.placeholder = `全体 ${Number(defaultDuration).toFixed(2)}秒`;
   const raw = v2StageAnimationDurationRaw(item);
   input.value = raw == null ? "" : String(raw);
   input.title = "空欄なら演出共通設定の登場退場速度を使います。";
