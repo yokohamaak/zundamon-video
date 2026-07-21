@@ -143,6 +143,150 @@ class StageSchemaTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "frameTransition"):
             validate_story_v2(story, SCENES)
 
+    def test_v2_accepts_comic_minimal(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {"image": "background/manga_page1.png"},
+        }
+        validate_story_v2(story, SCENES)
+
+    def test_v2_accepts_comic_full(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {
+                    "type": "shout",
+                    "x": 0.5,
+                    "y": 0.3,
+                    "width": 0.4,
+                    "fontSize": 36,
+                    "keepPrevious": True,
+                },
+                "camera": {
+                    "type": "zoomIn",
+                    "frame": {"cx": 0.5, "cy": 0.5, "width": 0.6},
+                },
+            },
+        }
+        validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_image_outside_background(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {"image": "overlays/manga_page1.png"},
+        }
+        with self.assertRaisesRegex(ValueError, "comic.image"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_unknown_key(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {"image": "background/manga_page1.png", "extra": True},
+        }
+        with self.assertRaisesRegex(ValueError, "comic"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_invalid_type(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "yell", "x": 0.5, "y": 0.3, "width": 0.4},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.type"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_x_out_of_range(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "speech", "x": 1.5, "y": 0.3, "width": 0.4},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.x"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_width_out_of_range(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "speech", "x": 0.5, "y": 0.3, "width": 0.95},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.width"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_font_size_out_of_range(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "speech", "x": 0.5, "y": 0.3, "width": 0.4, "fontSize": 200},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.fontSize"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_keep_previous_non_bool(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "speech", "x": 0.5, "y": 0.3, "width": 0.4, "keepPrevious": "yes"},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.keepPrevious"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_camera_invalid_type(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "camera": {"type": "pan"},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.camera.type"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_camera_unknown_key(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "camera": {"type": "fixed", "amount": 0.5},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.camera"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_camera_frame_out_of_range(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "camera": {"type": "zoomIn", "frame": {"cx": 0.5, "cy": 0.5, "width": 0.2}},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "0.35〜1.0"):
+            validate_story_v2(story, SCENES)
+
     def test_v2_accepts_empty_text_for_pause_only_turn(self):
         story = copy.deepcopy(STORY)
         story["script"][0]["text"] = ""

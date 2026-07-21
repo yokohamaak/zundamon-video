@@ -7,7 +7,7 @@ import math
 import re
 
 
-DISPLAY_MODES = {"standard", "whiteboard", "zunMeet", "zunMonitor", "zunAi", "zunChat", "zunMail", "framedStage"}
+DISPLAY_MODES = {"standard", "whiteboard", "zunMeet", "zunMonitor", "zunAi", "zunChat", "zunMail", "framedStage", "comic"}
 WHITEBOARD_ICONS = {
     "none", "confused", "scribble", "checklist", "memo", "conversation", "warning", "idea", "table",
     "cause", "problem", "solution", "process", "priority", "deadline", "evidence", "data", "share",
@@ -538,6 +538,45 @@ def _display_mode(value, path):
         height = frame["width"]
         if not 0 <= frame["x"] <= 1 - frame["width"] or not 0 <= frame["y"] <= 1 - height:
             _error(f"{path}.framedStage.frame", "16:9の描画領域が画面内に収まる値が必要です")
+    if value["kind"] == "comic":
+        _only_keys(value, {"kind", "comic"}, path)
+        comic = value.get("comic")
+        if not isinstance(comic, dict):
+            _error(f"{path}.comic", "objectが必要です")
+        _only_keys(comic, {"image", "bubble", "camera"}, f"{path}.comic")
+        if not isinstance(comic.get("image"), str) or not comic["image"].startswith("background/"):
+            _error(f"{path}.comic.image", "background/ から始まる画像パスが必要です")
+        if "bubble" in comic:
+            bubble = comic["bubble"]
+            if not isinstance(bubble, dict):
+                _error(f"{path}.comic.bubble", "objectが必要です")
+            _only_keys(bubble, {"type", "x", "y", "width", "fontSize", "keepPrevious"}, f"{path}.comic.bubble")
+            if bubble.get("type") not in {"speech", "thought", "shout", "narration"}:
+                _error(f"{path}.comic.bubble.type", "speech/thought/shout/narration のいずれかが必要です")
+            for key in ("x", "y", "width"):
+                if not _is_number(bubble.get(key)):
+                    _error(f"{path}.comic.bubble.{key}", "有限数値が必要です")
+            for key in ("x", "y"):
+                if not 0 <= bubble[key] <= 1:
+                    _error(f"{path}.comic.bubble.{key}", "0〜1の値が必要です")
+            if not 0.1 <= bubble["width"] <= 0.9:
+                _error(f"{path}.comic.bubble.width", "0.1〜0.9の値が必要です")
+            if "fontSize" in bubble:
+                if not _is_number(bubble["fontSize"]):
+                    _error(f"{path}.comic.bubble.fontSize", "有限数値が必要です")
+                if not 12 <= bubble["fontSize"] <= 120:
+                    _error(f"{path}.comic.bubble.fontSize", "12〜120の値が必要です")
+            if "keepPrevious" in bubble and not isinstance(bubble["keepPrevious"], bool):
+                _error(f"{path}.comic.bubble.keepPrevious", "true/falseが必要です")
+        if "camera" in comic:
+            camera = comic["camera"]
+            if not isinstance(camera, dict):
+                _error(f"{path}.comic.camera", "objectが必要です")
+            _only_keys(camera, {"type", "frame"}, f"{path}.comic.camera")
+            if camera.get("type") not in {"fixed", "zoomIn", "zoomOut"}:
+                _error(f"{path}.comic.camera.type", "fixed/zoomIn/zoomOut のいずれかが必要です")
+            if "frame" in camera:
+                _frame(camera["frame"], f"{path}.comic.camera.frame")
     if value["kind"] == "zunMonitor":
         _only_keys(value, {"kind", "monitor"}, path)
         monitor = value.get("monitor")

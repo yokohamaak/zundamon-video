@@ -201,6 +201,30 @@ export type FramedStageDisplayV2 = {
   };
 };
 
+export type ComicBubbleTypeV2 = "speech" | "thought" | "shout" | "narration";
+export type ComicDisplayV2 = {
+  kind: "comic";
+  comic: {
+    /** 全画面に敷く静止画（background/ 配下）。cover表示。 */
+    image: string;
+    /** 省略時は吹き出しなし（音声のみ）。座標は画面比0..1、xyは吹き出し中心。 */
+    bubble?: {
+      type: ComicBubbleTypeV2;
+      x: number;
+      y: number;
+      width: number;
+      fontSize?: number;
+      /** 直前の連続する同一image・同一sceneの漫画ターンから吹き出し蓄積を引き継ぐ。 */
+      keepPrevious?: boolean;
+    };
+    /** 省略時は全画面固定。frameは注視枠（fixed=静止構図、zoomIn=全画面→frame、zoomOut=frame→全画面）。 */
+    camera?: {
+      type: "fixed" | "zoomIn" | "zoomOut";
+      frame?: CameraFrameV2;
+    };
+  };
+};
+
 export type DisplayModeV2 =
   | {kind: "standard"}
   | WhiteboardDisplayV2
@@ -209,7 +233,8 @@ export type DisplayModeV2 =
   | ZunAiDisplayV2
   | ZunChatDisplayV2
   | ZunMailDisplayV2
-  | FramedStageDisplayV2;
+  | FramedStageDisplayV2
+  | ComicDisplayV2;
 
 export type StoryInstanceV2 = {
   characterId?: string;
