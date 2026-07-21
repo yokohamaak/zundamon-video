@@ -6,6 +6,7 @@ import type {ExpressionCfg} from "./Avatar";
 import type {Gender} from "./types";
 import {WhiteboardExplainInsert, getWhiteboardExplainLayout, type WhiteboardExplainInsertConfig, type WhiteboardExplainPopTargets} from "./inserts/whiteboardExplain";
 import {InsertOverlay} from "./StoryVideo";
+import {ComicDisplay, resolveComicVisual, type ComicRenderBubble} from "./ComicDisplay";
 import {
   placementOrigin,
   resolveFraming,
@@ -151,7 +152,7 @@ function stageTransform(width: number, height: number, frame: {cx: number; cy: n
   return values ? `translate(${values.tx}px, ${values.ty}px) scale(${values.scale})` : undefined;
 }
 
-function stageTransformValues(width: number, height: number, frame: {cx: number; cy: number; width: number} | undefined) {
+export function stageTransformValues(width: number, height: number, frame: {cx: number; cy: number; width: number} | undefined) {
   if (!frame) return undefined;
   const scale = Math.max(1, 1 / frame.width);
   const tx = Math.min(0, Math.max(width * (1 - scale), width / 2 - frame.cx * width * scale));
@@ -1532,6 +1533,24 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
     : speakerCharacterId === "metan"
       ? displaySettings.speakerColors.metan
       : displaySettings.speakerColors.default;
+  const comicBubbleBorderColor = (speakerId: string) => {
+    const characterId = story.instances[speakerId]?.characterId;
+    return characterId === "zundamon"
+      ? displaySettings.speakerColors.zundamon
+      : characterId === "metan"
+        ? displaySettings.speakerColors.metan
+        : displaySettings.speakerColors.default;
+  };
+  const comicRenderBubbles = (visual: ReturnType<typeof resolveComicVisual>): ComicRenderBubble[] =>
+    (visual?.bubbles ?? []).map((bubble) => ({
+      type: bubble.type,
+      x: bubble.x,
+      y: bubble.y,
+      width: bubble.width,
+      fontSize: bubble.fontSize,
+      text: bubble.text,
+      borderColor: comicBubbleBorderColor(bubble.speaker),
+    }));
   const continueRange = continuedBubbleRange(story.script, turnIndex);
   const continuedTurns = story.script.slice(continueRange.start, continueRange.end + 1);
   const hasBubbleText = !!turn.text.trim();
@@ -1995,7 +2014,10 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
             visibleSections={plateState.displayMode.whiteboard.visibleSections}
             characterSlot={renderStaticWhiteboardPresenter(plateTurn, plateState, 0)}
           />
-        ) : (
+        ) : plateState.displayMode.kind === "comic" ? (() => {
+          const visual = resolveComicVisual(story.script, turnIndex - 1, 0, {atEnd: true});
+          return visual ? <ComicDisplay width={width} height={height} image={visual.image} bubbles={comicRenderBubbles(visual)} cameraFrame={visual.cameraFrame} settings={displaySettings.bubble} /> : null;
+        })() : (
           <AbsoluteFill style={{overflow: "hidden"}}>
             <AbsoluteFill style={{transform: plateTiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
               {plateScene.bgVideo ? (
@@ -2082,7 +2104,10 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
                 popTargets={whiteboardPopTargets}
                 characterSlot={renderWhiteboardPresenter()}
               />
-            ) : (
+            ) : state.displayMode.kind === "comic" ? (() => {
+              const visual = resolveComicVisual(story.script, turnIndex, seconds);
+              return visual ? <ComicDisplay width={width} height={height} image={visual.image} bubbles={comicRenderBubbles(visual)} cameraFrame={visual.cameraFrame} settings={displaySettings.bubble} /> : null;
+            })() : (
               <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
                 <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
                   {scene.bgVideo ? (
