@@ -9222,7 +9222,27 @@ function v2SetStageAnimationDuration(item, value) {
   v2PruneStageAnimation(item);
 }
 
-function v2StageDurationInput(item) {
+function v2EffectiveStageAnimationDuration(item, turn) {
+  const defaultDuration = ENTRANCE_DURATION_SPEC ? getEffectSettingValue(ENTRANCE_DURATION_SPEC) : 0.5;
+  const raw = v2StageAnimationDurationRaw(item);
+  const requested = Math.max(ENTRANCE_DURATION_SPEC?.min ?? 0.15, Math.min(ENTRANCE_DURATION_SPEC?.max ?? 1.2, raw == null ? defaultDuration : raw));
+  const turnDuration = Number.isFinite(turn?.start) && Number.isFinite(turn?.end) ? Math.max(0, turn.end - turn.start) : requested;
+  return Math.max(0.001, Math.min(requested, turnDuration || requested));
+}
+
+function v2SeekStageAnimationPreview(turn, item, phase) {
+  if (!turn || !window.storyPlayer || !playerReady) return;
+  flushPlayerUpdate();
+  const duration = v2EffectiveStageAnimationDuration(item, turn);
+  const start = Number.isFinite(turn.start) ? turn.start : 0;
+  const end = Number.isFinite(turn.end) ? turn.end : start + duration;
+  const sec = phase === "exit"
+    ? Math.max(start, end - duration + 0.02)
+    : start + 0.02;
+  window.storyPlayer.seekToTime(sec);
+}
+
+function v2StageDurationInput(item, turn, phase) {
   const wrap = document.createElement("div");
   wrap.style.cssText = "display:flex; align-items:center; gap:4px;";
   const input = document.createElement("input");
@@ -9239,8 +9259,9 @@ function v2StageDurationInput(item) {
   input.title = "空欄なら演出共通設定の登場退場速度を使います。";
   input.addEventListener("change", () => {
     v2SetStageAnimationDuration(item, input.value);
-    v2Commit(storyData.script[selectedIdx]);
-    renderV2Detail(storyData.script[selectedIdx]);
+    v2Commit(turn);
+    renderV2Detail(turn);
+    v2SeekStageAnimationPreview(turn, item, phase);
   });
   const clear = document.createElement("button");
   clear.type = "button";
@@ -9251,8 +9272,9 @@ function v2StageDurationInput(item) {
   clear.addEventListener("click", () => {
     input.value = "";
     v2SetStageAnimationDuration(item, "");
-    v2Commit(storyData.script[selectedIdx]);
-    renderV2Detail(storyData.script[selectedIdx]);
+    v2Commit(turn);
+    renderV2Detail(turn);
+    v2SeekStageAnimationPreview(turn, item, phase);
   });
   wrap.append(input, clear);
   return wrap;
@@ -11452,15 +11474,15 @@ function renderV2Detail(turn) {
     const exitItem = v2ExitItemFor(stage, instanceId);
     if (enterItem) {
       const direction = v2StageDirectionSelect(v2StageAnimationDirection(enterItem), { auto: "自動", left: "左から", right: "右から", up: "上から", down: "下から" });
-      direction.addEventListener("change", () => { v2SetStageAnimationDirection(enterItem, direction.value); v2Commit(turn); renderV2Detail(turn); });
+      direction.addEventListener("change", () => { v2SetStageAnimationDirection(enterItem, direction.value); v2Commit(turn); renderV2Detail(turn); v2SeekStageAnimationPreview(turn, enterItem, "enter"); });
       controls.appendChild(direction);
-      controls.appendChild(v2StageDurationInput(enterItem));
+      controls.appendChild(v2StageDurationInput(enterItem, turn, "enter"));
     } else if (exitItem) {
       const exitObject = v2EnsureExitObjectFor(stage, instanceId);
       const direction = v2StageDirectionSelect(v2StageAnimationDirection(exitObject), { auto: "自動", left: "左へ", right: "右へ", up: "上へ", down: "下へ" });
-      direction.addEventListener("change", () => { v2SetStageAnimationDirection(exitObject, direction.value); v2Commit(turn); renderV2Detail(turn); });
+      direction.addEventListener("change", () => { v2SetStageAnimationDirection(exitObject, direction.value); v2Commit(turn); renderV2Detail(turn); v2SeekStageAnimationPreview(turn, exitObject, "exit"); });
       controls.appendChild(direction);
-      controls.appendChild(v2StageDurationInput(exitObject));
+      controls.appendChild(v2StageDurationInput(exitObject, turn, "exit"));
     }
     controls.appendChild(button);
     row.append(text, controls);

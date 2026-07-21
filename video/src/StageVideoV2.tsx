@@ -271,7 +271,7 @@ function stageAnimationOffset({
   if (typeof start !== "number") return {x: 0, y: 0};
   const requestedDuration = clamp(durationSeconds, ENTER_EXIT_ANIMATION_MIN_SECONDS, ENTER_EXIT_ANIMATION_MAX_SECONDS);
   const turnDuration = typeof end === "number" ? Math.max(0, end - start) : requestedDuration;
-  const duration = Math.max(0.001, Math.min(requestedDuration, turnDuration / 2 || requestedDuration));
+  const duration = Math.max(0.001, Math.min(requestedDuration, turnDuration || requestedDuration));
   let amount = 0;
   if (phase === "enter") {
     amount = 1 - easeInOutCubic((seconds - start) / duration);
