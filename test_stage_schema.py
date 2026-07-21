@@ -408,6 +408,8 @@ class StageSchemaTest(unittest.TestCase):
         validate_story_v2(story, SCENES)
         story["script"][0]["transition"] = "fade-white"
         validate_story_v2(story, SCENES)
+        story["script"][0]["transition"] = "crossfade"
+        validate_story_v2(story, SCENES)
         story["script"][0]["transition"] = "wipe-left"
         validate_story_v2(story, SCENES)
         story["script"][0]["transition"] = "wipe-right"

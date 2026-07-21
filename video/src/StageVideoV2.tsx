@@ -111,10 +111,11 @@ function activeTurnIndex(story: StoryV2, seconds: number): number {
   return index;
 }
 
-function sceneTransitionVisual(turn: StageTurnV2, seconds: number, stageWidth: number) {
+function sceneTransitionVisual(turn: StageTurnV2, seconds: number, stageWidth: number, hasPreviousTurn: boolean) {
   if (
     turn.transition !== "fade-black"
     && turn.transition !== "fade-white"
+    && turn.transition !== "crossfade"
     && turn.transition !== "wipe-left"
     && turn.transition !== "wipe-right"
     && turn.transition !== "slide-left"
@@ -133,6 +134,14 @@ function sceneTransitionVisual(turn: StageTurnV2, seconds: number, stageWidth: n
           color: turn.transition === "fade-white" ? "#fff" : "#000",
           opacity: 1 - amount,
         },
+      };
+    case "crossfade":
+      if (!hasPreviousTurn) return null;
+      return {
+        kind: turn.transition,
+        progress: amount,
+        previousContentStyle: {opacity: 1 - amount},
+        contentStyle: {opacity: amount},
       };
     case "wipe-left":
       return {kind: turn.transition, progress: amount, contentStyle: {clipPath: `inset(0 ${(1 - amount) * 100}% 0 0)`}};
@@ -1435,7 +1444,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const overlays = activeOverlays(story, seconds);
   const turnIndex = activeTurnIndex(story, seconds);
   const turn = story.script[turnIndex];
-  const sceneTransition = sceneTransitionVisual(turn, seconds, width);
+  const sceneTransition = sceneTransitionVisual(turn, seconds, width, turnIndex > 0);
   const state = resolveStageStateAtTurn(story, turnIndex);
   const scene = scenes.scenes[state.scene];
 
@@ -1968,6 +1977,8 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   const isPlateTransition = !!sceneTransition
     && sceneTransition.progress < 1
     && (
+      sceneTransition.kind === "crossfade"
+      ||
       sceneTransition.kind === "wipe-left"
       || sceneTransition.kind === "wipe-right"
       || sceneTransition.kind === "slide-left"
@@ -2004,7 +2015,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       .filter((instance) => instance.visible && isStandardDisplayMode(plateState.displayMode.kind) && !plateTurn.hideCharacters)
       .map((instance) => renderStaticPlateInstance(instance, plateTurn, plateScene, 0, "previous-plate"));
     return (
-      <AbsoluteFill style={{filter: plateFilter}}>
+      <AbsoluteFill style={{filter: plateFilter, ...sceneTransition?.previousContentStyle}}>
         {plateInsertDisplay ? (
           <InsertOverlay insert={plateInsertDisplay} bgOpacity={1} opacity={1} />
         ) : plateState.displayMode.kind === "zunMeet" ? renderStaticZunMeet(plateTurn, plateState, 0) : plateState.displayMode.kind === "whiteboard" ? (

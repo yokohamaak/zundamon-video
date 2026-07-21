@@ -1230,8 +1230,8 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         "- expression / pose / face を turn 直下に書く（必ず stage.update の中に書く）",
         "- telop / telopX / telopY / telopSize（caption を使う） / insert（displayMode を使う） / narrationVoice / voice（instances の voiceId を使う）",
         "- flashback / visionNoise / impactLines / zoomPunch / quoteFreeze / voiceLines / reactionMark / gloomShock / irisOut / stampRain / typingFlood / sparkleBurst を turn 直下に書かない（対応済みの演出は effects の中に書く）",
-        '- transition は "cut" / "fade-black" / "fade-white" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" が使える。'
-        ' V2のwipe/slideは前ターンの映像プレート上に切替先ターンの映像プレートを出す方式。前ターン側の吹き出し・字幕・テロップまでは残さない。',
+        '- transition は "cut" / "fade-black" / "fade-white" / "crossfade" / "wipe-left" / "wipe-right" / "slide-left" / "slide-right" が使える。'
+        ' V2のcrossfade/wipe/slideは前ターンの映像プレート上に切替先ターンの映像プレートを出す方式。crossfadeは前後を重ねて徐々に切り替える。前ターン側の吹き出し・字幕・テロップまでは残さない。',
         "- 上記以外でも、このプロンプトに書かれていないキーは検証エラーで取り込めない。",
     ]
 

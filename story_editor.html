@@ -7112,6 +7112,7 @@ function normalizeTransitionValue(value) {
     case "fade-black":
     case "cut":
     case "fade-white":
+    case "crossfade":
     case "wipe-left":
     case "wipe-right":
     case "slide-left":
@@ -7128,6 +7129,8 @@ function transitionMarkerStyle(transition) {
       return { color: "rgba(148,163,184,.92)", marker: "line", label: "cut" };
     case "fade-white":
       return { color: "rgba(241,245,249,.96)", marker: "diamond", label: "f-white" };
+    case "crossfade":
+      return { color: "rgba(45,212,191,.96)", marker: "diamond", label: "cross" };
     case "wipe-left":
       return { color: "rgba(56,189,248,.96)", marker: "line", label: "wipe<" };
     case "wipe-right":
@@ -7726,6 +7729,7 @@ function transitionOptionsHtml(selected, allowNone = false) {
     ["cut", "cut（カット）"],
     ["fade-black", "fade-black（暗転）"],
     ["fade-white", "fade-white（白フェード）"],
+    ["crossfade", "crossfade（クロスフェード）"],
     ["wipe-left", "wipe-left（左からワイプ）"],
     ["wipe-right", "wipe-right（右からワイプ）"],
     ["slide-left", "slide-left（左からスライド）"],
@@ -15062,6 +15066,7 @@ function readableTransitionLabel(transition) {
     cut: "カット",
     "fade-black": "暗転",
     "fade-white": "白フェード",
+    crossfade: "クロスフェード",
     "wipe-left": "左ワイプ",
     "wipe-right": "右ワイプ",
     "slide-left": "左スライド",
