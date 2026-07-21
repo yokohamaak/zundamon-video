@@ -724,6 +724,30 @@
     white-space: nowrap;
     pointer-events: none;
   }
+  .v2-comic-map-text {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border: 2px dashed rgba(52,211,153,.98);
+    border-radius: 5px;
+    background: rgba(16,185,129,.22);
+    cursor: move;
+    touch-action: none;
+    z-index: 4;
+  }
+  .v2-comic-map-text::before {
+    content: "文字領域";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  }
+  .v2-comic-map-bubble .v2-camera-map-handle { background: rgba(96,165,250,.98); }
   .overlay-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -1547,6 +1571,7 @@
         <button class="menu-item" id="tabCast" data-view="cast">登場人物</button>
         <button class="menu-item" id="tabAudio" data-view="audio">音（BGM/SE）</button>
         <button class="menu-item" id="tabMobs" data-view="mobs">モブキャラ</button>
+        <button class="menu-item" id="tabBubbles" data-view="bubbles">吹き出し素材</button>
         <button class="menu-item" id="tabDisplay" data-view="display">表示共通設定</button>
         <button class="menu-item" id="tabEffects" data-view="effects">演出の全体設定</button>
         <div class="menu-sep"></div>
@@ -2066,10 +2091,19 @@
                   <option value="">なし</option>
                   <option value="speech">通常会話</option>
                   <option value="thought">心の声</option>
-                  <option value="shout">叫び</option>
+                  <option value="svg">SVG素材</option>
                   <option value="narration">ナレーション</option>
                 </select>
                 <div class="field-help">本文(text)が吹き出しの中身になります。</div>
+              </div>
+              <div class="field-row" id="v2ComicBubbleSvgRow" style="display:none;">
+                <label class="field-label">SVG素材</label>
+                <select class="field-select" id="fV2ComicBubbleSvgShape"></select>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+                  <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text2);">枠色（空欄で話者色）<input class="field-input" id="fV2ComicBubbleColor" type="text" placeholder="#5fb84f"></label>
+                  <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text2);">塗り色（空欄で白）<input class="field-input" id="fV2ComicBubbleFillColor" type="text" placeholder="#ffffff"></label>
+                </div>
+                <div class="field-help">吹き出し素材の登録・追加は左上メニューの「吹き出し素材」から行います。</div>
               </div>
               <div class="field-row" id="v2ComicBubblePos">
                 <label class="field-label">吹き出し位置</label>
@@ -2092,8 +2126,14 @@
                   <option value="center">文字の横位置：中央</option>
                   <option value="left">文字の横位置：左寄せ</option>
                 </select>
+                <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:8px;">
+                  <input class="field-input" id="fV2ComicTextOffsetX" type="number" min="-0.5" max="0.5" step="0.01" placeholder="文字X補正">
+                  <input class="field-input" id="fV2ComicTextOffsetY" type="number" min="-0.5" max="0.5" step="0.01" placeholder="文字Y補正">
+                </div>
+                <label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="fV2ComicBubbleFlipX"> 吹き出しを左右反転（文字はそのまま）</label>
                 <label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="fV2ComicKeepPrevious"> 前の吹き出しを残す</label>
-                <div class="field-help">吹き出しは縦書きです。高さは縦の長さ（画面高比0.1..0.9）、幅は最小幅で、長文は左右に自動で広がります。高さが小さすぎると1列1文字の横並びになるので、文章には高さ0.2以上を推奨します。位置は画面比0..1（中心基準）、文字サイズ・フォントは空欄で全体設定を使います。</div>
+                <label class="toggle-row" style="margin-top:4px;"><input type="checkbox" id="fV2ComicBubbleAspectLock"> 配置ドラッグでの拡縮時に縦横比を固定</label>
+                <div class="field-help">吹き出しは縦書きです。高さは縦の長さ（画面高比0.1..0.9）、幅は最小幅で、長文は左右に自動で広がります。緑の「文字領域」はドラッグで微調整できます。位置は画面比0..1（中心基準）、文字サイズ・フォントは空欄で全体設定を使います。</div>
               </div>
               <div class="field-row">
                 <label class="field-label">配置</label>
@@ -2822,6 +2862,33 @@
       <button class="btn btn-primary btn-sm" id="btnSaveMobs">モブキャラを保存</button>
       <span id="mobsStatus" style="font-size:12px;"></span>
     </div>
+  </div>
+</div>
+
+<!-- 漫画吹き出しSVG素材 -->
+<div id="viewBubbles" style="display:none; flex:1; overflow-y:auto; padding:24px 32px; background:var(--bg);">
+  <div style="max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:20px;">
+    <div style="font-size:12px; color:var(--text2); line-height:1.6;">
+      漫画演出（bubble.type: "svg"）で使う吹き出しの形状素材です。<code>video/assets/effects/</code> に置いた
+      2トーン（黒枠+白塗り）SVGを選び、名前を付けて登録すると、台本エディタの吹き出しタイプで選べるようになります。
+      登録時に枠用/塗り用の2枚へ自動分解し、話者色などで着色できるようにします。
+    </div>
+    <div id="bubblesList" style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:12px; color:var(--text2);">読み込み中...</div>
+    </div>
+    <div class="field-row" style="border-top:1px solid var(--border); padding-top:16px;">
+      <label class="field-label">素材を追加</label>
+      <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center;">
+        <select class="field-select" id="fBubbleSourceFile"></select>
+        <input class="field-input" id="fBubbleName" type="text" placeholder="名前（例: 丸型・尻尾あり）">
+        <button class="btn btn-secondary btn-sm" id="btnRegisterBubble">＋ 登録</button>
+      </div>
+      <div class="field-help">
+        候補が無い場合は <code>video/assets/effects/</code> にSVGファイルを置いてからこの画面を開き直してください。
+        IDは名前から自動生成します（半角英数字化）。
+      </div>
+    </div>
+    <span id="bubblesStatus" style="font-size:12px;"></span>
   </div>
 </div>
 
@@ -6097,6 +6164,7 @@ let _v2FramedStageDrag = null; // { mode, startX, startY, frame }
 let _v2FramedStagePreviewTimer = null;
 const V2_COMIC_BUBBLE_DEFAULT_HEIGHT = 0.25; // ComicDisplay.tsx の COMIC_BUBBLE_DEFAULT_HEIGHT と一致
 let _v2ComicBubbleDrag = null; // { startX, startY, initial, bubble }
+let _v2ComicTextDrag = null; // { startX, startY, initial, textOffset }
 let _v2ComicFrameDrag = null; // { mode, startX, startY, initial, frame }
 let _v2ManualPlacementEdit = null; // { turnIndex, instanceId }
 // 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
@@ -10707,7 +10775,13 @@ function v2ComicForTurn(turn) {
       fontSize: typeof bubble?.fontSize === "number" ? bubble.fontSize : null,
       font: bubble?.font || "",
       align: bubble?.align === "left" || bubble?.align === "center" ? bubble.align : "right",
+      textOffsetX: typeof bubble?.textOffsetX === "number" ? bubble.textOffsetX : 0,
+      textOffsetY: typeof bubble?.textOffsetY === "number" ? bubble.textOffsetY : 0,
+      flipX: bubble?.flipX === true,
       keepPrevious: bubble?.keepPrevious === true,
+      svgShapeId: bubble?.svgShapeId || "",
+      color: bubble?.color || "",
+      fillColor: bubble?.fillColor || "",
     },
     cameraType: camera?.type === "zoomIn" || camera?.type === "zoomOut" ? camera.type : "fixed",
     frame: camera?.frame || null,
@@ -10737,8 +10811,48 @@ function v2SameComicScene(script, a, b) {
 }
 
 function v2UpdateComicBubbleFields() {
-  const hasBubble = document.getElementById("fV2ComicBubbleType").value !== "";
+  const type = document.getElementById("fV2ComicBubbleType").value;
+  const hasBubble = type !== "";
   document.getElementById("v2ComicBubblePos").style.display = hasBubble ? "" : "none";
+  document.getElementById("v2ComicBubbleSvgRow").style.display = type === "svg" ? "" : "none";
+  if (type === "svg") ensureComicBubblesLoadedForEditor();
+}
+
+// ターン編集画面でSVG吹き出し選択を使う直前に、未読込なら登録一覧を取得する。
+async function ensureComicBubblesLoadedForEditor() {
+  if (!comicBubblesLoaded) {
+    try {
+      const res = await fetch("/api/comic-bubbles");
+      const data = await res.json();
+      comicBubblesRegistry = data.registry || {};
+      comicBubblesLoaded = true;
+    } catch (e) {
+      return;
+    }
+  }
+  refreshComicBubbleShapeOptions();
+}
+
+function refreshComicBubbleShapeOptions() {
+  const sel = document.getElementById("fV2ComicBubbleSvgShape");
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = "";
+  const ids = sortedStrings(Object.keys(comicBubblesRegistry));
+  if (ids.length === 0) {
+    const o = document.createElement("option");
+    o.value = "";
+    o.textContent = "（未登録・吹き出し素材メニューで追加してください）";
+    sel.appendChild(o);
+    return;
+  }
+  for (const id of ids) {
+    const o = document.createElement("option");
+    o.value = id;
+    o.textContent = comicBubblesRegistry[id].name;
+    sel.appendChild(o);
+  }
+  if (ids.includes(current)) sel.value = current;
 }
 
 function v2UpdateComicInheritButton() {
@@ -10784,6 +10898,15 @@ function v2ComicBubbleRectFromInputs() {
   };
 }
 
+function v2ComicTextOffsetFromInputs() {
+  const x = Number(document.getElementById("fV2ComicTextOffsetX").value);
+  const y = Number(document.getElementById("fV2ComicTextOffsetY").value);
+  return {
+    x: clampJS(Number.isFinite(x) ? x : 0, -0.5, 0.5),
+    y: clampJS(Number.isFinite(y) ? y : 0, -0.5, 0.5),
+  };
+}
+
 function v2PaintComicBubbleMarker(bubble) {
   const el = document.getElementById("v2ComicMapBubble");
   if (!el || !bubble) return;
@@ -10791,6 +10914,17 @@ function v2PaintComicBubbleMarker(bubble) {
   el.style.top = `${bubble.y * 100}%`;
   el.style.width = `${bubble.width * 100}%`;
   el.style.height = `${(bubble.height ?? V2_COMIC_BUBBLE_DEFAULT_HEIGHT) * 100}%`;
+}
+
+function v2PaintComicTextMarker(bubble, textOffset) {
+  const el = document.getElementById("v2ComicMapText");
+  if (!el || !bubble || !textOffset) return;
+  const markerWidth = clampJS(bubble.width * 0.45, 0.04, Math.max(0.04, bubble.width - 0.02));
+  const markerHeight = clampJS((bubble.height ?? V2_COMIC_BUBBLE_DEFAULT_HEIGHT) * 0.72, 0.06, Math.max(0.06, (bubble.height ?? V2_COMIC_BUBBLE_DEFAULT_HEIGHT) - 0.02));
+  el.style.left = `${(bubble.x + textOffset.x) * 100}%`;
+  el.style.top = `${(bubble.y + textOffset.y) * 100}%`;
+  el.style.width = `${markerWidth * 100}%`;
+  el.style.height = `${markerHeight * 100}%`;
 }
 
 function v2PaintComicFrame(frame) {
@@ -10814,9 +10948,21 @@ function renderV2ComicMap(turn) {
     const bubbleEl = document.createElement("div");
     bubbleEl.id = "v2ComicMapBubble";
     bubbleEl.className = "v2-comic-map-bubble";
-    bubbleEl.addEventListener("pointerdown", (e) => v2BeginComicBubbleDrag(e));
+    bubbleEl.addEventListener("pointerdown", (e) => v2BeginComicBubbleDrag(e, "move"));
+    const handle = document.createElement("div");
+    handle.className = "v2-camera-map-handle";
+    handle.addEventListener("pointerdown", (e) => v2BeginComicBubbleDrag(e, "resize"));
+    bubbleEl.appendChild(handle);
     map.appendChild(bubbleEl);
     v2PaintComicBubbleMarker(bubble);
+
+    const textOffset = _v2ComicTextDrag?.textOffset || v2ComicTextOffsetFromInputs();
+    const textEl = document.createElement("div");
+    textEl.id = "v2ComicMapText";
+    textEl.className = "v2-comic-map-text";
+    textEl.addEventListener("pointerdown", (e) => v2BeginComicTextDrag(e));
+    map.appendChild(textEl);
+    v2PaintComicTextMarker(bubble, textOffset);
   }
 
   const frame = _v2ComicFrameDrag?.frame || v2ComicFrameFromInputs();
@@ -10834,13 +10980,13 @@ function renderV2ComicMap(turn) {
   }
 }
 
-function v2BeginComicBubbleDrag(e) {
+function v2BeginComicBubbleDrag(e, mode) {
   e.preventDefault();
   e.stopPropagation();
   if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
   const bubble = v2ComicBubbleRectFromInputs();
   if (!bubble) return;
-  _v2ComicBubbleDrag = {startX: e.clientX, startY: e.clientY, initial: bubble, bubble};
+  _v2ComicBubbleDrag = {mode, startX: e.clientX, startY: e.clientY, initial: bubble, bubble};
 }
 
 function v2UpdateComicBubbleFromDrag(e) {
@@ -10851,16 +10997,60 @@ function v2UpdateComicBubbleFromDrag(e) {
   const dx = (e.clientX - _v2ComicBubbleDrag.startX) / Math.max(rect.width, 1);
   const dy = (e.clientY - _v2ComicBubbleDrag.startY) / Math.max(rect.height, 1);
   const initial = _v2ComicBubbleDrag.initial;
-  const bubble = {
-    x: clampJS(initial.x + dx, 0, 1),
-    y: clampJS(initial.y + dy, 0, 1),
-    width: initial.width,
-    height: initial.height,
-  };
+  let bubble;
+  if (_v2ComicBubbleDrag.mode === "resize") {
+    const aspectLock = document.getElementById("fV2ComicBubbleAspectLock")?.checked;
+    let width = clampJS(initial.width + dx, 0.1, 0.9);
+    let height = clampJS(initial.height + dy, 0.1, 0.9);
+    if (aspectLock && initial.width > 0) {
+      const ratio = initial.height / initial.width;
+      height = clampJS(width * ratio, 0.1, 0.9);
+    }
+    bubble = {x: initial.x, y: initial.y, width, height};
+  } else {
+    bubble = {
+      x: clampJS(initial.x + dx, 0, 1),
+      y: clampJS(initial.y + dy, 0, 1),
+      width: initial.width,
+      height: initial.height,
+    };
+  }
   _v2ComicBubbleDrag.bubble = bubble;
   document.getElementById("fV2ComicBubbleX").value = Math.round(bubble.x * 100) / 100;
   document.getElementById("fV2ComicBubbleY").value = Math.round(bubble.y * 100) / 100;
+  document.getElementById("fV2ComicBubbleWidth").value = Math.round(bubble.width * 100) / 100;
+  document.getElementById("fV2ComicBubbleHeight").value = Math.round(bubble.height * 100) / 100;
   v2PaintComicBubbleMarker(bubble);
+  v2PaintComicTextMarker(bubble, _v2ComicTextDrag?.textOffset || v2ComicTextOffsetFromInputs());
+}
+
+function v2BeginComicTextDrag(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
+  const bubble = v2ComicBubbleRectFromInputs();
+  if (!bubble) return;
+  const textOffset = v2ComicTextOffsetFromInputs();
+  _v2ComicTextDrag = {startX: e.clientX, startY: e.clientY, initial: textOffset, textOffset};
+}
+
+function v2UpdateComicTextFromDrag(e) {
+  if (!_v2ComicTextDrag || selectedIdx < 0 || !storyData) return;
+  const map = document.getElementById("v2ComicMap");
+  const bubble = v2ComicBubbleRectFromInputs();
+  if (!map || !bubble) return;
+  const rect = map.getBoundingClientRect();
+  const dx = (e.clientX - _v2ComicTextDrag.startX) / Math.max(rect.width, 1);
+  const dy = (e.clientY - _v2ComicTextDrag.startY) / Math.max(rect.height, 1);
+  const initial = _v2ComicTextDrag.initial;
+  const textOffset = {
+    x: clampJS(initial.x + dx, -0.5, 0.5),
+    y: clampJS(initial.y + dy, -0.5, 0.5),
+  };
+  _v2ComicTextDrag.textOffset = textOffset;
+  document.getElementById("fV2ComicTextOffsetX").value = Math.round(textOffset.x * 100) / 100;
+  document.getElementById("fV2ComicTextOffsetY").value = Math.round(textOffset.y * 100) / 100;
+  v2PaintComicTextMarker(bubble, textOffset);
 }
 
 function v2BeginComicFrameDrag(e, mode) {
@@ -10905,7 +11095,18 @@ function renderV2ComicControls(turn) {
   document.getElementById("fV2ComicBubbleFontSize").value = comic.bubble.fontSize ?? "";
   document.getElementById("fV2ComicBubbleFont").value = comic.bubble.font;
   document.getElementById("fV2ComicBubbleAlign").value = comic.bubble.align;
+  document.getElementById("fV2ComicTextOffsetX").value = comic.bubble.textOffsetX || "";
+  document.getElementById("fV2ComicTextOffsetY").value = comic.bubble.textOffsetY || "";
+  document.getElementById("fV2ComicBubbleFlipX").checked = comic.bubble.flipX;
   document.getElementById("fV2ComicKeepPrevious").checked = comic.bubble.keepPrevious;
+  document.getElementById("fV2ComicBubbleColor").value = comic.bubble.color;
+  document.getElementById("fV2ComicBubbleFillColor").value = comic.bubble.fillColor;
+  if (comic.bubbleType === "svg") {
+    ensureComicBubblesLoadedForEditor().then(() => {
+      const sel = document.getElementById("fV2ComicBubbleSvgShape");
+      if (sel) sel.value = comic.bubble.svgShapeId;
+    });
+  }
   document.getElementById("fV2ComicCameraType").value = comic.cameraType;
   document.getElementById("fV2ComicFrameCx").value = comic.frame ? comic.frame.cx : "";
   document.getElementById("fV2ComicFrameCy").value = comic.frame ? comic.frame.cy : "";
@@ -12184,7 +12385,20 @@ function collectV2Basic() {
       if (font) bubble.font = font;
       const align = document.getElementById("fV2ComicBubbleAlign").value;
       if (align === "center" || align === "left") bubble.align = align;
+      const textOffsetX = Number(document.getElementById("fV2ComicTextOffsetX").value);
+      const textOffsetY = Number(document.getElementById("fV2ComicTextOffsetY").value);
+      if (document.getElementById("fV2ComicTextOffsetX").value !== "" && Number.isFinite(textOffsetX)) bubble.textOffsetX = clampJS(textOffsetX, -0.5, 0.5);
+      if (document.getElementById("fV2ComicTextOffsetY").value !== "" && Number.isFinite(textOffsetY)) bubble.textOffsetY = clampJS(textOffsetY, -0.5, 0.5);
+      if (document.getElementById("fV2ComicBubbleFlipX").checked) bubble.flipX = true;
       if (document.getElementById("fV2ComicKeepPrevious").checked) bubble.keepPrevious = true;
+      if (bubbleType === "svg") {
+        const svgShapeId = document.getElementById("fV2ComicBubbleSvgShape").value;
+        if (svgShapeId) bubble.svgShapeId = svgShapeId;
+      }
+      const colorRaw = document.getElementById("fV2ComicBubbleColor").value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(colorRaw)) bubble.color = colorRaw;
+      const fillColorRaw = document.getElementById("fV2ComicBubbleFillColor").value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(fillColorRaw)) bubble.fillColor = fillColorRaw;
       comic.bubble = bubble;
     }
     const cameraType = document.getElementById("fV2ComicCameraType").value;
@@ -15335,6 +15549,7 @@ function setupTabs() {
   const tCast = document.getElementById("tabCast");
   const tAudio = document.getElementById("tabAudio");
   const tMobs = document.getElementById("tabMobs");
+  const tBubbles = document.getElementById("tabBubbles");
   const tDisplay = document.getElementById("tabDisplay");
   const tEffects = document.getElementById("tabEffects");
   const vScript = document.getElementById("viewScript");
@@ -15345,6 +15560,7 @@ function setupTabs() {
   const vCast = document.getElementById("viewCast");
   const vAudio = document.getElementById("viewAudio");
   const vMobs = document.getElementById("viewMobs");
+  const vBubbles = document.getElementById("viewBubbles");
   const vDisplay = document.getElementById("viewDisplay");
   const vEffects = document.getElementById("viewEffects");
   const sceneFrame = document.getElementById("sceneFrame");
@@ -15353,7 +15569,7 @@ function setupTabs() {
 
   function activateTab(active) {
     // タブボタンのactive切替
-    [tScript, tScene, tExpr, tPose, tGen, tCast, tAudio, tMobs, tDisplay, tEffects].forEach(t => t.classList.toggle("active", t === active));
+    [tScript, tScene, tExpr, tPose, tGen, tCast, tAudio, tMobs, tBubbles, tDisplay, tEffects].forEach(t => t.classList.toggle("active", t === active));
     // メニュー内の画面が選ばれていればメニューボタンを強調。
     const mb = document.getElementById("menuBtn");
     if (mb) mb.classList.toggle("has-active", active !== tScript);
@@ -15366,6 +15582,7 @@ function setupTabs() {
     vCast.style.display = active === tCast ? "flex" : "none";
     vAudio.style.display = active === tAudio ? "flex" : "none";
     vMobs.style.display = active === tMobs ? "flex" : "none";
+    vBubbles.style.display = active === tBubbles ? "flex" : "none";
     vDisplay.style.display = active === tDisplay ? "flex" : "none";
     vEffects.style.display = active === tEffects ? "flex" : "none";
   }
@@ -15410,6 +15627,10 @@ function setupTabs() {
   tMobs.addEventListener("click", () => {
     activateTab(tMobs);
     loadMobsPanel();
+  });
+  tBubbles.addEventListener("click", () => {
+    activateTab(tBubbles);
+    loadComicBubblesPanel();
   });
   tDisplay.addEventListener("click", () => {
     activateTab(tDisplay);
@@ -15628,6 +15849,10 @@ function setupEvents() {
       v2UpdateManualCameraFrameFromDrag(e);
       return;
     }
+    if (_v2ComicTextDrag) {
+      v2UpdateComicTextFromDrag(e);
+      return;
+    }
     if (_v2ComicBubbleDrag) {
       v2UpdateComicBubbleFromDrag(e);
       return;
@@ -15683,6 +15908,13 @@ function setupEvents() {
     }
     if (_v2ComicBubbleDrag) {
       _v2ComicBubbleDrag = null;
+      v2CancelFramedStagePreviewUpdate();
+      collectV2Basic();
+      if (selectedIdx >= 0 && storyData) renderV2Detail(storyData.script[selectedIdx]);
+      return;
+    }
+    if (_v2ComicTextDrag) {
+      _v2ComicTextDrag = null;
       v2CancelFramedStagePreviewUpdate();
       collectV2Basic();
       if (selectedIdx >= 0 && storyData) renderV2Detail(storyData.script[selectedIdx]);
@@ -15776,7 +16008,7 @@ function setupEvents() {
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FramedStageBackground", "fV2FramedStageX", "fV2FramedStageY", "fV2FramedStageWidth", "fV2FramedStageTransition",
-    "fV2ComicImage", "fV2ComicBubbleType", "fV2ComicBubbleX", "fV2ComicBubbleY", "fV2ComicBubbleWidth", "fV2ComicBubbleHeight", "fV2ComicBubbleFontSize", "fV2ComicBubbleFont", "fV2ComicBubbleAlign", "fV2ComicKeepPrevious", "fV2ComicCameraType", "fV2ComicFrameCx", "fV2ComicFrameCy", "fV2ComicFrameWidth",
+    "fV2ComicImage", "fV2ComicBubbleType", "fV2ComicBubbleSvgShape", "fV2ComicBubbleColor", "fV2ComicBubbleFillColor", "fV2ComicBubbleX", "fV2ComicBubbleY", "fV2ComicBubbleWidth", "fV2ComicBubbleHeight", "fV2ComicBubbleFontSize", "fV2ComicBubbleFont", "fV2ComicBubbleAlign", "fV2ComicTextOffsetX", "fV2ComicTextOffsetY", "fV2ComicBubbleFlipX", "fV2ComicKeepPrevious", "fV2ComicCameraType", "fV2ComicFrameCx", "fV2ComicFrameCy", "fV2ComicFrameWidth",
     "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
     "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut", "fV2GloomShock", "fV2VoiceLines", "fV2ReactionMark",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration", "fV2MotionInherit",
@@ -17274,6 +17506,8 @@ async function saveKanjiReadings() {
 let mobsMap = {};
 let mobsLoaded = false;
 let mobsDirty = false;
+let comicBubblesRegistry = {};
+let comicBubblesLoaded = false;
 let voicevoxSpeakers = [];
 let voicevoxSpeakersLoaded = false;
 
@@ -17611,6 +17845,154 @@ async function saveMobs() {
     statusEl.textContent = "通信エラー";
   }
 }
+
+// ── 漫画吹き出しSVG素材（bubbleType: "svg"） ──
+async function loadComicBubblesPanel() {
+  try {
+    const res = await fetch("/api/comic-bubbles");
+    const data = await res.json();
+    comicBubblesRegistry = data.registry || {};
+    comicBubblesLoaded = true;
+    renderBubblesList();
+    populateBubbleSourceSelect(data.availableSvgFiles || []);
+  } catch (e) {
+    document.getElementById("bubblesList").innerHTML = "<div style=\"font-size:12px;color:var(--danger);\">読み込み失敗</div>";
+  }
+}
+
+function populateBubbleSourceSelect(files) {
+  const sel = document.getElementById("fBubbleSourceFile");
+  sel.innerHTML = "";
+  if (files.length === 0) {
+    const o = document.createElement("option");
+    o.value = "";
+    o.textContent = "（未登録のSVGが見つかりません）";
+    sel.appendChild(o);
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  for (const f of files) {
+    const o = document.createElement("option");
+    o.value = f;
+    o.textContent = f;
+    sel.appendChild(o);
+  }
+}
+
+// 枠色=緑・塗り色=白の見本で、実際の描画(CSS mask)と同じ方式のプレビューを出す。
+function makeBubbleShapePreview(entry) {
+  const box = document.createElement("div");
+  box.style.cssText = "position:relative; width:56px; height:44px; flex:none;";
+  const maskLayer = (file, color) => {
+    const d = document.createElement("div");
+    d.style.cssText = `position:absolute; inset:0; background:${color};` +
+      `-webkit-mask-image:url(/preview-assets/${encodePathSegsJS(file)}); -webkit-mask-size:100% 100%; -webkit-mask-repeat:no-repeat;` +
+      `mask-image:url(/preview-assets/${encodePathSegsJS(file)}); mask-size:100% 100%; mask-repeat:no-repeat;`;
+    return d;
+  };
+  box.appendChild(maskLayer(entry.outline, "#5fb84f"));
+  box.appendChild(maskLayer(entry.fill, "#ffffff"));
+  return box;
+}
+
+function renderBubblesList() {
+  const container = document.getElementById("bubblesList");
+  container.innerHTML = "";
+  const ids = sortedStrings(Object.keys(comicBubblesRegistry));
+  if (ids.length === 0) {
+    container.innerHTML = "<div style=\"font-size:12px; color:var(--text2);\">登録済みの吹き出し素材はありません。</div>";
+    return;
+  }
+  for (const id of ids) {
+    const entry = comicBubblesRegistry[id];
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:center; gap:12px; padding:8px 10px; border:1px solid var(--border); border-radius:8px;";
+    row.appendChild(makeBubbleShapePreview(entry));
+    const label = document.createElement("div");
+    label.style.cssText = "flex:1; font-size:13px;";
+    const nameLine = document.createElement("div");
+    nameLine.textContent = entry.name;
+    const idLine = document.createElement("div");
+    idLine.style.cssText = "font-size:11px; color:var(--text2);";
+    idLine.textContent = `ID: ${id}`;
+    label.appendChild(nameLine);
+    label.appendChild(idLine);
+    row.appendChild(label);
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-secondary btn-sm";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", () => deleteComicBubble(id));
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  }
+}
+
+async function registerComicBubble() {
+  const statusEl = document.getElementById("bubblesStatus");
+  const sourceFile = document.getElementById("fBubbleSourceFile").value;
+  const name = document.getElementById("fBubbleName").value.trim();
+  if (!sourceFile) { statusEl.style.color = "var(--danger)"; statusEl.textContent = "登録できるSVGがありません"; return; }
+  if (!name) { statusEl.style.color = "var(--danger)"; statusEl.textContent = "名前を入力してください"; return; }
+  const id = name.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || `bubble_${Date.now()}`;
+  statusEl.style.color = "var(--text2)";
+  statusEl.textContent = "登録中...";
+  try {
+    const r = await fetch("/api/comic-bubbles/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name, sourceFile }),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      comicBubblesRegistry = result.registry;
+      renderBubblesList();
+      document.getElementById("fBubbleName").value = "";
+      if (window.storyPlayer && playerReady) window.storyPlayer.reloadComicBubbles();
+      if (window.storyDisplayPreviewPlayer && displayPreviewReady) window.storyDisplayPreviewPlayer.reloadComicBubbles();
+      refreshComicBubbleShapeOptions();
+      statusEl.style.color = "var(--green)";
+      statusEl.textContent = "登録しました";
+      setTimeout(() => { statusEl.textContent = ""; }, 2500);
+      await loadComicBubblesPanel();
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "登録失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
+}
+
+async function deleteComicBubble(id) {
+  const entry = comicBubblesRegistry[id];
+  if (!confirm(`「${entry?.name || id}」を削除しますか？ この素材を使っているターンはフォールバック表示になります。`)) return;
+  const statusEl = document.getElementById("bubblesStatus");
+  try {
+    const r = await fetch("/api/comic-bubbles/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      comicBubblesRegistry = result.registry;
+      renderBubblesList();
+      if (window.storyPlayer && playerReady) window.storyPlayer.reloadComicBubbles();
+      if (window.storyDisplayPreviewPlayer && displayPreviewReady) window.storyDisplayPreviewPlayer.reloadComicBubbles();
+      refreshComicBubbleShapeOptions();
+    } else {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "削除失敗: " + (result.error || r.status);
+    }
+  } catch (e) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "通信エラー";
+  }
+}
+
+document.getElementById("btnRegisterBubble").addEventListener("click", registerComicBubble);
 
 // ============================================================
 // エントリポイント

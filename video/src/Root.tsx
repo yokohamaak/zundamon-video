@@ -6,6 +6,7 @@ import type {
   SeMap,
   MobsMap,
 } from "./StoryVideo";
+import type { ComicBubbleRegistry } from "./stage-v2";
 import type { StoryVideoRouterProps } from "./StoryVideoRouter";
 import "./fonts"; // import時に日本語フォントのロードを開始（豆腐防止）
 
@@ -49,7 +50,14 @@ async function loadStory(): Promise<StoryVideoRouterProps> {
   } catch {
     // mobs.json 未配置時は組み込みの既定モブ定義にフォールバック
   }
-  return { story, scenes, manifest, audio: story.audio, expressions, poses, seMap, mobs };
+  let comicBubbles: ComicBubbleRegistry | undefined;
+  try {
+    const cbRes = await fetch(staticFile("comic_bubbles.json"));
+    if (cbRes.ok) comicBubbles = await cbRes.json();
+  } catch {
+    // comic_bubbles.json 未配置時はsvgタイプの吹き出しがフォールバック表示になる
+  }
+  return { story, scenes, manifest, audio: story.audio, expressions, poses, seMap, mobs, comicBubbles };
 }
 
 export const FPS = 30;

@@ -1,0 +1,50 @@
+{
+  "tail_round": {
+    "name": "丸型(尻尾)",
+    "outline": "effects/tail_round.outline.svg",
+    "fill": "effects/tail_round.fill.svg",
+    "source": "effects/e0042_0.svg"
+  },
+  "bubble_1784630716068": {
+    "name": "お化け(尻尾)",
+    "outline": "effects/bubble_1784630716068.outline.svg",
+    "fill": "effects/bubble_1784630716068.fill.svg",
+    "source": "effects/e0187_0.svg"
+  },
+  "bubble_1784630743000": {
+    "name": "角型(尻尾)",
+    "outline": "effects/bubble_1784630743000.outline.svg",
+    "fill": "effects/bubble_1784630743000.fill.svg",
+    "source": "effects/e0084_0.svg"
+  },
+  "bubble_1784630762698": {
+    "name": "心の声(尻尾)",
+    "outline": "effects/bubble_1784630762698.outline.svg",
+    "fill": "effects/bubble_1784630762698.fill.svg",
+    "source": "effects/e0270_2.svg"
+  },
+  "bubble_1784630780664": {
+    "name": "ギザギザ多め",
+    "outline": "effects/bubble_1784630780664.outline.svg",
+    "fill": "effects/bubble_1784630780664.fill.svg",
+    "source": "effects/e1354_0.svg"
+  },
+  "bubble_1784630791946": {
+    "name": "爆発",
+    "outline": "effects/bubble_1784630791946.outline.svg",
+    "fill": "effects/bubble_1784630791946.fill.svg",
+    "source": "effects/e1369_1.svg"
+  },
+  "bubble_1784630805112": {
+    "name": "ギザギザ",
+    "outline": "effects/bubble_1784630805112.outline.svg",
+    "fill": "effects/bubble_1784630805112.fill.svg",
+    "source": "effects/e1373_3.svg"
+  },
+  "bubble_1784630829477": {
+    "name": "複合(尻尾)",
+    "outline": "effects/bubble_1784630829477.outline.svg",
+    "fill": "effects/bubble_1784630829477.fill.svg",
+    "source": "effects/e1682_3.svg"
+  }
+}

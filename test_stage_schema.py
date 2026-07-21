@@ -158,7 +158,8 @@ class StageSchemaTest(unittest.TestCase):
             "comic": {
                 "image": "background/manga_page1.png",
                 "bubble": {
-                    "type": "shout",
+                    "type": "svg",
+                    "svgShapeId": "tail_round",
                     "x": 0.5,
                     "y": 0.3,
                     "width": 0.4,
@@ -166,7 +167,12 @@ class StageSchemaTest(unittest.TestCase):
                     "fontSize": 36,
                     "font": "mincho",
                     "align": "center",
+                    "textOffsetX": -0.04,
+                    "textOffsetY": 0.03,
+                    "flipX": True,
                     "keepPrevious": True,
+                    "color": "#5fb84f",
+                    "fillColor": "#ffffff",
                 },
                 "camera": {
                     "type": "zoomIn",

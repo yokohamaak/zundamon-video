@@ -201,7 +201,10 @@ export type FramedStageDisplayV2 = {
   };
 };
 
-export type ComicBubbleTypeV2 = "speech" | "thought" | "shout" | "narration";
+/** video/public/comic_bubbles.json の内容。story_editor の「吹き出し素材」メニューで管理する。 */
+export type ComicBubbleRegistry = Record<string, {name: string; outline: string; fill: string}>;
+
+export type ComicBubbleTypeV2 = "speech" | "thought" | "svg" | "narration";
 export type ComicBubbleFontV2 = "mincho" | "gothic" | "rounded" | "handwriting";
 /** 縦書きの列ブロックを吹き出し枠の横方向でどこへ置くか。 */
 export type ComicBubbleAlignV2 = "right" | "center" | "left";
@@ -223,8 +226,19 @@ export type ComicDisplayV2 = {
       font?: ComicBubbleFontV2;
       /** 省略時は右寄せ。縦書きの列ブロックを吹き出し枠の横方向で配置する。 */
       align?: ComicBubbleAlignV2;
+      /** 文字領域の吹き出し中心からの微調整。画面比。省略時は0。 */
+      textOffsetX?: number;
+      textOffsetY?: number;
+      /** 吹き出し素材を左右反転する。文字は反転しない。 */
+      flipX?: boolean;
       /** 直前の連続する同一image・同一sceneの漫画ターンから吹き出し蓄積を引き継ぐ。 */
       keepPrevious?: boolean;
+      /** type="svg"の場合のみ必須。comic_bubbles.json に登録された吹き出し素材のID。 */
+      svgShapeId?: string;
+      /** 省略時は話者色。枠（outline）の着色。 */
+      color?: string;
+      /** 省略時は白。塗り（fill・吹き出し内側）の着色。 */
+      fillColor?: string;
     };
     /** 省略時は全画面固定。frameは注視枠（fixed=静止構図、zoomIn=全画面→frame、zoomOut=frame→全画面）。 */
     camera?: {

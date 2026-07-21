@@ -647,6 +647,7 @@ export type StoryVideoProps = {
   poses?: PosesMap; // poses.json（省略時はAvatar側の自動腕割当へフォールバック）
   seMap?: SeMap; // se-map.json（省略時はSE再生なし）
   mobs?: MobsMap; // mobs.json（省略時は組み込みの既定モブ定義）
+  comicBubbles?: import("./stage-v2").ComicBubbleRegistry; // comic_bubbles.json（V2漫画表示専用）
 };
 
 // 立ち絵ボックスサイズ。バスト用は 445×445（Avatar の既定値と同じ）。

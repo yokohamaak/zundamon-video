@@ -7,6 +7,7 @@ import type {Gender} from "./types";
 import {WhiteboardExplainInsert, getWhiteboardExplainLayout, type WhiteboardExplainInsertConfig, type WhiteboardExplainPopTargets} from "./inserts/whiteboardExplain";
 import {InsertOverlay} from "./StoryVideo";
 import {ComicDisplay, resolveComicVisual, type ComicRenderBubble} from "./ComicDisplay";
+import type {ComicBubbleRegistry} from "./stage-v2";
 import {
   placementOrigin,
   resolveFraming,
@@ -33,6 +34,7 @@ export type StageVideoV2Props = {
   poses?: PosesMap;
   seMap?: SeMap;
   mobs?: MobsMap;
+  comicBubbles?: ComicBubbleRegistry;
 };
 
 const MAIN_CHARACTERS: Record<string, {avatar: string; gender: Gender; expressive?: boolean; color: string}> = {
@@ -1422,6 +1424,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
   poses,
   seMap,
   mobs,
+  comicBubbles,
 }) => {
   const frame = useCurrentFrame();
   const {fps, width, height} = useVideoConfig();
@@ -1560,8 +1563,13 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       fontSize: bubble.fontSize,
       font: bubble.font,
       align: bubble.align,
+      textOffsetX: bubble.textOffsetX,
+      textOffsetY: bubble.textOffsetY,
+      flipX: bubble.flipX,
       text: bubble.text,
-      borderColor: comicBubbleBorderColor(bubble.speaker),
+      borderColor: bubble.color ?? comicBubbleBorderColor(bubble.speaker),
+      svgShapeId: bubble.svgShapeId,
+      fillColor: bubble.fillColor,
     }));
   const continueRange = continuedBubbleRange(story.script, turnIndex);
   const continuedTurns = story.script.slice(continueRange.start, continueRange.end + 1);
@@ -2030,7 +2038,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
           />
         ) : plateState.displayMode.kind === "comic" ? (() => {
           const visual = resolveComicVisual(story.script, turnIndex - 1, 0, {atEnd: true});
-          return visual ? <ComicDisplay width={width} height={height} image={visual.image} bubbles={comicRenderBubbles(visual)} cameraFrame={visual.cameraFrame} settings={displaySettings.bubble} /> : null;
+          return visual ? <ComicDisplay width={width} height={height} image={visual.image} bubbles={comicRenderBubbles(visual)} cameraFrame={visual.cameraFrame} settings={displaySettings.bubble} comicBubbles={comicBubbles} /> : null;
         })() : (
           <AbsoluteFill style={{overflow: "hidden"}}>
             <AbsoluteFill style={{transform: plateTiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>
@@ -2120,7 +2128,7 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
               />
             ) : state.displayMode.kind === "comic" ? (() => {
               const visual = resolveComicVisual(story.script, turnIndex, seconds);
-              return visual ? <ComicDisplay width={width} height={height} image={visual.image} bubbles={comicRenderBubbles(visual)} cameraFrame={visual.cameraFrame} settings={displaySettings.bubble} /> : null;
+              return visual ? <ComicDisplay width={width} height={height} image={visual.image} bubbles={comicRenderBubbles(visual)} cameraFrame={visual.cameraFrame} settings={displaySettings.bubble} comicBubbles={comicBubbles} /> : null;
             })() : (
               <AbsoluteFill style={{transform: stageShellTransform, transformOrigin: "50% 50%", overflow: "hidden"}}>
                 <AbsoluteFill style={{transform: tiltedTransform, transformOrigin: "0 0", overflow: "hidden"}}>

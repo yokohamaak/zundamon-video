@@ -1,6 +1,6 @@
 import React from "react";
 import {AbsoluteFill, Img, staticFile} from "remotion";
-import type {CameraFrameV2, ComicBubbleAlignV2, ComicBubbleFontV2, ComicBubbleTypeV2, StageTurnV2} from "./stage-v2";
+import type {CameraFrameV2, ComicBubbleAlignV2, ComicBubbleFontV2, ComicBubbleRegistry, ComicBubbleTypeV2, StageTurnV2} from "./stage-v2";
 import {stageTransformValues} from "./StageVideoV2";
 
 // 縦書き吹き出しの既定の列長（画面高比）。エディタ側の同名定数と一致させる。
@@ -45,10 +45,17 @@ export type ComicVisualBubble = {
   fontSize?: number;
   font?: ComicBubbleFontV2;
   align?: ComicBubbleAlignV2;
+  textOffsetX?: number;
+  textOffsetY?: number;
+  flipX?: boolean;
   text: string;
   /** 吹き出しを出したターンの話者。枠色の解決に使う。 */
   speaker: string;
   isCurrent: boolean;
+  /** type="svg"の場合のみ使う、comic_bubbles.json 登録済み素材のID。 */
+  svgShapeId?: string;
+  color?: string;
+  fillColor?: string;
 };
 
 export type ComicVisual = {
@@ -109,9 +116,15 @@ export function resolveComicVisual(
     fontSize: item.bubble.fontSize,
     font: item.bubble.font,
     align: item.bubble.align,
+    textOffsetX: item.bubble.textOffsetX,
+    textOffsetY: item.bubble.textOffsetY,
+    flipX: item.bubble.flipX,
     text: script[item.source].text,
     speaker: script[item.source].speaker,
     isCurrent: item.source === turnIndex,
+    svgShapeId: item.bubble.svgShapeId,
+    color: item.bubble.color,
+    fillColor: item.bubble.fillColor,
   }));
 
   const cameraType = comic.camera?.type ?? "fixed";
@@ -154,25 +167,17 @@ export type ComicRenderBubble = {
   fontSize?: number;
   font?: ComicBubbleFontV2;
   align?: ComicBubbleAlignV2;
+  textOffsetX?: number;
+  textOffsetY?: number;
+  flipX?: boolean;
   text: string;
   /** 呼び出し側が話者から解決した枠色。 */
   borderColor: string;
+  /** type="svg"の場合のみ使う。 */
+  svgShapeId?: string;
+  fillColor?: string;
 };
 
-// clip-pathでは枠線が描けないため、叫び枠はギザギザ多角形を外側=枠色・内側=白で二重に敷く。
-function shoutClipPath() {
-  const teeth = 8;
-  const depth = 6;
-  const pts: string[] = [];
-  const push = (x: number, y: number) => pts.push(`${x.toFixed(1)}% ${y.toFixed(1)}%`);
-  for (let i = 0; i <= teeth; i += 1) push((100 * i) / teeth, i % 2 === 0 ? 0 : depth);
-  for (let i = 1; i <= teeth; i += 1) push(i % 2 === 0 ? 100 : 100 - depth, (100 * i) / teeth);
-  for (let i = 1; i <= teeth; i += 1) push(100 - (100 * i) / teeth, i % 2 === 0 ? 100 : 100 - depth);
-  for (let i = 1; i < teeth; i += 1) push(i % 2 === 0 ? 0 : depth, 100 - (100 * i) / teeth);
-  return `polygon(${pts.join(", ")})`;
-}
-
-const SHOUT_CLIP = shoutClipPath();
 const BUBBLE_SHADOW = "0 6px 18px rgba(0,0,0,.35)";
 
 function ComicBubble({
@@ -180,18 +185,20 @@ function ComicBubble({
   width,
   height,
   settings,
+  comicBubbles,
 }: {
   bubble: ComicRenderBubble;
   width: number;
   height: number;
   settings: ComicBubbleSettings;
+  comicBubbles?: ComicBubbleRegistry;
 }) {
   const fontSize = bubble.fontSize ?? settings.fontSize;
   const lineHeight = 1.4;
   // 縦書き: 列長(inline方向)を height比×キャンバス高で固定し、横は列数から実幅を明示計算する。
   const columnHeight = (bubble.height ?? COMIC_BUBBLE_DEFAULT_HEIGHT) * height;
-  const padY = bubble.type === "shout" ? 24 : 20;
-  const padX = bubble.type === "shout" ? 28 : bubble.type === "narration" ? 22 : 24;
+  const padY = bubble.type === "svg" ? 28 : 20;
+  const padX = bubble.type === "svg" ? 32 : bubble.type === "narration" ? 22 : 24;
   // Chrome の直交フローでは vertical-rl + max-content が先頭列ぶん過小評価し、
   // 先頭列(右端)が枠外に出て描画されない。列数から必要幅を明示計算して回避する。
   const columnAdvance = fontSize * lineHeight; // 縦書き1列の太さ(ブロック方向)≈fontSize×line-height
@@ -222,8 +229,8 @@ function ComicBubble({
   };
   const textStyle: React.CSSProperties = {
     position: "absolute",
-    left: textFrameLeft,
-    top: padY,
+    left: textFrameLeft + (bubble.textOffsetX ?? 0) * width,
+    top: padY + (bubble.textOffsetY ?? 0) * height,
     fontSize,
     fontFamily: comicFontFamily(bubble.font, settings.fontFamily),
     lineHeight,
@@ -241,15 +248,31 @@ function ComicBubble({
     height: columnHeight,
   };
 
-  if (bubble.type === "shout") {
-    return (
-      <div style={wrapperStyle}>
-        <div style={{...frameStyle, clipPath: SHOUT_CLIP, background: bubble.borderColor}}>
-          <div style={{position: "absolute", inset: 3, clipPath: SHOUT_CLIP, background: "#ffffff"}} />
-          <div style={{...textStyle, zIndex: 1, color: settings.textColor, fontWeight: 900}}>{bubble.text}</div>
+  if (bubble.type === "svg") {
+    const shape = bubble.svgShapeId ? comicBubbles?.[bubble.svgShapeId] : undefined;
+    if (shape) {
+      const maskStyle = (file: string): React.CSSProperties => ({
+        position: "absolute",
+        inset: 0,
+        transform: bubble.flipX ? "scaleX(-1)" : undefined,
+        maskImage: `url(${staticFile(file)})`,
+        maskSize: "100% 100%",
+        maskRepeat: "no-repeat",
+        WebkitMaskImage: `url(${staticFile(file)})`,
+        WebkitMaskSize: "100% 100%",
+        WebkitMaskRepeat: "no-repeat",
+      });
+      return (
+        <div style={wrapperStyle}>
+          <div style={frameStyle}>
+            <div style={{...maskStyle(shape.outline), background: bubble.borderColor}} />
+            <div style={{...maskStyle(shape.fill), background: bubble.fillColor ?? "#ffffff"}} />
+            <div style={{...textStyle, zIndex: 1, color: settings.textColor, fontWeight: 700}}>{bubble.text}</div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    // 未登録・削除済みの素材IDは吹き出し欠落より通常枠での代替表示を優先する。
   }
 
   if (bubble.type === "narration") {
@@ -265,13 +288,15 @@ function ComicBubble({
     <div style={wrapperStyle}>
       <div style={{
         ...frameStyle,
+        transform: bubble.flipX ? "scaleX(-1)" : undefined,
         borderRadius: isThought ? Math.max(28, settings.radius) : settings.radius,
         background: settings.bgColor,
         color: settings.textColor,
         border: `${settings.borderWidth}px ${isThought ? "dashed" : "solid"} ${bubble.borderColor}`,
         fontWeight: 700,
         boxShadow: BUBBLE_SHADOW,
-      }}><div style={textStyle}>{bubble.text}</div></div>
+      }} />
+      <div style={{...textStyle, color: settings.textColor, fontWeight: 700}}>{bubble.text}</div>
     </div>
   );
 }
@@ -283,6 +308,7 @@ export function ComicDisplay({
   bubbles,
   cameraFrame,
   settings,
+  comicBubbles,
 }: {
   width: number;
   height: number;
@@ -290,6 +316,7 @@ export function ComicDisplay({
   bubbles: ComicRenderBubble[];
   cameraFrame: CameraFrameV2;
   settings: ComicBubbleSettings;
+  comicBubbles?: ComicBubbleRegistry;
 }) {
   const values = stageTransformValues(width, height, cameraFrame);
   const transform = values ? `translate(${values.tx}px, ${values.ty}px) scale(${values.scale})` : undefined;
@@ -298,7 +325,7 @@ export function ComicDisplay({
       <div style={{position: "absolute", left: 0, top: 0, width, height, transform, transformOrigin: "0 0"}}>
         <Img src={staticFile(image)} style={{position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover"}} />
         {bubbles.map((bubble, index) => (
-          <ComicBubble key={index} bubble={bubble} width={width} height={height} settings={settings} />
+          <ComicBubble key={index} bubble={bubble} width={width} height={height} settings={settings} comicBubbles={comicBubbles} />
         ))}
       </div>
     </AbsoluteFill>

@@ -550,9 +550,18 @@ def _display_mode(value, path):
             bubble = comic["bubble"]
             if not isinstance(bubble, dict):
                 _error(f"{path}.comic.bubble", "objectが必要です")
-            _only_keys(bubble, {"type", "x", "y", "width", "height", "fontSize", "font", "align", "keepPrevious"}, f"{path}.comic.bubble")
-            if bubble.get("type") not in {"speech", "thought", "shout", "narration"}:
-                _error(f"{path}.comic.bubble.type", "speech/thought/shout/narration のいずれかが必要です")
+            _only_keys(bubble, {"type", "x", "y", "width", "height", "fontSize", "font", "align", "textOffsetX", "textOffsetY", "flipX", "keepPrevious", "svgShapeId", "color", "fillColor"}, f"{path}.comic.bubble")
+            if bubble.get("type") not in {"speech", "thought", "svg", "narration"}:
+                _error(f"{path}.comic.bubble.type", "speech/thought/svg/narration のいずれかが必要です")
+            if bubble.get("type") == "svg":
+                if not isinstance(bubble.get("svgShapeId"), str) or not bubble["svgShapeId"]:
+                    _error(f"{path}.comic.bubble.svgShapeId", "type=svgの場合は文字列が必要です")
+            elif "svgShapeId" in bubble:
+                _error(f"{path}.comic.bubble.svgShapeId", "type=svg以外では指定できません")
+            if "color" in bubble:
+                _hex(bubble["color"], f"{path}.comic.bubble.color")
+            if "fillColor" in bubble:
+                _hex(bubble["fillColor"], f"{path}.comic.bubble.fillColor")
             for key in ("x", "y", "width"):
                 if not _is_number(bubble.get(key)):
                     _error(f"{path}.comic.bubble.{key}", "有限数値が必要です")
@@ -575,6 +584,14 @@ def _display_mode(value, path):
                     _error(f"{path}.comic.bubble.fontSize", "有限数値が必要です")
                 if not 12 <= bubble["fontSize"] <= 120:
                     _error(f"{path}.comic.bubble.fontSize", "12〜120の値が必要です")
+            for key in ("textOffsetX", "textOffsetY"):
+                if key in bubble:
+                    if not _is_number(bubble[key]):
+                        _error(f"{path}.comic.bubble.{key}", "有限数値が必要です")
+                    if not -0.5 <= bubble[key] <= 0.5:
+                        _error(f"{path}.comic.bubble.{key}", "-0.5〜0.5の値が必要です")
+            if "flipX" in bubble and not isinstance(bubble["flipX"], bool):
+                _error(f"{path}.comic.bubble.flipX", "true/falseが必要です")
             if "keepPrevious" in bubble and not isinstance(bubble["keepPrevious"], bool):
                 _error(f"{path}.comic.bubble.keepPrevious", "true/falseが必要です")
         if "camera" in comic:

@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import xml.etree.ElementTree as ET
 import signal
 import socket
 import subprocess
@@ -62,7 +63,7 @@ _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 # 許可するトップレベルディレクトリ名 or ファイル名の集合。
 _PREVIEW_ASSET_DIRS = {"avatars", "background", "effects", "mobs", "bgm", "se", "fonts", "overlays"}
 _PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "poses.json", "se-map.json",
-                        "mobs.json", "noise.png", "story-01.wav", "story-01.mp3",
+                        "mobs.json", "comic_bubbles.json", "noise.png", "story-01.wav", "story-01.mp3",
                         "story.wav", "story.mp3"}
 
 MOBS_JSON = os.path.join(VIDEO_PUBLIC_DIR, "mobs.json")
@@ -128,6 +129,144 @@ def _save_mobs(data):
     with open(MOBS_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write("\n")
+
+
+# ── 漫画吹き出しSVG素材（bubbleType: "svg"） ──
+# ユーザーが video/assets/effects/ に置いた2トーン(黒枠+白塗り)SVGを、
+# エディタの「吹き出し素材」メニューから登録すると自動で枠用/塗り用の2枚に分解する。
+# CSS mask-image で枠色・塗り色をそれぞれ話者色/個別指定に着色するため。
+COMIC_BUBBLES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "comic_bubbles.json")
+EFFECTS_ASSETS_DIR = os.path.join(VIDEO_ASSETS_DIR, "effects")
+EFFECTS_PUBLIC_DIR = os.path.join(VIDEO_PUBLIC_DIR, "effects")
+_SVG_NS = "http://www.w3.org/2000/svg"
+ET.register_namespace("", _SVG_NS)
+_DRAWABLE_TAGS = {"path", "polygon", "polyline", "circle", "ellipse", "rect"}
+
+
+def _load_comic_bubbles():
+    if not os.path.exists(COMIC_BUBBLES_JSON):
+        return {}
+    with open(COMIC_BUBBLES_JSON, encoding="utf-8") as f:
+        data = json.load(f)
+    return data if isinstance(data, dict) else {}
+
+
+def _save_comic_bubbles_registry(data):
+    if not isinstance(data, dict):
+        raise ValueError("comic_bubbles はオブジェクトである必要があります")
+    for shape_id, entry in data.items():
+        if not isinstance(shape_id, str) or not shape_id.strip():
+            raise ValueError("吹き出し素材のIDが不正です")
+        if not isinstance(entry, dict) or not entry.get("name") or not entry.get("outline") or not entry.get("fill"):
+            raise ValueError(f"吹き出し素材の定義が不正です: {shape_id}")
+    os.makedirs(os.path.dirname(COMIC_BUBBLES_JSON), exist_ok=True)
+    with open(COMIC_BUBBLES_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def _list_available_bubble_svgs():
+    """assets/effects 直下のSVGのうち、まだ吹き出し素材として登録されていない元絵の一覧。
+    分解済みファイル(*.outline.svg / *.fill.svg)自体は候補から除く。"""
+    if not os.path.isdir(EFFECTS_ASSETS_DIR):
+        return []
+    registry = _load_comic_bubbles()
+    used_derived = set()
+    for entry in registry.values():
+        for key in ("outline", "fill"):
+            rel = entry.get(key, "")
+            if rel.startswith("effects/"):
+                used_derived.add(rel[len("effects/"):])
+    files = []
+    for name in sorted(os.listdir(EFFECTS_ASSETS_DIR)):
+        if not name.lower().endswith(".svg"):
+            continue
+        if name.endswith(".outline.svg") or name.endswith(".fill.svg"):
+            continue
+        if name in used_derived:
+            continue
+        files.append(name)
+    return files
+
+
+def _hex_luminance(hex_color):
+    m = re.fullmatch(r"#([0-9a-fA-F]{6})", (hex_color or "").strip())
+    if not m:
+        return None
+    r, g, b = (int(m.group(1)[i:i + 2], 16) for i in (0, 2, 4))
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+
+def _elem_fill_color(elem, style_map):
+    style = elem.get("style", "")
+    m = re.search(r"fill:\s*(#[0-9a-fA-F]{3,6})", style)
+    if m:
+        return m.group(1)
+    if elem.get("fill"):
+        return elem.get("fill")
+    cls = elem.get("class", "")
+    for name in cls.split():
+        if name in style_map:
+            return style_map[name]
+    return None
+
+
+def _split_bubble_svg(source_filename, out_stem):
+    """2トーンSVG(黒枠パス+白塗りパス)を、暗色側=枠用/明色側=塗り用の2枚に分解する。
+    CSS mask-image で使う前提のため、両方とも塗りは#ffffffに統一する
+    （マスクは輝度で可視判定するため、形が拾えれば元の色は使わない）。
+    戻り値: (outline_rel, fill_rel) … "effects/<out_stem>.outline.svg" 形式。
+    """
+    source_path = os.path.join(EFFECTS_ASSETS_DIR, source_filename)
+    if not os.path.isfile(source_path):
+        raise ValueError(f"元のSVGが見つかりません: {source_filename}")
+    tree = ET.parse(source_path)
+    root = tree.getroot()
+
+    style_map = {}
+    for style_elem in root.iter(f"{{{_SVG_NS}}}style"):
+        for m in re.finditer(r"\.([\w-]+)\s*\{[^}]*fill:\s*(#[0-9a-fA-F]{3,6})", style_elem.text or ""):
+            style_map[m.group(1)] = m.group(2)
+
+    dark_elems, light_elems = [], []
+    for elem in root.iter():
+        tag = elem.tag.split("}")[-1]
+        if tag not in _DRAWABLE_TAGS:
+            continue
+        color = _elem_fill_color(elem, style_map)
+        lum = _hex_luminance(color) if color else None
+        if lum is None:
+            continue
+        (dark_elems if lum < 128 else light_elems).append(elem)
+
+    if not dark_elems and not light_elems:
+        raise ValueError(f"色情報つきの図形が見つかりません: {source_filename}")
+
+    def _build(elems):
+        new_root = ET.Element(f"{{{_SVG_NS}}}svg", attrib={
+            k: v for k, v in root.attrib.items() if k != "style"
+        })
+        # CSS mask-image は要素の枠に非等縦横比で引き伸ばして使う前提のため、
+        # viewBoxの縦横比保持(既定のpreserveAspectRatio)を無効化する。
+        new_root.set("preserveAspectRatio", "none")
+        for src in elems:
+            copy = ET.fromstring(ET.tostring(src))
+            for attr in ("class", "style"):
+                if attr in copy.attrib:
+                    del copy.attrib[attr]
+            copy.set("fill", "#ffffff")
+            new_root.append(copy)
+        return ET.ElementTree(new_root)
+
+    os.makedirs(EFFECTS_ASSETS_DIR, exist_ok=True)
+    os.makedirs(EFFECTS_PUBLIC_DIR, exist_ok=True)
+    outline_name = f"{out_stem}.outline.svg"
+    fill_name = f"{out_stem}.fill.svg"
+    for name, elems in ((outline_name, dark_elems or light_elems), (fill_name, light_elems or dark_elems)):
+        t = _build(elems)
+        for out_dir in (EFFECTS_ASSETS_DIR, EFFECTS_PUBLIC_DIR):
+            t.write(os.path.join(out_dir, name), encoding="unicode", xml_declaration=True)
+    return f"effects/{outline_name}", f"effects/{fill_name}"
 
 
 def _save_voice_profiles(data):
@@ -1218,7 +1357,8 @@ def _build_script_prompt_v2(theme, length, notes, mode="safe",
         ' "messages": [{"from": "metan", "text": "..."}, {"from": "zundamon", "text": "...", "highlight": true}]}}。',
         '- ZunMail: "displayMode": {"kind": "zunMail", "mailer": {"kind": "mailer", "from": "管理部", "fromAddr": "admin@example.local", "subject": "...", "body": "...", "time": "14:32"}}。',
         '- 画面内ステージ: "displayMode": {"kind": "framedStage", "framedStage": {"background": "background/movie_player.png", "frame": {"x": 0.12, "y": 0.18, "width": 0.72}, "frameTransition": "smooth"}}。外枠の背景画像を選び、その中の16:9枠へこのターンの通常scene・人物・吹き出し・カメラを縮小して描画する。frame はエディタでD&Dして設定する。前ターンと同じ外側背景ならframeTransition: smoothで枠を移動・拡縮でき、turn.transition は枠内だけに適用される。',
-        '- 漫画: "displayMode": {"kind": "comic", "comic": {"image": "background/xxx.png", "bubble": {"type": "speech", "x": 0.3, "y": 0.25, "width": 0.32, "height": 0.3}, "camera": {"type": "zoomIn"}}}。1枚絵の上に吹き出しを重ねる漫画コマ表示。吹き出しは縦書き。bubble.type は speech/thought/shout/narration、本文はそのターンの text。height は縦の長さ（画面高比0.1..0.9、省略可）、width は最小幅で長文は左右に広がる。font で "mincho"（明朝）/"gothic"/"rounded"/"handwriting" を指定可（省略時は全体設定）。横方向の文字位置は align で "right"（省略時）/"center"/"left" を指定できる。同じ絵を続けるターンには毎ターン同じ image を書き、吹き出しを残したい後続ターンは bubble に "keepPrevious": true を付ける。camera は fixed/zoomIn/zoomOut（省略可）。',
+        '- 漫画: "displayMode": {"kind": "comic", "comic": {"image": "background/xxx.png", "bubble": {"type": "speech", "x": 0.3, "y": 0.25, "width": 0.32, "height": 0.3}, "camera": {"type": "zoomIn"}}}。1枚絵の上に吹き出しを重ねる漫画コマ表示。吹き出しは縦書き。bubble.type は speech/thought/narration（本文はそのターンの text）。height は縦の長さ（画面高比0.1..0.9、省略可）、width は最小幅で長文は左右に広がる。font で "mincho"（明朝）/"gothic"/"rounded"/"handwriting" を指定可（省略時は全体設定）。横方向の文字位置は align で "right"（省略時）/"center"/"left" を指定できる。文字領域の微調整は textOffsetX/textOffsetY（-0.5..0.5）、尻尾付き素材の左右反転は flipX: true を使える。同じ絵を続けるターンには毎ターン同じ image を書き、吹き出しを残したい後続ターンは bubble に "keepPrevious": true を付ける。camera は fixed/zoomIn/zoomOut（省略可）。'
+        ' bubble.type には他に "svg"（登録済みSVG素材の吹き出し。svgShapeIdで指定）もあるが、素材IDはユーザーがエディタで管理するためAIは使わない（提案しない）。',
         "- 特殊表示の間も stage の enter/exit/update は裏で効き、通常表示に戻ると反映されている。",
         "",
         "【background/backdropImage に使える背景画像】（comic.image にもこの一覧が使える）",
@@ -1779,6 +1919,15 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/comic-bubbles":
+            try:
+                self._send_json({
+                    "registry": _load_comic_bubbles(),
+                    "availableSvgFiles": _list_available_bubble_svgs(),
+                })
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path == "/api/voicevox/speakers":
             self._send_json(_load_voicevox_speakers())
 
@@ -1880,6 +2029,57 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 data = json.loads(body.decode("utf-8"))
                 _save_voice_profiles(data)
                 self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/comic-bubbles/register":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                shape_id = str(data.get("id", "")).strip()
+                name = str(data.get("name", "")).strip()
+                source_file = str(data.get("sourceFile", "")).strip()
+                if not shape_id or not re.fullmatch(r"[a-zA-Z0-9_-]+", shape_id):
+                    raise ValueError("IDは半角英数字・-・_のみ使用できます")
+                if not name:
+                    raise ValueError("名前を入力してください")
+                registry = _load_comic_bubbles()
+                if shape_id in registry:
+                    raise ValueError(f"同じIDが既に登録されています: {shape_id}")
+                outline, fill = _split_bubble_svg(source_file, shape_id)
+                registry[shape_id] = {
+                    "name": name,
+                    "outline": outline,
+                    "fill": fill,
+                    "source": f"effects/{source_file}",
+                }
+                _save_comic_bubbles_registry(registry)
+                self._send_json({"ok": True, "registry": registry})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/comic-bubbles/delete":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                shape_id = str(data.get("id", "")).strip()
+                registry = _load_comic_bubbles()
+                if shape_id not in registry:
+                    raise ValueError(f"未登録のIDです: {shape_id}")
+                entry = registry.pop(shape_id)
+                for key in ("outline", "fill"):
+                    rel = entry.get(key, "")
+                    if rel.startswith("effects/"):
+                        for base_dir in (EFFECTS_ASSETS_DIR, EFFECTS_PUBLIC_DIR):
+                            p = os.path.join(base_dir, rel[len("effects/"):])
+                            if os.path.isfile(p):
+                                os.remove(p)
+                _save_comic_bubbles_registry(registry)
+                self._send_json({"ok": True, "registry": registry})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:

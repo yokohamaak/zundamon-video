@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { Player, type PlayerRef } from "@remotion/player";
 import { StoryVideoRouter } from "./StoryVideoRouter";
 import type { ExpressionsMap, PosesMap, SeMap, MobsMap } from "./StoryVideo";
+import type { ComicBubbleRegistry } from "./stage-v2";
 import type { StoryVideoRouterProps } from "./StoryVideoRouter";
 import "./fonts"; // プレビューでも書き出しと同じ同梱フォントを使う（Yusei Magic等の豆腐防止）
 
@@ -25,6 +26,7 @@ type StoryPlayerApi = {
   reloadExpressions: () => Promise<void>;
   reloadPoses: () => Promise<void>;
   reloadMobs: () => Promise<void>;
+  reloadComicBubbles: () => Promise<void>;
   seekToFrame: (frame: number) => void;
   seekToTime: (sec: number) => void;
   play: () => void;
@@ -196,8 +198,16 @@ async function loadInitialProps(): Promise<Props> {
     // mobs.json 未配置時は組み込みの既定モブ定義にフォールバック
   }
 
+  let comicBubbles: ComicBubbleRegistry | undefined;
+  try {
+    const cbRes = await fetch("/preview-assets/comic_bubbles.json", { cache: "no-store" });
+    if (cbRes.ok) comicBubbles = await cbRes.json();
+  } catch {
+    // comic_bubbles.json 未配置時はsvgタイプの吹き出しがフォールバック表示になる
+  }
+
   const audio = withAudioCacheBust(story.audio);
-  return { story, scenes, manifest, audio, expressions, poses, seMap, mobs };
+  return { story, scenes, manifest, audio, expressions, poses, seMap, mobs, comicBubbles };
 }
 
 function createStoryPlayerApi(options?: {
@@ -330,6 +340,17 @@ function createStoryPlayerApi(options?: {
         if (!res.ok) return;
         const mobs = await res.json();
         setPropsState((prev) => ({ ...prev, mobs } as Props));
+      } catch {
+      }
+    },
+
+    async reloadComicBubbles() {
+      if (!setPropsState) return;
+      try {
+        const res = await fetch("/preview-assets/comic_bubbles.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const comicBubbles = await res.json();
+        setPropsState((prev) => ({ ...prev, comicBubbles } as Props));
       } catch {
       }
     },
