@@ -202,12 +202,16 @@ function ComicBubble({
     .reduce((sum, line) => sum + Math.max(1, Math.ceil(Array.from(line).length / charsPerColumn)), 0);
   // 禁則処理などで実列数が見積りより増える場合に備え1/4列ぶん余白を足す。過大評価は許容・欠けは不許容。
   const textColumnWidth = Math.ceil(columnCount * columnAdvance + columnAdvance * 0.25);
+  // vertical-rl の実際の文字ブロックは右端に寄る。列間隔を含む文字の見た目の幅と、
+  // 描画領域の余裕ぶんを分けて扱わないと、center 指定でも文字が右へずれる。
+  const textBlockWidth = fontSize + Math.max(0, columnCount - 1) * columnAdvance;
+  const textRightInset = textColumnWidth - textBlockWidth;
   const resolvedWidth = textColumnWidth + padX * 2;
   const frameWidth = Math.max(resolvedWidth, bubble.width * width);
   const textFrameLeft = bubble.align === "left"
-    ? padX
+    ? padX - textRightInset
     : bubble.align === "center"
-      ? (frameWidth - textColumnWidth) / 2
+      ? (frameWidth - textBlockWidth) / 2 - textRightInset
       : frameWidth - textColumnWidth - padX;
   const wrapperStyle: React.CSSProperties = {
     position: "absolute",
