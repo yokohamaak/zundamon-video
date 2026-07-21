@@ -6096,8 +6096,8 @@ let _v2ManualCameraDrag = null; // { mode, startX, startY, frame, left, top }
 let _v2FramedStageDrag = null; // { mode, startX, startY, frame }
 let _v2FramedStagePreviewTimer = null;
 const V2_COMIC_BUBBLE_DEFAULT_HEIGHT = 0.25; // ComicDisplay.tsx の COMIC_BUBBLE_DEFAULT_HEIGHT と一致
-let _v2ComicBubbleDrag = null; // { startX, startY, bubble: {x, y, width} }
-let _v2ComicFrameDrag = null; // { mode, startX, startY, frame: {cx, cy, width} }
+let _v2ComicBubbleDrag = null; // { startX, startY, initial, bubble }
+let _v2ComicFrameDrag = null; // { mode, startX, startY, initial, frame }
 let _v2ManualPlacementEdit = null; // { turnIndex, instanceId }
 // 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
 const ZOOM_TARGET_ID = "__zoomTarget__";
@@ -10615,6 +10615,13 @@ function v2FlushFramedStagePreviewUpdate() {
   notifyPlayerUpdate();
 }
 
+function v2CancelFramedStagePreviewUpdate() {
+  if (_v2FramedStagePreviewTimer != null) {
+    window.clearTimeout(_v2FramedStagePreviewTimer);
+    _v2FramedStagePreviewTimer = null;
+  }
+}
+
 function renderV2FramedStageControls(turn) {
   const framed = v2FramedStageForTurn(turn);
   v2PopulateFramedStageBackgrounds(framed.background);
@@ -10833,7 +10840,7 @@ function v2BeginComicBubbleDrag(e) {
   if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
   const bubble = v2ComicBubbleRectFromInputs();
   if (!bubble) return;
-  _v2ComicBubbleDrag = {startX: e.clientX, startY: e.clientY, bubble};
+  _v2ComicBubbleDrag = {startX: e.clientX, startY: e.clientY, initial: bubble, bubble};
 }
 
 function v2UpdateComicBubbleFromDrag(e) {
@@ -10843,7 +10850,7 @@ function v2UpdateComicBubbleFromDrag(e) {
   const rect = map.getBoundingClientRect();
   const dx = (e.clientX - _v2ComicBubbleDrag.startX) / Math.max(rect.width, 1);
   const dy = (e.clientY - _v2ComicBubbleDrag.startY) / Math.max(rect.height, 1);
-  const initial = _v2ComicBubbleDrag.bubble;
+  const initial = _v2ComicBubbleDrag.initial;
   const bubble = {
     x: clampJS(initial.x + dx, 0, 1),
     y: clampJS(initial.y + dy, 0, 1),
@@ -10853,14 +10860,7 @@ function v2UpdateComicBubbleFromDrag(e) {
   _v2ComicBubbleDrag.bubble = bubble;
   document.getElementById("fV2ComicBubbleX").value = Math.round(bubble.x * 100) / 100;
   document.getElementById("fV2ComicBubbleY").value = Math.round(bubble.y * 100) / 100;
-  const turn = storyData.script[selectedIdx];
-  if (turn.displayMode?.kind === "comic" && turn.displayMode.comic.bubble) {
-    turn.displayMode.comic.bubble.x = bubble.x;
-    turn.displayMode.comic.bubble.y = bubble.y;
-  }
-  markDirty();
   v2PaintComicBubbleMarker(bubble);
-  v2ScheduleFramedStagePreviewUpdate();
 }
 
 function v2BeginComicFrameDrag(e, mode) {
@@ -10869,7 +10869,7 @@ function v2BeginComicFrameDrag(e, mode) {
   if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
   const frame = v2ComicFrameFromInputs();
   if (!frame) return;
-  _v2ComicFrameDrag = {mode, startX: e.clientX, startY: e.clientY, frame};
+  _v2ComicFrameDrag = {mode, startX: e.clientX, startY: e.clientY, initial: frame, frame};
 }
 
 function v2UpdateComicFrameFromDrag(e) {
@@ -10879,7 +10879,7 @@ function v2UpdateComicFrameFromDrag(e) {
   const rect = map.getBoundingClientRect();
   const dx = (e.clientX - _v2ComicFrameDrag.startX) / Math.max(rect.width, 1);
   const dy = (e.clientY - _v2ComicFrameDrag.startY) / Math.max(rect.height, 1);
-  const initial = _v2ComicFrameDrag.frame;
+  const initial = _v2ComicFrameDrag.initial;
   let frame;
   if (_v2ComicFrameDrag.mode === "move") {
     frame = {cx: initial.cx + dx, cy: initial.cy + dy, width: initial.width};
@@ -10891,18 +10891,7 @@ function v2UpdateComicFrameFromDrag(e) {
   document.getElementById("fV2ComicFrameCx").value = Math.round(frame.cx * 100) / 100;
   document.getElementById("fV2ComicFrameCy").value = Math.round(frame.cy * 100) / 100;
   document.getElementById("fV2ComicFrameWidth").value = Math.round(frame.width * 100) / 100;
-  const turn = storyData.script[selectedIdx];
-  if (turn.displayMode?.kind === "comic") {
-    const comic = turn.displayMode.comic;
-    if (!comic.camera) {
-      const cameraType = document.getElementById("fV2ComicCameraType").value;
-      comic.camera = {type: cameraType === "zoomIn" || cameraType === "zoomOut" ? cameraType : "fixed"};
-    }
-    comic.camera.frame = {cx: frame.cx, cy: frame.cy, width: frame.width};
-  }
-  markDirty();
   v2PaintComicFrame(frame);
-  v2ScheduleFramedStagePreviewUpdate();
 }
 
 function renderV2ComicControls(turn) {
@@ -15694,14 +15683,14 @@ function setupEvents() {
     }
     if (_v2ComicBubbleDrag) {
       _v2ComicBubbleDrag = null;
-      v2FlushFramedStagePreviewUpdate();
+      v2CancelFramedStagePreviewUpdate();
       collectV2Basic();
       if (selectedIdx >= 0 && storyData) renderV2Detail(storyData.script[selectedIdx]);
       return;
     }
     if (_v2ComicFrameDrag) {
       _v2ComicFrameDrag = null;
-      v2FlushFramedStagePreviewUpdate();
+      v2CancelFramedStagePreviewUpdate();
       collectV2Basic();
       if (selectedIdx >= 0 && storyData) renderV2Detail(storyData.script[selectedIdx]);
       return;
