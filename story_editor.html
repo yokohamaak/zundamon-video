@@ -2087,6 +2087,11 @@
                   <option value="rounded">丸ゴシック体</option>
                   <option value="handwriting">手書き風</option>
                 </select>
+                <select class="field-select" id="fV2ComicBubbleAlign" style="margin-top:8px;">
+                  <option value="right">文字の横位置：右寄せ</option>
+                  <option value="center">文字の横位置：中央</option>
+                  <option value="left">文字の横位置：左寄せ</option>
+                </select>
                 <label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="fV2ComicKeepPrevious"> 前の吹き出しを残す</label>
                 <div class="field-help">吹き出しは縦書きです。高さは縦の長さ（画面高比0.1..0.9）、幅は最小幅で、長文は左右に自動で広がります。高さが小さすぎると1列1文字の横並びになるので、文章には高さ0.2以上を推奨します。位置は画面比0..1（中心基準）、文字サイズ・フォントは空欄で全体設定を使います。</div>
               </div>
@@ -10690,6 +10695,7 @@ function v2ComicForTurn(turn) {
       height: typeof bubble?.height === "number" ? bubble.height : V2_COMIC_BUBBLE_DEFAULT_HEIGHT,
       fontSize: typeof bubble?.fontSize === "number" ? bubble.fontSize : null,
       font: bubble?.font || "",
+      align: bubble?.align === "left" || bubble?.align === "center" ? bubble.align : "right",
       keepPrevious: bubble?.keepPrevious === true,
     },
     cameraType: camera?.type === "zoomIn" || camera?.type === "zoomOut" ? camera.type : "fixed",
@@ -10905,6 +10911,7 @@ function renderV2ComicControls(turn) {
   document.getElementById("fV2ComicBubbleHeight").value = comic.bubble.height;
   document.getElementById("fV2ComicBubbleFontSize").value = comic.bubble.fontSize ?? "";
   document.getElementById("fV2ComicBubbleFont").value = comic.bubble.font;
+  document.getElementById("fV2ComicBubbleAlign").value = comic.bubble.align;
   document.getElementById("fV2ComicKeepPrevious").checked = comic.bubble.keepPrevious;
   document.getElementById("fV2ComicCameraType").value = comic.cameraType;
   document.getElementById("fV2ComicFrameCx").value = comic.frame ? comic.frame.cx : "";
@@ -12182,6 +12189,8 @@ function collectV2Basic() {
       if (fontSizeRaw !== "" && Number.isFinite(fontSize)) bubble.fontSize = clampJS(fontSize, 12, 120);
       const font = document.getElementById("fV2ComicBubbleFont").value;
       if (font) bubble.font = font;
+      const align = document.getElementById("fV2ComicBubbleAlign").value;
+      if (align === "center" || align === "left") bubble.align = align;
       if (document.getElementById("fV2ComicKeepPrevious").checked) bubble.keepPrevious = true;
       comic.bubble = bubble;
     }
@@ -15773,7 +15782,7 @@ function setupEvents() {
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FramedStageBackground", "fV2FramedStageX", "fV2FramedStageY", "fV2FramedStageWidth", "fV2FramedStageTransition",
-    "fV2ComicImage", "fV2ComicBubbleType", "fV2ComicBubbleX", "fV2ComicBubbleY", "fV2ComicBubbleWidth", "fV2ComicBubbleHeight", "fV2ComicBubbleFontSize", "fV2ComicBubbleFont", "fV2ComicKeepPrevious", "fV2ComicCameraType", "fV2ComicFrameCx", "fV2ComicFrameCy", "fV2ComicFrameWidth",
+    "fV2ComicImage", "fV2ComicBubbleType", "fV2ComicBubbleX", "fV2ComicBubbleY", "fV2ComicBubbleWidth", "fV2ComicBubbleHeight", "fV2ComicBubbleFontSize", "fV2ComicBubbleFont", "fV2ComicBubbleAlign", "fV2ComicKeepPrevious", "fV2ComicCameraType", "fV2ComicFrameCx", "fV2ComicFrameCy", "fV2ComicFrameWidth",
     "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
     "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut", "fV2GloomShock", "fV2VoiceLines", "fV2ReactionMark",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration", "fV2MotionInherit",

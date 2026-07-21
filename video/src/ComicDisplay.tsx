@@ -1,6 +1,6 @@
 import React from "react";
 import {AbsoluteFill, Img, staticFile} from "remotion";
-import type {CameraFrameV2, ComicBubbleFontV2, ComicBubbleTypeV2, StageTurnV2} from "./stage-v2";
+import type {CameraFrameV2, ComicBubbleAlignV2, ComicBubbleFontV2, ComicBubbleTypeV2, StageTurnV2} from "./stage-v2";
 import {stageTransformValues} from "./StageVideoV2";
 
 // 縦書き吹き出しの既定の列長（画面高比）。エディタ側の同名定数と一致させる。
@@ -44,6 +44,7 @@ export type ComicVisualBubble = {
   height?: number;
   fontSize?: number;
   font?: ComicBubbleFontV2;
+  align?: ComicBubbleAlignV2;
   text: string;
   /** 吹き出しを出したターンの話者。枠色の解決に使う。 */
   speaker: string;
@@ -107,6 +108,7 @@ export function resolveComicVisual(
     height: item.bubble.height,
     fontSize: item.bubble.fontSize,
     font: item.bubble.font,
+    align: item.bubble.align,
     text: script[item.source].text,
     speaker: script[item.source].speaker,
     isCurrent: item.source === turnIndex,
@@ -151,6 +153,7 @@ export type ComicRenderBubble = {
   height?: number;
   fontSize?: number;
   font?: ComicBubbleFontV2;
+  align?: ComicBubbleAlignV2;
   text: string;
   /** 呼び出し側が話者から解決した枠色。 */
   borderColor: string;
@@ -198,7 +201,14 @@ function ComicBubble({
     .split("\n")
     .reduce((sum, line) => sum + Math.max(1, Math.ceil(Array.from(line).length / charsPerColumn)), 0);
   // 禁則処理などで実列数が見積りより増える場合に備え1/4列ぶん余白を足す。過大評価は許容・欠けは不許容。
-  const resolvedWidth = Math.ceil(columnCount * columnAdvance + padX * 2 + columnAdvance * 0.25);
+  const textColumnWidth = Math.ceil(columnCount * columnAdvance + columnAdvance * 0.25);
+  const resolvedWidth = textColumnWidth + padX * 2;
+  const frameWidth = Math.max(resolvedWidth, bubble.width * width);
+  const textFrameLeft = bubble.align === "left"
+    ? padX
+    : bubble.align === "center"
+      ? (frameWidth - textColumnWidth) / 2
+      : frameWidth - textColumnWidth - padX;
   const wrapperStyle: React.CSSProperties = {
     position: "absolute",
     left: bubble.x * width,
@@ -207,6 +217,9 @@ function ComicBubble({
     boxSizing: "border-box",
   };
   const textStyle: React.CSSProperties = {
+    position: "absolute",
+    left: textFrameLeft,
+    top: padY,
     fontSize,
     fontFamily: comicFontFamily(bubble.font, settings.fontFamily),
     lineHeight,
@@ -214,16 +227,22 @@ function ComicBubble({
     overflowWrap: "anywhere",
     writingMode: "vertical-rl",
     textOrientation: "mixed",
+    height: usableColumn,
+    width: textColumnWidth,
+  };
+  const frameStyle: React.CSSProperties = {
+    position: "relative",
+    boxSizing: "border-box",
+    width: frameWidth,
     height: columnHeight,
-    width: Math.max(resolvedWidth, bubble.width * width),
   };
 
   if (bubble.type === "shout") {
     return (
       <div style={wrapperStyle}>
-        <div style={{position: "relative", clipPath: SHOUT_CLIP, background: bubble.borderColor}}>
+        <div style={{...frameStyle, clipPath: SHOUT_CLIP, background: bubble.borderColor}}>
           <div style={{position: "absolute", inset: 3, clipPath: SHOUT_CLIP, background: "#ffffff"}} />
-          <div style={{...textStyle, position: "relative", padding: `${padY}px ${padX}px`, color: settings.textColor, fontWeight: 900}}>{bubble.text}</div>
+          <div style={{...textStyle, zIndex: 1, color: settings.textColor, fontWeight: 900}}>{bubble.text}</div>
         </div>
       </div>
     );
@@ -232,7 +251,7 @@ function ComicBubble({
   if (bubble.type === "narration") {
     return (
       <div style={wrapperStyle}>
-        <div style={{...textStyle, boxSizing: "border-box", padding: `${padY}px ${padX}px`, borderRadius: 4, background: "rgba(0,0,0,0.65)", color: "#ffffff"}}>{bubble.text}</div>
+        <div style={{...frameStyle, borderRadius: 4, background: "rgba(0,0,0,0.65)", color: "#ffffff"}}><div style={textStyle}>{bubble.text}</div></div>
       </div>
     );
   }
@@ -241,16 +260,14 @@ function ComicBubble({
   return (
     <div style={wrapperStyle}>
       <div style={{
-        ...textStyle,
-        boxSizing: "border-box",
-        padding: `${padY}px ${padX}px`,
+        ...frameStyle,
         borderRadius: isThought ? Math.max(28, settings.radius) : settings.radius,
         background: settings.bgColor,
         color: settings.textColor,
         border: `${settings.borderWidth}px ${isThought ? "dashed" : "solid"} ${bubble.borderColor}`,
         fontWeight: 700,
         boxShadow: BUBBLE_SHADOW,
-      }}>{bubble.text}</div>
+      }}><div style={textStyle}>{bubble.text}</div></div>
     </div>
   );
 }

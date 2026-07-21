@@ -203,6 +203,8 @@ export type FramedStageDisplayV2 = {
 
 export type ComicBubbleTypeV2 = "speech" | "thought" | "shout" | "narration";
 export type ComicBubbleFontV2 = "mincho" | "gothic" | "rounded" | "handwriting";
+/** 縦書きの列ブロックを吹き出し枠の横方向でどこへ置くか。 */
+export type ComicBubbleAlignV2 = "right" | "center" | "left";
 export type ComicDisplayV2 = {
   kind: "comic";
   comic: {
@@ -219,6 +221,8 @@ export type ComicDisplayV2 = {
       fontSize?: number;
       /** 省略時は動画全体の吹き出しフォントを継承。 */
       font?: ComicBubbleFontV2;
+      /** 省略時は右寄せ。縦書きの列ブロックを吹き出し枠の横方向で配置する。 */
+      align?: ComicBubbleAlignV2;
       /** 直前の連続する同一image・同一sceneの漫画ターンから吹き出し蓄積を引き継ぐ。 */
       keepPrevious?: boolean;
     };

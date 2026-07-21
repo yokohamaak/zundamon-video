@@ -165,6 +165,7 @@ class StageSchemaTest(unittest.TestCase):
                     "height": 0.35,
                     "fontSize": 36,
                     "font": "mincho",
+                    "align": "center",
                     "keepPrevious": True,
                 },
                 "camera": {
@@ -263,6 +264,18 @@ class StageSchemaTest(unittest.TestCase):
             },
         }
         with self.assertRaisesRegex(ValueError, "comic.bubble.font"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_align_invalid_value(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "speech", "x": 0.5, "y": 0.3, "width": 0.4, "align": "justify"},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.align"):
             validate_story_v2(story, SCENES)
 
     def test_v2_rejects_comic_bubble_keep_previous_non_bool(self):
