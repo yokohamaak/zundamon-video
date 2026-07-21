@@ -699,6 +699,32 @@
   .v2-framed-stage-map-frame { border-color: rgba(45,212,191,.98); }
   .v2-framed-stage-map-frame::before { content: "16:9 描画領域"; }
   .v2-framed-stage-map-frame .v2-camera-map-handle { background: rgba(45,212,191,.98); }
+  .v2-comic-map::after { content: "漫画画像"; }
+  .v2-comic-map-frame { border-color: rgba(244,114,182,.98); }
+  .v2-comic-map-frame::before { content: "注視枠"; }
+  .v2-comic-map-frame .v2-camera-map-handle { background: rgba(244,114,182,.98); }
+  .v2-comic-map-bubble {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    height: 22px;
+    border: 2px solid rgba(96,165,250,.98);
+    border-radius: 6px;
+    background: rgba(37,99,235,.32);
+    cursor: move;
+    touch-action: none;
+  }
+  .v2-comic-map-bubble::before {
+    content: "吹き出し";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
   .overlay-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -2056,6 +2082,11 @@
                 </div>
                 <label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="fV2ComicKeepPrevious"> 前の吹き出しを残す</label>
                 <div class="field-help">位置は画面比0..1（中心基準）、幅は画面幅比0.1..0.9、文字サイズは空欄で既定値です。</div>
+              </div>
+              <div class="field-row">
+                <label class="field-label">配置</label>
+                <div class="v2-camera-map v2-comic-map" id="v2ComicMap" aria-label="漫画画像内の吹き出し・注視枠の配置"></div>
+                <div class="field-help">背景は選択中の漫画画像です。吹き出しはドラッグで移動、注視枠はドラッグで移動・右下ハンドルで拡縮できます。</div>
               </div>
               <div class="field-row">
                 <label class="field-label">カメラ</label>
@@ -6052,6 +6083,8 @@ let _manualCameraDrag = null; // { mode, startX, startY, frame, left, top, wrapI
 let _v2ManualCameraDrag = null; // { mode, startX, startY, frame, left, top }
 let _v2FramedStageDrag = null; // { mode, startX, startY, frame }
 let _v2FramedStagePreviewTimer = null;
+let _v2ComicBubbleDrag = null; // { startX, startY, bubble: {x, y, width} }
+let _v2ComicFrameDrag = null; // { mode, startX, startY, frame: {cx, cy, width} }
 let _v2ManualPlacementEdit = null; // { turnIndex, instanceId }
 // 配置ドラッグの対象idとして manualPos の charId/mobId と衝突しない専用の値。
 const ZOOM_TARGET_ID = "__zoomTarget__";
@@ -10702,6 +10735,152 @@ function v2ComicFrameFromInputs() {
   return {cx: clampJS(cx, half, 1 - half), cy: clampJS(cy, half, 1 - half), width: w};
 }
 
+function v2NormalizeComicFrame(frame) {
+  const width = clampJS(frame.width, 0.35, 1);
+  const half = width / 2;
+  return {cx: clampJS(frame.cx, half, 1 - half), cy: clampJS(frame.cy, half, 1 - half), width};
+}
+
+// フォーム入力から直接読む点は v2ComicFrameFromInputs と同じ流儀（吹き出しtype未選択ならnull）
+function v2ComicBubbleRectFromInputs() {
+  const type = document.getElementById("fV2ComicBubbleType").value;
+  if (!type) return null;
+  const x = Number(document.getElementById("fV2ComicBubbleX").value);
+  const y = Number(document.getElementById("fV2ComicBubbleY").value);
+  const width = Number(document.getElementById("fV2ComicBubbleWidth").value);
+  return {
+    x: clampJS(Number.isFinite(x) ? x : 0.5, 0, 1),
+    y: clampJS(Number.isFinite(y) ? y : 0.2, 0, 1),
+    width: clampJS(Number.isFinite(width) ? width : 0.4, 0.1, 0.9),
+  };
+}
+
+function v2PaintComicBubbleMarker(bubble) {
+  const el = document.getElementById("v2ComicMapBubble");
+  if (!el || !bubble) return;
+  el.style.left = `${bubble.x * 100}%`;
+  el.style.top = `${bubble.y * 100}%`;
+  el.style.width = `${bubble.width * 100}%`;
+}
+
+function v2PaintComicFrame(frame) {
+  const el = document.getElementById("v2ComicMapFrame");
+  if (!el || !frame) return;
+  el.style.left = `${(frame.cx - frame.width / 2) * 100}%`;
+  el.style.top = `${(frame.cy - frame.width / 2) * 100}%`;
+  el.style.width = `${frame.width * 100}%`;
+  el.style.height = `${frame.width * 100}%`;
+}
+
+function renderV2ComicMap(turn) {
+  const map = document.getElementById("v2ComicMap");
+  if (!map) return;
+  const comic = v2ComicForTurn(turn);
+  map.innerHTML = "";
+  map.style.backgroundImage = comic.image ? `url(/preview-assets/${encodePathSegsJS(comic.image)})` : "none";
+
+  const bubble = _v2ComicBubbleDrag?.bubble || v2ComicBubbleRectFromInputs();
+  if (bubble) {
+    const bubbleEl = document.createElement("div");
+    bubbleEl.id = "v2ComicMapBubble";
+    bubbleEl.className = "v2-comic-map-bubble";
+    bubbleEl.addEventListener("pointerdown", (e) => v2BeginComicBubbleDrag(e));
+    map.appendChild(bubbleEl);
+    v2PaintComicBubbleMarker(bubble);
+  }
+
+  const frame = _v2ComicFrameDrag?.frame || v2ComicFrameFromInputs();
+  if (frame) {
+    const frameEl = document.createElement("div");
+    frameEl.id = "v2ComicMapFrame";
+    frameEl.className = "v2-camera-map-frame v2-comic-map-frame";
+    frameEl.addEventListener("pointerdown", (e) => v2BeginComicFrameDrag(e, "move"));
+    const handle = document.createElement("div");
+    handle.className = "v2-camera-map-handle";
+    handle.addEventListener("pointerdown", (e) => v2BeginComicFrameDrag(e, "resize"));
+    frameEl.appendChild(handle);
+    map.appendChild(frameEl);
+    v2PaintComicFrame(frame);
+  }
+}
+
+function v2BeginComicBubbleDrag(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
+  const bubble = v2ComicBubbleRectFromInputs();
+  if (!bubble) return;
+  _v2ComicBubbleDrag = {startX: e.clientX, startY: e.clientY, bubble};
+}
+
+function v2UpdateComicBubbleFromDrag(e) {
+  if (!_v2ComicBubbleDrag || selectedIdx < 0 || !storyData) return;
+  const map = document.getElementById("v2ComicMap");
+  if (!map) return;
+  const rect = map.getBoundingClientRect();
+  const dx = (e.clientX - _v2ComicBubbleDrag.startX) / Math.max(rect.width, 1);
+  const dy = (e.clientY - _v2ComicBubbleDrag.startY) / Math.max(rect.height, 1);
+  const initial = _v2ComicBubbleDrag.bubble;
+  const bubble = {
+    x: clampJS(initial.x + dx, 0, 1),
+    y: clampJS(initial.y + dy, 0, 1),
+    width: initial.width,
+  };
+  _v2ComicBubbleDrag.bubble = bubble;
+  document.getElementById("fV2ComicBubbleX").value = Math.round(bubble.x * 100) / 100;
+  document.getElementById("fV2ComicBubbleY").value = Math.round(bubble.y * 100) / 100;
+  const turn = storyData.script[selectedIdx];
+  if (turn.displayMode?.kind === "comic" && turn.displayMode.comic.bubble) {
+    turn.displayMode.comic.bubble.x = bubble.x;
+    turn.displayMode.comic.bubble.y = bubble.y;
+  }
+  markDirty();
+  v2PaintComicBubbleMarker(bubble);
+  v2ScheduleFramedStagePreviewUpdate();
+}
+
+function v2BeginComicFrameDrag(e, mode) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!isV2StoryEditor() || selectedIdx < 0 || !storyData) return;
+  const frame = v2ComicFrameFromInputs();
+  if (!frame) return;
+  _v2ComicFrameDrag = {mode, startX: e.clientX, startY: e.clientY, frame};
+}
+
+function v2UpdateComicFrameFromDrag(e) {
+  if (!_v2ComicFrameDrag || selectedIdx < 0 || !storyData) return;
+  const map = document.getElementById("v2ComicMap");
+  if (!map) return;
+  const rect = map.getBoundingClientRect();
+  const dx = (e.clientX - _v2ComicFrameDrag.startX) / Math.max(rect.width, 1);
+  const dy = (e.clientY - _v2ComicFrameDrag.startY) / Math.max(rect.height, 1);
+  const initial = _v2ComicFrameDrag.frame;
+  let frame;
+  if (_v2ComicFrameDrag.mode === "move") {
+    frame = {cx: initial.cx + dx, cy: initial.cy + dy, width: initial.width};
+  } else {
+    frame = {cx: initial.cx, cy: initial.cy, width: initial.width + Math.max(dx, dy)};
+  }
+  frame = v2NormalizeComicFrame(frame);
+  _v2ComicFrameDrag.frame = frame;
+  document.getElementById("fV2ComicFrameCx").value = Math.round(frame.cx * 100) / 100;
+  document.getElementById("fV2ComicFrameCy").value = Math.round(frame.cy * 100) / 100;
+  document.getElementById("fV2ComicFrameWidth").value = Math.round(frame.width * 100) / 100;
+  const turn = storyData.script[selectedIdx];
+  if (turn.displayMode?.kind === "comic") {
+    const comic = turn.displayMode.comic;
+    if (!comic.camera) {
+      const cameraType = document.getElementById("fV2ComicCameraType").value;
+      comic.camera = {type: cameraType === "zoomIn" || cameraType === "zoomOut" ? cameraType : "fixed"};
+    }
+    comic.camera.frame = {cx: frame.cx, cy: frame.cy, width: frame.width};
+  }
+  markDirty();
+  v2PaintComicFrame(frame);
+  v2ScheduleFramedStagePreviewUpdate();
+}
+
 function renderV2ComicControls(turn) {
   const comic = v2ComicForTurn(turn);
   v2PopulateComicImages(comic.image);
@@ -10717,6 +10896,7 @@ function renderV2ComicControls(turn) {
   document.getElementById("fV2ComicFrameWidth").value = comic.frame ? comic.frame.width : "";
   v2UpdateComicBubbleFields();
   v2UpdateComicInheritButton();
+  renderV2ComicMap(turn);
   if (!backgroundAssets) {
     ensureBackgroundAssets().then(() => {
       if (selectedIdx >= 0 && storyData?.script?.[selectedIdx] === turn) renderV2ComicControls(turn);
@@ -15425,6 +15605,14 @@ function setupEvents() {
       v2UpdateManualCameraFrameFromDrag(e);
       return;
     }
+    if (_v2ComicBubbleDrag) {
+      v2UpdateComicBubbleFromDrag(e);
+      return;
+    }
+    if (_v2ComicFrameDrag) {
+      v2UpdateComicFrameFromDrag(e);
+      return;
+    }
     if (_manualCameraDrag) {
       updateManualCameraFrameFromDrag(e);
       return;
@@ -15468,6 +15656,20 @@ function setupEvents() {
         v2Commit(turn);
         renderV2Detail(turn);
       }
+      return;
+    }
+    if (_v2ComicBubbleDrag) {
+      _v2ComicBubbleDrag = null;
+      v2FlushFramedStagePreviewUpdate();
+      collectV2Basic();
+      if (selectedIdx >= 0 && storyData) renderV2Detail(storyData.script[selectedIdx]);
+      return;
+    }
+    if (_v2ComicFrameDrag) {
+      _v2ComicFrameDrag = null;
+      v2FlushFramedStagePreviewUpdate();
+      collectV2Basic();
+      if (selectedIdx >= 0 && storyData) renderV2Detail(storyData.script[selectedIdx]);
       return;
     }
     if (_manualCameraDrag) {
