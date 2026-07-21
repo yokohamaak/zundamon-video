@@ -1911,6 +1911,7 @@
               <select class="field-select" id="fV2DisplayMode">
                 <option value="standard">通常表示</option>
                 <option value="framedStage">画面内ステージ（背景フレーム）</option>
+                <option value="comic">漫画</option>
                 <option value="zunMonitor">ZunMonitor（警告 / 正常）</option>
                 <option value="zunAi">ZunAI（AIチャット）</option>
                 <option value="zunChat">ZunChat（チームチャット）</option>
@@ -2022,6 +2023,55 @@
                 <select class="field-select" id="fV2FramedStageTransition"><option value="fixed">即時に切替</option><option value="smooth">滑らかに移動・拡縮</option></select>
                 <div class="field-help">同じ外側背景の連続ターンでだけ有効です。枠内の映像は、タイムラインの「トランジション」でフェード／ワイプ／スライドを設定します。</div>
               </div>
+            </div>
+            <div id="v2ComicControls" style="display:none; gap:10px; flex-direction:column;">
+              <div class="section-divider">漫画</div>
+              <div class="field-row">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnV2ComicInherit" disabled>前の漫画を継続</button>
+                <div class="field-help">直前が漫画のターンのとき、その画像とカメラをこのターンへコピーします（吹き出しはコピーしません）。</div>
+              </div>
+              <div class="field-row">
+                <label class="field-label">画像</label>
+                <select class="field-select" id="fV2ComicImage"></select>
+                <div class="field-help">全画面に敷く1枚絵です（background/ 配下・cover表示）。同じ絵を続けるターンには毎ターン同じ画像を選びます。</div>
+              </div>
+              <div class="field-row">
+                <label class="field-label">吹き出し</label>
+                <select class="field-select" id="fV2ComicBubbleType">
+                  <option value="">なし</option>
+                  <option value="speech">通常会話</option>
+                  <option value="thought">心の声</option>
+                  <option value="shout">叫び</option>
+                  <option value="narration">ナレーション</option>
+                </select>
+                <div class="field-help">本文(text)が吹き出しの中身になります。</div>
+              </div>
+              <div class="field-row" id="v2ComicBubblePos">
+                <label class="field-label">吹き出し位置</label>
+                <div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px;">
+                  <input class="field-input" id="fV2ComicBubbleX" type="number" min="0" max="1" step="0.01" placeholder="中心X">
+                  <input class="field-input" id="fV2ComicBubbleY" type="number" min="0" max="1" step="0.01" placeholder="中心Y">
+                  <input class="field-input" id="fV2ComicBubbleWidth" type="number" min="0.1" max="0.9" step="0.01" placeholder="幅">
+                  <input class="field-input" id="fV2ComicBubbleFontSize" type="number" min="12" max="120" step="1" placeholder="文字サイズ">
+                </div>
+                <label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="fV2ComicKeepPrevious"> 前の吹き出しを残す</label>
+                <div class="field-help">位置は画面比0..1（中心基準）、幅は画面幅比0.1..0.9、文字サイズは空欄で既定値です。</div>
+              </div>
+              <div class="field-row">
+                <label class="field-label">カメラ</label>
+                <select class="field-select" id="fV2ComicCameraType">
+                  <option value="fixed">固定</option>
+                  <option value="zoomIn">ズームイン</option>
+                  <option value="zoomOut">ズームアウト</option>
+                </select>
+                <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:8px;">
+                  <input class="field-input" id="fV2ComicFrameCx" type="number" min="0" max="1" step="0.01" placeholder="注視X">
+                  <input class="field-input" id="fV2ComicFrameCy" type="number" min="0" max="1" step="0.01" placeholder="注視Y">
+                  <input class="field-input" id="fV2ComicFrameWidth" type="number" min="0.35" max="1" step="0.01" placeholder="注視幅">
+                </div>
+                <div class="field-help">注視枠は3つとも空欄なら省略します（ズームイン時は既定で中央に寄ります）。</div>
+              </div>
+              <div class="field-help">漫画中は通常の吹き出し・字幕・立ち絵は表示されません。本文(text)が吹き出しの中身になります。</div>
             </div>
             <div id="v2WhiteboardControls" style="display:none; gap:10px; flex-direction:column;">
               <div class="section-divider">ホワイトボード解説</div>
@@ -8350,7 +8400,9 @@ function renderList() {
       if (clearFaceText) badges.appendChild(makeBadge("向き解除:" + clearFaceText, "warn"));
     }
     if (isV2StoryEditor() && turn.displayMode?.kind && turn.displayMode.kind !== "standard") {
-      badges.appendChild(makeBadge(v2DisplayModeLabel(turn.displayMode.kind), "insert"));
+      let dispLabel = v2DisplayModeLabel(turn.displayMode.kind);
+      if (turn.displayMode.kind === "comic" && v2SameComicScene(storyData.script, i, i - 1)) dispLabel += "（継続）";
+      badges.appendChild(makeBadge(dispLabel, "insert"));
     } else if (effDisp.id) {
       badges.appendChild(makeBadge(
         displayTypeDefOf(effDisp.id).label + (effDisp.inherited ? "（継続）" : ""),
@@ -10583,6 +10635,111 @@ function v2UpdateFramedStageFrameFromDrag(e) {
   v2ScheduleFramedStagePreviewUpdate();
 }
 
+function v2ComicForTurn(turn) {
+  const comic = turn.displayMode?.kind === "comic" ? turn.displayMode.comic : null;
+  const bubble = comic?.bubble || null;
+  const camera = comic?.camera || null;
+  return {
+    image: comic?.image || v2DefaultFramedStageBackground(),
+    bubbleType: bubble?.type || "",
+    bubble: {
+      x: typeof bubble?.x === "number" ? bubble.x : 0.5,
+      y: typeof bubble?.y === "number" ? bubble.y : 0.2,
+      width: typeof bubble?.width === "number" ? bubble.width : 0.4,
+      fontSize: typeof bubble?.fontSize === "number" ? bubble.fontSize : null,
+      keepPrevious: bubble?.keepPrevious === true,
+    },
+    cameraType: camera?.type === "zoomIn" || camera?.type === "zoomOut" ? camera.type : "fixed",
+    frame: camera?.frame || null,
+  };
+}
+
+function v2PopulateComicImages(current) {
+  const select = document.getElementById("fV2ComicImage");
+  if (!select) return;
+  const images = sortedStrings((backgroundAssets && Array.isArray(backgroundAssets.images)) ? backgroundAssets.images : []);
+  const value = current || v2DefaultFramedStageBackground();
+  select.innerHTML = "";
+  for (const image of images) v2Option(select, image, image.replace(/^background\//, ""));
+  if (value && !images.includes(value)) v2Option(select, value, value.replace(/^background\//, ""));
+  select.value = value;
+}
+
+// ComicDisplay.tsx の sameComicScene と同条件（連続・同一image・同一scene）
+function v2SameComicScene(script, a, b) {
+  const ta = script?.[a];
+  const tb = script?.[b];
+  if (!ta || !tb) return false;
+  const da = ta.displayMode;
+  const db = tb.displayMode;
+  if (da?.kind !== "comic" || db?.kind !== "comic") return false;
+  return da.comic.image === db.comic.image && ta.scene === tb.scene;
+}
+
+function v2UpdateComicBubbleFields() {
+  const hasBubble = document.getElementById("fV2ComicBubbleType").value !== "";
+  document.getElementById("v2ComicBubblePos").style.display = hasBubble ? "" : "none";
+}
+
+function v2UpdateComicInheritButton() {
+  const btn = document.getElementById("btnV2ComicInherit");
+  if (!btn) return;
+  const prev = selectedIdx > 0 ? storyData?.script?.[selectedIdx - 1] : null;
+  btn.disabled = prev?.displayMode?.kind !== "comic";
+}
+
+function v2ComicFrameFromInputs() {
+  const cxRaw = document.getElementById("fV2ComicFrameCx").value;
+  const cyRaw = document.getElementById("fV2ComicFrameCy").value;
+  const widthRaw = document.getElementById("fV2ComicFrameWidth").value;
+  if (cxRaw === "" || cyRaw === "" || widthRaw === "") return null;
+  const cx = Number(cxRaw);
+  const cy = Number(cyRaw);
+  const width = Number(widthRaw);
+  if (!Number.isFinite(cx) || !Number.isFinite(cy) || !Number.isFinite(width)) return null;
+  const w = clampJS(width, 0.35, 1);
+  const half = w / 2;
+  return {cx: clampJS(cx, half, 1 - half), cy: clampJS(cy, half, 1 - half), width: w};
+}
+
+function renderV2ComicControls(turn) {
+  const comic = v2ComicForTurn(turn);
+  v2PopulateComicImages(comic.image);
+  document.getElementById("fV2ComicBubbleType").value = comic.bubbleType;
+  document.getElementById("fV2ComicBubbleX").value = comic.bubble.x;
+  document.getElementById("fV2ComicBubbleY").value = comic.bubble.y;
+  document.getElementById("fV2ComicBubbleWidth").value = comic.bubble.width;
+  document.getElementById("fV2ComicBubbleFontSize").value = comic.bubble.fontSize ?? "";
+  document.getElementById("fV2ComicKeepPrevious").checked = comic.bubble.keepPrevious;
+  document.getElementById("fV2ComicCameraType").value = comic.cameraType;
+  document.getElementById("fV2ComicFrameCx").value = comic.frame ? comic.frame.cx : "";
+  document.getElementById("fV2ComicFrameCy").value = comic.frame ? comic.frame.cy : "";
+  document.getElementById("fV2ComicFrameWidth").value = comic.frame ? comic.frame.width : "";
+  v2UpdateComicBubbleFields();
+  v2UpdateComicInheritButton();
+  if (!backgroundAssets) {
+    ensureBackgroundAssets().then(() => {
+      if (selectedIdx >= 0 && storyData?.script?.[selectedIdx] === turn) renderV2ComicControls(turn);
+    }).catch(() => {});
+  }
+}
+
+function v2ComicInheritFromPrevious() {
+  if (!isV2StoryEditor() || selectedIdx <= 0 || !storyData) return;
+  const prev = storyData.script[selectedIdx - 1];
+  if (prev?.displayMode?.kind !== "comic") return;
+  const prevComic = prev.displayMode.comic;
+  v2PopulateComicImages(prevComic.image);
+  const camera = prevComic.camera || null;
+  document.getElementById("fV2ComicCameraType").value = camera?.type === "zoomIn" || camera?.type === "zoomOut" ? camera.type : "fixed";
+  const frame = camera?.frame || null;
+  document.getElementById("fV2ComicFrameCx").value = frame ? frame.cx : "";
+  document.getElementById("fV2ComicFrameCy").value = frame ? frame.cy : "";
+  document.getElementById("fV2ComicFrameWidth").value = frame ? frame.width : "";
+  collectV2Basic();
+  if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
+}
+
 function v2DefaultWhiteboard() {
   return {
     title: "ポイントを整理します",
@@ -10688,6 +10845,7 @@ function v2DisplayModeLabel(kind) {
   return {
     standard: "通常表示",
     framedStage: "画面内ステージ",
+    comic: "漫画",
     zunMonitor: "ZunMonitor",
     zunAi: "ZunAI",
     zunChat: "ZunChat",
@@ -10842,6 +11000,13 @@ function v2CollectTeamMessages() {
 function v2UpdateDisplayModeFields() {
   const kind = document.getElementById("fV2DisplayMode").value;
   document.getElementById("v2FramedStageControls").style.display = kind === "framedStage" ? "flex" : "none";
+  document.getElementById("v2ComicControls").style.display = kind === "comic" ? "flex" : "none";
+  const comicSelected = kind === "comic";
+  // 漫画中は通常吹き出し系の項目が効かない。値は保存データのまま残す（無効化のみ）。
+  for (const id of ["fV2HideBubble", "fV2ContinueBubble", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2DisableAutoBubbleSplit"]) {
+    const el = document.getElementById(id);
+    if (el) el.disabled = comicSelected;
+  }
   document.getElementById("v2WhiteboardControls").style.display = kind === "whiteboard" ? "flex" : "none";
   document.getElementById("v2ZunMeetControls").style.display = kind === "zunMeet" ? "flex" : "none";
   document.getElementById("v2ZunMonitorControls").style.display = kind === "zunMonitor" ? "flex" : "none";
@@ -11383,6 +11548,7 @@ function renderV2Detail(turn) {
   const displayMode = turn.displayMode?.kind || "standard";
   document.getElementById("fV2DisplayMode").value = displayMode;
   renderV2FramedStageControls(turn);
+  renderV2ComicControls(turn);
   v2RenderInsertDisplayFields(turn);
 
   const slots = v2SlotsForScene(turn.scene);
@@ -11799,6 +11965,33 @@ function collectV2Basic() {
       }),
       ...(document.getElementById("fV2FramedStageTransition").value === "smooth" ? {frameTransition: "smooth"} : {}),
     }};
+  } else if (displayKind === "comic") {
+    const current = v2ComicForTurn(turn);
+    const comic = {image: document.getElementById("fV2ComicImage").value || current.image};
+    const bubbleType = document.getElementById("fV2ComicBubbleType").value;
+    if (bubbleType) {
+      const x = Number(document.getElementById("fV2ComicBubbleX").value);
+      const y = Number(document.getElementById("fV2ComicBubbleY").value);
+      const width = Number(document.getElementById("fV2ComicBubbleWidth").value);
+      const bubble = {
+        type: bubbleType,
+        x: clampJS(Number.isFinite(x) ? x : current.bubble.x, 0, 1),
+        y: clampJS(Number.isFinite(y) ? y : current.bubble.y, 0, 1),
+        width: clampJS(Number.isFinite(width) ? width : current.bubble.width, 0.1, 0.9),
+      };
+      const fontSizeRaw = document.getElementById("fV2ComicBubbleFontSize").value;
+      const fontSize = Number(fontSizeRaw);
+      if (fontSizeRaw !== "" && Number.isFinite(fontSize)) bubble.fontSize = clampJS(fontSize, 12, 120);
+      if (document.getElementById("fV2ComicKeepPrevious").checked) bubble.keepPrevious = true;
+      comic.bubble = bubble;
+    }
+    const cameraType = document.getElementById("fV2ComicCameraType").value;
+    const frame = v2ComicFrameFromInputs();
+    if (cameraType !== "fixed" || frame) {
+      comic.camera = {type: cameraType};
+      if (frame) comic.camera.frame = frame;
+    }
+    turn.displayMode = {kind: "comic", comic};
   } else {
     delete turn.displayMode;
   }
@@ -15118,6 +15311,7 @@ function setupEvents() {
   document.getElementById("btnAddInherit").addEventListener("click", () => addTurnAfter(true));
   document.getElementById("btnSplitDialogue").addEventListener("click", splitDialogueAtCursor);
   document.getElementById("btnV2SplitDialogue").addEventListener("click", splitV2DialogueAtCursor);
+  document.getElementById("btnV2ComicInherit")?.addEventListener("click", v2ComicInheritFromPrevious);
   document.getElementById("btnDelete").addEventListener("click", deleteTurn);
   document.getElementById("btnUp").addEventListener("click", moveUp);
   document.getElementById("btnDown").addEventListener("click", moveDown);
@@ -15357,6 +15551,7 @@ function setupEvents() {
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FramedStageBackground", "fV2FramedStageX", "fV2FramedStageY", "fV2FramedStageWidth", "fV2FramedStageTransition",
+    "fV2ComicImage", "fV2ComicBubbleType", "fV2ComicBubbleX", "fV2ComicBubbleY", "fV2ComicBubbleWidth", "fV2ComicBubbleFontSize", "fV2ComicKeepPrevious", "fV2ComicCameraType", "fV2ComicFrameCx", "fV2ComicFrameCy", "fV2ComicFrameWidth",
     "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
     "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut", "fV2GloomShock", "fV2VoiceLines", "fV2ReactionMark",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration", "fV2MotionInherit",
@@ -15389,6 +15584,7 @@ function setupEvents() {
       if (id === "fV2FramingMode") v2UpdateFramingFields();
       if (id === "fV2DisplayMode") v2UpdateDisplayModeFields();
       if (id === "fV2SubtitleMode") v2UpdateDialogueFields();
+      if (id === "fV2ComicBubbleType") v2UpdateComicBubbleFields();
       if (id === "fV2InsertBackdropImage") v2PopulateInsertBackdropImageSelect(el.value);
       collectV2Basic();
       if (selectedIdx >= 0) renderV2Detail(storyData.script[selectedIdx]);
