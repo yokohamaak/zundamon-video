@@ -9395,6 +9395,7 @@ function v2StateAt(index, includeCurrent = true) {
       state[id] = { ...current, ...v2Clone(patch), placement: patch.placement ? v2Clone(patch.placement) : current.placement };
     }
   }
+  if (!includeCurrent && storyData.script[index]?.scene !== scene) return {};
   return state;
 }
 
