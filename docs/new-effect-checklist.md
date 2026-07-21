@@ -38,6 +38,27 @@
 
 ---
 
+## V2表示種別（displayMode の kind）を追加したとき
+
+漫画(comic)の追加で通った実際の更新箇所。新しい kind を足すときは同じ順に:
+
+1. `video/src/stage-v2.ts` … `XxxDisplayV2` 型を作り `DisplayModeV2` union に追加
+2. `video/src/StageVideoV2.tsx` … 表示種別の描画分岐チェーンに追加。
+   **転換プレート `renderTransitionPreviousPlate` にも静的描画の分岐を足す**（忘れるとwipe/slide転換中だけ通常ステージが映る）
+3. `stage_schema.py` … `DISPLAY_MODES` と `_display_mode()` に検証分岐（framedStage の粒度をミラー）
+   → `test_stage_schema.py` に正常系・異常系を追加
+4. `story_editor.html` … `fV2DisplayMode` の option / `v2XxxControls` フォーム / apply分岐 /
+   `renderV2XxxControls` / `v2UpdateDisplayModeFields` / `v2DisplayModeLabel` / ターン一覧バッジ
+5. `story_editor.py` … `_build_script_prompt_v2` の表示種別節に1行（AIに使わせるため必須）
+6. `./run-story player-build` でエディタ用Playerを再ビルド。**起動中の story_editor.py も再起動**
+   （メモリ上の旧 stage_schema が新kindの保存を400で弾く）
+
+漫画の素材運用ルール: 漫画画像（background/ 配下）は**上書きで差し替えない**こと。
+同じ画像パスの連続ターンを「同一漫画シーン」とみなす設計のため、上書きすると全利用箇所の絵が一斉に変わる。
+差し替えたい時は別名で追加して該当ターンだけ選び直す。
+
+---
+
 ## まとめ（最短手順）
 新ターン演出 `fooBar` を足すなら:
 1. StoryVideo/Avatar に実装 → `StoryTurn` に `fooBar?` 追加 → `player-build`
