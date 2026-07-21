@@ -10289,6 +10289,22 @@ function v2SetPatch(turn, instanceId, key, value) {
   else stage.update[instanceId][key] = value;
 }
 
+function v2TakeNextEnter(instanceId, fromIndex, sceneId) {
+  for (let index = fromIndex + 1; index < storyData.script.length; index += 1) {
+    const turn = storyData.script[index];
+    if (turn.scene !== sceneId) break;
+    const stage = turn.stage || {};
+    const enterIndex = (stage.enter || []).findIndex((item) => item.instanceId === instanceId);
+    if (enterIndex >= 0) {
+      const [enter] = stage.enter.splice(enterIndex, 1);
+      v2PruneStageEvent(turn);
+      return enter;
+    }
+    if ((stage.exit || []).some((item) => v2ExitItemId(item) === instanceId)) break;
+  }
+  return null;
+}
+
 function v2TogglePresence(instanceId) {
   const turn = storyData.script[selectedIdx];
   const before = v2StateAt(selectedIdx, false);
@@ -10308,7 +10324,7 @@ function v2TogglePresence(instanceId) {
     const definition = storyData.instances[instanceId];
     if (definition?.role === "voiceOnly") return;
     if (!stage.enter) stage.enter = [];
-    stage.enter.push({ instanceId, placement: v2DefaultPlacement(turn.scene) });
+    stage.enter.push(v2TakeNextEnter(instanceId, selectedIdx, turn.scene) || { instanceId, placement: v2DefaultPlacement(turn.scene) });
   }
   v2Commit(turn);
   renderV2Detail(turn);
