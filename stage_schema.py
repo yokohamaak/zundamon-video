@@ -550,7 +550,7 @@ def _display_mode(value, path):
             bubble = comic["bubble"]
             if not isinstance(bubble, dict):
                 _error(f"{path}.comic.bubble", "objectが必要です")
-            _only_keys(bubble, {"type", "x", "y", "width", "fontSize", "keepPrevious"}, f"{path}.comic.bubble")
+            _only_keys(bubble, {"type", "x", "y", "width", "height", "fontSize", "font", "keepPrevious"}, f"{path}.comic.bubble")
             if bubble.get("type") not in {"speech", "thought", "shout", "narration"}:
                 _error(f"{path}.comic.bubble.type", "speech/thought/shout/narration のいずれかが必要です")
             for key in ("x", "y", "width"):
@@ -561,6 +561,13 @@ def _display_mode(value, path):
                     _error(f"{path}.comic.bubble.{key}", "0〜1の値が必要です")
             if not 0.1 <= bubble["width"] <= 0.9:
                 _error(f"{path}.comic.bubble.width", "0.1〜0.9の値が必要です")
+            if "height" in bubble:
+                if not _is_number(bubble["height"]):
+                    _error(f"{path}.comic.bubble.height", "有限数値が必要です")
+                if not 0.1 <= bubble["height"] <= 0.9:
+                    _error(f"{path}.comic.bubble.height", "0.1〜0.9の値が必要です")
+            if "font" in bubble and bubble["font"] not in {"mincho", "gothic", "rounded", "handwriting"}:
+                _error(f"{path}.comic.bubble.font", "mincho/gothic/rounded/handwriting のいずれかが必要です")
             if "fontSize" in bubble:
                 if not _is_number(bubble["fontSize"]):
                     _error(f"{path}.comic.bubble.fontSize", "有限数値が必要です")

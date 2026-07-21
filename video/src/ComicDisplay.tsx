@@ -1,7 +1,20 @@
 import React from "react";
 import {AbsoluteFill, Img, staticFile} from "remotion";
-import type {CameraFrameV2, ComicBubbleTypeV2, StageTurnV2} from "./stage-v2";
+import type {CameraFrameV2, ComicBubbleFontV2, ComicBubbleTypeV2, StageTurnV2} from "./stage-v2";
 import {stageTransformValues} from "./StageVideoV2";
+
+// 縦書き吹き出しの既定の列長（画面高比）。エディタ側の同名定数と一致させる。
+const COMIC_BUBBLE_DEFAULT_HEIGHT = 0.25;
+
+function comicFontFamily(font: ComicBubbleFontV2 | undefined, fallback: string) {
+  switch (font) {
+    case "mincho": return '"Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+    case "gothic": return '"Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif';
+    case "rounded": return '"Hiragino Maru Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif';
+    case "handwriting": return '"Yusei Magic", "Hiragino Maru Gothic ProN", sans-serif';
+    default: return fallback;
+  }
+}
 
 const FULL_FRAME: CameraFrameV2 = {cx: 0.5, cy: 0.5, width: 1};
 const DEFAULT_ZOOM_FRAME: CameraFrameV2 = {cx: 0.5, cy: 0.5, width: 0.7};
@@ -28,7 +41,9 @@ export type ComicVisualBubble = {
   x: number;
   y: number;
   width: number;
+  height?: number;
   fontSize?: number;
+  font?: ComicBubbleFontV2;
   text: string;
   /** 吹き出しを出したターンの話者。枠色の解決に使う。 */
   speaker: string;
@@ -89,7 +104,9 @@ export function resolveComicVisual(
     x: item.bubble.x,
     y: item.bubble.y,
     width: item.bubble.width,
+    height: item.bubble.height,
     fontSize: item.bubble.fontSize,
+    font: item.bubble.font,
     text: script[item.source].text,
     speaker: script[item.source].speaker,
     isCurrent: item.source === turnIndex,
@@ -131,7 +148,9 @@ export type ComicRenderBubble = {
   x: number;
   y: number;
   width: number;
+  height?: number;
   fontSize?: number;
+  font?: ComicBubbleFontV2;
   text: string;
   /** 呼び出し側が話者から解決した枠色。 */
   borderColor: string;
@@ -165,21 +184,38 @@ function ComicBubble({
   settings: ComicBubbleSettings;
 }) {
   const fontSize = bubble.fontSize ?? settings.fontSize;
+  const lineHeight = 1.4;
+  // 縦書き: 列長(inline方向)を height比×キャンバス高で固定し、横は列数から実幅を明示計算する。
+  const columnHeight = (bubble.height ?? COMIC_BUBBLE_DEFAULT_HEIGHT) * height;
+  const padY = bubble.type === "shout" ? 24 : 20;
+  const padX = bubble.type === "shout" ? 28 : bubble.type === "narration" ? 22 : 24;
+  // Chrome の直交フローでは vertical-rl + max-content が先頭列ぶん過小評価し、
+  // 先頭列(右端)が枠外に出て描画されない。列数から必要幅を明示計算して回避する。
+  const columnAdvance = fontSize * lineHeight; // 縦書き1列の太さ(ブロック方向)≈fontSize×line-height
+  const usableColumn = Math.max(fontSize, columnHeight - padY * 2);
+  const charsPerColumn = Math.max(1, Math.floor(usableColumn / fontSize)); // 1文字送り≈fontSize(全角前提)
+  const columnCount = bubble.text
+    .split("\n")
+    .reduce((sum, line) => sum + Math.max(1, Math.ceil(Array.from(line).length / charsPerColumn)), 0);
+  // 禁則処理などで実列数が見積りより増える場合に備え1/4列ぶん余白を足す。過大評価は許容・欠けは不許容。
+  const resolvedWidth = Math.ceil(columnCount * columnAdvance + padX * 2 + columnAdvance * 0.25);
   const wrapperStyle: React.CSSProperties = {
     position: "absolute",
     left: bubble.x * width,
     top: bubble.y * height,
-    width: bubble.width * width,
     transform: "translate(-50%, -50%)",
     boxSizing: "border-box",
   };
   const textStyle: React.CSSProperties = {
     fontSize,
-    fontFamily: settings.fontFamily,
-    lineHeight: 1.3,
+    fontFamily: comicFontFamily(bubble.font, settings.fontFamily),
+    lineHeight,
     whiteSpace: "pre-wrap",
     overflowWrap: "anywhere",
-    textAlign: "center",
+    writingMode: "vertical-rl",
+    textOrientation: "mixed",
+    height: columnHeight,
+    width: Math.max(resolvedWidth, bubble.width * width),
   };
 
   if (bubble.type === "shout") {
@@ -187,7 +223,7 @@ function ComicBubble({
       <div style={wrapperStyle}>
         <div style={{position: "relative", clipPath: SHOUT_CLIP, background: bubble.borderColor}}>
           <div style={{position: "absolute", inset: 3, clipPath: SHOUT_CLIP, background: "#ffffff"}} />
-          <div style={{...textStyle, position: "relative", padding: "22px 34px", color: settings.textColor, fontWeight: 900}}>{bubble.text}</div>
+          <div style={{...textStyle, position: "relative", padding: `${padY}px ${padX}px`, color: settings.textColor, fontWeight: 900}}>{bubble.text}</div>
         </div>
       </div>
     );
@@ -196,7 +232,7 @@ function ComicBubble({
   if (bubble.type === "narration") {
     return (
       <div style={wrapperStyle}>
-        <div style={{...textStyle, boxSizing: "border-box", padding: "14px 24px", borderRadius: 4, background: "rgba(0,0,0,0.65)", color: "#ffffff"}}>{bubble.text}</div>
+        <div style={{...textStyle, boxSizing: "border-box", padding: `${padY}px ${padX}px`, borderRadius: 4, background: "rgba(0,0,0,0.65)", color: "#ffffff"}}>{bubble.text}</div>
       </div>
     );
   }
@@ -207,7 +243,7 @@ function ComicBubble({
       <div style={{
         ...textStyle,
         boxSizing: "border-box",
-        padding: "14px 28px",
+        padding: `${padY}px ${padX}px`,
         borderRadius: isThought ? Math.max(28, settings.radius) : settings.radius,
         background: settings.bgColor,
         color: settings.textColor,

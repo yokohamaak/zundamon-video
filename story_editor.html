@@ -706,7 +706,6 @@
   .v2-comic-map-bubble {
     position: absolute;
     transform: translate(-50%, -50%);
-    height: 22px;
     border: 2px solid rgba(96,165,250,.98);
     border-radius: 6px;
     background: rgba(37,99,235,.32);
@@ -2074,14 +2073,22 @@
               </div>
               <div class="field-row" id="v2ComicBubblePos">
                 <label class="field-label">吹き出し位置</label>
-                <div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px;">
+                <div style="display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px;">
                   <input class="field-input" id="fV2ComicBubbleX" type="number" min="0" max="1" step="0.01" placeholder="中心X">
                   <input class="field-input" id="fV2ComicBubbleY" type="number" min="0" max="1" step="0.01" placeholder="中心Y">
                   <input class="field-input" id="fV2ComicBubbleWidth" type="number" min="0.1" max="0.9" step="0.01" placeholder="幅">
+                  <input class="field-input" id="fV2ComicBubbleHeight" type="number" min="0.1" max="0.9" step="0.01" placeholder="高さ">
                   <input class="field-input" id="fV2ComicBubbleFontSize" type="number" min="12" max="120" step="1" placeholder="文字サイズ">
                 </div>
+                <select class="field-select" id="fV2ComicBubbleFont" style="margin-top:8px;">
+                  <option value="">既定（全体設定）</option>
+                  <option value="mincho">明朝体</option>
+                  <option value="gothic">ゴシック体</option>
+                  <option value="rounded">丸ゴシック体</option>
+                  <option value="handwriting">手書き風</option>
+                </select>
                 <label class="toggle-row" style="margin-top:8px;"><input type="checkbox" id="fV2ComicKeepPrevious"> 前の吹き出しを残す</label>
-                <div class="field-help">位置は画面比0..1（中心基準）、幅は画面幅比0.1..0.9、文字サイズは空欄で既定値です。</div>
+                <div class="field-help">吹き出しは縦書きです。高さは縦の長さ（画面高比0.1..0.9）、幅は最小幅で、長文は左右に自動で広がります。高さが小さすぎると1列1文字の横並びになるので、文章には高さ0.2以上を推奨します。位置は画面比0..1（中心基準）、文字サイズ・フォントは空欄で全体設定を使います。</div>
               </div>
               <div class="field-row">
                 <label class="field-label">配置</label>
@@ -2102,7 +2109,7 @@
                 </div>
                 <div class="field-help">注視枠は3つとも空欄なら省略します（ズームイン時は既定で中央に寄ります）。</div>
               </div>
-              <div class="field-help">漫画中は通常の吹き出し・字幕・立ち絵は表示されません。本文(text)が吹き出しの中身になります。</div>
+              <div class="field-help">漫画中は通常の吹き出し・字幕・立ち絵は表示されません。本文(text)が縦書き吹き出しの中身になります。</div>
             </div>
             <div id="v2WhiteboardControls" style="display:none; gap:10px; flex-direction:column;">
               <div class="section-divider">ホワイトボード解説</div>
@@ -6083,6 +6090,7 @@ let _manualCameraDrag = null; // { mode, startX, startY, frame, left, top, wrapI
 let _v2ManualCameraDrag = null; // { mode, startX, startY, frame, left, top }
 let _v2FramedStageDrag = null; // { mode, startX, startY, frame }
 let _v2FramedStagePreviewTimer = null;
+const V2_COMIC_BUBBLE_DEFAULT_HEIGHT = 0.25; // ComicDisplay.tsx の COMIC_BUBBLE_DEFAULT_HEIGHT と一致
 let _v2ComicBubbleDrag = null; // { startX, startY, bubble: {x, y, width} }
 let _v2ComicFrameDrag = null; // { mode, startX, startY, frame: {cx, cy, width} }
 let _v2ManualPlacementEdit = null; // { turnIndex, instanceId }
@@ -10679,7 +10687,9 @@ function v2ComicForTurn(turn) {
       x: typeof bubble?.x === "number" ? bubble.x : 0.5,
       y: typeof bubble?.y === "number" ? bubble.y : 0.2,
       width: typeof bubble?.width === "number" ? bubble.width : 0.4,
+      height: typeof bubble?.height === "number" ? bubble.height : V2_COMIC_BUBBLE_DEFAULT_HEIGHT,
       fontSize: typeof bubble?.fontSize === "number" ? bubble.fontSize : null,
+      font: bubble?.font || "",
       keepPrevious: bubble?.keepPrevious === true,
     },
     cameraType: camera?.type === "zoomIn" || camera?.type === "zoomOut" ? camera.type : "fixed",
@@ -10748,10 +10758,12 @@ function v2ComicBubbleRectFromInputs() {
   const x = Number(document.getElementById("fV2ComicBubbleX").value);
   const y = Number(document.getElementById("fV2ComicBubbleY").value);
   const width = Number(document.getElementById("fV2ComicBubbleWidth").value);
+  const height = Number(document.getElementById("fV2ComicBubbleHeight").value);
   return {
     x: clampJS(Number.isFinite(x) ? x : 0.5, 0, 1),
     y: clampJS(Number.isFinite(y) ? y : 0.2, 0, 1),
     width: clampJS(Number.isFinite(width) ? width : 0.4, 0.1, 0.9),
+    height: clampJS(Number.isFinite(height) ? height : V2_COMIC_BUBBLE_DEFAULT_HEIGHT, 0.1, 0.9),
   };
 }
 
@@ -10761,6 +10773,7 @@ function v2PaintComicBubbleMarker(bubble) {
   el.style.left = `${bubble.x * 100}%`;
   el.style.top = `${bubble.y * 100}%`;
   el.style.width = `${bubble.width * 100}%`;
+  el.style.height = `${(bubble.height ?? V2_COMIC_BUBBLE_DEFAULT_HEIGHT) * 100}%`;
 }
 
 function v2PaintComicFrame(frame) {
@@ -10825,6 +10838,7 @@ function v2UpdateComicBubbleFromDrag(e) {
     x: clampJS(initial.x + dx, 0, 1),
     y: clampJS(initial.y + dy, 0, 1),
     width: initial.width,
+    height: initial.height,
   };
   _v2ComicBubbleDrag.bubble = bubble;
   document.getElementById("fV2ComicBubbleX").value = Math.round(bubble.x * 100) / 100;
@@ -10888,7 +10902,9 @@ function renderV2ComicControls(turn) {
   document.getElementById("fV2ComicBubbleX").value = comic.bubble.x;
   document.getElementById("fV2ComicBubbleY").value = comic.bubble.y;
   document.getElementById("fV2ComicBubbleWidth").value = comic.bubble.width;
+  document.getElementById("fV2ComicBubbleHeight").value = comic.bubble.height;
   document.getElementById("fV2ComicBubbleFontSize").value = comic.bubble.fontSize ?? "";
+  document.getElementById("fV2ComicBubbleFont").value = comic.bubble.font;
   document.getElementById("fV2ComicKeepPrevious").checked = comic.bubble.keepPrevious;
   document.getElementById("fV2ComicCameraType").value = comic.cameraType;
   document.getElementById("fV2ComicFrameCx").value = comic.frame ? comic.frame.cx : "";
@@ -12153,15 +12169,19 @@ function collectV2Basic() {
       const x = Number(document.getElementById("fV2ComicBubbleX").value);
       const y = Number(document.getElementById("fV2ComicBubbleY").value);
       const width = Number(document.getElementById("fV2ComicBubbleWidth").value);
+      const height = Number(document.getElementById("fV2ComicBubbleHeight").value);
       const bubble = {
         type: bubbleType,
         x: clampJS(Number.isFinite(x) ? x : current.bubble.x, 0, 1),
         y: clampJS(Number.isFinite(y) ? y : current.bubble.y, 0, 1),
         width: clampJS(Number.isFinite(width) ? width : current.bubble.width, 0.1, 0.9),
+        height: clampJS(Number.isFinite(height) ? height : current.bubble.height, 0.1, 0.9),
       };
       const fontSizeRaw = document.getElementById("fV2ComicBubbleFontSize").value;
       const fontSize = Number(fontSizeRaw);
       if (fontSizeRaw !== "" && Number.isFinite(fontSize)) bubble.fontSize = clampJS(fontSize, 12, 120);
+      const font = document.getElementById("fV2ComicBubbleFont").value;
+      if (font) bubble.font = font;
       if (document.getElementById("fV2ComicKeepPrevious").checked) bubble.keepPrevious = true;
       comic.bubble = bubble;
     }
@@ -15753,7 +15773,7 @@ function setupEvents() {
   const v2BasicIds = [
     "fV2DisplayMode", "fV2Speaker", "fV2Text", "fV2Pause", "fV2NoLipSync", "fV2HideCharacters", "fV2HideBubble", "fV2ContinueBubble", "fV2DisableAutoBubbleSplit", "fV2SubtitleMode", "fV2BubbleMaxChars", "fV2SubtitleFontSize", "fV2SubtitleTextColor", "fV2SubtitleBoxBorder", "fV2SubtitleBoxBorderColor", "fV2SubtitleBoxBorderWidth", "fV2Scene", "fV2FramingMode", "fV2CameraTransition", "fV2FramingSlot",
     "fV2FramedStageBackground", "fV2FramedStageX", "fV2FramedStageY", "fV2FramedStageWidth", "fV2FramedStageTransition",
-    "fV2ComicImage", "fV2ComicBubbleType", "fV2ComicBubbleX", "fV2ComicBubbleY", "fV2ComicBubbleWidth", "fV2ComicBubbleFontSize", "fV2ComicKeepPrevious", "fV2ComicCameraType", "fV2ComicFrameCx", "fV2ComicFrameCy", "fV2ComicFrameWidth",
+    "fV2ComicImage", "fV2ComicBubbleType", "fV2ComicBubbleX", "fV2ComicBubbleY", "fV2ComicBubbleWidth", "fV2ComicBubbleHeight", "fV2ComicBubbleFontSize", "fV2ComicBubbleFont", "fV2ComicKeepPrevious", "fV2ComicCameraType", "fV2ComicFrameCx", "fV2ComicFrameCy", "fV2ComicFrameWidth",
     "fV2CaptionText", "fV2CaptionX", "fV2CaptionY", "fV2CaptionSize",
     "fV2ImpactLines", "fV2ZoomPunch", "fV2QuoteFreeze", "fV2Flashback", "fV2VisionNoise", "fV2IrisOut", "fV2GloomShock", "fV2VoiceLines", "fV2ReactionMark",
     "fV2FrameCx", "fV2FrameCy", "fV2FrameWidth", "fV2MotionZoom", "fV2MotionPanX", "fV2MotionPanY", "fV2MotionTilt", "fV2MotionShakeStrength", "fV2MotionShakeDuration", "fV2MotionInherit",

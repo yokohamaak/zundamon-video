@@ -162,7 +162,9 @@ class StageSchemaTest(unittest.TestCase):
                     "x": 0.5,
                     "y": 0.3,
                     "width": 0.4,
+                    "height": 0.35,
                     "fontSize": 36,
+                    "font": "mincho",
                     "keepPrevious": True,
                 },
                 "camera": {
@@ -237,6 +239,30 @@ class StageSchemaTest(unittest.TestCase):
             },
         }
         with self.assertRaisesRegex(ValueError, "comic.bubble.fontSize"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_height_out_of_range(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "speech", "x": 0.5, "y": 0.3, "width": 0.4, "height": 0.95},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.height"):
+            validate_story_v2(story, SCENES)
+
+    def test_v2_rejects_comic_bubble_font_invalid_value(self):
+        story = copy.deepcopy(STORY)
+        story["script"][0]["displayMode"] = {
+            "kind": "comic",
+            "comic": {
+                "image": "background/manga_page1.png",
+                "bubble": {"type": "speech", "x": 0.5, "y": 0.3, "width": 0.4, "font": "comic-sans"},
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "comic.bubble.font"):
             validate_story_v2(story, SCENES)
 
     def test_v2_rejects_comic_bubble_keep_previous_non_bool(self):

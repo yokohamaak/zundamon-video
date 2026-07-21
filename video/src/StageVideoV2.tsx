@@ -1547,7 +1547,9 @@ export const StageVideoV2: React.FC<StageVideoV2Props> = ({
       x: bubble.x,
       y: bubble.y,
       width: bubble.width,
+      height: bubble.height,
       fontSize: bubble.fontSize,
+      font: bubble.font,
       text: bubble.text,
       borderColor: comicBubbleBorderColor(bubble.speaker),
     }));

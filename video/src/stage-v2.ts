@@ -202,18 +202,23 @@ export type FramedStageDisplayV2 = {
 };
 
 export type ComicBubbleTypeV2 = "speech" | "thought" | "shout" | "narration";
+export type ComicBubbleFontV2 = "mincho" | "gothic" | "rounded" | "handwriting";
 export type ComicDisplayV2 = {
   kind: "comic";
   comic: {
     /** 全画面に敷く静止画（background/ 配下）。cover表示。 */
     image: string;
-    /** 省略時は吹き出しなし（音声のみ）。座標は画面比0..1、xyは吹き出し中心。 */
+    /** 省略時は吹き出しなし（音声のみ）。座標は画面比0..1、xyは吹き出し中心。縦書き。 */
     bubble?: {
       type: ComicBubbleTypeV2;
       x: number;
       y: number;
       width: number;
+      /** 縦書きの列長＝画面高比。省略時は既定値。 */
+      height?: number;
       fontSize?: number;
+      /** 省略時は動画全体の吹き出しフォントを継承。 */
+      font?: ComicBubbleFontV2;
       /** 直前の連続する同一image・同一sceneの漫画ターンから吹き出し蓄積を引き継ぐ。 */
       keepPrevious?: boolean;
     };
