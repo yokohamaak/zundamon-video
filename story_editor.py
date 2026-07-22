@@ -62,7 +62,7 @@ _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 # /preview-assets/<path> として配信する（パストラバーサル防止付き）。
 # 許可するトップレベルディレクトリ名 or ファイル名の集合。
 _PREVIEW_ASSET_DIRS = {"avatars", "background", "effects", "mobs", "bgm", "se", "fonts", "overlays"}
-_PREVIEW_ASSET_FILES = {"story-scenes.json", "expressions.json", "poses.json", "se-map.json",
+_PREVIEW_ASSET_FILES = {"story-scenes.json", "story-01.scenes.json", "expressions.json", "poses.json", "se-map.json",
                         "mobs.json", "comic_bubbles.json", "noise.png", "story-01.wav", "story-01.mp3",
                         "story.wav", "story.mp3"}
 
@@ -1861,6 +1861,12 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/scene/story-scenes":
+            try:
+                self._send_json(scene_editor_module._load_story_scenes())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path == "/api/scene/list-assets":
             try:
                 self._send_json(scene_editor_module._list_assets())
@@ -2318,6 +2324,45 @@ class StoryEditorHandler(BaseHTTPRequestHandler):
                 data = json.loads(body.decode("utf-8"))
                 scene_editor_module._save_scenes(data)
                 self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/scene/story-scenes":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                scene_editor_module._save_story_scenes(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/scene/story-scenes/copy":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                scene_id = str(data.get("sceneId", "")).strip()
+                if not scene_id:
+                    raise ValueError("sceneId が必要です")
+                story = scene_editor_module._fork_story_scene(scene_id)
+                self._send_json({"ok": True, "storyScenes": story})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/scene/story-scenes/revert":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                scene_id = str(data.get("sceneId", "")).strip()
+                if not scene_id:
+                    raise ValueError("sceneId が必要です")
+                story = scene_editor_module._revert_story_scene(scene_id)
+                self._send_json({"ok": True, "storyScenes": story})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:

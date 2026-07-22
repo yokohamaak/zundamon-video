@@ -270,6 +270,9 @@
     padding: 14px 16px; border-bottom: 1px solid var(--border);
   }
   .side-section:last-child { border-bottom: none; }
+  .side.scene-locked > .side-section:not(#sceneForkBanner) { pointer-events: none; opacity: .45; }
+  .scope-switch { display: flex; gap: 4px; }
+  .scope-switch button.active { background: var(--accent, #4a90d9); color: #fff; }
   .section-title {
     font-size: 11px; font-weight: 600; letter-spacing: .06em;
     color: var(--text2); text-transform: uppercase; margin-bottom: 10px;
@@ -477,6 +480,10 @@
 
 <div class="header">
   <h1>シーンエディタ</h1>
+  <div class="scope-switch" id="scopeSwitch" aria-label="編集対象">
+    <button type="button" class="btn btn-secondary" data-scope="common" id="btnScopeCommon">共通</button>
+    <button type="button" class="btn btn-secondary" data-scope="story" id="btnScopeStory">この台本</button>
+  </div>
   <select class="scene-select" id="sceneSelect"></select>
   <div class="camera-frame-switch" id="cameraFrameSwitch" aria-label="シーン基本カメラ枠">
     <span class="camera-frame-switch-label">カメラ枠</span>
@@ -509,6 +516,14 @@
   </div>
 
   <div class="side">
+    <div class="side-section" id="sceneForkBanner" style="display:none;">
+      <div class="field-row" style="align-items:center; gap:10px;">
+        <span id="sceneForkBadge" style="font-size:12px; font-weight:700;"></span>
+        <button type="button" class="btn btn-secondary" id="btnSceneForkCopy" style="display:none;">この台本用に複製</button>
+        <button type="button" class="btn btn-secondary" id="btnSceneForkRevert" style="display:none;">共通に戻す（削除）</button>
+      </div>
+      <div class="field-help" id="sceneForkHelp"></div>
+    </div>
     <div class="side-section">
       <div class="section-title">シーン基本情報</div>
       <div class="field-row">
@@ -781,7 +796,11 @@ const CAMERA_FRAME_MAX = 1.0;
 // ============================================================
 // 状態
 // ============================================================
-let scenesData = null;       // story-scenes.json 全体
+let scenesData = null;       // 現在の編集scope向けの実効データ（commonそのもの、またはcommon+台本のマージ）
+let commonScenesData = null; // story-scenes.json 全体（共通デフォルト）
+let storyScenesData = null;  // 台本専用の上書きシーン（story-01.scenes.json）
+let storyForkedIds = new Set(); // 台本側に複製済みのシーンID集合
+let editorScope = 'common';  // 'common' | 'story'
 let assets = null;           // /api/list-assets
 let currentSceneId = null;   // 選択中シーンID
 let stageScale = 1;          // プレビュー縮小率
@@ -1149,11 +1168,13 @@ function copyCameraFrameMetrics() {
 // 初期化
 // ============================================================
 async function init() {
-  await Promise.all([fetchScenes(), fetchAssets(), fetchManifest()]);
+  await Promise.all([fetchScenes(), fetchStoryScenes(), fetchAssets(), fetchManifest()]);
+  rebuildScenesData();
   populateSceneSelect();
   populateBgSelects();
   loadCameraSettings();
   setupEvents();
+  setupScopeSwitch();
   resizePreview();
   window.addEventListener('resize', resizePreview);
   const firstId = sortedSceneIds()[0];
@@ -1162,8 +1183,139 @@ async function init() {
 
 async function fetchScenes() {
   const r = await fetch(API_BASE + '/scenes');
-  scenesData = await r.json();
-  if (!scenesData.scenes) scenesData.scenes = {};
+  commonScenesData = await r.json();
+  if (!commonScenesData.scenes) commonScenesData.scenes = {};
+}
+
+async function fetchStoryScenes() {
+  try {
+    const r = await fetch(API_BASE + '/story-scenes');
+    storyScenesData = await r.json();
+  } catch (e) {
+    storyScenesData = null;
+  }
+  if (!storyScenesData || typeof storyScenesData !== 'object') storyScenesData = {schemaVersion: 2, scenes: {}};
+  if (!storyScenesData.scenes) storyScenesData.scenes = {};
+}
+
+// editorScope に応じて scenesData を作り直す。'story'時は common と storyの同一オブジェクト参照を
+// マージするため、編集操作(currentScene()経由の直接代入)がそのまま storyScenesData にも反映される。
+function rebuildScenesData() {
+  storyForkedIds = new Set(Object.keys(storyScenesData.scenes || {}));
+  if (editorScope === 'story') {
+    scenesData = {
+      schemaVersion: commonScenesData.schemaVersion,
+      scenes: {...commonScenesData.scenes, ...storyScenesData.scenes},
+    };
+  } else {
+    scenesData = commonScenesData;
+  }
+}
+
+function setupScopeSwitch() {
+  document.getElementById('btnScopeCommon').addEventListener('click', () => setEditorScope('common'));
+  document.getElementById('btnScopeStory').addEventListener('click', () => setEditorScope('story'));
+  updateScopeSwitchUi();
+}
+
+function updateScopeSwitchUi() {
+  document.getElementById('btnScopeCommon').classList.toggle('active', editorScope === 'common');
+  document.getElementById('btnScopeStory').classList.toggle('active', editorScope === 'story');
+  document.getElementById('btnAddScene').style.display = editorScope === 'common' ? '' : 'none';
+  document.getElementById('btnDeleteScene').style.display = editorScope === 'common' ? '' : 'none';
+}
+
+function setEditorScope(scope) {
+  if (scope === editorScope) return;
+  editorScope = scope;
+  rebuildScenesData();
+  updateScopeSwitchUi();
+  populateSceneSelect();
+  const keepId = currentSceneId && scenesData.scenes[currentSceneId] ? currentSceneId : sortedSceneIds()[0];
+  if (keepId) selectScene(keepId);
+  updateSceneForkUi();
+}
+
+function updateSceneForkUi() {
+  const banner = document.getElementById('sceneForkBanner');
+  const badge = document.getElementById('sceneForkBadge');
+  const copyBtn = document.getElementById('btnSceneForkCopy');
+  const revertBtn = document.getElementById('btnSceneForkRevert');
+  const help = document.getElementById('sceneForkHelp');
+  const side = document.querySelector('.side');
+  if (editorScope !== 'story' || !currentSceneId) {
+    banner.style.display = 'none';
+    side.classList.remove('scene-locked');
+    return;
+  }
+  banner.style.display = '';
+  const forked = storyForkedIds.has(currentSceneId);
+  copyBtn.style.display = forked ? 'none' : '';
+  revertBtn.style.display = forked ? '' : 'none';
+  if (forked) {
+    badge.textContent = '台本専用（編集中）';
+    badge.style.color = 'var(--accent, #4a90d9)';
+    help.textContent = 'この台本だけの設定です。共通シーンを後から直しても、ここには反映されません。';
+    side.classList.remove('scene-locked');
+  } else {
+    badge.textContent = '共通を使用中';
+    badge.style.color = 'var(--text2)';
+    help.textContent = '複製すると、この台本専用のコピーとして編集できます（以後、共通の変更は反映されません）。';
+    side.classList.add('scene-locked');
+  }
+}
+
+async function forkSceneForStory() {
+  if (!currentSceneId) return;
+  const statusEl = document.getElementById('statusMsg');
+  try {
+    const r = await fetch(API_BASE + '/story-scenes/copy', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({sceneId: currentSceneId}),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      storyScenesData = result.storyScenes;
+      rebuildScenesData();
+      populateSceneSelect();
+      selectScene(currentSceneId);
+      updateSceneForkUi();
+    } else {
+      statusEl.className = 'status err';
+      statusEl.textContent = result.error || '複製失敗';
+    }
+  } catch (e) {
+    statusEl.className = 'status err';
+    statusEl.textContent = '通信エラー';
+  }
+}
+
+async function revertSceneToCommon() {
+  if (!currentSceneId) return;
+  if (!confirm('この台本専用の設定を削除し、共通シーンに戻しますか？')) return;
+  const statusEl = document.getElementById('statusMsg');
+  try {
+    const r = await fetch(API_BASE + '/story-scenes/revert', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({sceneId: currentSceneId}),
+    });
+    const result = await r.json();
+    if (r.ok && result.ok) {
+      storyScenesData = result.storyScenes;
+      rebuildScenesData();
+      populateSceneSelect();
+      selectScene(currentSceneId);
+      updateSceneForkUi();
+    } else {
+      statusEl.className = 'status err';
+      statusEl.textContent = result.error || '削除失敗';
+    }
+  } catch (e) {
+    statusEl.className = 'status err';
+    statusEl.textContent = '通信エラー';
+  }
 }
 
 async function fetchAssets() {
@@ -1398,6 +1550,7 @@ function selectScene(id) {
   setSelectValue('fFigure', sc.figure === 'full' ? 'full' : 'bust');
   showFront = document.getElementById('frontToggle').checked;
   selectedMobId = null;
+  updateSceneForkUi();
   buildCastRows();
   buildAnchorList();
   buildSlotList();
@@ -2381,6 +2534,9 @@ function setupEvents() {
 
   document.getElementById('btnDeleteScene').addEventListener('click', deleteScene);
 
+  document.getElementById('btnSceneForkCopy').addEventListener('click', forkSceneForStory);
+  document.getElementById('btnSceneForkRevert').addEventListener('click', revertSceneToCommon);
+
   document.getElementById('btnAddAnchor').addEventListener('click', addAnchor);
   document.getElementById('btnAddSlot').addEventListener('click', addSlot);
 
@@ -2419,11 +2575,12 @@ async function saveScenes() {
   const statusEl = document.getElementById('statusMsg');
   statusEl.className = 'status';
   statusEl.textContent = '保存中...';
+  const isStory = editorScope === 'story';
   try {
-    const r = await fetch(API_BASE + '/scenes', {
+    const r = await fetch(API_BASE + (isStory ? '/story-scenes' : '/scenes'), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(scenesData)
+      body: JSON.stringify(isStory ? storyScenesData : scenesData)
     });
     const result = await r.json();
     if (r.ok && result.ok) {
@@ -2447,6 +2604,7 @@ async function saveScenes() {
 // シーン追加
 // ============================================================
 function addScene() {
+  if (editorScope !== 'common') { alert('新規シーンの追加は「共通」表示に切り替えてから行ってください'); return; }
   const raw = prompt('新しいシーンID（半角英数字・ハイフン-・アンダースコア_ のみ。日本語/スペース不可）\n例: office_night, rooftop-sunset');
   if (raw === null) return; // キャンセル
   const id = raw.trim();
@@ -2519,6 +2677,7 @@ function addScene() {
 // シーン削除
 // ============================================================
 function deleteScene() {
+  if (editorScope !== 'common') { alert('シーンの削除は「共通」表示に切り替えてから行ってください'); return; }
   const sc = currentScene();
   if (!sc || !currentSceneId) return;
   const ids = Object.keys(scenesData.scenes || {});

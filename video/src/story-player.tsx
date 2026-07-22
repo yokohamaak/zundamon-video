@@ -145,6 +145,20 @@ const StoryPlayerComponent: React.FC<{
   );
 };
 
+// 台本専用のシーン上書き（story_editor の「シーン編集」で複製したシーンだけを持つ、任意ファイル）を
+// 共通シーンにマージする。同じシーンIDがあれば台本側を優先し、無ければ共通のままフォールバックする。
+async function mergeStoryScenes<T extends {scenes: Record<string, unknown>}>(baseScenes: T): Promise<T> {
+  try {
+    const res = await fetch("/preview-assets/story-01.scenes.json", { cache: "no-store" });
+    if (!res.ok) return baseScenes;
+    const storyScenes = await res.json() as {scenes?: Record<string, unknown>};
+    if (!storyScenes?.scenes) return baseScenes;
+    return {...baseScenes, scenes: {...baseScenes.scenes, ...storyScenes.scenes}};
+  } catch {
+    return baseScenes;
+  }
+}
+
 async function loadInitialProps(): Promise<Props> {
   // story は /api/story（エディタ側）から取得する。
   // scenes / manifest / audio / expressions は /preview-assets/ から取得する。
@@ -156,7 +170,8 @@ async function loadInitialProps(): Promise<Props> {
   if (!scenesRes.ok) throw new Error("story-scenes.json が取得できません");
 
   const story = await storyRes.json() as StoryVideoRouterProps["story"];
-  const scenes = await scenesRes.json() as StoryVideoRouterProps["scenes"];
+  const baseScenes = await scenesRes.json() as StoryVideoRouterProps["scenes"];
+  const scenes = await mergeStoryScenes(baseScenes);
 
   let manifest: Record<string, Record<string, string>> | undefined;
   try {
@@ -305,7 +320,8 @@ function createStoryPlayerApi(options?: {
       try {
         const res = await fetch("/preview-assets/story-scenes.json", { cache: "no-store" });
         if (!res.ok) return;
-        const scenes = await res.json();
+        const baseScenes = await res.json();
+        const scenes = await mergeStoryScenes(baseScenes);
         setPropsState((prev) => ({ ...prev, scenes } as Props));
       } catch {
       }
@@ -395,7 +411,7 @@ function createStoryPlayerApi(options?: {
           fetch("/api/story", { cache: "no-store" }),
           fetch("/preview-assets/se-map.json", { cache: "no-store" }),
         ]);
-        const scenes = scenesRes.ok ? await scenesRes.json() : undefined;
+        const scenes = scenesRes.ok ? await mergeStoryScenes(await scenesRes.json()) : undefined;
         const story = storyRes.ok ? await storyRes.json() : undefined;
         const seMap = seRes.ok ? await seRes.json() : undefined;
         let shouldRefreshAudio = false;

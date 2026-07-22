@@ -7,6 +7,7 @@ video/public/story-scenes.json をブラウザでビジュアル編集する。
 使い方: python scene_editor.py [--port 8770]
 """
 import argparse
+import copy
 import json
 import mimetypes
 import os
@@ -20,6 +21,9 @@ from stage_schema import validate_scene_library_v2
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEO_PUBLIC_DIR = os.path.join(ROOT_DIR, "video", "public")
 SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-scenes.json")
+# 台本ごとのシーン上書き（共通シーンのうち、この台本用に複製・調整したものだけを持つ）。
+# 現状は台本が story-01 の1本だけのため固定パス。台本が増えたら台本IDでファイルを分ける想定。
+STORY_SCENES_JSON = os.path.join(VIDEO_PUBLIC_DIR, "story-01.scenes.json")
 MANIFEST_JSON = os.path.join(VIDEO_PUBLIC_DIR, "avatars", "manifest.json")
 BG_DIR = os.path.join(VIDEO_PUBLIC_DIR, "background")
 AVATARS_DIR = os.path.join(VIDEO_PUBLIC_DIR, "avatars")
@@ -129,6 +133,46 @@ def _save_scenes(data):
         validate_scene_library_v2(data)
     with open(SCENES_JSON, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _load_story_scenes():
+    if not os.path.exists(STORY_SCENES_JSON):
+        return {"schemaVersion": 2, "scenes": {}}
+    with open(STORY_SCENES_JSON, encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict) or not isinstance(data.get("scenes"), dict):
+        return {"schemaVersion": 2, "scenes": {}}
+    return data
+
+
+def _save_story_scenes(data):
+    """検証してから story-01.scenes.json に書き戻す。既存の _save_scenes と同じ検証を使い回す
+    （データ形式は共通シーンファイルと同じで、含むシーンIDが台本用だけに絞られているだけ）。"""
+    if not isinstance(data, dict) or not isinstance(data.get("scenes"), dict):
+        raise ValueError("scenes は object である必要があります")
+    data["schemaVersion"] = 2
+    validate_scene_library_v2(data)
+    with open(STORY_SCENES_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _fork_story_scene(scene_id):
+    """共通シーンを台本専用ファイルへ複製する。以後、台本側の編集は共通に影響しない。"""
+    common = _load_scenes()
+    if not isinstance(common.get("scenes"), dict) or scene_id not in common["scenes"]:
+        raise ValueError(f"共通シーンに見つかりません: {scene_id}")
+    story = _load_story_scenes()
+    story["scenes"][scene_id] = copy.deepcopy(common["scenes"][scene_id])
+    _save_story_scenes(story)
+    return story
+
+
+def _revert_story_scene(scene_id):
+    """台本専用の上書きを削除し、以後は共通シーンへフォールバックさせる。"""
+    story = _load_story_scenes()
+    story["scenes"].pop(scene_id, None)
+    _save_story_scenes(story)
+    return story
 
 
 def _list_assets():
@@ -268,6 +312,12 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_error_json(500, str(e))
 
+        elif path == "/api/story-scenes":
+            try:
+                self._send_json(_load_story_scenes())
+            except Exception as e:
+                self._send_error_json(500, str(e))
+
         elif path == "/api/list-assets":
             try:
                 self._send_json(_list_assets())
@@ -312,6 +362,45 @@ class SceneEditorHandler(BaseHTTPRequestHandler):
                 data = json.loads(body.decode("utf-8"))
                 _save_scenes(data)
                 self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/story-scenes":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                _save_story_scenes(data)
+                self._send_json({"ok": True})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/story-scenes/copy":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                scene_id = str(data.get("sceneId", "")).strip()
+                if not scene_id:
+                    raise ValueError("sceneId が必要です")
+                story = _fork_story_scene(scene_id)
+                self._send_json({"ok": True, "storyScenes": story})
+            except (json.JSONDecodeError, ValueError) as e:
+                self._send_error_json(400, str(e))
+            except Exception as e:
+                self._send_error_json(500, str(e))
+        elif path == "/api/story-scenes/revert":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode("utf-8"))
+                scene_id = str(data.get("sceneId", "")).strip()
+                if not scene_id:
+                    raise ValueError("sceneId が必要です")
+                story = _revert_story_scene(scene_id)
+                self._send_json({"ok": True, "storyScenes": story})
             except (json.JSONDecodeError, ValueError) as e:
                 self._send_error_json(400, str(e))
             except Exception as e:
