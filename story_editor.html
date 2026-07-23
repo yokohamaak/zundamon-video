@@ -17756,10 +17756,41 @@ function makeMobCard(name, def) {
 
   card.appendChild(voiceRow);
 
+  const stateHead = document.createElement("div");
+  stateHead.style.cssText = "display:flex; align-items:center; gap:8px; margin-top:4px;";
+  const stateLabel = document.createElement("span");
+  stateLabel.textContent = "状態";
+  stateLabel.style.cssText = "font-size:12px; color:var(--text2);";
+  stateHead.appendChild(stateLabel);
+  const stateSelect = document.createElement("select");
+  stateSelect.className = "field-select mob-state-select";
+  stateSelect.style.width = "260px";
+  stateHead.appendChild(stateSelect);
+  const stateDelBtn = document.createElement("button");
+  stateDelBtn.type = "button";
+  stateDelBtn.className = "btn btn-secondary btn-sm";
+  stateDelBtn.textContent = "この状態を削除";
+  stateHead.appendChild(stateDelBtn);
+  card.appendChild(stateHead);
+
   const statesBox = document.createElement("div");
   statesBox.className = "mob-states-box";
-  statesBox.style.cssText = "display:flex; flex-direction:column; gap:10px;";
   card.appendChild(statesBox);
+
+  function selectState(state) {
+    stateSelect.value = state;
+    for (const el of statesBox.children) {
+      el.style.display = el.dataset.stateSection === state ? "" : "none";
+    }
+    stateDelBtn.style.visibility = state === "normal" ? "hidden" : "";
+  }
+
+  function addStateOption(state) {
+    const o = document.createElement("option");
+    o.value = state;
+    o.textContent = `${MOB_STATE_LABELS[state] || state}（${state}）`;
+    stateSelect.appendChild(o);
+  }
 
   // normalを先頭、以後は既知の並び→アルファベット順。1つも無ければnormalを空で用意する。
   const knownOrder = ["normal", "smile", "shaken", "angry", "exasperated", "wry", "agitated"];
@@ -17776,8 +17807,21 @@ function makeMobCard(name, def) {
       return ia - ib;
     });
   for (const state of states) {
+    addStateOption(state);
     statesBox.appendChild(makeMobStateSection(state, def, nameGetter));
   }
+  selectState(states[0] || "normal");
+
+  stateSelect.addEventListener("change", () => selectState(stateSelect.value));
+
+  stateDelBtn.addEventListener("click", () => {
+    const state = stateSelect.value;
+    if (state === "normal") return;
+    statesBox.querySelector(`[data-state-section="${CSS.escape(state)}"]`)?.remove();
+    stateSelect.querySelector(`option[value="${CSS.escape(state)}"]`)?.remove();
+    selectState("normal");
+    markMobsDirty();
+  });
 
   const addStateBtn = document.createElement("button");
   addStateBtn.type = "button";
@@ -17796,7 +17840,9 @@ function makeMobCard(name, def) {
       alert("その状態名は既にあります。");
       return;
     }
+    addStateOption(state);
     statesBox.appendChild(makeMobStateSection(state, { images: {} }, nameGetter));
+    selectState(state);
     markMobsDirty();
   });
   card.appendChild(addStateBtn);
@@ -17819,25 +17865,6 @@ function makeMobStateSection(state, def, nameGetter) {
   const box = document.createElement("div");
   box.dataset.stateSection = state;
   box.style.cssText = "display:flex; flex-direction:column; gap:6px;";
-
-  const titleRow = document.createElement("div");
-  titleRow.style.cssText = "display:flex; align-items:center; gap:8px; margin-top:4px;";
-
-  const title = document.createElement("div");
-  title.textContent = `${MOB_STATE_LABELS[state] || state}（${state}）`;
-  title.style.cssText = "font-size:12px; font-weight:700; color:var(--text2);";
-  titleRow.appendChild(title);
-
-  if (state !== "normal") {
-    const delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "btn btn-secondary btn-sm";
-    delBtn.textContent = "この状態を削除";
-    delBtn.addEventListener("click", () => { box.remove(); markMobsDirty(); });
-    titleRow.appendChild(delBtn);
-  }
-
-  box.appendChild(titleRow);
   box.appendChild(makeMobImageSlot("画像（口閉じ）", def.images?.[state]?.closed, nameGetter, state, "closed"));
   box.appendChild(makeMobImageSlot("画像（口開け）", def.images?.[state]?.open, nameGetter, state, "open"));
   return box;
