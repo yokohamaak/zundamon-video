@@ -608,9 +608,12 @@ def _load_expression_keys():
     try:
         with open(EXPRESSIONS_JSON, encoding="utf-8") as f:
             data = json.load(f)
-        # 全キャラのキーを集約（重複排除）
+        # 全キャラのキーを集約（重複排除）。"labels"はキャラではなく表情キー→和名の
+        # 辞書なので対象から除く。
         all_keys = set()
-        for char_data in data.values():
+        for char_key, char_data in data.items():
+            if char_key == "labels":
+                continue
             if isinstance(char_data, dict):
                 all_keys.update(char_data.keys())
         # 組み込み5種を先頭に、残りをアルファベット順で追加
@@ -625,6 +628,9 @@ def _load_expression_keys():
 def _load_expression_labels():
     """expressions.json の label を表情キーごとに返す。
     label が無い組み込み表情は既定の和名を返す。
+    新形式はトップレベル "labels"（表情キー→和名、キャラ非依存）。
+    旧形式（キャラごとのcfgに label が重複保存されている）も、未移行データの
+    フォールバックとして読む（labels側が優先）。
     """
     labels = dict(EXPRESSION_LABELS)
     if not os.path.exists(EXPRESSIONS_JSON):
@@ -632,13 +638,18 @@ def _load_expression_labels():
     try:
         with open(EXPRESSIONS_JSON, encoding="utf-8") as f:
             data = json.load(f)
-        for char_data in data.values():
-            if not isinstance(char_data, dict):
+        for char_key, char_data in data.items():
+            if char_key == "labels" or not isinstance(char_data, dict):
                 continue
             for expr_name, cfg in char_data.items():
                 if not isinstance(cfg, dict):
                     continue
                 label = cfg.get("label")
+                if isinstance(label, str) and label.strip():
+                    labels[expr_name] = label.strip()
+        top_labels = data.get("labels")
+        if isinstance(top_labels, dict):
+            for expr_name, label in top_labels.items():
                 if isinstance(label, str) and label.strip():
                     labels[expr_name] = label.strip()
         return labels

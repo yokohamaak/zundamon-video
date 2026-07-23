@@ -476,11 +476,25 @@ function defaultExpressionLabel(expr) {
 }
 
 function storedExpressionLabel(expr) {
-  for (const charData of Object.values(expressions || {})) {
-    const raw = charData?.[expr]?.label;
-    if (typeof raw === "string" && raw.trim()) return raw.trim();
+  const raw = expressions?.labels?.[expr];
+  return (typeof raw === "string" && raw.trim()) ? raw.trim() : "";
+}
+
+// 旧形式（labelを各キャラのcfgに重複保存）からの移行。labelsに無ければキャラ側から拾い、
+// キャラ側のlabelフィールドは削除する（以後はlabelsだけが正）。
+function migrateExpressionLabels() {
+  if (!expressions.labels || typeof expressions.labels !== "object") expressions.labels = {};
+  for (const charKey of Object.keys(expressions).filter((k) => k !== "labels")) {
+    const charData = expressions[charKey];
+    if (!charData || typeof charData !== "object") continue;
+    for (const [expr, cfg] of Object.entries(charData)) {
+      if (!cfg || typeof cfg !== "object") continue;
+      if (typeof cfg.label === "string" && cfg.label.trim() && !expressions.labels[expr]) {
+        expressions.labels[expr] = cfg.label.trim();
+      }
+      delete cfg.label;
+    }
   }
-  return "";
 }
 
 function expressionLabel(expr) {
@@ -500,11 +514,9 @@ function ensureExpressionCfg(charKey, expr) {
 
 function setExpressionLabel(expr, label) {
   const clean = String(label || "").trim();
-  for (const charKey of Object.keys(expressions || {})) {
-    const cfg = ensureExpressionCfg(charKey, expr);
-    if (clean) cfg.label = clean;
-    else delete cfg.label;
-  }
+  if (!expressions.labels) expressions.labels = {};
+  if (clean) expressions.labels[expr] = clean;
+  else delete expressions.labels[expr];
 }
 
 function updateExpressionListLabel(expr) {
@@ -572,6 +584,7 @@ async function fetchCatalog() {
 async function fetchExpressions() {
   const r = await fetch(API_BASE + "/expressions");
   expressions = await r.json();
+  migrateExpressionLabels();
   rebuildExpressionList();
 }
 
@@ -601,8 +614,8 @@ async function fetchSeMap() {
 // 組み込み5種を先頭に、追加表情をアルファベット順で続ける。
 function rebuildExpressionList() {
   const allKeys = new Set();
-  for (const charData of Object.values(expressions || {})) {
-    for (const k of Object.keys(charData)) allKeys.add(k);
+  for (const charKey of Object.keys(expressions || {}).filter((k) => k !== "labels")) {
+    for (const k of Object.keys(expressions[charKey])) allKeys.add(k);
   }
   const extras = [...allKeys].filter(k => !BUILTIN_EXPRESSIONS.includes(k)).sort();
   expressionList = [...BUILTIN_EXPRESSIONS, ...extras];
@@ -704,8 +717,8 @@ function addExpression() {
     return;
   }
 
-  // 両キャラに追加（normal の設定を複製）
-  for (const charKey of Object.keys(expressions)) {
+  // 両キャラに追加（normal の設定を複製）。"labels"はキャラではないので除外。
+  for (const charKey of Object.keys(expressions).filter((k) => k !== "labels")) {
     const normalCfg = expressions[charKey]["normal"] || {};
     const newCfg = Object.assign({}, normalCfg);
     delete newCfg.label;
@@ -731,9 +744,10 @@ function deleteExpression(expr) {
   }
   if (!confirm("表情「" + expr + "」を両キャラから削除しますか？")) return;
 
-  for (const charKey of Object.keys(expressions)) {
+  for (const charKey of Object.keys(expressions).filter((k) => k !== "labels")) {
     delete expressions[charKey][expr];
   }
+  if (expressions.labels) delete expressions.labels[expr];
 
   rebuildExpressionList();
   // 削除した表情が選択中なら先頭に戻す

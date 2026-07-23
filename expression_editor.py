@@ -125,6 +125,7 @@ SLOT_LABELS = {
             "batsu":    "><",
             "guruguru": "ぐるぐる",
             "miage":    "見上げ",
+            "jito":     "ジト目",
         },
         "mouth": {
             "close":    "ほほえみ",
@@ -180,10 +181,16 @@ def _load_expressions():
 
 
 def _save_expressions(data):
-    """検証してから expressions.json に書き戻す。"""
+    """検証してから expressions.json に書き戻す。
+    トップレベルは通常キャラ名(CHARS)だが、"labels"（表情キー→和名、キャラ非依存）だけは
+    キャラ扱いせず別形式(文字列の辞書)として検証する。"""
     if not isinstance(data, dict):
         raise ValueError("expressions は object である必要があります")
     for char_key, exprs in data.items():
+        if char_key == "labels":
+            if not isinstance(exprs, dict) or not all(isinstance(v, str) for v in exprs.values()):
+                raise ValueError("labels は文字列の object である必要があります")
+            continue
         if not isinstance(exprs, dict):
             raise ValueError(f"{char_key} は object である必要があります")
         for expr_name, cfg in exprs.items():
