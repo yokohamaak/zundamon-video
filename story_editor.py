@@ -983,7 +983,7 @@ def _build_script_prompt(theme, length, notes, mode="safe",
         "",
         "━━━ 表情（expression に使う値・各ターンに付ける）━━━",
         expr_list,
-        "※ expression は上記リストのキーのみ使う。例: normal=通常 / happy=笑顔 / surprise=驚き / trouble=困り / panic=焦り / angry=怒り / niyari=ニヤリ / question=疑問。",
+        "※ expression は上記リストのキーのみ使う。例: normal=通常 / happy=笑顔 / surprise=驚き / trouble=困り / panic=焦り / angry=怒り / shy=照れ / question=疑問。",
         "",
         # 【重要】新しい演出を実装したら、この節に1行追記すること。
         #   併せて _KNOWN_TURN_FIELDS / _KNOWN_INSERT_KINDS も更新。
