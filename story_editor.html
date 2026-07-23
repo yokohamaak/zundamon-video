@@ -8066,7 +8066,8 @@ function faceModeLabel(mode) {
 }
 
 function expressionLabel(expression) {
-  const label = meta?.expressionLabels?.[expression];
+  // zundamon/metanのexpressionLabels優先。無ければサブキャラの状態名(MOB_STATE_LABELS)を見る。
+  const label = meta?.expressionLabels?.[expression] ?? MOB_STATE_LABELS?.[expression];
   return label && label !== expression ? `${label} (${expression})` : (expression || "");
 }
 
@@ -17853,7 +17854,7 @@ function makeMobCard(name, def) {
 // 表情状態名→日本語の見出し。未知の状態名はキーそのまま表示する。
 const MOB_STATE_LABELS = {
   normal: "通常",
-  agitated: "取り乱し(任意・未設定なら通常表情を使用)",
+  agitated: "取り乱し",
   smile: "笑顔",
   shaken: "動揺",
   angry: "怒り",
