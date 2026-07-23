@@ -17756,21 +17756,91 @@ function makeMobCard(name, def) {
 
   card.appendChild(voiceRow);
 
-  const normalTitle = document.createElement("div");
-  normalTitle.textContent = "通常表情";
-  normalTitle.style.cssText = "font-size:12px; font-weight:700; color:var(--text2); margin-top:4px;";
-  card.appendChild(normalTitle);
-  card.appendChild(makeMobImageSlot("画像（口閉じ）", def.images?.normal?.closed, nameGetter, "normal", "closed"));
-  card.appendChild(makeMobImageSlot("画像（口開け）", def.images?.normal?.open, nameGetter, "normal", "open"));
+  const statesBox = document.createElement("div");
+  statesBox.className = "mob-states-box";
+  statesBox.style.cssText = "display:flex; flex-direction:column; gap:10px;";
+  card.appendChild(statesBox);
 
-  const agitatedTitle = document.createElement("div");
-  agitatedTitle.textContent = "取り乱し表情（任意・未設定なら通常表情を使用）";
-  agitatedTitle.style.cssText = "font-size:12px; font-weight:700; color:var(--text2); margin-top:4px;";
-  card.appendChild(agitatedTitle);
-  card.appendChild(makeMobImageSlot("画像（口閉じ）", def.images?.agitated?.closed, nameGetter, "agitated", "closed"));
-  card.appendChild(makeMobImageSlot("画像（口開け）", def.images?.agitated?.open, nameGetter, "agitated", "open"));
+  // normalを先頭、以後は既知の並び→アルファベット順。1つも無ければnormalを空で用意する。
+  const knownOrder = ["normal", "smile", "shaken", "angry", "exasperated", "wry", "agitated"];
+  const existing = Object.keys(def.images || {});
+  const states = ["normal", ...existing.filter((s) => s !== "normal")]
+    .filter((s, i, arr) => arr.indexOf(s) === i)
+    .sort((a, b) => {
+      const ia = knownOrder.indexOf(a), ib = knownOrder.indexOf(b);
+      if (a === "normal") return -1;
+      if (b === "normal") return 1;
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  for (const state of states) {
+    statesBox.appendChild(makeMobStateSection(state, def, nameGetter));
+  }
+
+  const addStateBtn = document.createElement("button");
+  addStateBtn.type = "button";
+  addStateBtn.className = "btn btn-secondary btn-sm";
+  addStateBtn.style.alignSelf = "flex-start";
+  addStateBtn.textContent = "＋ 状態を追加";
+  addStateBtn.addEventListener("click", () => {
+    const raw = prompt("追加する状態名（半角英数字。例: smile, shaken, angry, exasperated, wry）");
+    if (raw === null) return;
+    const state = raw.trim();
+    if (!state.match(/^[a-zA-Z0-9_]+$/)) {
+      alert("状態名は半角英数字・アンダースコアのみです。");
+      return;
+    }
+    if (statesBox.querySelector(`[data-state-section="${CSS.escape(state)}"]`)) {
+      alert("その状態名は既にあります。");
+      return;
+    }
+    statesBox.appendChild(makeMobStateSection(state, { images: {} }, nameGetter));
+    markMobsDirty();
+  });
+  card.appendChild(addStateBtn);
 
   return card;
+}
+
+// 表情状態名→日本語の見出し。未知の状態名はキーそのまま表示する。
+const MOB_STATE_LABELS = {
+  normal: "通常",
+  agitated: "取り乱し(任意・未設定なら通常表情を使用)",
+  smile: "笑顔",
+  shaken: "動揺",
+  angry: "怒り",
+  exasperated: "呆れ",
+  wry: "苦笑い",
+};
+
+function makeMobStateSection(state, def, nameGetter) {
+  const box = document.createElement("div");
+  box.dataset.stateSection = state;
+  box.style.cssText = "display:flex; flex-direction:column; gap:6px;";
+
+  const titleRow = document.createElement("div");
+  titleRow.style.cssText = "display:flex; align-items:center; gap:8px; margin-top:4px;";
+
+  const title = document.createElement("div");
+  title.textContent = `${MOB_STATE_LABELS[state] || state}（${state}）`;
+  title.style.cssText = "font-size:12px; font-weight:700; color:var(--text2);";
+  titleRow.appendChild(title);
+
+  if (state !== "normal") {
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn btn-secondary btn-sm";
+    delBtn.textContent = "この状態を削除";
+    delBtn.addEventListener("click", () => { box.remove(); markMobsDirty(); });
+    titleRow.appendChild(delBtn);
+  }
+
+  box.appendChild(titleRow);
+  box.appendChild(makeMobImageSlot("画像（口閉じ）", def.images?.[state]?.closed, nameGetter, state, "closed"));
+  box.appendChild(makeMobImageSlot("画像（口開け）", def.images?.[state]?.open, nameGetter, state, "open"));
+  return box;
 }
 
 async function saveMobs() {

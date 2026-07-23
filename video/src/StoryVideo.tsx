@@ -607,13 +607,16 @@ function effectiveInsertAt(script: StoryTurn[], idx: number): StoryInsert | null
   // 未指定なら描画側（InsertVideoCall）が現在の話者へ自動追従する。
   return { ...merged, activeSpeaker: own?.activeSpeaker };
 }
-// 取り乱し系の表情なら agitated（焦り/怒り）、それ以外は normal。
-// 未知の追加表情は normal 扱い（組み込み5種と比較してフォールバック）。
+// サブキャラ（営業/部長/豆山等、6状態: normal/smile/shaken/angry/exasperated/wry）は
+// 自分の状態名をそのまま expression に指定する運用のため、images のキーと直接一致させる。
+// 一致しなければ旧2状態モブ用の agitated 判定へフォールバックし、それも無ければ normal。
 function mobImage(mobId: string, expression?: StoryExpression, mouthOpen?: boolean): string {
   const m = MOBS[mobId];
   const agitated =
     expression === "panic" || expression === "surprise" || expression === "trouble";
-  const key = agitated && m.images.agitated ? "agitated" : "normal";
+  const key = (expression && m.images[expression])
+    ? expression
+    : (agitated && m.images.agitated) ? "agitated" : "normal";
   const pair = m.images[key] ?? Object.values(m.images)[0];
   return (mouthOpen ? pair.open : pair.closed) ?? pair.closed ?? pair.open;
 }

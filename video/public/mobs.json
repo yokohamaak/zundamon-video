@@ -39,6 +39,39 @@
       "speaker": 3
     }
   },
+  "偉い人": {
+    "scale": 1,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.95
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/偉い人_normal_close.png",
+        "open": "mobs/偉い人_normal_open.png"
+      },
+      "smile": {
+        "closed": "mobs/偉い人_smile_close.png",
+        "open": "mobs/偉い人_smile_open.png"
+      },
+      "shaken": {
+        "closed": "mobs/偉い人_shaken_close.png",
+        "open": "mobs/偉い人_shaken_open.png"
+      },
+      "angry": {
+        "closed": "mobs/偉い人_angry_close.png",
+        "open": "mobs/偉い人_angry_open.png"
+      },
+      "exasperated": {
+        "closed": "mobs/偉い人_exasperated_close.png",
+        "open": "mobs/偉い人_exasperated_open.png"
+      },
+      "wry": {
+        "closed": "mobs/偉い人_wry_close.png",
+        "open": "mobs/偉い人_wry_open.png"
+      }
+    }
+  },
   "営業": {
     "scale": 0.85,
     "anchor": {
@@ -47,12 +80,28 @@
     },
     "images": {
       "normal": {
-        "closed": "mobs/営業_normal_closed.png",
+        "closed": "mobs/営業_normal_close.png",
         "open": "mobs/営業_normal_open.png"
       },
-      "agitated": {
-        "closed": "mobs/営業_agitated_closed.png",
-        "open": "mobs/営業_agitated_open.png"
+      "smile": {
+        "closed": "mobs/営業_smile_close.png",
+        "open": "mobs/営業_smile_open.png"
+      },
+      "shaken": {
+        "closed": "mobs/営業_shaken_close.png",
+        "open": "mobs/営業_shaken_open.png"
+      },
+      "angry": {
+        "closed": "mobs/営業_angry_close.png",
+        "open": "mobs/営業_angry_open.png"
+      },
+      "exasperated": {
+        "closed": "mobs/営業_exasperated_close.png",
+        "open": "mobs/営業_exasperated_open.png"
+      },
+      "wry": {
+        "closed": "mobs/営業_wry_close.png",
+        "open": "mobs/営業_wry_open.png"
       }
     },
     "voice": {
@@ -99,6 +148,26 @@
       "speaker": 8
     }
   },
+  "推し活おじいさんずんだもん": {
+    "scale": 1,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.95
+    },
+    "images": {
+      "normal": {
+        "closed": "mobs/推し活おじいさんずんだもん_normal_closed.png",
+        "open": "mobs/推し活おじいさんずんだもん_normal_open.png"
+      },
+      "agitated": {
+        "closed": "mobs/推し活おじいさんずんだもん_agitated_closed.png",
+        "open": "mobs/推し活おじいさんずんだもん_agitated_open.png"
+      }
+    },
+    "voice": {
+      "speaker": 3
+    }
+  },
   "豆山": {
     "scale": 1,
     "anchor": {
@@ -107,12 +176,28 @@
     },
     "images": {
       "normal": {
-        "closed": "mobs/豆山_normal_closed.png",
+        "closed": "mobs/豆山_normal_close.png",
         "open": "mobs/豆山_normal_open.png"
       },
-      "agitated": {
-        "closed": "mobs/豆山_agitated_closed.png",
-        "open": "mobs/豆山_agitated_open.png"
+      "smile": {
+        "closed": "mobs/豆山_smile_close.png",
+        "open": "mobs/豆山_smile_open.png"
+      },
+      "shaken": {
+        "closed": "mobs/豆山_shaken_close.png",
+        "open": "mobs/豆山_shaken_open.png"
+      },
+      "angry": {
+        "closed": "mobs/豆山_angry_close.png",
+        "open": "mobs/豆山_angry_open.png"
+      },
+      "exasperated": {
+        "closed": "mobs/豆山_exasperated_close.png",
+        "open": "mobs/豆山_exasperated_open.png"
+      },
+      "wry": {
+        "closed": "mobs/豆山_wry_close.png",
+        "open": "mobs/豆山_wry_open.png"
       }
     },
     "voice": {
@@ -127,12 +212,28 @@
     },
     "images": {
       "normal": {
-        "closed": "mobs/部長_normal_closed.png",
+        "closed": "mobs/部長_normal_close.png",
         "open": "mobs/部長_normal_open.png"
       },
-      "agitated": {
-        "closed": "mobs/部長_agitated_closed.png",
-        "open": "mobs/部長_agitated_open.png"
+      "smile": {
+        "closed": "mobs/部長_smile_close.png",
+        "open": "mobs/部長_smile_open.png"
+      },
+      "shaken": {
+        "closed": "mobs/部長_shaken_close.png",
+        "open": "mobs/部長_shaken_open.png"
+      },
+      "angry": {
+        "closed": "mobs/部長_angry_close.png",
+        "open": "mobs/部長_angry_open.png"
+      },
+      "exasperated": {
+        "closed": "mobs/部長_exasperated_close.png",
+        "open": "mobs/部長_exasperated_open.png"
+      },
+      "wry": {
+        "closed": "mobs/部長_wry_close.png",
+        "open": "mobs/部長_wry_open.png"
       }
     },
     "voice": {
